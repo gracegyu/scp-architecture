@@ -1,0 +1,13 @@
+- WebViewer는 동시 편집을 지원한다. (별도 연구 과제)
+    - 지원 파일
+        - 2D image
+        - 3D ?
+            - 3D도 Annotation등 Tag 정보만 동시 편집 하면 되므로 동시 편집이 가능하다.
+    - 지원 기능
+        - Annotation
+        - 이미지 설정, 밝기, 채도
+        - 회전?
+        - TBD
+    - 기술
+        - yjs
+- Desktop viewer는 동시 편집을 지원하지 않는다.

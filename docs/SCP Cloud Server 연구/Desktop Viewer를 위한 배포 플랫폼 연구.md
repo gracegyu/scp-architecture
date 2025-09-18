@@ -1,0 +1,3 @@
+- Plugin / update / contents 배포 플랫폼 (별도 연구 과제)
+    - Desktop Viewer를 위한 것? TBD
+        - Web viewer는 배포가 필요 없음

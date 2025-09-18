@@ -1,0 +1,15 @@
+- 전송 속도 개선
+    - 전체 CT는 너무 커서 인터넷으로 내려 받는데 너무 오래 걸린다.
+        - [Stream Zip, Unzip을 통한 전송 속도 개선 연구](https://vks.vatech.com/pages/viewpage.action?pageId=206090707)
+    - 전체 CT를 보는 경우 - 손실 압축을 통해서 10~20배 전송 속도를 개선한다.
+        - [이미지 압축을 통한 전송 속도 향상 연구](https://vks.vatech.com/pages/viewpage.action?pageId=199922054)
+- 전체 CT는 Web View에서 Rendering하는데, 자원을 너무 많이 사용하고 느리다.
+    - 필요한 부분(치아 하나)의 영역만 서버에서 잘라서 작은 데이터로 만들어서 Web Client로 보내서 처리한다.
+        - 시나리오
+            - 손실 압축 CT를 통해서 Web Viewer에서 전체 치아를 조회한다.
+            - 관심있는 영역의 치아를 선택하면 서버에서 치아 하나의 영역의 Mini CT 데이터를 생성해서 Client로 전송한다.
+        - 연구 과제
+            - 치아별 영역을 결정하는 방법
+                - How : AI 이용?
+                - Where : Client vs. Server?
+                - When : 실시산 vs. 미리 치아별 위치 영역 분석해서 DB에 보관해 놓는다.
