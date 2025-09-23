@@ -99,7 +99,7 @@ lib/vtkjs-wrapper
 
 **실제 확인된 호출 흐름**:
 
-```
+````
 1. 썸네일 클릭
    examples/host-app/src/Components/ThumbnailList.tsx
    → handleClickThumbnail (examples/host-app/src/Components/Viewer.tsx)
@@ -165,7 +165,7 @@ lib/vtkjs-wrapper
 
 10. LoadDicomFiles 호출 (VTK ImageData 생성)
     lib/vtkjs-wrapper/src/io/Dicoms/index.ts:LoadDicomFiles
-    → for await 루프로 각 POC DICOM 파일 순차 처리 (399개)
+    → for await 루프로 각 PoC DICOM 파일 순차 처리 (399개)
     → **loadDicom(es-dicom 라이브러리)** 호출하여 DICOM 헤더 및 픽셀 데이터 파싱
     → DicomFile 객체 생성 및 dicomFiles 배열에 추가 (399개 DicomFile[])
     → selectDICOMSeries로 시리즈 선택, PatientInfo/AcquisitionInfo 생성
@@ -191,7 +191,7 @@ lib/vtkjs-wrapper
     → **vtkVolumeMapper.setInputData(imageData)** 호출로 VTK 파이프라인 연결
     → render() 호출로 **최종 CT 4분할 화면 렌더링 완료**
 
-```
+````
 
 **6-9번 단계별 세부 설명**:
 
@@ -199,26 +199,26 @@ lib/vtkjs-wrapper
 
 - **역할**: React 컴포넌트와 VTK 컨트롤러 사이의 브리지
 - **주요 기능**:
-    - React ref를 통해 CTViewerController 인스턴스에 접근
-    - 데이터와 타입을 하위 컨트롤러로 전달
-    - 컴포넌트 생명주기 관리
+  - React ref를 통해 CTViewerController 인스턴스에 접근
+  - 데이터와 타입을 하위 컨트롤러로 전달
+  - 컴포넌트 생명주기 관리
 
 ### **7번: CTViewerController.loadCT**
 
 - **역할**: VTK 데이터 로딩의 핵심 오케스트레이터
 - **주요 기능**:
-    - CTDataType에 따른 데이터 검증 (blobObject vs fileObject)
-    - loadVolume 함수 호출 및 결과 처리
-    - VTK 렌더링 파이프라인 초기화 (setVolume, render)
-    - VolumeLoadingState 상태 관리
+  - CTDataType에 따른 데이터 검증 (blobObject vs fileObject)
+  - loadVolume 함수 호출 및 결과 처리
+  - VTK 렌더링 파이프라인 초기화 (setVolume, render)
+  - VolumeLoadingState 상태 관리
 
 ### **8번: loadVolume 함수**
 
 - **역할**: CTDataType에 따른 로딩 방식 분기 처리
 - **주요 기능**:
-    - CTDataType.blobObject → loadVolumeZippedBlob (압축 해제 필요)
-    - CTDataType.fileObject → loadVolumeFileList (압축 해제 불필요)
-    - 통일된 IResultLoadingDicom 결과 반환
+  - CTDataType.blobObject → loadVolumeZippedBlob (압축 해제 필요)
+  - CTDataType.fileObject → loadVolumeFileList (압축 해제 불필요)
+  - 통일된 IResultLoadingDicom 결과 반환
 
 ### **9번: VTK.js 내부 처리**
 

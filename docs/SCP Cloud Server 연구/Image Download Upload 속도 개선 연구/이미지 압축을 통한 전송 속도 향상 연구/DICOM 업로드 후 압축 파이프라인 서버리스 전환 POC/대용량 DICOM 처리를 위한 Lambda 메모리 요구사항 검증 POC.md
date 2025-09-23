@@ -2,7 +2,7 @@
 
 ## Project Name
 
-**대용량 DICOM 처리를 위한 Lambda 메모리 요구사항 검증 POC** (Large-Scale DICOM Memory Testing POC)
+**대용량 DICOM 처리를 위한 Lambda 메모리 요구사항 검증 PoC** (Large-Scale DICOM Memory Testing PoC)
 
 ## Date
 
@@ -16,7 +16,7 @@
 
 ## Project Description
 
-**기존 서버리스 DICOM 압축 파이프라인에서 대용량 CT 데이터 처리 시 필요한 Lambda 메모리 요구사항을 실제 테스트를 통해 검증하는 POC**입니다.
+**기존 서버리스 DICOM 압축 파이프라인에서 대용량 CT 데이터 처리 시 필요한 Lambda 메모리 요구사항을 실제 테스트를 통해 검증하는 PoC**입니다.
 
 현재 이론적 계산으로 추정한 메모리 사용량 공식을 실제 대용량 데이터로 검증하여, **정확한 Lambda 메모리 설정 가이드라인**을 수립하고 **비용 최적화 전략**을 도출합니다.
 
@@ -153,18 +153,14 @@
 // 3개 파일씩 동시 처리
 await this._processWithPool(objects, 3, async (obj) => {
   // 1. 개별 파일 다운로드
-  const fileSize = await this._downloadFile(bucket, obj.Key, tempFilePath);
+  const fileSize = await this._downloadFile(bucket, obj.Key, tempFilePath)
 
   // 2. 즉시 압축 처리
-  const compressedResult = await compression._compressDicomFile(
-    tempFilePath,
-    compressedTempDir,
-    compressionRate,
-  );
+  const compressedResult = await compression._compressDicomFile(tempFilePath, compressedTempDir, compressionRate)
 
   // 3. 원본 파일 즉시 삭제
-  await fs.unlink(tempFilePath);
-});
+  await fs.unlink(tempFilePath)
+})
 ```
 
 ### **최종 결론**

@@ -2,7 +2,7 @@
 
 ## Project Name
 
-**JPEG2000 압축률별 사전압축 파일 다운로드 성능 비교 POC** (JPEG2000 Compression Rate Pre-compressed File Download Performance Comparison POC)
+**JPEG2000 압축률별 사전압축 파일 다운로드 성능 비교 PoC** (JPEG2000 Compression Rate Pre-compressed File Download Performance Comparison PoC)
 
 ## Date
 
@@ -16,7 +16,7 @@
 
 ## Project Description
 
-**JPEG2000 손실 압축된 DICOM 파일의 압축률별 성능을 실제 측정하여 최적 압축률을 도출하는 POC 프로젝트**입니다.
+**JPEG2000 손실 압축된 DICOM 파일의 압축률별 성능을 실제 측정하여 최적 압축률을 도출하는 PoC 프로젝트**입니다.
 
 기존 실시간 압축 POC에서 얻은 데이터를 바탕으로, **사전 압축된 파일들의 실제 로딩 성능을 검증**하여 CloudFront 배포 전략 수립을 위한 근거 자료를 확보합니다.
 
@@ -24,7 +24,7 @@
 
 ## Current Status Analysis (현재 상황 분석)
 
-### POC 현황
+### PoC 현황
 
 **핵심 기능 현황**:
 
@@ -35,7 +35,7 @@
 
 ---
 
-## POC Objectives (POC 목표)
+## PoC Objectives (PoC 목표)
 
 ### 1. 핵심 검증 목표
 
@@ -70,8 +70,7 @@ Rate 100: 2.8MB  → 다운로드 0.2s + 로딩 8.4s  = 8.6s
 
 ### Phase 1: UI 확장 (CT 데이터 선택 개선)
 
-**현재**: CT01, CT02 고정 선택
-**개선**: 압축률별 파일 선택 지원
+**현재**: CT01, CT02 고정 선택 **개선**: 압축률별 파일 선택 지원
 
 ```typescript
 // 추가할 데이터 소스 (총 17개)
@@ -81,37 +80,22 @@ const compressionTestData = {
   CT02: 'existing-ct02-url',
 
   // 압축률별 테스트 데이터 (14단계)
-  original:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/original.zip',
-  lossless:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/lossless.zip',
-  rate3:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate3_all399.zip',
-  rate5:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate5_all399.zip',
-  rate10:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate10_all399.zip',
-  rate15:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate15_all399.zip',
-  rate20:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate20_all399.zip',
-  rate30:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate30_all399.zip',
-  rate40:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate40_all399.zip',
-  rate50:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate50_all399.zip',
-  rate100:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate100_all399.zip',
-  rate200:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate200_all399.zip',
-  rate300:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate300_all399.zip',
-  rate500:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate500_all399.zip',
-  rate1000:
-    'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate1000_all399.zip',
-};
+  original: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/original.zip',
+  lossless: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/lossless.zip',
+  rate3: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate3_all399.zip',
+  rate5: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate5_all399.zip',
+  rate10: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate10_all399.zip',
+  rate15: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate15_all399.zip',
+  rate20: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate20_all399.zip',
+  rate30: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate30_all399.zip',
+  rate40: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate40_all399.zip',
+  rate50: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate50_all399.zip',
+  rate100: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate100_all399.zip',
+  rate200: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate200_all399.zip',
+  rate300: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate300_all399.zip',
+  rate500: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate500_all399.zip',
+  rate1000: 'https://stream-zip-hi-data.s3.ap-northeast-2.amazonaws.com/test/rate1000_all399.zip',
+}
 ```
 
 **UI 컴포넌트 선택**:
@@ -142,12 +126,12 @@ const compressionTestData = {
 
 ```typescript
 interface CompressionPerformanceResult {
-  compressionRate: string; // "Rate 100"
-  fileSize: string; // "2.8MB"
-  batchTime: number; // 전체 시간
-  poc1Time: number; // 스트리밍 시간
-  poc2Time: number; // 스트리밍+DICOM 시간
-  qualityGrade: string; // "양호", "격자"
+  compressionRate: string // "Rate 100"
+  fileSize: string // "2.8MB"
+  batchTime: number // 전체 시간
+  poc1Time: number // 스트리밍 시간
+  poc2Time: number // 스트리밍+DICOM 시간
+  qualityGrade: string // "양호", "격자"
 }
 ```
 
@@ -242,7 +226,7 @@ interface CompressionPerformanceResult {
 ```typescript
 const apiUrl = disableCache
   ? `${baseUrl}?t=${Date.now()}` // 캐시 버스팅
-  : baseUrl; // 캐시 활용
+  : baseUrl // 캐시 활용
 ```
 
 **교훈**: **성능 측정 시 캐시 제어가 필수**, 실제 서비스에서는 캐시 활용 권장

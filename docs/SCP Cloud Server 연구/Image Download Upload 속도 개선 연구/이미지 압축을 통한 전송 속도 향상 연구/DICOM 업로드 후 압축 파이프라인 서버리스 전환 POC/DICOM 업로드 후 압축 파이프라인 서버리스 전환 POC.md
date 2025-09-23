@@ -2,7 +2,7 @@
 
 ## Project Name
 
-**DICOM 업로드 후 압축 파이프라인 서버리스 전환 POC** (Serverless DICOM Upload Compression Pipeline Migration POC)
+**DICOM 업로드 후 압축 파이프라인 서버리스 전환 PoC** (Serverless DICOM Upload Compression Pipeline Migration PoC)
 
 ## Date
 
@@ -11,12 +11,11 @@
 ## Submitter Info
 
 **제출자**: Raymond  
-**프로젝트**: https://dev.azure.com/ewoosoft/dicom-serverless-compression
-**브랜치**: main
+**프로젝트**: https://dev.azure.com/ewoosoft/dicom-serverless-compression **브랜치**: main
 
 ## Project Description
 
-**기존 EC2 기반 DICOM 압축 파이프라인을 AWS Lambda 서버리스 아키텍처로 전환하여 동시 처리 성능 문제 해결 및 운영 효율성 향상을 검증하는 POC**입니다.
+**기존 EC2 기반 DICOM 압축 파이프라인을 AWS Lambda 서버리스 아키텍처로 전환하여 동시 처리 성능 문제 해결 및 운영 효율성 향상을 검증하는 PoC**입니다.
 
 현재 EC2 환경에서 dcmjs-codecs 사용 시 발생하는 동시 처리 성능 저하 문제 (10개 동시 작업 시 CPU 99.9% 포화, 처리시간 200-500초로 증가)를 근본적으로 해결하고, 치과 환경의 간헐적 사용 패턴에 최적화된 서버리스 아키텍처의 **기술적 타당성과 경제성**을 검증합니다.
 
@@ -61,7 +60,7 @@
 
 ---
 
-## POC Objectives (POC 목표)
+## PoC Objectives (PoC 목표)
 
 ### 1. 핵심 검증 목표
 
@@ -234,7 +233,7 @@ Response:
 }
 ```
 
-**POC 핵심 기능**:
+**PoC 핵심 기능**:
 
 - **P1**: Lambda 압축 기능 구현 및 성능 검증 (핵심 구현 범위)
 - **중첩 폴더 구조 지원**: 원본 디렉토리 구조를 유지하면서 압축 처리
@@ -305,7 +304,7 @@ Response:
 
 **배포 방법**:
 
-- **POC 환경**: `npm run deploy:poc` (확인 없이 자동 배포)
+- **PoC 환경**: `npm run deploy:poc` (확인 없이 자동 배포)
 - **개발 환경**: `npm run deploy:dev` (확인 없이 자동 배포)
 - **프로덕션**: `npm run deploy:prod` (확인 없이 자동 배포)
 - **수동 배포**: `sam deploy --stack-name dicom-compression-poc --parameter-overrides Stage=poc --no-confirm-changeset`
@@ -483,7 +482,7 @@ Response:
 
 ## Conclusion (결론)
 
-### POC 수행 필요성
+### PoC 수행 필요성
 
 **근본적 문제 해결**:
 
@@ -502,7 +501,7 @@ Response:
 
 ### 권장사항
 
-**POC 수행 강력 권장**:
+**PoC 수행 강력 권장**:
 
 - 기술적 타당성 검증 필요
 - 실제 비용 절약 효과 확인 필요
@@ -525,7 +524,7 @@ Response:
 
 ---
 
-## POC Implementation Results (POC 구현 결과)
+## PoC Implementation Results (PoC 구현 결과)
 
 ### 실행 환경
 
@@ -1060,9 +1059,9 @@ test-nested-extracted/
 - **수익성 개선**: 매출 증가 시 인프라 비용 비율 감소 (4.3% 고정)
 - **확장성**: 고객 증가에 따른 인프라 걱정 없음
 
-### POC 완료 및 권장사항
+### PoC 완료 및 권장사항
 
-**POC 목표 달성 현황**: 완료
+**PoC 목표 달성 현황**: 완료
 
 - **기능적 검증**: Lambda에서 DICOM 압축 정상 동작 확인
 - **성능 검증**: Lambda에서 dcmjs-codecs 정상 동작 확인 (67.88초, EC2와 유사한 처리 시간)
@@ -1070,9 +1069,9 @@ test-nested-extracted/
 - **확장성 검증**: 동시 처리 성능 문제 완전 해결
 - **운영 효율성 검증**: 서버 관리 부담 제거 및 자동 스케일링
 
-**POC 결론**: **서버리스 전환 강력 권장**
+**PoC 결론**: **서버리스 전환 강력 권장**
 
-**다음 단계 (POC 범위 외)**:
+**다음 단계 (PoC 범위 외)**:
 
 1. **본격 개발 착수**: 프로덕션 환경 구축 및 실제 서비스 통합
 2. **추가 성능 테스트**: 다양한 압축률 및 대용량 데이터셋 검증 (선택사항)

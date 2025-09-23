@@ -2,7 +2,7 @@
 
 ## Project Name
 
-CloudWebViewer CT Loading 개선 POC (Streaming-based CT Data Loading)
+CloudWebViewer CT Loading 개선 PoC (Streaming-based CT Data Loading)
 
 ## Date
 
@@ -10,9 +10,7 @@ CloudWebViewer CT Loading 개선 POC (Streaming-based CT Data Loading)
 
 ## Submitter Info
 
-**제출자**: Jeon Gyuhyeon <raymond.jeon@ewoosoft.com>
-**프로젝트**: https://dev.azure.com/ewoosoft/cloudwebviewer
-**브랜치**: StreamPOC
+**제출자**: Jeon Gyuhyeon <raymond.jeon@ewoosoft.com> **프로젝트**: https://dev.azure.com/ewoosoft/cloudwebviewer **브랜치**: StreamPOC
 
 ## Project Description
 
@@ -24,7 +22,7 @@ CloudWebViewer에서 CT 데이터 로딩 성능을 개선하기 위한 스트리
 - 소요 시간: 약 30초
 - 문제점: 메모리 사용량 증가, 로딩 지연, 사용자 대기 시간 길음
 
-## POC 개선 목표
+## PoC 개선 목표
 
 본 POC는 **"속도 개선"** 과 **"체감 개선"** 두 가지 핵심 목표로 구성됩니다.
 
@@ -44,7 +42,7 @@ CloudWebViewer에서 CT 데이터 로딩 성능을 개선하기 위한 스트리
 - **개선 효과**: 메모리 사용량 40% 절약, 중간 파일 버퍼 제거
 - **목표 시간**: 약 20초 (33% 단축)
 
-![POC 속도 개선 단계](images/poc.png)
+![PoC 속도 개선 단계](images/poc.png)
 
 ### 목표 2: 체감 개선 (User Experience Enhancement)
 
@@ -410,14 +408,14 @@ Z축 방향으로 슬라이스가 하나씩 추가되면서 3D 볼륨이 완성�
 ### 구현 위치
 
 - **대상 애플리케이션**: `/examples/host-app`
-- **POC 구현**: `examples/host-app/Viewer.tsx` 좌측에 "POC" 탭 추가
+- **PoC 구현**: `examples/host-app/Viewer.tsx` 좌측에 "PoC" 탭 추가
 - **기존 기능 유지**: 현재 더미 데이터 로딩 기능은 그대로 유지
 
-**POC 탭 UI 구성 및 플로우**:
+**PoC 탭 UI 구성 및 플로우**:
 
 1. **CT 데이터 선택**: CT01, CT02 중 하나를 선택할 수 있는 라디오 버튼
-2. **POC 모드 선택**: Stream 모드 vs Batch 모드 성능 비교
-3. **실행 버튼**: 선택된 CT 데이터와 모드로 POC 실행 시작
+2. **PoC 모드 선택**: Stream 모드 vs Batch 모드 성능 비교
+3. **실행 버튼**: 선택된 CT 데이터와 모드로 PoC 실행 시작
 4. **진행 상황 표시**:
    - 스트리밍 다운로드 진행률 (X-Total-Files 헤더 기반)
    - 실시간 압축 해제 진행률 (해제된 DICOM 파일 수)

@@ -1,0 +1,104 @@
+- 설명
+  - 이우소프트의 본격적인 Cloud에 Image를 저장하는 Server
+  - Dental clinic에서 원내에 Image 서버를 두지 않고, image 원본을 cloud에 저장하게 한다.
+  - Dental clinic는 Web viewer를 통해서 주로 image를 조회한다.
+- Overall Diagram
+  - TBD (Visio)
+    - 현재
+    - 미래
+- Viewer
+  - Web app
+    - Cloud WebViewer를 지원하지만 3D view 기능을 개선해야 한다.
+      - [Cloud WebViewer의 3D view 개선 방향 논의](../뷰어%20관련%20연구/Cloud%20WebViewer의%203D%20view%20개선%20방향%20논의.md)
+    - 기존 뷰어 업그레이드 vs. 새로운 뷰어 개발?
+    - [Web View 동시 편집 지원 연구](../동시%20편집%20연구/Web%20View%20동시%20편집%20지원%20연구.md)
+  - Desktop app
+    - 현재는 Clever One만 지원할 계획
+    - Clever One에 SCP Cloud Image Server과 연동 기능 개발?
+      - Clever One이 2가지 되는 것인가?
+        - 1. EzWebServer 연동
+        - 2. SCP Cloud Image Server 연동
+    - [Desktop Viewer를 위한 배포 플랫폼 연구](../뷰어%20관련%20연구/Desktop%20Viewer를%20위한%20배포%20플랫폼%20연구.md)
+- SCP Cloud Image Server에 보관하는 이미지
+  - 종류
+    - CT
+    - TBD
+  - 형식
+    - DICOM
+    - JPEG
+    - TBD
+  - 저장 매체
+    - S3가 가장 적합함
+    - CloudFront - 저지연 캐싱
+  - 데이터 로드 시간
+    - image
+    - CT
+      - Load에 오래 걸리는 image를 Loading 중 순차적으로 보여주는 기능?
+- 환자 관리
+  - 환자 관리
+  - 클리닉 관리
+  - 의사, 스테프 관리
+  - 기공소 등 관리
+  - OneID와 연동
+- 백업 서비스
+  - 백업 대상
+    - 2D, 3D 이미지 + Tag 정보ㄷ
+    - TBD
+  - 매체
+    - S3 Glacier (저렴)
+    - S3 Glacier Deep Archive (더 저렴)
+    - AWS Backup
+    - S3 CRR (S3 Cross-Region Replication)
+      - 가용성
+  - 비용
+  - 복구에 걸리는 시간
+    - Image
+    - CT
+  - 백업 선택
+    - 자동?
+      - 오랫동안 조회하지 않은 데이터?
+    - 유저 선택?
+    - 기간 지정?
+- Database 요구사항
+  - NoSQL이 유리할 수 있다.
+    - 비정형 데이터 관리, 유연한 스키마
+    - 이미지 ID, 파일 형식, 날짜, 해상도 등 다양한 메타데이터를 효율적으로 관리
+    - 빠른 검색
+    - 확장성
+    - 서비스
+      - DynamoDB
+      - DocumentDB (MongoDB 호환)
+  - RDS (관계형 DB)
+    - 정형 데이터 관리에 유리
+    - 복잡한 쿼리를 통해 이미지 필터링이나 검색을 고도화
+- 사용자 대기 시간 절약
+  - [Image Caching 연구](../Image%20Download%20Upload%20속도%20개선%20연구/Image%20Caching%20연구/Image%20Caching%20연구%20Item.md)
+  - [이미지 압축을 통한 전송 속도 향상 연구](../Image%20Download%20Upload%20속도%20개선%20연구/이미지%20압축을%20통한%20전송%20속도%20향상%20연구/이미지%20압축을%20통한%20전송%20속도%20향상%20연구.md)
+- Security
+  - 데이터 보안
+    - Tenant별 시스템/데이터 격리 방침
+    - RBAC 적용?
+  - 인증 시스템
+    - OneId
+    - 유저
+      - 환자?
+        - SCP 서비스에 로그인 가능?
+      - 의사
+      - 치과의 스텝
+      - 기공소
+      - 시스템 관리자
+      - 고객 지원(SA)
+    - Authorization
+- SCP Cloud Image Server의 주요 기능
+  - Sharing
+  - Order
+  - 판독
+  - ⇒ EzCloud?
+  - Cloud AI 서비스
+    - 어떤 서비스?
+    - TBD
+- Region / Compliance 이슈
+  - Latency 이슈
+  - 국가별 Compliance 이슈
+- 과금 / 결제 시스템
+  - [결제 시스템 연구](../과금%20시스템%20연구/0.과금%20시스템%20연구.md)

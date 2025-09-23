@@ -1,14 +1,14 @@
-# CloudWebViewer CT Loading 개선 POC 진행 상황
+# CloudWebViewer CT Loading 개선 PoC 진행 상황
 
 ## 현재 상태: 새로운 설계 흐름 구현 완료
 
 ### 📅 2025.01.18 - 새로운 설계 흐름 전면 재개발 완료
 
-**구현 완료된 새로운 POC 흐름**:
+**구현 완료된 새로운 PoC 흐름**:
 
 ```
 1-2단계: 스트리밍 다운로드 + 실시간 압축 해제
-3단계: FileList 변환 + POC 콘텐츠 생성
+3단계: FileList 변환 + PoC 콘텐츠 생성
 4-6단계: 기존 시스템 연동 + CTDataType.fileObject 로딩
 ```
 
@@ -30,15 +30,15 @@
 
 ### 2. ContentIODummy.ts
 
-**POC FileList 처리 로직**:
+**PoC FileList 처리 로직**:
 
 - `setPOCFileList()`: FileList 저장
 - `getPOCFileList()`: FileList 반환
-- POC ID 감지 및 CTDataType.fileObject 지원
+- PoC ID 감지 및 CTDataType.fileObject 지원
 
 ### 3. CTContentHandler.ts
 
-**POC 전용 로직**:
+**PoC 전용 로직**:
 
 ```typescript
 if (this.content.id.startsWith('POC_CT_STREAMUNZIP_')) {
@@ -48,7 +48,7 @@ if (this.content.id.startsWith('POC_CT_STREAMUNZIP_')) {
     CTDataType.fileObject, // 핵심: fileObject 타입 사용
     { onStepChanged: onLoadingStateChanged, onProgressChanged },
     metaDataString,
-  );
+  )
 }
 ```
 
@@ -73,7 +73,7 @@ if (this.content.id.startsWith('POC_CT_STREAMUNZIP_')) {
 
 1. **CTDataType.fileObject 활용**: 기존 시스템의 숨겨진 기능 발견 및 활용
 2. **Module Federation 연동**: 기존 시스템과 완벽한 호환성
-3. **동적 Content ID**: POC*CT_FILEOBJECT*${timestamp} 방식
+3. **동적 Content ID**: PoC*CT_FILEOBJECT*${timestamp} 방식
 4. **실시간 진행률**: 사용자 체감 개선
 
 ## 새로운 설계의 장점
@@ -102,18 +102,18 @@ if (this.content.id.startsWith('POC_CT_STREAMUNZIP_')) {
 - [x] DICOM 파일 수집 및 검증
 - [x] 실시간 진행률 표시
 
-### 3단계: FileList 변환 + POC 콘텐츠 생성
+### 3단계: FileList 변환 + PoC 콘텐츠 생성
 
 - [x] DICOM 파일 유효성 검증
 - [x] File 객체 변환 (.dcm 확장자 처리)
 - [x] DataTransfer를 통한 FileList 생성
-- [x] POC 콘텐츠 구조 생성 (IContent 호환)
+- [x] PoC 콘텐츠 구조 생성 (IContent 호환)
 
 ### 4-6단계: 기존 시스템 연동 + CTDataType.fileObject 로딩
 
 - [x] ContentIODummy에 FileList 설정
 - [x] updateActivatedDialogContent 호출
-- [x] CTContentHandler에서 POC ID 감지
+- [x] CTContentHandler에서 PoC ID 감지
 - [x] CTDataType.fileObject로 VTK 로딩
 - [x] loadVolumeFileList 직접 호출
 - [x] 압축 해제 단계 완전 건너뛰기
@@ -123,9 +123,9 @@ if (this.content.id.startsWith('POC_CT_STREAMUNZIP_')) {
 ### 실행 방법
 
 1. `cd examples/host-app && pnpm dev`
-2. 좌측 "POC" 탭 클릭
+2. 좌측 "PoC" 탭 클릭
 3. CT01 또는 CT02 선택
-4. "새로운 POC 흐름 실행" 버튼 클릭
+4. "새로운 PoC 흐름 실행" 버튼 클릭
 5. 실시간 진행률 확인
 6. 오른쪽 Viewer에 CT 4분할 화면 표시 확인
 

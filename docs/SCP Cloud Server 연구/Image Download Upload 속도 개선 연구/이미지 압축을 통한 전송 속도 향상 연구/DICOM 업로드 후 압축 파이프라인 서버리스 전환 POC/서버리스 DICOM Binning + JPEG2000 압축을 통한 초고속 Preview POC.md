@@ -2,7 +2,7 @@
 
 ## Project Name
 
-**서버리스 DICOM Binning + JPEG2000 압축을 통한 초고속 Preview POC** (DICOM Binning + JPEG2000 Compression for Ultra-fast Preview POC)
+**서버리스 DICOM Binning + JPEG2000 압축을 통한 초고속 Preview PoC** (DICOM Binning + JPEG2000 Compression for Ultra-fast Preview PoC)
 
 ## Date
 
@@ -29,7 +29,7 @@
 
 ## Project Description
 
-**기존 서버리스 DICOM 압축 파이프라인에 Binning 기술을 추가하여 1/8 데이터 축소를 통한 초고속 Preview 시스템 구축 POC**입니다.
+**기존 서버리스 DICOM 압축 파이프라인에 Binning 기술을 추가하여 1/8 데이터 축소를 통한 초고속 Preview 시스템 구축 PoC**입니다.
 
 CT 업로드 후 1-2초 이내 즉시 Preview 제공을 목표로, **Binning(홀수 slice만 유지) + W×H 1/2 축소 + JPEG2000 압축**을 통해 원본 대비 1/800~1/80 데이터량으로 극단적 압축을 달성합니다.
 
@@ -81,9 +81,9 @@ X, Y, Z 축을 모두 1/2로 축소할 때, **뷰어에서 원본과 동일한 �
 
 ```javascript
 // 모든 축의 물리적 해상도를 2배로 업데이트
-dataset.PixelSpacing[0] = originalPixelSpacing[0] * 2; // X: 0.5mm → 1.0mm
-dataset.PixelSpacing[1] = originalPixelSpacing[1] * 2; // Y: 0.5mm → 1.0mm
-dataset.SliceThickness = originalSliceThickness * 2; // Z: 1.0mm → 2.0mm
+dataset.PixelSpacing[0] = originalPixelSpacing[0] * 2 // X: 0.5mm → 1.0mm
+dataset.PixelSpacing[1] = originalPixelSpacing[1] * 2 // Y: 0.5mm → 1.0mm
+dataset.SliceThickness = originalSliceThickness * 2 // Z: 1.0mm → 2.0mm
 ```
 
 **장점**: DICOM 표준 준수, 모든 뷰어 호환, CloudWebViewer 완벽 지원
@@ -333,7 +333,7 @@ dataset.SliceThickness = originalSliceThickness * 2; // Z: 1.0mm → 2.0mm
 - **3단계 - JPEG2000 압축**: 압축률에 따라 추가 압축
 - **4단계 - ZIP 패키징**: 최종 전송용 압축
 
-## POC Results (POC 결과)
+## PoC Results (PoC 결과)
 
 ### Phase 1 결과: 로컬 프로토타입 개발 ✅
 
@@ -416,19 +416,19 @@ dataset.SliceThickness = originalSliceThickness * 2; // Z: 1.0mm → 2.0mm
 
 **측정 지표**: S3 스트림 다운로드 시작부터 CloudWebViewer 3D 렌더링 완료까지 총 소요시간
 
-| 이미지                                                               | 설정                                                  | **총 압축률** | **ZIP 크기** | **로딩 시간** | 시각적 품질 | 비고                                                                |
-| -------------------------------------------------------------------- | ----------------------------------------------------- | ------------- | ------------ | ------------- | ----------- | ------------------------------------------------------------------- |
-| ![원본 이미지](../images/jpeg2000_original.png)                      | **원본 DICOM**                                        | **1.0x**      | **106.9MB**  | 19.1초        | 🟢 완벽     | • 의료 진단 표준<br/>• ZIP 기본 압축<br/>• 법적 안전성 보장         |
-| ![Rate 100 이미지](../images/jpeg2000_rate100.png)                   | **Rate 100 (원본)**<br/>`Rate 100 압축`               | **41.1x**     | **2.6MB**    | 8.6초         | 🟡 양호     | • 원본 Rate 100 압축<br/>• 초고속 전송<br/>• 썸네일 품질            |
-| ![Binning Rate 5 이미지](../images/jpeg2000_binning_rate5.png)       | **Binning Rate 5**<br/>`1/8 축소 + Rate 5 압축`       | **21.8x**     | **4.9MB**    | 2.2초         | 🟢 우수     | • 비닝 + 저압축<br/>• 높은 품질 유지<br/>• 빠른 로딩                |
-| ![Binning Rate 10 이미지](../images/jpeg2000_binning_rate10.png)     | **Binning Rate 10**<br/>`1/8 축소 + Rate 10 압축`     | **42.8x**     | **2.5MB**    | 2.1초         | 🟢 우수     | • 비닝 + 중간압축<br/>• 고속 Preview 시작점<br/>• 빠른 로딩         |
-| ![Binning Rate 30 이미지](../images/jpeg2000_binning_rate30.png)     | **Binning Rate 30**<br/>`1/8 축소 + Rate 30 압축`     | **105.8x**    | **1.01MB**   | 2.0초         | 🟢 우수     | • 비닝 + 고압축<br/>• 모바일 최적화<br/>• 빠른 로딩                 |
-| ![Binning Rate 50 이미지](../images/jpeg2000_binning_rate50.png)     | **Binning Rate 50**<br/>`1/8 축소 + Rate 50 압축`     | **155.0x**    | **0.69MB**   | 2.1초         | 🟢 우수     | • 비닝 + 고압축<br/>• 원격의료 적합<br/>• 초고속 로딩               |
-| ![Binning Rate 100 이미지](../images/jpeg2000_binning_rate100.png)   | **Binning Rate 100**<br/>`1/8 축소 + Rate 100 압축`   | **243.0x**    | **0.44MB**   | 2.1초         | 🟡 양호     | • **네트워크 제약 환경용**<br/>• 미세한 격자 노이즈<br/>• 진단 가능 |
-| ![Binning Rate 200 이미지](../images/jpeg2000_binning_rate200.png)   | **Binning Rate 200**<br/>`1/8 축소 + Rate 200 압축`   | **344.8x**    | **0.31MB**   | 2.1초         | 🔶 보통     | • 비닝 + 극한압축<br/>• 격자 패턴 뚜렷<br/>• 썸네일 용도            |
-| ![Binning Rate 300 이미지](../images/jpeg2000_binning_rate300.png)   | **Binning Rate 300**<br/>`1/8 축소 + Rate 300 압축`   | **396.0x**    | **0.27MB**   | 2.1초         | 🔴 나쁨     | • 비닝 + 극한압축<br/>• 격자 너무 뚜렷<br/>• 사용 불가 수준         |
-| ![Binning Rate 500 이미지](../images/jpeg2000_binning_rate500.png)   | **Binning Rate 500**<br/>`1/8 축소 + Rate 500 압축`   | **464.8x**    | **0.23MB**   | 2.1초         | 🔴 나쁨     | • 비닝 + 극한압축<br/>• 이미지 뭉개짐<br/>• 보기 어려운 수준        |
-| ![Binning Rate 1000 이미지](../images/jpeg2000_binning_rate1000.png) | **Binning Rate 1000**<br/>`1/8 축소 + Rate 1000 압축` | **509.0x**    | **0.21MB**   | 2.1초         | 🔴 나쁨     | • **물리적 한계 달성**<br/>• 형태 인식 불가<br/>• 기술 검증용만     |
+| 이미지 | 설정 | **총 압축률** | **ZIP 크기** | **로딩 시간** | 시각적 품질 | 비고 |
+| --- | --- | --- | --- | --- | --- | --- |
+| ![원본 이미지](../images/jpeg2000_original.png) | **원본 DICOM** | **1.0x** | **106.9MB** | 19.1초 | 🟢 완벽 | • 의료 진단 표준<br/>• ZIP 기본 압축<br/>• 법적 안전성 보장 |
+| ![Rate 100 이미지](../images/jpeg2000_rate100.png) | **Rate 100 (원본)**<br/>`Rate 100 압축` | **41.1x** | **2.6MB** | 8.6초 | 🟡 양호 | • 원본 Rate 100 압축<br/>• 초고속 전송<br/>• 썸네일 품질 |
+| ![Binning Rate 5 이미지](../images/jpeg2000_binning_rate5.png) | **Binning Rate 5**<br/>`1/8 축소 + Rate 5 압축` | **21.8x** | **4.9MB** | 2.2초 | 🟢 우수 | • 비닝 + 저압축<br/>• 높은 품질 유지<br/>• 빠른 로딩 |
+| ![Binning Rate 10 이미지](../images/jpeg2000_binning_rate10.png) | **Binning Rate 10**<br/>`1/8 축소 + Rate 10 압축` | **42.8x** | **2.5MB** | 2.1초 | 🟢 우수 | • 비닝 + 중간압축<br/>• 고속 Preview 시작점<br/>• 빠른 로딩 |
+| ![Binning Rate 30 이미지](../images/jpeg2000_binning_rate30.png) | **Binning Rate 30**<br/>`1/8 축소 + Rate 30 압축` | **105.8x** | **1.01MB** | 2.0초 | 🟢 우수 | • 비닝 + 고압축<br/>• 모바일 최적화<br/>• 빠른 로딩 |
+| ![Binning Rate 50 이미지](../images/jpeg2000_binning_rate50.png) | **Binning Rate 50**<br/>`1/8 축소 + Rate 50 압축` | **155.0x** | **0.69MB** | 2.1초 | 🟢 우수 | • 비닝 + 고압축<br/>• 원격의료 적합<br/>• 초고속 로딩 |
+| ![Binning Rate 100 이미지](../images/jpeg2000_binning_rate100.png) | **Binning Rate 100**<br/>`1/8 축소 + Rate 100 압축` | **243.0x** | **0.44MB** | 2.1초 | 🟡 양호 | • **네트워크 제약 환경용**<br/>• 미세한 격자 노이즈<br/>• 진단 가능 |
+| ![Binning Rate 200 이미지](../images/jpeg2000_binning_rate200.png) | **Binning Rate 200**<br/>`1/8 축소 + Rate 200 압축` | **344.8x** | **0.31MB** | 2.1초 | 🔶 보통 | • 비닝 + 극한압축<br/>• 격자 패턴 뚜렷<br/>• 썸네일 용도 |
+| ![Binning Rate 300 이미지](../images/jpeg2000_binning_rate300.png) | **Binning Rate 300**<br/>`1/8 축소 + Rate 300 압축` | **396.0x** | **0.27MB** | 2.1초 | 🔴 나쁨 | • 비닝 + 극한압축<br/>• 격자 너무 뚜렷<br/>• 사용 불가 수준 |
+| ![Binning Rate 500 이미지](../images/jpeg2000_binning_rate500.png) | **Binning Rate 500**<br/>`1/8 축소 + Rate 500 압축` | **464.8x** | **0.23MB** | 2.1초 | 🔴 나쁨 | • 비닝 + 극한압축<br/>• 이미지 뭉개짐<br/>• 보기 어려운 수준 |
+| ![Binning Rate 1000 이미지](../images/jpeg2000_binning_rate1000.png) | **Binning Rate 1000**<br/>`1/8 축소 + Rate 1000 압축` | **509.0x** | **0.21MB** | 2.1초 | 🔴 나쁨 | • **물리적 한계 달성**<br/>• 형태 인식 불가<br/>• 기술 검증용만 |
 
 #### **CloudWebViewer 성능 분석 결과**
 
@@ -490,12 +490,12 @@ Rate 200+: 0.31MB↓ → 2.1초 (🔶🔴) ← 품질 저하
 
 - **VTK 뷰어 최소 크기 강제 설정**: 800x600 최소 크기로 모바일에서도 충분한 화면 확보
 - **스크롤 지원**: `overflow: auto`로 작은 화면에서도 전체 뷰어 접근 가능
-- **ContentTitleBar 숨김**: POC 모드에서 불필요한 제목 바 제거로 화면 공간 최대화
+- **ContentTitleBar 숨김**: PoC 모드에서 불필요한 제목 바 제거로 화면 공간 최대화
 - **전체 높이 활용**: 컨텐츠 영역이 100% 높이를 사용하도록 CSS 최적화
 
 **2. 사용자 인터페이스 간소화**
 
-- **POC 전용 UI**: 썸네일 탭 제거, POC 탭만 표시
+- **PoC 전용 UI**: 썸네일 탭 제거, PoC 탭만 표시
 - **사용자 선택 제거**: 고정 사용자로 단순화
 - **CORE/COMMENT 탭 제거**: 뷰어 기능에만 집중
 - **직접 URL 접근**: 루트 도메인에서 바로 뷰어 화면으로 이동
@@ -513,7 +513,7 @@ Rate 200+: 0.31MB↓ → 2.1초 (🔶🔴) ← 품질 저하
 - **S3 Static Website**: ErrorDocument 설정으로 SPA 라우팅 지원
 - **CSS 강제 적용**: `!important` 규칙으로 모바일 최적화 스타일 보장
 - **상태 자동 리셋**: 3-5초 후 자동으로 다음 테스트 가능하도록 진행률 상태 초기화
-- **POC 콘텐츠 관리**: 중복 방지 및 이전 콘텐츠 자동 정리 시스템
+- **PoC 콘텐츠 관리**: 중복 방지 및 이전 콘텐츠 자동 정리 시스템
 
 **5. 배포 및 접근성**
 
@@ -526,7 +526,7 @@ Rate 200+: 0.31MB↓ → 2.1초 (🔶🔴) ← 품질 저하
 
 - **모바일 성능**: 5G에서 2초 로딩 (목표 3초 대비 50% 단축)
 - **터치 조작**: VTK.js 기본 기능으로 Desktop 대비 직관적 조작 확인
-- **UI/UX 최적화**: 800x600 최소 화면 + 진행률 카드 + POC 전용 인터페이스
+- **UI/UX 최적화**: 800x600 최소 화면 + 진행률 카드 + PoC 전용 인터페이스
 - **배포 성공**: Module Federation + AWS 인프라로 커스텀 도메인 구축
 
 #### **🚨 중요 발견사항: 모바일 메모리 제한과 Binning의 필수성**
@@ -559,7 +559,7 @@ Rate 200+: 0.31MB↓ → 2.1초 (🔶🔴) ← 품질 저하
 
 **메모리 제한 극복 방안**:
 
-- **웹 앱**: 150-200MB 제한으로 Binning 필수 (현재 POC 방식)
+- **웹 앱**: 150-200MB 제한으로 Binning 필수 (현재 PoC 방식)
 - **네이티브 앱**: 1.8-4GB 메모리로 원본 CT 직접 처리 가능
 - **트레이드오프**: 웹 앱(빠른 개발/배포) vs 네이티브 앱(높은 성능/복잡성)
 
@@ -616,7 +616,7 @@ Rate 200+: 0.31MB↓ → 2.1초 (🔶🔴) ← 품질 저하
 
 ## 🎯 **최종 결론 및 권장사항**
 
-### **POC 성공 요약**
+### **PoC 성공 요약**
 
 **모든 Phase 성공적 완료**:
 
@@ -636,19 +636,17 @@ Rate 200+: 0.31MB↓ → 2.1초 (🔶🔴) ← 품질 저하
 
 ### **권장사항**
 
-**Quick Preview 최적**: **Rate 5** (4.9MB, 2.1초)
-**네트워크 제약 환경**: **Rate 10-50** (0.7-2.5MB, 2.1-2.2초)
-**성능 비교 기준**: **Rate 100** (비닝 없음, 8.9초)
+**Quick Preview 최적**: **Rate 5** (4.9MB, 2.1초) **네트워크 제약 환경**: **Rate 10-50** (0.7-2.5MB, 2.1-2.2초) **성능 비교 기준**: **Rate 100** (비닝 없음, 8.9초)
 
 ### **기술적 혁신 성과**
 
 - **StreamUnzip + DICOM 동시 처리**: S3 스트리밍 + 압축 해제 + DICOM 파싱 병렬 실행
 - **서버리스 아키텍처**: AWS Lambda + S3 + CloudFront + Route53 완벽 통합
 - **Module Federation**: 마이크로프론트엔드 성공적 구현 (host-app + core 분리)
-- **모바일 최적화**: VTK.js 터치 조작 + 800x600 최소 화면 + POC 전용 UI
+- **모바일 최적화**: VTK.js 터치 조작 + 800x600 최소 화면 + PoC 전용 UI
 - **메모리 제한 해결**: ZIP 크기 vs 메모리 사용량 괴리 문제 발견 및 Binning으로 해결
 
-**DICOM Binning + JPEG2000 압축 POC 성공적 완료**
+**DICOM Binning + JPEG2000 압축 PoC 성공적 완료**
 
 **핵심 성과**: 모바일 환경에서 CloudWebViewer가 Desktop보다 우수한 사용자 경험을 제공하며, 2초 로딩으로 목표를 초과 달성했습니다.
 

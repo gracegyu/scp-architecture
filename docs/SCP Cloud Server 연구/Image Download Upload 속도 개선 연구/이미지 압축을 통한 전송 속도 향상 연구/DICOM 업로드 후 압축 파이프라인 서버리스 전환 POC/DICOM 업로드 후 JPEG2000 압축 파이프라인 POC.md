@@ -2,7 +2,7 @@
 
 ## Project Name
 
-**DICOM 업로드 후 JPEG2000 압축 파이프라인 POC** (DICOM Upload JPEG2000 Compression Pipeline POC)
+**DICOM 업로드 후 JPEG2000 압축 파이프라인 PoC** (DICOM Upload JPEG2000 Compression Pipeline PoC)
 
 ## Date
 
@@ -11,12 +11,11 @@
 ## Submitter Info
 
 **제출자**: Raymond  
-**프로젝트**: https://dev.azure.com/ewoosoft/stream-zip-unzip
-**브랜치**: main
+**프로젝트**: https://dev.azure.com/ewoosoft/stream-zip-unzip **브랜치**: main
 
 ## Project Description
 
-**CT 업로드 완료 후 API 호출을 통해 JPEG2000 손실 압축 ZIP을 생성하여 S3에 저장하는 백엔드 파이프라인 POC**입니다.
+**CT 업로드 완료 후 API 호출을 통해 JPEG2000 손실 압축 ZIP을 생성하여 S3에 저장하는 백엔드 파이프라인 PoC**입니다.
 
 기존 POC에서 사용한 s3://stream-zip-hi-data/download/JPEG2000/ 폴더의 399개 DICOM 파일 (196.9MB)을 대상으로 EC2 백엔드 서버에서 **두 가지 압축 라이브러리(`gdcmconv` vs `dcmjs-codecs`)의 기능 검증 및 성능 메트릭 비교 분석**을 수행합니다.
 
@@ -26,7 +25,7 @@
 
 ### 현재 상황
 
-**기존 POC 환경**:
+**기존 PoC 환경**:
 
 1. **테스트 데이터**: s3://stream-zip-hi-data/download/JPEG2000/ (399개 DICOM 파일, 196.9MB)
 2. **처리 방식**: 클라이언트 직접 다운로드 및 처리
@@ -35,7 +34,7 @@
 
 ---
 
-## POC Objectives (POC 목표)
+## PoC Objectives (PoC 목표)
 
 ### 1. 핵심 검증 목표
 
@@ -83,14 +82,14 @@
 
 ```typescript
 interface CompressionBenchmark {
-  library: 'gdcmconv' | 'dcmjs-codecs';
-  compressionRate: number; // 10, 50, 100, 500
-  inputSize: number; // MB
-  outputSize: number; // MB
-  processingTime: number; // seconds
-  cpuUsage: number; // percentage
-  memoryUsage: number; // MB
-  qualityMetrics: DicomQualityMetrics;
+  library: 'gdcmconv' | 'dcmjs-codecs'
+  compressionRate: number // 10, 50, 100, 500
+  inputSize: number // MB
+  outputSize: number // MB
+  processingTime: number // seconds
+  cpuUsage: number // percentage
+  memoryUsage: number // MB
+  qualityMetrics: DicomQualityMetrics
 }
 ```
 
@@ -108,40 +107,40 @@ interface CompressionBenchmark {
 ```typescript
 // 메트릭 수집 예시
 interface CompressionMetrics {
-  startTime: number;
-  endTime: number;
-  cpuUsage: { user: number; system: number };
-  memoryPeak: { rss: number; heapUsed: number };
-  cpuPeak: number;
+  startTime: number
+  endTime: number
+  cpuUsage: { user: number; system: number }
+  memoryPeak: { rss: number; heapUsed: number }
+  cpuPeak: number
 }
 
 const collectMetrics = async (): Promise<CompressionMetrics> => {
-  const startCpu = process.cpuUsage();
-  const startTime = Date.now();
-  let memoryPeak = { rss: 0, heapUsed: 0 };
-  let cpuPeak = 0;
+  const startCpu = process.cpuUsage()
+  const startTime = Date.now()
+  let memoryPeak = { rss: 0, heapUsed: 0 }
+  let cpuPeak = 0
 
   // 실시간 모니터링
   const monitor = setInterval(async () => {
-    const stats = await pidusage(process.pid);
-    cpuPeak = Math.max(cpuPeak, stats.cpu);
+    const stats = await pidusage(process.pid)
+    cpuPeak = Math.max(cpuPeak, stats.cpu)
 
-    const mem = process.memoryUsage();
-    memoryPeak.rss = Math.max(memoryPeak.rss, mem.rss);
-    memoryPeak.heapUsed = Math.max(memoryPeak.heapUsed, mem.heapUsed);
-  }, 100);
+    const mem = process.memoryUsage()
+    memoryPeak.rss = Math.max(memoryPeak.rss, mem.rss)
+    memoryPeak.heapUsed = Math.max(memoryPeak.heapUsed, mem.heapUsed)
+  }, 100)
 
   // ... 압축 작업 수행 ...
 
-  clearInterval(monitor);
+  clearInterval(monitor)
   return {
     startTime,
     endTime: Date.now(),
     cpuUsage: process.cpuUsage(startCpu),
     memoryPeak,
     cpuPeak,
-  };
-};
+  }
+}
 ```
 
 ### Phase 2: 압축 파이프라인 구축
@@ -158,7 +157,7 @@ s3://stream-zip-hi-data/download/JPEG2000/ (399개 파일)
 
 **선택 이유**:
 
-- **POC 목적**: 실시간성 불필요 (백그라운드 비동기 작업)
+- **PoC 목적**: 실시간성 불필요 (백그라운드 비동기 작업)
 - **성능 측정**: 다운로드/압축 시간 분리 측정 가능
 - **구현 단순성**: 기존 download 로직 재사용
 - **안정성**: 전체 파일 확보 후 처리로 실패 위험 최소화
@@ -326,13 +325,13 @@ Response:
 }
 ```
 
-**POC 목적 고려사항**:
+**PoC 목적 고려사항**:
 
 - **데이터 수집**: 각 테스트 결과를 JSON 파일로 영구 저장
 - **비교 분석**: 여러 라이브러리/압축률 결과를 쉽게 비교
-- **단순 구현**: DB 없이 파일 시스템 활용 (POC 적합)
+- **단순 구현**: DB 없이 파일 시스템 활용 (PoC 적합)
 - **수동 분석**: 결과 파일을 직접 열어서 확인 가능
-- **멀티 서버**: 단일 EC2 POC 환경에서는 문제없음
+- **멀티 서버**: 단일 EC2 PoC 환경에서는 문제없음
 
 #### 추가 분석용 엔드포인트 (선택사항)
 
@@ -446,20 +445,19 @@ Response: ZIP 파일 스트림 (압축된 399개 DICOM 파일)
 
 **⚠️ 이전 POC와의 성능 차이 분석**:
 
-**이전 POC (제어된 병렬 처리)**:
+**이전 PoC (제어된 병렬 처리)**:
 
 - gdcmconv(43초) > dcmjs-codecs(48.34초)
 - 세동시 프로세스 수 제한 (예: 10개)
 - 순수 압축 성능 측정
 
-**현재 POC (무제한 병렬 처리)**:
+**현재 PoC (무제한 병렬 처리)**:
 
 - dcmjs-codecs(63.67초) > gdcmconv(70.33초)
 - 399개 파일 × 개별 프로세스 = **399개 동시 실행**
 - 프로세스 오버헤드로 gdcmconv 성능 저하
 
-**운영 환경에서의 문제점**:
-다중 사용자 환경에서 동시 요청 시 gdcmconv는 **수천 개 프로세스** 생성 위험 (사용자 수 × 399개), 이는 시스템 다운을 초래할 수 있음.
+**운영 환경에서의 문제점**: 다중 사용자 환경에서 동시 요청 시 gdcmconv는 **수천 개 프로세스** 생성 위험 (사용자 수 × 399개), 이는 시스템 다운을 초래할 수 있음.
 
 | 라이브러리       | 평균 처리시간 | 평균 압축률 | 평균 다운로드시간 | 평균 압축시간 | 평균 업로드시간 | 평균 CPU 사용률 | 평균 메모리 사용량 |
 | ---------------- | ------------- | ----------- | ----------------- | ------------- | --------------- | --------------- | ------------------ |
@@ -520,7 +518,7 @@ Response: ZIP 파일 스트림 (압축된 399개 DICOM 파일)
 
 - **전체 파이프라인 속도**: 7초 빠름 (10% 개선)
 - **원인**: gdcmconv의 399개 프로세스 생성 오버헤드 vs dcmjs-codecs의 단일 프로세스 효율성
-- **주의**: 순수 압축 속도는 gdcmconv가 여전히 빠름 (이전 POC 43초 vs 48.34초)
+- **주의**: 순수 압축 속도는 gdcmconv가 여전히 빠름 (이전 PoC 43초 vs 48.34초)
 - **전반적 성능**: 실제 운영 환경에서는 dcmjs-codecs가 더 효율적
 
 #### 2. 동시 작업에서는 둘 다 심각한 문제점 존재
@@ -542,7 +540,7 @@ Response: ZIP 파일 스트림 (압축된 399개 DICOM 파일)
 
 **gdcmconv의 확장성 한계**:
 
-- **이상적 환경** (이전 POC): 제어된 병렬 처리로 우수한 성능
+- **이상적 환경** (이전 PoC): 제어된 병렬 처리로 우수한 성능
 - **실제 운영 환경**: 무제한 프로세스 생성으로 시스템 위험
 - **확장성 문제**: 사용자 수 증가 시 프로세스 수 기하급수적 증가
   - 예: 10명 동시 사용 × 399개 파일 = **3,990개 프로세스**
@@ -597,10 +595,10 @@ Response: ZIP 파일 스트림 (압축된 399개 DICOM 파일)
 
 #### 작업 큐 시스템 설계
 
-**POC 환경 (계획)**: **메모리 기반 큐**
+**PoC 환경 (계획)**: **메모리 기반 큐**
 
 - **구현 예정**: 간단한 배열 기반 FIFO 큐
-- **장점**: 구현 단순, 외부 의존성 없음, POC 목적에 최적
+- **장점**: 구현 단순, 외부 의존성 없음, PoC 목적에 최적
 - **단점**: 서버 재시작 시 큐 손실 (POC에서는 문제없음)
 
 **프로덕션 환경**: **다중 아키텍처 옵션**
@@ -650,7 +648,7 @@ Response: ZIP 파일 스트림 (압축된 399개 DICOM 파일)
 
 **권장**: **dcmjs-codecs + Lambda + SQS**가 최적의 프로덕션 솔루션
 
-#### 큐 POC 구현 계획
+#### 큐 PoC 구현 계획
 
 **현재 상황**: 큐 시스템 없음 (즉시 병렬 처리)
 
@@ -685,7 +683,7 @@ Response: ZIP 파일 스트림 (압축된 399개 DICOM 파일)
 - **실시간 모니터링**: 시스템 리소스 측정 시스템 구현
 - **확장성 검증**: 동시 처리 환경에서의 안정성 확인
 
-### POC 성과
+### PoC 성과
 
 - **기능 검증 완료**: DICOM 압축 파이프라인의 기술적 구현 가능성 확인
 - **데이터 기반 분석**: 두 라이브러리의 정량적 성능 비교 데이터 확보
