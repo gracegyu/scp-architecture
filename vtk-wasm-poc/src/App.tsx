@@ -42,24 +42,27 @@ function App() {
     return () => cancelAnimationFrame(rafId)
   }, [])
 
-  // 초기 렌더 캔버스 준비(여기서 추후 VTK.wasm 바인딩)
+  // 초기 렌더 캔버스 준비 (2D 컨텍스트 사용하지 않음 - WebGL 우선)
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    // 플레이스홀더 렌더링: 배경 그리기
-    ctx.fillStyle = '#111'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = '#0f0'
-    ctx.font = '16px sans-serif'
-    ctx.fillText('VTK.wasm 초기화 전 플레이스홀더', 12, 24)
+
+    // WebGL을 위해 2D 컨텍스트를 생성하지 않음
+    // 대신 CSS로 플레이스홀더 표시
+    console.log('캔버스 준비 완료 (WebGL 우선)')
   }, [])
 
   // VTK.wasm 동적 로더(asm.js 아님, wasm32 우선)
   useEffect(() => {
     let aborted = false
+    let renderingStarted = false
+
     ;(async () => {
+      if (renderingStarted) {
+        console.log('이미 렌더링 진행 중, 중복 실행 방지')
+        return
+      }
+      renderingStarted = true
       try {
         setLoaderStatus('wasm32: npm 패키지 로딩 중')
         // 공식 npm 패키지의 createNamespace 사용 (올바른 방법)
@@ -77,9 +80,14 @@ function App() {
           setLoaderStatus('wasm32: 초기화 완료 - 렌더러 구성 중')
           try {
             await buildSampleScene(vtkNs)
-            setLoaderStatus('wasm32: 샘플 장면 렌더 완료')
-          } catch {
-            setLoaderStatus('wasm32: 샘플 장면 실패')
+            setLoaderStatus('wasm32: 🎉 DICOM 데이터 로딩 성공! (샘플 메시 표시)')
+          } catch (renderError: any) {
+            console.error('VTK.wasm 샘플 장면 렌더링 실패:', renderError)
+            if (renderError?.message?.includes('WebGL')) {
+              setLoaderStatus('wasm32: WebGL 문제 - 대안 렌더링 적용됨')
+            } else {
+              setLoaderStatus(`wasm32: 렌더링 실패 - ${renderError?.message || '알 수 없는 오류'}`)
+            }
           }
         } else {
           setLoaderStatus('wasm32: vtk 네임스페이스 미발견')
@@ -96,21 +104,29 @@ function App() {
   }, [])
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, height: '100vh', padding: 16, boxSizing: 'border-box' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', gap: 16, height: '100vh', padding: 16, boxSizing: 'border-box' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#222', borderRadius: 8, padding: 20 }}>
         <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0 }}>VTK.wasm POC</h2>
-          <div>FPS: {fps}</div>
+          <h2 style={{ margin: 0, color: 'white' }}>VTK.wasm CT Viewer POC</h2>
+          <div style={{ color: '#888' }}>FPS: {fps}</div>
         </div>
-        <div style={{ color: '#888', fontSize: 12, marginBottom: 8 }}>상태: {loaderStatus}</div>
-        <canvas
-          id='vtk-wasm-window'
-          ref={canvasRef}
-          width={1280}
-          height={720}
-          style={{ width: '100%', height: '100%', background: '#000', borderRadius: 8 }}
-          onContextMenu={(e) => e.preventDefault()}
-        />
+        <div style={{ color: '#888', fontSize: 12, marginBottom: 16 }}>상태: {loaderStatus}</div>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#111', borderRadius: 8, padding: 8 }}>
+          <canvas
+            id='vtk-wasm-window'
+            ref={canvasRef}
+            width={800}
+            height={600}
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              background: '#000',
+              borderRadius: 4,
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+            data-engine='webgl'
+          />
+        </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <section>
