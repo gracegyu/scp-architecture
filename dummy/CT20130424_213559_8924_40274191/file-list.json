@@ -1,0 +1,6 @@
+{
+  "files": ["DCT0001.dcm", "DCT0002.dcm", "DCT0003.dcm"],
+  "description": "VTK.wasm POC용 DICOM CT 샘플 (3개 슬라이스 - 테스트용)",
+  "totalFiles": 399,
+  "selectedFiles": 3
+}
