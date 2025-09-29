@@ -1,0 +1,15 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+새로운 소스코드 파일을 생성할 때는 반드시 파일 헤더 주석을 추가해야 합니다. js, ts, tsx 파일에 추가합니다.
+
+/*
+ * [파일 설명을 추가해주세요.]
+ *
+ * Copyright (c) Ewoosoft Co., Ltd.
+ *
+ * All rights reserved.
+ */

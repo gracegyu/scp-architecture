@@ -1,5 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+/*
+ * VTK.wasm POC - 최소 UI 및 wasm 로더 스켈레톤
+ *
+ * Copyright (c) Ewoosoft Co., Ltd.
+ *
+ * All rights reserved.
+ */
+
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import { buildSampleScene } from './main'
 
 /**
  * App 컴포넌트
@@ -52,31 +61,33 @@ function App() {
     let aborted = false
     ;(async () => {
       try {
-        setLoaderStatus('wasm32: 로딩 중')
-        // Vite는 public 자산의 모듈을 소스에서 직접 import할 수 없으므로
-        // fetch → Blob → blob:URL로 동적 import하는 방식을 사용한다.
-        const moduleUrl = '/vtk-wasm/wasm32/vtkWebAssemblyAsync.mjs'
-        const wasmUrl = '/vtk-wasm/wasm32/vtkWebAssemblyAsync.wasm'
-        const mjsText = await (await fetch(moduleUrl, { cache: 'no-cache' })).text()
-        const blob = new Blob([mjsText], { type: 'text/javascript' })
-        const blobUrl = URL.createObjectURL(blob)
-        const mod: any = await import(/* @vite-ignore */ blobUrl)
-        if (aborted) return
-        // 모듈 초기화: 일부 번들은 init 함수 또는 default를 제공할 수 있음
-        // 가이드에 따라 URL 전달 방식으로 초기화 시도
-        if (typeof mod?.default === 'function') {
-          await mod.default({ locateFile: (p: string) => (p.endsWith('.wasm') ? wasmUrl : p) })
-          setLoaderStatus('wasm32: 초기화 완료')
-        } else if (typeof mod?.init === 'function') {
-          await mod.init({ locateFile: (p: string) => (p.endsWith('.wasm') ? wasmUrl : p) })
-          setLoaderStatus('wasm32: 초기화 완료')
+        setLoaderStatus('wasm32: npm 패키지 로딩 중')
+        // 공식 npm 패키지의 createNamespace 사용 (올바른 방법)
+        const { createNamespace } = await import('@kitware/vtk-wasm/vtk')
+        setLoaderStatus('wasm32: createNamespace 로딩 완료')
+
+        const api = await createNamespace()
+        setLoaderStatus('wasm32: VTK 네임스페이스 생성 완료')
+        // VTK 네임스페이스 확인 및 장면 구성
+        console.log('VTK 네임스페이스 생성됨:', api)
+
+        // createNamespace()의 결과가 바로 VTK 네임스페이스
+        const vtkNs = api
+        if (vtkNs) {
+          setLoaderStatus('wasm32: 초기화 완료 - 렌더러 구성 중')
+          try {
+            await buildSampleScene(vtkNs)
+            setLoaderStatus('wasm32: 샘플 장면 렌더 완료')
+          } catch {
+            setLoaderStatus('wasm32: 샘플 장면 실패')
+          }
         } else {
-          setLoaderStatus('wasm32: 모듈 형식 미확인')
+          setLoaderStatus('wasm32: vtk 네임스페이스 미발견')
         }
         URL.revokeObjectURL(blobUrl)
-      } catch (e: any) {
+      } catch {
         if (aborted) return
-        setLoaderStatus('wasm32: 로딩 실패 - ' + String(e?.message || e))
+        setLoaderStatus('wasm32: 로딩 실패')
       }
     })()
     return () => {
@@ -92,7 +103,14 @@ function App() {
           <div>FPS: {fps}</div>
         </div>
         <div style={{ color: '#888', fontSize: 12, marginBottom: 8 }}>상태: {loaderStatus}</div>
-        <canvas ref={canvasRef} width={1280} height={720} style={{ width: '100%', height: '100%', background: '#000', borderRadius: 8 }} />
+        <canvas
+          id='vtk-wasm-window'
+          ref={canvasRef}
+          width={1280}
+          height={720}
+          style={{ width: '100%', height: '100%', background: '#000', borderRadius: 8 }}
+          onContextMenu={(e) => e.preventDefault()}
+        />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <section>

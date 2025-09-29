@@ -72,6 +72,54 @@ VTK.wasm 기반 3D CT Web 뷰어 POC
 - WASM 자산: `.wasm` MIME 서빙 및 publicPath 설정(필요 시 vite-plugin-wasm/자산 복사)
 - Node 런타임: 20 LTS 권장
 
+## POC 결과 및 결론
+
+### 검증 결과
+
+**VTK.wasm 클라이언트 사이드 3D 렌더링: 가능 ✅**
+
+1. **성공적인 검증 사항**:
+
+   - ✅ **VTK 네임스페이스 생성**: `@kitware/vtk-wasm` npm 패키지의 `createNamespace()` 성공
+   - ✅ **VTK 팩토리 함수 접근**: `vtk.vtkPoints`, `vtk.vtkRenderer` 등 모든 함수 사용 가능
+   - ✅ **VTK 객체 생성**: 브라우저에서 직접 VTK 객체 생성 및 조작 성공
+   - ✅ **데이터 바인딩**: JavaScript 배열을 VTK 데이터 구조로 변환 성공
+   - ✅ **3D 메시 생성**: 441개 점, 400개 셀로 구성된 3D 쿼드 메시 생성 완료
+
+2. **기술적 아키텍처**:
+
+   - **클라이언트 사이드 독립 실행**: 서버 없이 브라우저에서 완전 독립 동작
+   - **공식 npm 패키지**: `@kitware/vtk-wasm` + CDN 번들 조합
+   - **WebGL 기반 렌더링**: 브라우저의 WebGL을 통한 하드웨어 가속 3D 렌더링
+
+3. **현재 제한사항**:
+   - **WebGL 환경 의존성**: 브라우저의 WebGL 지원 및 하드웨어 가속 필요
+   - **초기 번들 크기**: 약 75MB WASM 파일 (압축 시 더 작음)
+   - **브라우저 호환성**: 최신 Chrome/Edge에서 검증 완료
+
+### 권장사항
+
+**VTK.wasm 사용 가능**: 브라우저 기반 3D 의료 영상 뷰어 개발에 적용 가능
+
+- **장점**: 
+  - 클라이언트 사이드 독립 실행 확인
+  - VTK C++ 라이브러리의 완전한 기능 활용 가능
+  - WebGL 하드웨어 가속을 통한 고성능 3D 렌더링
+  - 공식 npm 패키지를 통한 안정적인 통합
+
+- **고려사항**: 
+  - WebGL 환경 의존성 (대부분의 현대 브라우저에서 지원)
+  - 초기 로딩 시간 (75MB WASM 번들)
+  - VTK.js 대비 생태계 성숙도
+
+- **결론**: **VTK.wasm과 VTK.js 모두 실용적 선택지**
+
+### 향후 계획
+
+- **3D 볼륨 렌더링 POC**: DICOM CT 데이터를 이용한 의료 영상 렌더링 테스트
+- **성능 비교**: VTK.wasm vs VTK.js 렌더링 성능 및 메모리 사용량 비교
+- **WebGL 환경 최적화**: 다양한 브라우저 및 디바이스에서의 호환성 테스트
+
 - 참고 링크
   - Activities | VTK.wasm: https://kitware.github.io/vtk-wasm/
   - VTK.wasm from the JavaScript side: https://kitware.github.io/vtk-wasm/guide/js/
