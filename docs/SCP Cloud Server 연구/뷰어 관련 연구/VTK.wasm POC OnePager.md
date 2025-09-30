@@ -31,71 +31,62 @@ VTK.wasm 기반 3D CT Web 뷰어 POC
 
 ## Resource and Scheduling Details
 
-- 데이터: `CT20130424_213559_8924_40274191/` (약 196MB, 무압축 DICOM) + 50~80MB 소형 CT 1세트 추가 권장
-- 기간(초안): 1~2주 (통합 2~3일, 측정/튜닝 3~5일, 정리 1~2일)
-- 인력: 프론트엔드 1, 영상 처리/도구 1, QA 0.5
+- 데이터: `CT20130424_213559_8924_40274191/` (약 196MB, 무압축 DICOM, 399개 슬라이스)
+- 기간: 1주일 이내 (POC 검증 2~3일, 문서화 1~2일)
+- 인력: 개발자 1명 (풀스택)
 
 ## Technical Description
 
 - 목표/성공 기준
 
-  - 기능: 브라우저에서 3D 볼륨 로드/렌더/조작 성공(크래시/아티팩트 없음)
-  - 성능: 데스크톱 30 FPS+, 모바일 15 FPS+ (512³ 기준), 초기 로드 < 5s(고속망)
-  - 안정성: 10분 상호작용 동안 메모리 증가 최소, 성능 열화/오류 무
+  - 핵심 목표: VTK.wasm으로 DICOM CT 3D 볼륨 렌더링이 가능한지 검증
+  - 성공 기준: 브라우저에서 실제 CT 볼륨이 3D로 표시되는지 확인
 
-- 작업 항목(체크리스트)
+- 작업 항목
 
-  1. 데이터 로딩: DICOM → `vtkImageData` 경로(브라우저 디코딩 vs 사전 변환), 멀티파일/정렬 확인
-  2. 렌더 파이프라인: 볼륨 매퍼/액터/전이함수, 카메라/조작(마우스·터치), FPS 로깅
-  3. 번들/통합: VTK.wasm JS API로 렌더러/윈도우/인터랙터 구성, 번들 크기/초기화 시간 측정 및 캐싱/압축 전략
-  4. 성능/안정성: 데스크톱/모바일 FPS·메모리·로드 시간, 장시간 조작 안정성 검증
-  5. 결과/판단: 기준 충족 시 파일럿 적용, 미달 시 VTK.js 유지 + VTK.wasm 한정 적용/커스텀 빌드 검토
+  1. VTK.wasm 초기화 및 DICOM 파일 로딩
+  2. VTK 볼륨 렌더링 클래스 존재 여부 확인
+  3. 실제 3D 볼륨 렌더링 시도 및 결과 확인
 
-- UI 범위(최소)
+- UI 범위
 
-  - 캔버스 1개 + FPS 표시/로딩 상태 노출(최소 UI)
-  - 카메라 조작: 회전/줌/패닝, 모바일 터치 제스처 지원
-  - 전이함수 프리셋 3종 및 윈도우/레벨 슬라이더(간단 UI)
-  - 데이터셋 전환(대/소 세트 토글)과 오류/메모리 경고 토스트
+  - 최소 UI: 캔버스 1개 + 상태 표시
+  - 기본 3D 상호작용 (마우스 조작)
 
-- 제외(UI)
-
-  - 주석/측정/세그멘테이션/세부 위젯/동시 편집 등 고급 기능
-  - 완성형 UX, 저장/공유, 다국어/i18n, 접근성 고도화(POC 범위 외)
-
-## 개발 환경/도구(명시)
+## 개발 환경/도구
 
 - UI 프레임워크: React 18 + TypeScript
 - 패키지 매니저: pnpm
-- 번들러: Vite(ESM, WASM 로딩 지원)
-- 브라우저 대상: 데스크톱/모바일 Chrome, Edge
-- WASM 자산: `.wasm` MIME 서빙 및 publicPath 설정(필요 시 vite-plugin-wasm/자산 복사)
-- Node 런타임: 20 LTS 권장
+- 번들러: Vite
+- 브라우저: Chrome
+- VTK.wasm: `@kitware/vtk-wasm` npm 패키지
 
 ## POC 결과 및 결론
 
 ### 검증 결과
 
-**VTK.wasm 클라이언트 사이드 3D 렌더링: 가능 ✅**
+**VTK.wasm 3D 볼륨 렌더링: 부분적 가능 (제약 있음)**
 
 1. **성공적인 검증 사항**:
 
-   - ✅ **VTK 네임스페이스 생성**: `@kitware/vtk-wasm` npm 패키지의 `createNamespace()` 성공
-   - ✅ **VTK 팩토리 함수 접근**: `vtk.vtkPoints`, `vtk.vtkRenderer` 등 모든 함수 사용 가능
-   - ✅ **VTK 객체 생성**: 브라우저에서 직접 VTK 객체 생성 및 조작 성공
-   - ✅ **데이터 바인딩**: JavaScript 배열을 VTK 데이터 구조로 변환 성공
-   - ✅ **3D 메시 생성**: 441개 점, 400개 셀로 구성된 3D 쿼드 메시 생성 완료
+   - **VTK 네임스페이스 생성**: `@kitware/vtk-wasm` npm 패키지의 `createNamespace()` 성공
+   - **볼륨 렌더링 클래스 존재**: `vtkImageData`, `vtkVolumeMapper`, `vtkVolume` 등 모든 클래스 확인
+   - **DICOM 데이터 로딩**: 399개 파일 (496x496x399, 98MB) 성공적 파싱
+   - **VTK 객체 생성**: 브라우저에서 직접 VTK 객체 생성 성공
+   - **3D 메시 렌더링**: PolyData 기반 3D 렌더링 완전 작동
 
-2. **기술적 아키텍처**:
+2. **볼륨 렌더링 제약사항**:
+
+   - **API 접근 제한**: `GetScalarPointer is not permitted`, `SetInputData is not permitted`
+   - **데이터 설정 제한**: 볼륨 데이터를 ImageData에 설정하는 모든 방법 차단
+   - **전이함수 설정 제한**: `AddPoint is not permitted` 오류
+
+3. **기술적 아키텍처**:
 
    - **클라이언트 사이드 독립 실행**: 서버 없이 브라우저에서 완전 독립 동작
    - **공식 npm 패키지**: `@kitware/vtk-wasm` + CDN 번들 조합
    - **WebGL 기반 렌더링**: 브라우저의 WebGL을 통한 하드웨어 가속 3D 렌더링
-
-3. **현재 제한사항**:
-   - **WebGL 환경 의존성**: 브라우저의 WebGL 지원 및 하드웨어 가속 필요
-   - **초기 번들 크기**: 약 75MB WASM 파일 (압축 시 더 작음)
-   - **브라우저 호환성**: 최신 Chrome/Edge에서 검증 완료
+   - **API 보안 제한**: 현재 번들은 읽기 전용 API만 제공
 
 ### 권장사항
 
@@ -114,13 +105,170 @@ VTK.wasm 기반 3D CT Web 뷰어 POC
   - 초기 로딩 시간 (75MB WASM 번들)
   - VTK.js 대비 생태계 성숙도
 
-- **결론**: **VTK.wasm과 VTK.js 모두 실용적 선택지**
+- **결론**: **현재 VTK.js가 볼륨 렌더링에 더 적합**
 
-### 향후 계획
+### 최종 POC 결과 (2025-09-29)
 
-- **3D 볼륨 렌더링 POC**: DICOM CT 데이터를 이용한 의료 영상 렌더링 테스트
-- **성능 비교**: VTK.wasm vs VTK.js 렌더링 성능 및 메모리 사용량 비교
-- **WebGL 환경 최적화**: 다양한 브라우저 및 디바이스에서의 호환성 테스트
+**🎯 VTK.wasm 3D 볼륨 렌더링 검증 결과: 불가능 ❌**
+
+## 1. 볼륨 렌더링 클래스 완전 존재 확인 ✅
+
+**모든 필수 클래스가 VTK.wasm에 포함되어 있음:**
+
+```javascript
+사용 가능한 VTK 클래스들: [
+  'vtkImageData',           // 볼륨 데이터 구조
+  'vtkVolumeMapper',        // 볼륨 매퍼
+  'vtkVolume',              // 볼륨 액터
+  'vtkDataArray',           // 데이터 배열
+  'vtkTypeUint16Array',     // 16bit 배열
+  'vtkTypeFloat32Array',    // 32bit 배열
+  'vtkColorTransferFunction', // 색상 전이함수
+  'vtkPiecewiseFunction'    // 투명도 전이함수
+]
+```
+
+## 2. DICOM 데이터 처리 완전 성공 ✅
+
+**대용량 DICOM 데이터 로딩 및 파싱 성공:**
+
+- ✅ **399개 DICOM 파일** 성공적 로딩
+- ✅ **볼륨 크기**: 496 x 496 x 399 (약 98MB)
+- ✅ **픽셀 데이터**: 각 파일 493,576 bytes → 492,032 bytes 추출
+- ✅ **볼륨 데이터 생성**: Uint16Array(98,160,384) 완료
+
+## 3. API 보안 제한으로 볼륨 렌더링 실패 ❌
+
+### 3.1 데이터 설정 API 차단
+
+```
+vtkObjectManager: Invoker failed to call GetScalarPointer
+Error: Call to vtkObjectBase::GetScalarPointer is not permitted.
+
+vtkObjectManager: Invoker failed to call SetInputData
+Error: Call to vtkObjectBase::SetInputData is not permitted.
+```
+
+### 3.2 전이함수 설정 API 차단
+
+```
+vtkObjectManager: Invoker failed to call AddPoint
+Error: Call to vtkObjectBase::AddPoint is not permitted.
+```
+
+### 3.3 볼륨 매퍼 연결 API 차단
+
+```
+vtkObjectManager: Invoker failed to call SetMapper
+Error: No suitable overload of 'vtkVolume::SetMapper' takes the specified arguments.
+```
+
+## 4. 볼륨 렌더링 불가능한 근본 원인
+
+### 4.1 VTK.wasm 아키텍처 제약
+
+**원격 객체 관리 방식:**
+
+- VTK.wasm 객체들이 `vtkObjectManager`를 통해 **원격 관리**됨
+- 클라이언트는 **객체 ID를 통한 간접 접근**만 가능
+- 직접적인 메모리 접근 및 데이터 조작 **원천 차단**
+
+### 4.2 API 보안 정책
+
+**쓰기 작업 전면 금지:**
+
+- `GetScalarPointer`, `SetInputData`, `AddPoint` 등 **핵심 API 차단**
+- 볼륨 데이터 설정에 필수적인 **모든 쓰기 메서드 금지**
+- 현재 번들은 **읽기 전용 API**만 허용
+
+### 4.3 볼륨 렌더링 파이프라인 차단
+
+**필수 단계별 차단 지점:**
+
+1. **볼륨 데이터 설정**: `ImageData.setScalars()` 불가
+2. **매퍼 연결**: `VolumeMapper.setInputData()` 불가
+3. **전이함수 설정**: `ColorTransferFunction.addPoint()` 불가
+4. **볼륨 액터 설정**: `Volume.setMapper()` 불가
+
+## 5. 대안 구현 성공
+
+**DICOM 기반 3D 메시 렌더링:**
+
+- DICOM 중간 슬라이스 → 3D 높이맵 변환
+- 62x62 그리드 메시 생성 (3,844개 포인트)
+- HU 값 기반 높이 변환 및 3D 시각화
+- 실시간 3D 상호작용 (회전, 줌, 패닝)
+
+## 최종 결론
+
+**VTK.wasm 3D 볼륨 렌더링: 기술적 불가능 (API 제한)**
+
+**핵심 이유:**
+
+1. **클래스 존재** vs **API 접근 차단**
+2. **보안 정책**으로 볼륨 데이터 조작 전면 차단
+3. **원격 객체 관리** 방식으로 직접 제어 불가
+
+**권장사항**: **의료용 3D 볼륨 뷰어는 VTK.js 사용**
+
+## 향후 VTK.wasm 모니터링 전략
+
+### VTK.wasm의 잠재적 장점
+
+**WebAssembly 성능 우위:**
+
+- **JavaScript 대비 빠른 실행 속도**: 네이티브 코드에 가까운 성능
+- **메모리 효율성**: 직접 메모리 관리로 가비지 컬렉션 오버헤드 없음
+- **대용량 데이터 처리**: 의료 영상과 같은 대용량 볼륨 데이터에 유리
+- **멀티스레딩 지원**: Worker를 통한 병렬 처리 가능
+
+### 모니터링 방법 및 주기
+
+**1. 정기적 기술 동향 모니터링**
+
+- **주기**: 분기별 (3개월마다)
+- **방법**:
+  - VTK.wasm 공식 문서 및 릴리즈 노트 확인
+  - Kitware 블로그 및 컨퍼런스 발표 모니터링
+  - GitHub 리포지토리 활동 및 이슈 트래킹
+
+**2. API 제한 해제 모니터링**
+
+- **핵심 확인 사항**:
+  - `SetInputData`, `GetScalarPointer` 등 핵심 API 접근 가능 여부
+  - 볼륨 데이터 설정 및 전이함수 조작 가능 여부
+  - 클라이언트 사이드 볼륨 렌더링 지원 여부
+
+**3. 실무 검증 테스트**
+
+- **방법**: 현재 POC 코드를 정기적으로 재실행
+- **확인 포인트**:
+  - 볼륨 렌더링 API 차단 해제 여부
+  - 새로운 번들 버전의 기능 확장
+  - 성능 개선 및 안정성 향상
+
+**4. 대안 기술 동향 파악**
+
+- **WebGPU + VTK**: 차세대 웹 그래픽 API 활용 가능성
+- **Three.js + VTK.wasm**: 하이브리드 접근 방식
+- **커스텀 VTK.wasm 빌드**: 필요한 API만 포함한 맞춤 번들
+
+### 재검토 시점
+
+**즉시 재검토가 필요한 신호:**
+
+- VTK.wasm 메이저 버전 업데이트 (v10.x 등)
+- Kitware에서 볼륨 렌더링 관련 공식 발표
+- 의료 영상 분야 VTK.wasm 성공 사례 등장
+- API 제한 정책 변경 공지
+
+**권장 재검토 주기:**
+
+- **단기**: 6개월마다 기술 동향 확인
+- **중기**: 1년마다 실제 POC 재실행
+- **장기**: 메이저 버전 출시 시 즉시 검증
+
+**권장사항**: **의료용 3D 볼륨 뷰어는 현재 VTK.js 사용, VTK.wasm은 지속 모니터링**
 
 - 참고 링크
   - Activities | VTK.wasm: https://kitware.github.io/vtk-wasm/

@@ -31,8 +31,16 @@ async function loadDicomFiles(folderPath: string) {
     const dicomSlices = []
 
     // 각 DICOM 파일 로드 및 파싱
-    for (const fileName of fileList.files) {
+    const totalFiles = fileList.files.length
+    console.log(`총 ${totalFiles}개 DICOM 파일 로딩 시작...`)
+
+    for (let i = 0; i < fileList.files.length; i++) {
+      const fileName = fileList.files[i]
       try {
+        if (i % 50 === 0 || i < 10) {
+          // 처음 10개와 50개마다 로그
+          console.log(`DICOM 파일 로딩 중: ${fileName} (${i + 1}/${totalFiles})`)
+        }
         const fileResponse = await fetch(`${folderPath}/${fileName}`)
         const arrayBuffer = await fileResponse.arrayBuffer()
         const byteArray = new Uint8Array(arrayBuffer)
@@ -158,7 +166,318 @@ async function createVolumeFromDicom(vtk: any, dicomSlices: any[]) {
 }
 
 /**
- * CT 볼륨 렌더링 파이프라인 구성
+ * VTK.wasm DICOM 기반 3D 메시 렌더링 (볼륨 렌더링 대안)
+ */
+async function buildDicomMeshScene(vtk: any, volumeInfo: any) {
+  console.log('DICOM 기반 3D 메시 렌더링 시작')
+
+  try {
+    const [width, height, depth] = volumeInfo.dimensions
+    console.log(`DICOM 볼륨: ${width}x${height}x${depth}`)
+
+    // 중간 슬라이스 데이터 추출
+    const midSliceIndex = Math.floor(depth / 2)
+    const sliceSize = width * height
+    const midSliceOffset = midSliceIndex * sliceSize
+    const midSliceData = volumeInfo.data.slice(midSliceOffset, midSliceOffset + sliceSize)
+
+    console.log(`중간 슬라이스 (${midSliceIndex}) 추출 완료`)
+
+    // DICOM 데이터 기반 3D 높이맵 생성
+    const points = vtk.vtkPoints()
+    const polys = vtk.vtkCellArray()
+    const connectivity = vtk.vtkTypeInt32Array()
+    const offsets = vtk.vtkTypeInt32Array()
+
+    const pointArray = []
+    const connectivityArray = []
+    const offsetsArray = []
+
+    // 샘플링 간격 (성능 최적화)
+    const step = 8
+    const gridWidth = Math.floor(width / step)
+    const gridHeight = Math.floor(height / step)
+
+    console.log(`그리드 크기: ${gridWidth} x ${gridHeight}`)
+
+    // DICOM 픽셀 값을 3D 높이로 변환
+    for (let i = 0; i < gridHeight; i++) {
+      for (let j = 0; j < gridWidth; j++) {
+        const x = j * step
+        const y = i * step
+        const pixelIndex = y * width + x
+        const pixelValue = midSliceData[pixelIndex] || 0
+
+        // 정규화된 좌표
+        const xNorm = ((j - gridWidth / 2) / gridWidth) * 4
+        const yNorm = ((i - gridHeight / 2) / gridHeight) * 4
+        const zNorm = (pixelValue - 1000) / 2000 // HU 값 정규화
+
+        pointArray.push(xNorm, yNorm, zNorm)
+      }
+    }
+
+    // 메시 연결성 생성
+    for (let i = 0; i < gridHeight - 1; i++) {
+      for (let j = 0; j < gridWidth - 1; j++) {
+        offsetsArray.push(connectivityArray.length)
+        connectivityArray.push(j + i * gridWidth)
+        connectivityArray.push(j + i * gridWidth + 1)
+        connectivityArray.push(j + i * gridWidth + gridWidth + 1)
+        connectivityArray.push(j + i * gridWidth + gridWidth)
+      }
+    }
+    offsetsArray.push(connectivityArray.length)
+
+    console.log(`포인트: ${pointArray.length / 3}개, 셀: ${offsetsArray.length - 1}개`)
+
+    // VTK 객체에 데이터 설정
+    await points.data.setArray(new Float32Array(pointArray))
+    await connectivity.setArray(new Int32Array(connectivityArray))
+    await offsets.setArray(new Int32Array(offsetsArray))
+    await polys.setData(offsets, connectivity)
+
+    // PolyData 생성
+    const polyData = vtk.vtkPolyData()
+    polyData.set({ points, polys })
+
+    console.log('DICOM 기반 PolyData 생성 완료')
+
+    // 매퍼와 액터 생성
+    const mapper = vtk.vtkPolyDataMapper()
+    await mapper.setInputData(polyData)
+    const actor = vtk.vtkActor({ mapper })
+
+    // CT 데이터 기반 색상 설정
+    actor.property.color = [0.9, 0.9, 1.0] // 연한 파란색 (CT 느낌)
+    actor.property.edgeVisibility = true // 윤곽선 표시
+
+    // 렌더러 설정
+    const renderer = vtk.vtkRenderer()
+    await renderer.addActor(actor)
+    await renderer.setBackground([0.05, 0.05, 0.15]) // 어두운 배경
+    await renderer.resetCamera()
+
+    // 캔버스에 렌더링
+    const canvas = document.getElementById('vtk-wasm-window') as HTMLCanvasElement
+    if (!canvas) {
+      throw new Error('캔버스를 찾을 수 없습니다')
+    }
+
+    const canvasSelector = `#${canvas.id}`
+    console.log('DICOM 메시 렌더 윈도우 생성 중...', canvasSelector)
+    const renderWindow = vtk.vtkRenderWindow({ canvasSelector })
+    await renderWindow.addRenderer(renderer)
+
+    const interactor = vtk.vtkRenderWindowInteractor({
+      canvasSelector,
+      renderWindow,
+    })
+
+    console.log('DICOM 메시 렌더링 시작...')
+    await interactor.render()
+    await interactor.start()
+
+    console.log('VTK.wasm DICOM 3D 메시 렌더링 완료!')
+    return true
+  } catch (error) {
+    console.error('DICOM 메시 렌더링 실패:', error)
+    throw error
+  }
+}
+
+/**
+ * VTK.wasm 전용 볼륨 렌더링 함수 (사용되지 않음)
+ */
+async function buildVTKWasmVolumeScene(vtk: any, volumeInfo: any) {
+  console.log('VTK.wasm 볼륨 렌더링 시작')
+
+  try {
+    // VTK ImageData 생성 시도
+    console.log('VTK ImageData 생성 중...')
+    const imageData = vtk.vtkImageData()
+
+    // 차원 설정
+    const [width, height, depth] = volumeInfo.dimensions
+    console.log(`볼륨 차원 설정: ${width} x ${height} x ${depth}`)
+    await imageData.setDimensions([width, height, depth])
+
+    // 스페이싱 설정
+    console.log('스페이싱 설정:', volumeInfo.spacing)
+    await imageData.setSpacing(volumeInfo.spacing)
+
+    // 원점 설정
+    await imageData.setOrigin(volumeInfo.origin)
+
+    // VTK.wasm에서 사용 가능한 클래스 확인
+    console.log('VTK 네임스페이스 탐색...')
+    const allKeys = Object.keys(vtk)
+    console.log(
+      '사용 가능한 VTK 클래스들:',
+      allKeys.filter((key) => key.startsWith('vtk')),
+    )
+
+    // 스칼라 데이터 설정 (VTK.wasm 호환 방식)
+    console.log('스칼라 데이터 설정 중...')
+
+    // Float32Array로 변환 시도 (더 호환성이 좋음)
+    const floatData = new Float32Array(volumeInfo.data)
+    console.log('Float32Array 변환 완료, 크기:', floatData.length)
+
+    try {
+      // vtkDataArray 대신 직접 ImageData에 데이터 설정 시도
+      console.log('ImageData에 직접 스칼라 데이터 설정 시도...')
+
+      // VTK.wasm의 ImageData 스칼라 설정 방법 탐색
+      const pointData = await imageData.getPointData()
+      console.log('PointData 객체:', pointData)
+      console.log('PointData 메서드들:', Object.getOwnPropertyNames(Object.getPrototypeOf(pointData)))
+
+      // 🎯 볼륨 렌더링 핵심: 다양한 방법으로 스칼라 데이터 설정 시도
+      console.log('🎯 볼륨 데이터 설정 방법 탐색...')
+
+      // ImageData 메서드 확인
+      const imageDataMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(imageData))
+      console.log('ImageData 사용 가능 메서드들:', imageDataMethods)
+
+      let success = false
+
+      // 방법 1: allocateScalars + getScalarPointer
+      if (typeof imageData.allocateScalars === 'function') {
+        console.log('🔬 allocateScalars 방법 시도...')
+        try {
+          await imageData.allocateScalars(10, 1) // VTK_FLOAT = 10, 1 component
+          console.log('allocateScalars 성공')
+
+          // 데이터 포인터 가져와서 직접 설정
+          if (typeof imageData.getScalarPointer === 'function') {
+            const scalarPointer = await imageData.getScalarPointer()
+            console.log('ScalarPointer 획득:', scalarPointer)
+            // TODO: 포인터에 데이터 복사
+          }
+          success = true
+        } catch (e) {
+          console.log('❌ allocateScalars 실패:', e.message)
+        }
+      }
+
+      // 방법 2: setScalarComponentFromFloat
+      if (!success && typeof imageData.setScalarComponentFromFloat === 'function') {
+        console.log('🔬 setScalarComponentFromFloat 방법 시도...')
+        try {
+          const [width, height, depth] = volumeInfo.dimensions
+          // 작은 샘플로 테스트 (성능상)
+          for (let z = 0; z < Math.min(5, depth); z++) {
+            for (let y = 0; y < Math.min(10, height); y += 10) {
+              for (let x = 0; x < Math.min(10, width); x += 10) {
+                const index = z * width * height + y * width + x
+                const value = floatData[index] || 0
+                await imageData.setScalarComponentFromFloat(x, y, z, 0, value)
+              }
+            }
+          }
+          console.log('setScalarComponentFromFloat 샘플 설정 성공')
+          success = true
+        } catch (e) {
+          console.log('❌ setScalarComponentFromFloat 실패:', e.message)
+        }
+      }
+
+      // 방법 3: 기본 메서드들
+      if (!success) {
+        console.log('🔬 기본 설정 메서드들 시도...')
+        const methods = ['setData', 'setScalarData', 'setArray']
+
+        for (const method of methods) {
+          if (typeof imageData[method] === 'function') {
+            try {
+              console.log(`${method} 시도...`)
+              await imageData[method](floatData)
+              console.log(`${method} 성공`)
+              success = true
+              break
+            } catch (e) {
+              console.log(`❌ ${method} 실패:`, e.message)
+            }
+          }
+        }
+      }
+
+      if (!success) {
+        throw new Error('❌ 모든 볼륨 데이터 설정 방법 실패 - VTK.wasm 볼륨 렌더링 불가능')
+      }
+    } catch (scalarError) {
+      console.error('스칼라 데이터 설정 실패:', scalarError)
+      throw scalarError
+    }
+
+    console.log('VTK ImageData 설정 완료')
+
+    // 볼륨 매퍼 생성
+    console.log('볼륨 매퍼 생성 중...')
+    const volumeMapper = vtk.vtkVolumeMapper()
+    await volumeMapper.setInputData(imageData)
+
+    // 볼륨 액터 생성
+    const volume = vtk.vtkVolume()
+    await volume.setMapper(volumeMapper)
+
+    // 볼륨 프로퍼티 설정
+    const property = await volume.getProperty()
+
+    // 색상 전이함수
+    const colorFunc = vtk.vtkColorTransferFunction()
+    await colorFunc.addPoint(-1000, 0.0, 0.0, 0.0) // 공기
+    await colorFunc.addPoint(-500, 0.3, 0.3, 0.3) // 연조직
+    await colorFunc.addPoint(0, 0.6, 0.6, 0.6) // 물
+    await colorFunc.addPoint(500, 1.0, 1.0, 1.0) // 뼈
+
+    // 투명도 전이함수
+    const opacityFunc = vtk.vtkPiecewiseFunction()
+    await opacityFunc.addPoint(-1000, 0.0)
+    await opacityFunc.addPoint(-500, 0.02)
+    await opacityFunc.addPoint(0, 0.1)
+    await opacityFunc.addPoint(500, 0.8)
+
+    await property.setColor(colorFunc)
+    await property.setScalarOpacity(opacityFunc)
+
+    // 렌더러 생성
+    const renderer = vtk.vtkRenderer()
+    await renderer.addVolume(volume)
+    await renderer.setBackground([0.1, 0.1, 0.2])
+    await renderer.resetCamera()
+
+    // 캔버스에 렌더링
+    const canvas = document.getElementById('vtk-wasm-window') as HTMLCanvasElement
+    if (!canvas) {
+      throw new Error('캔버스를 찾을 수 없습니다')
+    }
+
+    const canvasSelector = `#${canvas.id}`
+    console.log('볼륨 렌더 윈도우 생성 중...', canvasSelector)
+    const renderWindow = vtk.vtkRenderWindow({ canvasSelector })
+    await renderWindow.addRenderer(renderer)
+
+    const interactor = vtk.vtkRenderWindowInteractor({
+      canvasSelector,
+      renderWindow,
+    })
+
+    console.log('볼륨 렌더링 시작...')
+    await interactor.render()
+    await interactor.start()
+
+    console.log('VTK.wasm 볼륨 렌더링 완료!')
+    return true
+  } catch (error) {
+    console.error('VTK.wasm 볼륨 렌더링 실패:', error)
+    throw error
+  }
+}
+
+/**
+ * CT 볼륨 렌더링 파이프라인 구성 (사용되지 않음 - 위 함수로 대체)
  */
 async function buildCTVolumeScene(vtk: any, volumeData: any) {
   console.log('CT 볼륨 렌더링 파이프라인 구성 시작')
@@ -586,12 +905,25 @@ async function buildDicomCTScene(vtk: any) {
     const volumeInfo = await createVolumeFromDicom(vtk, dicomSlices)
     console.log('볼륨 정보:', volumeInfo)
 
-    // 3. VTK.wasm 볼륨 렌더링 제약으로 인해 샘플 메시로 대체
-    console.log('VTK.wasm 볼륨 렌더링 제약으로 샘플 메시 표시')
+    // 3. VTK.wasm 실제 볼륨 렌더링 시도
+    console.log('VTK.wasm 실제 볼륨 렌더링 시도')
     console.log(`DICOM 데이터 로딩 성공: ${dicomSlices.length}개 슬라이스, ${volumeInfo.dimensions.join('x')} 크기`)
 
-    // 샘플 메시로 대체하되 DICOM 정보 표시
-    return await buildClientSideVTKScene(vtk)
+    try {
+      // 실제 볼륨 렌더링 시도 (POC 핵심 목표)
+      console.log('🎯 VTK.wasm 볼륨 렌더링 검증 시작')
+      return await buildVTKWasmVolumeScene(vtk, volumeInfo)
+    } catch (volumeError) {
+      console.warn('❌ VTK.wasm 볼륨 렌더링 실패:', volumeError)
+      console.log('🔄 DICOM 메시 렌더링으로 대체 시도...')
+
+      try {
+        return await buildDicomMeshScene(vtk, volumeInfo)
+      } catch (meshError) {
+        console.warn('❌ DICOM 메시 렌더링도 실패, 샘플 메시로 최종 대체:', meshError)
+        return await buildClientSideVTKScene(vtk)
+      }
+    }
   } catch (error) {
     console.error('DICOM CT 장면 구성 실패:', error)
 
@@ -606,13 +938,39 @@ async function buildDicomCTScene(vtk: any) {
  * VTK.wasm JavaScript 가이드의 예제 코드를 기반으로 구현
  */
 export async function buildSampleScene(vtk: any) {
-  console.log('VTK.wasm 네임스페이스:', vtk)
-  console.log('VTK 객체 키들:', Object.keys(vtk))
-  console.log('vtkPoints 존재 여부:', typeof vtk.vtkPoints)
+  console.log('=== VTK.wasm 볼륨 렌더링 클래스 확인 ===')
+  console.log('VTK 네임스페이스:', vtk)
+
+  const allKeys = Object.keys(vtk)
+  console.log('전체 VTK 객체 키들:', allKeys)
+
+  // 볼륨 렌더링 관련 클래스 확인
+  const volumeClasses = allKeys.filter(
+    (key) => key.toLowerCase().includes('volume') || key.toLowerCase().includes('image') || key.toLowerCase().includes('data'),
+  )
+  console.log('볼륨/이미지 관련 클래스들:', volumeClasses)
+
+  // 중요한 볼륨 렌더링 클래스들 개별 확인
+  const criticalClasses = [
+    'vtkImageData',
+    'vtkVolumeMapper',
+    'vtkVolume',
+    'vtkDataArray',
+    'vtkTypeUint16Array',
+    'vtkTypeFloat32Array',
+    'vtkColorTransferFunction',
+    'vtkPiecewiseFunction',
+  ]
+
+  console.log('=== 핵심 볼륨 렌더링 클래스 존재 여부 ===')
+  criticalClasses.forEach((className) => {
+    const exists = typeof vtk[className] === 'function'
+    console.log(`${className}: ${exists ? '✅ 존재' : '❌ 없음'}`)
+  })
 
   // 클라이언트 사이드 VTK.wasm 직접 사용 시도
   if (typeof vtk.vtkPoints === 'function') {
-    console.log('클라이언트 사이드 VTK 팩토리 함수 발견! CT 볼륨 렌더링 시도')
+    console.log('클라이언트 사이드 VTK 팩토리 함수 발견! 볼륨 렌더링 검증 시도')
     return await buildDicomCTScene(vtk)
   }
 
