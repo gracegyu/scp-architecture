@@ -77,10 +77,10 @@ function App() {
         // createNamespace()의 결과가 바로 VTK 네임스페이스
         const vtkNs = api
         if (vtkNs) {
-          setLoaderStatus('wasm32: 초기화 완료 - 렌더러 구성 중')
+          setLoaderStatus('wasm32: 초기화 완료 - DICOM CT 로딩 중...')
           try {
             await buildSampleScene(vtkNs)
-            setLoaderStatus('wasm32: 🎉 DICOM 데이터 로딩 성공! (샘플 메시 표시)')
+            setLoaderStatus('wasm32: 볼륨 렌더링 검증 완료 - API 제한으로 불가능 확인')
           } catch (renderError: any) {
             console.error('VTK.wasm 샘플 장면 렌더링 실패:', renderError)
             if (renderError?.message?.includes('WebGL')) {
