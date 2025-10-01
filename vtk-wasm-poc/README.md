@@ -1,4 +1,4 @@
-# VTK.wasm POC (React + TypeScript + Vite)
+# VTK.wasm PoC (React + TypeScript + Vite)
 
 본 POC는 브라우저에서 VTK.wasm을 이용해 3D 뷰어 렌더링 가능성을 검증하기 위한 최소 구현입니다.
 
@@ -29,7 +29,7 @@ node -v
 
 ## trame vs 우리 접근 방식
 
-**trame**: Python 기반 웹 애플리케이션 프레임워크 (Python 백엔드 + Vue.js 프론트엔드) **우리 POC**: 순수 JavaScript/React 클라이언트 사이드 렌더링
+**trame**: Python 기반 웹 애플리케이션 프레임워크 (Python 백엔드 + Vue.js 프론트엔드) **우리 PoC**: 순수 JavaScript/React 클라이언트 사이드 렌더링
 
 **trame-vtklocal 활용**: trame용이지만 VTK.wasm 빌드 도구와 JS 프록시가 포함된 번들을 생성하므로 우리가 활용
 
@@ -89,7 +89,7 @@ ls -la vtk-wasm-poc/public/vtk-wasm/wasm32/
 - [ ] 3D 볼륨 렌더링 → FPS/메모리 측정
 - [ ] DICOM 스택 로더(소형 세트)
 
-## POC 결과 (2025-09-29)
+## PoC 결과 (2025-09-29)
 
 **VTK.wasm 클라이언트 사이드 3D 렌더링: 불가능**
 

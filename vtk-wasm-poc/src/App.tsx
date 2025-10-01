@@ -1,5 +1,5 @@
 /*
- * VTK.wasm POC - 최소 UI 및 wasm 로더 스켈레톤
+ * VTK.wasm PoC - 최소 UI 및 wasm 로더 스켈레톤
  *
  * Copyright (c) Ewoosoft Co., Ltd.
  *
@@ -107,7 +107,7 @@ function App() {
     <div style={{ display: 'flex', gap: 16, height: '100vh', padding: 16, boxSizing: 'border-box' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#222', borderRadius: 8, padding: 20 }}>
         <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, color: 'white' }}>VTK.wasm CT Viewer POC</h2>
+          <h2 style={{ margin: 0, color: 'white' }}>VTK.wasm CT Viewer PoC</h2>
           <div style={{ color: '#888' }}>FPS: {fps}</div>
         </div>
         <div style={{ color: '#888', fontSize: 12, marginBottom: 16 }}>상태: {loaderStatus}</div>

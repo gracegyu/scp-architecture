@@ -1,5 +1,5 @@
 /*
- * VTK.wasm POC - 엔트리 및 DICOM CT 볼륨 렌더링
+ * VTK.wasm PoC - 엔트리 및 DICOM CT 볼륨 렌더링
  *
  * Copyright (c) Ewoosoft Co., Ltd.
  *
@@ -910,7 +910,7 @@ async function buildDicomCTScene(vtk: any) {
     console.log(`DICOM 데이터 로딩 성공: ${dicomSlices.length}개 슬라이스, ${volumeInfo.dimensions.join('x')} 크기`)
 
     try {
-      // 실제 볼륨 렌더링 시도 (POC 핵심 목표)
+      // 실제 볼륨 렌더링 시도 (PoC 핵심 목표)
       console.log('🎯 VTK.wasm 볼륨 렌더링 검증 시작')
       return await buildVTKWasmVolumeScene(vtk, volumeInfo)
     } catch (volumeError) {

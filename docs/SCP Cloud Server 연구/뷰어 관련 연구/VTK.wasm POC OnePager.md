@@ -1,6 +1,6 @@
 ## Project Name
 
-VTK.wasm 기반 3D CT Web 뷰어 POC
+VTK.wasm 기반 3D CT Web 뷰어 PoC
 
 ## Date
 
@@ -32,7 +32,7 @@ VTK.wasm 기반 3D CT Web 뷰어 POC
 ## Resource and Scheduling Details
 
 - 데이터: `CT20130424_213559_8924_40274191/` (약 196MB, 무압축 DICOM, 399개 슬라이스)
-- 기간: 1주일 이내 (POC 검증 2~3일, 문서화 1~2일)
+- 기간: 1주일 이내 (PoC 검증 2~3일, 문서화 1~2일)
 - 인력: 개발자 1명 (풀스택)
 
 ## Technical Description
@@ -61,7 +61,7 @@ VTK.wasm 기반 3D CT Web 뷰어 POC
 - 브라우저: Chrome
 - VTK.wasm: `@kitware/vtk-wasm` npm 패키지
 
-## POC 결과 및 결론
+## PoC 결과 및 결론
 
 ### 검증 결과
 
@@ -107,7 +107,7 @@ VTK.wasm 기반 3D CT Web 뷰어 POC
 
 - **결론**: **현재 VTK.js가 볼륨 렌더링에 더 적합**
 
-### 최종 POC 결과 (2025-09-29)
+### 최종 PoC 결과 (2025-09-29)
 
 **🎯 VTK.wasm 3D 볼륨 렌더링 검증 결과: 불가능 ❌**
 
@@ -241,7 +241,7 @@ Error: No suitable overload of 'vtkVolume::SetMapper' takes the specified argume
 
 **3. 실무 검증 테스트**
 
-- **방법**: 현재 POC 코드를 정기적으로 재실행
+- **방법**: 현재 PoC 코드를 정기적으로 재실행
 - **확인 포인트**:
   - 볼륨 렌더링 API 차단 해제 여부
   - 새로운 번들 버전의 기능 확장
@@ -265,7 +265,7 @@ Error: No suitable overload of 'vtkVolume::SetMapper' takes the specified argume
 **권장 재검토 주기:**
 
 - **단기**: 6개월마다 기술 동향 확인
-- **중기**: 1년마다 실제 POC 재실행
+- **중기**: 1년마다 실제 PoC 재실행
 - **장기**: 메이저 버전 출시 시 즉시 검증
 
 **권장사항**: **의료용 3D 볼륨 뷰어는 현재 VTK.js 사용, VTK.wasm은 지속 모니터링**
