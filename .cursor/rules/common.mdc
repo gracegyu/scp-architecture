@@ -1,5 +1,7 @@
 ---
-description: 
-globs: 
+description: 공통 규칙
+globs:
 alwaysApply: true
 ---
+
+- git commit 메시지는 한국어로 작성해야 합니다.
