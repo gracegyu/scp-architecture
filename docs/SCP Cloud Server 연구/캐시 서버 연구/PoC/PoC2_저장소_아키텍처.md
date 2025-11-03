@@ -71,18 +71,15 @@ Raymond
 
 - 개발자 1명 (Raymond) - 저장소 구현, 테스트 및 성능 분석
 
-**일정:**
+**체크리스트(작업 순서):**
 
-- Day 1-2: 요구사항 분석 및 옵션 정리
-- Day 3-5: 미디어 저장소 옵션 구현
-  - 파일시스템 (해시 기반 디렉터리 구조)
-  - RocksDB (키-값 저장)
-- Day 6-8: 메타데이터 저장소 옵션 구현
-  - SQLite (관계형 스키마)
-  - RocksDB (JSON 직렬화)
-  - Redis (인메모리 + AOF)
-- Day 9-11: 성능 벤치마크 및 비교
-- Day 12: 최종 아키텍처 결정 및 문서화
+- [ ] 요구사항 분석 및 후보 옵션 정리(미디어/메타 구분, 성능/운영 기준 정의)
+- [ ] 미디어 저장소: 파일시스템(해시 디렉터리) 프로토타입 구현
+- [ ] 미디어 저장소: RocksDB(키-값, 압축/블록 옵션) 프로토타입 구현
+- [ ] 메타 저장소: PostgreSQL(JSONB/인덱스, 동시성) 프로토타입 구현
+- [ ] 메타 저장소: Redis(인메모리+TTL, AOF 스냅샷) 프로토타입 구현
+- [ ] 성능 벤치마크 및 비교(쓰기/읽기/메모리/TTL/삭제, 95/99p 지표)
+- [ ] 최종 조합 선정 및 문서화(선정 사유, 튜닝값, 운영 가이드)
 
 **리소스:**
 
@@ -433,15 +430,15 @@ def get_meta_with_cache(clinic_id, uri):
 - 치과 이미지 특성에 최적화된 아키텍처 도출
 - 향후 프로덕션 개발 시 고려사항 정리
 
-## 5. 개발 언어 고려사항
+## 5. 개발 언어 고려사항 (Rust 우선)
 
 ### 5.1 저장소 인터페이스 구현 언어
 
-**Go (권장):**
+**Rust (권장):**
 
-- **장점**: PostgreSQL 드라이버 우수, 고성능 I/O
-- **적합성**: 파일 시스템 조작, 데이터베이스 연동
-- **라이브러리**: github.com/lib/pq (PostgreSQL), filepath, os
+- **장점**: 안전한 고성능 I/O, 낮은 런타임 오버헤드, 단일 바이너리
+- **적합성**: 파일 시스템 조작, 데이터베이스/Redis 연동, 동시성 처리(tokio)
+- **라이브러리**: sqlx 또는 tokio-postgres (PostgreSQL), redis-rs (Redis), std::fs/tokio::fs, rust-rocksdb (RocksDB)
 
 **Python (대안):**
 
@@ -451,10 +448,10 @@ def get_meta_with_cache(clinic_id, uri):
 
 ### 5.2 캐시 관리 로직 구현 언어
 
-**Go (권장):**
+**Rust (권장):**
 
-- **장점**: 고루틴으로 동시 처리, 메모리 효율성
-- **적합성**: LRU/LFU 알고리즘, 캐시 정책 관리
+- **장점**: lock-free/async 패턴, 메모리 안전성, 높은 처리량
+- **적합성**: LRU/LFU, TinyLFU 입소 필터, 스풀/저널 워커
 
 **C++ (고성능):**
 
@@ -484,14 +481,14 @@ def get_meta_with_cache(clinic_id, uri):
 - **수정/배포**: ✅ 허용
 - **고지 의무**: ✅ 라이선스 파일 포함
 
-**Go 언어:**
+**Rust 언어:**
 
-- **라이선스**: BSD 3-clause License
+- **라이선스**: Apache-2.0 / MIT (듀얼)
 - **상업적 사용**: ✅ 허용
 - **수정/배포**: ✅ 허용
-- **고지 의무**: ✅ 저작권 고지 유지
+- **고지 의무**: ✅ 라이선스 고지 유지
 
-### 5.4 Windows 설치 호환성 고려사항
+### 5.4 Windows/Linux 설치 호환성 고려사항
 
 **PostgreSQL Windows 배포:**
 
@@ -514,12 +511,29 @@ def get_meta_with_cache(clinic_id, uri):
 - **설치**: 라이브러리 형태로 애플리케이션에 포함
 - **서비스**: 별도 서비스 불필요 (라이브러리 형태)
 
-**Go 애플리케이션 Windows 배포:**
+**Rust 애플리케이션 Windows 배포:**
 
-- **바이너리**: 단일 실행 파일로 컴파일 가능
-- **의존성**: PostgreSQL 클라이언트 라이브러리 (libpq.dll)
-- **서비스 등록**: go-svc 라이브러리로 Windows 서비스 구현
+- **바이너리**: 단일 실행 파일로 컴파일 가능 (MSVC toolchain)
+- **의존성**: PostgreSQL 클라이언트 라이브러리 (libpq.dll) 등 필요 시 동봉
+- **서비스 등록**: windows-service/NSSM 활용
 - **설정 파일**: JSON/YAML 설정 파일 지원
+
+**PostgreSQL Linux 배포:**
+
+- **연결**: 기존 PostgreSQL 서버 또는 Docker 컨테이너
+- **의존성**: libpq-dev 설치
+- **서비스**: systemd로 클라이언트/에이전트 관리
+
+**Redis/RocksDB Linux 배포:**
+
+- **Redis**: apt/yum 설치, systemd 서비스
+- **RocksDB**: 패키지 또는 정적 링크, glibc/반영 의존성 확인
+
+**Rust 애플리케이션 Linux 배포:**
+
+- **배포**: 단일 바이너리 + systemd 서비스
+- **의존성**: libpq, OpenSSL 등 배포 스크립트로 설치
+- **컨테이너**: Docker/Podman 지원 (CacheBox 시나리오와 호환)
 
 ### 다음 단계
 

@@ -538,15 +538,15 @@ Write-back 스풀링, 로컬 저널링, 일관성 보장으로 업로드 및 메
 
 ---
 
-## 6. 개발 언어 고려사항
+## 6. 개발 언어 고려사항 (Rust 우선)
 
 ### 6.1 통합 프로토타입 구현 언어
 
-**Go (권장):**
+**Rust (권장):**
 
-- **장점**: 고성능 I/O, 고루틴, 단일 바이너리
-- **적합성**: HTTP 서버, 캐시 관리, 모니터링
-- **라이브러리**: Gin/Echo (HTTP), go-sqlite3, prometheus
+- **장점**: 안전한 고성능, 낮은 런타임 오버헤드, 단일 바이너리
+- **적합성**: HTTP/gRPC 서버, 캐시/스풀/저널 워커, 모니터링
+- **라이브러리**: Axum/Actix-web (HTTP), tonic (gRPC), sqlx/tokio-postgres, prometheus exporter, windows-service/systemd
 
 **Python (대안):**
 
@@ -558,29 +558,29 @@ Write-back 스풀링, 로컬 저널링, 일관성 보장으로 업로드 및 메
 
 **Phase 1-2 (읽기/캐시):**
 
-- **Go**: HTTP 서버, 캐시 로직, 데이터베이스 연동
+- **Rust**: HTTP 서버, 캐시 로직, 데이터베이스/Redis 연동
 
 **Phase 3 (쓰기):**
 
-- **Go**: Write-back 스풀링, 저널링, 동시성 제어
+- **Rust**: Write-back 스풀링, 저널링, 동시성 제어
 
 **Phase 4-5 (장애/운영):**
 
-- **Go**: 폴백 메커니즘, 모니터링, 관리 API
+- **Rust**: 폴백 메커니즘, 모니터링, 관리 API
 
 **Phase 6 (성능):**
 
-- **Go**: 벤치마킹, 프로파일링
+- **Rust**: criterion.rs 벤치마크, pprof/tokio-console 프로파일링
 - **Python**: 데이터 분석, 시각화
 
 ### 6.3 라이선스 고려사항
 
-**Go 언어:**
+**Rust:**
 
-- **라이선스**: BSD 3-clause License
+- **라이선스**: Apache-2.0 / MIT (듀얼)
 - **상업적 사용**: ✅ 허용
 - **수정/배포**: ✅ 허용
-- **고지 의무**: ✅ 저작권 고지 유지
+- **고지 의무**: ✅ 라이선스 고지 유지
 
 **Python:**
 
@@ -589,7 +589,7 @@ Write-back 스풀링, 로컬 저널링, 일관성 보장으로 업로드 및 메
 - **수정/배포**: ✅ 허용
 - **고지 의무**: ✅ 라이선스 파일 포함
 
-**HTTP 프레임워크 (Gin/Echo):**
+**HTTP 프레임워크 (Axum/Actix-web):**
 
 - **라이선스**: MIT License
 - **상업적 사용**: ✅ 허용
