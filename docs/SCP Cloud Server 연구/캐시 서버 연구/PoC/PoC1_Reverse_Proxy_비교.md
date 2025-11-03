@@ -81,13 +81,13 @@ Raymond
 **체크리스트(작업 순서):**
 
 - [x] 요구사항 정리 및 평가 기준 확정(비교 기준, 테스트 시나리오, 지표 정의)
-- [ ] (진행중) Nginx(OpenResty) PoC 구현(Reverse Proxy + Rust 외부 서비스 + Lua 정책)
+- [x] Nginx(OpenResty) PoC 구현(Reverse Proxy + Rust 외부 서비스 + Lua 정책)
   - [x] docker-compose로 nginx + cache-service(Rust) 기동
   - [x] 기본 프록시/디스크 캐시 설정 적용(경로별 TTL, X-Cache-Status 노출)
   - [x] Lua 입소 필터 스텁 적용(임계치 기반, CMS 실험은 후속)
   - [x] Rust 외부 서비스 스텁(`/health`, `/metrics`, `/cache/invalidate`) 구현
   - [x] 스모크 테스트(HIT/MISS, 이미지 타입별 TTL 동작 확인)
-  - [ ] 벤치 스크립트(k6/wrk) 준비 및 리허설
+  - [x] 벤치 스크립트(k6) 준비 및 리허설
 - [ ] Envoy PoC 구현(Reverse Proxy + Rust 외부 서비스 + WASM/C++ 필터 대안)
 - [ ] Pingora PoC(Linux/CacheBox) 기본 프록시/캐시 경로 검증
 - [ ] 성능 비교 테스트(처리량/지연/리소스, 동등 시나리오로 재현)
