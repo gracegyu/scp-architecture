@@ -57,20 +57,80 @@ access_by_lua_block {
 }
 ```
 
+### 실행/검증 기록 (macOS, 2025-11-03)
+
+- 개발 환경: macOS (Docker Desktop)
+- 실행 위치: `scp-cache-poc/poc1/nginx-openresty`
+- 구성: OpenResty(프록시/디스크 캐시), Origin(정적 샘플), Rust 외부 서비스 스텁(`/health`, `/metrics`, `/cache/invalidate`)
+- 참고: 상세 실행/트러블슈팅은 `poc1/nginx-openresty/README.md`
+
+실행
+
+```
+cd /Users/gracegyu/Documents/Azure/scp-cache-poc/poc1/nginx-openresty
+docker compose up -d --build
+```
+
+스모크(예상 헤더 확인: MISS→HIT, STALE)
+
+```
+bash scripts/smoke.sh
+```
+
+수동 확인 예시
+
+```
+curl -s -D - http://localhost:8080/ -o /dev/null | grep -i '^X-Cache-Status'
+curl -s -D - http://localhost:8080/assets/sample.jpg -o /dev/null | grep -i '^X-Cache-Status'
+```
+
+관측 결과
+
+```
+X-Cache-Status: MISS
+X-Cache-Status: HIT
+```
+
+테스트 결과
+
+- 첫 요청: `X-Cache-Status: MISS`, 두 번째: `X-Cache-Status: HIT` 확인
+- 이미지(`sample.jpg`) 동일 동작 확인
+- Rust 외부 서비스(`http://localhost:3100/health`, `/metrics`) 정상 동작 확인
+- 원본 중단 시 캐시된 응답 서빙 확인(`X-Cache-Status: HIT` 유지)
+- 스모크 스크립트 자동 실행 정상 동작
+
+트러블슈팅
+
+- OpenResty alpine 이미지 권한 이슈: `user nginx` 제거, 로그는 `stderr`로 처리
+- docker-compose `version` 필드 제거(경고 없앰)
+- 포트 충돌: Rust 서비스 3000 → 호스트 3100 매핑
+
+진행 현황
+
+- 기본 프록시/디스크 캐시 동작 및 TTL 적용 확인 완료(macOS 환경)
+- Lua 접근 필터 스텁 배선 완료, 정책/임계치 로직 확장 가능
+- Rust 외부 서비스 스텁(`/health`, `/metrics`, `/cache/invalidate`) 구현 및 동작 확인
+- 스모크 스크립트 준비 및 검증 완료
+- k6/wrk 부하 스크립트 준비 대기 중
+
 검증 체크리스트
 
-- [x] 기본 프록시 라우팅/업스트림 연결 확인(CloudFront, API)
-- [x] 디스크 캐시 동작(HIT/MISS/STALE 헤더) 확인
-- [x] 이미지 타입별 TTL 적용 확인(X-ray/CT/스캔/썸네일)
-- [ ] Lua 입소 필터(빈도 임계치) 적용 및 우회 정책 검증
-- [ ] 성능 예열 및 벤치마크 스크립트(k6/wrk) 준비
+- [x] 기본 프록시 라우팅/업스트림 연결 확인(origin 컨테이너)
+- [x] 디스크 캐시 동작(HIT/MISS 헤더) 확인
+- [x] 이미지 타입별 TTL 적용 확인(sample.jpg: 30분)
+- [x] Lua 입소 필터 스텁 배선 확인(정책 확장 가능)
+- [x] Rust 외부 서비스 스텁 구현 및 동작 확인
+- [x] 스모크 스크립트 준비 및 실행 검증
+- [ ] 성능 예열 및 벤치마크 스크립트(k6/wrk) 실행
 
 메모
 
 - 초기 단계는 Nginx 디스크 캐시와 경로별 TTL로 치과 워크로드 최적화에 집중
 - Rust 외부 서비스는 무효화/통계/관리 API 제공(후속 단계에서 연결 및 측정)
+- macOS 환경에서 Docker 컨테이너 기반 PoC 검증 완료
+- 커스텀 캐시 정책/임계치 로직은 Lua 필터 확장으로 구현 예정
 
-상태: 설치/기본 동작/TTL 검증 완료, 입소 필터/성능 테스트 준비 중
+상태: macOS PoC 기본 검증 완료, 벤치마크 테스트 대기 중
 
 ---
 
