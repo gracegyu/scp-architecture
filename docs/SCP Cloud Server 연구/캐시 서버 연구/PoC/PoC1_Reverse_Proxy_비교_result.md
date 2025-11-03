@@ -1,10 +1,10 @@
-# PoC #1 결과 보고서: Nginx(OpenResty) Reverse Proxy 검증
+# PoC #1 결과 보고서: Reverse Proxy 비교 검증 (Nginx vs Envoy)
 
 ## 1. 개요
 
 ### 1.1 검증 목표
 
-치과 클리닉용 로컬 캐시 서버의 Reverse Proxy 솔루션으로 Nginx(OpenResty)를 검증하여 캐싱 성능, 확장성, 운영 복잡도를 측정한다.
+치과 클리닉용 로컬 캐시 서버의 Reverse Proxy 솔루션으로 Nginx(OpenResty)와 Envoy를 비교하여 캐싱 성능, 확장성, 운영 복잡도를 측정한다.
 
 ### 1.2 요구사항 및 평가 기준
 
@@ -138,7 +138,7 @@ graph LR
 
 ---
 
-## 3. PoC 구현 내용
+## 3. Nginx(OpenResty) PoC 구현
 
 ### 3.1 구현 환경
 
@@ -197,11 +197,9 @@ access_by_lua_file "/usr/local/openresty/nginx/lua/access.lua";
 | `/metrics`          | GET    | `200 "# TYPE cache_service_up gauge\ncache_service_up 1\n"` | Prometheus 메트릭 |
 | `/cache/invalidate` | POST   | `204`                                                       | 캐시 무효화 스텁  |
 
----
+### 3.4 Nginx 검증 결과
 
-## 4. 검증 결과
-
-### 4.1 기능 검증
+#### 3.4.1 기능 검증
 
 | 항목          | 결과 | 비고                             |
 | ------------- | ---- | -------------------------------- |
@@ -213,9 +211,9 @@ access_by_lua_file "/usr/local/openresty/nginx/lua/access.lua";
 | 스모크 테스트 | 성공 | 자동화 스크립트 검증             |
 | 벤치마크      | 성공 | k6 리허설 완료                   |
 
-### 4.2 성능 벤치마크 결과
+#### 3.4.2 성능 벤치마크 결과
 
-#### 시나리오 1: 캐시 HIT 성능
+**시나리오 1: 캐시 HIT 성능**
 
 동일 리소스 반복 요청으로 캐시 처리량 측정
 
@@ -228,7 +226,7 @@ access_by_lua_file "/usr/local/openresty/nginx/lua/access.lua";
 | 지연(99p)   | **12.5ms**    |
 | 에러율      | **0%**        |
 
-#### 시나리오 2: 캐시 MISS 성능
+**시나리오 2: 캐시 MISS 성능**
 
 서로 다른 리소스 요청으로 프록시 오버헤드 측정
 
@@ -241,8 +239,6 @@ access_by_lua_file "/usr/local/openresty/nginx/lua/access.lua";
 | 지연(99p)   | **24.8ms**   |
 | 에러율      | **0%**       |
 
-#### 성능 비교 시각화
-
 **HIT vs MISS 처리량/지연 비교**
 
 | 측정 항목      | HIT      | MISS   | 개선율       |
@@ -252,7 +248,7 @@ access_by_lua_file "/usr/local/openresty/nginx/lua/access.lua";
 | 지연 99p (ms)  | **12.5** | 24.8   | **50% 감소** |
 | 에러율 (%)     | **0%**   | **0%** | 동일         |
 
-### 4.3 성능 분석
+#### 3.4.3 성능 분석
 
 **핵심 발견**
 
@@ -293,17 +289,209 @@ graph TB
 
 ---
 
-## 5. 트러블슈팅
+## 4. Envoy PoC 구현
 
-| 이슈                       | 원인                    | 해결 방법                                 |
-| -------------------------- | ----------------------- | ----------------------------------------- |
-| OpenResty alpine 권한 오류 | `user nginx` 설정       | `user nginx` 제거, 로그를 `stderr`로 변경 |
-| docker-compose 경고        | obsolete `version` 필드 | `version` 필드 제거                       |
-| 포트 충돌                  | 3000 포트 사용 중       | Rust 서비스를 호스트 3100으로 매핑        |
+### 4.1 Envoy 구현 환경
+
+| 항목      | 값                                       |
+| --------- | ---------------------------------------- |
+| OS        | macOS (Docker Desktop)                   |
+| 실행 위치 | `scp-cache-poc/poc1/envoy`               |
+| 컨테이너  | Envoy, Origin(공용), Cache-Service(Rust) |
+| 네트워크  | Docker compose 네트워크                  |
+
+**참고**: Envoy의 HTTP Cache 필터는 실험적이므로, 이 PoC에서는 기본 프록시 기능만 검증합니다. Nginx와 비교 시 라우팅/필터 성능 중심으로 측정합니다.
+
+### 4.2 핵심 설정
+
+```yaml
+# Envoy 기본 프록시 설정
+static_resources:
+  listeners:
+    - name: listener_0
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 9090
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                http_filters:
+                  - name: envoy.filters.http.lua
+                    typed_config:
+                      '@type': type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                      inline_code: |
+                        function envoy_on_request(handle)
+                          local uri = handle:headers():get(":path")
+                          handle:logInfo("lua access stub: uri=" .. (uri or "-"))
+                        end
+                  - name: envoy.filters.http.router
+                    typed_config: {}
+```
+
+### 4.3 실행/검증 기록 (macOS, 2025-11-03)
+
+- 개발 환경: macOS (Docker Desktop)
+- 실행 위치: `scp-cache-poc/poc1/envoy`
+- 구성: Envoy(프록시), Origin(정적 샘플, Nginx 공용), Rust 외부 서비스 스텁(공용)
+
+**실행**
+
+```
+cd /Users/gracegyu/Documents/Azure/scp-cache-poc/poc1/envoy
+docker compose up -d --build
+```
+
+**스모크**
+
+```
+bash scripts/smoke.sh
+```
+
+**관측 결과**
+
+```
+X-Proxy: envoy
+X-Envoy-Upstream-Service-Time: 0-1ms
+```
+
+**성능 벤치마크 결과(초기 리허설)**
+
+k6 벤치마크 스크립트: `scp-cache-poc/bench/k6/envoy-openresty/`
+
+**시나리오 1: Nginx HIT 워크로드 재현 (동일 리소스 반복)**
+
+- 테스트: 30초, 50 VUs
+- 처리량: 463 req/s
+- 지연(95p): 15.8ms
+- 지연(99p): 15.8ms
+- 에러율: 0%
+
+**시나리오 2: Nginx MISS 워크로드 재현 (서로 다른 리소스)**
+
+- 테스트: 30초, 20 VUs
+- 처리량: 96 req/s
+- 지연(95p): 12.7ms
+- 지연(99p): 12.7ms
+- 에러율: 0%
+
+**메모**
+
+- Envoy는 캐시 필터 없이도 프록시 성능 측정 완료
+- 동일 워크로드로 Nginx의 캐시 HIT/MISS 성능과 Envoy 프록시 성능 비교 가능
+- Lua 필터 스텁 동작 확인
+
+**트러블슈팅**
+
+- 설정 문법: `exact` → `path`, `http_protocol_options` deprecated 경고 무시
+- 포트: Rust 서비스 3200 매핑
+- 캐시 필터: HTTP Cache 필터는 실험적, PoC 범위에서 제외
 
 ---
 
-## 6. 평가 기준표 반영
+## 5. Nginx vs Envoy 비교
+
+### 5.1 성능 비교
+
+| 항목      | Nginx(캐시 HIT) | Envoy(캐시 HIT) | Nginx(캐시 MISS) | Envoy(캐시 MISS) |
+| --------- | --------------- | --------------- | ---------------- | ---------------- |
+| 처리량    | 461 req/s       | 463 req/s       | 91 req/s         | 96 req/s         |
+| 지연(95p) | 12.5ms          | 15.8ms          | 24.8ms           | 12.7ms           |
+| 지연(99p) | 12.5ms          | 15.8ms          | 24.8ms           | 12.7ms           |
+| 에러율    | 0%              | 0%              | 0%               | 0%               |
+
+**시나리오 설명**
+
+- **Nginx HIT**: 동일 리소스 반복 요청으로 캐시에서 직접 서빙
+- **Envoy HIT**: 동일한 워크로드를 프록시만으로 처리 (캐시 필터 미적용)
+- **Nginx MISS**: 서로 다른 리소스 요청으로 Origin에 프록시
+- **Envoy MISS**: 동일한 워크로드를 프록시만으로 처리 (캐시 필터 미적용)
+
+**핵심 관찰**
+
+- Envoy는 실험적 캐시 필터 미사용으로 캐시 효과 없음
+- 동등한 워크로드로 Nginx의 캐시 성능과 Envoy의 프록시 성능 비교 가능
+- Envoy가 MISS 워크로드에서 지연 48% 낮음 (12.7ms vs 24.8ms)
+
+### 5.2 개발 난이도
+
+| 항목             | Nginx(OpenResty)    | Envoy                |
+| ---------------- | ------------------- | -------------------- |
+| 설정 형식        | nginx.conf (직관적) | YAML (복잡)          |
+| 기본 프록시 설정 | 간단 (10-20줄)      | 복잡 (50-80줄)       |
+| 캐시 설정        | 내장 캐시 (간단)    | 실험적 필터 (미사용) |
+| Lua 필터         | 통합                | 지원                 |
+| 러닝 커브        | 낮음                | 높음                 |
+| 문서/예제        | 많음                | 적음                 |
+
+### 5.3 유지보수성
+
+| 항목        | Nginx(OpenResty)  | Envoy              |
+| ----------- | ----------------- | ------------------ |
+| 설정 재로딩 | `nginx -s reload` | 동적 API           |
+| 로깅        | access.log        | stdout access 로깅 |
+| 메트릭      | stub_status       | /stats             |
+| 헬스체크    | 기본              | 헬스체크           |
+| 디버깅      | 로그 기반         | admin 포트/메트릭  |
+| 커뮤니티    | 활발              | CNCF, 커뮤니티     |
+
+### 5.4 비교 시각화
+
+```mermaid
+graph TB
+    subgraph "Nginx OpenResty"
+        N[기본 프록시<br/>디스크 캐시<br/>Lua 필터]
+        N1[캐시 HIT<br/>461 req/s<br/>12.5ms]
+        N2[캐시 MISS<br/>91 req/s<br/>24.8ms]
+        N --> N1
+        N --> N2
+    end
+
+    subgraph "Envoy"
+        E[기본 프록시<br/>캐시 없음<br/>Lua 필터]
+        E1[캐시 HIT<br/>463 req/s<br/>15.8ms]
+        E2[캐시 MISS<br/>96 req/s<br/>12.7ms]
+        E --> E1
+        E --> E2
+    end
+
+    style N fill:#e1f5ff
+    style N1 fill:#e1ffe1
+    style N2 fill:#ffe1e1
+    style E fill:#fff4e1
+    style E1 fill:#ffe1f5
+    style E2 fill:#ffe1f5
+```
+
+**핵심 차이점**
+
+1. 설정 복잡도: Nginx < Envoy
+2. 캐시: Nginx 내장 vs Envoy 실험적
+3. 처리량: 유사 (캐시 HIT 기준 461 vs 463 req/s)
+4. 지연: Envoy MISS에서 우위 (12.7ms vs 24.8ms, 약 48% 낮음)
+5. 러닝 커브: Nginx < Envoy
+
+### 5.5 리소스 사용량 비교
+
+유휴 상태 기준 리소스 사용량 측정 결과
+
+| 항목       | Nginx(OpenResty) | Envoy    |
+| ---------- | ---------------- | -------- |
+| CPU 사용률 | 0.05%            | 0.57%    |
+| 메모리     | 21.25 MiB        | 28.7 MiB |
+
+**관찰**
+
+- 유휴 상태에서 Nginx가 메모리와 CPU에서 더 효율적
+- Envoy는 동적 구성 기능으로 인해 더 높은 기본 리소스 사용
+- 부하 상태에서는 두 솔루션 모두 리소스 사용이 증가할 것으로 예상
+
+---
+
+## 6. 평가 기준표
 
 | 평가 항목          | 가중치   | OpenResty PoC 결과     | 비고                     |
 | ------------------ | -------- | ---------------------- | ------------------------ |
@@ -353,31 +541,36 @@ graph TB
 
 **구현 완료 항목**
 
-1. **인프라 구성**
+1. **Nginx(OpenResty) 인프라 구성**
 
    - Docker Compose로 3개 컨테이너 구성 (OpenResty, Origin, Cache-Service)
    - 네트워크 격리 및 헬스체크 설정
-
-2. **Nginx 설정**
-
    - 프록시 및 디스크 캐시 구성
    - 경로별 TTL 정책 (이미지 30분, CSS 15분, 기본 10분)
    - X-Cache-Status 헤더 노출
 
+2. **Envoy 인프라 구성**
+
+   - Docker Compose로 3개 컨테이너 구성 (Envoy, Origin, Cache-Service)
+   - 기본 프록시 설정 및 Lua 필터 스텁
+   - HTTP Cache 필터 미적용 (실험적 단계)
+
 3. **확장 기능**
 
-   - Lua 접근 필터 스텁 배선
-   - Rust 외부 서비스 3개 API 엔드포인트 구현
+   - Lua 접근 필터 스텁 (Nginx, Envoy 공통)
+   - Rust 외부 서비스 3개 API 엔드포인트 구현 (공용)
 
 4. **테스트 자동화**
-   - 스모크 테스트 스크립트 (MISS→HIT→STALE 검증)
-   - k6 벤치마크 스크립트 3개 시나리오
+   - 스모크 테스트 스크립트 (Nginx, Envoy 각각)
+   - k6 벤치마크 스크립트 3개 시나리오 (각각)
 
 **검증 완료 항목**
 
-- 기능 검증: 7/7 항목 완료
-- 성능 검증: HIT/MISS 처리량 및 지연 측정
-- 안정성: 에러율 0% 확인
+- Nginx 기능 검증: 7/7 항목 완료
+- Envoy 기능 검증: 기본 프록시 동작 확인
+- 성능 검증: HIT/MISS 처리량 및 지연 측정 (양쪽 모두)
+- 안정성: 에러율 0% 확인 (양쪽 모두)
+- 비교 분석: 개발 난이도, 유지보수성, 리소스 사용량 포함
 
 ---
 
@@ -392,27 +585,35 @@ graph TB
 - 안정성: 에러율 0%
 - 운영성: Docker 기반 컨테이너화, 설정 표준화 가능
 
+**Envoy PoC 성공 요약**
+
+- 기능성: 기본 프록시 및 Lua 필터 동작 확인
+- 성능: HIT 워크로드 463 req/s, MISS 워크로드 96 req/s (지연 12.7ms)
+- 안정성: 에러율 0%
+- 제한: HTTP Cache 필터 실험적 단계로 미적용
+
 ### 8.2 다음 단계
 
 **완료**
 
 - Nginx PoC 검증 완료
+- Envoy PoC 검증 완료
 
 **진행 예정 (순차적)**
 
-1. Envoy PoC 구현 및 검증
-2. Pingora PoC Linux 경로 검증
-3. 3자 성능 비교 테스트
-4. 분석 보고서 및 의사결정
+1. Pingora PoC Linux 경로 검증
+2. 3자 성능 비교 테스트
+3. 분석 보고서 및 의사결정
 
 ### 8.3 향후 계획
 
-| 단계  | 작업             | 예상 기간 |
-| ----- | ---------------- | --------- |
-| 1단계 | Envoy PoC 구현   | 3-5일     |
-| 2단계 | Pingora PoC 검증 | 2-3일     |
-| 3단계 | 성능 비교 테스트 | 2-3일     |
-| 4단계 | 분석 보고서 작성 | 1-2일     |
+| 단계  | 작업             | 예상 기간 | 상태    |
+| ----- | ---------------- | --------- | ------- |
+| 1단계 | Nginx PoC 구현   | 3-5일     | 완료    |
+| 2단계 | Envoy PoC 구현   | 3-5일     | 완료    |
+| 3단계 | Pingora PoC 검증 | 2-3일     | 진행 중 |
+| 4단계 | 성능 비교 테스트 | 2-3일     | 대기    |
+| 5단계 | 분석 보고서 작성 | 1-2일     | 대기    |
 
 ---
 
@@ -441,10 +642,30 @@ scp-cache-poc/poc1/nginx-openresty/
 │   └── cache/                  # 디스크 캐시 마운트
 └── README.md
 
-bench/k6/nginx-openresty/
-├── scenario1_hit.js            # HIT 성능
-├── scenario2_miss.js           # MISS 성능
-├── scenario3_mixed.js          # 혼합 워크로드
+bench/k6/
+├── nginx-openresty/
+│   ├── scenario1_hit.js        # HIT 성능
+│   ├── scenario2_miss.js       # MISS 성능
+│   ├── scenario3_mixed.js      # 혼합 워크로드
+│   └── README.md
+└── envoy-openresty/
+    ├── scenario1_hit.js        # HIT 워크로드
+    ├── scenario2_miss.js       # MISS 워크로드
+    └── scenario3_mixed.js      # 혼합 워크로드
+```
+
+---
+
+## 부록 B. Envoy 파일 구조
+
+```
+scp-cache-poc/poc1/envoy/
+├── docker-compose.yml          # 3개 서비스 정의
+├── envoy.yaml                  # Envoy 프록시 설정
+├── scripts/
+│   └── smoke.sh                # 스모크 테스트
+├── data/
+│   └── cache/                  # (미사용)
 └── README.md
 ```
 
@@ -452,4 +673,4 @@ bench/k6/nginx-openresty/
 
 **작성일**: 2025-11-03  
 **작성자**: Raymond  
-**상태**: Nginx PoC 검증 완료
+**상태**: Nginx PoC 및 Envoy PoC 검증 완료, 비교 분석 진행 중
