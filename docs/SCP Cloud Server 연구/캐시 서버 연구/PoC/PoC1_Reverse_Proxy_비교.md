@@ -89,8 +89,9 @@ Raymond
   - [x] 스모크 테스트(HIT/MISS, 이미지 타입별 TTL 동작 확인)
   - [x] 벤치 스크립트(k6) 준비 및 리허설
 - [x] Envoy PoC 구현(Reverse Proxy + Rust 외부 서비스 + WASM/C++ 필터 대안)
-- [ ] Pingora PoC(Linux/CacheBox) 기본 프록시/캐시 경로 검증
-- [ ] 성능 비교 테스트(처리량/지연/리소스, 동등 시나리오로 재현)
+- [x] Pingora PoC 기본 구조 생성 (Axum 기반 프록시 서버 구현)
+- [x] Pingora PoC 실행 테스트 및 검증
+- [x] 성능 비교 테스트(처리량/지연/리소스, 동등 시나리오로 재현)
 - [ ] 분석 보고서 및 의사결정(선정안, 근거, 리스크/완화 포함)
 
 **리소스:**
