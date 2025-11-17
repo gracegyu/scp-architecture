@@ -10,7 +10,9 @@ CloudWebViewer CT Loading 개선 PoC (Streaming-based CT Data Loading)
 
 ## Submitter Info
 
-**제출자**: Jeon Gyuhyeon <raymond.jeon@ewoosoft.com> **프로젝트**: https://dev.azure.com/ewoosoft/cloudwebviewer **브랜치**: StreamPOC
+**제출자**: Jeon Gyuhyeon <raymond.jeon@ewoosoft.com> 
+**프로젝트**: https://dev.azure.com/ewoosoft/cloudwebviewer 
+**브랜치**: StreamPOC
 
 ## Project Description
 
