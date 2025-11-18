@@ -74,13 +74,15 @@ Raymond
 **체크리스트(작업 순서):**
 
 - [x] 요구사항 분석 및 후보 옵션 정리(미디어/메타 구분, 성능/운영 기준 정의)
-- [x] 미디어 저장소: 파일시스템(해시 디렉터리) 프로토타입 구현
-- [x] 미디어 저장소: RocksDB(키-값, 압축/블록 옵션) 프로토타입 구현
-- [ ] 미디어 저장소: MinIO(S3 API, 메타데이터, 라이프사이클) 프로토타입 구현
+- [x] Docker 환경 구성 (파일시스템, MinIO)
+- [x] 미디어 저장소: 파일시스템(해시 디렉터리) 프로토타입 구현 및 벤치마크
+- [ ] 미디어 저장소: RocksDB(키-값, 압축/블록 옵션) - 컴파일 실패로 제외
+- [x] 미디어 저장소: MinIO(S3 API, 메타데이터, 라이프사이클) 프로토타입 구현 및 벤치마크
 - [x] 메타 저장소: PostgreSQL(JSONB/인덱스, 동시성) 프로토타입 구현
 - [x] 메타 저장소: Redis(인메모리+TTL, AOF 스냅샷) 프로토타입 구현
-- [x] 성능 벤치마크 및 비교(쓰기/읽기/메모리/TTL/삭제, 95/99p 지표)
-- [ ] 클라우드 호환성 테스트(MinIO ↔ AWS S3 동기화)
+- [x] 성능 벤치마크 도구 개발 (Python)
+- [x] 실제 성능 측정 및 비교(쓰기/읽기/메모리, 95/99p 지표)
+- [ ] 클라우드 호환성 테스트(MinIO ↔ AWS S3 동기화) - 옵션
 - [x] 최종 조합 선정 및 문서화(선정 사유, 튜닝값, 운영 가이드)
 
 **리소스:**
@@ -92,6 +94,87 @@ Raymond
 ## Technical Description
 
 ### 검증 대상
+
+#### 0. Docker 환경 구성
+
+**docker-compose.yml:**
+
+```yaml
+version: '3.8'
+
+services:
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: poc2-minio
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./data/minio:/data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # PostgreSQL (메타데이터 저장소)
+  postgres:
+    image: postgres:15-alpine
+    container_name: poc2-postgres
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: scp_user
+      POSTGRES_PASSWORD: scp_password
+      POSTGRES_DB: scp_cache
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U scp_user']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (핫 데이터 캐시)
+  redis:
+    image: redis:7-alpine
+    container_name: poc2-redis
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 3
+```
+
+**벤치마크 컨테이너:**
+
+```yaml
+benchmark:
+  build: ./benchmark
+  container_name: poc2-benchmark
+  depends_on:
+    - minio
+    - postgres
+    - redis
+  volumes:
+    - ./data/filesystem:/benchmark/cache
+    - ./benchmark:/benchmark
+    - ./results:/results
+  environment:
+    MINIO_ENDPOINT: minio:9000
+    POSTGRES_HOST: postgres
+    REDIS_HOST: redis
+```
 
 #### 1. 미디어 파일 저장소
 
@@ -546,6 +629,259 @@ def get_media_with_minio(clinic_id, study_id, media_type="thumb"):
     # 2. MinIO에서 실제 파일 조회
     storage = MinIOStorage()
     return storage.get_media(clinic_id, study_id, media_type)
+```
+
+### 벤치마크 도구 구현
+
+#### 벤치마크 스크립트 (Python)
+
+**benchmark/benchmark.py:**
+
+```python
+#!/usr/bin/env python3
+import time
+import os
+import hashlib
+import statistics
+from pathlib import Path
+from minio import Minio
+import psycopg2
+import redis
+import rocksdb
+
+class StorageBenchmark:
+    def __init__(self):
+        self.test_data_sizes = [
+            (200 * 1024, "thumb"),      # 200KB 썸네일
+            (20 * 1024 * 1024, "ct")    # 20MB CT 이미지
+        ]
+        self.iterations = 1000
+
+    def generate_test_data(self, size):
+        """테스트 데이터 생성"""
+        return os.urandom(size)
+
+    def benchmark_filesystem(self, base_path="/benchmark/cache"):
+        """파일시스템 벤치마크"""
+        results = {"write": [], "read": []}
+
+        for size, data_type in self.test_data_sizes:
+            print(f"[FileSystem] Testing {data_type} ({size} bytes)...")
+
+            # 쓰기 테스트
+            write_times = []
+            for i in range(self.iterations):
+                data = self.generate_test_data(size)
+                hash_key = hashlib.sha256(f"clinic123:study{i}".encode()).hexdigest()
+
+                # 경로 생성
+                dir_path = Path(base_path) / data_type / hash_key[0:2] / hash_key[2:4]
+                dir_path.mkdir(parents=True, exist_ok=True)
+                file_path = dir_path / f"{hash_key}.bin"
+
+                # 쓰기 시간 측정
+                start = time.perf_counter()
+                file_path.write_bytes(data)
+                elapsed = (time.perf_counter() - start) * 1000  # ms
+                write_times.append(elapsed)
+
+            # 읽기 테스트
+            read_times = []
+            for i in range(self.iterations):
+                hash_key = hashlib.sha256(f"clinic123:study{i}".encode()).hexdigest()
+                file_path = Path(base_path) / data_type / hash_key[0:2] / hash_key[2:4] / f"{hash_key}.bin"
+
+                start = time.perf_counter()
+                data = file_path.read_bytes()
+                elapsed = (time.perf_counter() - start) * 1000
+                read_times.append(elapsed)
+
+            results[data_type] = {
+                "write": self.calculate_stats(write_times),
+                "read": self.calculate_stats(read_times)
+            }
+
+        return results
+
+    def benchmark_minio(self, endpoint="minio:9000"):
+        """MinIO 벤치마크"""
+        client = Minio(
+            endpoint,
+            access_key="admin",
+            secret_key="password123",
+            secure=False
+        )
+
+        # 버킷 생성
+        bucket_name = "poc2-benchmark"
+        if not client.bucket_exists(bucket_name):
+            client.make_bucket(bucket_name)
+
+        results = {}
+
+        for size, data_type in self.test_data_sizes:
+            print(f"[MinIO] Testing {data_type} ({size} bytes)...")
+
+            # 쓰기 테스트
+            write_times = []
+            for i in range(self.iterations):
+                data = self.generate_test_data(size)
+                object_name = f"{data_type}/study{i}.bin"
+
+                from io import BytesIO
+                start = time.perf_counter()
+                client.put_object(
+                    bucket_name,
+                    object_name,
+                    BytesIO(data),
+                    length=size
+                )
+                elapsed = (time.perf_counter() - start) * 1000
+                write_times.append(elapsed)
+
+            # 읽기 테스트
+            read_times = []
+            for i in range(self.iterations):
+                object_name = f"{data_type}/study{i}.bin"
+
+                start = time.perf_counter()
+                response = client.get_object(bucket_name, object_name)
+                data = response.read()
+                response.close()
+                response.release_conn()
+                elapsed = (time.perf_counter() - start) * 1000
+                read_times.append(elapsed)
+
+            results[data_type] = {
+                "write": self.calculate_stats(write_times),
+                "read": self.calculate_stats(read_times)
+            }
+
+        return results
+
+    def benchmark_rocksdb(self, db_path="/benchmark/cache/rocksdb"):
+        """RocksDB 벤치마크"""
+        opts = rocksdb.Options()
+        opts.create_if_missing = True
+        opts.compression = rocksdb.CompressionType.lz4_compression
+
+        db = rocksdb.DB(db_path, opts)
+        results = {}
+
+        for size, data_type in self.test_data_sizes:
+            print(f"[RocksDB] Testing {data_type} ({size} bytes)...")
+
+            # 쓰기 테스트
+            write_times = []
+            for i in range(self.iterations):
+                data = self.generate_test_data(size)
+                key = f"clinic123:study{i}:{data_type}".encode()
+
+                start = time.perf_counter()
+                db.put(key, data)
+                elapsed = (time.perf_counter() - start) * 1000
+                write_times.append(elapsed)
+
+            # 읽기 테스트
+            read_times = []
+            for i in range(self.iterations):
+                key = f"clinic123:study{i}:{data_type}".encode()
+
+                start = time.perf_counter()
+                data = db.get(key)
+                elapsed = (time.perf_counter() - start) * 1000
+                read_times.append(elapsed)
+
+            results[data_type] = {
+                "write": self.calculate_stats(write_times),
+                "read": self.calculate_stats(read_times)
+            }
+
+        return results
+
+    def calculate_stats(self, times):
+        """통계 계산"""
+        times_sorted = sorted(times)
+        return {
+            "mean": statistics.mean(times),
+            "median": statistics.median(times),
+            "p50": times_sorted[int(len(times) * 0.50)],
+            "p95": times_sorted[int(len(times) * 0.95)],
+            "p99": times_sorted[int(len(times) * 0.99)],
+            "min": min(times),
+            "max": max(times)
+        }
+
+    def run_all(self):
+        """모든 벤치마크 실행"""
+        print("=" * 60)
+        print("PoC #2 저장소 벤치마크 시작")
+        print("=" * 60)
+
+        results = {}
+
+        # 1. 파일시스템
+        print("\n[1/3] 파일시스템 벤치마크...")
+        results["filesystem"] = self.benchmark_filesystem()
+
+        # 2. MinIO
+        print("\n[2/3] MinIO 벤치마크...")
+        results["minio"] = self.benchmark_minio()
+
+        # 3. RocksDB
+        print("\n[3/3] RocksDB 벤치마크...")
+        results["rocksdb"] = self.benchmark_rocksdb()
+
+        # 결과 저장
+        self.save_results(results)
+
+        return results
+
+    def save_results(self, results):
+        """결과를 JSON 파일로 저장"""
+        import json
+        with open("/results/benchmark_results.json", "w") as f:
+            json.dump(results, f, indent=2)
+
+        print("\n결과가 /results/benchmark_results.json에 저장되었습니다.")
+
+if __name__ == "__main__":
+    benchmark = StorageBenchmark()
+    benchmark.run_all()
+```
+
+#### Dockerfile
+
+**benchmark/Dockerfile:**
+
+```dockerfile
+FROM python:3.11-slim
+
+# 필요한 패키지 설치
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libsnappy-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    liblz4-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python 패키지 설치
+COPY requirements.txt /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+WORKDIR /benchmark
+
+CMD ["python", "benchmark.py"]
+```
+
+**benchmark/requirements.txt:**
+
+```
+minio==7.2.0
+psycopg2-binary==2.9.9
+redis==5.0.1
+python-rocksdb==0.7.0
 ```
 
 ### 벤치마크 결과 템플릿

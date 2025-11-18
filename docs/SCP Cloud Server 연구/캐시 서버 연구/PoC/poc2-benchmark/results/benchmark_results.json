@@ -1,0 +1,105 @@
+{
+  "timestamp": "2025-11-18 02:48:31",
+  "test_config": {
+    "thumb_size_kb": 200,
+    "thumb_count": 1000,
+    "ct_size_mb": 20,
+    "ct_count": 100
+  },
+  "available_storage": {
+    "filesystem": true,
+    "minio": true,
+    "rocksdb": true
+  },
+  "filesystem": {
+    "thumb": {
+      "write": {
+        "mean": 4.79,
+        "median": 2.11,
+        "p50": 2.12,
+        "p95": 15.99,
+        "p99": 54.58,
+        "min": 0.35,
+        "max": 107.71
+      },
+      "read": {
+        "mean": 9.47,
+        "median": 6.94,
+        "p50": 6.94,
+        "p95": 25.86,
+        "p99": 50.46,
+        "min": 0.84,
+        "max": 90.45
+      },
+      "disk_usage_mb": 2195.31,
+      "iterations": 1000
+    },
+    "ct": {
+      "write": {
+        "mean": 210.03,
+        "median": 80.83,
+        "p50": 81.32,
+        "p95": 804.89,
+        "p99": 2323.15,
+        "min": 30.41,
+        "max": 2323.15
+      },
+      "read": {
+        "mean": 133.27,
+        "median": 82.78,
+        "p50": 82.79,
+        "p95": 588.5,
+        "p99": 707.65,
+        "min": 36.96,
+        "max": 707.65
+      },
+      "disk_usage_mb": 2195.31,
+      "iterations": 100
+    }
+  },
+  "minio": {
+    "thumb": {
+      "write": {
+        "mean": 32.41,
+        "median": 18.56,
+        "p50": 18.57,
+        "p95": 93.97,
+        "p99": 326.76,
+        "min": 5.6,
+        "max": 756.12
+      },
+      "read": {
+        "mean": 22.62,
+        "median": 13.04,
+        "p50": 13.05,
+        "p95": 75.03,
+        "p99": 151.93,
+        "min": 2.25,
+        "max": 310.18
+      },
+      "iterations": 1000
+    },
+    "ct": {
+      "write": {
+        "mean": 141.0,
+        "median": 96.9,
+        "p50": 96.94,
+        "p95": 381.26,
+        "p99": 561.86,
+        "min": 67.48,
+        "max": 561.86
+      },
+      "read": {
+        "mean": 168.59,
+        "median": 142.89,
+        "p50": 145.76,
+        "p95": 403.85,
+        "p99": 1124.9,
+        "min": 46.56,
+        "max": 1124.9
+      },
+      "iterations": 100
+    }
+  },
+  "rocksdb": {}
+}
