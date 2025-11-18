@@ -76,9 +76,11 @@ Raymond
 - [ ] 요구사항 분석 및 후보 옵션 정리(미디어/메타 구분, 성능/운영 기준 정의)
 - [ ] 미디어 저장소: 파일시스템(해시 디렉터리) 프로토타입 구현
 - [ ] 미디어 저장소: RocksDB(키-값, 압축/블록 옵션) 프로토타입 구현
+- [ ] 미디어 저장소: MinIO(S3 API, 메타데이터, 라이프사이클) 프로토타입 구현
 - [ ] 메타 저장소: PostgreSQL(JSONB/인덱스, 동시성) 프로토타입 구현
 - [ ] 메타 저장소: Redis(인메모리+TTL, AOF 스냅샷) 프로토타입 구현
 - [ ] 성능 벤치마크 및 비교(쓰기/읽기/메모리/TTL/삭제, 95/99p 지표)
+- [ ] 클라우드 호환성 테스트(MinIO ↔ AWS S3 동기화)
 - [ ] 최종 조합 선정 및 문서화(선정 사유, 튜닝값, 운영 가이드)
 
 **리소스:**
@@ -119,12 +121,25 @@ Value: <binary data>
 - 장점: 압축, 빠른 조회, 메타데이터 함께 저장
 - 단점: 큰 파일 비효율, 압축 오버헤드
 
+**옵션 C: MinIO (S3-Compatible Object Storage)**
+
+```
+Bucket: scp-cache-{clinicId}
+Object: thumb/{studyId}/{hash}.jpg
+Metadata: x-amz-meta-ttl, x-amz-meta-access-time
+```
+
+- 장점: S3 API 호환 (클라우드 연동), 자체 메타데이터 관리, 버전 관리/라이프사이클 정책 내장
+- 단점: HTTP 오버헤드, 별도 프로세스 필요, 작은 파일에서는 비효율
+- 적합 케이스: 멀티 클리닉 동기화, 클라우드 하이브리드 구조
+
 **평가 기준:**
 
 - 쓰기 성능 (100MB 파일 저장)
 - 읽기 성능 (랜덤/순차 조회)
 - 디스크 사용량 (압축률)
 - 캐시 제거 성능 (LRU)
+- 클라우드 호환성 (S3 API)
 
 #### 2. 메타데이터 저장소
 
@@ -196,7 +211,7 @@ HSET cache:meta:{key} ttl 3600 lastAccess 1234567890 data {...}
 
 #### 3. 하이브리드 아키텍처
 
-**권장 조합:**
+**권장 조합 A: 순수 로컬 캐시**
 
 - 미디어: 파일시스템 (단순성, OS 캐시)
 - 메타: PostgreSQL (쿼리 기능, 기존 인프라 활용) + Redis (핫 데이터 인메모리)
@@ -204,6 +219,28 @@ HSET cache:meta:{key} ttl 3600 lastAccess 1234567890 data {...}
 ```
 [Request] → [Redis (Hot)] → [PostgreSQL (Warm)] → [파일시스템 (Cold)]
 ```
+
+**권장 조합 B: 클라우드 하이브리드 (MinIO 활용)**
+
+- 미디어: MinIO (S3 API, 클라우드 동기화)
+- 메타: PostgreSQL (쿼리 기능) + Redis (핫 데이터)
+
+```
+[Request] → [Redis (Hot)] → [PostgreSQL (Meta)] → [MinIO (Local)] ↔ [AWS S3 (Cloud)]
+```
+
+**조합 B 장점:**
+
+1. **클라우드 연동**: MinIO ↔ S3 양방향 동기화 (mc mirror)
+2. **멀티 사이트**: 여러 클리닉 간 데이터 복제 가능
+3. **재해 복구**: S3 백업으로 자동 복구
+4. **확장성**: 로컬 용량 부족 시 S3로 티어링
+
+**조합 B 단점:**
+
+1. **복잡도**: MinIO 서버 추가 운영 필요
+2. **성능**: HTTP 오버헤드 (파일시스템 대비 10-20% 느림)
+3. **메모리**: MinIO 프로세스 200-500MB 사용
 
 ### 성능 테스트 시나리오
 
@@ -231,6 +268,18 @@ HSET cache:meta:{key} ttl 3600 lastAccess 1234567890 data {...}
 
 - LRU 정책으로 50GB 데이터 제거
 - 측정: 제거 속도, 디스크 단편화
+
+**시나리오 6: MinIO S3 호환성 (추가)**
+
+- MinIO → AWS S3 동기화 (mc mirror 사용)
+- 로컬 캐시 히트 시 MinIO 조회, MISS 시 S3 폴백
+- 측정: 동기화 속도, API 호환성, 메타데이터 일관성
+
+**시나리오 7: MinIO 멀티테넌시 (추가)**
+
+- 10개 클리닉별 버킷 분리
+- 동시 접근 시 격리 성능
+- 측정: 버킷 간 간섭 없음, IAM 정책 효과
 
 ### 스키마 설계
 
@@ -400,14 +449,114 @@ def get_meta_with_cache(clinic_id, uri):
     return pg_data
 ```
 
+#### MinIO 예시 (S3-Compatible 저장소)
+
+```python
+from minio import Minio
+from minio.error import S3Error
+import json
+from datetime import timedelta
+
+class MinIOStorage:
+    def __init__(self, endpoint="localhost:9000", access_key=None, secret_key=None):
+        # MinIO 클라이언트 초기화
+        self.client = Minio(
+            endpoint,
+            access_key=access_key,
+            secret_key=secret_key,
+            secure=False  # 로컬 환경
+        )
+
+    def ensure_bucket(self, clinic_id):
+        bucket_name = f"scp-cache-{clinic_id}"
+        if not self.client.bucket_exists(bucket_name):
+            self.client.make_bucket(bucket_name)
+            # 라이프사이클 정책 설정 (30일 TTL)
+            lifecycle_config = {
+                "Rules": [{
+                    "ID": "expire-old-objects",
+                    "Status": "Enabled",
+                    "Expiration": {"Days": 30}
+                }]
+            }
+            self.client.set_bucket_lifecycle(bucket_name, lifecycle_config)
+        return bucket_name
+
+    def store_media(self, clinic_id, study_id, data, media_type="thumb"):
+        bucket_name = self.ensure_bucket(clinic_id)
+        object_name = f"{media_type}/{study_id}/{hash(study_id)}.bin"
+
+        # 메타데이터 설정
+        metadata = {
+            "x-amz-meta-clinic-id": clinic_id,
+            "x-amz-meta-study-id": study_id,
+            "x-amz-meta-ttl": str(int(time.time()) + 2592000),
+            "x-amz-meta-access-time": str(int(time.time()))
+        }
+
+        # 업로드
+        self.client.put_object(
+            bucket_name,
+            object_name,
+            io.BytesIO(data),
+            length=len(data),
+            metadata=metadata
+        )
+
+    def get_media(self, clinic_id, study_id, media_type="thumb"):
+        bucket_name = f"scp-cache-{clinic_id}"
+        object_name = f"{media_type}/{study_id}/{hash(study_id)}.bin"
+
+        try:
+            # 메타데이터 조회
+            stat = self.client.stat_object(bucket_name, object_name)
+
+            # TTL 확인
+            ttl = int(stat.metadata.get("x-amz-meta-ttl", 0))
+            if ttl < int(time.time()):
+                return None  # Expired
+
+            # 객체 다운로드
+            response = self.client.get_object(bucket_name, object_name)
+            data = response.read()
+
+            # 접근 시간 업데이트 (메타데이터 복사)
+            metadata = stat.metadata.copy()
+            metadata["x-amz-meta-access-time"] = str(int(time.time()))
+            self.client.copy_object(
+                bucket_name, object_name,
+                f"{bucket_name}/{object_name}",
+                metadata=metadata,
+                metadata_directive="REPLACE"
+            )
+
+            return data
+        except S3Error as e:
+            if e.code == "NoSuchKey":
+                return None
+            raise
+
+# PostgreSQL과 함께 사용
+def get_media_with_minio(clinic_id, study_id, media_type="thumb"):
+    # 1. PostgreSQL에서 메타데이터 조회 (빠른 TTL/권한 검증)
+    meta = get_meta_from_postgresql(clinic_id, study_id, media_type)
+    if not meta or meta['ttl'] < int(time.time()):
+        return None
+
+    # 2. MinIO에서 실제 파일 조회
+    storage = MinIOStorage()
+    return storage.get_media(clinic_id, study_id, media_type)
+```
+
 ### 벤치마크 결과 템플릿
 
-| 저장소 조합             | 쓰기 (MB/s) | 읽기 (ms, 95p) | 메타 조회 (ms) | 디스크 효율 | 점수 |
-| ----------------------- | ----------- | -------------- | -------------- | ----------- | ---- |
-| FS + PostgreSQL         | ?           | ?              | ?              | ?           | ?    |
-| FS + PostgreSQL + Redis | ?           | ?              | ?              | ?           | ?    |
-| RocksDB                 | ?           | ?              | ?              | ?           | ?    |
-| FS + RocksDB            | ?           | ?              | ?              | ?           | ?    |
+| 저장소 조합             | 쓰기 (MB/s) | 읽기 (ms, 95p) | 메타 조회 (ms) | 디스크 효율 | S3 호환 | 점수 |
+| ----------------------- | ----------- | -------------- | -------------- | ----------- | ------- | ---- |
+| FS + PostgreSQL         | ?           | ?              | ?              | ?           | ❌      | ?    |
+| FS + PostgreSQL + Redis | ?           | ?              | ?              | ?           | ❌      | ?    |
+| RocksDB                 | ?           | ?              | ?              | ?           | ❌      | ?    |
+| MinIO + PostgreSQL      | ?           | ?              | ?              | ?           | ✅      | ?    |
+| MinIO + Redis           | ?           | ?              | ?              | ?           | ✅      | ?    |
 
 ### PoC 검증 결과 및 의사결정 기준
 
@@ -416,6 +565,7 @@ def get_meta_with_cache(clinic_id, uri):
 - 각 저장소 옵션별 성능 측정 (쓰기/읽기 속도, 메모리 사용량)
 - 치과 이미지 특성에 맞는 최적화 효과 검증
 - 운영 복잡도 및 유지보수성 평가
+- **MinIO 추가 검증**: S3 호환성, 클라우드 동기화 성능, 멀티테넌시
 
 **PoC 성공 기준:**
 
@@ -423,11 +573,27 @@ def get_meta_with_cache(clinic_id, uri):
 - 저장소 조합별 장단점 정량화
 - 기술적 의사결정 근거 문서화
 - 프로덕션 개발 시 저장소 선택 가이드라인 제시
+- **MinIO 평가 기준**:
+  - S3 API 100% 호환 (boto3, aws-sdk 동작 확인)
+  - 클라우드 동기화 속도 > 10MB/s
+  - HTTP 오버헤드 < 20% (vs 파일시스템)
+
+**의사결정 매트릭스:**
+
+| 기준             | 가중치 | 파일시스템 | RocksDB | MinIO |
+| ---------------- | ------ | ---------- | ------- | ----- |
+| 성능 (읽기/쓰기) | 30%    | ?          | ?       | ?     |
+| 운영 단순성      | 25%    | ?          | ?       | ?     |
+| 클라우드 호환성  | 20%    | ?          | ?       | ?     |
+| 메모리 효율      | 15%    | ?          | ?       | ?     |
+| 확장성           | 10%    | ?          | ?       | ?     |
+| **총점**         | 100%   | ?          | ?       | ?     |
 
 **의사결정:**
 
 - PoC 결과 기반 저장소 조합 선정
 - 치과 이미지 특성에 최적화된 아키텍처 도출
+- 순수 로컬 vs 클라우드 하이브리드 선택 기준 정립
 - 향후 프로덕션 개발 시 고려사항 정리
 
 ## 5. 개발 언어 고려사항 (Rust 우선)
@@ -438,12 +604,20 @@ def get_meta_with_cache(clinic_id, uri):
 
 - **장점**: 안전한 고성능 I/O, 낮은 런타임 오버헤드, 단일 바이너리
 - **적합성**: 파일 시스템 조작, 데이터베이스/Redis 연동, 동시성 처리(tokio)
-- **라이브러리**: sqlx 또는 tokio-postgres (PostgreSQL), redis-rs (Redis), std::fs/tokio::fs, rust-rocksdb (RocksDB)
+- **라이브러리**:
+  - PostgreSQL: sqlx 또는 tokio-postgres
+  - Redis: redis-rs
+  - 파일시스템: std::fs/tokio::fs
+  - RocksDB: rust-rocksdb
+  - **MinIO/S3**: rust-s3, aws-sdk-s3 (공식 AWS SDK)
 
 **Python (대안):**
 
 - **장점**: 풍부한 PostgreSQL 라이브러리, 빠른 개발
-- **라이브러리**: psycopg2 (PostgreSQL), pathlib, os
+- **라이브러리**:
+  - PostgreSQL: psycopg2
+  - 파일시스템: pathlib, os
+  - **MinIO**: minio-py (공식 Python SDK)
 - **단점**: 성능 제한, 의존성 관리
 
 ### 5.2 캐시 관리 로직 구현 언어
@@ -481,6 +655,13 @@ def get_meta_with_cache(clinic_id, uri):
 - **수정/배포**: ✅ 허용
 - **고지 의무**: ✅ 라이선스 파일 포함
 
+**MinIO:**
+
+- **라이선스**: GNU AGPL v3 (서버) / Apache 2.0 (클라이언트 SDK)
+- **상업적 사용**: ✅ 허용 (클라이언트 SDK 사용 시)
+- **주의사항**: MinIO 서버 코드 수정 시 AGPL 의무 (소스 공개), 바이너리만 사용 시 문제없음
+- **상용 라이선스**: 엔터프라이즈 기능 필요 시 별도 구매 가능
+
 **Rust 언어:**
 
 - **라이선스**: Apache-2.0 / MIT (듀얼)
@@ -511,10 +692,19 @@ def get_meta_with_cache(clinic_id, uri):
 - **설치**: 라이브러리 형태로 애플리케이션에 포함
 - **서비스**: 별도 서비스 불필요 (라이브러리 형태)
 
+**MinIO Windows 배포:**
+
+- **바이너리**: 단일 실행 파일 (minio.exe)
+- **의존성**: 없음 (Go로 컴파일된 정적 바이너리)
+- **서비스 등록**: NSSM으로 Windows 서비스 등록 가능
+- **설정**: 환경 변수 또는 설정 파일로 구성
+- **데이터 경로**: `C:\ProgramData\MinIO\data` 권장
+
 **Rust 애플리케이션 Windows 배포:**
 
 - **바이너리**: 단일 실행 파일로 컴파일 가능 (MSVC toolchain)
 - **의존성**: PostgreSQL 클라이언트 라이브러리 (libpq.dll) 등 필요 시 동봉
+- **MinIO 연동**: rust-s3 또는 aws-sdk-s3 크레이트 사용
 - **서비스 등록**: windows-service/NSSM 활용
 - **설정 파일**: JSON/YAML 설정 파일 지원
 
@@ -529,10 +719,19 @@ def get_meta_with_cache(clinic_id, uri):
 - **Redis**: apt/yum 설치, systemd 서비스
 - **RocksDB**: 패키지 또는 정적 링크, glibc/반영 의존성 확인
 
+**MinIO Linux 배포:**
+
+- **바이너리**: 단일 실행 파일 (wget으로 다운로드)
+- **설치**: `/usr/local/bin/minio` 권장
+- **서비스**: systemd 서비스 등록
+- **Docker**: 공식 이미지 `minio/minio` 제공
+- **데이터 경로**: `/var/lib/minio/data` 권장
+
 **Rust 애플리케이션 Linux 배포:**
 
 - **배포**: 단일 바이너리 + systemd 서비스
 - **의존성**: libpq, OpenSSL 등 배포 스크립트로 설치
+- **MinIO 연동**: rust-s3 크레이트 (aws-sdk-s3도 가능)
 - **컨테이너**: Docker/Podman 지원 (CacheBox 시나리오와 호환)
 
 ### 다음 단계
