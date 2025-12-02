@@ -332,3 +332,4 @@ class NoPrefetch(PrefetchStrategy):
     def should_prefetch(self, current_request: Dict, cache_simulator) -> List[str]:
         return []
 
+

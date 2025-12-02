@@ -314,3 +314,4 @@ class WindowTinyLFU:
         """캐시가 가득 찬지 확인"""
         return (self.window.size_used + self.main.size_used) >= self.capacity * 0.95
 
+
