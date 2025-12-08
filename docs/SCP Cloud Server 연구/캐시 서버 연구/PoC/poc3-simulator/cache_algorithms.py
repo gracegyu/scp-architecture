@@ -315,3 +315,4 @@ class WindowTinyLFU:
         return (self.window.size_used + self.main.size_used) >= self.capacity * 0.95
 
 
+
