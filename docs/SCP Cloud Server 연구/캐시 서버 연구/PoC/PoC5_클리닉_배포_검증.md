@@ -101,10 +101,10 @@ PoC1,2,3에서 선정된 기술 스택의 배포 및 설치 프로세스를 검�
 
 **선정된 기술 스택 (PoC1,2,3 결과):**
 
-- Reverse Proxy: Nginx/Envoy (PoC1에서 선정)
-- 데이터 저장소: 파일시스템 + PostgreSQL/Redis (PoC2에서 선정)
-- 캐시 알고리즘: W-TinyLFU + SLRU (PoC3에서 선정)
-- 개발 언어: Rust (PoC1,2,3 결정 반영)
+- HTTP 서버: Rust 내장 HTTP 서버 (Axum/Actix-web, PoC4에서 구현)
+- 데이터 저장소: 파일시스템 + MongoDB (PoC2에서 선정, PoC4에서 MongoDB로 변경)
+- 캐시 알고리즘: LRU (PoC3에서 선정)
+- 개발 언어: Rust (PoC1,2,3,4 결정 반영)
 
 **배포 아키텍처:**
 
@@ -114,7 +114,18 @@ PoC1,2,3에서 선정된 기술 스택의 배포 및 설치 프로세스를 검�
 ├─────────────────────────────────────────┤
 │  NSIS Installer / Portable Version     │
 ├─────────────────────────────────────────┤
-│  Rust Cache Service + Nginx/Envoy + PostgreSQL │
+│  Rust Cache Service (단일 바이너리) + MongoDB │
+├─────────────────────────────────────────┤
+│  모니터링 + 진단 + 업데이트 도구         │
+└─────────────────────────────────────────┘
+```
+
+**개발 환경:**
+
+- **개발 OS**: macOS (Windows 크로스 컴파일)
+- **빌드**: Rust cargo (단일 .exe 바이너리)
+- **배포 OS**: Windows 10/11, Windows Server 2019+
+
 ### 1.3 CacheBox(하드웨어) 옵션
 
 **개요:** SW 단독 제공 외에 하드웨어 어플라이언스(CacheBox) 형태로 제공을 검토하며, Linux 기반 + Docker Compose로 구성한다.
@@ -122,16 +133,17 @@ PoC1,2,3에서 선정된 기술 스택의 배포 및 설치 프로세스를 검�
 **구성:**
 
 ```
-
-┌──────────────────────────────┐ │ CacheBox (HW) │ ├──────────────────────────────┤ │ Docker Compose │ │ - nginx/envoy │ │ - cache-service (Rust) │ │ - redis (옵션) │ │ - postgres (옵션/외부연결) │ │ - monitoring (Prom/Graf) │ └──────────────────────────────┘
-
+┌──────────────────────────────┐
+│ CacheBox (HW)                │
+├──────────────────────────────┤
+│ Docker Compose               │
+│ - cache-service (Rust)       │
+│ - mongodb (옵션/외부연결)     │
+│ - monitoring (Prom/Graf)     │
+└──────────────────────────────┘
 ```
 
 **운영:** 원격 모니터링, OTA 업데이트(이미지 교체 + 롤백), 일괄 프로비저닝(초기 설정 스크립트)
-├─────────────────────────────────────────┤
-│  모니터링 + 진단 + 업데이트 도구         │
-└─────────────────────────────────────────┘
-```
 
 ### 2. Windows 설치 프로그램 설계
 
@@ -150,12 +162,12 @@ scp-cache-installer-1.0.0.exe
 
 ```
 scp-cache-portable-1.0.0.zip
-├── cache-daemon.exe
-├── cache-manager.exe
+├── scp-cache-server.exe       # Rust 단일 바이너리
+├── cache-manager.exe          # 관리 도구 (선택)
 ├── config/
-│   ├── cache-config.yaml
-│   └── nginx.conf
-└── run.bat (포터블 실행 스크립트)
+│   └── cache-config.toml      # 설정 파일
+├── mongodb/                   # MongoDB (포함 또는 별도 설치)
+└── run.bat                    # 포터블 실행 스크립트
 ```
 
 ### 3. 운영 도구 개발
@@ -185,18 +197,16 @@ scp-cache-portable-1.0.0.zip
 ```
 scp-cache-server-1.0.0/
 ├── bin/
-│   ├── cache-daemon          # Go 바이너리
-│   ├── nginx                 # Nginx 바이너리
-│   └── install.sh            # 설치 스크립트
+│   ├── scp-cache-server.exe  # Rust 단일 바이너리
+│   ├── cache-manager.exe     # 관리 도구 (선택)
+│   └── install.bat           # Windows 설치 스크립트
 ├── config/
-│   ├── nginx.conf
-│   ├── cache-config.yaml
-│   └── systemd/
-│       └── scp-cache.service
+│   ├── cache-config.toml     # 설정 파일
+│   └── mongodb/              # MongoDB (포함 또는 별도 설치)
 ├── scripts/
-│   ├── start.sh
-│   ├── stop.sh
-│   └── update.sh
+│   ├── start.bat             # 서비스 시작
+│   ├── stop.bat              # 서비스 중지
+│   └── update.bat            # 업데이트 스크립트
 └── docs/
     ├── README.md
     ├── LICENSE
@@ -397,38 +407,48 @@ OutFile "scp-cache-installer-${APP_VERSION}.exe"
 InstallDir "C:\Program Files\SCP\CacheServer"
 
 Section "Install"
-    ; 1. 파일 복사
+    ; 1. MongoDB 설치 확인 (선택적)
+    ; MongoDB가 설치되어 있지 않으면 경고 표시
+
+    ; 2. 파일 복사
     SetOutPath "$INSTDIR"
-    File "bin\cache-daemon.exe"
+    File "bin\scp-cache-server.exe"
     File "bin\cache-manager.exe"
-    File "config\cache-config.yaml"
+    File "config\cache-config.toml"
 
-    ; 2. 서비스 등록
-    ExecWait 'sc create "SCPCache" binPath= "$INSTDIR\cache-daemon.exe" start= auto'
+    ; 3. 디렉터리 생성
+    CreateDirectory "$INSTDIR\logs"
+    CreateDirectory "$INSTDIR\cache"
+    CreateDirectory "C:\ProgramData\SCP\Cache\media"
+    CreateDirectory "C:\ProgramData\SCP\Cache\spool"
 
-    ; 3. 방화벽 규칙 추가
+    ; 4. 서비스 등록 (windows-service 크레이트 사용 시)
+    ; 또는 직접 sc 명령어 사용
+    ExecWait 'sc create "SCPCacheServer" binPath= "$INSTDIR\scp-cache-server.exe" start= auto DisplayName= "SCP Cache Server"'
+
+    ; 5. 방화벽 규칙 추가
     ExecWait 'netsh advfirewall firewall add rule name="SCP Cache" dir=in action=allow protocol=TCP localport=80'
     ExecWait 'netsh advfirewall firewall add rule name="SCP Cache Admin" dir=in action=allow protocol=TCP localport=8080'
 
-    ; 4. 시작 메뉴 등록
+    ; 6. 시작 메뉴 등록
     CreateShortCut "$SMPROGRAMS\SCP Cache Server.lnk" "$INSTDIR\cache-manager.exe"
 
-    ; 5. 서비스 시작
-    ExecWait 'net start "SCPCache"'
+    ; 7. 서비스 시작
+    ExecWait 'net start "SCPCacheServer"'
 
     MessageBox MB_OK "설치가 완료되었습니다!"
 SectionEnd
 
 Section "Uninstall"
     ; 1. 서비스 중지 및 제거
-    ExecWait 'net stop "SCPCache"'
-    ExecWait 'sc delete "SCPCache"'
+    ExecWait 'net stop "SCPCacheServer"'
+    ExecWait 'sc delete "SCPCacheServer"'
 
     ; 2. 방화벽 규칙 제거
     ExecWait 'netsh advfirewall firewall delete rule name="SCP Cache"'
     ExecWait 'netsh advfirewall firewall delete rule name="SCP Cache Admin"'
 
-    ; 3. 파일 삭제
+    ; 3. 파일 삭제 (캐시 데이터는 보존 옵션)
     RMDir /r "$INSTDIR"
 
     ; 4. 시작 메뉴 제거
@@ -448,17 +468,24 @@ REM 현재 디렉터리 설정
 set SCRIPT_DIR=%~dp0
 cd /d "%SCRIPT_DIR%"
 
+REM MongoDB 확인 (선택적)
+where mongod >nul 2>&1
+if %errorlevel% neq 0 (
+    echo 경고: MongoDB가 설치되어 있지 않습니다.
+    echo MongoDB를 설치하거나 MongoDB 서버가 실행 중인지 확인하세요.
+)
+
 REM 서비스 모드 확인
 if "%1"=="--install" (
     echo 시스템 서비스로 설치합니다...
-    sc create "SCPCache" binPath= "%SCRIPT_DIR%cache-daemon.exe" start= auto
+    sc create "SCPCacheServer" binPath= "%SCRIPT_DIR%scp-cache-server.exe" start= auto DisplayName= "SCP Cache Server"
     netsh advfirewall firewall add rule name="SCP Cache" dir=in action=allow protocol=TCP localport=80
     netsh advfirewall firewall add rule name="SCP Cache Admin" dir=in action=allow protocol=TCP localport=8080
-    net start "SCPCache"
+    net start "SCPCacheServer"
     echo 설치 완료!
 ) else (
     echo 포터블 모드로 실행합니다...
-    start "" "%SCRIPT_DIR%cache-manager.exe"
+    start "" "%SCRIPT_DIR%scp-cache-server.exe"
 )
 ```
 
@@ -472,103 +499,100 @@ if "%1"=="--install" (
 - 업데이트 실패 시 자동 롤백
 - 업데이트 로그 및 알림
 
-```go
-// update.go - 자동 업데이트 로직
-package main
+**Rust 구현 예시:**
 
-import (
-    "context"
-    "encoding/json"
-    "fmt"
-    "io"
-    "net/http"
-    "os"
-    "os/exec"
-    "time"
-)
+```rust
+// update.rs - 자동 업데이트 로직
+use serde::{Deserialize, Serialize};
+use tokio::time::{interval, Duration};
+use std::path::PathBuf;
 
-type UpdateInfo struct {
-    Version     string `json:"version"`
-    DownloadURL string `json:"download_url"`
-    Checksum    string `json:"checksum"`
-    Required    bool   `json:"required"`
+#[derive(Debug, Deserialize)]
+struct UpdateInfo {
+    version: String,
+    download_url: String,
+    checksum: String,
+    required: bool,
 }
 
-func checkForUpdates() (*UpdateInfo, error) {
-    resp, err := http.Get("https://api.scp-cloud.com/updates/latest")
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
+async fn check_for_updates() -> Result<UpdateInfo, Box<dyn std::error::Error>> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .get("https://api.scp-cloud.com/updates/latest")
+        .send()
+        .await?;
 
-    var update UpdateInfo
-    if err := json.NewDecoder(resp.Body).Decode(&update); err != nil {
-        return nil, err
-    }
-
-    return &update, nil
+    let update: UpdateInfo = resp.json().await?;
+    Ok(update)
 }
 
-func downloadUpdate(url string) error {
-    resp, err := http.Get(url)
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
-
-    file, err := os.Create("/tmp/cache-daemon-new")
-    if err != nil {
-        return err
-    }
-    defer file.Close()
-
-    _, err = io.Copy(file, resp.Body)
-    return err
+async fn download_update(url: &str) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let client = reqwest::Client::new();
+    let resp = client.get(url).send().await?;
+    let mut file = tokio::fs::File::create("cache-server-new.exe").await?;
+    let mut content = resp.bytes().await?;
+    tokio::io::copy(&mut content.as_ref(), &mut file).await?;
+    Ok(PathBuf::from("cache-server-new.exe"))
 }
 
-func applyUpdate() error {
+async fn apply_update() -> Result<(), Box<dyn std::error::Error>> {
     // 1. 새 바이너리 다운로드
     // 2. 체크섬 검증
     // 3. 기존 바이너리 백업
     // 4. 새 바이너리로 교체
-    // 5. 서비스 재시작
+    // 5. Windows Service 재시작
 
-    cmd := exec.Command("systemctl", "restart", "scp-cache")
-    return cmd.Run()
+    tokio::process::Command::new("net")
+        .args(&["stop", "SCPCacheServer"])
+        .status()
+        .await?;
+
+    // 바이너리 교체 로직...
+
+    tokio::process::Command::new("net")
+        .args(&["start", "SCPCacheServer"])
+        .status()
+        .await?;
+
+    Ok(())
 }
 
-func updateWorker(ctx context.Context) {
-    ticker := time.NewTicker(24 * time.Hour) // 매일 체크
-    defer ticker.Stop()
+async fn update_worker() {
+    let mut interval = interval(Duration::from_secs(24 * 60 * 60)); // 매일 체크
 
-    for {
-        select {
-        case <-ctx.Done():
-            return
-        case <-ticker.C:
-            update, err := checkForUpdates()
-            if err != nil {
-                log.Printf("업데이트 확인 실패: %v", err)
-                continue
-            }
+    loop {
+        interval.tick().await;
 
-            if update.Required {
-                log.Printf("필수 업데이트 발견: %s", update.Version)
-                if err := downloadUpdate(update.DownloadURL); err != nil {
-                    log.Printf("업데이트 다운로드 실패: %v", err)
-                    continue
+        match check_for_updates().await {
+            Ok(update) if update.required => {
+                log::info!("필수 업데이트 발견: {}", update.version);
+                if let Err(e) = download_update(&update.download_url).await {
+                    log::error!("업데이트 다운로드 실패: {}", e);
+                    continue;
                 }
 
-                if err := applyUpdate(); err != nil {
-                    log.Printf("업데이트 적용 실패: %v", err)
+                if let Err(e) = apply_update().await {
+                    log::error!("업데이트 적용 실패: {}", e);
                 } else {
-                    log.Printf("업데이트 완료: %s", update.Version)
+                    log::info!("업데이트 완료: {}", update.version);
                 }
+            }
+            Ok(_) => {
+                // 선택적 업데이트 처리
+            }
+            Err(e) => {
+                log::error!("업데이트 확인 실패: {}", e);
             }
         }
     }
 }
 ```
+
+**참고:**
+
+- Rust의 `tokio`, `reqwest`, `serde` 크레이트 사용
+- Windows Service는 `windows-service` 크레이트 또는 `net` 명령어 사용
+- 체크섬 검증은 `sha2` 크레이트 활용
 
 ### 4. 의료 규정 준수 검증
 
@@ -709,113 +733,157 @@ func updateWorker(ctx context.Context) {
 
 #### 8.1 원격 모니터링
 
-```go
-// monitoring.go - 원격 모니터링 설정
-type MonitoringConfig struct {
-    Enabled     bool   `yaml:"enabled"`
-    Endpoint    string `yaml:"endpoint"`
-    APIKey      string `yaml:"api_key"`
-    Interval    int    `yaml:"interval"` // seconds
-    Metrics     []string `yaml:"metrics"`
+**Rust 구현 예시:**
+
+```rust
+// monitoring.rs - 원격 모니터링 설정
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+#[derive(Debug, Deserialize, Serialize)]
+struct MonitoringConfig {
+    enabled: bool,
+    endpoint: String,
+    api_key: String,
+    interval: u64, // seconds
+    metrics: Vec<String>,
+    clinic_id: String,
 }
 
-func sendMetrics(config MonitoringConfig) {
-    metrics := collectMetrics()
+async fn send_metrics(config: &MonitoringConfig) -> Result<(), Box<dyn std::error::Error>> {
+    let metrics = collect_metrics().await?;
 
-    payload := map[string]interface{}{
-        "clinic_id": config.ClinicID,
-        "timestamp": time.Now().Unix(),
-        "metrics":   metrics,
+    let payload = json!({
+        "clinic_id": config.clinic_id,
+        "timestamp": SystemTime::now()
+            .duration_since(UNIX_EPOCH)?
+            .as_secs(),
+        "metrics": metrics,
+    });
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(&config.endpoint)
+        .header("Authorization", format!("Bearer {}", config.api_key))
+        .header("Content-Type", "application/json")
+        .json(&payload)
+        .timeout(Duration::from_secs(10))
+        .send()
+        .await?;
+
+    if !resp.status().is_success() {
+        log::error!("메트릭 전송 실패: {}", resp.status());
     }
 
-    jsonData, _ := json.Marshal(payload)
-
-    req, _ := http.NewRequest("POST", config.Endpoint, bytes.NewBuffer(jsonData))
-    req.Header.Set("Authorization", "Bearer "+config.APIKey)
-    req.Header.Set("Content-Type", "application/json")
-
-    client := &http.Client{Timeout: 10 * time.Second}
-    resp, err := client.Do(req)
-    if err != nil {
-        log.Printf("메트릭 전송 실패: %v", err)
-    }
-    defer resp.Body.Close()
+    Ok(())
 }
 ```
+
+**참고:**
+
+- Rust의 `tokio`, `reqwest`, `serde_json` 크레이트 사용
+- 비동기 처리는 `tokio` 런타임 활용
 
 #### 8.2 자동 진단 도구
 
-```bash
-#!/bin/bash
-# diagnose.sh - 자동 진단 도구
+**Windows PowerShell 버전:**
 
-echo "SCP 로컬 캐시 서버 진단을 시작합니다..."
+```powershell
+# diagnose.ps1 - 자동 진단 도구 (Windows)
+
+Write-Host "SCP 로컬 캐시 서버 진단을 시작합니다..." -ForegroundColor Cyan
 
 # 1. 서비스 상태 확인
-check_service() {
-    if systemctl is-active --quiet scp-cache; then
-        echo "✅ 서비스 실행 중"
-    else
-        echo "❌ 서비스 중지됨"
-        systemctl status scp-cache
-    fi
+function Check-Service {
+    $service = Get-Service -Name "SCPCacheServer" -ErrorAction SilentlyContinue
+    if ($service -and $service.Status -eq "Running") {
+        Write-Host "✅ 서비스 실행 중" -ForegroundColor Green
+    } else {
+        Write-Host "❌ 서비스 중지됨" -ForegroundColor Red
+        Get-Service -Name "SCPCacheServer" -ErrorAction SilentlyContinue
+    }
 }
 
 # 2. 포트 확인
-check_ports() {
-    if netstat -tlnp | grep -q ":80 "; then
-        echo "✅ HTTP 포트 (80) 열림"
-    else
-        echo "❌ HTTP 포트 (80) 닫힘"
-    fi
+function Check-Ports {
+    $port80 = Get-NetTCPConnection -LocalPort 80 -ErrorAction SilentlyContinue
+    if ($port80) {
+        Write-Host "✅ HTTP 포트 (80) 열림" -ForegroundColor Green
+    } else {
+        Write-Host "❌ HTTP 포트 (80) 닫힘" -ForegroundColor Red
+    }
 
-    if netstat -tlnp | grep -q ":8080 "; then
-        echo "✅ 관리 포트 (8080) 열림"
-    else
-        echo "❌ 관리 포트 (8080) 닫힘"
-    fi
+    $port8080 = Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue
+    if ($port8080) {
+        Write-Host "✅ 관리 포트 (8080) 열림" -ForegroundColor Green
+    } else {
+        Write-Host "❌ 관리 포트 (8080) 닫힘" -ForegroundColor Red
+    }
 }
 
 # 3. 디스크 공간 확인
-check_disk() {
-    USAGE=$(df -h /var/cache/scp | awk 'NR==2 {print $5}' | sed 's/%//')
-    if [ "$USAGE" -gt 90 ]; then
-        echo "⚠️ 디스크 사용률 높음: ${USAGE}%"
-    else
-        echo "✅ 디스크 사용률 정상: ${USAGE}%"
-    fi
+function Check-Disk {
+    $drive = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Root -eq "C:\" }
+    $usage = [math]::Round(($drive.Used / $drive.Free) * 100, 2)
+    if ($usage -gt 90) {
+        Write-Host "⚠️ 디스크 사용률 높음: ${usage}%" -ForegroundColor Yellow
+    } else {
+        Write-Host "✅ 디스크 사용률 정상: ${usage}%" -ForegroundColor Green
+    }
 }
 
 # 4. 네트워크 연결 확인
-check_network() {
-    if curl -s --connect-timeout 5 https://api.scp-cloud.com/health > /dev/null; then
-        echo "✅ 클라우드 연결 정상"
-    else
-        echo "❌ 클라우드 연결 실패"
-    fi
+function Check-Network {
+    try {
+        $response = Invoke-WebRequest -Uri "https://api.scp-cloud.com/health" -TimeoutSec 5 -ErrorAction Stop
+        Write-Host "✅ 클라우드 연결 정상" -ForegroundColor Green
+    } catch {
+        Write-Host "❌ 클라우드 연결 실패" -ForegroundColor Red
+    }
 }
 
-# 5. 로그 확인
-check_logs() {
-    if [ -f /var/log/scp/error.log ]; then
-        ERROR_COUNT=$(grep -c "ERROR" /var/log/scp/error.log | tail -100)
-        if [ "$ERROR_COUNT" -gt 10 ]; then
-            echo "⚠️ 에러 로그 많음: $ERROR_COUNT개"
-        else
-            echo "✅ 에러 로그 정상"
-        fi
-    fi
+# 5. MongoDB 연결 확인
+function Check-MongoDB {
+    try {
+        $mongoProcess = Get-Process -Name "mongod" -ErrorAction SilentlyContinue
+        if ($mongoProcess) {
+            Write-Host "✅ MongoDB 실행 중" -ForegroundColor Green
+        } else {
+            Write-Host "⚠️ MongoDB 프로세스 없음 (원격 서버 연결 가능)" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "❌ MongoDB 확인 실패" -ForegroundColor Red
+    }
+}
+
+# 6. 로그 확인
+function Check-Logs {
+    $logPath = "C:\ProgramData\SCP\Cache\logs\error.log"
+    if (Test-Path $logPath) {
+        $errorCount = (Select-String -Path $logPath -Pattern "ERROR" | Select-Object -Last 100).Count
+        if ($errorCount -gt 10) {
+            Write-Host "⚠️ 에러 로그 많음: ${errorCount}개" -ForegroundColor Yellow
+        } else {
+            Write-Host "✅ 에러 로그 정상" -ForegroundColor Green
+        }
+    }
 }
 
 # 진단 실행
-check_service
-check_ports
-check_disk
-check_network
-check_logs
+Check-Service
+Check-Ports
+Check-Disk
+Check-Network
+Check-MongoDB
+Check-Logs
 
-echo "진단 완료. 문제가 발견되면 지원팀에 문의하세요."
+Write-Host "`n진단 완료. 문제가 발견되면 지원팀에 문의하세요." -ForegroundColor Cyan
 ```
+
+**Rust 구현 버전 (권장):**
+
+자동 진단 도구도 Rust로 구현하여 단일 바이너리로 배포 가능합니다.
 
 ### 9. 검증 기준
 
@@ -871,10 +939,16 @@ echo "진단 완료. 문제가 발견되면 지원팀에 문의하세요."
 **의사결정:**
 
 - 배포 방식: Windows Installer(NSIS 우선) + 포터블 + CacheBox(Docker)
-- 운영 도구: 모니터링 + 진단 + 업데이트 시스템
+- 운영 도구: 모니터링 + 진단 + 업데이트 시스템 (Rust 기반)
 - 교육 프로그램: IT 담당자 대상 체계적 교육
 - 지원 체계: 원격 모니터링 + 자동 진단 + 사용자 매뉴얼
 
 ### 11. 다음 단계
 
-선정된 기술 스택과 배포 방식을 PoC #4 통합 프로토타입에 적용
+PoC #4 통합 프로토타입 완료 후 클리닉 배포 검증 진행
+
+**참고:**
+
+- PoC4에서 Rust 단일 바이너리로 구현된 통합 프로토타입 기반
+- MongoDB 설치/설정 자동화 포함
+- Windows Service 등록 및 관리 도구 포함
