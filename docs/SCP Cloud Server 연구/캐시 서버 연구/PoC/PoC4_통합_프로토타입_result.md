@@ -131,13 +131,20 @@ PoC #1, #2, #3에서 검증된 기술을 통합하여 **Windows Native 배포 �
 **구현 파일:**
 
 - `src/main.rs`: 메인 진입점, 라우팅
-- `src/config.rs`: 설정 관리 (TOML 파일 로드 지원)
+- `src/config.rs`: 설정 관리 (TOML 파일 로드 지원, OS별 기본 경로 제공)
 - `src/storage.rs`: 저장소 관리 (MongoDB, 파일시스템)
 - `src/cache.rs`: 캐시 로직 (키 생성, 상태 확인, 메타데이터 관리)
 - `src/proxy.rs`: 프록시 핸들러 (캐시 확인, 업스트림 요청, 응답 생성)
 - `cache-config.toml.example`: 설정 파일 예시
 - `tests/integration_test.sh`: 통합 테스트 스크립트
 - `tests/README.md`: 테스트 가이드
+
+**개발 환경별 캐시 경로:**
+
+- **Windows 프로덕션**: `C:\ProgramData\SCP\Cache\media` (기본값)
+- **Linux 프로덕션**: `/var/cache/scp/media` (기본값)
+- **macOS 개발**: `~/Library/Caches/scp-cache/media` (기본값)
+- 모든 경로는 설정 파일(`cache-config.toml`)의 `[cache].media_root`로 변경 가능
 
 **주요 의존성:**
 
@@ -389,6 +396,11 @@ host = "0.0.0.0"
 port = 8080
 
 [cache]
+# 미디어 파일 캐시 디렉터리 경로
+# Windows 프로덕션: "C:\\ProgramData\\SCP\\Cache\\media"
+# Linux 프로덕션: "/var/cache/scp/media"
+# macOS 개발: "$HOME/Library/Caches/scp-cache/media" 또는 절대 경로
+# 설정 파일이 없으면 OS별 기본값이 자동으로 사용됩니다
 media_root = "/var/cache/scp/media"
 max_size_gb = 200
 thumbnail_ttl_days = 30
