@@ -236,8 +236,11 @@ PoC #1의 검증 결과를 바탕으로, **PoC #4에서는 Rust 내장 HTTP 서�
 #### 1.2 캐시 저장소 구성
 
 - 미디어 저장소 초기화 (파일시스템 구조)
-  - Windows 경로: `C:\ProgramData\SCP\Cache\media\`
+  - Windows 프로덕션 경로: `C:\ProgramData\SCP\Cache\media\`
+  - Linux 프로덕션 경로: `/var/cache/scp/media`
+  - macOS 개발 경로 (기본값): `~/Library/Caches/scp-cache/media`
   - 디렉터리 구조: `{clinicId}/{studyId}/{resourceType}/`
+  - **경로는 설정 파일(`cache-config.toml`)의 `[cache].media_root`로 변경 가능**
 - 메타데이터 저장소 초기화 (MongoDB 연결)
   - MongoDB 드라이버: mongodb 크레이트
   - 연결 설정: `mongodb://localhost:27017` (기본) 또는 설정 파일에서 지정
