@@ -2,25 +2,97 @@
 
 ## 개요
 
-PoC #1, #2, #3에서 검증된 기술을 통합하여 **통합 검증 프로토타입**을 단계적으로 구현한다. **기술 검증 목적**: 선정된 기술 스택의 통합 동작을 검증하고, 향후 프로덕션 개발 시 아키텍처 및 구현 방향을 확정한다.
+PoC #1, #2, #3에서 검증된 기술을 통합하여 **Windows Native 배포 가능한 통합 프로토타입**을 단계적으로 구현한다. **목적**: 선정된 기술 스택의 통합 동작을 검증하고, NSIS 기반 Windows 설치 패키지로 배포 가능한 형태를 완성한다.
 
-**기간:** 12주 (Week 3-14)
+**기간:** 3주
 
-**목표:** 통합 기술 검증 및 프로덕션 개발 가이드라인 도출
+**목표:**
+
+- 통합 기술 검증 및 프로덕션 개발 가이드라인 도출
+- Windows Native 환경에서 배포 가능한 프로토타입 구현
+- NSIS 기반 설치 패키지 제작
 
 ## 전제 조건
 
 PoC #1, #2, #3 완료 및 의사결정:
 
 - Reverse Proxy 선정 완료
-- 저장소 아키텍처 결정 완료
-- 캐시 알고리즘 및 파라미터 확정
+- 저장소 아키텍처 결정 완료 (MongoDB Interface)
+- 캐시 알고리즘 및 파라미터 확정 (LRU, PoC3 결과 반영)
+
+## 개발 언어 및 배포 환경
+
+**구현 언어: Rust (필수)**
+
+**개발 환경:**
+
+- **OS**: macOS (개발 환경)
+- **빌드 도구**: cargo (Rust), 크로스 컴파일 도구
+- **Windows 크로스 컴파일**: macOS에서 Windows 바이너리 빌드 지원
+  - 타겟: `x86_64-pc-windows-msvc`
+  - 도구 체인: `rustup target add x86_64-pc-windows-msvc`
+  - 빌드 명령: `cargo build --release --target x86_64-pc-windows-msvc`
+
+**배포 환경:**
+
+- **OS**: Windows 10/11 이상
+- **배포 형태**: 단일 바이너리 (.exe)
+- **런타임 의존성**: 없음 (정적 링킹)
+- **Windows 서비스**: windows-service 크레이트 활용
+- **NSIS 설치**: .exe 파일만 포함하여 간단한 설치 구조
+
+**배포 요구사항:**
+
+- Windows 10/11 이상
+- MongoDB (별도 설치 또는 포함)
+- 네트워크 연결 (CloudFront/S3 접근)
+
+**제외 사항:**
+
+- Docker 컨테이너 (Native 환경만 지원)
+- Python 런타임 (Rust 단일 바이너리만 사용)
+- 외부 Reverse Proxy (Nginx/Envoy) 대신 Rust 내장 HTTP 서버 사용
+
+---
+
+## Phase 진행 현황
+
+**전체 기간:** 3주
+
+- [ ] **Phase 1: 읽기 경로 구현** (1주, Week 1)
+
+  - 목표: 기본 리버스 프록시와 캐시 HIT/MISS 동작 구현
+  - 주요 작업: HTTP 서버, 캐시 저장소 구성, 기본 캐시 로직
+
+- [ ] **Phase 2: 캐시 최적화** (3일, Week 2)
+
+  - 목표: LRU 알고리즘 구현, 무효화 메커니즘, 조건부 재검증, 프리페칭으로 히트율 80% 달성
+  - 주요 작업: LRU 알고리즘 구현, 무효화 API, ETag/Last-Modified 지원, 프리페칭 전략
+
+- [ ] **Phase 3: 쓰기 경로 구현** (2일, Week 2)
+
+  - 목표: Write-back 스풀링, 로컬 저널링, 일관성 보장
+  - 주요 작업: 미디어 업로드, 스풀 큐 관리, Read-after-write 보장
+
+- [ ] **Phase 4: 장애 대응** (2일, Week 3)
+
+  - 목표: 폴백 메커니즘, 오프라인 모드, 재동기화
+  - 주요 작업: 자동 폴백, 오프라인 모드, 재동기화 절차
+
+- [ ] **Phase 5: 운영 준비** (2일, Week 3)
+
+  - 목표: 인증/권한 처리, 보안 강화, 모니터링/로깅
+  - 주요 작업: Windows Service 등록, 보안 설정, Prometheus 연동
+
+- [ ] **Phase 6: 성능 검증 및 배포** (1일, Week 3)
+  - 목표: 부하 테스트, 성능 벤치마크, NSIS 설치 패키지 제작
+  - 주요 작업: 부하 테스트, 최종 보고서, 설치 패키지
 
 ---
 
 ## Phase 1: 읽기 경로 구현
 
-**기간:** 2-3주 (Week 3-4 or 3-5)
+**기간:** 1주 (Week 1)
 
 ### 목표
 
@@ -28,18 +100,28 @@ PoC #1, #2, #3 완료 및 의사결정:
 
 ### 구현 범위
 
-#### 1.1 Reverse Proxy 기본 설정
+#### 1.1 HTTP 서버 및 Reverse Proxy 구현 (Rust)
 
-- 선정된 솔루션(Nginx/Envoy) 설치 및 기본 구성
+- Axum/Actix-web 기반 HTTP 서버 구현
 - 업스트림 서버 연결 (CloudFront, API 서버)
 - HTTP/HTTPS 프록시 설정
 - 커넥션 풀링, Keep-Alive, 타임아웃
+- 단일 바이너리로 빌드 (cargo build --release)
 
 #### 1.2 캐시 저장소 구성
 
 - 미디어 저장소 초기화 (파일시스템 구조)
-- 메타데이터 저장소 초기화 (SQLite 스키마)
+  - Windows 경로: `C:\ProgramData\SCP\Cache\media\`
+  - 디렉터리 구조: `{clinicId}/{studyId}/{resourceType}/`
+- 메타데이터 저장소 초기화 (MongoDB 연결)
+  - MongoDB 드라이버: mongodb 크레이트
+  - 연결 설정: `mongodb://localhost:27017` (기본) 또는 설정 파일에서 지정
+  - 데이터베이스: `scp_cache`
+  - 컬렉션: `cache_metadata`, `cache_keys`, `cache_stats`
+  - 인덱스 생성: 캐시 키, TTL, 클리닉 ID별 인덱스
 - 디렉터리 권한 및 용량 설정
+  - 캐시 최대 용량 설정 (설정 파일)
+  - 디스크 사용량 모니터링
 
 #### 1.3 기본 캐시 로직
 
@@ -81,20 +163,22 @@ PoC #1, #2, #3 완료 및 의사결정:
 
 ## Phase 2: 캐시 최적화
 
-**기간:** 2주 (Week 5-6)
+**기간:** 3일 (Week 2)
 
 ### 목표
 
-SLRU/TinyLFU 알고리즘 적용, 무효화 메커니즘, 프리페칭으로 히트율을 목표치(80%)까지 향상한다.
+LRU 알고리즘 구현, 무효화 메커니즘, 조건부 재검증, 프리페칭으로 히트율을 목표치(80%)까지 향상한다.
 
 ### 구현 범위
 
-#### 2.1 SLRU/TinyLFU 적용
+#### 2.1 LRU 알고리즘 구현 (PoC3 결과 반영)
 
-- Count-Min Sketch 구현 (빈도 추정)
-- 입소 필터 (임계치 5회)
-- Probation/Protected 세그먼트 관리
-- Window Cache (1%) + Main Cache (99%)
+- PoC3 검증 결과: LRU 알고리즘 선정
+- LRU 캐시 구현 (Rust)
+  - `lru` 크레이트 또는 자체 구현
+  - 용량 기반 제거 (캐시 크기 초과 시)
+- TTL 기반 만료 정책
+- 캐시 통계 수집 (히트율, 미스율)
 
 #### 2.2 무효화 메커니즘
 
@@ -103,7 +187,7 @@ SLRU/TinyLFU 알고리즘 적용, 무효화 메커니즘, 프리페칭으로 히
 - 패턴 매칭 무효화
   - 환자 단위: `clinic:{id}:patient:{patientId}:*`
   - 스터디 단위: `clinic:{id}:study:{studyId}:*`
-- 무효화 로그 저장 (SQLite)
+- 무효화 로그 저장 (MongoDB 컬렉션: `invalidation_log`)
 
 #### 2.3 조건부 재검증
 
@@ -150,7 +234,7 @@ SLRU/TinyLFU 알고리즘 적용, 무효화 메커니즘, 프리페칭으로 히
 
 ## Phase 3: 쓰기 경로 구현
 
-**기간:** 2-3주 (Week 7-9)
+**기간:** 2일 (Week 2)
 
 ### 목표
 
@@ -161,29 +245,30 @@ Write-back 스풀링, 로컬 저널링, 일관성 보장으로 업로드 및 메
 #### 3.1 미디어 업로드 (Write-back)
 
 - 업로드 요청 수신: `POST /api/upload`
-- 로컬 스풀 저장 (`/var/cache/scp/spool/`)
+- 로컬 스풀 저장 (Windows 경로: `C:\ProgramData\SCP\Cache\spool\`)
 - 즉시 응답: `202 Accepted` + `resourceId`
 - 백그라운드 워커: S3 멀티파트 업로드
 - 진행률 API: `GET /api/upload/{resourceId}/status`
 
 #### 3.2 스풀 큐 관리
 
-- SQLite 테이블: `spool_queue`
+- MongoDB 컬렉션: `spool_queue`
 - 상태: `pending` → `processing` → `done` / `failed`
 - 재시도 로직: 최대 3회, 지수 백오프 (1s, 2s, 4s)
 - 멱등키: 해시 기반 중복 방지
+- MongoDB 인덱스: 상태별, 타임스탬프별 인덱스
 
 #### 3.3 메타데이터 쓰기 (Write-through)
 
 - `POST /api/metadata` → 원서버 전송
-- 성공 시: 로컬 캐시 즉시 반영 + `200 OK`
+- 성공 시: MongoDB 캐시 즉시 반영 + `200 OK`
 - 실패 시: 로컬 저널 기록 + `500 Error`
 
 #### 3.4 로컬 저널링
 
-- SQLite 테이블: `journal`
+- MongoDB 컬렉션: `journal`
 - 실패한 메타 쓰기 기록 (순서, 타임스탬프)
-- 백그라운드 재생 (매 1분)
+- 백그라운드 재생 (매 1분, Tokio 스케줄러)
 - 성공 시 저널 항목 제거
 
 #### 3.5 Read-after-write 보장
@@ -214,7 +299,7 @@ Write-back 스풀링, 로컬 저널링, 일관성 보장으로 업로드 및 메
 
 ## Phase 4: 장애 대응
 
-**기간:** 2주 (Week 10-11)
+**기간:** 2일 (Week 3)
 
 ### 목표
 
@@ -290,7 +375,7 @@ Write-back 스풀링, 로컬 저널링, 일관성 보장으로 업로드 및 메
 
 ## Phase 5: 운영 준비
 
-**기간:** 1-2주 (Week 12-13)
+**기간:** 2일 (Week 3)
 
 ### 목표
 
@@ -312,19 +397,20 @@ Write-back 스풀링, 로컬 저널링, 일관성 보장으로 업로드 및 메
 
 #### 5.2 보안
 
-- **디스크 암호화**
-  - LUKS/dm-crypt 볼륨 사용
-  - 또는 파일 단위 암호화 (AES-256)
+- **디스크 암호화 (Windows)**
+  - BitLocker 볼륨 암호화 (권장)
+  - 또는 파일 단위 암호화 (AES-256, ring 크레이트)
 - **전송 암호화**
-  - TLS 1.3 (클라이언트 ↔ 캐시)
+  - TLS 1.3 (클라이언트 ↔ 캐시, rustls 크레이트)
   - TLS 1.2+ (캐시 ↔ 클라우드)
 - **접근 제어**
-  - 로컬 방화벽 (iptables/nftables)
-  - 최소 권한 원칙 (프로세스 권한)
+  - Windows 방화벽 규칙 (netsh 또는 WinAPI)
+  - 최소 권한 원칙 (Windows Service 계정 권한)
 - **감사 로그**
   - 모든 접근 기록 (접근 시간, IP, 리소스)
   - 민감 정보 마스킹 (환자 ID 해싱)
   - 로그 보존 기간: 90일
+  - Windows Event Log 연동 (옵션)
 
 #### 5.3 헬스체크 및 관리 API
 
@@ -401,7 +487,7 @@ Write-back 스풀링, 로컬 저널링, 일관성 보장으로 업로드 및 메
 
 ## Phase 6: 성능 검증 및 최종 보고서
 
-**기간:** 1주 (Week 14)
+**기간:** 1일 (Week 3)
 
 ### 목표
 
@@ -516,6 +602,31 @@ Write-back 스풀링, 로컬 저널링, 일관성 보장으로 업로드 및 메
 
 ---
 
+## Phase 구조 개요
+
+**단계별 진행 방식:**
+
+- Phase 1 ~ Phase 6 순차 진행
+- 각 Phase는 독립적으로 검증 가능
+- Phase 완료 시 체크리스트 확인 후 다음 Phase 진행
+- 각 Phase별 완료 기준 명시
+
+**Phase 진행 흐름:**
+
+```
+Phase 1: 읽기 경로 구현 (기본 캐시 동작)
+    ↓
+Phase 2: 캐시 최적화 (히트율 향상)
+    ↓
+Phase 3: 쓰기 경로 구현 (업로드, 일관성)
+    ↓
+Phase 4: 장애 대응 (폴백, 오프라인 모드)
+    ↓
+Phase 5: 운영 준비 (보안, 모니터링, Windows Service)
+    ↓
+Phase 6: 성능 검증 및 배포 (NSIS 설치 패키지)
+```
+
 ## 리소스 요약
 
 **인력:**
@@ -524,84 +635,90 @@ Write-back 스풀링, 로컬 저널링, 일관성 보장으로 업로드 및 메
 
 **인프라:**
 
-- 개발 서버 3대 (캐시, API, 테스트)
-- 스토리지: 1TB SSD
-- 네트워크: 1Gbps
-- S3/CloudFront 테스트 환경
+- 개발 환경: macOS 개발 머신 (Windows 크로스 컴파일)
+- 테스트 환경: Windows Server 또는 Windows 10/11
+- 스토리지: 500GB+ SSD (캐시 저장소용)
+- 네트워크: 1Gbps (CloudFront/S3 접근)
+- MongoDB: 로컬 설치 또는 원격 서버
 
 **도구:**
 
-- 부하 테스트: k6, wrk
-- 모니터링: Prometheus, Grafana
-- 로그: Fluentd, Elasticsearch
-- CI/CD: GitHub Actions
+- 부하 테스트: k6, wrk, 또는 Rust 기반 테스트 도구
+- 모니터링: Prometheus exporter (Rust)
+- 로그: 구조화 JSON 로그 (파일 출력 또는 Windows Event Log)
+- 빌드: cargo (Rust)
+- 설치 패키지: NSIS (Nullsoft Scriptable Install System)
 
 ---
 
-## 6. 개발 언어 고려사항 (Rust 우선)
+## 7. Windows 배포 및 설치
 
-### 6.1 통합 프로토타입 구현 언어
+### 7.1 빌드 및 패키징
 
-**Rust (권장):**
+**개발 환경 (macOS)에서 Windows 빌드:**
 
-- **장점**: 안전한 고성능, 낮은 런타임 오버헤드, 단일 바이너리
-- **적합성**: HTTP/gRPC 서버, 캐시/스풀/저널 워커, 모니터링
-- **라이브러리**: Axum/Actix-web (HTTP), tonic (gRPC), sqlx/tokio-postgres, prometheus exporter, windows-service/systemd
+```bash
+# Windows 타겟 추가 (최초 1회)
+rustup target add x86_64-pc-windows-msvc
 
-**Python (대안):**
+# Windows x64 빌드 (macOS에서 크로스 컴파일)
+cargo build --release --target x86_64-pc-windows-msvc
 
-- **장점**: 빠른 개발, 풍부한 라이브러리
-- **적합성**: 프로토타입, 데이터 분석
-- **단점**: 성능 제한, 의존성 관리
+# 단일 바이너리 생성
+# target/x86_64-pc-windows-msvc/release/scp-cache-server.exe
+```
 
-### 6.2 각 Phase별 언어 선택
+**참고:**
 
-**Phase 1-2 (읽기/캐시):**
+- macOS에서 Windows 바이너리 크로스 컴파일이 가능하며, Rust의 크로스 컴파일 도구로 빌드 가능
+- Windows SDK는 필요하지 않으며, `rustup`을 통해 Windows 타겟 도구 체인만 설치하면 됨
+- 빌드된 .exe 파일은 Windows 환경에서 실행 가능
 
-- **Rust**: HTTP 서버, 캐시 로직, 데이터베이스/Redis 연동
+**배포 구성요소:**
 
-**Phase 3 (쓰기):**
+- `scp-cache-server.exe`: 메인 서버 바이너리
+- `config.toml`: 설정 파일
+- `installer.nsi`: NSIS 설치 스크립트
+- MongoDB 설치 패키지 (또는 별도 설치 안내)
 
-- **Rust**: Write-back 스풀링, 저널링, 동시성 제어
+### 7.2 NSIS 설치 스크립트 구조
 
-**Phase 4-5 (장애/운영):**
+**설치 단계:**
 
-- **Rust**: 폴백 메커니즘, 모니터링, 관리 API
+1. MongoDB 설치 확인/설치
+2. 서비스 디렉터리 생성 (`C:\Program Files\SCP\Cache\`)
+3. 설정 파일 복사 및 초기화
+4. Windows Service 등록
+5. 방화벽 규칙 추가
+6. 서비스 시작
 
-**Phase 6 (성능):**
+**제거 단계:**
 
-- **Rust**: criterion.rs 벤치마크, pprof/tokio-console 프로파일링
-- **Python**: 데이터 분석, 시각화
+1. 서비스 중지
+2. 서비스 등록 해제
+3. 파일 삭제 (캐시 데이터 보존 옵션)
+4. 방화벽 규칙 제거
 
-### 6.3 라이선스 고려사항
+### 7.3 Windows Service 등록
 
-**Rust:**
+**windows-service 크레이트 활용:**
 
-- **라이선스**: Apache-2.0 / MIT (듀얼)
-- **상업적 사용**: ✅ 허용
-- **수정/배포**: ✅ 허용
-- **고지 의무**: ✅ 라이선스 고지 유지
+- 서비스 이름: `SCPCacheServer`
+- 표시 이름: `SCP Cache Server`
+- 설명: `SCP 로컬 캐시 서버`
+- 시작 유형: 자동 시작
+- 로그온 계정: 로컬 시스템 또는 지정된 사용자 계정
 
-**Python:**
+### 7.4 라이선스 고려사항
 
-- **라이선스**: Python Software Foundation License
-- **상업적 사용**: ✅ 허용
-- **수정/배포**: ✅ 허용
-- **고지 의무**: ✅ 라이선스 파일 포함
+**Rust 및 주요 크레이트:**
 
-**HTTP 프레임워크 (Axum/Actix-web):**
-
-- **라이선스**: MIT License
-- **상업적 사용**: ✅ 허용
-- **수정/배포**: ✅ 허용
-- **고지 의무**: ✅ 라이선스 파일 포함
-
-**Prometheus:**
-
-- **라이선스**: Apache License 2.0
-- **상업적 사용**: ✅ 허용
-- **수정/배포**: ✅ 허용
-- **고지 의무**: ✅ 라이선스 파일 포함
+- **Rust**: Apache-2.0 / MIT (듀얼) ✅
+- **Axum/Actix-web**: MIT License ✅
+- **mongodb**: Apache-2.0 ✅
+- **tokio**: MIT / Apache-2.0 ✅
+- **windows-service**: MIT ✅
+- **prometheus**: Apache-2.0 ✅
 
 **모든 라이선스 상업적 사용 가능**: ✅ 법적 리스크 없음
 
@@ -613,3 +730,141 @@ PoC #4 완료 후:
 2. 파일럿 클리닉 선정 및 베타 테스트
 3. 피드백 수집 및 개선
 4. 전체 클리닉 확대 배포
+
+---
+
+## Engineering One Pager
+
+### Project Name
+
+로컬 캐시 서버 통합 프로토타입 (PoC #4)
+
+### Date
+
+2025-01-XX
+
+### Submitter Info
+
+**제출자**: Raymond  
+**프로젝트**: SCP Cloud Server 연구  
+**PoC 단계**: #4 (통합 프로토타입)
+
+### Project Description
+
+PoC #1, #2, #3에서 검증된 기술(Reverse Proxy, 저장소 아키텍처, 캐시 알고리즘)을 통합하여 **Windows Native 환경에서 배포 가능한 통합 프로토타입**을 구현합니다. Rust 기반 단일 바이너리로 개발하며, NSIS 기반 설치 패키지로 배포합니다.
+
+**주요 목표:**
+
+- 캐시 서버 통합 구현 (읽기/쓰기 경로)
+- Windows Service로 실행 가능한 형태
+- NSIS 기반 설치 패키지 제작
+- MongoDB 기반 메타데이터 저장소 연동
+- LRU 캐시 알고리즘 구현 (PoC3 결과 반영)
+
+### Business and Marketing Justification
+
+**비즈니스 가치:**
+
+1. **클라우드 운영 비용 절감**: 오리진 트래픽 60% 감소로 데이터 전송 비용 절감
+2. **사용자 경험 개선**: 로컬 캐시로 조회 속도 향상 (TTFB 95p < 100ms)
+3. **안정성 향상**: 오프라인 모드 지원으로 네트워크 단절 시에도 부분 서비스 가능
+
+**배포 전략:**
+
+- Windows Native 환경에서 즉시 배포 가능
+- 단일 설치 패키지로 간편한 설치
+- 프로덕션 환경으로 바로 전환 가능한 형태
+
+### Risk Assessment
+
+**기술적 리스크:**
+
+1. **MongoDB 의존성**: MongoDB 설치/설정 복잡도 → 설치 스크립트 자동화 필요
+2. **Windows Service 안정성**: 장기 운영 시 메모리 누수/크래시 가능성 → 철저한 테스트 필요
+3. **성능 목표 미달**: 목표 히트율(80%) 달성 실패 가능성 → PoC3 결과 반영, 단계적 최적화
+
+**완화 방안:**
+
+- Phase별 검증 및 단계적 구현
+- 부하 테스트 및 장기 안정성 테스트 강화
+- 프리페칭 등 추가 최적화 전략 준비
+
+### Resource and Scheduling Details
+
+**인력:**
+
+- 개발자 1명 (Raymond) - 풀타임 개발 및 아키텍처 설계
+
+**기간:** 3주 (Phase 1~6 순차 진행)
+
+**기술 스택:**
+
+- **언어**: Rust
+- **HTTP 서버**: Axum/Actix-web
+- **데이터베이스**: MongoDB (mongodb 크레이트)
+- **비동기 런타임**: Tokio
+- **Windows Service**: windows-service 크레이트
+- **빌드**: cargo (Rust)
+
+**배포 도구:**
+
+- NSIS (Nullsoft Scriptable Install System)
+- Windows Service API
+
+### Technical Description
+
+**Phase별 구현 범위:**
+
+1. **Phase 1 (1주)**: 읽기 경로 구현
+
+   - Rust HTTP 서버 구현
+   - LRU 캐시 알고리즘 구현
+   - MongoDB 메타데이터 저장소 연동
+
+2. **Phase 2 (3일)**: 캐시 최적화
+
+   - 무효화 메커니즘
+   - 조건부 재검증 (ETag, Last-Modified)
+   - 프리페칭 전략 검증
+
+3. **Phase 3 (2일)**: 쓰기 경로 구현
+
+   - Write-back 스풀링
+   - MongoDB 저널링
+   - Read-after-write 보장
+
+4. **Phase 4 (2일)**: 장애 대응
+
+   - 오프라인 모드
+   - 폴백 메커니즘
+   - 재동기화 절차
+
+5. **Phase 5 (2일)**: 운영 준비
+
+   - Windows Service 등록
+   - 보안 강화 (TLS, 암호화)
+   - 모니터링/로깅 (Prometheus)
+
+6. **Phase 6 (1일)**: 성능 검증 및 배포
+   - 부하 테스트
+   - NSIS 설치 패키지 제작
+   - 최종 보고서 작성
+
+**배포 아키텍처:**
+
+```
+Windows 클라이언트
+  ↓ HTTP/HTTPS
+scp-cache-server.exe (Rust 단일 바이너리)
+  ├── 캐시 저장소 (파일시스템)
+  ├── MongoDB (메타데이터)
+  └── CloudFront/S3 (원본 서버)
+```
+
+**성공 기준:**
+
+- 캐시 히트율: 요청 80%, 바이트 70%
+- TTFB: 95p < 100ms
+- 오리진 트래픽 감소: 60% 이상
+- Windows Service로 안정적 운영 (24시간 무장애)
+- NSIS 설치 패키지로 원클릭 설치 가능
