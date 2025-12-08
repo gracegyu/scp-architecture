@@ -2,15 +2,15 @@
 
 ## 개요
 
-PoC #1, #2, #3에서 검증된 기술을 통합하여 **Windows Native 배포 가능한 통합 프로토타입**을 단계적으로 구현한다. **목적**: 선정된 기술 스택의 통합 동작을 검증하고, NSIS 기반 Windows 설치 패키지로 배포 가능한 형태를 완성한다.
+PoC #1, #2, #3에서 검증된 기술을 통합하여 **Windows Native 배포 가능한 통합 프로토타입**을 단계적으로 구현한다. **목적**: 선정된 기술 스택의 통합 동작을 검증하고, 프로덕션 개발 가이드라인을 도출한다.
 
 **기간:** 3주
 
 **목표:**
 
 - 통합 기술 검증 및 프로덕션 개발 가이드라인 도출
-- Windows Native 환경에서 배포 가능한 프로토타입 구현
-- NSIS 기반 설치 패키지 제작
+- Windows Native 환경에서 실행 가능한 프로토타입 구현
+- 성능 벤치마크 및 안정성 검증
 
 ## 전제 조건
 
@@ -51,7 +51,7 @@ PoC #1, #2, #3 완료 및 의사결정:
 
 - Docker 컨테이너 (Native 환경만 지원)
 - Python 런타임 (Rust 단일 바이너리만 사용)
-- 외부 Reverse Proxy (Nginx/Envoy) 대신 Rust 내장 HTTP 서버 사용
+- 외부 Reverse Proxy (Nginx/Envoy) 대신 Rust 내장 HTTP 서버 사용 (선택 배경은 "Reverse Proxy 아키텍처 결정 배경" 섹션 참조)
 
 ---
 
@@ -59,34 +59,90 @@ PoC #1, #2, #3 완료 및 의사결정:
 
 **전체 기간:** 3주
 
-- [ ] **Phase 1: 읽기 경로 구현** (1주, Week 1)
+- [x] **Phase 1: 읽기 경로 구현** (1주, Week 1)
 
   - 목표: 기본 리버스 프록시와 캐시 HIT/MISS 동작 구현
-  - 주요 작업: HTTP 서버, 캐시 저장소 구성, 기본 캐시 로직
+  - [x] HTTP 서버 기본 구조 생성 (Axum 프로젝트 초기화)
+  - [x] MongoDB 연결 및 인덱스 생성
+  - [x] 캐시 키 생성 로직 (`clinicId:URI:queryNorm:policyVersion`)
+  - [x] 캐시 상태 확인 로직 (HIT/MISS/STALE)
+  - [x] 업스트림 서버 프록시 요청 (reqwest 클라이언트)
+  - [x] 캐시된 파일에서 실제 응답 제공 (파일 읽기 구현)
+  - [x] Content-Type 헤더 설정 (mime_guess 사용)
+  - [x] 쿼리 파라미터 정규화 완성 (정렬 및 소문자 변환)
+  - [x] TTL 기반 만료 처리 (경로별 차등 TTL 적용)
+  - [x] 에러 처리 개선 (상세 에러 메시지 및 적절한 HTTP 상태 코드)
 
 - [ ] **Phase 2: 캐시 최적화** (3일, Week 2)
 
   - 목표: LRU 알고리즘 구현, 무효화 메커니즘, 조건부 재검증, 프리페칭으로 히트율 80% 달성
-  - 주요 작업: LRU 알고리즘 구현, 무효화 API, ETag/Last-Modified 지원, 프리페칭 전략
+  - [ ] LRU 알고리즘 구현 (lru 크레이트 또는 자체 구현)
+  - [ ] 용량 기반 캐시 제거 (캐시 크기 초과 시)
+  - [ ] 무효화 API 엔드포인트 구현 (`POST /api/cache/invalidate`)
+  - [ ] 패턴 매칭 무효화 (환자/스터디 단위)
+  - [ ] ETag 지원 및 저장
+  - [ ] Last-Modified 지원
+  - [ ] 조건부 GET 처리 (`If-None-Match`, `If-Modified-Since`)
+  - [ ] 304 Not Modified 응답 처리
+  - [ ] Stale-while-revalidate 구현
+  - [ ] 프리페칭 전략 구현 (환자 진입 이벤트)
 
 - [ ] **Phase 3: 쓰기 경로 구현** (2일, Week 2)
 
   - 목표: Write-back 스풀링, 로컬 저널링, 일관성 보장
-  - 주요 작업: 미디어 업로드, 스풀 큐 관리, Read-after-write 보장
+  - [ ] 미디어 업로드 API 구현 (`POST /api/upload`)
+  - [ ] 로컬 스풀 저장 (`C:\ProgramData\SCP\Cache\spool\`)
+  - [ ] 백그라운드 S3 멀티파트 업로드 워커
+  - [ ] 업로드 진행률 API (`GET /api/upload/{resourceId}/status`)
+  - [ ] 스풀 큐 MongoDB 컬렉션 구성
+  - [ ] 재시도 로직 (최대 3회, 지수 백오프)
+  - [ ] 멱등키 기반 중복 방지
+  - [ ] 메타데이터 Write-through 구현 (`POST /api/metadata`)
+  - [ ] 로컬 저널링 구현 (MongoDB 컬렉션)
+  - [ ] 저널 재생 백그라운드 워커
+  - [ ] Read-after-write 보장 (세션 전용 캐시 핀)
 
 - [ ] **Phase 4: 장애 대응** (2일, Week 3)
 
   - 목표: 폴백 메커니즘, 오프라인 모드, 재동기화
-  - 주요 작업: 자동 폴백, 오프라인 모드, 재동기화 절차
+  - [ ] 헬스체크 구현 (업스트림 서버 상태 모니터링)
+  - [ ] 장애 감지 로직 (3회 연속 실패 시)
+  - [ ] 클라이언트 폴백 메커니즘 (URI 경로 유지)
+  - [ ] 네트워크 단절 감지
+  - [ ] 오프라인 모드 구현 (로컬 캐시만 서빙)
+  - [ ] 오프라인 상태 UI 표시 지원
+  - [ ] 저널 재생 절차 구현
+  - [ ] 스풀 큐 재처리 절차
+  - [ ] 차등 스캔 구현 (`updatedAt` 비교)
+  - [ ] 재동기화 후 캐시 무효화
 
 - [ ] **Phase 5: 운영 준비** (2일, Week 3)
 
   - 목표: 인증/권한 처리, 보안 강화, 모니터링/로깅
-  - 주요 작업: Windows Service 등록, 보안 설정, Prometheus 연동
+  - [ ] JWT 토큰 패스스루 (Authorization 헤더)
+  - [ ] 권한 변경 시 캐시 무효화 (Webhook 수신)
+  - [ ] 디스크 암호화 (BitLocker 또는 파일 단위 AES-256)
+  - [ ] TLS 1.3 지원 (rustls 크레이트)
+  - [ ] Windows 방화벽 규칙 설정
+  - [ ] 감사 로그 구현 (모든 접근 기록)
+  - [ ] 헬스체크 API (`GET /health`)
+  - [ ] 메트릭 API (`GET /metrics` - Prometheus 포맷)
+  - [ ] 수동 무효화 API (`POST /cache/invalidate`)
+  - [ ] 캐시 통계 API (`GET /cache/stats`)
+  - [ ] 구조화 JSON 액세스 로그
+  - [ ] Prometheus exporter 구현
+  - [ ] Windows Service 등록 (windows-service 크레이트)
 
-- [ ] **Phase 6: 성능 검증 및 배포** (1일, Week 3)
-  - 목표: 부하 테스트, 성능 벤치마크, NSIS 설치 패키지 제작
-  - 주요 작업: 부하 테스트, 최종 보고서, 설치 패키지
+- [ ] **Phase 6: 성능 검증 및 최종 보고서** (1일, Week 3)
+  - 목표: 부하 테스트, 성능 벤치마크, 최종 보고서 작성
+  - [ ] 정상 운영 시나리오 부하 테스트 (100명, 5,000 req/s, 1시간)
+  - [ ] 피크 부하 테스트 (300명, 10,000 req/s, 10분)
+  - [ ] 대용량 파일 테스트 (100MB 파일, 동시 10건)
+  - [ ] 성능 벤치마크 결과 분석 (히트율, TTFB, 오리진 감소율)
+  - [ ] 리소스 사용량 측정 (CPU, 메모리, 디스크)
+  - [ ] 장애 시나리오 테스트 (네트워크 단절, 서버 재시작, 디스크 풀)
+  - [ ] 보안 테스트 (인증 우회, 권한 없는 접근)
+  - [ ] 최종 보고서 작성 (Executive Summary, 아키텍처, 성능 결과, 운영 가이드)
 
 ---
 
@@ -102,11 +158,78 @@ PoC #1, #2, #3 완료 및 의사결정:
 
 #### 1.1 HTTP 서버 및 Reverse Proxy 구현 (Rust)
 
-- Axum/Actix-web 기반 HTTP 서버 구현
+##### 아키텍처 결정 배경
+
+**PoC #1 검증 결과 요약:**
+
+PoC #1에서 Nginx(OpenResty), Envoy, Pingora를 비교 검증한 결과:
+
+**Nginx(OpenResty) 성능:**
+
+- 캐시 HIT 처리량: 461 req/s
+- 지연시간 (99p): 12.5ms
+- 에러율: 0%
+- 총점: 105점 (최고점)
+
+**주요 발견:**
+
+- Docker 환경에서 우수한 성능 검증
+- Windows Native 환경에서는 설치/설정 복잡도 존재
+- Nginx 바이너리 + 설정 파일 + Lua 스크립트 관리 필요
+
+**PoC #4에서 Rust 내장 HTTP 서버 선택 이유:**
+
+PoC #1의 검증 결과를 바탕으로, **PoC #4에서는 Rust 내장 HTTP 서버(Axum)를 선택**했습니다.
+
+**1. 배포 편의성 (주요 이유)**
+
+1. **단일 바이너리 배포**: `.exe` 파일 하나만으로 모든 기능 포함
+2. **런타임 의존성 없음**: Nginx, Lua 등 추가 소프트웨어 설치 불필요
+3. **Windows Native 환경 최적화**: Windows Service 통합 용이
+4. **설치 프로세스 단순화**: NSIS 설치 패키지 제작 시 복잡도 감소
+5. **버전 관리 용이**: 바이너리 하나만 관리하여 업데이트/롤백 간편
+
+**2. 성능 고려사항**
+
+- Axum은 Tokio 기반 비동기 런타임으로 성능 우수
+- Rust의 메모리 안전성과 제로 코스트 추상화로 낮은 오버헤드
+- PoC #1의 목표 성능(100 req/s) 대비 충분한 여유 (Axum은 수천 req/s 처리 가능)
+- 실제 워크로드에서 성능 병목은 네트워크 I/O와 디스크 I/O가 주 요인
+
+**3. 기술 스택 통합**
+
+- Rust 기반으로 캐시 로직, HTTP 서버, MongoDB 클라이언트를 하나의 코드베이스로 관리
+- 타입 안전성과 컴파일 타임 검증으로 운영 안정성 향상
+- 단일 언어/프레임워크로 개발/디버깅/유지보수 효율성 증대
+
+**4. 트레이드오프 분석**
+
+- PoC #1의 최고 성능(461 req/s) 대비 일부 성능 차이 가능
+- 다만 실제 클리닉 환경에서는 네트워크 대역폭과 디스크 I/O가 주요 제약이므로 HTTP 서버 성능 차이는 영향 적음
+- 배포 편의성과 운영 복잡도 감소가 성능 미세 차이보다 더 큰 가치 제공
+
+**결론:** Windows Native 환경에서의 배포 편의성과 운영 복잡도 감소를 위해 Rust 내장 HTTP 서버(Axum)를 선택했으며, PoC #1에서 검증한 성능 요구사항(100 req/s, 95p < 50ms)은 충분히 달성 가능합니다.
+
+##### 구현 사항
+
+**Axum 프레임워크 사용:**
+
+- Tokio 기반 비동기 HTTP 서버
+- PoC #1에서 검증한 성능 요구사항(100 req/s, 95p < 50ms) 충분히 달성 가능
+- 단일 바이너리로 모든 기능 포함
+
+**구현 항목:**
+
+- HTTP/HTTPS 프록시 기능
 - 업스트림 서버 연결 (CloudFront, API 서버)
-- HTTP/HTTPS 프록시 설정
-- 커넥션 풀링, Keep-Alive, 타임아웃
+- 커넥션 풀링, Keep-Alive, 타임아웃 설정
 - 단일 바이너리로 빌드 (cargo build --release)
+
+**성능 목표:**
+
+- 캐시 HIT 지연: 95p < 50ms (PoC #1 검증 기준)
+- 캐시 MISS 지연: CloudFront 직접 + 20ms 이내
+- 동시 100 req/s 처리 가능
 
 #### 1.2 캐시 저장소 구성
 
@@ -624,7 +747,7 @@ Phase 4: 장애 대응 (폴백, 오프라인 모드)
     ↓
 Phase 5: 운영 준비 (보안, 모니터링, Windows Service)
     ↓
-Phase 6: 성능 검증 및 배포 (NSIS 설치 패키지)
+Phase 6: 성능 검증 및 최종 보고서
 ```
 
 ## 리소스 요약
@@ -647,67 +770,6 @@ Phase 6: 성능 검증 및 배포 (NSIS 설치 패키지)
 - 모니터링: Prometheus exporter (Rust)
 - 로그: 구조화 JSON 로그 (파일 출력 또는 Windows Event Log)
 - 빌드: cargo (Rust)
-- 설치 패키지: NSIS (Nullsoft Scriptable Install System)
-
----
-
-## 7. Windows 배포 및 설치
-
-### 7.1 빌드 및 패키징
-
-**개발 환경 (macOS)에서 Windows 빌드:**
-
-```bash
-# Windows 타겟 추가 (최초 1회)
-rustup target add x86_64-pc-windows-msvc
-
-# Windows x64 빌드 (macOS에서 크로스 컴파일)
-cargo build --release --target x86_64-pc-windows-msvc
-
-# 단일 바이너리 생성
-# target/x86_64-pc-windows-msvc/release/scp-cache-server.exe
-```
-
-**참고:**
-
-- macOS에서 Windows 바이너리 크로스 컴파일이 가능하며, Rust의 크로스 컴파일 도구로 빌드 가능
-- Windows SDK는 필요하지 않으며, `rustup`을 통해 Windows 타겟 도구 체인만 설치하면 됨
-- 빌드된 .exe 파일은 Windows 환경에서 실행 가능
-
-**배포 구성요소:**
-
-- `scp-cache-server.exe`: 메인 서버 바이너리
-- `config.toml`: 설정 파일
-- `installer.nsi`: NSIS 설치 스크립트
-- MongoDB 설치 패키지 (또는 별도 설치 안내)
-
-### 7.2 NSIS 설치 스크립트 구조
-
-**설치 단계:**
-
-1. MongoDB 설치 확인/설치
-2. 서비스 디렉터리 생성 (`C:\Program Files\SCP\Cache\`)
-3. 설정 파일 복사 및 초기화
-4. Windows Service 등록
-5. 방화벽 규칙 추가
-6. 서비스 시작
-
-**제거 단계:**
-
-1. 서비스 중지
-2. 서비스 등록 해제
-3. 파일 삭제 (캐시 데이터 보존 옵션)
-4. 방화벽 규칙 제거
-
-### 7.3 Windows Service 등록
-
-**windows-service 크레이트 활용:**
-
-- 서비스 이름: `SCPCacheServer`
-- 표시 이름: `SCP Cache Server`
-- 설명: `SCP 로컬 캐시 서버`
-- 시작 유형: 자동 시작
-- 로그온 계정: 로컬 시스템 또는 지정된 사용자 계정
 
 ### 7.4 라이선스 고려사항
 
@@ -721,6 +783,12 @@ cargo build --release --target x86_64-pc-windows-msvc
 - **prometheus**: Apache-2.0 ✅
 
 **모든 라이선스 상업적 사용 가능**: ✅ 법적 리스크 없음
+
+**참고:**
+
+- Windows 빌드: macOS에서 Windows 바이너리 크로스 컴파일 가능
+- 빌드 명령: `cargo build --release --target x86_64-pc-windows-msvc`
+- 배포 및 설치 패키지 제작은 PoC #5에서 진행
 
 ## 다음 단계
 
@@ -757,9 +825,9 @@ PoC #1, #2, #3에서 검증된 기술(Reverse Proxy, 저장소 아키텍처, 캐
 
 - 캐시 서버 통합 구현 (읽기/쓰기 경로)
 - Windows Service로 실행 가능한 형태
-- NSIS 기반 설치 패키지 제작
 - MongoDB 기반 메타데이터 저장소 연동
 - LRU 캐시 알고리즘 구현 (PoC3 결과 반영)
+- 성능 벤치마크 및 안정성 검증
 
 ### Business and Marketing Justification
 
@@ -771,9 +839,9 @@ PoC #1, #2, #3에서 검증된 기술(Reverse Proxy, 저장소 아키텍처, 캐
 
 **배포 전략:**
 
-- Windows Native 환경에서 즉시 배포 가능
-- 단일 설치 패키지로 간편한 설치
-- 프로덕션 환경으로 바로 전환 가능한 형태
+- Windows Native 환경에서 실행 가능한 프로토타입 완성
+- 단일 바이너리 (.exe) 형태로 빌드
+- 배포 및 설치 패키지 제작은 PoC #5에서 진행
 
 ### Risk Assessment
 
@@ -808,8 +876,8 @@ PoC #1, #2, #3에서 검증된 기술(Reverse Proxy, 저장소 아키텍처, 캐
 
 **배포 도구:**
 
-- NSIS (Nullsoft Scriptable Install System)
-- Windows Service API
+- Windows Service API (서비스 등록용)
+- 배포 및 설치 패키지 제작은 PoC #5에서 진행
 
 ### Technical Description
 
@@ -817,7 +885,7 @@ PoC #1, #2, #3에서 검증된 기술(Reverse Proxy, 저장소 아키텍처, 캐
 
 1. **Phase 1 (1주)**: 읽기 경로 구현
 
-   - Rust HTTP 서버 구현
+   - Axum 기반 Rust HTTP 서버 구현 (Nginx 대신 Rust 내장 서버)
    - LRU 캐시 알고리즘 구현
    - MongoDB 메타데이터 저장소 연동
 
@@ -845,9 +913,9 @@ PoC #1, #2, #3에서 검증된 기술(Reverse Proxy, 저장소 아키텍처, 캐
    - 보안 강화 (TLS, 암호화)
    - 모니터링/로깅 (Prometheus)
 
-6. **Phase 6 (1일)**: 성능 검증 및 배포
+6. **Phase 6 (1일)**: 성능 검증 및 최종 보고서
    - 부하 테스트
-   - NSIS 설치 패키지 제작
+   - 성능 벤치마크
    - 최종 보고서 작성
 
 **배포 아키텍처:**
@@ -867,4 +935,4 @@ scp-cache-server.exe (Rust 단일 바이너리)
 - TTFB: 95p < 100ms
 - 오리진 트래픽 감소: 60% 이상
 - Windows Service로 안정적 운영 (24시간 무장애)
-- NSIS 설치 패키지로 원클릭 설치 가능
+- 프로덕션 개발 가이드라인 완성
