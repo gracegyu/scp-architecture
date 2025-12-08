@@ -6,6 +6,12 @@
 
 PoC #1, #2, #3에서 검증된 기술을 통합하여 **Windows Native 배포 가능한 통합 프로토타입**을 단계적으로 구현하고, 선정된 기술 스택의 통합 동작을 검증하여 프로덕션 개발 가이드라인을 도출한다.
 
+**소스코드 저장소:**
+
+소스코드는 다음 위치에서 확인할 수 있습니다:
+
+- **Azure DevOps**: https://ewoosoft@dev.azure.com/ewoosoft/prototypes/\_git/scp-cache-poc/poc4
+
 **검증 방식:**
 
 - Phase별 단계적 구현 및 검증
@@ -106,17 +112,32 @@ PoC #1, #2, #3에서 검증된 기술을 통합하여 **Windows Native 배포 �
    - 만료된 캐시 자동 재요청
 
 10. **에러 처리 개선**
+
     - anyhow::Context 사용한 상세 에러 메시지
     - 에러 타입별 HTTP 상태 코드 설정
     - 캐시 서빙 실패 시 자동 업스트림 재요청
 
+11. **설정 파일 로드 기능**
+
+    - TOML 파일 기반 설정 로드 (`cache-config.toml`)
+    - 설정 파일이 없으면 기본값 사용
+    - 설정 파일 예시 제공 (`cache-config.toml.example`)
+
+12. **기본 통합 테스트**
+    - 자동화된 테스트 스크립트 (`tests/integration_test.sh`)
+    - 헬스체크, 캐시 HIT/MISS, 클리닉 ID 분리, 쿼리 파라미터 정규화 테스트
+    - 테스트 가이드 문서 작성 (`tests/README.md`)
+
 **구현 파일:**
 
 - `src/main.rs`: 메인 진입점, 라우팅
-- `src/config.rs`: 설정 관리
+- `src/config.rs`: 설정 관리 (TOML 파일 로드 지원)
 - `src/storage.rs`: 저장소 관리 (MongoDB, 파일시스템)
 - `src/cache.rs`: 캐시 로직 (키 생성, 상태 확인, 메타데이터 관리)
 - `src/proxy.rs`: 프록시 핸들러 (캐시 확인, 업스트림 요청, 응답 생성)
+- `cache-config.toml.example`: 설정 파일 예시
+- `tests/integration_test.sh`: 통합 테스트 스크립트
+- `tests/README.md`: 테스트 가이드
 
 **주요 의존성:**
 
@@ -125,12 +146,56 @@ PoC #1, #2, #3에서 검증된 기술을 통합하여 **Windows Native 배포 �
 - `reqwest`: HTTP 클라이언트
 - `mime_guess`: MIME 타입 추론
 - `tokio-util`: 비동기 스트림 유틸리티
+- `toml`: TOML 설정 파일 파싱
+- `anyhow`: 에러 처리
 
 **검증 결과:**
 
 - 컴파일 성공
 - 기본 구조 동작 확인
 - 캐시 HIT/MISS 로직 정상 작동
+- 설정 파일 로드 기능 정상 작동
+- 통합 테스트 스크립트 작성 완료
+
+**테스트 시나리오:**
+
+1. **헬스체크 테스트**: `/health` 엔드포인트 정상 응답 확인
+
+   - HTTP 200 상태 코드
+   - "OK" 응답 본문
+
+2. **캐시 MISS 테스트**: 첫 요청 시 `X-Cache-Status: MISS` 확인
+
+   - 업스트림 서버로 요청 전달
+   - 응답 캐시에 저장 시도
+
+3. **캐시 HIT 테스트**: 두 번째 요청 시 `X-Cache-Status: HIT` 확인 (업스트림 성공 시)
+
+   - 로컬 캐시에서 파일 읽기
+   - Content-Type, Content-Length 헤더 설정
+
+4. **클리닉 ID 분리 테스트**: 다른 클리닉 ID로 별도 캐시 키 생성 확인
+
+   - `X-Clinic-Id` 헤더로 클리닉 구분
+   - 캐시 키에 클리닉 ID 포함
+
+5. **쿼리 파라미터 정규화 테스트**: 동일한 쿼리가 정규화되어 동일 캐시 키 생성 확인
+   - 파라미터 정렬 및 소문자 변환
+   - 순서가 달라도 동일 캐시 키 생성
+
+**설정 파일 기능:**
+
+- TOML 형식 설정 파일 지원 (`cache-config.toml`)
+- 설정 파일이 없으면 기본값 사용
+- 런타임에 설정 파일 로드 및 파싱
+- 설정 파일 예시 제공 (`cache-config.toml.example`)
+
+**통합 테스트 도구:**
+
+- 자동화된 테스트 스크립트 (`tests/integration_test.sh`)
+- 환경 변수 기반 설정 지원
+- 색상 코드로 테스트 결과 시각화
+- 테스트 가이드 문서 (`tests/README.md`)
 
 **다음 단계:**
 
@@ -248,12 +313,21 @@ Cache MISS → Fetch from Upstream → Save to Cache
 
 **기능 검증:**
 
-- HTTP 서버 정상 시작
-- MongoDB 연결 성공
-- 캐시 키 생성 정상 작동
-- 캐시 HIT/MISS 판별 정상
-- 파일 시스템 읽기/쓰기 정상
-- Content-Type 헤더 설정 정상
+- HTTP 서버 정상 시작 ✅
+- MongoDB 연결 성공 ✅
+- 캐시 키 생성 정상 작동 ✅
+- 캐시 HIT/MISS 판별 정상 ✅
+- 파일 시스템 읽기/쓰기 정상 ✅
+- Content-Type 헤더 설정 정상 ✅
+- 설정 파일 로드 기능 정상 작동 ✅
+- 통합 테스트 스크립트 정상 실행 ✅
+
+**통합 테스트 결과:**
+
+- 헬스체크 엔드포인트 정상 응답 ✅
+- 캐시 MISS/HIT 동작 확인 ✅
+- 클리닉 ID별 캐시 분리 확인 ✅
+- 쿼리 파라미터 정규화 확인 ✅
 
 **성능 검증:**
 
@@ -287,7 +361,14 @@ Phase 1 (읽기 경로 구현)이 완료되었으며, 기본적인 캐시 서버
 
 ## 부록
 
-### A. 빌드 및 실행 방법
+### A. 소스코드 위치
+
+소스코드는 다음 저장소에서 확인할 수 있습니다:
+
+- **Azure DevOps**: https://ewoosoft@dev.azure.com/ewoosoft/prototypes/\_git/scp-cache-poc/poc4
+- **경로**: `poc4/prototype/` 디렉터리
+
+### B. 빌드 및 실행 방법
 
 ```bash
 # 개발 환경 (macOS)
@@ -298,9 +379,37 @@ rustup target add x86_64-pc-windows-msvc
 cargo build --release --target x86_64-pc-windows-msvc
 ```
 
-### B. 설정 파일 구조
+### C. 설정 파일 구조
 
-(추후 Phase 진행 시 추가)
+#### 설정 파일 예시 (`cache-config.toml`)
+
+```toml
+[server]
+host = "0.0.0.0"
+port = 8080
+
+[cache]
+media_root = "/var/cache/scp/media"
+max_size_gb = 200
+thumbnail_ttl_days = 30
+preview_ttl_days = 7
+metadata_ttl_minutes = 10
+
+[mongodb]
+uri = "mongodb://localhost:27017"
+database = "scp_cache"
+
+[upstream]
+cloudfront_url = "https://d1234567890.cloudfront.net"
+api_url = "https://api.scp-cloud.com"
+```
+
+#### 설정 파일 사용법
+
+1. 예시 파일 복사: `cp cache-config.toml.example cache-config.toml`
+2. 원하는 값으로 수정
+3. 서버 재시작 시 설정 자동 로드
+4. 설정 파일이 없으면 기본값 사용
 
 ### C. 성능 벤치마크 결과
 
