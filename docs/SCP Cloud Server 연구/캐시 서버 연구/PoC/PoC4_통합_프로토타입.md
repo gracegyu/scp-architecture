@@ -75,19 +75,19 @@ PoC #1, #2, #3 완료 및 의사결정:
   - [x] 설정 파일 로드 기능 (TOML 파일에서 설정 읽기)
   - [x] 기본 통합 테스트 (자동화 테스트 스크립트 및 검증)
 
-- [ ] **Phase 2: 캐시 최적화** (3일, Week 2)
+- [x] **Phase 2: 캐시 최적화** (3일, Week 2)
 
   - 목표: LRU 알고리즘 구현, 무효화 메커니즘, 조건부 재검증, 프리페칭으로 히트율 80% 달성
-  - [ ] LRU 알고리즘 구현 (lru 크레이트 또는 자체 구현)
-  - [ ] 용량 기반 캐시 제거 (캐시 크기 초과 시)
-  - [ ] 무효화 API 엔드포인트 구현 (`POST /api/cache/invalidate`)
-  - [ ] 패턴 매칭 무효화 (환자/스터디 단위)
-  - [ ] ETag 지원 및 저장
-  - [ ] Last-Modified 지원
-  - [ ] 조건부 GET 처리 (`If-None-Match`, `If-Modified-Since`)
-  - [ ] 304 Not Modified 응답 처리
-  - [ ] Stale-while-revalidate 구현
-  - [ ] 프리페칭 전략 구현 (환자 진입 이벤트)
+  - [x] LRU 알고리즘 구현 (lru 크레이트 또는 자체 구현)
+  - [x] 용량 기반 캐시 제거 (캐시 크기 초과 시)
+  - [x] 무효화 API 엔드포인트 구현 (`POST /api/cache/invalidate`)
+  - [x] 패턴 매칭 무효화 (환자/스터디 단위)
+  - [x] ETag 지원 및 저장
+  - [x] Last-Modified 지원
+  - [x] 조건부 GET 처리 (`If-None-Match`, `If-Modified-Since`)
+  - [x] 304 Not Modified 응답 처리
+  - [x] Stale-while-revalidate 구현
+  - [x] 프리페칭 전략 구현 (환자 진입 이벤트)
 
 - [ ] **Phase 3: 쓰기 경로 구현** (2일, Week 2)
 
