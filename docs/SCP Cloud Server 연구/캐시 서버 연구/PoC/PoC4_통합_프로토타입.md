@@ -89,20 +89,20 @@ PoC #1, #2, #3 완료 및 의사결정:
   - [x] Stale-while-revalidate 구현
   - [x] 프리페칭 전략 구현 (환자 진입 이벤트)
 
-- [ ] **Phase 3: 쓰기 경로 구현** (2일, Week 2)
+- [x] **Phase 3: 쓰기 경로 구현** (2일, Week 2)
 
   - 목표: Write-back 스풀링, 로컬 저널링, 일관성 보장
-  - [ ] 미디어 업로드 API 구현 (`POST /api/upload`)
-  - [ ] 로컬 스풀 저장 (`C:\ProgramData\SCP\Cache\spool\`)
-  - [ ] 백그라운드 S3 멀티파트 업로드 워커
-  - [ ] 업로드 진행률 API (`GET /api/upload/{resourceId}/status`)
-  - [ ] 스풀 큐 MongoDB 컬렉션 구성
-  - [ ] 재시도 로직 (최대 3회, 지수 백오프)
-  - [ ] 멱등키 기반 중복 방지
-  - [ ] 메타데이터 Write-through 구현 (`POST /api/metadata`)
-  - [ ] 로컬 저널링 구현 (MongoDB 컬렉션)
-  - [ ] 저널 재생 백그라운드 워커
-  - [ ] Read-after-write 보장 (세션 전용 캐시 핀)
+  - [x] 미디어 업로드 API 구현 (`POST /api/upload`)
+  - [x] 로컬 스풀 저장 (OS별 경로 자동 설정)
+  - [x] 백그라운드 S3 멀티파트 업로드 워커
+  - [x] 업로드 진행률 API (`GET /api/upload/{resourceId}/status`)
+  - [x] 스풀 큐 MongoDB 컬렉션 구성
+  - [x] 재시도 로직 (최대 3회, 지수 백오프)
+  - [x] 멱등키 기반 중복 방지
+  - [x] 메타데이터 Write-through 구현 (`POST /api/metadata`)
+  - [x] 로컬 저널링 구현 (MongoDB 컬렉션)
+  - [x] 저널 재생 백그라운드 워커
+  - [x] Read-after-write 보장 (세션 전용 캐시 핀)
 
 - [ ] **Phase 4: 장애 대응** (2일, Week 3)
 
