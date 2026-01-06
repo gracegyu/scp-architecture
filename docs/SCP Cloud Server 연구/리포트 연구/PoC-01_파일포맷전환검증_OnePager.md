@@ -4,7 +4,7 @@ Engineering One Pager
 
 **Date**: 2026년 1월 6일
 
-**Submitter Info**: SCP Cloud 개발팀
+**Submitter Info**: Raymond
 
 **Project Description**: 기존 Desktop 제품들(E2, E3, EzOrtho, CleverOne)에서 사용하는 XML 기반 리포트 파일 포맷을 JSON 기반으로 전환하는 것의 기술적 타당성과 완전성을 검증하는 PoC입니다. 모든 기존 데이터 구조와 속성을 손실 없이 JSON으로 변환할 수 있는지, 그리고 성능상 이점이 있는지를 확인합니다.
 

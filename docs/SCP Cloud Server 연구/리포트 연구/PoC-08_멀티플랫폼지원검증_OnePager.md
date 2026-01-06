@@ -4,7 +4,7 @@ Engineering One Pager
 
 **Date**: 2026년 1월 6일
 
-**Submitter Info**: SCP Cloud 개발팀
+**Submitter Info**: Raymond
 
 **Project Description**: SCP Cloud Report 시스템이 Web App, Desktop App, Mobile App 등 다양한 플랫폼에서 동일한 기능과 사용자 경험을 제공할 수 있는지 검증합니다. 각 플랫폼별 기술적 제약사항을 분석하고, WebView 기반 접근법의 성능과 한계를 확인하여 최적의 멀티 플랫폼 전략을 수립합니다.
 

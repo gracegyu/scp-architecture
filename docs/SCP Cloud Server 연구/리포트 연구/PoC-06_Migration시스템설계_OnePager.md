@@ -4,7 +4,7 @@ Engineering One Pager
 
 **Date**: 2026년 1월 6일
 
-**Submitter Info**: SCP Cloud 개발팀
+**Submitter Info**: Raymond
 
 **Project Description**: 기존 4개 Desktop 제품의 다양한 버전에서 생성된 리포트 파일들을 SCP Cloud 포맷으로 완벽하게 변환하는 Migration 시스템을 설계하고 검증합니다. 데이터 손실 없는 변환을 보장하며, 복잡한 버전별 호환성 문제를 해결하는 자동화된 Migration 프로세스를 구축합니다.
 

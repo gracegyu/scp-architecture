@@ -28,21 +28,22 @@
 - [ ] PoC-03: 렌더링 기술 비교 분석 (HTML DOM+SVG vs Canvas)
 - [ ] PoC-04: 외부 라이브러리 평가 (Fabric.js, Konva.js, PDF 생성 등)
 
-#### Phase 3: Element 호환성 검증 (Week 6-8)
+#### Phase 3: Element 호환성 및 구현 시작 (Week 6-9)
 
 - [ ] PoC-05: 통합 Element 스키마 설계 (E2/E3/EzOrtho/CleverOne 통합)
 - [ ] PoC-06: Migration 시스템 설계 (기존 파일 변환)
+- [ ] PoC-13: Element 렌더링 엔진 구현 (Week 6-16, 단계별 구현, TypeScript React 기반)
 
-#### Phase 4: 아키텍처 전략 검증 (Week 9-12)
+#### Phase 4: 아키텍처 전략 검증 (Week 10-13)
 
 - [ ] PoC-07: 배포 방식 비교 분석 (NPM Package vs SaaS)
 - [ ] PoC-08: 멀티 플랫폼 지원 검증 (Web/Desktop/Mobile)
 
-#### Phase 5: 품질 및 출력 검증 (Week 13)
+#### Phase 5: 품질 및 출력 검증 (Week 14)
 
 - [ ] PoC-09: 인쇄 및 Export 품질 검증 (고해상도 PDF, DICOM Print)
 
-#### Phase 6: 보안 및 표준 준수 (Week 14-15)
+#### Phase 6: 보안 및 표준 준수 (Week 15-16)
 
 - [ ] PoC-10: 의료 데이터 보안 검증 (HIPAA/GDPR 준수)
 - [ ] PoC-11: 다국어 지원 시스템 (i18n, RTL 언어)
@@ -52,8 +53,84 @@
 
 - PoC-01 + PoC-02 (독립적 검증)
 - PoC-03 + PoC-04 (렌더링 관련)
-- PoC-05 + PoC-06 (데이터 관련)
+- PoC-05 + PoC-06 (Element 스키마 및 Migration)
+- **PoC-13**: 장기 프로젝트로 Phase 3-6에 걸쳐 단계별 진행
+  - Phase 3: PoC-05, PoC-06과 병행 (기본 Element)
+  - Phase 4: PoC-07, PoC-08과 병행 (고급 Element)
+  - Phase 5-6: PoC-09~PoC-12와 병행 (최종 통합)
 - PoC-10 + PoC-11 + PoC-12 (표준 준수 관련)
+
+### PoC 진행 Flow Diagram
+
+```mermaid
+gantt
+    title SCP Cloud Report PoC 진행 일정
+    dateFormat  YYYY-MM-DD
+    axisFormat  %m월%d일
+    todayMarker off
+
+    section Phase 1
+    01_파일포맷        :poc01, 2026-01-06, 14d
+    02_좌표시스템      :poc02, 2026-01-06, 14d
+
+    section Phase 2
+    03_렌더링기술      :poc03, after poc01, 21d
+    04_외부라이브러리   :poc04, after poc01, 14d
+
+    section Phase 3
+    05_Element스키마   :poc05, after poc03, 21d
+    06_Migration      :poc06, after poc03, 21d
+    13_Element렌더링   :active, poc13, after poc05, 77d
+
+    section Phase 4
+    07_아키텍처전략    :poc07, after poc05, 28d
+    08_멀티플랫폼      :poc08, after poc05, 21d
+
+    section Phase 5
+    09_인쇄품질       :poc09, after poc07, 14d
+
+    section Phase 6
+    10_보안검증       :poc10, after poc09, 14d
+    11_다국어지원      :poc11, after poc09, 14d
+    12_접근성준수      :poc12, after poc09, 14d
+```
+
+**PoC-13 단계별 세부 일정**:
+
+```mermaid
+flowchart TD
+    A[Phase 3: Week 6-9<br/>기본 Element 구현] --> B[Phase 4-5: Week 10-14<br/>고급 Element 구현]
+    B --> C[Phase 6: Week 15-16<br/>최종 통합 완성]
+
+    A --> A1[DragResizeDiv 포팅]
+    A --> A2[기본 Shape Element<br/>Rectangle, Ellipse, Line]
+    A --> A3[Content Element<br/>ImageBox, TextBox, Label]
+
+    B --> B1[누락 Element 구현<br/>Arrow, Memo]
+    B --> B2[Multi/Reference ImageBox]
+    B --> B3[EzOrtho 특화<br/>ToothBox, Form Controls]
+
+    C --> C1[전체 통합 테스트]
+    C --> C2[성능 최적화]
+    C --> C3[호환성 검증]
+
+    subgraph "병행 진행 PoC"
+        D1[PoC-05, PoC-06]
+        D2[PoC-07, PoC-08]
+        D3[PoC-09~PoC-12]
+    end
+
+    A -.-> D1
+    B -.-> D2
+    C -.-> D3
+
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#e8f5e8
+    style A1 fill:#fff3e0
+    style A2 fill:#fff3e0
+    style A3 fill:#fff3e0
+```
 
 ## 기존 제품 분석 요약
 
@@ -138,7 +215,7 @@
 - **우선순위**: 중간
 - **산출물**: 라이브러리 선정 가이드
 
-### Phase 3: Element 호환성 검증 (2-3주)
+### Phase 3: Element 호환성 및 구현 (3-4주)
 
 #### PoC-05: 통합 Element 스키마 설계
 
@@ -149,11 +226,12 @@
   - 확장 가능한 스키마 구조 설계
   - 제품별 고유 기능 처리 방안
   - Element 속성 정규화
-- **주요 Element 분석**:
-  - ImageBox: 3가지 타입별 속성 통합
-  - TextBox: Macro 시스템 통합
-  - Annotation: 6가지 타입 지원
-  - Chart 요소: EzOrtho 특화 기능
+- **주요 Element 분석** (PoC-13과 동일):
+  - **기본 Shape**: Rectangle, Ellipse, Line, Arrow, FreeDraw, Memo
+  - **Content Elements**: ImageBox(Single/Multi/Reference), TextBox, Label
+  - **EzOrtho 특화**: ToothBox, TreatmentCategory, Form Controls(RadioButton, CheckBox, Button, ComboBox, TextInput, TextArea)
+  - **그룹핑**: Block 요소로 Element 그룹 관리
+  - **제외**: Canvas Element (교정 분석 차트 전용, 별도 프로젝트)
 - **우선순위**: 높음
 - **산출물**: 통합 Element 스키마, 호환성 매트릭스
 
@@ -173,6 +251,24 @@
 - **우선순위**: 높음
 - **산출물**: Migration 도구, 검증 시나리오
 
+#### PoC-13: Element 렌더링 엔진 구현
+
+**목적**: React 기반 Element 렌더링 및 편집 시스템 구현
+
+- **검증 내용**:
+  - ezorthoweb(Vue.js) Element 클래스 구조 분석
+  - React 기반 Element 렌더링 엔진 구현
+  - **DragResizeDiv.vue Handler 시스템 포팅** (700줄 검증된 시스템)
+  - HTML 편집기 통합 (외부 컴포넌트)
+- **주요 구현 Element** (일반 리포트용):
+  - 기본 Shape: Rectangle, Ellipse, Line, Arrow, FreeDraw, Memo
+  - Content: ImageBox(Single/Multi/Reference), TextBox, Label
+  - EzOrtho 특화: ToothBox, TreatmentCategory, Form Controls
+  - Annotation: 6가지 타입 완전 지원
+- **제외 사항**: 교정 분석 차트(Canvas 기반) - 별도 프로젝트
+- **우선순위**: 높음 (PoC-05와 밀접한 연관)
+- **산출물**: Element 렌더링 엔진, **DragResizeDiv 포팅 Handler 시스템**, HTML 편집기 통합
+
 ### Phase 4: 아키텍처 전략 검증 (3-4주)
 
 #### PoC-07: 배포 방식 비교 분석
@@ -181,7 +277,7 @@
 
 - **검증 내용**:
   - **NPM Package 방식**:
-    - React Component Library 형태
+    - TypeScript React Component Library 형태
     - 각 서비스별 독립적 통합
     - 버전 관리 복잡성
     - 커스터마이징 유연성
@@ -198,7 +294,7 @@
 **목적**: Web/Desktop/Mobile 플랫폼 지원 전략
 
 - **검증 내용**:
-  - **Web App**: React 기반 완전 기능
+  - **Web App**: TypeScript React 기반 완전 기능
   - **Desktop App**: Electron/WebView 래핑
   - **Mobile App**: WebView 임베딩 방식
   - 플랫폼별 UX 최적화 필요성
@@ -257,13 +353,42 @@
 
 #### PoC-12: 접근성 (Accessibility) 준수
 
-**목적**: 웹 접근성 표준 준수
+**목적**: 웹 접근성 표준(WCAG 2.1 AA) 준수를 위한 요구사항 정리 및 구현 가능성 검증
+
+- **검증 내용** (PoC 단계):
+  - WCAG 2.1 AA 요구사항 분석 및 정리
+  - 접근성 구현 설계 및 가이드라인 작성
+  - 기본 프로토타입으로 핵심 기능 검증
+  - 자동 접근성 테스트 도구(axe-core, Lighthouse) 활용
+  - 스크린 리더, 키보드 네비게이션, 고대비 모드 설계
+- **본 개발 단계에서 수행**:
+  - 완전한 접근성 기능 구현
+  - 장애인 의료진 실사용 테스트
+  - 접근성 검증 전문기관 표준 준수 확인
+
+#### PoC-13: Element 렌더링 엔진 구현 (장기 프로젝트)
+
+**목적**: TypeScript React 기반 Element 렌더링 및 편집 시스템 구현
+
+**실행 기간**: Week 6-16 (11주간, 단계별 구현)
+
+- **Phase 3 (Week 6-9)**: DragResizeDiv 포팅 + 기본 Element 구현
+- **Phase 4-5 (Week 10-14)**: 고급 Element 및 기능 추가
+- **Phase 6 (Week 15-16)**: 최종 통합 및 완성
 
 - **검증 내용**:
-  - 스크린 리더 지원
-  - 키보드 네비게이션
-  - 고대비 모드 지원
-  - 시각 장애인을 위한 대체 텍스트
+  - ezorthoweb(Vue.js) Element 클래스 구조 TypeScript React 포팅
+  - **DragResizeDiv.vue Handler 시스템 포팅** (700줄 검증된 시스템)
+  - 모든 Element 타입 렌더링 (Shape, Image, Text, Annotation)
+  - HTML 편집기 외부 컴포넌트 통합
+  - Element 간 상호작용 (선택, 그룹핑, z-index) 구현
+- **ezorthoweb 활용**:
+  - 검증된 Element 클래스 설계 구조 활용
+  - **DragResizeDiv.vue 완벽한 Handler 시스템** (Grid Snap, Zoom, 모바일 지원)
+  - 18개 Element 타입 + 누락된 4개(Arrow, Memo, Multi ImageBox, Reference ImageBox) 추가 구현
+  - 좌표 변환 시스템 (mm2px, px2mm) 활용
+- **우선순위**: 높음 (PoC-05와 밀접한 연관, **최장기 PoC**)
+- **산출물**: Element 렌더링 엔진, **DragResizeDiv 포팅 Handler 시스템**, HTML 편집기
 
 ### Will Not Do (제외 사항)
 
@@ -283,6 +408,15 @@
 - 실제 의료 리포트는 대부분 1-5페이지 내외로 구성
 - Virtual Scrolling, 지연 로딩 등 복잡한 최적화 기법이 불필요
 - 10페이지 이하 리포트에 대해서는 표준 웹 기술로 충분한 성능 확보 가능
+
+#### 교정 분석 차트 (Canvas 기반)
+
+**제외 이유**: 별도 프로젝트로 분리
+
+- **기술적 복잡성**: Canvas 기반 복잡한 그래프 및 분석 도구 구현
+- **프로젝트 범위**: 일반 리포트(HTML DOM+SVG)와 교정 분석(Canvas)은 별도 기술 스택
+- **우선순위**: 일반 리포트 기능 안정화 후 별도 프로젝트로 진행
+- **기존 구현**: ezorthoweb에서 Canvas 기반으로 이미 구현되어 있음
 
 ## 각 PoC별 상세 계획
 
@@ -371,6 +505,7 @@
    - 이벤트 처리 시스템
    - 히트 테스팅 구현
    - 상태 관리 복잡도
+   - **Element Handler 시스템**: ezorthoweb DragResizeDiv.vue 발견으로 복잡도 대폭 감소
 
 ### PoC-05: 통합 Element 스키마 설계 (Critical Path)
 

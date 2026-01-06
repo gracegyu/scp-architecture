@@ -4,12 +4,12 @@ Engineering One Pager
 
 **Date**: 2026년 1월 6일
 
-**Submitter Info**: SCP Cloud 개발팀
+**Submitter Info**: Raymond
 
-**Project Description**: 
-SCP Cloud Report 시스템이 글로벌 의료 시장에서 활용될 수 있도록 다국어 지원 시스템을 구축합니다. 단순한 텍스트 번역을 넘어 RTL(Right-to-Left) 언어 지원, 의료 전문 용어 정확성, 국가별 폰트 시스템, 문화적 차이를 고려한 UI/UX를 제공하는 국제화(i18n) 시스템을 설계합니다.
+**Project Description**: SCP Cloud Report 시스템이 글로벌 의료 시장에서 활용될 수 있도록 다국어 지원 시스템을 구축합니다. 단순한 텍스트 번역을 넘어 RTL(Right-to-Left) 언어 지원, 의료 전문 용어 정확성, 국가별 폰트 시스템, 문화적 차이를 고려한 UI/UX를 제공하는 국제화(i18n) 시스템을 설계합니다.
 
-**Business and Marketing Justification**: 
+**Business and Marketing Justification**:
+
 - **글로벌 시장 진출**: 다국어 지원으로 해외 시장 확장 기회 확보
 - **시장 규모 확대**: 영어권 외 아시아, 유럽, 중동 시장 진출
 - **현지화 요구**: 각국 의료 시스템 및 규정에 맞춤형 서비스 제공
@@ -17,44 +17,48 @@ SCP Cloud Report 시스템이 글로벌 의료 시장에서 활용될 수 있도
 - **브랜드 가치**: 글로벌 표준 서비스로 브랜드 인지도 향상
 - **매출 증대**: 다양한 지역 시장 진출로 매출 다각화
 
-**Risk Assessment**: 
-- **높은 리스크**: 
+**Risk Assessment**:
+
+- **높은 리스크**:
   - 의료 전문 용어 오번역으로 인한 진단 오류 가능성
   - RTL 언어 지원 시 복잡한 레이아웃 이슈
 - **중간 리스크**:
   - 국가별 폰트 라이센스 및 저작권 문제
   - 문화적 차이로 인한 UI/UX 거부감
   - 번역 품질 관리의 지속적 비용 발생
-- **저위험**: 
+- **저위험**:
   - i18n 라이브러리는 검증된 기술
-- **완화 방안**: 
+- **완화 방안**:
   - 의료 전문가와 번역가 협업 체계 구축
   - 단계적 언어 지원 (주요 언어부터)
   - 사용자 피드백 기반 지속적 개선
 
-**Resource and Scheduling Details**: 
+**Resource and Scheduling Details**:
+
 - **기간**: 2주 (Week 16-17)
-- **인력**: 
+- **인력**:
   - Raymond (국제화 개발자, UI/UX 디자이너, 번역 관리자 역할 겸임)
     - i18n 시스템 아키텍처 설계
     - 다국어 UI/UX 구현
     - 의료 용어 번역 체계 구축
     - RTL 언어 레이아웃 지원
-- **외부 협력**: 
+- **외부 협력**:
   - 의료 번역 전문업체 (용어 검증)
   - 각 언어권 의료진 (현지화 검증)
 
-**Technical Description**: 
+**Technical Description**:
 
 **지원 언어 우선순위**:
 
 **1차 지원 언어** (핵심 시장):
+
 - 영어 (EN): 글로벌 표준
 - 한국어 (KO): 본사 시장
 - 일본어 (JA): 주요 아시아 시장
 - 중국어 간체 (ZH-CN): 대형 시장
 
 **2차 지원 언어**:
+
 - 독일어 (DE): 유럽 의료 시장
 - 프랑스어 (FR): 유럽 시장
 - 스페인어 (ES): 남미 시장
@@ -63,28 +67,30 @@ SCP Cloud Report 시스템이 글로벌 의료 시장에서 활용될 수 있도
 **기술적 구현 방안**:
 
 **1. 국제화 프레임워크**:
+
 ```typescript
 // react-i18next 기반 구현
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next'
 
 interface MedicalTerms {
-  anatomy: Record<string, string>;
-  procedures: Record<string, string>;
-  diagnoses: Record<string, string>;
-  measurements: Record<string, string>;
+  anatomy: Record<string, string>
+  procedures: Record<string, string>
+  diagnoses: Record<string, string>
+  measurements: Record<string, string>
 }
 
-const { t } = useTranslation('medical');
+const { t } = useTranslation('medical')
 ```
 
 **2. 의료 용어 번역 체계**:
+
 ```json
 {
   "medical": {
     "anatomy": {
       "tooth": {
         "en": "Tooth",
-        "ko": "치아", 
+        "ko": "치아",
         "ja": "歯",
         "zh-cn": "牙齿"
       }
@@ -93,7 +99,7 @@ const { t } = useTranslation('medical');
       "implant": {
         "en": "Implant",
         "ko": "임플란트",
-        "ja": "インプラント", 
+        "ja": "インプラント",
         "zh-cn": "种植体"
       }
     }
@@ -102,6 +108,7 @@ const { t } = useTranslation('medical');
 ```
 
 **3. RTL (Right-to-Left) 언어 지원**:
+
 - CSS `direction: rtl` 적용
 - UI 컴포넌트 미러링 (버튼 위치, 메뉴 방향)
 - 텍스트 정렬 및 읽기 순서 조정
@@ -110,6 +117,7 @@ const { t } = useTranslation('medical');
 **폰트 시스템 설계**:
 
 **웹 폰트 최적화**:
+
 - **Font Subsetting**: 필요한 글자만 포함하여 용량 최적화
 - **Font Display**: `swap` 옵션으로 로딩 성능 향상
 - **Fallback Chain**: 언어별 대체 폰트 체계
@@ -126,16 +134,19 @@ const { t } = useTranslation('medical');
 **국가별 특화 요구사항**:
 
 **일본어**:
+
 - 의료 한자 및 히라가나 혼용 표기
 - 세로쓰기 지원 (`writing-mode: vertical-rl`)
 - JIS 의료 용어 표준 준수
 
 **중국어**:
+
 - 간체/번체 구분 지원
 - 중국 의료 표준 용어 적용
 - 중국 네트워크 환경 최적화 (CDN)
 
 **아랍어** (RTL 테스트):
+
 - 완전한 RTL 레이아웃
 - 아랍 숫자와 라틴 숫자 혼용 처리
 - 의료 용어의 아랍어 표준 확인
@@ -143,16 +154,19 @@ const { t } = useTranslation('medical');
 **현지화 (Localization) 요소**:
 
 **1. 날짜/시간 형식**:
+
 - ISO 8601 vs 지역별 형식
 - 의료 기록 날짜 표준 (각국 규정 준수)
 - 타임존 처리 및 UTC 변환
 
 **2. 숫자/측정 단위**:
+
 - 미터법 vs 야드파운드법
 - 의료 측정 단위 (mm, cm, inch)
 - 소수점 표기법 (. vs ,)
 
 **3. 색상 및 문화적 요소**:
+
 - 색상 의미의 문화적 차이 (빨간색, 흰색 등)
 - 의료 차트 색상 표준 (국가별 차이)
 - 아이콘 및 심볼 현지화
@@ -160,16 +174,19 @@ const { t } = useTranslation('medical');
 **번역 관리 시스템**:
 
 **1. 번역 워크플로우**:
+
 ```
 소스 추출 → 번역 의뢰 → 의료 검토 → 테스트 → 배포
 ```
 
 **2. 번역 품질 관리**:
+
 - 의료 용어집 (Glossary) 관리
 - 번역 메모리 (Translation Memory) 구축
 - 일관성 검사 자동화
 
 **3. 동적 번역 업데이트**:
+
 - CDN 기반 번역 파일 배포
 - 런타임 번역 업데이트
 - 번역 오류 신고 시스템
@@ -177,21 +194,25 @@ const { t } = useTranslation('medical');
 **테스트 계획**:
 
 **1. 기능 테스트**:
+
 - 각 언어별 완전한 리포트 편집 기능
 - RTL 언어에서의 편집 정확성
 - 폰트 렌더링 품질 확인
 
 **2. 성능 테스트**:
+
 - 다국어 리소스 로딩 시간
 - 폰트 로딩이 편집 성능에 미치는 영향
 - 메모리 사용량 (기본 언어 대비 증가율)
 
 **3. 사용성 테스트**:
+
 - 각 언어권 의료진 대상 사용성 평가
 - 번역 품질 및 이해도 평가
 - 문화적 적절성 검토
 
 **산출물**:
+
 1. **다국어 지원 시스템**: i18n 프레임워크 구현
 2. **의료 용어 번역 DB**: 8개 언어 의료 전문 용어집
 3. **RTL 지원 가이드**: 아랍어 등 RTL 언어 구현 방안

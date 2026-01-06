@@ -4,7 +4,7 @@ Engineering One Pager
 
 **Date**: 2026년 1월 6일
 
-**Submitter Info**: SCP Cloud 개발팀
+**Submitter Info**: Raymond
 
 **Project Description**: 기존 4개 Desktop 제품(E2, E3, EzOrtho, CleverOne)의 서로 다른 리포트 Element 구조를 분석하여 모든 기능을 포괄하면서도 확장 가능한 통합 스키마를 설계합니다. 제품별 고유 기능을 유지하면서 공통 속성을 정규화하고, 향후 신규 기능 추가가 용이한 유연한 구조를 만듭니다.
 
@@ -76,6 +76,45 @@ Engineering One Pager
 - Reference Image: LinkedMultiBoxID, ImageType
 - Template 시스템: 동적 Layout 지원
 
+**전체 통합 Element 목록** (PoC-13 구현 대상과 동일):
+
+**기본 Shape Elements (E3 RC Report 기준)**:
+
+- **Rectangle**: 직사각형 Annotation, 8개 핸들러 ✅ (ezorthoweb 구현됨)
+- **Ellipse**: 타원형 Annotation, 8개 핸들러 ✅ (ezorthoweb 구현됨)
+- **Line**: 직선 Annotation, 2개 핸들러 ✅ (ezorthoweb 구현됨)
+- **Arrow**: Line + 화살표 머리, 2개 핸들러 ❌ (추가 구현 필요)
+- **FreeDraw**: 자유 그리기, Path 기반 ✅ (ezorthoweb 구현됨)
+- **Memo**: 풍선 텍스트 + 포인터 ❌ (추가 구현 필요)
+
+**Content Elements (E2/E3 기준)**:
+
+- **ImageBox**: ✅ (ezorthoweb 구현됨, Single 타입만)
+  - Single ImageBox: 단일 이미지 ✅
+  - Multi ImageBox: 1~20 Row/Column 레이아웃 ❌ (추가 구현 필요)
+  - Reference ImageBox: 다른 ImageBox 참조 ❌ (추가 구현 필요)
+- **TextBox**: HTML 텍스트 편집 ✅ (ezorthoweb 구현됨)
+- **Label**: 단순 텍스트 ✅ (ezorthoweb 구현됨)
+
+**EzOrtho 특화 Elements**:
+
+- **ToothBox**: 치아 선택 UI ✅ (ezorthoweb 구현됨)
+- **TreatmentCategory**: 치료 분류 선택 ✅ (ezorthoweb 구현됨)
+- **Form Controls**: ✅ (ezorthoweb 구현됨)
+  - RadioButton, CheckBox, Button, ComboBox, TextInput, TextArea
+- **Block**: 요소 그룹핑 컨테이너 ✅ (ezorthoweb 구현됨)
+- **Image**: 단순 이미지 표시 ✅ (ezorthoweb 구현됨)
+
+**제외 Element**:
+
+- **Canvas**: 교정 분석 차트 전용 (별도 프로젝트)
+
+**구현 현황 요약**:
+
+- **구현 완료**: 18개 Element (ezorthoweb에서 검증됨)
+- **추가 구현 필요**: 4개 Element (Arrow, Memo, Multi ImageBox, Reference ImageBox)
+- **제외**: 1개 Element (Canvas - 별도 프로젝트)
+
 **통합 스키마 설계 원칙**:
 
 **1. 계층적 구조**:
@@ -100,13 +139,37 @@ Engineering One Pager
 }
 ```
 
-**2. Element 타입 정의**:
+**2. 통합 Element 타입 정의**:
 
-- **BaseElement**: 모든 Element의 공통 속성
-- **ImageBox**: Single, Multi, Reference 서브타입
-- **TextBox**: Static Text, Macro Text 구분
-- **Annotation**: Shape 기반 6가지 타입
-- **Chart**: EzOrtho 전용 차트 Element
+**기본 Shape Elements (E3 RC Report 기준)**:
+
+- **Rectangle**: 직사각형 Annotation, 8개 핸들러
+- **Ellipse**: 타원형 Annotation, 8개 핸들러
+- **Line**: 직선 Annotation, 2개 핸들러 (시작점, 끝점)
+- **Arrow**: Line + 화살표 머리, 2개 핸들러 (ezorthoweb 미구현 - 추가 필요)
+- **FreeDraw**: 자유 그리기, Path 기반
+- **Memo**: 풍선 텍스트 + 포인터, 복합 핸들러 (ezorthoweb 미구현 - 추가 필요)
+
+**Content Elements (E2/E3 기준)**:
+
+- **ImageBox**: 이미지 표시 + 크기 조정, 8개 핸들러
+  - Single ImageBox: 단일 이미지 (기본)
+  - Multi ImageBox: 1~20 Row/Column 레이아웃 (추가 구현 필요)
+  - Reference ImageBox: 다른 ImageBox 참조 (추가 구현 필요)
+- **TextBox**: HTML 텍스트 편집, 8개 핸들러
+- **Label**: 단순 텍스트, 8개 핸들러
+
+**EzOrtho 특화 Elements (일반 리포트용)**:
+
+- **ToothBox**: 치아 선택 UI, 8개 핸들러
+- **TreatmentCategory**: 치료 분류 선택, 8개 핸들러
+- **Form Controls**: RadioButton, CheckBox, Button, ComboBox, TextInput, TextArea
+- **Block**: 요소 그룹핑 컨테이너
+- **Image**: 단순 이미지 표시
+
+**제외 Element**:
+
+- **Canvas**: 교정 분석 차트 전용 (별도 프로젝트)
 
 **3. 확장성 고려**:
 
@@ -164,8 +227,10 @@ interface CompatibilityMatrix {
 
 1. **실제 데이터 테스트**: 각 제품별 100개 실제 파일로 변환 테스트
 2. **Round-trip 테스트**: 기존→새스키마→기존 변환 후 동일성 확인
-3. **성능 테스트**: 대용량 리포트 스키마 처리 성능
-4. **확장성 테스트**: 가상의 새 기능 추가 시뮬레이션
+3. **ezorthoweb 호환성 테스트**: 기존 Vue.js 생성 파일의 스키마 호환성 확인
+4. **성능 테스트**: 대용량 리포트 스키마 처리 성능
+5. **확장성 테스트**: 가상의 새 기능 추가 시뮬레이션
+6. **PoC-13 연계 테스트**: 설계된 스키마가 React Element 렌더링 엔진과 호환되는지 확인
 
 **산출물**:
 
@@ -176,4 +241,4 @@ interface CompatibilityMatrix {
 5. **확장 가이드라인**: 향후 Element 추가 시 준수 사항
 6. **검증 도구**: 스키마 유효성 검사 라이브러리
 
-**다음 단계**: 설계된 통합 스키마를 기반으로 PoC-06(Migration 시스템) 구현
+**다음 단계**: 설계된 통합 스키마를 기반으로 PoC-06(Migration 시스템) 및 PoC-13(Element 렌더링 엔진) 병행 구현

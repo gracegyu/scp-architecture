@@ -4,7 +4,7 @@ Engineering One Pager
 
 **Date**: 2026년 1월 6일
 
-**Submitter Info**: SCP Cloud 개발팀
+**Submitter Info**: Raymond
 
 **Project Description**: 복잡한 의료 리포트(ImageBox, TextBox, Annotation 등)를 웹 브라우저에서 고품질로 렌더링하기 위한 최적 기술을 선정합니다. HTML DOM+SVG 방식과 Canvas 방식의 성능, 품질, 개발 복잡도를 종합 비교하여 SCP Cloud Report의 렌더링 엔진 기술을 결정합니다.
 
