@@ -10,7 +10,7 @@ PoC #1, #2, #3에서 검증된 기술을 통합하여 **Windows Native 배포 �
 
 소스코드는 다음 위치에서 확인할 수 있습니다:
 
-- **Azure DevOps**: https://ewoosoft@dev.azure.com/ewoosoft/prototypes/\_git/scp-cache-poc/poc4
+- **Azure DevOps**: https://ewoosoft@dev.azure.com/ewoosoft/prototypes/_git/scp-cache-poc/poc4
 
 **검증 방식:**
 
@@ -792,7 +792,7 @@ Phase 1부터 Phase 6까지 모든 Phase가 완료되었으며, Windows Native �
 
 소스코드는 다음 저장소에서 확인할 수 있습니다:
 
-- **Azure DevOps**: https://ewoosoft@dev.azure.com/ewoosoft/prototypes/\_git/scp-cache-poc/poc4
+- **Azure DevOps**: https://ewoosoft@dev.azure.com/ewoosoft/prototypes/_git/scp-cache-poc/poc4
 - **경로**: `poc4/prototype/` 디렉터리
 
 ### B. 빌드 및 실행 방법
