@@ -23,7 +23,7 @@ Stripe를 이용하여 다양한 결제 유형을 서버 및 클라이언트 환
 - 리소스: Backend, Frontend 개발자 1명
 - 예상 소요 기간: 4/24 ~ (8일)
 - 기술 스택: Node.js(Nest.js), React, Stripe API
-- 소스코드: https://ewoosoft@dev.azure.com/ewoosoft/prototypes/\_git/stripe_payment_prototype
+- 소스코드: https://ewoosoft@dev.azure.com/ewoosoft/prototypes/_git/stripe_payment_prototype
 - 디렉토리 구조:
 
   ```
