@@ -4,7 +4,7 @@ Engineering One Pager
 
 **Date**: 2026년 1월 6일
 
-**Submitter Info**: SCP Cloud 개발팀
+**Submitter Info**: Raymond
 
 **Project Description**: 기존 Desktop 제품에서 사용하던 정수 기반 좌표값 시스템을 실수 기반으로 전환하고, 다양한 화면 해상도와 용지 크기에 대응할 수 있는 통합 좌표 시스템을 설계합니다. E3 v5.1에서 비율값에서 mm 실측값으로 변경된 경험을 바탕으로, Cloud 환경에 최적화된 좌표 시스템을 구축합니다.
 

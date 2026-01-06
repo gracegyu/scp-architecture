@@ -4,7 +4,7 @@ Engineering One Pager
 
 **Date**: 2026년 1월 6일
 
-**Submitter Info**: SCP Cloud 개발팀
+**Submitter Info**: Raymond
 
 **Project Description**: SCP Cloud Report 시스템을 여러 웹 서비스에서 활용할 수 있는 최적 배포 방식을 결정합니다. NPM Package 형태의 라이브러리 방식과 중앙화된 SaaS 서비스 방식, 그리고 하이브리드 방식을 비교 분석하여 기술적 타당성, 비즈니스 모델, 유지보수성을 종합적으로 평가합니다.
 

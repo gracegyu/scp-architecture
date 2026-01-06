@@ -4,7 +4,7 @@ Engineering One Pager
 
 **Date**: 2026년 1월 6일
 
-**Submitter Info**: SCP Cloud 개발팀
+**Submitter Info**: Raymond
 
 **Project Description**: SCP Cloud Report 시스템 개발에 필요한 외부 라이브러리들을 평가하고 선정합니다. 그래픽 렌더링, PDF 생성, 이미지 처리, DICOM 지원 등 핵심 영역별로 최적의 라이브러리를 비교 분석하여 기술 스택을 구성합니다. 기존 Desktop 제품의 기능을 완전히 대체할 수 있는 라이브러리 조합을 찾습니다.
 
