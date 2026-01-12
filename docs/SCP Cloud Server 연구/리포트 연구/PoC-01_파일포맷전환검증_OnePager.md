@@ -49,8 +49,8 @@ Engineering One Pager
 
 - E2 Report v3.0: .rpt 파일 (기본 ImageBox, TextBox 구조)
 - E3 Report v4.0~v5.1: 복잡한 ItemBox 구조, Auto Fill 정보 포함
-- EzOrtho v1.0: 치료/분석/히스토리 차트 데이터, Tooth Code 연동
-- RC Report v5.1: Annotation 데이터, Template 정보 포함
+- RC Report v5.1: Annotation 데이터, Template 정보 포함 (현재 구현 범위 외, 추후 확장 대상)
+- EzOrtho v1.0: 치료/히스토리 차트 데이터, Tooth Code 연동 (Analysis Chart는 현재 구현 범위 외, 추후 확장 대상)
 
 **변환 설계 원칙**:
 
@@ -101,7 +101,6 @@ Engineering One Pager
 
 1. **파일 크기 비교**:
    - 원본 XML vs JSON vs gzip 압축된 JSON
-   - 대용량 리포트 파일 (100+ 페이지) 테스트
 2. **파싱 속도**: Chrome, Firefox, Safari에서 측정
 3. **메모리 사용량**: 파싱 후 객체 메모리 오버헤드 비교
 
@@ -120,4 +119,4 @@ Engineering One Pager
 4. 성능 벤치마크 보고서
 5. 변환 가이드라인 문서
 
-**다음 단계**: 성공 시 PoC-02(좌표값 시스템)와 연계하여 통합 데이터 모델 설계
+**다음 단계**: 성공 시 PoC-02(좌표값 시스템), PoC-05(Element 스키마), PoC-13(Element 렌더링)과 연계하여 통합 데이터 모델 설계

@@ -6,7 +6,7 @@ Engineering One Pager
 
 **Submitter Info**: Raymond
 
-**Project Description**: SCP Cloud Report의 핵심인 Element 렌더링 엔진을 TypeScript React 기반으로 구현합니다. 기존 ezorthoweb(Vue.js)의 Element 클래스 구조와 설계를 참고하여, Drawing Shape, Image, Text(HTML) 등 일반 리포트 Element를 렌더링하고 편집할 수 있는 시스템을 구축합니다. 각 Element의 Drag & Resize Handler(핸들러), 속성 편집, HTML 편집 등 완전한 편집 기능을 제공하는 렌더링 엔진을 설계하고 검증합니다. 교정 분석 차트(Canvas 기반)는 별도 프로젝트로 제외합니다.
+**Project Description**: SCP Cloud Report의 핵심인 Element 렌더링 엔진을 TypeScript React 기반으로 구현합니다. 기존 ezorthoweb(Vue.js)의 Element 클래스 구조와 설계를 참고하여, Drawing Shape, Image, Text(HTML) 등 일반 리포트 Element를 렌더링하고 편집할 수 있는 시스템을 구축합니다. 각 Element의 Drag & Resize Handler(핸들러), 속성 편집, HTML 편집 등 완전한 편집 기능을 제공하는 렌더링 엔진을 설계하고 검증합니다. EzOrtho 분석 차트(Canvas 기반)는 현재 구현 범위 외이며, 추후 확장 대상입니다.
 
 **Business and Marketing Justification**:
 
@@ -59,7 +59,7 @@ Engineering One Pager
 BaseModel (최상위 모델)
 ├── ChartBase (모든 chart element의 부모)
 │   ├── TreatmentChart
-│   ├── AnalysisChart
+│   ├── AnalysisChart (EzOrtho 분석 차트 전용 - 현재 구현 범위 외, 추후 확장)
 │   └── HistoryChart
 ├── ChartArea (Header, Body, Footer 영역 관리)
 ├── ChartElementBase (모든 element의 부모 클래스)
@@ -81,7 +81,7 @@ BaseModel (최상위 모델)
 │   ├── ChartElementImage
 │   ├── ChartElementTextInput
 │   ├── ChartElementTextArea
-│   └── ChartElementCanvas (Analysis Chart 전용)
+│   └── ChartElementCanvas (EzOrtho 분석 차트 전용 - 현재 구현 범위 외, 추후 확장)
 └── 속성 클래스들
     ├── ChartFontAttr (폰트 속성)
     ├── ChartLineAttr (선 속성)
@@ -102,9 +102,9 @@ export const ElementShape = {
   // EzOrtho 특화 (일반 리포트용만)
   ToothBox: 'ToothBox',
   TreatmentCategory: 'TreatmentCategory',
-  // Canvas Element는 제외: 교정 분석 차트 전용으로 별도 프로젝트
+  // Canvas Element는 현재 구현 범위 외: EzOrtho 분석 차트 전용, 추후 확장 대상
 
-  // Annotation (E3 RC Report 기준)
+  // Annotation (E3 기준)
   Rectangle: 'Rectangle',
   Ellipse: 'Ellipse',
   FreeDraw: 'FreeDraw',
@@ -131,7 +131,7 @@ export const ElementShape = {
 - ImageBox (기본 이미지 편집)
 - TextBox (기본 텍스트 편집)
 
-**E3 RC Report v5.1**:
+**E3 v5.1**:
 
 - ItemBox (BoxType: Text, Image, Multi)
 - Annotation (6가지 타입):
@@ -142,6 +142,14 @@ export const ElementShape = {
   - FreeDraw
   - Memo (ezorthoweb에서 미구현 - 추가 필요)
 
+**RC Report v5.1** (현재 구현 범위 외, 추후 확장 대상):
+
+- ItemBox (BoxType: Text, Image, Multi)
+- Annotation (6가지 타입): Rectangle, Ellipse, Line, Arrow, FreeDraw, Memo
+- Template 시스템: 동적 Layout 지원
+- Auto Fill: TabType, ViewType, GroupType, WithOverlay, ApplyFilter
+- Capture & Fill Image: Image Box Capture 기능
+
 **EzOrtho v1.0** (ezorthoweb에서 완전 구현):
 
 - TextBox (다양한 Form Controls)
@@ -149,13 +157,13 @@ export const ElementShape = {
 - ToothBox (치아 선택 특화)
 - TreatmentCategory (치료 분류)
 - Form Controls: Label, RadioButton, CheckBox, Button, ComboBox, TextInput, TextArea
-- Canvas (Analysis Chart 전용)
+- Canvas (EzOrtho 분석 차트 전용 - 현재 구현 범위 외, 추후 확장 대상)
 - Block (요소 그룹핑)
 - Annotation: FreeDraw, Ellipse, Rectangle
 
 **누락된 Element (구현 필요)**:
 
-**1. E3 RC Report에서 누락**:
+**1. E3에서 누락**:
 
 - **Arrow**: Line과 유사하지만 화살표 머리 표시 기능
 - **Memo**: Text가 포함된 풍선형 Annotation
@@ -403,10 +411,10 @@ const LINE_HANDLES: HandlePosition[] = ['tl', 'br'] // Line용 2개
 - **Form Controls**: 각각 DragResizeDiv로 감싼 RadioButton, CheckBox, Button, ComboBox, TextInput, TextArea
 - **Block**: DragResizeDiv로 감싼 요소 그룹핑 컨테이너
 
-**제외 사항**:
+**현재 구현 범위 외 사항** (추후 확장 대상):
 
-- **Canvas Element**: 교정 분석 차트 전용으로 별도 프로젝트에서 다룸
-- **Analysis Chart 관련 Element들**: 복잡한 분석 도구로 별도 개발 필요
+- **Canvas Element**: EzOrtho 분석 차트 전용으로 별도 프로젝트에서 다룸 (추후 확장)
+- **EzOrtho 분석 차트 관련 Element들**: 복잡한 분석 도구로 별도 개발 필요 (추후 확장)
 
 **5. 좌표 시스템 통합** (PoC-02와 연계):
 
@@ -800,7 +808,7 @@ const MemoizedElement = React.memo(ElementComponent, (prev, next) => {
 
 - ToothBox, TreatmentCategory
 - Form Controls (RadioButton, CheckBox 등)
-- 교정 분석 차트(Canvas 기반)는 별도 프로젝트로 제외
+- EzOrtho 분석 차트(Canvas 기반)는 현재 구현 범위 외, 추후 확장 대상
 
 **14. 테스트 계획**:
 
@@ -814,9 +822,9 @@ const MemoizedElement = React.memo(ElementComponent, (prev, next) => {
 
 **성능 테스트**:
 
-1. **렌더링 성능**: 100개, 500개, 1000개 Element 렌더링 시간
+1. **렌더링 성능**: 50개 Element 렌더링 시간
 2. **편집 반응성**: 실시간 Drag 시 60fps 유지
-3. **메모리 사용량**: 대량 Element 시 메모리 효율성
+3. **메모리 사용량**: Element 메모리 효율성
 
 **호환성 테스트**:
 
@@ -1229,6 +1237,6 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 - ✅ **DragResizeDiv.vue 분석 완료**: 700줄의 완벽한 Handler 시스템 (95% 재사용 가능)
 - ✅ Vue 컴포넌트 구조 확인 (PatientChartElements 등)
 - 🔄 추가 구현 필요: Arrow, Memo, Multi ImageBox, Reference ImageBox
-- ❌ 제외: Canvas Element (교정 분석 차트 전용, 별도 프로젝트)
+- 🔄 현재 구현 범위 외: Canvas Element (EzOrtho 분석 차트 전용, 추후 확장 대상)
 
 **핵심 자산**: DragResizeDiv.vue는 PoC-13의 가장 중요한 참고 자료로, 이 컴포넌트만 완벽히 포팅하면 모든 Element의 Drag & Resize 기능이 해결됨
