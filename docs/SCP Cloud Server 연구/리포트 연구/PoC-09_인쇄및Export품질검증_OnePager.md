@@ -58,12 +58,6 @@ Engineering One Pager
 - **PDF Export**: 300DPI 고해상도 벡터 출력
 - **Email 전송**: PDF + 개별 이미지 파일 첨부
 
-**RC Report v5.1 출력 향상**:
-
-- **출력 품질 개선**: Capture 시 출력 크기에 맞춰 해상도 조정
-- **Overlay 최적화**: Line Thickness, Font Size 자동 조정
-- **Multi Capture 개선**: Reference Image 가시성 향상
-
 **웹 기반 출력 구현 전략**:
 
 **1. PDF 생성 방식 비교**:
@@ -178,7 +172,7 @@ interface QualityMetrics {
 
 **2. 성능 테스트**:
 
-- 대용량 리포트 (100페이지) PDF 생성 시간
+- 리포트 PDF 생성 시간 (최대 20페이지)
 - 고해상도 이미지 (4K DICOM) 포함 시 처리 시간
 - 메모리 사용량 및 안정성
 
@@ -205,4 +199,4 @@ interface QualityMetrics {
 5. **DICOM Print 대체 솔루션**: 웹 환경에서의 DICOM 인쇄 방안
 6. **품질 비교 보고서**: Desktop vs Web 출력 품질 분석
 
-**다음 단계**: 고품질 출력이 보장된 시스템을 기반으로 PoC-11(보안 검증) 진행
+**다음 단계**: PoC-13 Element 렌더링 엔진의 고품질 출력 검증 후 PoC-10(보안 검증) 진행

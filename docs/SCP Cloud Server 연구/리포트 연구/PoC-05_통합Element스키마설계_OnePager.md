@@ -65,20 +65,21 @@ Engineering One Pager
 
 **EzOrtho (v1.0)**:
 
-- 특수 Chart: TreatmentChart, AnalysisChart, HistoryChart
+- 특수 Chart: TreatmentChart, HistoryChart, AnalysisChart (Analysis Chart는 현재 구현 범위 외, 추후 확장 대상)
 - ToothCode: 치아 번호 체계 연동
 - ItemType: Chart 전용 Element 타입
 - LineStyle: 의료 차트 전용 선 스타일
 
-**RC Report (v5.1)**:
+**RC Report (v5.1)** (현재 구현 범위 외, 추후 확장 대상):
 
 - CapturedImgInfo: SpacingX/Y, Thickness, Interval
 - Reference Image: LinkedMultiBoxID, ImageType
 - Template 시스템: 동적 Layout 지원
+- Annotation: 6가지 타입 (Rectangle, Ellipse, Line, Arrow, FreeDraw, Memo)
 
 **전체 통합 Element 목록** (PoC-13 구현 대상과 동일):
 
-**기본 Shape Elements (E3 RC Report 기준)**:
+**기본 Shape Elements (E3 기준)**:
 
 - **Rectangle**: 직사각형 Annotation, 8개 핸들러 ✅ (ezorthoweb 구현됨)
 - **Ellipse**: 타원형 Annotation, 8개 핸들러 ✅ (ezorthoweb 구현됨)
@@ -105,15 +106,15 @@ Engineering One Pager
 - **Block**: 요소 그룹핑 컨테이너 ✅ (ezorthoweb 구현됨)
 - **Image**: 단순 이미지 표시 ✅ (ezorthoweb 구현됨)
 
-**제외 Element**:
+**현재 구현 범위 외 Element** (추후 확장 대상):
 
-- **Canvas**: 교정 분석 차트 전용 (별도 프로젝트)
+- **Canvas**: EzOrtho 분석 차트 전용 (별도 프로젝트, 추후 확장)
 
 **구현 현황 요약**:
 
 - **구현 완료**: 18개 Element (ezorthoweb에서 검증됨)
 - **추가 구현 필요**: 4개 Element (Arrow, Memo, Multi ImageBox, Reference ImageBox)
-- **제외**: 1개 Element (Canvas - 별도 프로젝트)
+- **현재 구현 범위 외**: 1개 Element (Canvas - EzOrtho 분석 차트 전용, 추후 확장 대상)
 
 **통합 스키마 설계 원칙**:
 
@@ -141,7 +142,7 @@ Engineering One Pager
 
 **2. 통합 Element 타입 정의**:
 
-**기본 Shape Elements (E3 RC Report 기준)**:
+**기본 Shape Elements (E3 기준)**:
 
 - **Rectangle**: 직사각형 Annotation, 8개 핸들러
 - **Ellipse**: 타원형 Annotation, 8개 핸들러
@@ -167,9 +168,9 @@ Engineering One Pager
 - **Block**: 요소 그룹핑 컨테이너
 - **Image**: 단순 이미지 표시
 
-**제외 Element**:
+**현재 구현 범위 외 Element** (추후 확장 대상):
 
-- **Canvas**: 교정 분석 차트 전용 (별도 프로젝트)
+- **Canvas**: EzOrtho 분석 차트 전용 (별도 프로젝트, 추후 확장)
 
 **3. 확장성 고려**:
 
@@ -228,7 +229,7 @@ interface CompatibilityMatrix {
 1. **실제 데이터 테스트**: 각 제품별 100개 실제 파일로 변환 테스트
 2. **Round-trip 테스트**: 기존→새스키마→기존 변환 후 동일성 확인
 3. **ezorthoweb 호환성 테스트**: 기존 Vue.js 생성 파일의 스키마 호환성 확인
-4. **성능 테스트**: 대용량 리포트 스키마 처리 성능
+4. **성능 테스트**: 스키마 처리 성능
 5. **확장성 테스트**: 가상의 새 기능 추가 시뮬레이션
 6. **PoC-13 연계 테스트**: 설계된 스키마가 React Element 렌더링 엔진과 호환되는지 확인
 
@@ -241,4 +242,4 @@ interface CompatibilityMatrix {
 5. **확장 가이드라인**: 향후 Element 추가 시 준수 사항
 6. **검증 도구**: 스키마 유효성 검사 라이브러리
 
-**다음 단계**: 설계된 통합 스키마를 기반으로 PoC-06(Migration 시스템) 및 PoC-13(Element 렌더링 엔진) 병행 구현
+**다음 단계**: 설계된 통합 스키마를 기반으로 PoC-06(Migration 시스템) 및 PoC-13(Element 렌더링 엔진) 병행 구현, DragResizeDiv Handler 시스템과 스키마 호환성 보장

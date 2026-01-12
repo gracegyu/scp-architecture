@@ -81,7 +81,7 @@ Engineering One Pager
 
 **기존 Desktop 제품 기능 분석**:
 
-**E3 RC Report 기능 중 플랫폼별 지원 가능성**:
+**E3 기능 중 플랫폼별 지원 가능성**:
 
 - **파일 I/O**: Desktop 완전지원, Web 제한적, Mobile 제한적
 - **인쇄 기능**: Desktop DICOM Print, Web 일반 인쇄, Mobile 제한적
@@ -107,7 +107,6 @@ interface PlatformSupport {
 
 - 코드 스플리팅으로 초기 로딩 최적화
 - 서비스 워커로 캐싱 및 오프라인 지원
-- Virtual Scrolling으로 대용량 리포트 처리
 
 **Desktop App**:
 
@@ -132,7 +131,7 @@ interface PlatformSupport {
 **2. 성능 벤치마크**:
 
 - 앱 시작 시간: Web < 3초, Desktop < 5초, Mobile < 5초
-- 리포트 로딩: 100개 Element 리포트 < 2초
+- 리포트 로딩: 50개 Element 리포트 < 2초
 - 편집 반응성: 터치/마우스 입력 후 100ms 이내 반영
 
 **3. 사용성 테스트**:
@@ -173,5 +172,4 @@ interface PlatformSupport {
 5. **배포 전략서**: 각 플랫폼별 배포 및 업데이트 방안
 6. **프로토타입 앱**: 각 플랫폼별 기본 기능 구현 예제
 
-**다음 단계**: 플랫폼별 최적화된 아키텍처를 기반으로 PoC-09(성능 최적화) 진행
-
+**다음 단계**: PoC-13 Element 렌더링 엔진이 모든 플랫폼에서 동일하게 작동하는지 검증 후 PoC-09(인쇄 품질) 진행

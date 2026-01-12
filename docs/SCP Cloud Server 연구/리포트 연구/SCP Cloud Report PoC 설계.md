@@ -138,8 +138,8 @@ flowchart TD
 
 - **E2 (v3.0)**: 기본 리포트 편집, XML 기반, .rpt 파일 저장
 - **E3 (v4.3~v5.1)**: 고급 편집 기능, Template 시스템, Auto Fill 기능
-- **EzOrtho (v1.0)**: 치료/분석/히스토리 차트 특화, Excel 기반 설정 관리
-- **RC Report (v5.1)**: Dialog 기반 편집, 다양한 Annotation 지원
+- **RC Report (v5.1)**: Dialog 기반 편집, 다양한 Annotation 지원, Template 시스템 (현재 구현 범위 외, 추후 확장 대상)
+- **EzOrtho (v1.0)**: 치료/히스토리 차트 특화, Excel 기반 설정 관리 (Analysis Chart는 현재 구현 범위 외, 추후 확장 대상)
 
 ### 공통 Element 분석
 
@@ -231,7 +231,7 @@ flowchart TD
   - **Content Elements**: ImageBox(Single/Multi/Reference), TextBox, Label
   - **EzOrtho 특화**: ToothBox, TreatmentCategory, Form Controls(RadioButton, CheckBox, Button, ComboBox, TextInput, TextArea)
   - **그룹핑**: Block 요소로 Element 그룹 관리
-  - **제외**: Canvas Element (교정 분석 차트 전용, 별도 프로젝트)
+  - **현재 구현 범위 외**: Canvas Element (EzOrtho 분석 차트 전용, 추후 확장 대상)
 - **우선순위**: 높음
 - **산출물**: 통합 Element 스키마, 호환성 매트릭스
 
@@ -243,7 +243,6 @@ flowchart TD
   - 제품별 버전 호환성 분석
   - 데이터 손실 없는 변환 보장
   - 부분적 Migration 전략
-  - 대용량 파일 처리 성능
 - **Migration 경로**:
   - E2 v3.0 → Cloud Format
   - E3 v1.x → v4.x → v5.1 → Cloud Format
@@ -265,7 +264,7 @@ flowchart TD
   - Content: ImageBox(Single/Multi/Reference), TextBox, Label
   - EzOrtho 특화: ToothBox, TreatmentCategory, Form Controls
   - Annotation: 6가지 타입 완전 지원
-- **제외 사항**: 교정 분석 차트(Canvas 기반) - 별도 프로젝트
+- **현재 구현 범위 외 사항**: EzOrtho 분석 차트(Canvas 기반) - 추후 확장 대상
 - **우선순위**: 높음 (PoC-05와 밀접한 연관)
 - **산출물**: Element 렌더링 엔진, **DragResizeDiv 포팅 Handler 시스템**, HTML 편집기 통합
 
@@ -400,23 +399,15 @@ flowchart TD
 - 기술적 복잡도가 높고 개발 리소스 과다 소요
 - 기본 리포트 기능 안정화 후 추후 검토 대상
 
-#### 대용량 리포트 성능 최적화 (100+ 페이지)
+#### EzOrtho 분석 차트 (Canvas 기반) (현재 구현 범위 외, 추후 확장 대상)
 
-**제외 이유**: 기존 제품 요구사항과 불일치
-
-- **기존 제품 분석 근거**: E3 RC Report v5.1에서 "최대 10페이지까지 추가할 수 있다"고 명시
-- 실제 의료 리포트는 대부분 1-5페이지 내외로 구성
-- Virtual Scrolling, 지연 로딩 등 복잡한 최적화 기법이 불필요
-- 10페이지 이하 리포트에 대해서는 표준 웹 기술로 충분한 성능 확보 가능
-
-#### 교정 분석 차트 (Canvas 기반)
-
-**제외 이유**: 별도 프로젝트로 분리
+**현재 구현 범위 외 이유**: 별도 프로젝트로 분리
 
 - **기술적 복잡성**: Canvas 기반 복잡한 그래프 및 분석 도구 구현
-- **프로젝트 범위**: 일반 리포트(HTML DOM+SVG)와 교정 분석(Canvas)은 별도 기술 스택
+- **프로젝트 범위**: 일반 리포트(HTML DOM+SVG)와 EzOrtho 분석 차트(Canvas)는 별도 기술 스택
 - **우선순위**: 일반 리포트 기능 안정화 후 별도 프로젝트로 진행
 - **기존 구현**: ezorthoweb에서 Canvas 기반으로 이미 구현되어 있음
+- **분석 완료**: 차트 구조 및 기능은 철저히 분석되어 추후 확장 시 활용 가능
 
 ## 각 PoC별 상세 계획
 
@@ -584,16 +575,16 @@ flowchart TD
 
 ### 기술적 성공 기준
 
-1. **성능**: 기존 Desktop 대비 90% 이상 성능
+1. **성능**: 기존 Desktop 대비 90% 이상 성능 (PoC-13 Element 렌더링 성능 기준)
 2. **호환성**: 100% 데이터 Migration 성공
 3. **품질**: 의료용 인쇄 품질 기준 충족
-4. **확장성**: 새로운 Element 추가 시 1일 이내 구현
+4. **확장성**: 새로운 Element 추가 시 1일 이내 구현 (PoC-13 Element 시스템 기반)
 
 ### 비즈니스 성공 기준
 
-1. **개발 효율성**: 기존 대비 50% 개발 시간 단축
+1. **개발 효율성**: 기존 대비 50% 개발 시간 단축 (DragResizeDiv 포팅으로 Handler 개발 시간 대폭 절약)
 2. **유지보수성**: 버그 수정 및 기능 추가 용이성
-3. **사용자 만족도**: 기존 Desktop 사용자 학습 곡선 최소화
+3. **사용자 만족도**: 기존 Desktop 사용자 학습 곡선 최소화 (PoC-13으로 동일한 편집 경험 제공)
 
 ### 평가 방법
 

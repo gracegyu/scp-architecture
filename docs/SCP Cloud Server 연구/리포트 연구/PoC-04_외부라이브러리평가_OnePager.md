@@ -6,7 +6,7 @@ Engineering One Pager
 
 **Submitter Info**: Raymond
 
-**Project Description**: SCP Cloud Report 시스템 개발에 필요한 외부 라이브러리들을 평가하고 선정합니다. 그래픽 렌더링, PDF 생성, 이미지 처리, DICOM 지원 등 핵심 영역별로 최적의 라이브러리를 비교 분석하여 기술 스택을 구성합니다. 기존 Desktop 제품의 기능을 완전히 대체할 수 있는 라이브러리 조합을 찾습니다.
+**Project Description**: PoC-03에서 선정된 렌더링 기술(HTML DOM+SVG 또는 Canvas)을 기반으로 SCP Cloud Report 시스템 개발에 필요한 외부 라이브러리들을 평가하고 선정합니다. 선정된 렌더링 기술에 특화된 그래픽 라이브러리, PDF 생성, 이미지 처리, DICOM 지원 등 핵심 영역별로 최적의 라이브러리를 비교 분석하여 기술 스택을 구성합니다.
 
 **Business and Marketing Justification**:
 
@@ -49,13 +49,24 @@ Engineering One Pager
 
 **평가 영역별 후보 라이브러리**:
 
-**1. 그래픽 렌더링 라이브러리**:
+**1. 그래픽 렌더링 라이브러리** (PoC-03 선정 기술에 따라 결정):
+
+**Canvas 기반 선정 시**:
 
 - **Fabric.js**: Canvas 기반, 강력한 객체 조작 기능
 - **Konva.js**: 2D Canvas, 고성능, TypeScript 지원
-- **Paper.js**: 벡터 그래픽 특화, SVG 호환
+- **Paper.js**: 벡터 그래픽 특화
+
+**SVG/DOM 기반 선정 시**:
+
 - **D3.js**: 데이터 시각화, SVG 조작 강력
+- **Snap.svg**: SVG 전용 라이브러리
+- **React-Spring**: 애니메이션 및 상호작용
+
+**공통 고려 사항**:
+
 - **Three.js**: 3D 지원, WebGL 가속 (향후 3D 리포트 고려)
+- **DragResizeDiv 포팅 결과**: PoC-13에서 포팅된 Handler 시스템과 호환성 우선
 
 **2. PDF 생성 라이브러리**:
 
@@ -84,13 +95,13 @@ Engineering One Pager
 
 - **번들 크기**: 최종 JavaScript 번들 크기 영향
 - **초기 로딩**: First Contentful Paint (FCP) 시간
-- **렌더링 성능**: 1000개 Element 렌더링 시간
 - **메모리 효율성**: 장시간 사용 시 메모리 리크 여부
+- **PoC-13 호환성**: DragResizeDiv 포팅 Handler 시스템과 통합 용이성
 
 **2. 기능 완성도**: 기존 제품 기능 구현 가능성 체크리스트:
 
-- E3 RC Report Auto Fill 기능
-- EzOrtho 차트 렌더링 (Treatment/Analysis/History Chart)
+- E3 Auto Fill 기능
+- EzOrtho 차트 렌더링 (Treatment/History Chart, Analysis Chart는 현재 구현 범위 외, 추후 확장 대상)
 - E2/E3 Multi Image Layout (1~20 Row/Column)
 - 6가지 Annotation 타입 완전 지원
 - 실시간 편집 반응성
