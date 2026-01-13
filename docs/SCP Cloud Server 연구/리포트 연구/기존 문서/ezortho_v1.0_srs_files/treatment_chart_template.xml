@@ -1,0 +1,41 @@
+
+<?xml version="1.0" encoding="UTF-8"?>																		
+<TreatmentChartTemplate Name="Basic" Version="1" Locale="ko_KR">[1]														
+<PaperSetting PaperSize="A4" MarginTop="20" MarginBottom="20" MarginLeft="20" MarginRight="20" HeaderHeight="30" FooterHeight="50"/>				<!-- unit : mm -->			
+<Header FontFamily="Verdana" FontSize="12pt" HorizontalAlignment="Left"  VerticalAlignment="Center">										
+<Label ItemType="30" Left="10" Top="0" Width="20" Height="8"/>													
+<Label Content="Page" ItemType="0" Left="30" Top="0" Width="20" Height="8"/>											
+</Header>																					
+<Footer FontFamily="Verdana" FontSize="12pt" HorizontalAlignment="Left"  VerticalAlignment="Center">										
+<Line Style="1" Color="#000000" Opacity="1.0" Thickness="2" X1="40" Y1="0" X2="80" Y2="0" />[2]										
+<Label ItemType="27" Left="10" Top="5" Width="30" Height="30"/>				<!-- "no fill" and "no outline" is default -->					
+<Label Content="Practice Name : " ItemType="0" Left="50" Top="5" Width="20" Height="8"/>											
+<Label ItemType="24" Left="70" Top="50" Width="20" Height="8"/>												
+<Label Content="Doctor Name : " ItemType="0" Left="50" Top="15" Width="20" Height="8"/>											
+<Label ItemType="29" Left="70" Top="15" Width="20" Height="8"/>												
+<Label Content="Practice Address : " ItemType="0" Left="50" Top="25" Width="20" Height="8"/>										
+<Label ItemType="26" Left="70" Top="25" Width="20" Height="8"/>												
+<Label Content="Practice Telephone : " ItemType="0" Left="50" Top="25" Width="20" Height="8"/>										
+<Label ItemType="25" Left="70" Top="25" Width="20" Height="8"/>												
+<Label Content="Printed By EzOrtho" ItemType="0" Left="150" Top="5" Width="20" Height="8"/>										
+<Label Content="Printed Date : " ItemType="0" Left="150" Top="15" Width="20" Height="8"/>										
+<Label ItemType="6" Left="170" Top="15" Width="20" Height="8"/>												
+</Footer>																					
+<PageContent FontFamily="Verdana" FontSize="12pt" HorizontalAlignment="Left"  VerticalAlignment="Center">										
+<!-- Title -->																			
+<Label Content="Treatment" ItemType="0" FontSize="24pt" FontStyle="Bold" HorizontalAlignment="Center" Left="80" Top="12" Width="50" Height="15"/>[3]		<!-- unit : mm -->			
+<!-- Patient Information -->																	
+<Label Content="ChartNo. : " ItemType="0" Left="10" Top="50" Width="20" Height="8"/>											
+<Label ItemType="1" Align="Left" Left="40" Top="50" Width="20" Height="8"/>												
+<Label Content="Gender : " ItemType="0" Left="70" Top="50" Width="20" Height="8"/>											
+<Label ItemType="3" Left="100" Top="50" Width="20" Height="8"/>												
+<Label Content="Create Date : " ItemType="0" Left="130" Top="50" Width="20" Height="8"/>											
+<Label ItemType="6" Left="160" Top="50" Width="20" Height="8"/>												
+<Label Content="Patient Name" ItemType="0" Left="10" Top="62" Width="20" Height="8"/>											
+<Label ItemType="2" Left="40" Top="62" Width="20" Height="8"/>													
+<Label Content="D.O.B. : " ItemType="0" Left="70" Top="62" Width="20" Height="8"/>											
+<Label ItemType="4" Left="100" Top="50" Width="62" Height="8"/>												
+<Label Content="Modified Date : " ItemType="0" Left="130" Top="62" Width="20" Height="8"/>										
+<Label ItemType="6" Left="160" Top="62" Width="20" Height="8"/>												
+</PageContent>																				
+</TreatmentChartTemplate>																				

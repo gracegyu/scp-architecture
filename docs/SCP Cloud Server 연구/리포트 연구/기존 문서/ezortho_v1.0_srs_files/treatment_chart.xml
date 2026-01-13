@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>																
+<TreatmentChart version="1" Locale="ko_KR">															
+<PaperSetting>																		
+<!-- Refer Treatment Chart Template -->														
+</PaperSetting>																		
+<Header>																			
+<!-- Refer Treatment Chart Template -->														
+</Header>																			
+<Footer>																			
+<!-- Refer Treatment Chart Template -->														
+</Footer>																			
+<PageContent FontFamily="Verdana" FontSize="12pt" HorizontalAlignment="Left" VerticalAlignment="Center">[1]								
+<!-- Patient Information -->															
+<Label Content="Treatment Chart" ItemType="0" FontSize="24pt" FontStyle="Bold" HorizontalAlignment="Center" Left="80" Top="12" Width="50" Height="15"/>			<!-- unit : mm -->
+<Label Content="ChartNo. : " ItemType="0" Left="10" Top="50" Width="20" Height="8"/>									
+<Label Content="01234" ItemType="0" Align="Left" Left="40" Top="50" Width="20" Height="8"/>								
+<Label Content="Gender : " ItemType="0" Left="70" Top="50" Width="20" Height="8"/>									
+<Label Content="Male" Left="100" Top="50" Width="20" Height="8"/>										
+<Label Content="Create Date : " ItemType="0" Left="130" Top="50" Width="20" Height="8"/>									
+<Label Content="2018/06/10" ItemType="0" Left="160" Top="50" Width="20" Height="8"/>									
+<Label Content="Patient Name" ItemType="0" Left="10" Top="62" Width="20" Height="8"/>									
+<Label Content="Ewoosoft Vatech" ItemType="0" Left="40" Top="62" Width="20" Height="8"/>									
+<Label Content="D.O.B. : " ItemType="0" Left="70" Top="62" Width="20" Height="8"/>									
+<Label Content="1986/01/03" ItemType="0" Left="100" Top="50" Width="62" Height="8"/>									
+<Label Content="Modified Date : " ItemType="0" Left="130" Top="62" Width="20" Height="8"/>								
+<Label Content="2018/09/05" ItemType="0" Left="160" Top="62" Width="20" Height="8"/>									
+<!-- Label Item -->																	
+<Label Content="Chief Complain" ItemType="0" FontSize="14pt" FontStyle="Bold" Left="10" Top="80" Width="200" Height="15"/>						
+<!-- Text Box Item -->																
+<TextBox PlaceholderText="Text Box" Left="20" Top="100" Width="200" Height="50">									
+<![CDATA[<html> <head> <script/> </head> <body> Your HTML's body </body> </html> ]]> 		<!-- The result string of QTextEdit :: toHtml () goes into CDATA [] -->	
+</TextBox>																		
+<!-- Image Box Item -->																
+<ImageBox Source="PX20161102_110425_0000_00000003.dcm" Left="20" Top="150" Width="200" Height="50"/>								
+<!-- Tooth Code Item -->																
+<ToothBox Left="20" Top="200" Width="200" Height="50">												
+<SelectedToothCode>11</SelectedToothCode>													
+<SelectedToothCode>12</SelectedToothCode>													
+<SelectedToothCode>84</SelectedToothCode>													
+<SelectedOcclusionToothCode>15_2</SelectedOcclusionToothCode>										
+</ToothBox>																		
+<!-- Treatment Category Item -->															
+<TreatmentCategory PlaceholderText="Treatment Category" Left="20" Top="250" Width="200" Height="50">								
+<Category1>Orthognathic Surgery</Category1>[2]												
+<Category2>Mandibular Surgery</Category2>													
+<Category3>Sagittal Split Ramus Osteotomy</Category3>											
+</TreatmentCategory>																	
+<!-- Annotation -->																	
+<Annotations>																		
+<FreeDraw LineStyle="1" StrokeThickness="2" Stroke="#000000" StrokeOpacity="1.0">									
+<Points>15,17 20,20 30,35 40,37 50,36</Points>											
+</FreeDraw>																	
+<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">									
+<Points>20,20 350,20</Points>													
+</Lines>																	
+<Ellipse Left="20" Top="100" Width="100" Height="40" LineStyle="1" StrokeThickness="2" Stroke="#000000" StrokeOpacity="1.0"/>					
+<Rectangle Left="20" Top="100" Width="100" Height="40" LineStyle="1" StrokeThickness="2" Stroke="#000000" StrokeOpacity="1.0"/>					
+</Annotations>																	
+</PageContent>																		
+</TreatmentChart>	

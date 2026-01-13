@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>													
+<EzOrthoSharingSetting Version="1" Locale="ko_KR">										
+<Environment>																
+<Language>C</Language>													
+<ToothCode>FDI System</ToothCode>												
+<Font>Segoe UI</Font>													
+<Dose>dGyCm^2</Dose>														
+<DentalAge>Hellman Age</DentalAge>												
+<ImageScale>100</ImageScale>									
+<Race>Asian</Race>														
+<ChartNumberring>true</ChartNumberring>											
+<PatientNameOption>LastName FirstName</PatientNameOption>								
+<DefaultListType>Recently Scheduled</DefaultListType>									
+<NumberList>15</NumberList>													
+<AutomaticallyShowPatientImages>true</AutomaticallyShowPatientImages>[2]							
+<Email>															
+<Address></Address>													
+<Provider></Provider>												
+<Password></Password>												
+<Name></Name>														
+<UserSMTPAddress></UserSMTPAddress>										
+<UserSMTPPort>25</UserSMTPPort>											
+<UserSMTPSecurity>Auto</UserSMTPSecurity>										
+</Email>															
+<DefaultLayout>														
+<Viewer>Viewer_Frame1x1.lay</Viewer>										
+<PatientChart>													
+<Treatment>TreatmentChart.tpl</Treatment>									
+<History>HistoryChart.tpl</History>									
+</PatientChart>													
+<AnalysisChart>													
+<Lateral>Lateral Polygonal All Group.tpl</Lateral>							
+<PA>PA Polygonal All Group.tpl</PA>									
+<SMV></SMV>													
+<Model>Model Analysis Template.tpl</Model>								
+</AnalysisChart>													
+<Consult>CST_Frame2x2.lay</Consult>										
+</DefaultLayout>														
+<FavoriteLayout>														
+<LayoutName>Viewer_Frame1x1.lay</LayoutName>									
+<LayoutName>Viewer_Frame1x2.lay</LayoutName>									
+</FavoriteLayout>														
+<LogoutOption>30</LogoutOption>												
+</Environment>															
+<View>																	
+<Windowing>															
+<Type>0</Type>													
+<Width>0</Width>													
+<Center>0</Center>													
+</Windowing>															
+<PatientInformationOn>true</PatientInformationOn>									
+<RatioOnScreen>Fit</RatioOnScreen>					<!-- Fit(Default) / 40% / 60% / 80% / 100% / 120% / 140% / 160% -->		
+<ImportedImagesFromServer>													
+<Modality>Panorama</Modality>				<!-- Only the checked modality is included in the list. -->			
+<Modality>Cephalo</Modality>											
+<Modality>DSLR</Modality>												
+</ImportedImagesFromServer>													
+<ImageModalityBox>														
+<Modality>Lateral Film</Modality>				<!-- Only the checked modality is included in the list. -->			
+<Modality>Lateral Photo</Modality>				<!-- Image Modality Boxes are displayed in the Import Dialog in the order they are listed. -->
+<Modality>PA Film</Modality>				<!-- Lateral Film, Lateral Photo, PA Flim, PA Photo, Model, SMV are always included. -->	
+<Modality>PA Photo</Modality>											
+<Modality>3D Photo</Modality>											
+<Modality>Model</Modality>												
+<Modality>SMV</Modality>												
+<Modality>Panorama</Modality>											
+</ImageModalityBox>														
+</View>																
+<Tools>																
+<FavoriteToolbarGroup>View</FavoriteToolbarGroup>									
+<MagnifyEnhancementToolSize>300X300</MagnifyEnhancementToolSize>							
+<Grid>																
+<Spacing>10</Spacing>												
+<StrokeThickness>1</StrokeThickness>										
+<Stroke>#808080</Stroke>												
+<StrokeOpacity>0.7</StrokeOpacity>											
+</Grid>															
+<ShowMeasurementUnit>true</ShowMeasurementUnit>										
+<Measurement>															
+<Angle>														
+<LineStyle>1</LineStyle>											
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#808080</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Angle>														
+<Length>														
+<LineStyle>1</LineStyle>											
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#808080</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Length>														
+<FontSize>12</FontSize>												
+<PlaceOfDecimal>2</PlaceOfDecimal>											
+</Measurement>														
+<Annotation>															
+<LineStyle>1</LineStyle>												
+<StrokeThickness>1</StrokeThickness>										
+<Stroke>#808080</Stroke>												
+<StrokeOpacity>1.0</StrokeOpacity>											
+</Annotation>															
+<Pointer>															
+<StrokeThickness>1</StrokeThickness>										
+<Stroke>#808080</Stroke>												
+<StrokeOpacity>1.0</StrokeOpacity>											
+</Pointer>															
+<Memo>																
+<LineStyle>1</LineStyle>												
+<StrokeThickness>1</StrokeThickness>										
+<Stroke>#5555ff</Stroke>												
+<StrokeOpacity>1.0</StrokeOpacity>											
+<FillColor>#000000</FillColor>											
+<FillOpacity>0.6</FillOpacity>											
+<UsePreset>true</UsePreset>												
+<PresetWording>													
+<Preset Index="1">Caries</Preset>[3]										
+<Preset Index="2">Suspected</Preset>									
+<Preset Index="3">N.A.D</Preset>										
+<Preset Index="4">First Visit IO Sensor</Preset>								
+<Preset Index="5">Bone Loss</Preset>									
+<Preset Index="6">Absent</Preset>										
+<Preset Index="7">Ectopic</Preset>										
+<Preset Index="8"></Preset>											
+<Preset Index="9"></Preset>											
+<Preset Index="10"></Preset>										
+</PresetWording>													
+</Memo>															
+</Tools>																
+<Analysis>																
+<Tracing>															
+<LandMark>														
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#8c0000</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+<FontSize>11</FontSize>											
+</LandMark>														
+<GuideLine>														
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#8c0000</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</GuideLine>														
+<Tooth>														
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#8c0000</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+<Fill>#8c0000</Fill>[4]												
+<FillOpacity>1</FillOpacity>										
+</Tooth>														
+<SoftTissue>														
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#8c0000</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</SoftTissue>														
+<OutLine>														
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#8c0000</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</OutLine>														
+</Tracing>															
+<Chart>															
+<Under>														
+<TextColor>#FF0000</TextColor>										
+</Under>														
+<Mean>															
+<TextColor>#00FF00</TextColor>										
+</Mean>														
+<Over>															
+<TextColor>#0000FF</TextColor>										
+</Over>														
+<FontSize>14</FontSize>												
+</Chart>															
+</Analysis>																
+<Simulation>																
+<VTOSTO>															
+<Hidden>														
+<LineStyle>2</LineStyle>											
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#5555ff</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+<Fill>#8c0000</Fill>												
+<FillOpacity>1</FillOpacity>										
+</Hidden>														
+</VTOSTO>															
+<Superimposition>														
+<Line Index="1">[5]													
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#5555ff</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Line>														
+<Line Index="2">													
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#5555ff</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Line>														
+<Line Index="3">													
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#5555ff</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Line>														
+<Line Index="4">													
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#5555ff</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Line>														
+<Line Index="5">													
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#5555ff</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Line>														
+<Line Index="6">													
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#5555ff</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Line>														
+<Line Index="7">													
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#5555ff</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Line>														
+<Line Index="8">													
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#5555ff</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Line>														
+<Line Index="9">													
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#5555ff</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Line>														
+</Superimposition>														
+<Profilogram>															
+<Line Name="Patient">[6]												
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#5555ff</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Line>														
+<Line Name="Average">												
+<StrokeThickness>1</StrokeThickness>									
+<Stroke>#5555ff</Stroke>											
+<StrokeOpacity>1.0</StrokeOpacity>										
+</Line>														
+</Profilogram>														
+</Simulation>																
+<Service>																
+<DAVIS>															
+<ID></ID>														
+<Password></Password>												
+</DAVIS>															
+</Service>																
+<PrivacyPolicy>															
+<UsePrivacyPolicySetting>True</UsePrivacyPolicySetting>									
+<DisplayOnScreen>[7]														
+<AnonymizeName>true</AnonymizeName>			<!-- Only the checked modality is included in the list. -->			
+<AnonymizeGender>true</AnonymizeGender>										
+<AnonymizeDateOfBirth>true</AnonymizeDateOfBirth>								
+<AnonymizeAge>true</AnonymizeAge>											
+<AnonymizeSocialID>true</AnonymizeSocialID>									
+<AnonymizeRace>true</AnonymizeRace>										
+<AnonymizeJob>true</AnonymizeJob>											
+<AnonymizeMobile>true</AnonymizeMobile>										
+<AnonymizePhone>true</AnonymizePhone>										
+<AnonymizeEmail>false</AnonymizeEmail>										
+<AnonymizeAddress>true</AnonymizeAddress>										
+<AnonymizeZipCode>true</AnonymizeZipCode>										
+</DisplayOnScreen>														
+<Anonymize>															
+<AnonymizeExport>true</AnonymizeExport>										
+<AnonymizeSendEmail>true</AnonymizeSendEmail>									
+<AnonymizeExportChart>true</AnonymizeExportChart>								
+<AnonymizePrint>true</AnonymizePrint>										
+</Anonymize>															
+</PrivacyPolicy>															
+</EzOrthoSharingSetting>		

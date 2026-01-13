@@ -139,7 +139,7 @@ flowchart TD
 - **E2 (v3.0)**: 기본 리포트 편집, XML 기반, .rpt 파일 저장
 - **E3 (v4.3~v5.1)**: 고급 편집 기능, Template 시스템, Auto Fill 기능
 - **RC Report (v5.1)**: Dialog 기반 편집, 다양한 Annotation 지원, Template 시스템 (현재 구현 범위 외, 추후 확장 대상)
-- **EzOrtho (v1.0)**: 치료/히스토리 차트 특화, Excel 기반 설정 관리 (Analysis Chart는 현재 구현 범위 외, 추후 확장 대상)
+- **EzOrtho (v1.0)**: 치료/히스토리 차트 특화, Treatment/History Chart 시스템 (Analysis Chart는 현재 구현 범위 외, 추후 확장 대상)
 
 ### 공통 Element 분석
 

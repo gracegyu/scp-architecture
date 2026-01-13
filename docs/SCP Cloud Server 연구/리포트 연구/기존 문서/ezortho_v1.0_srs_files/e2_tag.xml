@@ -1,0 +1,24 @@
+
+<?xml version="1.0" encoding="UTF-8"?>	
+<!DOCTYPE E2Tag>				
+<E2Tag version="14">	
+<TagCalibration>			
+<Calibrated>VTRUE</Calibrated>	
+<Cal_X>0.349086193503698</Cal_X>
+<Cal_Y>0.349086193503698</Cal_Y>
+</TagCalibration>			
+<TagDAP>				
+<DAP>0</DAP>			
+</TagDAP>				
+<TagInitial>				
+<Rotation>0</Rotation>		
+<Horizontal>0</Horizontal>	
+<Vertical>0</Vertical>		
+</TagInitial>				
+<TagPreInitial>				
+<Rotation>0</Rotation>		
+<Horizontal>0</Horizontal>	
+<Vertical>0</Vertical>		
+</TagPreInitial>				
+…					
+</E2Tag>

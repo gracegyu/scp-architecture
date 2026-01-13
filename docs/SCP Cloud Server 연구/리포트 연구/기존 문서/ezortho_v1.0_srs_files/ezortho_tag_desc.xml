@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>																																																																																			
+<EzOrthoTag Version="1" Locale="ko_KR">																																																																																			
+<ImageEdit>																																																																																						
+<Initial>																																																																																					
+<Transform Type="Rotate" X="25" Y="25" Angle="45"/>[1]				<!-- In V1.0, ignore X and Y because it rotates at the center of the object. -->																																																																		
+<Flip Horizontal="true" Vertical="false"/>																																																																															
+<Crop X="25" Y="25" Width="200" Height="150"/>																																																																															
+</Initial>																																																																																					
+</ImageEdit>																																																																																						
+<Windowing>																																																																																						
+<Brightness></Brightness>[2]																																																																																			
+<Contrast></Contrast>																																																																																			
+</Windowing>																																																																																						
+<ImageFiltering SharpenLevelTag="true" SharpenLevel="1" SharpenLevelAllow="true">[3]		<!-- added in v1.0.2 -->	<!-- added sharpen option in v1.3.10 -->																																																																			
+<Sharpen>true</Sharpen>[4]																																																																																			
+<MaxSharpen>false</MaxSharpen>																																																																																		
+<Inverse>false</Inverse>																																																																																			
+<FilmEffect>false</FilmEffect>																																																																																		
+</ImageFiltering>																																																																																					
+<Transformations>																																																																																					
+<Layout name="Viewer_Frame1x1.lay" LastViewSize="640x400">																																																																														
+<Transform Type="Scale" X="25" Y="25" XScale="3.0" YScale="3.0"/>			<!-- Each Transform is applied in order, one at a time. -->																																																																					
+<Transform Type="Translate" Y="-20"/>																																																																																
+</Layout>																																																																																					
+<Tab name="Superimposition">																																																																																		
+<Transform Type="Rotate" X="25" Y="25" Angle="20"/>				<!-- Each Transform is applied in order, one at a time. -->																																																																					
+<Transform Type="Translate" Y="-20"/>																																																																																
+</Tab>																																																																																						
+</Transformations>																																																																																					
+<Annotations>																																																																																						
+<Length LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">																																																																												
+<Points>20,20 350,20</Points>																																																																																	
+<Text Left="80" Top="40" FontSize="12pt">5.25</Text>																																																																														
+</Length>																																																																																					
+<MultiLength LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">																																																																											
+<Points>20,20 50,20 70,50 100,80</Points>																																																																																
+<Text Left="30" Top="40" FontSize="12pt">3</Text>																																																																														
+<Text Left="60" Top="40" FontSize="12pt">4.6</Text>																																																																														
+<Text Left="80" Top="70" FontSize="12pt">8.7</Text>																																																																														
+<Text Left="110" Top="90" FontSize="12pt">17.3</Text>																																																																														
+</MultiLength>																																																																																				
+<Angle LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">																																																																												
+<Points>15,17 25,38 50,46</Points>																																																																																	
+<Text Left="80" Top="40" FontSize="12pt">36</Text>																																																																														
+</Angle>																																																																																					
+<Memo LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">																																																																												
+<Points>120,150</Points>																																																																																		
+<Text Left="140" Top="180" Width="80" Height="30" FontSize="12pt" Fill="#8c0000" FillOpacity="0.7">N.A.D.</Text>[5]																																																																								
+</Memo>																																																																																					
+<FreeDraw LineStyle="1" StrokeThickness="2" Stroke="#000000" StrokeOpacity="1.0">																																																																												
+<Points>15,17 20,20 30,35 40,37 50,36</Points>																																																																															
+</FreeDraw>																																																																																					
+<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">																																																																												
+<Points>20,20 350,20</Points>																																																																																	
+</Lines>																																																																																					
+<Ellipse LineStyle="1" StrokeThickness="2" Stroke="#000000" StrokeOpacity="1.0"/>																																																																												
+<Points>120,150</Points>																																																																																		
+<Radius>50,30</Radius>																																																																																		
+</Ellipse>																																																																																					
+<Rectangle Left="20" Top="100" Width="100" Height="40" LineStyle="1" StrokeThickness="2" Stroke="#000000" StrokeOpacity="1.0"/>																																																																							
+</Annotations>																																																																																					
+<ModelAnalysis>																																																																																					
+<Measurement Name="Central Incisor" Position="Maxillar Left"  Value="7.50">																																																																												
+<Length LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">																																																																											
+<Points>20,20 350,20</Points>																																																																																
+<Text Left="80" Top="40" FontSize="12pt">5.25</Text>																																																																													
+</Length>																																																																																				
+</Measurement>																																																																																				
+<Measurement Name="Lateral Incisor" Position="Maxillar Left" Value="0.00"/>																																																																												
+<Measurement Name="Canine" Position="Maxillar Left" Value="0.00"/>																																																																													
+<Measurement Name="1st Premolar" Position="Maxillar Left" Value="0.00"/>																																																																													
+<Measurement Name="2nd Premolar" Position="Maxillar Left" Value="0.00"/>																																																																													
+<Measurement Name="1st Molar" Position="Maxillar Left" Value="0.00"/>																																																																													
+<Measurement Name="Central Incisor" Position="Maxillar Right" Value="0.00"/>																																																																												
+<Measurement Name="Lateral Incisor" Position="Maxillar Right" Value="0.00"/>																																																																												
+<Measurement Name="Canine" Position="Maxillar Right" Value="0.00"/>																																																																													
+<Measurement Name="1st Premolar" Position="Maxillar Right" Value="0.00"/>																																																																												
+<Measurement Name="2nd Premolar" Position="Maxillar Right" Value="0.00"/>																																																																												
+<Measurement Name="1st Molar" Position="Maxillar Right" Value="0.00"/>																																																																													
+<Measurement Name="Central Incisor" Position="Mandible Left" Value="7.50"/>																																																																												
+<Measurement Name="Lateral Incisor" Position="Mandible Left" Value="0.00"/>																																																																												
+<Measurement Name="Canine" Position="Mandible Left" Value="0.00"/>																																																																													
+<Measurement Name="1st Premolar" Position="Mandible Left" Value="0.00"/>																																																																													
+<Measurement Name="2nd Premolar" Position="Mandible Left" Value="0.00"/>																																																																													
+<Measurement Name="1st Molar" Position="Mandible Left" Value="0.00"/>																																																																													
+<Measurement Name="Central Incisor" Position="Mandible Right" Value="0.00"/>																																																																												
+<Measurement Name="Lateral Incisor" Position="Mandible Right" Value="0.00"/>																																																																												
+<Measurement Name="Canine" Position="Mandible Right" Value="0.00"/>																																																																													
+<Measurement Name="1st Premolar" Position="Mandible Right" Value="0.00"/>																																																																												
+<Measurement Name="2nd Premolar" Position="Mandible Right" Value="0.00"/>																																																																												
+<Measurement Name="1st Molar" Position="Mandible Right" Value="0.00"/>																																																																													
+<Measurement Name="Avaiable Space" Position="Maxillar" Value="0.00"/>																																																																													
+<Measurement Name="Avaiable Space" Position="Mandible" Value="0.00"/>																																																																													
+<Measurement Name="Avaiable Space 1st Molar" Position="Maxillar" Value="0.00"/>																																																																												
+<Measurement Name="Avaiable Space 1st Molar" Position="Mandible" Value="0.00"/>																																																																												
+<Measurement Name="PMBAW" Value="0.00"/>																																																																																	
+<Measurement Name="Lower Intermolar Width" Value="0.00"/>																																																																														
+</ModelAnalysis>																																																																																					
+<Landmarks FromDAVIS="false">																																																																																			
+<Landmark Name="Porion" Type="HL" X="487.891539747509" Y="205.239822816451"/>[6]																																																																												
+<Landmark Name="Nasion" Type="HL" X="487.891539747509" Y="205.239822816451"/>[7]																																																																												
+<Landmark Name="Sella" Type="HL" X="233.17425964495" Y="244.638538803537"/>																																																																												
+<Landmark Name="Porion" Type="HL" X="153.460578461775" Y="314.27347868769"/>																																																																												
+<Landmark Name="Orbitale" Type="HL" X="442.079079297409" Y="308.775983433678"/>																																																																												
+<Landmark Name="Pterygoid" Type="HL" X="300.060451902097" Y="294.115996089646"/>																																																																												
+<Landmark Name="Basion" Type="HL" X="143.381837162752" Y="356.420942301783"/>																																																																												
+<Landmark Name="Articulare" Type="HL" X="178.199307104829" Y="342.677204166753"/>																																																																												
+<Landmark Name="Condylion" Type="HL" X="193.775543657863" Y="307.859734224676"/>																																																																												
+<Landmark Name="DC-point" Type="HL" X="195.608042075867" Y="329.849715240725"/>																																																																												
+<Landmark Name="Corpus Left" Type="HL" X="267.991729587026" Y="538.754534893184"/>																																																																												
+<Landmark Name="Gonion" Type="HL" X="209.351780210897" Y="511.267058623123"/>																																																																												
+<Landmark Name="Ramus Down" Type="HL" X="191.943045239859" Y="451.710860037992"/>																																																																												
+<Landmark Name="R3" Type="HL" X="251.49924382499" Y="367.415932809807"/>																																																																													
+<Landmark Name="R1" Type="HL" X="280.819218513054" Y="426.972131394938"/>																																																																												
+<Landmark Name="Anterior Nasal Spine" Type="HL" X="486.059041329505" Y="393.987159870866"/>																																																																											
+<Landmark Name="Posterior Nasal Spine" Type="HL" X="305.557947156109" Y="390.322163034858"/>																																																																											
+<Landmark Name="A-Point" Type="HL" X="471.399053985473" Y="412.312144050906"/>																																																																												
+<Landmark Name="B-Point" Type="HL" X="450.325322178427" Y="554.330771446218"/>																																																																												
+<Landmark Name="PM" Type="HL" X="451.241571387429" Y="578.15325088027"/>																																																																													
+<Landmark Name="Pogonion" Type="HL" X="454.906568223437" Y="598.310733478315"/>																																																																												
+<Landmark Name="Gnathion" Type="HL" X="445.744076133417" Y="623.965711330371"/>																																																																												
+<Landmark Name="Menton" Type="HL" X="432.916587207388" Y="630.379455793385"/>																																																																												
+<Landmark Name="Maxilla 1 crown" Type="HL" X="490.640287374515" Y="501.188317324101"/>																																																																											
+<Landmark Name="Maxilla 1 root" Type="HL" X="458.571565059445" Y="423.30713455893"/>																																																																											
+<Landmark Name="Mandible 1 crown" Type="HL" X="482.394044493497" Y="495.690822070089"/>																																																																											
+<Landmark Name="Mandible 1 root" Type="HL" X="432.916587207388" Y="551.582023819212"/>																																																																											
+<Landmark Name="Maxilla 6 distal" Type="HL" X="360.532899696229" Y="469.119595009031"/>																																																																											
+<Landmark Name="Maxilla 6 root" Type="HL" X="369.69539178625" Y="406.814648796894"/>																																																																											
+<Landmark Name="Mandible 6 distal" Type="HL" X="357.784152069223" Y="476.449588681047"/>																																																																											
+<Landmark Name="Mandible 6 root" Type="HL" X="344.956663143195" Y="531.424541221168"/>																																																																											
+<Landmark Name="Anterior Palatal Occlusal" Type="HL" X="486.059041329505" Y="500.272068115099"/>																																																																										
+<Landmark Name="Posterior Palatal Occlusal" Type="HL" X="367.862893368246" Y="472.784591845039"/>																																																																										
+<Landmark Name="Glabella" Type="SL" X="519.96026206258" Y="155.762365530342"/>																																																																												
+<Landmark Name="Point 1" Type="SL" X="510.79776997256" Y="205.239822816451"/>																																																																												
+<Landmark Name="Soft tissue nasion" Type="SL" X="505.300274718547" Y="226.313554623497"/>																																																																											
+<Landmark Name="Point 2" Type="SL" X="544.698990705634" Y="286.78600241763"/>																																																																												
+<Landmark Name="Dorsum of nose" Type="SL" X="570.35396855769" Y="325.268469195715"/>																																																																											
+<Landmark Name="Pronasale" Type="SL" X="587.762703528728" Y="367.415932809807"/>																																																																												
+<Landmark Name="Columella point" Type="SL" X="574.9352146027" Y="391.23841224386"/>																																																																											
+<Landmark Name="Subnasale" Type="SL" X="546.531489123638" Y="402.233402751884"/>																																																																												
+<Landmark Name="Soft tissue A-point" Type="SL" X="529.1227541526" Y="415.977140886914"/>																																																																											
+<Landmark Name="Labrale superior" Type="SL" X="527.290255734596" Y="451.710860037992"/>																																																																											
+<Landmark Name="Upper lip" Type="SL" X="532.787750988608" Y="461.789601337015"/>																																																																												
+<Landmark Name="Stomion superius" Type="SL" X="522.709009689586" Y="475.533339472045"/>																																																																											
+<Landmark Name="Upper embrasure" Type="SL" X="496.137782628527" Y="479.198336308053"/>																																																																											
+<Landmark Name="Lower embrasure" Type="SL" X="484.226542911501" Y="503.020815742105"/>																																																																											
+<Landmark Name="Stomion inferius" Type="SL" X="509.881520763558" Y="491.109576025079"/>																																																																											
+<Landmark Name="Lower lip" Type="SL" X="527.290255734596" Y="522.262049131147"/>																																																																												
+<Landmark Name="Labrale inferius" Type="SL" X="520.876511271582" Y="530.508292012166"/>																																																																											
+<Landmark Name="Point 3" Type="SL" X="504.384025509545" Y="543.335780938194"/>																																																																												
+<Landmark Name="Soft tissue B-point" Type="SL" X="488.807788956511" Y="567.158260372246"/>																																																																											
+<Landmark Name="Mentolabial sulcus" Type="SL" X="490.640287374515" Y="592.813238224302"/>																																																																											
+<Landmark Name="Soft tissue pogonion" Type="SL" X="488.807788956511" Y="617.551966867357"/>																																																																											
+<Landmark Name="Soft tissue gnathion" Type="SL" X="462.236561895453" Y="643.206944719413"/>																																																																											
+<Landmark Name="Soft Menton" Type="SL" X="430.167839580382" Y="649.620689182427"/>																																																																												
+<Landmark Name="Point 4" Type="SL" X="342.207915516189" Y="641.374446301409"/>																																																																												
+<Landmark Name="Cervical point" Type="SL" X="292.73045823008" Y="628.546957375381"/>																																																																											
+<Landmark Name="Maxilla" Type="KO" Path="491.556536583517,458.124604501006 474.147801612479,425.139632976934 465.901558731461,409.5633964239 481.477795284495,394.903409079868 470.482804776471,388.489664616854 433.83283641639,395.81965828887 395.350369638306,395.81965828887 333.961672635171,392.154661452862 303.725448738105,392.154661452862 346.789161561199,400.40090433388 384.355379130282,404.98215037889 423.754095117368,415.977140886914 452.157820596431,446.21336478398 467.734057149465,472.784591845039" Spline="True"/>[8]																															
+<Landmark Name="Symphysis" Type="KO" Path="471.399053985473,525.010796758153 456.739066641441,544.252030147196 450.325322178427,568.074509581248 456.739066641441,598.310733478315 449.409072969425,624.881960539373 430.167839580382,634.044452629393 406.34536014633,618.468216076359 399.015366474314,599.226982687317 401.76411410132,579.069500089272 417.340350654354,557.995768282226 436.581584043396,532.34079043017 454.906568223437,513.099557041127" Spline="True"/>																																					
+<Landmark Name="Mandible" Type="KO" Path="424.67034432637,633.128203420391 395.350369638306,627.630708166379 340.375417098185,593.729487433304 296.395455066089,559.82826670023 267.075480378024,540.587033311188 247.834246988982,531.424541221168 224.01176755493,525.010796758153 205.686783374889,509.434560205119 191.943045239859,473.700841054041 192.859294448861,446.21336478398 194.691792866865,415.060891677912 187.361799194849,371.080929645815 180.948054731835,350.007197838769 177.283057895827,323.435970777711 190.110546821855,306.027235806672 207.519281792893,307.859734224676 219.430521509919,334.430961285735 236.839256480958,357.337191510785 252.415493033992,370.164680436813 281.735467722056,353.672194674777 301.892950320101,345.425951793759 282.651716931058,387.573415407851 284.484215349062,437.05087269396" Spline="True"/>
+<Landmark Name="Cranial Fossa" Type="KO" Path="268.907978796028,219.899810160483 252.415493033992,235.476046713517 247.834246988982,252.884781684556 223.095518345927,256.549778520564 212.100527837903,237.308545131521 205.686783374889,263.87977219258 183.696802358841,295.032245298648 162.623070551795,331.682213658729 140.633089535746,361.002188346793 170.869313432813,340.844705748749 237.75550568996,316.105977105694 281.735467722056,295.94849450765 316.552937664133,268.46101823759 318.385436082137,233.643548295513" Spline="True"/>																														
+<Landmark Name="Nasal Bone" Type="KO" Path="486.059041329505,202.491075189445 464.985309522459,217.151062533477 454.906568223437,224.481056205493 475.064050821481,238.224794340523 505.300274718547,262.047273774576 528.206504943598,282.20475637262 539.201495451622,292.283497671642 520.876511271582,267.544769028588 501.635277882539,243.722289594535 490.640287374515,223.564806996491 486.975290538507,202.491075189445" Spline="True"/>																																								
+<Landmark Name="Orbit" Type="KO" Path="387.104126757288,215.318564115473 383.43912992128,260.214775356572 410.92660619134,310.608481851682 441.162830088407,309.69223264268" Spline="True"/>																																																																	
+</Landmarks>																																																																																						
+<Landmarks FromDAVIS="true">																																																																																			
+…																																																																																						
+</Landmarks>																																																																																						
+<Simulation>																																																																																						
+<VTOSTO>																																																																																					
+<RealignedLandamrks>		<!-- Common in VTO/STO data -->																																																																													
+<Landmark Name="Glabella" Type="SL" X="519.96026206258" Y="155.762365530342"/>																																																																											
+<Landmark Name="Point 1" Type="SL" X="510.79776997256" Y="205.239822816451"/>																																																																											
+<Landmark Name="Soft tissue nasion" Type="SL" X="505.300274718547" Y="226.313554623497"/>																																																																									
+<Landmark Name="Point 2" Type="SL" X="544.698990705634" Y="286.78600241763"/>																																																																											
+<Landmark Name="Dorsum of nose" Type="SL" X="570.35396855769" Y="325.268469195715"/>																																																																										
+<Landmark Name="Pronasale" Type="SL" X="587.762703528728" Y="367.415932809807"/>																																																																										
+<Landmark Name="Columella point" Type="SL" X="574.9352146027" Y="391.23841224386"/>																																																																										
+<Landmark Name="Subnasale" Type="SL" X="546.531489123638" Y="402.233402751884"/>																																																																										
+<Landmark Name="Soft tissue A-point" Type="SL" X="529.1227541526" Y="415.977140886914"/>																																																																										
+<Landmark Name="Labrale superior" Type="SL" X="527.290255734596" Y="451.710860037992"/>																																																																										
+<Landmark Name="Upper lip" Type="SL" X="532.787750988608" Y="461.789601337015"/>																																																																										
+<Landmark Name="Stomion superius" Type="SL" X="522.709009689586" Y="475.533339472045"/>																																																																										
+<Landmark Name="Upper embrasure" Type="SL" X="496.137782628527" Y="479.198336308053"/>																																																																										
+<Landmark Name="Lower embrasure" Type="SL" X="484.226542911501" Y="503.020815742105"/>																																																																										
+<Landmark Name="Stomion inferius" Type="SL" X="509.881520763558" Y="491.109576025079"/>																																																																										
+<Landmark Name="Lower lip" Type="SL" X="527.290255734596" Y="522.262049131147"/>																																																																										
+<Landmark Name="Labrale inferius" Type="SL" X="520.876511271582" Y="530.508292012166"/>																																																																										
+<Landmark Name="Point 3" Type="SL" X="504.384025509545" Y="543.335780938194"/>																																																																											
+<Landmark Name="Soft tissue B-point" Type="SL" X="488.807788956511" Y="567.158260372246"/>																																																																									
+<Landmark Name="Mentolabial sulcus" Type="SL" X="490.640287374515" Y="592.813238224302"/>																																																																									
+<Landmark Name="Soft tissue pogonion" Type="SL" X="488.807788956511" Y="617.551966867357"/>																																																																									
+<Landmark Name="Soft tissue gnathion" Type="SL" X="462.236561895453" Y="643.206944719413"/>																																																																									
+<Landmark Name="Soft Menton" Type="SL" X="430.167839580382" Y="649.620689182427"/>																																																																										
+<Landmark Name="Point 4" Type="SL" X="342.207915516189" Y="641.374446301409"/>																																																																											
+<Landmark Name="Cervical point" Type="SL" X="292.73045823008" Y="628.546957375381"/>																																																																										
+</RealignedLandamrks>																																																																																		
+<WarpingHistoryList Name="Mid_1_VTO" created="2018/9/3 10:20:30pm">																																																																												
+<WarpingHistory ControlPoint="Maxilla 1 crown">																																																																														
+<Transform Type="Translate" X="6.24852071005898" Y="-5.46745562130184"/>																																																																										
+</WarpingHistory>																																																																																		
+<WarpingHistory ControlPoint="Maxilla 1 crown">																																																																														
+<Transform Type="Translate" X="-13.2781065088759" Y="6.24852071005921"/>																																																																										
+</WarpingHistory>																																																																																		
+<WarpingHistory ControlPoint="Pogonion">																																																																															
+<Transform Type="Translate" X="14.8402366863904" Y="28.1183431952662"/>																																																																											
+</WarpingHistory>																																																																																		
+<WarpingHistory ControlPoint="Mandible 1 root">																																																																														
+<Transform Type="Translate" X="7.81065088757396" Y="10.9349112426036"/>																																																																											
+</WarpingHistory>																																																																																		
+<WarpingHistory ControlPoint="Mandible 1 root">																																																																														
+<Transform Type="Translate" X="-6.24852071005921" Y="-7.81065088757396"/>																																																																										
+</WarpingHistory>																																																																																		
+<WarpingHistory ControlPoint="Maxilla 1 crown">																																																																														
+<Transform Type="Translate" X="11.7159763313609" Y="0.781065088757373"/>																																																																										
+</WarpingHistory>																																																																																		
+<WarpingHistory ControlPoint="Maxilla 1 crown">																																																																														
+<Transform Type="Rotate" X="25" Y="25" Angle="45"/>[9]																																																																													
+</WarpingHistory>																																																																																		
+<WarpingHistory ControlPoint="Pogonion">																																																																															
+<Transform Type="Translate" X="-17.1834319526627" Y="-1.56213017751463"/>																																																																										
+</WarpingHistory>																																																																																		
+<WarpingHistory ControlPoint="Labrale superior">																																																																														
+<Transform Type="Translate" X="3.12426035502949" Y="-3.90532544378698"/>																																																																										
+</WarpingHistory>																																																																																		
+<WarpingHistory ControlPoint="Upper embrasure">																																																																														
+<Transform Type="Translate" X="1.56213017751497" Y="7.81065088757396"/>																																																																											
+</WarpingHistory>																																																																																		
+<WarpingHistory ControlPoint="Stomion superius">																																																																														
+<Transform Type="Translate" X="0.781065088757487" Y="4.68639053254435"/>																																																																										
+</WarpingHistory>																																																																																		
+<WarpingHistory ControlPoint="Point 4">																																																																															
+<Transform Type="Translate" X="1.56213017751475" Y="-10.9349112426036"/>																																																																										
+</WarpingHistory>																																																																																		
+<WarpingHistory ControlPoint="Mentolabial sulcus">																																																																													
+<Transform Type="Translate" X="2.34319526627201" Y="-1.56213017751463"/>																																																																										
+</WarpingHistory>																																																																																		
+</WarpingHistoryList>																																																																																		
+<WarpingHistoryList Name="Mid_2_VTO" created="2018/10/3 10:20:30pm">																																																																												
+<!-- … -->																																																																																			
+</WarpingHistoryList>																																																																																		
+</VTOSTO>																																																																																					
+</Simulation>																																																																																						
+</EzOrthoTag>				

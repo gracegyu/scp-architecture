@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>												
+<AnalysisChartTemplate Modality="Lateral" Name="Lateral Polygonal All Group" Version="1" Locale="ko_KR">				
+<PaperSetting>														
+<!-- Refer Treatment Chart Template -->										
+</PaperSetting>														
+<Footer>															
+<!-- Refer Treatment Chart Template -->										
+</Footer>															
+<PageContent FontFamily="Verdana" FontSize="12pt" HorizontalAlignment="Left"  VerticalAlignment="Center">				
+<Label Content="Analysis Chart" ItemType="19" FontSize="24pt" FontStyle="Bold" HorizontalAlignment="Center" Left="80" Top="12" Width="50" Height="15"/>
+<Label Content="ChartNo. : " ItemType="0" Left="10" Top="50" Width="20" Height="8"/>					
+<Label ItemType="1" Align="Left" Left="40" Top="50" Width="20" Height="8"/>						
+<Label Content="Patient Gender : " ItemType="0" Left="70" Top="50" Width="20" Height="8"/>				
+<Label ItemType="3" Left="100" Top="50" Width="20" Height="8"/>						
+<Label Content="Patient Name" ItemType="0" Left="10" Top="62" Width="20" Height="8"/>					
+<Label ItemType="2" Left="40" Top="62" Width="20" Height="8"/>							
+<Label Content="Patient DOB. : " ItemType="0" Left="70" Top="62" Width="20" Height="8"/>					
+<Label ItemType="4" Left="100" Top="62" Width="20" Height="8"/>						
+<Label Content="Recordset Date : " ItemType="0" Left="10" Top="74" Width="20" Height="8"/>				
+<Label ItemType="7" Left="40" Top="74" Width="20" Height="8"/>							
+<Label Content="Dental Age : " ItemType="0" Left="70" Top="62" Width="20" Height="8"/>					
+<Label ItemType="5" Left="100" Top="74" Width="20" Height="8"/>						
+<Canvas ItemType="21" Left="0" Top="82" Width="150" />			<!-- Lateral Result Group -->			
+<Canvas ItemType="31" Left="160" Top="74" Width="70" Height="8"/>	<!-- Polygon Chart -->				
+</PageContent>														
+</AnalysisChartTemplate>
