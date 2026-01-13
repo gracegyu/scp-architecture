@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>							
+<Layout Name="Viewer_2X2" Version="1" Locale="ko_KR">					
+<View ID="1" Left="0.0" Top="0.0" Width="0.5" Height="0.5">			
+<Modality>X-ray Lateral</Modality>[1]						
+</View>										
+<View ID="2" Left="0.5" Top="0.0" Width="0.5" Height="0.5">			
+<Modality>Photo Lateral</Modality>						
+</View>										
+<View ID="3" Left="0" Top="0.5" Width="0.5" Height="0.5">			
+<Modality>X-ray PA</Modality>						
+</View>										
+<View ID="4" Left="0.5" Top="0.5" Width="0.5" Height="0.5">			
+<Modality>Photo PA</Modality>						
+</View>										
+</Layout>		

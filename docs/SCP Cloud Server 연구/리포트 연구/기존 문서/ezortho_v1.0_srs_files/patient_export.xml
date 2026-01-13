@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>								
+<Patient>												
+<ChartNo>20180617_112030</ChartNo>								
+<LastName>Sasha Lee</LastName>								
+<FirstName>  </FirstName>									
+<Gender>Female</Gender>									
+<DOB>1980/03/20</DOB>									
+<Race>Asian</Race>										
+<Doctors>											
+<Doctor>James Park</Doctor>								
+<Doctor>Shawn Kim</Doctor>								
+</Doctors>											
+<Job>Receptionist</Job>									
+<SocialID>123-456-7890</SocialID>								
+<Phone>062-372-9765</Phone>									
+<Mobile>010-2947-8765</Mobile>								
+<Email>sasha.lee@ewoosoft.com</Email>							
+<Zip>09872</Zip>										
+<Address>Dongtan-ro 121, 394-182</Address>						
+</Patient>												
+<Charts>												
+<Chart>											
+<CreatedDatetime>2017/03/20 13:50:20</CreatedDatetime>				
+<UpdatedDatetime>2017/03/20 13:50:20</UpdatedDatetime>				
+<ChartType>History Chart</ChartType>						
+<FileName>CH20180627_112756_0356_00000002.xml</FileName>			
+</Chart>											
+</Charts>												
+<Recordsets>												
+<Recordset>											
+<Stage>Retension</Stage>								
+<CreatedDate>201/05/20</CreatedDate>						
+<SeqNo>1</SeqNo>									
+<Classification>I</Classification>							
+<DentalAge>38</DentalAge>								
+<Description>1</Description>							
+<Images>										
+<Image Modality="X-ray Lateral">						
+<FileName>DX20180926_100453_0284_0000000A.dcm</FileName>		
+<ImportedDatetime>2017/11/20 13:50:20</ImportedDatetime>		
+<IsAnalyzed>true</IsAnalyzed>					
+<AnalyzedDateTime>2018/10/16 12:38:25</AnalyzedDateTime>		
+<VTOSTO>								
+<Data>								
+<Name>Mid_2_VTO</Name>				
+<CreatedDatetime>2017/03/20 13:50:20</CreatedDatetime>	
+<UpdatedDatetime>2017/03/20 13:50:20</UpdatedDatetime>	
+</Data>							
+</VTOSTO>								
+</Image>									
+<Image Modality="Photo Lateral">						
+<FileName>DI20180703_094518_0875_00000004.jpg</FileName>		
+<ImportedDatetime>2017/11/20 13:50:20</ImportedDatetime>		
+<RegisteredImageFileName>DX20180926_100453_0284_0000000A.dcm</RegisteredImageFileName>
+</Image>									
+</Images>										
+</Recordset>											
+</Recordsets>	

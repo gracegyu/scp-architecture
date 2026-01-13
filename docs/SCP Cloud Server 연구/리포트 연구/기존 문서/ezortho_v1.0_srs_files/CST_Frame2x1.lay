@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>							
+<Layout Name="Consult_2x1" Version="1" Locale="ko_KR">					
+<View ID="1" Left="0" Top="0" Width="0.5" Height="1.0"/>		<!-- unit : ratio -->
+<View ID="2" Left="0.5" Top="0" Width="0.5" Height="1.0"/>		<!-- unit : ratio -->
+</Layout>

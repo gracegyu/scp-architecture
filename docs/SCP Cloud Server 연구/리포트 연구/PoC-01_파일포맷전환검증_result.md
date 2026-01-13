@@ -196,8 +196,50 @@
    - 100% 매핑 성공
 
 3. **중첩 구조**
+
    - XML: `<BoxPosition><X>0.125</X></BoxPosition>` → JSON: `{ "position": { "x": 0.125 } }`
    - 구조 변환 완벽
+
+4. **다중 Element 처리 (배열 구조)**
+
+   **XML 방식**: 같은 이름의 Element를 여러 번 반복하여 목록 표현
+
+   ```xml
+   <Page Number="1">
+     <ItemBox>...</ItemBox>
+     <ItemBox>...</ItemBox>
+     <ItemBox>...</ItemBox>
+   </Page>
+   ```
+
+   - XML에서는 같은 이름의 Element를 여러 번 반복할 수 있음
+   - Element 순서는 파일에 나타나는 순서대로 유지됨
+
+   **JSON 방식**: 배열(Array)을 사용하여 목록 표현
+
+   ```json
+   {
+     "page": {
+       "number": 1,
+       "elements": [
+         {...},
+         {...},
+         {...}
+       ]
+     }
+   }
+   ```
+
+   - JSON Object에서는 같은 키를 중복할 수 없으므로 배열 사용 필요
+   - 배열은 `[]`로 표현하며, 각 Element는 배열 항목으로 저장
+   - Element 순서는 배열 인덱스로 유지됨
+
+   **변환 규칙**:
+
+   - XML: 반복되는 Element → JSON: 배열로 변환
+   - XML `<ItemBox>` 여러 개 → JSON `"elements": [...]` 배열
+   - Element 개수가 1개인 경우에도 JSON에서는 배열로 표현 (일관성 유지)
+   - 빈 배열 (`[]`)은 XML에서 해당 Element가 없는 경우에 해당
 
 **점수**: JSON 100점, XML 100점 (양방향 변환 가능)
 
@@ -324,6 +366,10 @@
 - **JSON Schema** 사용하여 타입 정의
 - `json-schema-to-typescript`로 TypeScript 타입 자동 생성
 - 스키마 버전 관리 체계 수립
+- **배열 구조 설계**: Element 목록은 배열로 표현
+  - XML의 반복 Element → JSON 배열로 변환
+  - `elements: [...]` 형태로 통일된 구조 사용
+  - 자세한 스키마 설계는 PoC-05에서 상세히 다룸
 
 #### 5.2.2 Migration 전략 (PoC-06에서 상세 검토)
 
@@ -524,10 +570,3 @@
 **성능 벤치마크**
 
 - 브라우저 네이티브 JSON.parse() 성능 (V8 Blog): https://v8.dev/blog/cost-of-javascript-2019
-
----
-
-**작성일**: 2026년 1월 12일  
-**작성자**: Raymond  
-**검토자**: -  
-**승인자**: -

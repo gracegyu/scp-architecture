@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>																																	
+<Analysis Modality="Lateral" Name="Downs" Label="Downs" UserAdded="false" Version="1" Locale="ko_KR">																										
+<Landmarks>																																				
+<Landmark Name="Porion" Label="Porion" ShortName="Po" BitMask="4" Type="H" UserAdded="false">[1]																									
+<Description>the midpoint of the upper edge of the porus augusticus extranus located by mease of the metal rods on the cephalogram</Description>																					
+<DescriptionImage><![CDATA["…"]]></DescriptionImage>																												
+</Landmark>																																			
+<Landmark Name="Orbitale" Label="Orbitale" ShortName="Or" BitMask="8" Type="H" UserAdded="false">																									
+<Description>the lowest point on the lower margin of the bony orbit</Description>																										
+<DescriptionImage><![CDATA["…"]]></DescriptionImage>																												
+</Landmark>																																			
+<Landmark Name="Nasion" Label="Nasion" ShortName="N" BitMask="1" Type="H" UserAdded="false">																									
+<Description>the most ant. point of the frontonasal suture</Description>																										
+</Landmark>																																			
+<Landmark Name="Pogonion" Label="Pogonion" ShortName="Pog" BitMask="262144" Type="H" UserAdded="false">																								
+<Description>the most ant. point in the contour of the chin</Description>																										
+</Landmark>																																			
+<Landmark Name="A-Point" Label="A-Point" ShortName="A" BitMask="32768" Type="H" UserAdded="false">																									
+<Description>the deepest point in the bony concavity in the midline below the anterior nasal spine, in the region of the incisor roots</Description>																				
+</Landmark>																																			
+<Landmark Name="B-Point" Label="B-Point" ShortName="B" BitMask="65536" Type="H" UserAdded="false">																									
+<Description>the deepest point in the profile curvature of the mandible, from pogonion on the chin to infradentale</Description>																						
+</Landmark>																																			
+…																																			
+<Landmark Name="Constructed Gonion" Label="Constructed Gonion" Type="C" UserAdded="false" Description="the intersection point between mandibular plane and Ar-RD plane">																			
+<DescriptionImage><![CDATA["…"]]></DescriptionImage>																												
+<Formula>																																		
+<Name>Intersection Point</Name>																														
+<Params><![CDATA["params":[{"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Articulare"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Ramus Down"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Corpus Left"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Menton"}]]]></Params>			
+</Formula>																																		
+</Landmark>																																			
+<Landmark Name="Constructed Gnathion" Label="Constructed Gnathion" Type="H" UserAdded="false" Description="the intersection point between mandibular plane and facial plane"/>																			
+<Formula>																																		
+<Name>Intersection Point</Name>																														
+<Params><![CDATA["params":[{"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Nasion"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Pogonion"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Corpus Left"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Menton"}]]]></Params>			
+</Formula>																																		
+</Landmark>																																			
+<Landmark Name="Intersection of U1 axis and SN plane" Label="Intersection of U1 axis and SN plane" Type="H" UserAdded="false" Description="the intersection point between U1 axis and SN plane"/>																	
+<Formula>																																		
+<Name>Intersection Point</Name>																														
+<Params><![CDATA["params":[{"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Nasion"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Pogonion"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Corpus Left"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Menton"}]]]></Params>			
+</Formula>																																		
+</Landmark>																																			
+<Landmark Name="Intersection of L1 axis and mandibular plane" Label="Intersection of L1 axis and mandibular plane" Type="H" UserAdded="false" Description="the intersection point between L1 axis and mandibular plane" />																
+<Formula>																																		
+<Name>Intersection Point</Name>																														
+<Params><![CDATA["params":[{"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Mandible 1 crown"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Mandible 1 root"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Constructed Gonion"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Constructed Gnathion"}]]]></Params>
+</Formula>																																		
+</Landmark>																																			
+<Landmark Name="Intersection of FH Plane and Mandibular plane" Label="Intersection of FH Plane and Mandibular plane" Type="H" UserAdded="false" Description="the intersection point between FH Plane and Mandibular plane" />															
+<Formula>																																		
+<Name>Intersection Point</Name>																														
+<Params><![CDATA["params":[{"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Porion"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Orbitale"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Corpus Left"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Menton"}]]]></Params>			
+</Formula>																																		
+</Landmark>																																			
+<Landmark Name="Intersection of Occ Plane and Mandibular Plane" Label="Intersection of Occ Plane and Mandibular Plane" Type="H" UserAdded="false" Description="the intersection point between Occ Plane and Mandibular Plane" />															
+<Formula>																																		
+<Name>Intersection Point</Name>																														
+<Params><![CDATA["params":[{"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Anterior Palatal Occlusal"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Posterior Palatal Occlusal"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Corpus Left"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Menton"}]]]></Params>
+</Formula>																																		
+</Landmark>																																			
+</Landmarks>																																				
+<Guidelines>																																				
+<GuideLine Name="N-Gn Plane" Label="N-Gn Plane" Type="L" UserAdded="false" StartLineExtension="0" EndLineExtension="0">																							
+<Params><![CDATA["params":[{"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Nasion"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Constructed Gnathion"}]]]></Params>															
+</GuideLine>																																			
+<GuideLine Name="S-Gn (Y-axis) Plane" Label="S-Gn (Y-axis) Plane" Type="L" UserAdded="false" StartLineExtension="0" EndLineExtension="0">																						
+<Params><![CDATA["params":[{"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Sella"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Constructed Gnathion"}]]]></Params>																
+</GuideLine>																																			
+…																																			
+</Guidelines>																																				
+<Measurements>																																			
+<Group Name="SKELETAL">																																	
+<Measurement Name="Facial Angle" Label="Facial Angle" UserAdded="false">																										
+<Description>Angle of facial plane and FH plane(Po-Or). Big angle means protrusion and small angle means recession of mandibular.</Description>																				
+<Formula>																																	
+<Name>Angle AB, CD</Name>																														
+<Params><![CDATA["params":[{"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Porion"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Orbitale"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Nasion"}, {"table":"e2_ortho_landmarks", "column":"oth_landmark_name", "value":"Pogonion"}]]]></Params>			
+</Formula>																																	
+<DisplayInfo><![CDATA[{"landmarks": [ "Mandible 1 root", "Mandible 1 crown" ], "ratio": 0.5, "offsetX": 8,"offsetY": 0, "type": "Result"}]]></DisplayInfo>																			
+</Measurement>																																	
+<Measurement Name="Angle of Convexity (dg)" Label="Angle of Convexity (dg)" UserAdded="false">																									
+…																																		
+</Measurement>																																	
+<Measurement Name="A-B Plane Angle (dg)" Label="A-B Plane Angle (dg)" UserAdded="false">																									
+…																																		
+</Measurement>																																	
+<Measurement Name="Mandibular plane angle (dg)" Label="Mandibular plane angle (dg)" UserAdded="false">																								
+…																																		
+</Measurement>																																	
+<Measurement Name="Y-axis Angle (dg)" Label="Y-axis Angle (dg)" UserAdded="false">																									
+…																																		
+</Measurement>																																	
+</Group>																																			
+<Group Name="DENTURE">																																	
+…																																			
+</Group>																																			
+</Measurements>																																			
+<StandardData>																																			
+<Measurement Name="Facial Angle" Race="Asian" DentalAgeType="H" Gender="M" UserUpdated="false">																									
+<Mean>86.9|87.2|87.5|87.8|88.1|88.4|88.7|89|0|0|0</Mean>																											
+<SD>2.74|2.74|2.74|2.74|2.74|2.74|2.74|2.74|0|0|0</SD>																												
+</Measurement>																																		
+<Measurement Name="Facial Angle" Race="Asian" DentalAgeType="H" Gender="F" UserUpdated="false">																									
+<Mean>0|0|0|0|0|0|0|89.07|0|0|0</Mean>																														
+<SD>0|0|0|0|0|0|0|2.62|0|0|0</SD>																															
+</Measurement>																																		
+<Measurement Name="Facial Angle" Race="Asian" DentalAgeType="H" Gender="O" UserUpdated="false">																									
+<Mean>0|0|0|0|0|0|0|0|0|0|0</Mean>																															
+<SD>0|0|0|0|0|0|0|0|0|0|0</SD>																															
+</Measurement>																																		
+…																																			
+</StandardData>																																			
+</Analysis>	

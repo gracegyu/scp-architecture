@@ -23,9 +23,13 @@ Engineering One Pager
   - 복잡한 버전별 호환성으로 인한 일부 데이터 손실 가능성
   - E3 v1.x→v4.x→v5.1→Cloud 다단계 Migration 복잡성
   - EzOrtho 차트 데이터의 특수성으로 인한 변환 오류
+  - 제품별 좌표 단위 차이로 인한 변환 오차 (비율값, 픽셀, mm 혼재)
+  - 용지 크기 정보 누락 시 좌표 변환 정확도 저하
 - **중간 리스크**:
   - Image Data 내장 파일 (E3 v1 Base64) 처리 복잡성
   - 손상된 파일 또는 비표준 구조 파일 처리 어려움
+  - EzOrtho DPI 정보 누락 시 픽셀→mm 변환 오차
+  - 비율값 기반 파일의 용지 크기 변경 시 레이아웃 왜곡 가능성
 - **저위험**:
   - 최신 버전(E3 v5.1) 파일은 명확한 변환 경로 존재
 - **완화 방안**:
@@ -65,7 +69,7 @@ Engineering One Pager
 
 **EzOrtho Migration 도전과제**:
 
-- Excel 기반 다중 시트 구조
+- 다중 Chart 구조 (UI에서 Treatment Chart, History Chart 등을 Tab 형태로 표시)
 - 치아 번호 체계 (ToothCode) 매핑
 - 시간축 기반 치료 이력 데이터
 
@@ -95,7 +99,10 @@ interface ProductVersion {
 
 **3. 데이터 변환 엔진**:
 
-- **좌표 변환**: 비율값 → mm 실측값
+- **좌표 단위 변환**: 제품별 좌표 단위 → mm (소수점 3자리)
+  - E2/E3 Report (비율값) → mm: 용지 크기와 Margin 정보 필요
+  - E3 RC Report v5.1 (mm 1자리) → mm 3자리: 정밀도 확장
+  - EzOrtho (픽셀/포인트) → mm: DPI 정보 필요
 - **이미지 처리**: Base64 → 파일 참조, 경로 정규화
 - **속성 매핑**: 제품별 속성명 → 통합 속성명
 - **구조 재편**: 중첩 XML → 평면적 JSON
@@ -106,6 +113,12 @@ interface ProductVersion {
 
 - 직접 변환 (가장 단순)
 - Template 정보 없음 → Default Template 적용
+- **좌표 변환**: 비율값 (3자리) → mm (3자리)
+  - **용지 정보 포함 여부**: 확인 필요 (Template 시스템 부재로 추정, 파일에 용지 정보 미포함 가능성)
+  - 용지 정보가 없는 경우: 기본값(A4 Portrait, Margin 10mm) 사용 또는 사용자 입력 요청
+  - 용지 크기 정보 추출 (PaperSize, Orientation) - 파일에 포함된 경우
+  - Margin 정보 추출 (Left, Right, Top, Bottom) - 파일에 포함된 경우
+  - 비율값 × (용지크기 - Margin) + Margin → mm 변환
 
 **E3 v1.x → Cloud**:
 
@@ -115,12 +128,27 @@ v1.x → v1.1.5 → v4.0 → v5.1 → Cloud
 
 - 기존 VTE3Migration 도구 활용
 - Base64 이미지 → 파일 추출 및 저장
+- **좌표 변환**:
+  - **E3 Report v4.0/v5.0**: 비율값 (3자리) → mm (3자리)
+    - **용지 정보 포함**: 리포트 파일에 `<Paper>` 섹션 포함
+      - `PaperSize`: String (예: "A4", "A3", "Letter", "8x10inch" 등)
+      - `Orientation`: String ("Portrait" 또는 "Landscape")
+      - `Margin`: Float (mm 단위, Left, Right, Top, Bottom, 소수점 2자리)
+    - **주의**: PageSetting이 설정되지 않은 경우 Setting의 paper setting 정보 사용
+    - 용지 크기와 Margin 정보 기반 변환
+  - **E3 RC Report v5.1**: mm (1자리) → mm (3자리)
+    - **용지 정보 포함**: PaperSize, Orientation, Margin 정보 포함 (v5.1 FileFormat 문서 확인)
+    - 기존 mm 값 유지, 정밀도 확장 (0.1mm → 0.001mm)
 
 **EzOrtho v1.0 → Cloud**:
 
-- Excel HTML → JSON 변환
+- XML → JSON 변환 (Treatment Chart, History Chart 등)
 - Chart 데이터 구조 분석 및 재구성
 - ToothCode 매핑 테이블 적용
+- **좌표 변환**: 픽셀/포인트 → mm (3자리)
+  - Excel DPI 정보 추출 (기본 96 DPI 또는 설정값)
+  - 픽셀 × 25.4 / DPI → mm 변환
+  - 포인트 × 0.352778 → mm 변환 (1pt = 0.352778mm)
 
 **특수 데이터 처리**:
 
@@ -138,9 +166,52 @@ v1.x → v1.1.5 → v4.0 → v5.1 → Cloud
 
 **3. Annotation 데이터**:
 
-- 좌표 시스템 변환
+- 좌표 시스템 변환 (제품별 좌표 단위 → mm)
 - Style 속성 정규화
 - InputPoints 포맷 통일
+
+**4. 좌표 단위 변환 (제품별 처리)**:
+
+**E2 Report v3.0, E3 Report v4.0/v5.0 (비율값 → mm)**:
+
+- **입력**: 비율값 (0~1 범위, 소수점 3자리)
+- **필요 정보**: 용지 크기 (mm), Margin (mm), Orientation
+- **변환 공식**: `mm = (비율값 × (용지크기 - Margin × 2)) + Margin`
+- **정밀도**: 소수점 3자리로 반올림 (0.001mm = 1μm)
+- **용지 정보 포함 여부**:
+  - **E3 Report v4.0/v5.0**: 리포트 파일에 `<Paper>` 섹션 포함
+    - `PaperSize`: String (예: "A4", "A3", "Letter", "8x10inch" 등)
+    - `Orientation`: String ("Portrait" 또는 "Landscape")
+    - `Margin`: Float (mm 단위, Left, Right, Top, Bottom, 소수점 2자리)
+    - **주의**: PageSetting이 설정되지 않은 경우 Setting의 paper setting 정보 사용
+  - **E2 Report v3.0**: 용지 정보 포함 여부 확인 필요 (Template 시스템 부재로 추정)
+- **주의사항**:
+  - 용지 크기와 방향에 따라 실제 mm 값이 달라짐
+  - 가로/세로 비율값이 같아도 실제 mm 값이 다를 수 있음
+  - **용지 정보가 없는 경우**: 기본값(A4 Portrait, Margin 10mm) 사용 또는 사용자 입력 요청
+
+**E3 RC Report v5.1 (mm 1자리 → mm 3자리)**:
+
+- **입력**: mm 단위 (소수점 1자리, ##.#)
+- **변환**: 기존 mm 값 유지, 정밀도 확장
+- **예시**: `105.5mm` → `105.500mm` (정밀도만 확장)
+- **주의사항**: 기존 값의 정밀도 한계로 인한 오차는 허용
+
+**EzOrtho v1.0 (픽셀/포인트 → mm)**:
+
+- **입력**: 픽셀 또는 포인트 단위
+- **필요 정보**: DPI (기본 96 DPI), 또는 포인트 단위 여부
+- **변환 공식**:
+  - 픽셀: `mm = (픽셀 × 25.4) / DPI`
+  - 포인트: `mm = 포인트 × 0.352778` (1pt = 0.352778mm)
+- **정밀도**: 소수점 3자리로 반올림
+- **주의사항**: DPI 정보가 없는 경우 기본값(96 DPI) 사용
+
+**좌표 변환 검증**:
+
+- 변환 전후 Element 위치/크기 비교 (±0.1mm 이내 목표)
+- 용지 크기별 일관성 검증 (A4, A3 등)
+- 역변환 검증 (mm → 비율값 → mm, 원본과 비교)
 
 **검증 시스템**:
 
@@ -155,6 +226,7 @@ v1.x → v1.1.5 → v4.0 → v5.1 → Cloud
 - **렌더링 비교**: 원본 vs 변환 결과 시각적 비교
 - **PDF 출력 비교**: 인쇄 결과물 픽셀 단위 비교
 - **측정값 검증**: 거리, 면적 측정 결과 비교
+- **좌표 변환 검증**: Element 위치/크기 변환 정확도 검증 (±0.1mm 이내)
 
 **3. 품질 메트릭**:
 

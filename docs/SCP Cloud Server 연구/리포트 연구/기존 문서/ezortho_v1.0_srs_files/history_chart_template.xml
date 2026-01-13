@@ -1,0 +1,663 @@
+<?xml version="1.0" encoding="UTF-8"?>																		
+<HistoryChartTemplate Name="Basic" Version="1" Locale="ko_KR">[1]															
+<PaperSetting>																				
+[Refer Treatment Chart Template]																	
+</PaperSetting>																				
+<Header>																					
+[Refer Treatment Chart Template]																	
+</Header>																					
+<Footer>																					
+[Treatment Chart Template 참조]																	
+</Footer>																					
+<PageContent FontFamily="Verdana" FontSize="12pt" HorizontalAlignment="Left"  VerticalAlignment="Center">										
+<!-- Title -->																			
+<Label Name="Title" Content="History Chart" ItemType="0"  FontFamily="Verdana" FontSize="24pt" FontStyle="Bold" HorizontalAlignment="Center" Left="80" Top="10" Width="50" Height="15"/>		<!-- unit : mm -->
+<!-- Patient Information -->																	
+[Refer Treatment Chart Template]																
+<!-- Dental Survey -->																		
+<Label Content="Dental Survey" FontSize="16pt" Left="10" Top="50" Width="50" Height="10"/>										
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="4">											
+<Points>10,60 220,60</Points>																
+</Lines>																				
+<!-- Dentition -->																			
+<Block Name="Dentition" IsVisible="true" Left="0" Top="65">													
+<Label Content="Dentition" Left="20" Top="0" Width="40" Height="5"/>												
+<RadioButton GroupName="Dentition" Content="Deciduous" IsChecked="True" Left="60" Top="0"  Width="40" Height="5"/>								
+<RadioButton GroupName="Dentition" Content="Mixed" IsChecked="False" Left="110" Top="0" Width="40" Height="5"/>								
+<RadioButton GroupName="Dentition" Content="Permanent" IsChecked="False" Left="150" Top="0" Width="40" Height="5"/>								
+</Block>																				
+<!-- Angle Classification -->																	
+<Block Name="Angle Classification" IsVisible="true" Left="0" Top="70">												
+<Label Content="Angle Classification" Left="20" Top="0" Width="40" Height="5"/>											
+<RadioButton GroupName="AngleClassification" Content="I" IsChecked="True" Left="60" Top="0"  Width="25" Height="5"/>								
+<RadioButton GroupName="AngleClassification" Content="II div.1" IsChecked="False" Left="85" Top="0" Width="25" Height="5"/>							
+<RadioButton GroupName="AngleClassification" Content="II div.2" IsChecked="False" Left="110" Top="0" Width="25" Height="5"/>							
+<RadioButton GroupName="AngleClassification" Content="III" IsChecked="False" Left="135" Top="0" Width="25" Height="5"/>								
+<CheckBox Content="Subdiv" IsChecked="False" Left="160" Top="0" Width="25" Height="5"/>										
+</Block>																				
+<!-- Incisal relationship -->																	
+<Block Name="Incisal relationship" IsVisible="true" Left="0" Top="75">												
+<Label Content="Incisal relationship" Left="20" Top="0" Width="40" Height="5"/>											
+<RadioButton GroupName="IncisalRelationship" Content="Class I" IsChecked="True" Left="60" Top="0" Width="25" Height="5"/>							
+<RadioButton GroupName="IncisalRelationship" Content="Class II" IsChecked="False" Left="85" Top="0" Width="25" Height="5"/>							
+<ComboBox Name="ClassIIcombo" Left="110" Top="0" Width="25" Height="5">											
+<ComboBoxItem Content="Mild"/>															
+<ComboBoxItem Content="Severe"/>															
+</ComboBox>																			
+<RadioButton GroupName="IncisalRelationship" Content="Class III" IsChecked="False" Left="135" Top="0" Width="25" Height="5"/>							
+<ComboBox Name="ClassIIIcombo" Left="160" Top="0" Width="25" Height="5">											
+<ComboBoxItem Content="Mild"/>															
+<ComboBoxItem Content="Severe"/>															
+</ComboBox>																			
+</Block>																				
+<!-- Molar relationship-R -->																	
+<Block Name="Molar relationship - R" IsVisible="true" Left="0" Top="80">												
+<Label Content="Molar relationship - R" Left="20" Top="0" Width="40" Height="5"/>											
+<RadioButton GroupName="MolarRelationshipR" Content="Class I" IsChecked="True" Left="60" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="MolarRelationshipR" Content="Class II" IsChecked="False" Left="85" Top="0" Width="25" Height="5"/>							
+<ComboBox Name="ClassIIcombo" Left="110" Top="0" Width="110" Height="5">											
+<ComboBoxItem Content="0.25"/>															
+<ComboBoxItem Content="0.5"/>															
+<ComboBoxItem Content="0.75"/>															
+</ComboBox>																			
+<RadioButton GroupName="MolarRelationshipR" Content="Class III" IsChecked="False" Left="135" Top="0" Width="25" Height="5"/>							
+<ComboBox Name="ClassIIIcombo" Left="160" Top="0" Width="25" Height="5">											
+<ComboBoxItem Content="0.25"/>															
+<ComboBoxItem Content="0.5"/>															
+<ComboBoxItem Content="0.75"/>															
+</ComboBox>																			
+</Block>																				
+<!-- Molar relationship-L -->																	
+<Block Name="Molar relationship - L" IsVisible="true" Left="0" Top="85">												
+<Label Content="Molar relationship - L" Left="20" Top="0" Width="40" Height="5"/>											
+<RadioButton GroupName="MolarRelationshipL" Content="Class I" IsChecked="True" Left="60" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="MolarRelationshipL" Content="Class II" IsChecked="False" Left="85" Top="0" Width="25" Height="5"/>							
+<ComboBox Name="ClassIIcombo" Left="110" Top="0" Width="25" Height="5">											
+<ComboBoxItem Content="0.25"/>															
+<ComboBoxItem Content="0.5"/>															
+<ComboBoxItem Content="0.75"/>															
+</ComboBox>																			
+<RadioButton GroupName="MolarRelationshipL" Content="Class III" IsChecked="False" Left="135" Top="0" Width="25" Height="15"/>							
+<ComboBox Name="ClassIIIcombo" Left="160" Top="0" Width="25" Height="5">											
+<ComboBoxItem Content="0.25"/>															
+<ComboBoxItem Content="0.5"/>															
+<ComboBoxItem Content="0.75"/>															
+</ComboBox>																			
+</Block>																				
+<!-- Dental Arch Form - MX -->																	
+<Block Name="Dental Arch Form - Mx" IsVisible="true" Left="0" Top="90">												
+<Label Content="Dental Arch Form - Mx" Left="20" Top="0" Width="40" Height="15"/>											
+<RadioButton GroupName="DentalArchFromMx" Content="Square" IsChecked="True" Left="60" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="DentalArchFromMx" Content="Parabolic" IsChecked="False" Left="85" Top="0" Width="25" Height="5"/>							
+<RadioButton GroupName="DentalArchFromMx" Content="Ovoid" IsChecked="False" Left="110" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="DentalArchFromMx" Content="Tapered" IsChecked="False" Left="135" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="DentalArchFromMx" Content="V-Shape" IsChecked="False" Left="160" Top="0" Width="25" Height="5"/>								
+</Block>																				
+<!-- Dental Arch Form - Mn -->																	
+<Block Name="Dental Arch Form - Mn" IsVisible="true" Left="0" Top="95">												
+<Label Content="Dental Arch Form - Mn" Left="20" Top="0" Width="40" Height="5"/>											
+<RadioButton GroupName="DentalArchFromMn" Content="Square" IsChecked="True" Left="60" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="DentalArchFromMn" Content="Parabolic" IsChecked="False" Left="85" Top="0" Width="25" Height="5"/>							
+<RadioButton GroupName="DentalArchFromMn" Content="Ovoid" IsChecked="False" Left="110" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="DentalArchFromMn" Content="Tapered" IsChecked="False" Left="135" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="DentalArchFromMn" Content="V-Shape" IsChecked="False" Left="160" Top="0" Width="25" Height="5"/>								
+</Block>																				
+<!-- Arch space upper -->																		
+<Block Name="Arch space upper" IsVisible="true" Left="0" Top="100">												
+<Label Content="Arch space upper" Left="20" Top="0" Width="40" Height="5"/>											
+<RadioButton GroupName="ArchSpaceUpper" Content="Excessive" IsChecked="True" Left="60" Top="0" Width="40" Height="5"/>								
+<RadioButton GroupName="ArchSpaceUpper" Content="Adequate" IsChecked="False" Left="100" Top="0" Width="40" Height="5"/>								
+<RadioButton GroupName="ArchSpaceUpper" Content="Deficient" IsChecked="False" Left="140" Top="0" Width="40" Height="5"/>								
+</Block>																				
+<!-- Arch space Lower -->																		
+<Block Name="Arch space lower" IsVisible="true" Left="0" Top="105">												
+<Label Content="Arch space lower" Left="20" Top="0" Width="40" Height="5"/>											
+<RadioButton GroupName="ArchSpaceLower" Content="Excessive" IsChecked="True" Left="60" Top="0" Width="40" Height="5"/>								
+<RadioButton GroupName="ArchSpaceLower" Content="Adequate" IsChecked="False" Left="100" Top="0" Width="40" Height="5"/>								
+<RadioButton GroupName="ArchSpaceLower" Content="Deficient" IsChecked="False" Left="140" Top="0" Width="40" Height="5"/>								
+</Block>																				
+<!-- Centerline upper -->																		
+<Block Name="Centerline upper" IsVisible="true" Left="0" Top="110">												
+<Label Content="Centerline upper" Left="20" Top="0" Width="40" Height="5"/>											
+<CheckBox Content="Good" IsChecked="True" Left="60" Top="0" Width="35" Height="5"/>										
+<TextBox Name="ToLeft" Left="95" Top="0" Width="15" Height="5"/>												
+<Label Content="mm to Left" Left="110" Top="0" Width="20" Height="5"/>											
+<TextBox Name="ToRight" Left="130" Top="0" Width="15" Height="5"/>												
+<Label Content="mm to Right" Left="145" Top="0" Width="20" Height="5"/>											
+</Block>																				
+<!-- Centerline Lower -->																		
+<Block Name="Centerline lower" IsVisible="true" Left="0" Top="115">												
+<Label Content="Centerline lower" Left="20" Top="0" Width="40" Height="5"/>											
+<CheckBox Content="Good" IsChecked="True" Left="60" Top="0" Width="35" Height="5"/>										
+<TextBox Name="ToLeft" Left="95" Top="0" Width="15" Height="5"/>												
+<Label Content="mm to Left" Left="110" Top="0" Width="20" Height="5"/>											
+<TextBox Name="ToRight" Left="130" Top="0" Width="15" Height="5"/>												
+<Label Content="mm to Right" Left="145" Top="0" Width="20" Height="5"/>											
+</Block>																				
+<!-- Palatal -->																			
+<Block Name="Palatal" IsVisible="true" Left="0" Top="120">													
+<Label Content="Palatal" Left="20" Top="0" Width="40" Height="5"/>												
+<RadioButton GroupName="Palatal" Content="Normal" IsChecked="True" Left="60" Top="0" Width="40" Height="5"/>								
+<RadioButton GroupName="Palatal" Content="High" IsChecked="False" Left="100" Top="0" Width="40" Height="5"/>								
+<RadioButton GroupName="Palatal" Content="Shallow" IsChecked="False" Left="140" Top="0" Width="40" Height="5"/>								
+</Block>																				
+<!-- Oral Hygiene -->																		
+<Block Name="Oral Hygiene" IsVisible="true" Left="0" Top="125">												
+<Label Content="Oral Hygiene" Left="20" Top="0" Width="40" Height="5"/>											
+<RadioButton GroupName="OralHygiene" Content="Good" IsChecked="True" Left="60" Top="0" Width="40" Height="5"/>								
+<RadioButton GroupName="OralHygiene" Content="Moderate" IsChecked="False" Left="100" Top="0" Width="40" Height="5"/>								
+<RadioButton GroupName="OralHygiene" Content="Poor" IsChecked="False" Left="140" Top="0" Width="40" Height="5"/>								
+</Block>																				
+<!-- Periodontal Condition -->																	
+<Block Name="Periodontal Condition" IsVisible="true" Left="0" Top="130">												
+<Label Content="Periodontal Condition" Left="20" Top="0" Width="40" Height="5"/>											
+<RadioButton GroupName="PeriodontalCondition" Content="Healthy" IsChecked="True" Left="60" Top="0" Width="40" Height="5"/>							
+<RadioButton GroupName="PeriodontalCondition" Content="Gingivitis" IsChecked="False" Left="100" Top="0" Width="40" Height="5"/>							
+<RadioButton GroupName="PeriodontalCondition" Content="Permanent" IsChecked="False" Left="140" Top="0" Width="40" Height="5"/>							
+</Block>																				
+<!-- Overjet -->																			
+<Block Name="Overjet" IsVisible="true" Left="0" Top="135">													
+<Label Content="Overjet" Left="20" Top="0" Width="40" Height="5"/>												
+<TextBox Name="overjetmm" Left="60" Top="0" Width="20" Height="5"/>												
+<Label Content="mm" Left="80" Top="0" Width="5" Height="5"/>												
+<RadioButton GroupName="Overjet" Content="Large" IsChecked="True" Left="85" Top="0" Width="25" Height="5"/>									
+<RadioButton GroupName="Overjet" Content="Moderate" IsChecked="False" Left="110" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="Overjet" Content="Normal" IsChecked="False" Left="135" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="Overjet" Content="Negative" IsChecked="False" Left="160" Top="0" Width="25" Height="5"/>								
+</Block>																				
+<!-- Overbite -->																			
+<Block Name="Overbite" IsVisible="true" Left="0" Top="140">													
+<Label Content="Overbite" Left="20" Top="0" Width="40" Height="5"/>												
+<TextBox Name="overbitemm" Left="60" Top="0" Width="20" Height="5"/>												
+<Label Content="mm" Left="80" Top="0" Width="5" Height="5"/>												
+<RadioButton GroupName="overbite" Content="Palatal" IsChecked="True" Left="85" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="overbite" Content="Deep" IsChecked="False" Left="120" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="overbite" Content="Normal" IsChecked="False" Left="135" Top="0" Width="25" Height="5"/>								
+<RadioButton GroupName="overbite" Content="Open" IsChecked="False" Left="160" Top="0" Width="25" Height="5"/>								
+</Block>																				
+<!-- Gingivar Recession -->																		
+<Block Name="Gingivar Recession" IsVisible="true" Left="0" Top="145">												
+<Label Content="Gingivar Recession" Left="20" Top="0" Width="40" Height="5"/>											
+<TextBox Name="Gingivartextbox" Left="60" Top="0" Width="120" Height="5"/>											
+</Block>																				
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="2">											
+<Points>15,150 200,150</Points>																
+</Lines>																				
+<!-- Premature loss -->																		
+<Block Name="Premature Loss" IsVisible="true" Left="20" Top="155">												
+<Label Content="Premature Loss" Left="0" Top="0" Width="30" Height="5"/>											
+<Button Content="+" Left="0" Top="5" Width="10" Height="10"/>												
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>35,5 35,25</Points>																
+</Lines>																			
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>10,15 60,15</Points>															
+</Lines>																			
+<Label Name="UpperLeft" HorizontalAlignment="Left" Left="10" Top="10" Width="20" Height="5"/>										
+<Label Name="UpperRight" HorizontalAlignment="Right" Left="30" Top="10" Width="20" Height="5"/>									
+<Label Name="LowerLeft" HorizontalAlignment="Left" Left="10" Top="15" Width="20" Height="5"/>										
+<Label Name="LowerRight" HorizontalAlignment="Right" Left="30" Top="15" Width="20" Height="5"/>									
+</Block>																				
+<!-- Prolonged Retention -->																	
+<Block Name="Prolonged Retention" IsVisible="true" Left="70" Top="155">												
+<Label Content="Prolonged Retention" Left="0" Top="0" Width="30" Height="5"/>											
+<Button Content="+" Left="0" Top="5" Width="10" Height="10"/>												
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>35,5 35,25</Points>																
+</Lines>																			
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>10,15 60,15</Points>															
+</Lines>																			
+<Label Name="UpperLeft" HorizontalAlignment="Left" Left="10" Top="10" Width="20" Height="5"/>										
+<Label Name="UpperRight" HorizontalAlignment="Right" Left="30" Top="10" Width="20" Height="5"/>									
+<Label Name="LowerLeft" HorizontalAlignment="Left" Left="10" Top="15" Width="20" Height="5"/>										
+<Label Name="LowerRight" HorizontalAlignment="Right" Left="30" Top="15" Width="20" Height="5"/>									
+</Block>																				
+<!-- Impacted Teeth -->																		
+<Block Name="Impacted Teeth" IsVisible="true" Left="120" Top="155">												
+<Label Content="Impacted Teeth" Left="0" Top="0" Width="30" Height="5"/>											
+<Button Content="+" Left="0" Top="5" Width="10" Height="10"/>												
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>35,5 35,25</Points>																
+</Lines>																			
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>10,15 60,15</Points>															
+</Lines>																			
+<Label Name="UpperLeft" HorizontalAlignment="Left" Left="10" Top="10" Width="20" Height="5"/>										
+<Label Name="UpperRight" HorizontalAlignment="Right" Left="30" Top="10" Width="20" Height="5"/>									
+<Label Name="LowerLeft" HorizontalAlignment="Left" Left="10" Top="15" Width="20" Height="5"/>										
+<Label Name="LowerRight" HorizontalAlignment="Right" Left="30" Top="15" Width="20" Height="5"/>									
+</Block>																				
+<!-- Supernumerary -->																		
+<Block Name="Supernumerary" IsVisible="true" Left="20" Top="180">												
+<Label Content="Supernumerary" Left="0" Top="0" Width="30" Height="5"/>											
+<Button Content="+" Left="0" Top="5" Width="10" Height="10"/>												
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>35,5 35,25</Points>																
+</Lines>																			
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>10,15 60,15</Points>															
+</Lines>																			
+<Label Name="UpperLeft" HorizontalAlignment="Left" Left="10" Top="10" Width="20" Height="5"/>										
+<Label Name="UpperRight" HorizontalAlignment="Right" Left="30" Top="10" Width="20" Height="5"/>									
+<Label Name="LowerLeft" HorizontalAlignment="Left" Left="10" Top="15" Width="20" Height="5"/>										
+<Label Name="LowerRight" HorizontalAlignment="Right" Left="30" Top="15" Width="20" Height="5"/>									
+</Block>																				
+<!-- Congenital Missing -->																		
+<Block Name="Congenital Missing" IsVisible="true" Left="70" Top="180">												
+<Label Content="Congenital Missing" Left="0" Top="0" Width="30" Height="5"/>											
+<Button Content="+" Left="0" Top="5" Width="10" Height="10"/>												
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>35,5 35,25</Points>																
+</Lines>																			
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>10,15 60,15</Points>															
+</Lines>																			
+<Label Name="UpperLeft" HorizontalAlignment="Left" Left="10" Top="10" Width="20" Height="5"/>										
+<Label Name="UpperRight" HorizontalAlignment="Right" Left="30" Top="10" Width="20" Height="5"/>									
+<Label Name="LowerLeft" HorizontalAlignment="Left" Left="10" Top="15" Width="20" Height="5"/>										
+<Label Name="LowerRight" HorizontalAlignment="Right" Left="30" Top="15" Width="20" Height="5"/>									
+</Block>																				
+<!-- Extracted Teeth -->																		
+<Block Name="Extracted Teeth" IsVisible="true" Left="120" Top="180">												
+<Label Content="Extracted Teeth" Left="0" Top="0" Width="30" Height="5"/>											
+<Button Content="+" Left="0" Top="5" Width="10" Height="10"/>												
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>35,5 35,25</Points>																
+</Lines>																			
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>10,15 60,15</Points>															
+</Lines>																			
+<Label Name="UpperLeft" HorizontalAlignment="Left" Left="10" Top="10" Width="20" Height="5"/>										
+<Label Name="UpperRight" HorizontalAlignment="Right" Left="30" Top="10" Width="20" Height="5"/>									
+<Label Name="LowerLeft" HorizontalAlignment="Left" Left="10" Top="15" Width="20" Height="5"/>										
+<Label Name="LowerRight" HorizontalAlignment="Right" Left="30" Top="15" Width="20" Height="5"/>									
+</Block>																				
+<!-- Malformed Teeth -->																		
+<Block Name="Malformed Teeth" IsVisible="true" Left="20" Top="225">												
+<Label Content="Malformed Teeth" Left="0" Top="0" Width="30" Height="5"/>											
+<Button Content="+" Left="0" Top="5" Width="10" Height="10"/>												
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>35,5 35,25</Points>																
+</Lines>																			
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>10,15 60,15</Points>															
+</Lines>																			
+<Label Name="UpperLeft" HorizontalAlignment="Left" Left="10" Top="10" Width="20" Height="5"/>										
+<Label Name="UpperRight" HorizontalAlignment="Right" Left="30" Top="10" Width="20" Height="5"/>									
+<Label Name="LowerLeft" HorizontalAlignment="Left" Left="10" Top="15" Width="20" Height="5"/>										
+<Label Name="LowerRight" HorizontalAlignment="Right" Left="30" Top="15" Width="20" Height="5"/>									
+</Block>																				
+<!-- Root Resorption -->																		
+<Block Name="Root Tesorption" IsVisible="true" Left="70" Top="225">												
+<Label Content="Root Tesorption" Left="0" Top="0" Width="30" Height="5"/>											
+<Button Content="+" Left="0" Top="5" Width="10" Height="10"/>												
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>35,5 35,25</Points>																
+</Lines>																			
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>10,15 60,15</Points>															
+</Lines>																			
+<Label Name="UpperLeft" HorizontalAlignment="Left" Left="10" Top="10" Width="20" Height="5"/>										
+<Label Name="UpperRight" HorizontalAlignment="Right" Left="30" Top="10" Width="20" Height="5"/>									
+<Label Name="LowerLeft" HorizontalAlignment="Left" Left="10" Top="15" Width="20" Height="5"/>										
+<Label Name="LowerRight" HorizontalAlignment="Right" Left="30" Top="15" Width="20" Height="5"/>									
+</Block>																				
+<!-- Crowding -->																			
+<Block Name="Crowding" IsVisible="true" Left="120" Top="225">													
+<Label Content="Crowding" Left="0" Top="0" Width="30" Height="5"/>												
+<Button Content="+" Left="0" Top="5" Width="10" Height="10"/>												
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>35,5 35,25</Points>																
+</Lines>																			
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>10,15 60,15</Points>															
+</Lines>																			
+<Label Name="UpperLeft" HorizontalAlignment="Left" Left="10" Top="10" Width="20" Height="5"/>										
+<Label Name="UpperRight" HorizontalAlignment="Right" Left="30" Top="10" Width="20" Height="5"/>									
+<Label Name="LowerLeft" HorizontalAlignment="Left" Left="10" Top="15" Width="20" Height="5"/>										
+<Label Name="LowerRight" HorizontalAlignment="Right" Left="30" Top="15" Width="20" Height="5"/>									
+</Block>																				
+<!-- Protrusions -->																			
+<Block Name="Protrusions" IsVisible="true" Left="20" Top="270">												
+<Label Content="Protrusions" Left="0" Top="0" Width="30" Height="5"/>											
+<Button Content="+" Left="0" Top="5" Width="10" Height="10"/>												
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>35,5 35,25</Points>																
+</Lines>																			
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>10,15 60,15</Points>															
+</Lines>																			
+<Label Name="UpperLeft" HorizontalAlignment="Left" Left="10" Top="10" Width="20" Height="5"/>										
+<Label Name="UpperRight" HorizontalAlignment="Right" Left="30" Top="10" Width="20" Height="5"/>									
+<Label Name="LowerLeft" HorizontalAlignment="Left" Left="10" Top="15" Width="20" Height="5"/>										
+<Label Name="LowerRight" HorizontalAlignment="Right" Left="30" Top="15" Width="20" Height="5"/>									
+</Block>																				
+<!-- Recession -->																			
+<Block Name="Recession" IsVisible="true" Left="70" Top="270">													
+<Label Content="Recession" Left="0" Top="0" Width="30" Height="5"/>												
+<Button Content="+" Left="0" Top="5" Width="10" Height="10"/>												
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>35,5 35,25</Points>																
+</Lines>																			
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>10,15 60,15</Points>															
+</Lines>																			
+<Label Name="UpperLeft" HorizontalAlignment="Left" Left="10" Top="10" Width="20" Height="5"/>										
+<Label Name="UpperRight" HorizontalAlignment="Right" Left="30" Top="10" Width="20" Height="5"/>									
+<Label Name="LowerLeft" HorizontalAlignment="Left" Left="10" Top="15" Width="20" Height="5"/>										
+<Label Name="LowerRight" HorizontalAlignment="Right" Left="30" Top="15" Width="20" Height="5"/>									
+</Block>																				
+<!-- Diastema -->																			
+<Block Name="Diastema" IsVisible="true" Left="120" Top="270">													
+<Label Content="Diastema" Left="0" Top="0" Width="30" Height="5"/>												
+<Button Content="+" Left="0" Top="5" Width="10" Height="10"/>												
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>35,5 35,25</Points>																
+</Lines>																			
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">											
+<Points>10,15 60,15</Points>															
+</Lines>																			
+<Label Name="UpperLeft" HorizontalAlignment="Left" Left="10" Top="10" Width="20" Height="5"/>										
+<Label Name="UpperRight" HorizontalAlignment="Right" Left="30" Top="10" Width="20" Height="5"/>									
+<Label Name="LowerLeft" HorizontalAlignment="Left" Left="10" Top="15" Width="20" Height="5"/>										
+<Label Name="LowerRight" HorizontalAlignment="Right" Left="30" Top="15" Width="20" Height="5"/>									
+</Block>																				
+<PageBreak/>																					
+<!-- Facial Survey -->																		
+<Label Content="Facial Survey" FontSize="16pt" Left="10" Top="30" Width="50" Height="10"/>										
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="4">											
+<Points>10,40 200,40</Points>																
+</Lines>																				
+<!-- Face -->																				
+<Block Name="Face" IsVisible="true" Left="20" Top="50">														
+<Image Source="Face.png" Left="0" Top="0" Width="80" Height="100"/>												
+<TextBox Left="10" Top="30" Width="20" Height="10"/>													
+<TextBox Left="30" Top="30" Width="20" Height="10"/>													
+<TextBox Left="10" Top="40" Width="20" Height="10"/>													
+<TextBox Left="30" Top="40" Width="20" Height="10"/>													
+<TextBox Left="10" Top="50" Width="20" Height="10"/>													
+<TextBox Left="30" Top="50" Width="20" Height="10"/>													
+<TextBox Left="10" Top="60" Width="20" Height="10"/>													
+<TextBox Left="30" Top="60" Width="20" Height="10"/>													
+</Block>																				
+<!-- Facial Type -->																			
+<Block Name="Facial Type" IsVisible="true" Left="115" Top="50">												
+<Label Content="Facial Type" Left="5" Top="0" Width="40" Height="5"/>											
+<RadioButton GroupName="FacialType" Content="Euryprosopic (Barchy)" IsChecked="False" Left="45" Top="0" Width="40" Height="5"/>							
+<RadioButton GroupName="FacialType" Content="Mesoprosopic (Meso)" IsChecked="False" Left="45" Top="5" Width="40" Height="5"/>							
+<RadioButton GroupName="FacialType" Content="Leptoprosopic (Dolicho)" IsChecked="False" Left="45" Top="5" Width="40" Height="5"/>							
+</Block>																				
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="2">											
+<Points>115,65 200,65</Points>																
+</Lines>																				
+<!-- Profile-Mx -->																			
+<Block Name="Profile-Mx" IsVisible="true" Left="115" Top="70">													
+<Label Content="Profile-Mx" Left="5" Top="0" Width="45" Height="5"/>												
+<RadioButton GroupName="ProfileMx" Content="Protrusive" IsChecked="False" Left="45" Top="0" Width="40" Height="5"/>								
+<RadioButton GroupName="ProfileMx" Content="Normal" IsChecked="False" Left="45" Top="5" Width="40" Height="5"/>								
+<RadioButton GroupName="ProfileMx" Content="Retrusive" IsChecked="False" Left="5" Top="10" Width="40" Height="5"/>								
+</Block>																				
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="2">											
+<Points>115,85 200,85</Points>																
+</Lines>																				
+<!-- Profile-Mn -->																			
+<Block Name="Profile-Mn" IsVisible="true" Left="115" Top="90">													
+<Label Content="Profile-Mn" Left="5" Top="0" Width="45" Height="5"/>												
+<RadioButton GroupName="ProfileMn" Content="Protrusive" IsChecked="False" Left="45" Top="0" Width="40" Height="5"/>								
+<RadioButton GroupName="ProfileMn" Content="Normal" IsChecked="False" Left="45" Top="5" Width="40" Height="5"/>								
+<RadioButton GroupName="ProfileMn" Content="Restrusive" IsChecked="False" Left="45" Top="10" Width="40" Height="5"/>								
+</Block>																				
+<!-- Soft Tissue -->																			
+<Label Content="Soft Tissue" FontSize="16pt" Left="10" Top="160" Width="50" Height="10"/>										
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="4">											
+<Points>10,170 200,170</Points>																
+</Lines>																				
+<!-- Labial Frenum  -->																		
+<Block Name="Labial Frenum" IsVisible="true" Left="0" Top="170">												
+<Label Content="Labial Frenum" Left="20" Top="0" Width="60" Height="5"/>											
+<RadioButton GroupName="LabialFrenum" Content="Normal" IsChecked="False" Left="80" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="LabialFrenum" Content="Heavy" IsChecked="False" Left="110" Top="0" Width="30" Height="5"/>								
+</Block>																				
+<!-- Lingual Frenum  -->																		
+<Block Name="Lingual Frenum" IsVisible="true" Left="0" Top="175">												
+<Label Content="Lingual Frenum" Left="20" Top="0" Width="60" Height="5"/>											
+<RadioButton GroupName="LingualFrenum" Content="Normal" IsChecked="False" Left="80" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="LingualFrenum" Content="Heavy" IsChecked="False" Left="110" Top="0" Width="30" Height="5"/>								
+</Block>																				
+<!-- Tonsils  -->																			
+<Block Name="Tonsils" IsVisible="true" Left="0" Top="180">													
+<Label Content="Tonsils" Left="20" Top="0" Width="60" Height="5"/>												
+<RadioButton GroupName="Tonsils" Content="Normal" IsChecked="False" Left="80" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="Tonsils" Content="Enlarged" IsChecked="False" Left="110" Top="0" Width="0" Height="5"/>								
+</Block>																				
+<!-- Adenoids  -->																			
+<Block Name="Adenoids" IsVisible="true" Left="0" Top="185">													
+<Label Content="Adenoids" Left="20" Top="0" Width="60" Height="5"/>												
+<RadioButton GroupName="Adenoids" Content="Normal" IsChecked="False" Left="80" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="Adenoids" Content="Enlarged" IsChecked="False" Left="110" Top="0" Width="30" Height="5"/>								
+</Block>																				
+<!-- Mentalis Action  -->																		
+<Block Name="Mentalis Action" IsVisible="true" Left="0" Top="190">												
+<Label Content="Mentalis Action" Left="20" Top="0" Width="60" Height="5"/>											
+<RadioButton GroupName="MentalisAction" Content="Close bite" IsChecked="False" Left="80" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="MentalisAction" Content="Open bite" IsChecked="False" Left="110" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="MentalisAction" Content="No" IsChecked="False" Left="140" Top="0" Width="30" Height="15"/>								
+</Block>																				
+<!-- Lips Posture At Rest  -->																	
+<Block Name="Lips Posture At Rest" IsVisible="true" Left="0" Top="195">												
+<Label Content="Lips Posture At Rest" Left="20" Top="0" Width="60" Height="5"/>											
+<RadioButton GroupName="LipsPostureAtRest" Content="Normal" IsChecked="False" Left="80" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="Adenoids" Content="Enlarged" IsChecked="False" Left="110" Top="0" Width="30" Height="5"/>								
+</Block>																				
+<!-- Lip Thickness Upper  -->																	
+<Block Name="Lip Thickness Upper" IsVisible="true" Left="0" Top="200">												
+<Label Content="Lip Thickness Upper" Left="20" Top="0" Width="60" Height="5"/>											
+<RadioButton GroupName="LipThicknessUpper" Content="Thin" IsChecked="False" Left="80" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="LipThicknessUpper" Content="Average" IsChecked="False" Left="110" Top="0" Width="30" Height="5"/>							
+<RadioButton GroupName="LipThicknessUpper" Content="Full" IsChecked="False" Left="140" Top="0" Width="30" Height="5"/>								
+</Block>																				
+<!-- Lip Thickness Lower  -->																	
+<Block Name="Lip Thickness Lower" IsVisible="true" Left="0" Top="205">												
+<Label Content="Lip Thickness Lower" Left="20" Top="0" Width="60" Height="5"/>											
+<RadioButton GroupName="LipThicknesslower" Content="Thin" IsChecked="False" Left="80" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="LipThicknessUpper" Content="Average" IsChecked="False" Left="110" Top="0" Width="30" Height="5"/>							
+<RadioButton GroupName="LipThicknessUpper" Content="Full" IsChecked="False" Left="140" Top="0" Width="30" Height="5"/>								
+</Block>																				
+<!-- Lip tonicity  -->																		
+<Block Name="Lip tonicity" IsVisible="true" Left="0" Top="210">												
+<Label Content="Lip tonicity" Left="20" Top="0" Width="60" Height="5"/>											
+<RadioButton GroupName="Liptonicity" Content="Hypertonic" IsChecked="False" Left="80" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="Liptonicity" Content="Normal" IsChecked="False" Left="110" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="Liptonicity" Content="Hypoionic" IsChecked="False" Left="140" Top="0" Width="30" Height="5"/>								
+</Block>																				
+<!-- Tongue Size  -->																		
+<Block Name="Tongue Size" IsVisible="true" Left="0" Top="215">													
+<Label Content="Tongue Size" Left="20" Top="0" Width="60" Height="5"/>											
+<RadioButton GroupName="TongueSize" Content="Large" IsChecked="False" Left="80" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="TongueSize" Content="Normal" IsChecked="False" Left="110" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="TongueSize" Content="Small" IsChecked="False" Left="140" Top="0" Width="30" Height="5"/>								
+</Block>																				
+<!-- Tongue Position  -->																		
+<Block Name="Tongue Position" IsVisible="true" Left="0" Top="220">												
+<Label Content="Tongue Position" Left="20" Top="0" Width="60" Height="5"/>											
+<RadioButton GroupName="TonguePosition" Content="High" IsChecked="False" Left="80" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="TonguePosition" Content="Normal" IsChecked="False" Left="110" Top="0" Width="30" Height="15"/>								
+<RadioButton GroupName="TonguePosition" Content="Low" IsChecked="False" Left="140" Top="0" Width="30" Height="5"/>								
+</Block>																				
+<!-- Gingival Exposure At Sling  -->																
+<Block Name="Gingival Exposure At Sling" IsVisible="true" Left="0" Top="225">											
+<Label Content="Gingival Exposure At Sling" Left="20" Top="0" Width="60" Height="5"/>										
+<TextBox Name="gingivalmm" Left="80" Top="0" Width="20" Height="5"/>												
+<Label Content="mm" Left="100" Top="0" Width="10" Height="5"/>												
+</Block>																				
+<!-- Incisor Exposure At Smiling  -->																
+<Block Name="Incisor Exposure At Smiling" IsVisible="true" Left="0" Top="230">											
+<Label Content="Incisor Exposure At Smiling" Left="20" Top="0" Width="60" Height="5"/>										
+<TextBox Name="incisormm" Left="80" Top="0" Width="20" Height="5"/>												
+<Label Content="mm" Left="100" Top="0" Width="10" Height="5"/>												
+</Block>																				
+<PageBreak/>																					
+<!-- TMJ -->																				
+<Label Content="TMJ" FontSize="16pt" Left="10" Top="30" Width="50" Height="10"/>											
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="4">											
+<Points>10,40 200,40</Points>																
+</Lines>																				
+<!-- Initial  -->																			
+<Block Name="Initial" IsVisible="true" Left="20" Top="40">													
+<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">					<!-- X-axis -->					
+<Points>5,20 65,20</Points>										<!-- (-20 , 0) -->					
+<Points>15,19 15,21</Points>									<!-- (-10 , 0) -->					
+<Points>25,19 25,21</Points>									<!-- (+10 , 0) -->					
+<Points>45,19 55,21</Points>									<!-- (+20 , 0) -->					
+<Points>35,5 35,70</Points>										<!-- Y-axis -->					
+<Points>34,10 36,10</Points>									<!-- (0 , +10) -->					
+<Points>34,30 36,30</Points>									<!-- (0 , -10) -->					
+<Points>34,40 36,40</Points>									<!-- (0 , -20) -->					
+<Points>34,50 36,50</Points>									<!-- (0 , -30) -->					
+<Points>34,60 36,60</Points>									<!-- (0 , -40) -->					
+</Lines>																			
+<Label Content="20" Left="15" Top="15" Width="10" Height="5"/>						<!-- (-20 , 0) -->					
+<Label Content="10" Left="25" Top="15" Width="10" Height="5"/>						<!-- (-10 , 0) -->					
+<Label Content="10" Left="45" Top="15" Width="10" Height="5"/>						<!-- (+10 , 0) -->					
+<Label Content="20" Left="55" Top="15" Width="10" Height="5"/>						<!-- (+20 , 0) -->					
+<Label Content="10" Left="35" Top="10" Width="10" Height="5"/>						<!-- (0 , +10) -->					
+<Label Content="20" Left="35" Top="30" Width="10" Height="5"/>						<!-- (0 , -10) -->					
+<Label Content="20" Left="35" Top="40" Width="10" Height="5"/>						<!-- (0 , -20) -->					
+<Label Content="30" Left="35" Top="50" Width="10" Height="5"/>						<!-- (0 , -30) -->					
+<Label Content="40" Left="35" Top="60" Width="10" Height="5"/>						<!-- (0 , -40) -->					
+<Label Name="Modified Date" ItemType="6" Left="5" Top="70" Width="10" Height="5"/>										
+<Button Content="Clear" Left="55" Top="75" Width="20" Height="10"/>												
+<Label Content="Initial" HorizontalAlignment="Center" Left="5" Top="90" Width="70" Height="15"/>									
+</Block>																				
+<!-- Progress  -->																			
+<Block Name="Progress" IsVisible="true" Left="80" Top="40">													
+<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">					<!-- X-axis -->					
+<Points>5,20 65,20</Points>										<!-- (-20 , 0) -->					
+<Points>15,19 15,21</Points>									<!-- (-10 , 0) -->					
+<Points>25,19 25,21</Points>									<!-- (+10 , 0) -->					
+<Points>45,19 55,21</Points>									<!-- (+20 , 0) -->					
+<Points>35,5 35,70</Points>										<!-- Y-axis -->					
+<Points>34,10 36,10</Points>									<!-- (0 , +10) -->					
+<Points>34,30 36,30</Points>									<!-- (0 , -10) -->					
+<Points>34,40 36,40</Points>									<!-- (0 , -20) -->					
+<Points>34,50 36,50</Points>									<!-- (0 , -30) -->					
+<Points>34,60 36,60</Points>									<!-- (0 , -40) -->					
+</Lines>																			
+<Label Content="20" Left="15" Top="15" Width="10" Height="5"/>						<!-- (-20 , 0) -->					
+<Label Content="10" Left="25" Top="15" Width="10" Height="5"/>						<!-- (-10 , 0) -->					
+<Label Content="10" Left="45" Top="15" Width="10" Height="5"/>						<!-- (+10 , 0) -->					
+<Label Content="20" Left="55" Top="15" Width="10" Height="5"/>						<!-- (+20 , 0) -->					
+<Label Content="10" Left="35" Top="10" Width="10" Height="5"/>						<!-- (0 , +10) -->					
+<Label Content="20" Left="35" Top="30" Width="10" Height="5"/>						<!-- (0 , -10) -->					
+<Label Content="20" Left="35" Top="40" Width="10" Height="5"/>						<!-- (0 , -20) -->					
+<Label Content="30" Left="35" Top="50" Width="10" Height="5"/>						<!-- (0 , -30) -->					
+<Label Content="40" Left="35" Top="60" Width="10" Height="5"/>						<!-- (0 , -40) -->					
+<Label Name="Modified Date" ItemType="6" Left="5" Top="70" Width="10" Height="5"/>										
+<Button Content="Clear" Left="55" Top="75" Width="20" Height="10"/>												
+<Label Content="Progress" HorizontalAlignment="Center" Left="5" Top="90" Width="70" Height="15"/>									
+</Block>																				
+<!-- Final -->																			
+<Block Name="Final" IsVisible="true" Left="140" Top="40">													
+<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="1">					<!-- X-axis -->					
+<Points>5,20 65,20</Points>										<!-- (-20 , 0) -->					
+<Points>15,19 15,21</Points>									<!-- (-10 , 0) -->					
+<Points>25,19 25,21</Points>									<!-- (+10 , 0) -->					
+<Points>45,19 55,21</Points>									<!-- (+20 , 0) -->					
+<Points>35,5 35,70</Points>										<!-- Y-axis -->					
+<Points>34,10 36,10</Points>									<!-- (0 , +10) -->					
+<Points>34,30 36,30</Points>									<!-- (0 , -10) -->					
+<Points>34,40 36,40</Points>									<!-- (0 , -20) -->					
+<Points>34,50 36,50</Points>									<!-- (0 , -30) -->					
+<Points>34,60 36,60</Points>									<!-- (0 , -40) -->					
+</Lines>																			
+<Label Content="20" Left="15" Top="15" Width="10" Height="5"/>						<!-- (-20 , 0) -->					
+<Label Content="10" Left="25" Top="15" Width="10" Height="5"/>						<!-- (-10 , 0) -->					
+<Label Content="10" Left="45" Top="15" Width="10" Height="5"/>						<!-- (+10 , 0) -->					
+<Label Content="20" Left="55" Top="15" Width="10" Height="5"/>						<!-- (+20 , 0) -->					
+<Label Content="10" Left="35" Top="10" Width="10" Height="5"/>						<!-- (0 , +10) -->					
+<Label Content="20" Left="35" Top="30" Width="10" Height="5"/>						<!-- (0 , -10) -->					
+<Label Content="20" Left="35" Top="40" Width="10" Height="5"/>						<!-- (0 , -20) -->					
+<Label Content="30" Left="35" Top="50" Width="10" Height="5"/>						<!-- (0 , -30) -->					
+<Label Content="40" Left="35" Top="60" Width="10" Height="5"/>						<!-- (0 , -40) -->					
+<Label Name="Modified Date" ItemType="6" Left="5" Top="70" Width="10" Height="5"/>										
+<Button Content="Clear" Left="55" Top="75" Width="20" Height="10"/>												
+<Label Content="Final" HorizontalAlignment="Center" Left="5" Top="90" Width="70" Height="15"/>										
+</Block>																				
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="2">											
+<Points>20,95 200,95</Points>																
+</Lines>																				
+<!-- Joint Palpation  -->																		
+<Block Name="Joint Palpation" IsVisible="true" Left="0" Top="105">												
+<Label Content="Joint Palpation" Left="20" Top="0" Width="60" Height="5"/>											
+<RadioButton GroupName="JointPalpation" Content="Asymptomatic" IsChecked="True" Left="80" Top="5" Width="60" Height="5"/>							
+<RadioButton GroupName="JointPalpation" Content="Symptomatic" IsChecked="False" Left="140" Top="5" Width="60" Height="5"/>							
+<CheckBox Content="No Pain" IsChecked="False" Left="80" Top="10" Width="30" Height="5"/>										
+<CheckBox Content="Pain on Left" IsChecked="False" Left="110" Top="10" Width="30" Height="5"/>										
+<CheckBox Content="Pain on Right" IsChecked="False" Left="140" Top="10" Width="30" Height="5"/>									
+<CheckBox Content="No Sound" IsChecked="False" Left="80" Top="15" Width="30" Height="5"/>										
+<CheckBox Content="Sound on Left" IsChecked="False" Left="110" Top="15" Width="30" Height="5"/>									
+<CheckBox Content="Sound on Right" IsChecked="False" Left="140" Top="15" Width="30" Height="5"/>									
+<CheckBox Content="No Locking" IsChecked="False" Left="80" Top="20" Width="30" Height="5"/>										
+<CheckBox Content="Locking on Left" IsChecked="False" Left="110" Top="20" Width="30" Height="5"/>									
+<CheckBox Content="Locking on Right" IsChecked="False" Left="140" Top="20" Width="30" Height="5"/>									
+</Block>																				
+<!-- Muscle Tenderness  -->																		
+<Block Name="Muscle Tenderness" IsVisible="true" Left="0" Top="130">												
+<Label Content="Muscle Tenderness" Left="20" Top="0" Width="60" Height="5"/>											
+<RadioButton GroupName="Muscle Tenderness" Content="Mild" IsChecked="True" Left="80" Top="0" Width="30" Height="5"/>								
+<RadioButton GroupName="Muscle Tenderness" Content="Moderate" IsChecked="False" Left="110" Top="0" Width="30" Height="5"/>							
+<RadioButton GroupName="Muscle Tenderness" Content="Severe" IsChecked="False" Left="140" Top="0" Width="30" Height="5"/>								
+</Block>																				
+<!-- CR-CO Discrepancy  -->																		
+<Block Name="CR-CO Discrepancy" IsVisible="true" Left="0" Top="145">												
+<Label Content="CR-CO Discrepancy" Left="20" Top="0" Width="60" Height="5"/>											
+<Label Content="Horizontal" Left="80" Top="0" Width="20" Height="5"/>											
+<TextBox Name="HorizontalTextBox" Left="100" Top="0"  Width="20" Height="15"/>											
+<Label Content="mm" Left="120" Top="0" Width="10" Height="5"/>												
+<Label Content="Transverse" Left="140" Top="0" Width="30" Height="15"/>											
+<TextBox Name="TransverseTextBox" Left="160" Top="0"  Width="20" Height="5"/>											
+<Label Content="mm" Left="180" Top="0" Width="10" Height="5"/>												
+</Block>																				
+<!-- Cleft -->																			
+<Label Content="Cleft" FontSize="16pt" Left="10" Top="160" Width="50" Height="10"/>											
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="4">											
+<Points>10,170 200,170</Points>																
+</Lines>																				
+<Block Name="Cleft" IsVisible="true" Left="0" Top="180">													
+<Label Content="Cleft" Left="20" Top="0" Width="60" Height="5"/>												
+<CheckBox Content="None" IsChecked="False" Left="80" Top="0" Width="30" Height="5"/>										
+<CheckBox Content="Right" IsChecked="False" Left="110" Top="0" Width="30" Height="5"/>										
+<CheckBox Content="Left" IsChecked="False" Left="140" Top="0" Width="30" Height="5"/>										
+<CheckBox Content="Cleft Lip" IsChecked="False" Left="80" Top="5" Width="30" Height="5"/>										
+<CheckBox Content="Cleft Palate" IsChecked="False" Left="110" Top="5" Width="30" Height="5"/>										
+<CheckBox Content="Cleft Alveolus" IsChecked="False" Left="140" Top="5" Width="30" Height="15"/>									
+<CheckBox Content="Submucosal Cleft" IsChecked="False" Left="80" Top="10" Width="30" Height="5"/>									
+<CheckBox Content="Soft Palate Cleft" IsChecked="False" Left="110" Top="10" Width="30" Height="5"/>									
+</Block>																				
+<Block Name="Syndrome" IsVisible="true" Left="0" Top="200">													
+<Label Content="Syndrome" Left="20" Top="0" Width="60" Height="5"/>												
+<CheckBox Content="Syndrome" IsChecked="False" Left="80" Top="0" Width="20" Height="5"/>										
+<TextBox Name="SyndromeTextBox" Left="100" Top="0" Width="90" Height="5"/>											
+</Block>																				
+<!-- Habits -->																			
+<Label Content="Habits" FontSize="16pt" Left="10" Top="210" Width="50" Height="10"/>											
+<lines LineStyle="1" Stroke="#000000" StrokeOpacity="1.0" StrokeThickness="4">											
+<Points>10,220 200,220</Points>																
+</Lines>																				
+<Block Name="Hibits" IsVisible="true" Left="0" Top="230">													
+<Label Content="Hibits" Left="20" Top="0" Width="60" Height="5"/>												
+<CheckBox Content="Tongue Thrust" IsChecked="False" Left="80" Top="0" Width="0" Height="5"/>										
+<CheckBox Content="Lip Biting" IsChecked="False" Left="110" Top="0" Width="30" Height="5"/>										
+<CheckBox Content="Finger Sucking" IsChecked="False" Left="140" Top="0" Width="30" Height="5"/>									
+<CheckBox Content="Mouth Breathing" IsChecked="False" Left="80" Top="5" Width="30" Height="5"/>									
+<CheckBox Content="Musical Instrument" IsChecked="False" Left="110" Top="5" Width="30" Height="5"/>									
+<TextBox Name="HabitsTextBox" Left="140" Top="5" Width="30" Height="5"/>											
+</Block>																				
+<!-- Other Notes -->																			
+<Block Name="Other Notes" IsVisible="true" Left="0" Top="250">													
+<Label Content="Other Notes" FontSize="16pt" Left="15" Top="0" Width="50" Height="10"/>										
+<TextBox Name="OtherNotes" Left="10" Top="10" Width="200" Height="30"/>											
+</Block>																				
+</PageContent>																				
+</HistoryChartTemplate>	
