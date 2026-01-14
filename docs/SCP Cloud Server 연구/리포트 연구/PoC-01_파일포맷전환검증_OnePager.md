@@ -48,10 +48,11 @@ Engineering One Pager
 
 **검증 범위**: 기존 제품별 XML 구조 분석
 
-- E2 Report v3.0: .rpt 파일 (기본 ImageBox, TextBox 구조)
-- E3 Report v4.0~v5.1: 복잡한 ItemBox 구조, Auto Fill 정보 포함
-- RC Report v5.1: Annotation 데이터, Template 정보 포함 (현재 구현 범위 외, 추후 확장 대상)
-- EzOrtho v1.0: 치료/히스토리 차트 데이터, Tooth Code 연동 (Analysis Chart는 현재 구현 범위 외, 추후 확장 대상)
+- E2 Report v3.0: XML 기반 (.rpt 파일), 비율값 좌표, ImageBox/TextBox 지원
+- E3 Report v4.0~v5.1: XML 기반, 비율값 좌표, ItemBox (BoxType: Text/Image/Multi)/Auto Fill 정보 포함
+- E3 RC Report v5.1: XML 기반, mm 단위 좌표, ItemBox/Annotation (Rectangle/Ellipse/Line/Arrow/FreeDraw/Memo)/Template 시스템 (현재 구현 범위 외, 추후 확장 대상)
+- EzOrtho v1.0: XML 기반, mm 단위 좌표, TextBox/ImageBox/ToothBox/TreatmentCategory/Form Controls/Annotation (Analysis Chart는 현재 구현 범위 외, 추후 확장 대상)
+- CleverOne v5.1.0: XML 기반, mm 단위 좌표, TextBox/ImageBox (Single/Multi/Reference)/ToothBox/Annotation (Rectangle/Line/FreeDraw/Memo)/Groups 지원
 
 **변환 설계 원칙**:
 

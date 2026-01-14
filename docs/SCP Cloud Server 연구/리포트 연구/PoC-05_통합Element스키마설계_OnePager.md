@@ -77,6 +77,16 @@ Engineering One Pager
 - Template 시스템: 동적 Layout 지원
 - Annotation: 6가지 타입 (Rectangle, Ellipse, Line, Arrow, FreeDraw, Memo)
 
+**CleverOne (v5.1.0)**:
+
+- TextBox: HTML 텍스트 편집, TextMacro 지원, Background, BorderLine
+- ImageBox: ImageFitMode, Layout(Row/Column), Translation, Scale, AutoFill, Ruler, CapturedImageInfo
+- ToothBox: ToothCode 지원 (SelectedToothCode, SelectedOcclusionToothCode)
+- Annotations: Rectangle, Line, FreeDraw, Memo (4가지 타입)
+- Groups: Element 그룹핑 기능 (v1.5.0에서 추가)
+- Paper: PaperSize, Orientation, Margin 정보 포함
+- Template 시스템: TemplateName 지원
+
 **전체 통합 Element 목록** (PoC-13 구현 대상과 동일):
 
 **기본 Shape Elements (E3 기준)**:
@@ -167,6 +177,12 @@ Engineering One Pager
 - **Form Controls**: RadioButton, CheckBox, Button, ComboBox, TextInput, TextArea
 - **Block**: 요소 그룹핑 컨테이너
 - **Image**: 단순 이미지 표시
+
+**CleverOne 특화 Elements**:
+
+- **ToothBox**: 치아 선택 UI, ToothCode 지원 (SelectedToothCode, SelectedOcclusionToothCode)
+- **Groups**: Element 그룹핑 기능 (v1.5.0에서 추가)
+- **ImageBox 확장**: CapturedImageInfo (Spacing, SliceNumbers), AutoFill, Ruler 지원
 
 **현재 구현 범위 외 Element** (추후 확장 대상):
 

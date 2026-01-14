@@ -161,6 +161,15 @@ export const ElementShape = {
 - Block (요소 그룹핑)
 - Annotation: FreeDraw, Ellipse, Rectangle
 
+**CleverOne v5.1.0**:
+
+- TextBox: TextMacro (PatientInfo, ReportDate, ClinicName 등), Editable
+- ImageBox: ImageFitMode, Invert, ImageMacro (ClinicLogo), BoxType (Single, Multi, Reference), Source (None, Capture, AutoFill), Layout (Row, Column), Translation (TransX, TransY), Scale (ScaleX, ScaleY), Ruler (Top, Bottom, Left, Right), CapturedImageInfo (NeedToDrawInfo, Thickness, Interval, TotalSliceNumber, DirectionTitle, SpacingX/Y, SliceNumbers)
+- ToothBox: ToothCode (SelectedToothCode, SelectedOcclusionToothCode)
+- Annotation: AnnotationType (Rectangle, Ellipse, Line, Arrow, FreeDraw, Memo), LineWidth, LineType, LineColor, Points
+- Memo: FontSize, FontColor, BackgroundColor, BackgroundOpacity
+- Groups: Group (BoxID 목록)
+
 **누락된 Element (구현 필요)**:
 
 **1. E3에서 누락**:
