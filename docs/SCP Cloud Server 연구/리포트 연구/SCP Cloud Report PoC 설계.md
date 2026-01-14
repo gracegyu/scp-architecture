@@ -140,6 +140,7 @@ flowchart TD
 - **E3 (v4.3~v5.1)**: 고급 편집 기능, Template 시스템, Auto Fill 기능
 - **RC Report (v5.1)**: Dialog 기반 편집, 다양한 Annotation 지원, Template 시스템 (현재 구현 범위 외, 추후 확장 대상)
 - **EzOrtho (v1.0)**: 치료/히스토리 차트 특화, Treatment/History Chart 시스템 (Analysis Chart는 현재 구현 범위 외, 추후 확장 대상)
+- **CleverOne (v5.1.0)**: XML 기반, mm 단위 좌표(소수점 1자리), TextBox/ImageBox/ToothBox/Annotations/Groups 지원, Template 시스템
 
 ### 공통 Element 분석
 

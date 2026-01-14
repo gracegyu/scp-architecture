@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>												
+<Report Version="5.1.0" TemplateName="Blank Template" ARCHIVETYPE="Report">					
+  <Paper PaperSize="A4" Orientation="Portrait">				
+    <Margin Left="10" Right="10" Top="15" Bottom="10"/>			
+  </Paper>				
+  <Page Number="1" TemplateName="FrameHD1x2L">				
+    <TextBox BoxID="xxx" Editable="true" TextMacro="PatientInfo">			
+      <Position X="10.5" Y="20.5"/>		
+      <Size Width="20.12" Height="10.16"/>		
+      <Background Color="#RRGGBB" Opacity="#.##" Transparent="false"/>		
+      <BorderLine Color="#RRGGBB" Opacity="#.##" Width="1" Type="SolidLine"/>		
+      <Text>		
+        <![CDATA[<html> <head> <script/> </head> <body> Your HTML's body </body> </html> ]]> 	
+      </Text>		
+    </TextBox>			
+    <ImageBox BoxID="xxx" ImageFitMode="Modified" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">			
+      <Position X="10.5" Y="20.5"/>		
+      <Size Width="20.12" Height="10.16"/>		
+      <Background Color="#RRGGBB" Opacity="#.##" Transparent="false"/>		
+      <BorderLine Color="#RRGGBB" Opacity="#.##" Width="1" Type="SolidLine"/>		
+      <Layout Row="1" Column="1"/>		
+      <Translation TransX="1.4" TransY="4.6"/>		
+      <Scale ScaleX="0.4" ScaleY="1.6"/>		
+      <ImageFileNames>		
+        <ImageFile>"xxxxxxxxxxxxx"</ImageFile>	
+      </ImageFileNames>		
+      <AutoFill TabType="MPR" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>		
+      <Ruler Top="true" Bottom="false" Left="false" Right="true"/>		
+      <CapturedImageInfo NeedToDrawInfo="true" Thickness="0.1" Interval="1.0" TotalSliceNumber="500" DirectionTitle="A|P">		
+        <Spacing SpacingX="11.222" SpacingY="33.111"/>	
+        <SliceNumbers>	
+          <Number>"100"</Number>
+          <Number>"101"</Number>
+          <Number>"102"</Number>
+        </SliceNumbers>	
+      </CapturedImageInfo>		
+    </ImageBox>			
+    <ToothBox BoxID="xxx">			
+      <Position X="10.5" Y="20.5"/>		
+      <Size Width="20.12" Height="10.16"/>		
+      <Background Color="#RRGGBB" Opacity="#.##" Transparent="false"/>		
+      <BorderLine Color="#RRGGBB" Opacity="#.##" Width="1" Type="SolidLine"/>		
+      <ToothCode>		
+        <SelectedToothCode>12</SelectedToothCode>	
+        <SelectedToothCode>31</SelectedToothCode>	
+        <SelectedOcclusionToothCode>21_2</SelectedOcclusionToothCode>	
+        <SelectedOcclusionToothCode>21_3</SelectedOcclusionToothCode>	
+        <SelectedOcclusionToothCode>21_5</SelectedOcclusionToothCode>	
+      </ToothCode>		
+    </ToothBox>			
+    <Annotations>			
+      <Annotation AnnotationID="xxx" AnnotationType="Rectangle" LineWidth="1" LineType="SolidLine" LineColor="#RRGGBB">		
+        <Points>62.3654,51.0892|132.303,68.0248</Points>	
+      </Annotation>		
+      <Annotation AnnotationID="xxx" AnnotationType="Line" LineWidth="1" LineType="SolidLine" LineColor="#RRGGBB">		
+        <Points>62.3654,51.0892|132.303,68.0248</Points>	
+      </Annotation>		
+      <Annotation AnnotationID="xxx" AnnotationType="FreeDraw" LineWidth="1" LineType="SolidLine" LineColor="#RRGGBB">		
+        <Points>1.1,1.1|2.2,2.2|3.3,3.3|4.4,4.4</Points>	
+      </Annotation>		
+      <Annotation AnnotationID="xxx" AnnotationType="Memo" LineWidth="1" LineType="SolidLine" LineColor="#RRGGBB">		
+        <Points>62.3654,51.0892|132.303,68.0248</Points>	
+        <Memo FontSize="10" FontColor="#RRGGBB" BackgroundColor="#RRGGBB" BackgroundOpacity="#.#">	
+          <![CDATA[This is a memo]]>
+        </Memo>	
+      </Annotation>		
+    </Annotations>			
+    <Groups>			
+      <Gruop>60|61|59</Gruop>		
+    </Groups>			
+  </Page>				
+</Report>					
