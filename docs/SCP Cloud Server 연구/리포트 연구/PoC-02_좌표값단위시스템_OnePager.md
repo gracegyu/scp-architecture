@@ -52,8 +52,8 @@ Engineering One Pager
 - E2/E3 v4.0 이하: 0~1 범위 비율값 (용지 크기 대비)
 - E3 RC Report v5.1: mm 단위 실측값 (소수점 1자리)
 - EzOrtho: mm 단위 (실제 파일 구조 확인 결과: 주석에 `<!-- unit : mm -->` 명시, 정수 단위)
-- CleverOne v5.1.0: mm 단위 실측값 (소수점 1자리, E3 RC Report v5.1과 동일)
-- 문제점: 비율값 기반의 한계(용지 변경 시 레이아웃 왜곡), 정밀도 부족(E3 RC v5.1, CleverOne: 1자리), 해상도별 불일치
+- CleverOne v5.1.0: mm 단위 실측값 (Position/Size/Margin: 소수점 1자리, Spacing/Thickness/Interval: 소수점 3자리, Annotation Points: 소수점 4자리)
+- 문제점: 비율값 기반의 한계(용지 변경 시 레이아웃 왜곡), 정밀도 부족(E3 RC v5.1, CleverOne Position/Size: 1자리), 해상도별 불일치
 
 **새로운 좌표 시스템 설계**:
 
