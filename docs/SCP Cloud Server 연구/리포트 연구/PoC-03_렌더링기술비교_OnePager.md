@@ -107,6 +107,14 @@ Engineering One Pager
 - 실시간 Preview: 편집 중 즉시 결과 표시
 - 고해상도 출력: 인쇄용 300DPI 지원
 
+**참고**: spline이나 베지어 곡선은 EzOrtho 분석 차트의 Landmark 기능에만 사용되며, 일반 리포트 Element에는 포함되지 않습니다. 따라서 본 PoC에서는 곡선 렌더링 기능을 고려할 필요가 없습니다.
+
+**SVG 곡선 지원 참고사항**: 
+- **베지어 곡선**: SVG는 베지어 곡선을 네이티브로 지원합니다. `<path>` 요소의 `C` (cubic Bézier), `Q` (quadratic Bézier) 명령을 사용하여 곡선을 벡터 방식으로 표현할 수 있습니다.
+- **Spline 곡선**: SVG 표준에는 "spline"이라는 독립된 명령은 없지만, 여러 베지어 곡선을 연결하여 spline처럼 표현할 수 있습니다. `S` (smooth cubic Bézier), `T` (smooth quadratic Bézier) 명령을 사용하면 이전 곡선의 제어점을 반사하여 자연스럽게 연결된 곡선을 만들 수 있습니다.
+- **특수 Spline (Catmull-Rom, B-spline 등)**: 이런 특수 spline은 SVG 표준에 없지만, 베지어 곡선으로 근사하거나 변환하여 표현할 수 있습니다.
+- **현재 상황**: 일반 리포트 Element에는 spline/베지어 곡선이 포함되지 않으므로 본 PoC에서는 고려 대상이 아닙니다. 향후 곡선 지원이 필요한 경우에도 SVG로 충분히 구현 가능합니다.
+
 **프로토타입 개발 계획**: 각 기술별로 동일한 기능을 구현하여 비교:
 
 1. **기본 리포트 렌더링**: A4 용지에 ImageBox 4개, TextBox 2개
