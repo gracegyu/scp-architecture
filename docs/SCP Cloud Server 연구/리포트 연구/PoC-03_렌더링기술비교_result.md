@@ -31,6 +31,205 @@
 
 **참고**: 의료 리포트 특성상 접근성과 시각적 품질이 가장 중요하므로 높은 가중치를 부여했습니다.
 
+**SVG 곡선 지원 참고사항**: 
+- **베지어 곡선**: SVG는 베지어 곡선을 네이티브로 지원합니다. `<path>` 요소의 `C` (cubic Bézier), `Q` (quadratic Bézier) 명령을 사용하여 곡선을 벡터 방식으로 표현할 수 있습니다.
+- **Spline 곡선**: SVG 표준에는 "spline"이라는 독립된 명령은 없지만, 여러 베지어 곡선을 연결하여 spline처럼 표현할 수 있습니다. `S` (smooth cubic Bézier), `T` (smooth quadratic Bézier) 명령을 사용하면 이전 곡선의 제어점을 반사하여 자연스럽게 연결된 곡선을 만들 수 있습니다.
+- **특수 Spline (Catmull-Rom, B-spline 등)**: 이런 특수 spline은 SVG 표준에 없지만, 베지어 곡선으로 근사하거나 변환하여 표현할 수 있습니다. 외부 라이브러리나 수학적 변환을 통해 제어점을 계산하여 `<path>`의 `d` 속성에 넣는 방식으로 구현 가능합니다.
+- **현재 상황**: 일반 리포트 Element에는 spline/베지어 곡선이 포함되지 않으므로 본 PoC에서는 고려 대상이 아닙니다. 향후 곡선 지원이 필요한 경우에도 SVG로 충분히 구현 가능합니다.
+
+**SVG에서 Spline 구현 방법 (상세)**:
+
+SVG는 spline을 직접 지원하지 않지만, 기존 요소를 활용하여 구현할 수 있습니다:
+
+**1. Catmull-Rom Spline 구현**:
+
+Catmull-Rom spline은 각 세그먼트를 cubic Bézier 곡선으로 변환하여 구현합니다.
+
+```typescript
+/**
+ * Catmull-Rom spline을 SVG path로 변환
+ * @param points - spline을 통과할 점들의 배열 [{x, y}, ...]
+ * @param tension - 곡선의 긴장도 (0~1, 기본값 0.5)
+ * @returns SVG path의 d 속성 값
+ */
+function catmullRomToSVGPath(points: Point[], tension: number = 0.5): string {
+  if (points.length < 2) return ''
+  if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`
+  
+  let path = `M ${points[0].x},${points[0].y}`
+  
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = i > 0 ? points[i - 1] : points[i]
+    const p1 = points[i]
+    const p2 = points[i + 1]
+    const p3 = i < points.length - 2 ? points[i + 2] : points[i + 1]
+    
+    // Catmull-Rom을 Cubic Bézier로 변환
+    const cp1x = p1.x + (p2.x - p0.x) / 6 * tension
+    const cp1y = p1.y + (p2.y - p0.y) / 6 * tension
+    const cp2x = p2.x - (p3.x - p1.x) / 6 * tension
+    const cp2y = p2.y - (p3.y - p1.y) / 6 * tension
+    
+    path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`
+  }
+  
+  return path
+}
+
+// 사용 예시
+const points = [
+  { x: 10, y: 20 },
+  { x: 50, y: 30 },
+  { x: 90, y: 40 },
+  { x: 130, y: 50 }
+]
+const pathData = catmullRomToSVGPath(points, 0.5)
+// 결과: "M 10,20 C 16.67,21.67 43.33,28.33 50,30 C 56.67,31.67 83.33,38.33 90,40 C 96.67,41.67 123.33,48.33 130,50"
+```
+
+**2. B-Spline 구현**:
+
+B-spline은 de Boor 알고리즘을 사용하여 베지어 곡선으로 변환합니다.
+
+```typescript
+/**
+ * B-spline을 SVG path로 변환
+ * @param controlPoints - 제어점 배열
+ * @param degree - spline 차수 (보통 3, cubic)
+ * @param knots - knot 벡터 (선택적, 균일 분포 기본값)
+ * @returns SVG path의 d 속성 값
+ */
+function bSplineToSVGPath(
+  controlPoints: Point[], 
+  degree: number = 3,
+  knots?: number[]
+): string {
+  if (controlPoints.length < degree + 1) {
+    // 점이 부족하면 직선으로 연결
+    return controlPoints.map((p, i) => 
+      i === 0 ? `M ${p.x},${p.y}` : `L ${p.x},${p.y}`
+    ).join(' ')
+  }
+  
+  // 균일 knot 벡터 생성 (제공되지 않은 경우)
+  if (!knots) {
+    const n = controlPoints.length
+    knots = []
+    for (let i = 0; i < n + degree + 1; i++) {
+      knots.push(i)
+    }
+  }
+  
+  // 각 세그먼트를 베지어 곡선으로 변환
+  let path = `M ${controlPoints[0].x},${controlPoints[0].y}`
+  
+  for (let i = degree; i < controlPoints.length; i++) {
+    // B-spline 세그먼트를 베지어 제어점으로 변환
+    const bezierPoints = convertBSplineSegmentToBezier(
+      controlPoints,
+      knots,
+      degree,
+      i
+    )
+    
+    if (bezierPoints.length === 4) {
+      path += ` C ${bezierPoints[1].x},${bezierPoints[1].y} ${bezierPoints[2].x},${bezierPoints[2].y} ${bezierPoints[3].x},${bezierPoints[3].y}`
+    }
+  }
+  
+  return path
+}
+```
+
+**3. Smooth Bézier 연결 (S/T 명령 활용)**:
+
+여러 베지어 곡선을 부드럽게 연결하여 spline 효과를 낼 수 있습니다.
+
+```typescript
+/**
+ * 점들을 부드러운 곡선으로 연결 (Smooth Bézier 사용)
+ * @param points - 연결할 점들의 배열
+ * @returns SVG path의 d 속성 값
+ */
+function smoothCurveToSVGPath(points: Point[]): string {
+  if (points.length < 2) return ''
+  if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`
+  
+  let path = `M ${points[0].x},${points[0].y}`
+  
+  // 첫 번째 곡선은 일반 C 명령 사용
+  const cp1x = points[0].x + (points[1].x - points[0].x) / 3
+  const cp1y = points[0].y + (points[1].y - points[0].y) / 3
+  const cp2x = points[1].x - (points[2].x - points[0].x) / 6
+  const cp2y = points[1].y - (points[2].y - points[0].y) / 6
+  
+  path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${points[1].x},${points[1].y}`
+  
+  // 이후 곡선은 S 명령 사용 (이전 제어점 반사)
+  for (let i = 2; i < points.length; i++) {
+    const prevCp2x = i === 2 ? cp2x : (points[i - 1].x - (points[i].x - points[i - 2].x) / 6)
+    const prevCp2y = i === 2 ? cp2y : (points[i - 1].y - (points[i].y - points[i - 2].y) / 6)
+    
+    // 반사된 제어점 계산
+    const reflectedCpx = 2 * points[i - 1].x - prevCp2x
+    const reflectedCpy = 2 * points[i - 1].y - prevCp2y
+    
+    const cp2x = points[i].x - (points[i + 1]?.x ?? points[i].x - points[i - 1].x - points[i - 1].x) / 6
+    const cp2y = points[i].y - (points[i + 1]?.y ?? points[i].y - points[i - 1].y - points[i - 1].y) / 6
+    
+    path += ` S ${reflectedCpx},${reflectedCpy} ${cp2x},${cp2y} ${points[i].x},${points[i].y}`
+  }
+  
+  return path
+}
+```
+
+**4. SVG Path로 렌더링**:
+
+변환된 path 데이터를 SVG 요소로 렌더링합니다.
+
+```typescript
+// React 컴포넌트 예시
+const SplinePath: React.FC<{ points: Point[], type: 'catmull-rom' | 'b-spline' | 'smooth' }> = ({ points, type }) => {
+  let pathData = ''
+  
+  switch (type) {
+    case 'catmull-rom':
+      pathData = catmullRomToSVGPath(points)
+      break
+    case 'b-spline':
+      pathData = bSplineToSVGPath(points)
+      break
+    case 'smooth':
+      pathData = smoothCurveToSVGPath(points)
+      break
+  }
+  
+  return (
+    <svg>
+      <path 
+        d={pathData}
+        fill="none"
+        stroke="black"
+        strokeWidth="2"
+      />
+    </svg>
+  )
+}
+```
+
+**Canvas vs SVG Spline 구현 비교**:
+
+| 항목 | Canvas | SVG |
+|------|--------|-----|
+| **구현 방식** | 픽셀 단위 직접 그리기 | Path 명령으로 벡터 표현 |
+| **확대/축소** | 품질 저하 (픽셀 기반) | 선명도 유지 (벡터 기반) |
+| **변환 필요** | 없음 (직접 구현) | Spline → Bézier 변환 필요 |
+| **성능** | 대량 점에서 빠름 | 변환 오버헤드 있음 |
+| **인쇄 품질** | 해상도 의존적 | 벡터 기반으로 우수 |
+
+**결론**: SVG에서 spline을 구현하려면 수학적 변환을 통해 베지어 곡선으로 변환한 후 `<path>` 요소의 `C`, `S` 명령을 사용합니다. Canvas에서 직접 구현한 것과 달리 변환 과정이 필요하지만, 벡터 기반의 장점(확대 시 선명도, 인쇄 품질)을 얻을 수 있습니다.
+
 ---
 
 ## 2. 최종 선정 결과
@@ -499,208 +698,7 @@ Element 데이터 → React 컴포넌트 → DOM/SVG → 브라우저 렌더링
 - Figma, Adobe XD 등 디자인 도구와 유사한 접근 방식
 - 접근성 요구사항 충족 용이
 
-### 6.3 SVG 곡선 및 Spline 구현 방법
-
-**SVG 곡선 지원 참고사항**: 
-- **베지어 곡선**: SVG는 베지어 곡선을 네이티브로 지원합니다. `<path>` 요소의 `C` (cubic Bézier), `Q` (quadratic Bézier) 명령을 사용하여 곡선을 벡터 방식으로 표현할 수 있습니다.
-- **Spline 곡선**: SVG 표준에는 "spline"이라는 독립된 명령은 없지만, 여러 베지어 곡선을 연결하여 spline처럼 표현할 수 있습니다. `S` (smooth cubic Bézier), `T` (smooth quadratic Bézier) 명령을 사용하면 이전 곡선의 제어점을 반사하여 자연스럽게 연결된 곡선을 만들 수 있습니다.
-- **특수 Spline (Catmull-Rom, B-spline 등)**: 이런 특수 spline은 SVG 표준에 없지만, 베지어 곡선으로 근사하거나 변환하여 표현할 수 있습니다. 외부 라이브러리나 수학적 변환을 통해 제어점을 계산하여 `<path>`의 `d` 속성에 넣는 방식으로 구현 가능합니다.
-- **현재 상황**: 일반 리포트 Element에는 spline/베지어 곡선이 포함되지 않으므로 본 PoC에서는 고려 대상이 아닙니다. 향후 곡선 지원이 필요한 경우에도 SVG로 충분히 구현 가능합니다.
-
-**SVG에서 Spline 구현 방법 (상세)**:
-
-SVG는 spline을 직접 지원하지 않지만, 기존 요소를 활용하여 구현할 수 있습니다:
-
-**1. Catmull-Rom Spline 구현**:
-
-Catmull-Rom spline은 각 세그먼트를 cubic Bézier 곡선으로 변환하여 구현합니다.
-
-```typescript
-/**
- * Catmull-Rom spline을 SVG path로 변환
- * @param points - spline을 통과할 점들의 배열 [{x, y}, ...]
- * @param tension - 곡선의 긴장도 (0~1, 기본값 0.5)
- * @returns SVG path의 d 속성 값
- */
-function catmullRomToSVGPath(points: Point[], tension: number = 0.5): string {
-  if (points.length < 2) return ''
-  if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`
-  
-  let path = `M ${points[0].x},${points[0].y}`
-  
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = i > 0 ? points[i - 1] : points[i]
-    const p1 = points[i]
-    const p2 = points[i + 1]
-    const p3 = i < points.length - 2 ? points[i + 2] : points[i + 1]
-    
-    // Catmull-Rom을 Cubic Bézier로 변환
-    const cp1x = p1.x + (p2.x - p0.x) / 6 * tension
-    const cp1y = p1.y + (p2.y - p0.y) / 6 * tension
-    const cp2x = p2.x - (p3.x - p1.x) / 6 * tension
-    const cp2y = p2.y - (p3.y - p1.y) / 6 * tension
-    
-    path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`
-  }
-  
-  return path
-}
-
-// 사용 예시
-const points = [
-  { x: 10, y: 20 },
-  { x: 50, y: 30 },
-  { x: 90, y: 40 },
-  { x: 130, y: 50 }
-]
-const pathData = catmullRomToSVGPath(points, 0.5)
-// 결과: "M 10,20 C 16.67,21.67 43.33,28.33 50,30 C 56.67,31.67 83.33,38.33 90,40 C 96.67,41.67 123.33,48.33 130,50"
-```
-
-**2. B-Spline 구현**:
-
-B-spline은 de Boor 알고리즘을 사용하여 베지어 곡선으로 변환합니다.
-
-```typescript
-/**
- * B-spline을 SVG path로 변환
- * @param controlPoints - 제어점 배열
- * @param degree - spline 차수 (보통 3, cubic)
- * @param knots - knot 벡터 (선택적, 균일 분포 기본값)
- * @returns SVG path의 d 속성 값
- */
-function bSplineToSVGPath(
-  controlPoints: Point[], 
-  degree: number = 3,
-  knots?: number[]
-): string {
-  if (controlPoints.length < degree + 1) {
-    // 점이 부족하면 직선으로 연결
-    return controlPoints.map((p, i) => 
-      i === 0 ? `M ${p.x},${p.y}` : `L ${p.x},${p.y}`
-    ).join(' ')
-  }
-  
-  // 균일 knot 벡터 생성 (제공되지 않은 경우)
-  if (!knots) {
-    const n = controlPoints.length
-    knots = []
-    for (let i = 0; i < n + degree + 1; i++) {
-      knots.push(i)
-    }
-  }
-  
-  // 각 세그먼트를 베지어 곡선으로 변환
-  let path = `M ${controlPoints[0].x},${controlPoints[0].y}`
-  
-  for (let i = degree; i < controlPoints.length; i++) {
-    // B-spline 세그먼트를 베지어 제어점으로 변환
-    const bezierPoints = convertBSplineSegmentToBezier(
-      controlPoints,
-      knots,
-      degree,
-      i
-    )
-    
-    if (bezierPoints.length === 4) {
-      path += ` C ${bezierPoints[1].x},${bezierPoints[1].y} ${bezierPoints[2].x},${bezierPoints[2].y} ${bezierPoints[3].x},${bezierPoints[3].y}`
-    }
-  }
-  
-  return path
-}
-```
-
-**3. Smooth Bézier 연결 (S/T 명령 활용)**:
-
-여러 베지어 곡선을 부드럽게 연결하여 spline 효과를 낼 수 있습니다.
-
-```typescript
-/**
- * 점들을 부드러운 곡선으로 연결 (Smooth Bézier 사용)
- * @param points - 연결할 점들의 배열
- * @returns SVG path의 d 속성 값
- */
-function smoothCurveToSVGPath(points: Point[]): string {
-  if (points.length < 2) return ''
-  if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`
-  
-  let path = `M ${points[0].x},${points[0].y}`
-  
-  // 첫 번째 곡선은 일반 C 명령 사용
-  const cp1x = points[0].x + (points[1].x - points[0].x) / 3
-  const cp1y = points[0].y + (points[1].y - points[0].y) / 3
-  const cp2x = points[1].x - (points[2].x - points[0].x) / 6
-  const cp2y = points[1].y - (points[2].y - points[0].y) / 6
-  
-  path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${points[1].x},${points[1].y}`
-  
-  // 이후 곡선은 S 명령 사용 (이전 제어점 반사)
-  for (let i = 2; i < points.length; i++) {
-    const prevCp2x = i === 2 ? cp2x : (points[i - 1].x - (points[i].x - points[i - 2].x) / 6)
-    const prevCp2y = i === 2 ? cp2y : (points[i - 1].y - (points[i].y - points[i - 2].y) / 6)
-    
-    // 반사된 제어점 계산
-    const reflectedCpx = 2 * points[i - 1].x - prevCp2x
-    const reflectedCpy = 2 * points[i - 1].y - prevCp2y
-    
-    const cp2x = points[i].x - (points[i + 1]?.x ?? points[i].x - points[i - 1].x - points[i - 1].x) / 6
-    const cp2y = points[i].y - (points[i + 1]?.y ?? points[i].y - points[i - 1].y - points[i - 1].y) / 6
-    
-    path += ` S ${reflectedCpx},${reflectedCpy} ${cp2x},${cp2y} ${points[i].x},${points[i].y}`
-  }
-  
-  return path
-}
-```
-
-**4. SVG Path로 렌더링**:
-
-변환된 path 데이터를 SVG 요소로 렌더링합니다.
-
-```typescript
-// React 컴포넌트 예시
-const SplinePath: React.FC<{ points: Point[], type: 'catmull-rom' | 'b-spline' | 'smooth' }> = ({ points, type }) => {
-  let pathData = ''
-  
-  switch (type) {
-    case 'catmull-rom':
-      pathData = catmullRomToSVGPath(points)
-      break
-    case 'b-spline':
-      pathData = bSplineToSVGPath(points)
-      break
-    case 'smooth':
-      pathData = smoothCurveToSVGPath(points)
-      break
-  }
-  
-  return (
-    <svg>
-      <path 
-        d={pathData}
-        fill="none"
-        stroke="black"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-```
-
-**Canvas vs SVG Spline 구현 비교**:
-
-| 항목 | Canvas | SVG |
-|------|--------|-----|
-| **구현 방식** | 픽셀 단위 직접 그리기 | Path 명령으로 벡터 표현 |
-| **확대/축소** | 품질 저하 (픽셀 기반) | 선명도 유지 (벡터 기반) |
-| **변환 필요** | 없음 (직접 구현) | Spline → Bézier 변환 필요 |
-| **성능** | 대량 점에서 빠름 | 변환 오버헤드 있음 |
-| **인쇄 품질** | 해상도 의존적 | 벡터 기반으로 우수 |
-
-**결론**: SVG에서 spline을 구현하려면 수학적 변환을 통해 베지어 곡선으로 변환한 후 `<path>` 요소의 `C`, `S` 명령을 사용합니다. Canvas에서 직접 구현한 것과 달리 변환 과정이 필요하지만, 벡터 기반의 장점(확대 시 선명도, 인쇄 품질)을 얻을 수 있습니다.
-
-### 6.4 참고 자료
+### 6.3 참고 자료
 
 **표준 및 스펙**
 
