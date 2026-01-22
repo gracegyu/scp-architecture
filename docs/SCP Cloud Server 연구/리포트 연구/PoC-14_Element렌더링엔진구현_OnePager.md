@@ -1,6 +1,6 @@
 Engineering One Pager
 
-**Project Name**: PoC-13: Element 렌더링 엔진 구현
+**Project Name**: PoC-14: Element 렌더링 엔진 구현
 
 **Date**: 2026년 1월 6일
 
@@ -31,14 +31,14 @@ Engineering One Pager
   - **DragResizeDiv.vue 완벽 포팅**: 700줄의 검증된 Handler 시스템 95% 재사용
   - ezorthoweb의 검증된 클래스 구조 최대한 활용
   - 단계적 Element 구현 (기본 Element부터 시작)
-  - 렌더링 방식은 PoC-03 결과를 기반으로 결정
+  - 렌더링 방식은 PoC-04 결과를 기반으로 결정
 
 **Resource and Scheduling Details**:
 
 - **기간**: 11주 (Week 6-16, 최장기 PoC)
-  - **Phase 3 (Week 6-9)**: DragResizeDiv 포팅 + 기본 Element (PoC-05, PoC-06과 병행)
-  - **Phase 4-5 (Week 10-14)**: 고급 Element + 통합 기능 (PoC-07~PoC-09와 병행)
-  - **Phase 6 (Week 15-16)**: 최종 완성 + 검증 (PoC-10~PoC-12와 병행)
+  - **Phase 3 (Week 6-9)**: DragResizeDiv 포팅 + 기본 Element (PoC-06, PoC-07과 병행)
+  - **Phase 4-5 (Week 10-14)**: 고급 Element + 통합 기능 (PoC-08~PoC-10와 병행)
+  - **Phase 6 (Week 15-16)**: 최종 완성 + 검증 (PoC-11~PoC-13와 병행)
 - **인력**:
   - Raymond (Frontend 아키텍트, Element 설계자, UI/UX 개발자 역할 겸임)
     - ezorthoweb Element 클래스 분석 및 TypeScript React 포팅 설계
@@ -46,8 +46,9 @@ Engineering One Pager
     - Drag & Resize Handler 시스템 구현
     - HTML 편집기 통합 및 검증
 - **선행 요구사항**:
-  - PoC-03 (렌더링 기술 선정) 완료
-  - PoC-04 (외부 라이브러리 선정) 완료
+  - PoC-03 (DPI 및 렌더링 전략 결정) 완료
+  - PoC-04 (렌더링 기술 선정) 완료
+  - PoC-05 (외부 라이브러리 선정) 완료
 
 **Technical Description**:
 
@@ -230,7 +231,7 @@ interface DragResizeEvents {
 
 **2. Element 렌더링 전략**:
 
-**SVG 기반 렌더링** (PoC-03 결과에 따라 변경 가능):
+**SVG 기반 렌더링** (PoC-04 결과에 따라 변경 가능):
 
 ```typescript
 // Element 컴포넌트 예시
@@ -1234,7 +1235,7 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 8. **성능 벤치마크**: Element 렌더링 성능 분석
 9. **호환성 검증 리포트**: 기존 파일 호환성 확인
 
-**다음 단계**: 구현된 Element 렌더링 엔진을 PoC-07(아키텍처 전략)에 통합하여 전체 시스템 검증
+**다음 단계**: 구현된 Element 렌더링 엔진을 PoC-08(아키텍처 전략)에 통합하여 전체 시스템 검증
 
 **ezorthoweb 코드 분석 완료 현황**:
 
@@ -1248,4 +1249,4 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 - 🔄 추가 구현 필요: Arrow, Memo, Multi ImageBox, Reference ImageBox
 - 🔄 현재 구현 범위 외: Canvas Element (EzOrtho 분석 차트 전용, 추후 확장 대상)
 
-**핵심 자산**: DragResizeDiv.vue는 PoC-13의 가장 중요한 참고 자료로, 이 컴포넌트만 완벽히 포팅하면 모든 Element의 Drag & Resize 기능이 해결됨
+**핵심 자산**: DragResizeDiv.vue는 PoC-14의 가장 중요한 참고 자료로, 이 컴포넌트만 완벽히 포팅하면 모든 Element의 Drag & Resize 기능이 해결됨

@@ -1,12 +1,12 @@
 Engineering One Pager
 
-**Project Name**: PoC-04: 외부 라이브러리 평가
+**Project Name**: PoC-05: 외부 라이브러리 평가
 
 **Date**: 2026년 1월 6일
 
 **Submitter Info**: Raymond
 
-**Project Description**: PoC-03에서 선정된 렌더링 기술(HTML DOM+SVG 또는 Canvas)을 기반으로 SCP Cloud Report 시스템 개발에 필요한 외부 라이브러리들을 평가하고 선정합니다. 선정된 렌더링 기술에 특화된 그래픽 라이브러리, PDF 생성, 이미지 처리, DICOM 지원 등 핵심 영역별로 최적의 라이브러리를 비교 분석하여 기술 스택을 구성합니다.
+**Project Description**: PoC-04에서 선정된 렌더링 기술(HTML DOM+SVG 또는 Canvas)을 기반으로 SCP Cloud Report 시스템 개발에 필요한 외부 라이브러리들을 평가하고 선정합니다. 선정된 렌더링 기술에 특화된 그래픽 라이브러리, PDF 생성, 이미지 처리, DICOM 지원 등 핵심 영역별로 최적의 라이브러리를 비교 분석하여 기술 스택을 구성합니다.
 
 **Business and Marketing Justification**:
 
@@ -49,7 +49,7 @@ Engineering One Pager
 
 **평가 영역별 후보 라이브러리**:
 
-**1. 그래픽 렌더링 라이브러리** (PoC-03 선정 기술에 따라 결정):
+**1. 그래픽 렌더링 라이브러리** (PoC-04 선정 기술에 따라 결정):
 
 **Canvas 기반 선정 시**:
 
@@ -96,7 +96,7 @@ Engineering One Pager
 - **번들 크기**: 최종 JavaScript 번들 크기 영향
 - **초기 로딩**: First Contentful Paint (FCP) 시간
 - **메모리 효율성**: 장시간 사용 시 메모리 리크 여부
-- **PoC-13 호환성**: DragResizeDiv 포팅 Handler 시스템과 통합 용이성
+- **PoC-14 호환성**: DragResizeDiv 포팅 Handler 시스템과 통합 용이성
 
 **2. 기능 완성도**: 기존 제품 기능 구현 가능성 체크리스트:
 
@@ -151,4 +151,4 @@ Engineering One Pager
 5. **라이센스 분석 보고서**: 상용 이용 시 법적 검토 결과
 6. **마이그레이션 가이드**: 선정 라이브러리 적용 방안
 
-**다음 단계**: 선정된 라이브러리 기반으로 PoC-05(Element 스키마 설계) 진행
+**다음 단계**: 선정된 라이브러리 기반으로 PoC-06(Element 스키마 설계) 진행

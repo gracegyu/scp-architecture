@@ -1,6 +1,6 @@
 Engineering One Pager
 
-**Project Name**: PoC-12: 접근성 (Accessibility) 준수
+**Project Name**: PoC-13: 접근성 (Accessibility) 준수
 
 **Date**: 2026년 1월 6일
 

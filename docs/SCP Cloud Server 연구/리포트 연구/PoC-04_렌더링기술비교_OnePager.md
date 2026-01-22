@@ -1,6 +1,6 @@
 Engineering One Pager
 
-**Project Name**: PoC-03: 렌더링 기술 비교 분석 (HTML DOM+SVG vs Canvas)
+**Project Name**: PoC-04: 렌더링 기술 비교 분석 (HTML DOM+SVG vs Canvas)
 
 **Date**: 2026년 1월 6일
 
@@ -136,4 +136,4 @@ Engineering One Pager
 3. **권장 기술 선정 가이드**: 용도별 기술 적용 방안
 4. **개발 가이드라인**: 선정된 기술의 베스트 프랙티스
 
-**다음 단계**: 선정된 렌더링 기술 기반으로 PoC-04(외부 라이브러리 평가) 및 PoC-13(Element 렌더링 엔진) 연계 진행
+**다음 단계**: 선정된 렌더링 기술 기반으로 PoC-05(외부 라이브러리 평가) 및 PoC-14(Element 렌더링 엔진) 연계 진행

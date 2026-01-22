@@ -1,6 +1,6 @@
 Engineering One Pager
 
-**Project Name**: PoC-11: 다국어 지원 시스템
+**Project Name**: PoC-12: 다국어 지원 시스템
 
 **Date**: 2026년 1월 6일
 
@@ -220,4 +220,4 @@ const { t } = useTranslation('medical')
 5. **현지화 가이드라인**: 국가별 커스터마이징 지침
 6. **번역 관리 도구**: 지속적 번역 품질 관리 시스템
 
-**다음 단계**: PoC-13 Element 렌더링 엔진의 다국어 지원 검증 후 PoC-12(접근성 준수) 최종 검증
+**다음 단계**: PoC-14 Element 렌더링 엔진의 다국어 지원 검증 후 PoC-13(접근성 준수) 최종 검증

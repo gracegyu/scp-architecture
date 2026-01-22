@@ -25,40 +25,41 @@
 
 #### Phase 2: 렌더링 기술 검증 (Week 3-5)
 
-- [ ] PoC-03: 렌더링 기술 비교 분석 (HTML DOM+SVG vs Canvas)
-- [ ] PoC-04: 외부 라이브러리 평가 (Fabric.js, Konva.js, PDF 생성 등)
+- [ ] PoC-03: DPI 및 렌더링 전략 결정 (화면/프린트 DPI, 폰트 단위, PDF 전략)
+- [ ] PoC-04: 렌더링 기술 비교 분석 (HTML DOM+SVG vs Canvas)
+- [ ] PoC-05: 외부 라이브러리 평가 (Fabric.js, Konva.js, PDF 생성 등)
 
 #### Phase 3: Element 호환성 및 구현 시작 (Week 6-9)
 
-- [ ] PoC-05: 통합 Element 스키마 설계 (E2/E3/EzOrtho/CleverOne 통합)
-- [ ] PoC-06: Migration 시스템 설계 (기존 파일 변환)
-- [ ] PoC-13: Element 렌더링 엔진 구현 (Week 6-16, 단계별 구현, TypeScript React 기반)
+- [ ] PoC-06: 통합 Element 스키마 설계 (E2/E3/EzOrtho/CleverOne 통합)
+- [ ] PoC-07: Migration 시스템 설계 (기존 파일 변환)
+- [ ] PoC-14: Element 렌더링 엔진 구현 (Week 6-16, 단계별 구현, TypeScript React 기반)
 
 #### Phase 4: 아키텍처 전략 검증 (Week 10-13)
 
-- [ ] PoC-07: 배포 방식 비교 분석 (NPM Package vs SaaS)
-- [ ] PoC-08: 멀티 플랫폼 지원 검증 (Web/Desktop/Mobile)
+- [ ] PoC-08: 배포 방식 비교 분석 (NPM Package vs SaaS)
+- [ ] PoC-09: 멀티 플랫폼 지원 검증 (Web/Desktop/Mobile)
 
 #### Phase 5: 품질 및 출력 검증 (Week 14)
 
-- [ ] PoC-09: 인쇄 및 Export 품질 검증 (고해상도 PDF, DICOM Print)
+- [ ] PoC-10: 인쇄 및 Export 품질 검증 (고해상도 PDF, DICOM Print)
 
 #### Phase 6: 보안 및 표준 준수 (Week 15-16)
 
-- [ ] PoC-10: 의료 데이터 보안 검증 (HIPAA/GDPR 준수)
-- [ ] PoC-11: 다국어 지원 시스템 (i18n, RTL 언어)
-- [ ] PoC-12: 접근성 준수 (WCAG 2.1 AA)
+- [ ] PoC-11: 의료 데이터 보안 검증 (HIPAA/GDPR 준수)
+- [ ] PoC-12: 다국어 지원 시스템 (i18n, RTL 언어)
+- [ ] PoC-13: 접근성 준수 (WCAG 2.1 AA)
 
 ### 병렬 진행 가능한 PoC
 
 - PoC-01 + PoC-02 (독립적 검증)
-- PoC-03 + PoC-04 (렌더링 관련)
-- PoC-05 + PoC-06 (Element 스키마 및 Migration)
-- **PoC-13**: 장기 프로젝트로 Phase 3-6에 걸쳐 단계별 진행
-  - Phase 3: PoC-05, PoC-06과 병행 (기본 Element)
-  - Phase 4: PoC-07, PoC-08과 병행 (고급 Element)
-  - Phase 5-6: PoC-09~PoC-12와 병행 (최종 통합)
-- PoC-10 + PoC-11 + PoC-12 (표준 준수 관련)
+- PoC-03 + PoC-04 + PoC-05 (렌더링 관련)
+- PoC-06 + PoC-07 (Element 스키마 및 Migration)
+- **PoC-14**: 장기 프로젝트로 Phase 3-6에 걸쳐 단계별 진행
+  - Phase 3: PoC-06, PoC-07과 병행 (기본 Element)
+  - Phase 4: PoC-08, PoC-09와 병행 (고급 Element)
+  - Phase 5-6: PoC-10~PoC-13와 병행 (최종 통합)
+- PoC-11 + PoC-12 + PoC-13 (표준 준수 관련)
 
 ### PoC 진행 Flow Diagram
 
@@ -74,28 +75,29 @@ gantt
     02_좌표시스템      :poc02, 2026-01-06, 14d
 
     section Phase 2
-    03_렌더링기술      :poc03, after poc01, 21d
-    04_외부라이브러리   :poc04, after poc01, 14d
+    03_DPI렌더링전략   :poc03, after poc02, 7d
+    04_렌더링기술      :poc04, after poc03, 21d
+    05_외부라이브러리   :poc05, after poc03, 14d
 
     section Phase 3
-    05_Element스키마   :poc05, after poc03, 21d
-    06_Migration      :poc06, after poc03, 21d
-    13_Element렌더링   :active, poc13, after poc05, 77d
+    06_Element스키마   :poc06, after poc04, 21d
+    07_Migration      :poc07, after poc04, 21d
+    14_Element렌더링   :active, poc14, after poc06, 77d
 
     section Phase 4
-    07_아키텍처전략    :poc07, after poc05, 28d
-    08_멀티플랫폼      :poc08, after poc05, 21d
+    08_아키텍처전략    :poc08, after poc06, 28d
+    09_멀티플랫폼      :poc09, after poc06, 21d
 
     section Phase 5
-    09_인쇄품질       :poc09, after poc07, 14d
+    10_인쇄품질       :poc10, after poc08, 14d
 
     section Phase 6
-    10_보안검증       :poc10, after poc09, 14d
-    11_다국어지원      :poc11, after poc09, 14d
-    12_접근성준수      :poc12, after poc09, 14d
+    11_보안검증       :poc11, after poc10, 14d
+    12_다국어지원      :poc12, after poc10, 14d
+    13_접근성준수      :poc13, after poc10, 14d
 ```
 
-**PoC-13 단계별 세부 일정**:
+**PoC-14 단계별 세부 일정**:
 
 ```mermaid
 flowchart TD
@@ -115,9 +117,9 @@ flowchart TD
     C --> C3[호환성 검증]
 
     subgraph "병행 진행 PoC"
-        D1[PoC-05, PoC-06]
-        D2[PoC-07, PoC-08]
-        D3[PoC-09~PoC-12]
+        D1[PoC-06, PoC-07]
+        D2[PoC-08, PoC-09]
+        D3[PoC-10~PoC-13]
     end
 
     A -.-> D1
@@ -187,7 +189,20 @@ flowchart TD
 
 ### Phase 2: 렌더링 기술 검증 (2-3주)
 
-#### PoC-03: 렌더링 기술 비교 분석
+#### PoC-03: DPI 및 렌더링 전략 결정
+
+**목적**: 화면 표시, 프린트, 폰트 처리 시 DPI/단위 통합 전략 결정
+
+- **검증 내용**:
+  - 화면 렌더링 DPI 전략 (96 DPI 고정 vs 동적)
+  - 프린트 렌더링 DPI 전략 (CSS pt 자동 vs @media print vs 수동 변환)
+  - 폰트 단위 선택 (px vs pt)
+  - PDF 생성 전략 (필수 vs 선택)
+  - mm 좌표계와 폰트 크기 통합 방법
+- **우선순위**: 최고 (PoC-02 기반, 모든 렌더링의 기반)
+- **산출물**: 통합 렌더링 전략 문서, 구현 가이드라인
+
+#### PoC-04: 렌더링 기술 비교 분석
 
 **목적**: HTML DOM+SVG vs Canvas 성능 비교
 
@@ -204,7 +219,7 @@ flowchart TD
 - **우선순위**: 높음
 - **산출물**: 렌더링 기술 선택 기준서
 
-#### PoC-04: 외부 라이브러리 평가
+#### PoC-05: 외부 라이브러리 평가
 
 **목적**: 리포트 편집 라이브러리 선정
 
@@ -218,7 +233,7 @@ flowchart TD
 
 ### Phase 3: Element 호환성 및 구현 (3-4주)
 
-#### PoC-05: 통합 Element 스키마 설계
+#### PoC-06: 통합 Element 스키마 설계
 
 **목적**: 모든 제품의 Element를 아우르는 공통 스키마 설계
 
@@ -227,7 +242,7 @@ flowchart TD
   - 확장 가능한 스키마 구조 설계
   - 제품별 고유 기능 처리 방안
   - Element 속성 정규화
-- **주요 Element 분석** (PoC-13과 동일):
+- **주요 Element 분석** (PoC-14와 동일):
   - **기본 Shape**: Rectangle, Ellipse, Line, Arrow, FreeDraw, Memo
   - **Content Elements**: ImageBox(Single/Multi/Reference), TextBox, Label
   - **EzOrtho 특화**: ToothBox, TreatmentCategory, Form Controls(RadioButton, CheckBox, Button, ComboBox, TextInput, TextArea)
@@ -236,7 +251,7 @@ flowchart TD
 - **우선순위**: 높음
 - **산출물**: 통합 Element 스키마, 호환성 매트릭스
 
-#### PoC-06: Migration 시스템 설계
+#### PoC-07: Migration 시스템 설계
 
 **목적**: 기존 파일의 완벽한 Migration 지원
 
@@ -251,7 +266,7 @@ flowchart TD
 - **우선순위**: 높음
 - **산출물**: Migration 도구, 검증 시나리오
 
-#### PoC-13: Element 렌더링 엔진 구현
+#### PoC-14: Element 렌더링 엔진 구현
 
 **목적**: React 기반 Element 렌더링 및 편집 시스템 구현
 
@@ -266,12 +281,12 @@ flowchart TD
   - EzOrtho 특화: ToothBox, TreatmentCategory, Form Controls
   - Annotation: 6가지 타입 완전 지원
 - **현재 구현 범위 외 사항**: EzOrtho 분석 차트(Canvas 기반) - 추후 확장 대상
-- **우선순위**: 높음 (PoC-05와 밀접한 연관)
+- **우선순위**: 높음 (PoC-06와 밀접한 연관)
 - **산출물**: Element 렌더링 엔진, **DragResizeDiv 포팅 Handler 시스템**, HTML 편집기 통합
 
 ### Phase 4: 아키텍처 전략 검증 (3-4주)
 
-#### PoC-07: 배포 방식 비교 분석
+#### PoC-08: 배포 방식 비교 분석
 
 **목적**: NPM Package vs SaaS 서비스 방식 검증
 
@@ -289,7 +304,7 @@ flowchart TD
 - **우선순위**: 높음
 - **산출물**: 아키텍처 선택 가이드
 
-#### PoC-08: 멀티 플랫폼 지원 검증
+#### PoC-09: 멀티 플랫폼 지원 검증
 
 **목적**: Web/Desktop/Mobile 플랫폼 지원 전략
 
@@ -307,7 +322,7 @@ flowchart TD
 
 ### Phase 5: 품질 및 출력 검증 (2주)
 
-#### PoC-09: 인쇄 및 Export 품질 검증
+#### PoC-10: 인쇄 및 Export 품질 검증
 
 **목적**: 의료용 인쇄 품질 보장
 
@@ -325,7 +340,7 @@ flowchart TD
 
 ### Phase 6: 보안 및 표준 준수 (2주)
 
-#### PoC-10: 의료 데이터 보안 검증
+#### PoC-11: 의료 데이터 보안 검증
 
 **목적**: HIPAA/GDPR 등 의료 규정 준수
 
@@ -341,7 +356,7 @@ flowchart TD
 
 ### 기존 사용자 검토사항 외 필요 PoC
 
-#### PoC-11: 다국어 지원 시스템
+#### PoC-12: 다국어 지원 시스템
 
 **목적**: 글로벌 SaaS 서비스를 위한 i18n 시스템
 
@@ -351,7 +366,7 @@ flowchart TD
   - 폰트 시스템 국가별 대응
   - 의료 용어 번역 정확성
 
-#### PoC-12: 접근성 (Accessibility) 준수
+#### PoC-13: 접근성 (Accessibility) 준수
 
 **목적**: 웹 접근성 표준(WCAG 2.1 AA) 준수를 위한 요구사항 정리 및 구현 가능성 검증
 
@@ -366,7 +381,7 @@ flowchart TD
   - 장애인 의료진 실사용 테스트
   - 접근성 검증 전문기관 표준 준수 확인
 
-#### PoC-13: Element 렌더링 엔진 구현 (장기 프로젝트)
+#### PoC-14: Element 렌더링 엔진 구현 (장기 프로젝트)
 
 **목적**: TypeScript React 기반 Element 렌더링 및 편집 시스템 구현
 
@@ -387,7 +402,7 @@ flowchart TD
   - **DragResizeDiv.vue 완벽한 Handler 시스템** (Grid Snap, Zoom, 모바일 지원)
   - 18개 Element 타입 + 누락된 4개(Arrow, Memo, Multi ImageBox, Reference ImageBox) 추가 구현
   - 좌표 변환 시스템 (mm2px, px2mm) 활용
-- **우선순위**: 높음 (PoC-05와 밀접한 연관, **최장기 PoC**)
+- **우선순위**: 높음 (PoC-06와 밀접한 연관, **최장기 PoC**)
 - **산출물**: Element 렌더링 엔진, **DragResizeDiv 포팅 Handler 시스템**, HTML 편집기
 
 ### Will Not Do (제외 사항)
@@ -472,7 +487,7 @@ flowchart TD
    - 해상도별 픽셀 변환
    - 반올림 오차 최소화
 
-### PoC-03: 렌더링 기술 비교 분석 (High Risk)
+### PoC-04: 렌더링 기술 비교 분석 (High Risk)
 
 #### 배경 분석
 
@@ -499,7 +514,7 @@ flowchart TD
    - 상태 관리 복잡도
    - **Element Handler 시스템**: ezorthoweb DragResizeDiv.vue 발견으로 복잡도 대폭 감소
 
-### PoC-05: 통합 Element 스키마 설계 (Critical Path)
+### PoC-06: 통합 Element 스키마 설계 (Critical Path)
 
 #### 배경 분석
 
@@ -536,7 +551,7 @@ flowchart TD
    - 기존 Element 속성 확장 방안
    - 버전별 호환성 유지 전략
 
-### PoC-07: 아키텍처 전략 검증 (Business Critical)
+### PoC-08: 아키텍처 전략 검증 (Business Critical)
 
 #### NPM Package 방식
 
@@ -576,16 +591,16 @@ flowchart TD
 
 ### 기술적 성공 기준
 
-1. **성능**: 기존 Desktop 대비 90% 이상 성능 (PoC-13 Element 렌더링 성능 기준)
+1. **성능**: 기존 Desktop 대비 90% 이상 성능 (PoC-14 Element 렌더링 성능 기준)
 2. **호환성**: 100% 데이터 Migration 성공
 3. **품질**: 의료용 인쇄 품질 기준 충족
-4. **확장성**: 새로운 Element 추가 시 1일 이내 구현 (PoC-13 Element 시스템 기반)
+4. **확장성**: 새로운 Element 추가 시 1일 이내 구현 (PoC-14 Element 시스템 기반)
 
 ### 비즈니스 성공 기준
 
 1. **개발 효율성**: 기존 대비 50% 개발 시간 단축 (DragResizeDiv 포팅으로 Handler 개발 시간 대폭 절약)
 2. **유지보수성**: 버그 수정 및 기능 추가 용이성
-3. **사용자 만족도**: 기존 Desktop 사용자 학습 곡선 최소화 (PoC-13으로 동일한 편집 경험 제공)
+3. **사용자 만족도**: 기존 Desktop 사용자 학습 곡선 최소화 (PoC-14로 동일한 편집 경험 제공)
 
 ### 평가 방법
 

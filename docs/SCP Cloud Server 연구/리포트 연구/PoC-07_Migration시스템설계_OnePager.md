@@ -1,6 +1,6 @@
 Engineering One Pager
 
-**Project Name**: PoC-06: Migration 시스템 설계
+**Project Name**: PoC-07: Migration 시스템 설계
 
 **Date**: 2026년 1월 6일
 
@@ -271,4 +271,4 @@ v1.x → v1.1.5 → v4.0 → v5.1 → Cloud
 5. **예외 처리 매뉴얼**: 특수 상황 대응 방안
 6. **성능 최적화 가이드**: 처리 베스트 프랙티스
 
-**다음 단계**: 완성된 Migration 시스템을 PoC-13(Element 렌더링 엔진)과 통합하여 기존 파일의 완전한 웹 렌더링 지원
+**다음 단계**: 완성된 Migration 시스템을 PoC-14(Element 렌더링 엔진)과 통합하여 기존 파일의 완전한 웹 렌더링 지원

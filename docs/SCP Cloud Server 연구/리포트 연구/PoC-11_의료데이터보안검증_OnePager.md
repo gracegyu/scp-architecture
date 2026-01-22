@@ -1,6 +1,6 @@
 Engineering One Pager
 
-**Project Name**: PoC-10: 의료 데이터 보안 검증
+**Project Name**: PoC-11: 의료 데이터 보안 검증
 
 **Date**: 2026년 1월 6일
 
@@ -220,4 +220,4 @@ interface AuditLog {
 5. **감사 시스템**: Audit Trail 구현 및 보고서 생성 도구
 6. **보안 운영 매뉴얼**: 보안 사고 대응 및 관리 절차
 
-**다음 단계**: PoC-13 Element 렌더링 엔진의 보안 검증 후 PoC-11(다국어 지원) 및 PoC-12(접근성) 통합 검증
+**다음 단계**: PoC-14 Element 렌더링 엔진의 보안 검증 후 PoC-12(다국어 지원) 및 PoC-13(접근성) 통합 검증
