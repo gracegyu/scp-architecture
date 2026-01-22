@@ -1,6 +1,6 @@
 Engineering One Pager
 
-**Project Name**: PoC-08: 멀티 플랫폼 지원 검증
+**Project Name**: PoC-09: 멀티 플랫폼 지원 검증
 
 **Date**: 2026년 1월 6일
 
@@ -172,4 +172,4 @@ interface PlatformSupport {
 5. **배포 전략서**: 각 플랫폼별 배포 및 업데이트 방안
 6. **프로토타입 앱**: 각 플랫폼별 기본 기능 구현 예제
 
-**다음 단계**: PoC-13 Element 렌더링 엔진이 모든 플랫폼에서 동일하게 작동하는지 검증 후 PoC-09(인쇄 품질) 진행
+**다음 단계**: PoC-14 Element 렌더링 엔진이 모든 플랫폼에서 동일하게 작동하는지 검증 후 PoC-10(인쇄 품질) 진행

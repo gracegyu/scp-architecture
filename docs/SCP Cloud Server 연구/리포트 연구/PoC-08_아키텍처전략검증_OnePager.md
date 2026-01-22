@@ -1,6 +1,6 @@
 Engineering One Pager
 
-**Project Name**: PoC-07: 아키텍처 전략 검증 (NPM Package vs SaaS)
+**Project Name**: PoC-08: 아키텍처 전략 검증 (NPM Package vs SaaS)
 
 **Date**: 2026년 1월 6일
 
@@ -282,4 +282,4 @@ const cloudServices = {
 5. **운영 계획서**: 선정된 방식의 운영 전략
 6. **마이그레이션 로드맵**: NPM→SaaS 또는 역방향 전환 계획
 
-**다음 단계**: 선정된 아키텍처에 PoC-13(Element 렌더링 엔진) 통합하여 PoC-08(멀티 플랫폼 지원) 검증
+**다음 단계**: 선정된 아키텍처에 PoC-14(Element 렌더링 엔진) 통합하여 PoC-09(멀티 플랫폼 지원) 검증

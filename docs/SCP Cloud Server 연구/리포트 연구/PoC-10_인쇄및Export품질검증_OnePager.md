@@ -1,6 +1,6 @@
 Engineering One Pager
 
-**Project Name**: PoC-09: 인쇄 및 Export 품질 검증
+**Project Name**: PoC-10: 인쇄 및 Export 품질 검증
 
 **Date**: 2026년 1월 6일
 
@@ -199,4 +199,4 @@ interface QualityMetrics {
 5. **DICOM Print 대체 솔루션**: 웹 환경에서의 DICOM 인쇄 방안
 6. **품질 비교 보고서**: Desktop vs Web 출력 품질 분석
 
-**다음 단계**: PoC-13 Element 렌더링 엔진의 고품질 출력 검증 후 PoC-10(보안 검증) 진행
+**다음 단계**: PoC-14 Element 렌더링 엔진의 고품질 출력 검증 후 PoC-11(보안 검증) 진행

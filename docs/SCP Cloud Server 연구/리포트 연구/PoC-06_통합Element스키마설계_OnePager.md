@@ -1,6 +1,6 @@
 Engineering One Pager
 
-**Project Name**: PoC-05: 통합 Element 스키마 설계
+**Project Name**: PoC-06: 통합 Element 스키마 설계
 
 **Date**: 2026년 1월 6일
 
@@ -247,7 +247,7 @@ interface CompatibilityMatrix {
 3. **ezorthoweb 호환성 테스트**: 기존 Vue.js 생성 파일의 스키마 호환성 확인
 4. **성능 테스트**: 스키마 처리 성능
 5. **확장성 테스트**: 가상의 새 기능 추가 시뮬레이션
-6. **PoC-13 연계 테스트**: 설계된 스키마가 React Element 렌더링 엔진과 호환되는지 확인
+6. **PoC-14 연계 테스트**: 설계된 스키마가 React Element 렌더링 엔진과 호환되는지 확인
 
 **산출물**:
 
@@ -258,4 +258,4 @@ interface CompatibilityMatrix {
 5. **확장 가이드라인**: 향후 Element 추가 시 준수 사항
 6. **검증 도구**: 스키마 유효성 검사 라이브러리
 
-**다음 단계**: 설계된 통합 스키마를 기반으로 PoC-06(Migration 시스템) 및 PoC-13(Element 렌더링 엔진) 병행 구현, DragResizeDiv Handler 시스템과 스키마 호환성 보장
+**다음 단계**: 설계된 통합 스키마를 기반으로 PoC-07(Migration 시스템) 및 PoC-14(Element 렌더링 엔진) 병행 구현, DragResizeDiv Handler 시스템과 스키마 호환성 보장
