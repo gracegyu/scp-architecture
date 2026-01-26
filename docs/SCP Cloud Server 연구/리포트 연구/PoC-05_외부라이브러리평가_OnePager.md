@@ -6,7 +6,7 @@ Engineering One Pager
 
 **Submitter Info**: Raymond
 
-**Project Description**: PoC-04에서 선정된 렌더링 기술(HTML DOM+SVG 또는 Canvas)을 기반으로 SCP Cloud Report 시스템 개발에 필요한 외부 라이브러리들을 평가하고 선정합니다. 선정된 렌더링 기술에 특화된 그래픽 라이브러리, PDF 생성, 이미지 처리, DICOM 지원 등 핵심 영역별로 최적의 라이브러리를 비교 분석하여 기술 스택을 구성합니다.
+**Project Description**: PoC-04에서 선정된 렌더링 기술(HTML DOM+SVG)을 기반으로 SCP Cloud Report 시스템 개발에 필요한 외부 라이브러리들을 평가하고 선정합니다. HTML DOM+SVG에 특화된 그래픽 라이브러리, PDF 생성, 이미지 처리, DICOM 지원 등 핵심 영역별로 최적의 라이브러리를 비교 분석하여 기술 스택을 구성합니다.
 
 **Business and Marketing Justification**:
 
@@ -49,19 +49,15 @@ Engineering One Pager
 
 **평가 영역별 후보 라이브러리**:
 
-**1. 그래픽 렌더링 라이브러리** (PoC-04 선정 기술에 따라 결정):
+**1. 그래픽 렌더링 라이브러리** (PoC-04에서 HTML DOM + SVG 선정):
 
-**Canvas 기반 선정 시**:
-
-- **Fabric.js**: Canvas 기반, 강력한 객체 조작 기능
-- **Konva.js**: 2D Canvas, 고성능, TypeScript 지원
-- **Paper.js**: 벡터 그래픽 특화
-
-**SVG/DOM 기반 선정 시**:
+**SVG/DOM 기반 라이브러리**:
 
 - **D3.js**: 데이터 시각화, SVG 조작 강력
 - **Snap.svg**: SVG 전용 라이브러리
 - **React-Spring**: 애니메이션 및 상호작용
+
+**참고**: PoC-04에서 HTML DOM + SVG 방식이 선정되었으므로, Canvas 기반 라이브러리(Fabric.js, Konva.js, Paper.js)는 평가 대상에서 제외됩니다.
 
 **공통 고려 사항**:
 
