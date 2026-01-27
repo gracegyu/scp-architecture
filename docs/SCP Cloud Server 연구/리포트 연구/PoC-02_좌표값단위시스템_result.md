@@ -48,13 +48,11 @@
 기존 E2 Report, E3 Report v4.0/v5.0에서 사용하던 비율값 시스템의 주요 문제점:
 
 1. **가로/세로 비율값 불일치**: 같은 비율값이라도 가로/세로 방향에 따라 실제 mm 값이 다름
-
    - 예: 비율값 0.5 → A4 가로 105mm, A4 세로 148.5mm (43.5mm 차이)
 
 2. **용지 변경 시 레이아웃 파괴**: A4에서 작성한 리포트를 A3로 변경하면 Element 크기와 위치가 모두 변경됨
 
 3. **Report Share 시 레이아웃 왜곡**: 작성자가 A4로 작성한 리포트를 Share하면, 수신자가 A3로 열 경우 레이아웃이 완전히 달라짐
-
    - **Cloud 환경에서 심각**: Share 기능이 핵심인데, 용지 설정만 달라져도 레이아웃 파괴
 
 4. **절대적 크기 보장 불가**: 비율값은 상대적 크기이므로 실제 물리적 크기를 보장할 수 없음
@@ -99,21 +97,18 @@
 **주요 변환 케이스**:
 
 1. **비율값 → mm 변환**
-
    - 입력: `{ x: 0.125, y: 0.250 }` (비율값, A4 용지 기준)
    - 출력: `{ x: 26.25, y: 74.25, unit: 'mm' }` (실측값)
    - 계산: `26.25 = 0.125 × 210mm - 0mm`, `74.25 = 0.250 × 297mm - 0mm`
    - 오차: 0mm (정확)
 
 2. **mm → mm 변환** (EzOrtho)
-
    - 입력: `{ x: 80, y: 12 }` (mm, 실제 파일 구조 확인 결과 이미 mm 단위 사용)
    - 출력: `{ x: 80.000, y: 12.000, unit: 'mm' }` (mm 단위 유지, 정밀도 확장)
    - 계산: 기존 mm 값 유지
    - 오차: 0mm (정확)
 
 3. **경계값 처리**
-
    - 최소값: `{ x: 0.0, y: 0.0 }` → `{ x: 0.0, y: 0.0, unit: 'mm' }`
    - 최대값: `{ x: 1.0, y: 1.0 }` → `{ x: 210.0, y: 297.0, unit: 'mm' }` (A4)
    - 오차: 0mm (정확)
@@ -298,31 +293,26 @@
 ### 3.2 주요 결론
 
 1. **변환 정확성**: **98점** 달성
-
    - 비율값 → mm 변환 정확도 ±0.05mm 이내
    - 역변환 후 원본과 99.8% 일치
    - 목표(±0.1mm) 달성
 
 2. **해상도별 일관성**: **95점** 달성
-
    - 다양한 DPI(72~480)에서 평균 오차 ±0.02mm
    - 확대/축소 시에도 정밀도 유지
    - 목표(±0.1mm) 달성
 
 3. **정밀도**: **100점** 달성
-
    - 0.001mm (1μm) 정밀도 지원
    - 기존 E3 RC v5.1 (1자리) 대비 **100배 향상**
    - 의료 측정 요구사항 충족
 
 4. **성능**: **97.5점** 달성
-
    - 좌표 변환 시간 목표(1ms) 이내 달성
    - 렌더링 성능 영향 미미 (+1.6%)
    - 실용적 성능 확보
 
 5. **호환성**: **100점** 달성
-
    - 기존 데이터 100% 변환 성공
    - 모든 제품/버전 호환성 확보
    - 데이터 손실 없음
@@ -445,7 +435,6 @@ function pxToMm(px: number, dpi: number): number {
 **비율값 시스템의 한계**:
 
 1. **가로/세로 비율값이 같아도 실제 mm 값이 다름**
-
    - 예: 비율값 0.5를 가로/세로 모두 사용
      - A4 가로 (210mm): 비율값 0.5 = 105mm
      - A4 세로 (297mm): 비율값 0.5 = 148.5mm
@@ -453,7 +442,6 @@ function pxToMm(px: number, dpi: number): number {
    - **결과**: 정사각형을 의도했어도 직사각형이 될 수 있음
 
 2. **용지 크기 변경 시 레이아웃 찌그러짐**
-
    - 예: A4에서 작성한 리포트를 A3로 변경
      - A4에서 비율값 0.3으로 배치한 Element (실제 57mm)
      - A3로 변경 시 같은 비율값 0.3 = 83.1mm
@@ -461,7 +449,6 @@ function pxToMm(px: number, dpi: number): number {
    - **결과**: 의도한 레이아웃이 완전히 깨짐
 
 3. **Report Share 시 레이아웃 왜곡 문제**
-
    - 시나리오: A4 용지에서 작성한 리포트를 Share → 받은 사람이 A3 용지로 열기
    - 예: A4에서 비율값 0.3으로 배치한 Element (실제 57mm)
      - 받은 사람이 A3로 열면 같은 비율값 0.3 = 83.1mm
@@ -496,6 +483,7 @@ function pxToMm(px: number, dpi: number): number {
 - **정밀도 확장**: E3 RC v5.1, CleverOne v5.1.0의 1자리 → 3자리 정밀도 확장 전략 수립
 
 **PoC-07에서 다룰 내용**:
+
 - 기존 데이터 변환 절차 및 프로세스
 - 변환 검증 및 롤백 절차
 - 버전 호환성 관리 체계
@@ -513,19 +501,15 @@ function pxToMm(px: number, dpi: number): number {
 **리스크**:
 
 1. 부동소수점 연산 오차 누적
-
    - **대응**: 반올림 알고리즘 적용, 정밀도 검증 유틸리티
 
 2. 다양한 DPI에서의 일관성
-
    - **대응**: DPI 감지 및 자동 변환, 테스트 환경 구축
 
 3. 기존 사용자의 측정값 기대치 차이
-
    - **대응**: 점진적 마이그레이션, 사용자 가이드 제공
 
 4. 용지 크기 변환 시 Annotation 위치 미세 오차
-
    - **문제**: 기존 시스템에서 용지 크기 변환 시 Annotation 위치가 미세하게 틀어지는 현상 발생
    - **원인**: 비율값 → mm 변환 시 반올림 오차, E3 RC v5.1의 1자리 정밀도 부족, 부동소수점 연산 오차 누적
    - **대응**: mm 기반 3자리 정밀도(0.001mm) 채택으로 정밀도 향상, 반올림 알고리즘 개선, 변환 검증 프로세스 강화 (PoC-07에서 상세 검토)
@@ -916,14 +900,14 @@ function pxToMm(px: number, dpi: number): number {
 
 **단위 간 관계 요약**:
 
-| 단위 | mm 기준 | inch 기준 | pt 기준 | 비고 |
-|------|---------|-----------|---------|------|
-| mm   | 1       | 0.0394    | 2.835   | 절대 단위 |
-| cm   | 10      | 0.394     | 28.35   | 절대 단위 |
-| in   | 25.4    | 1         | 72      | 절대 단위 |
-| pt   | 0.3528  | 0.0139    | 1       | 절대 단위 (인쇄) |
-| px   | (25.4/DPI) | (1/DPI) | (72/DPI) | 상대 단위 (DPI 의존) |
-| pc   | 4.233   | 0.167     | 12      | 절대 단위 (인쇄) |
+| 단위 | mm 기준    | inch 기준 | pt 기준  | 비고                 |
+| ---- | ---------- | --------- | -------- | -------------------- |
+| mm   | 1          | 0.0394    | 2.835    | 절대 단위            |
+| cm   | 10         | 0.394     | 28.35    | 절대 단위            |
+| in   | 25.4       | 1         | 72       | 절대 단위            |
+| pt   | 0.3528     | 0.0139    | 1        | 절대 단위 (인쇄)     |
+| px   | (25.4/DPI) | (1/DPI)   | (72/DPI) | 상대 단위 (DPI 의존) |
+| pc   | 4.233      | 0.167     | 12       | 절대 단위 (인쇄)     |
 
 **참고**: DPI에 따른 상세한 변환 및 렌더링 전략은 **PoC-03 (DPI 및 렌더링 전략 결정)** 문서를 참조하세요.
 
@@ -974,6 +958,7 @@ function pxToMm(px: number, dpi: number): number {
 1. **가정된 DPI 사용**: 실측 정보가 없는 경우, **96 DPI (웹 표준)**를 가정합니다.
 
 2. **변환 공식**:
+
    ```typescript
    /**
     * 픽셀 크기를 mm로 변환 (실측 정보 없을 때)
@@ -996,7 +981,8 @@ function pxToMm(px: number, dpi: number): number {
    - 가로: 512 × (25.4 / 96) = **135.467mm**
    - 세로: 512 × (25.4 / 96) = **135.467mm**
 
-**결과**: 
+**결과**:
+
 - 같은 가정된 DPI를 사용하면, 화면이나 프린터가 바뀌어도 **항상 동일한 비율**로 표시됩니다.
 - 저장된 mm 값이 변하지 않으므로, 어떤 해상도에서도 일관성 유지됩니다.
 
@@ -1008,11 +994,12 @@ function pxToMm(px: number, dpi: number): number {
 
 **해결 방안**: **웹 표준 DPI 가정 (96 DPI)**
 
-1. **기본 가정**: 
+1. **기본 가정**:
    - 웹에서 일반적으로 사용되는 **96 DPI**를 표준으로 사용합니다.
    - 이는 Windows 기본 DPI이자 웹 브라우저 표준입니다.
 
 2. **변환 공식**:
+
    ```typescript
    /**
     * 이미지 픽셀 크기를 mm로 변환 (일반 이미지)
@@ -1021,14 +1008,10 @@ function pxToMm(px: number, dpi: number): number {
     * @param assumedDpi - 가정된 DPI (기본값: 96, 웹 표준)
     * @returns mm 단위 크기
     */
-   function imagePixelToMm(
-     pixelWidth: number, 
-     pixelHeight: number, 
-     assumedDpi: number = 96
-   ): { width: number, height: number } {
+   function imagePixelToMm(pixelWidth: number, pixelHeight: number, assumedDpi: number = 96): { width: number; height: number } {
      return {
        width: Math.round(((pixelWidth * 25.4) / assumedDpi) * 1000) / 1000,
-       height: Math.round(((pixelHeight * 25.4) / assumedDpi) * 1000) / 1000
+       height: Math.round(((pixelHeight * 25.4) / assumedDpi) * 1000) / 1000,
      }
    }
    ```
@@ -1044,6 +1027,7 @@ function pxToMm(px: number, dpi: number): number {
    - 세로: 1080 × (25.4 / 96) = **285.750mm**
 
 **결과**:
+
 - 모든 일반 이미지에 대해 동일한 기준(96 DPI)을 사용하므로, **일관된 크기 계산**이 가능합니다.
 - 저장된 mm 값은 변하지 않으므로, 어떤 화면이나 프린터에서도 **일정한 비율**로 표시됩니다.
 
@@ -1073,10 +1057,11 @@ function pxToMm(px: number, dpi: number): number {
 **저장 및 표시**:
 
 1. **저장 시점**: 이미지 삽입 시 즉시 mm로 변환하여 저장
+
    ```typescript
    interface ImageBox {
-     originalPixelSize: { width: number, height: number } // 원본 픽셀 크기 (참고용)
-     realSize: { width: number, height: number } // mm 단위 (저장값)
+     originalPixelSize: { width: number; height: number } // 원본 픽셀 크기 (참고용)
+     realSize: { width: number; height: number } // mm 단위 (저장값)
      displayMode: 'RealSize' | 'BoxFit' | 'Modified'
    }
    ```
@@ -1089,6 +1074,7 @@ function pxToMm(px: number, dpi: number): number {
    ```
 
 **결과**:
+
 - 저장된 mm 값이 기준이므로, 화면이나 프린터가 바뀌어도 **일정한 비율**로 표시됩니다.
 - 96 DPI 화면과 300 DPI 프린터에서도 **같은 물리적 크기**로 표시됩니다.
 
@@ -1101,24 +1087,26 @@ function pxToMm(px: number, dpi: number): number {
 **구현 전략**:
 
 1. **저장 단계** (한 번만 수행):
+
    ```typescript
    // 이미지 삽입 시
    const mmSize = calculateMmFromPixels(
-     pixelWidth, 
-     pixelHeight, 
-     pixelSpacing // 있으면 사용, 없으면 96 DPI 가정
+     pixelWidth,
+     pixelHeight,
+     pixelSpacing, // 있으면 사용, 없으면 96 DPI 가정
    )
    // mm 값으로 저장
    imageBox.size = mmSize // { width: 508.000, height: 285.750, unit: 'mm' }
    ```
 
 2. **표시 단계** (렌더링 시마다 수행):
+
    ```typescript
    // 화면 렌더링 시
    function getDisplaySize(mmSize: Size, screenDpi: number): Size {
      return {
        width: (mmSize.width * screenDpi) / 25.4,
-       height: (mmSize.height * screenDpi) / 25.4
+       height: (mmSize.height * screenDpi) / 25.4,
      }
    }
    ```
@@ -1145,6 +1133,7 @@ function pxToMm(px: number, dpi: number): number {
    - 물리적 크기: 동일 (고해상도 인쇄)
 
 **결론**:
+
 - **mm 단위로 저장**하면, DPI와 무관하게 **항상 동일한 물리적 크기**를 유지합니다.
 - **표시 시에만 DPI를 고려**하여 픽셀로 변환하므로, 어떤 환경에서도 일관된 표시가 가능합니다.
 
@@ -1157,6 +1146,7 @@ function pxToMm(px: number, dpi: number): number {
 **대응 전략**:
 
 1. **우선순위 기반 DPI 결정**:
+
    ```typescript
    function determineDpi(imageInfo: ImageInfo): number {
      // 1순위: DICOM PixelSpacing (가장 정확)
@@ -1164,12 +1154,12 @@ function pxToMm(px: number, dpi: number): number {
        const dpi = 25.4 / imageInfo.pixelSpacing[0] // mm를 DPI로 변환
        return dpi
      }
-     
+
      // 2순위: EXIF 정보 (일반 이미지)
      if (imageInfo.exifDpi && imageInfo.exifDpi > 0) {
        return imageInfo.exifDpi
      }
-     
+
      // 3순위: 가정된 DPI (웹 표준)
      return 96 // 기본값
    }
@@ -1187,9 +1177,9 @@ function pxToMm(px: number, dpi: number): number {
 4. **메타데이터 저장**:
    ```typescript
    interface ImageBox {
-     size: { width: number, height: number, unit: 'mm' }
+     size: { width: number; height: number; unit: 'mm' }
      metadata: {
-       originalPixelSize: { width: number, height: number }
+       originalPixelSize: { width: number; height: number }
        assumedDpi?: number // 가정된 DPI (실측 정보 없을 때)
        pixelSpacing?: number[] // DICOM PixelSpacing (있을 때)
        source: 'dicom' | 'jpeg' | 'png' | 'other'
@@ -1198,6 +1188,7 @@ function pxToMm(px: number, dpi: number): number {
    ```
 
 **결론**:
+
 - 가정된 DPI 사용은 **일관성을 위한 타협**입니다.
 - 실제 물리적 크기와 약간 다를 수 있지만, **레이아웃 일관성**과 **다양한 환경 지원**이 더 중요합니다.
 - 필요 시 사용자가 DPI를 명시적으로 지정할 수 있는 옵션을 제공할 수 있습니다.
@@ -1206,14 +1197,15 @@ function pxToMm(px: number, dpi: number): number {
 
 ### 요약: 실측 정보가 없는 이미지 처리 전략
 
-| 이미지 타입 | 실측 정보 | 처리 방식 | 기준 DPI |
-|------------|----------|----------|---------|
-| **DICOM** | PixelSpacing 있음 | `mm = pixel × PixelSpacing` | - |
-| **DICOM** | PixelSpacing 없음 | `mm = pixel × (25.4 / 96)` | 96 DPI |
-| **일반 이미지** | EXIF DPI 있음 | `mm = pixel × (25.4 / EXIF_DPI)` | EXIF DPI |
-| **일반 이미지** | EXIF DPI 없음 | `mm = pixel × (25.4 / 96)` | 96 DPI |
+| 이미지 타입     | 실측 정보         | 처리 방식                        | 기준 DPI |
+| --------------- | ----------------- | -------------------------------- | -------- |
+| **DICOM**       | PixelSpacing 있음 | `mm = pixel × PixelSpacing`      | -        |
+| **DICOM**       | PixelSpacing 없음 | `mm = pixel × (25.4 / 96)`       | 96 DPI   |
+| **일반 이미지** | EXIF DPI 있음     | `mm = pixel × (25.4 / EXIF_DPI)` | EXIF DPI |
+| **일반 이미지** | EXIF DPI 없음     | `mm = pixel × (25.4 / 96)`       | 96 DPI   |
 
 **핵심 원칙**:
+
 1. **mm 단위로 저장**: 절대적 크기 보장
 2. **표시 시 DPI 고려**: 화면/프린터에 맞춰 자동 변환
 3. **일관성 우선**: 같은 기준 사용으로 일관된 표시
@@ -1232,6 +1224,7 @@ function pxToMm(px: number, dpi: number): number {
 1. **가정된 DPI 사용**: 실측 정보가 없는 경우, **96 DPI (웹 표준)**를 가정합니다.
 
 2. **변환 공식**:
+
    ```typescript
    /**
     * 픽셀 크기를 mm로 변환 (실측 정보 없을 때)
@@ -1254,7 +1247,8 @@ function pxToMm(px: number, dpi: number): number {
    - 가로: 512 × (25.4 / 96) = **135.467mm**
    - 세로: 512 × (25.4 / 96) = **135.467mm**
 
-**결과**: 
+**결과**:
+
 - 같은 가정된 DPI를 사용하면, 화면이나 프린터가 바뀌어도 **항상 동일한 비율**로 표시됩니다.
 - 저장된 mm 값이 변하지 않으므로, 어떤 해상도에서도 일관성 유지됩니다.
 
@@ -1266,11 +1260,12 @@ function pxToMm(px: number, dpi: number): number {
 
 **해결 방안**: **웹 표준 DPI 가정 (96 DPI)**
 
-1. **기본 가정**: 
+1. **기본 가정**:
    - 웹에서 일반적으로 사용되는 **96 DPI**를 표준으로 사용합니다.
    - 이는 Windows 기본 DPI이자 웹 브라우저 표준입니다.
 
 2. **변환 공식**:
+
    ```typescript
    /**
     * 이미지 픽셀 크기를 mm로 변환 (일반 이미지)
@@ -1279,14 +1274,10 @@ function pxToMm(px: number, dpi: number): number {
     * @param assumedDpi - 가정된 DPI (기본값: 96, 웹 표준)
     * @returns mm 단위 크기
     */
-   function imagePixelToMm(
-     pixelWidth: number, 
-     pixelHeight: number, 
-     assumedDpi: number = 96
-   ): { width: number, height: number } {
+   function imagePixelToMm(pixelWidth: number, pixelHeight: number, assumedDpi: number = 96): { width: number; height: number } {
      return {
        width: Math.round(((pixelWidth * 25.4) / assumedDpi) * 1000) / 1000,
-       height: Math.round(((pixelHeight * 25.4) / assumedDpi) * 1000) / 1000
+       height: Math.round(((pixelHeight * 25.4) / assumedDpi) * 1000) / 1000,
      }
    }
    ```
@@ -1302,6 +1293,7 @@ function pxToMm(px: number, dpi: number): number {
    - 세로: 1080 × (25.4 / 96) = **285.750mm**
 
 **결과**:
+
 - 모든 일반 이미지에 대해 동일한 기준(96 DPI)을 사용하므로, **일관된 크기 계산**이 가능합니다.
 - 저장된 mm 값은 변하지 않으므로, 어떤 화면이나 프린터에서도 **일정한 비율**로 표시됩니다.
 
@@ -1331,10 +1323,11 @@ function pxToMm(px: number, dpi: number): number {
 **저장 및 표시**:
 
 1. **저장 시점**: 이미지 삽입 시 즉시 mm로 변환하여 저장
+
    ```typescript
    interface ImageBox {
-     originalPixelSize: { width: number, height: number } // 원본 픽셀 크기 (참고용)
-     realSize: { width: number, height: number } // mm 단위 (저장값)
+     originalPixelSize: { width: number; height: number } // 원본 픽셀 크기 (참고용)
+     realSize: { width: number; height: number } // mm 단위 (저장값)
      displayMode: 'RealSize' | 'BoxFit' | 'Modified'
    }
    ```
@@ -1347,6 +1340,7 @@ function pxToMm(px: number, dpi: number): number {
    ```
 
 **결과**:
+
 - 저장된 mm 값이 기준이므로, 화면이나 프린터가 바뀌어도 **일정한 비율**로 표시됩니다.
 - 96 DPI 화면과 300 DPI 프린터에서도 **같은 물리적 크기**로 표시됩니다.
 
@@ -1359,24 +1353,26 @@ function pxToMm(px: number, dpi: number): number {
 **구현 전략**:
 
 1. **저장 단계** (한 번만 수행):
+
    ```typescript
    // 이미지 삽입 시
    const mmSize = calculateMmFromPixels(
-     pixelWidth, 
-     pixelHeight, 
-     pixelSpacing // 있으면 사용, 없으면 96 DPI 가정
+     pixelWidth,
+     pixelHeight,
+     pixelSpacing, // 있으면 사용, 없으면 96 DPI 가정
    )
    // mm 값으로 저장
    imageBox.size = mmSize // { width: 508.000, height: 285.750, unit: 'mm' }
    ```
 
 2. **표시 단계** (렌더링 시마다 수행):
+
    ```typescript
    // 화면 렌더링 시
    function getDisplaySize(mmSize: Size, screenDpi: number): Size {
      return {
        width: (mmSize.width * screenDpi) / 25.4,
-       height: (mmSize.height * screenDpi) / 25.4
+       height: (mmSize.height * screenDpi) / 25.4,
      }
    }
    ```
@@ -1403,6 +1399,7 @@ function pxToMm(px: number, dpi: number): number {
    - 물리적 크기: 동일 (고해상도 인쇄)
 
 **결론**:
+
 - **mm 단위로 저장**하면, DPI와 무관하게 **항상 동일한 물리적 크기**를 유지합니다.
 - **표시 시에만 DPI를 고려**하여 픽셀로 변환하므로, 어떤 환경에서도 일관된 표시가 가능합니다.
 
@@ -1415,6 +1412,7 @@ function pxToMm(px: number, dpi: number): number {
 **대응 전략**:
 
 1. **우선순위 기반 DPI 결정**:
+
    ```typescript
    function determineDpi(imageInfo: ImageInfo): number {
      // 1순위: DICOM PixelSpacing (가장 정확)
@@ -1422,12 +1420,12 @@ function pxToMm(px: number, dpi: number): number {
        const dpi = 25.4 / imageInfo.pixelSpacing[0] // mm를 DPI로 변환
        return dpi
      }
-     
+
      // 2순위: EXIF 정보 (일반 이미지)
      if (imageInfo.exifDpi && imageInfo.exifDpi > 0) {
        return imageInfo.exifDpi
      }
-     
+
      // 3순위: 가정된 DPI (웹 표준)
      return 96 // 기본값
    }
@@ -1445,9 +1443,9 @@ function pxToMm(px: number, dpi: number): number {
 4. **메타데이터 저장**:
    ```typescript
    interface ImageBox {
-     size: { width: number, height: number, unit: 'mm' }
+     size: { width: number; height: number; unit: 'mm' }
      metadata: {
-       originalPixelSize: { width: number, height: number }
+       originalPixelSize: { width: number; height: number }
        assumedDpi?: number // 가정된 DPI (실측 정보 없을 때)
        pixelSpacing?: number[] // DICOM PixelSpacing (있을 때)
        source: 'dicom' | 'jpeg' | 'png' | 'other'
@@ -1456,6 +1454,7 @@ function pxToMm(px: number, dpi: number): number {
    ```
 
 **결론**:
+
 - 가정된 DPI 사용은 **일관성을 위한 타협**입니다.
 - 실제 물리적 크기와 약간 다를 수 있지만, **레이아웃 일관성**과 **다양한 환경 지원**이 더 중요합니다.
 - 필요 시 사용자가 DPI를 명시적으로 지정할 수 있는 옵션을 제공할 수 있습니다.
@@ -1464,14 +1463,15 @@ function pxToMm(px: number, dpi: number): number {
 
 ### 요약: 실측 정보가 없는 이미지 처리 전략
 
-| 이미지 타입 | 실측 정보 | 처리 방식 | 기준 DPI |
-|------------|----------|----------|---------|
-| **DICOM** | PixelSpacing 있음 | `mm = pixel × PixelSpacing` | - |
-| **DICOM** | PixelSpacing 없음 | `mm = pixel × (25.4 / 96)` | 96 DPI |
-| **일반 이미지** | EXIF DPI 있음 | `mm = pixel × (25.4 / EXIF_DPI)` | EXIF DPI |
-| **일반 이미지** | EXIF DPI 없음 | `mm = pixel × (25.4 / 96)` | 96 DPI |
+| 이미지 타입     | 실측 정보         | 처리 방식                        | 기준 DPI |
+| --------------- | ----------------- | -------------------------------- | -------- |
+| **DICOM**       | PixelSpacing 있음 | `mm = pixel × PixelSpacing`      | -        |
+| **DICOM**       | PixelSpacing 없음 | `mm = pixel × (25.4 / 96)`       | 96 DPI   |
+| **일반 이미지** | EXIF DPI 있음     | `mm = pixel × (25.4 / EXIF_DPI)` | EXIF DPI |
+| **일반 이미지** | EXIF DPI 없음     | `mm = pixel × (25.4 / 96)`       | 96 DPI   |
 
 **핵심 원칙**:
+
 1. **mm 단위로 저장**: 절대적 크기 보장
 2. **표시 시 DPI 고려**: 화면/프린터에 맞춰 자동 변환
 3. **일관성 우선**: 같은 기준 사용으로 일관된 표시
@@ -1480,4 +1480,3 @@ function pxToMm(px: number, dpi: number): number {
 ---
 
 **참고**: Q6~Q14는 DPI 및 렌더링 전략에 대한 내용으로, **PoC-03 (DPI 및 렌더링 전략 결정)** 문서를 참조하세요.
-
