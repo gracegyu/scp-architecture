@@ -4,9 +4,10 @@
 
 - **그래픽 렌더링**: **React-Spring** 선정 (애니메이션 특화, React 통합 우수, 번들 크기 적절)
 - **PDF 생성**: **Puppeteer (서버) + React-PDF (클라이언트)** 하이브리드 선정 (고품질 인쇄 + 개발 편의성)
-- **이미지 처리**: **HTML img + CSS (클라이언트) + Sharp (서버)** 선정 (PoC-04 기술과 일치 + 서버 고성능)
+- **이미지 처리**: **HTML img + CSS + html2canvas** 선정 (표시 + HTML→이미지 변환) + **Sharp (서버)**
 - **DICOM 지원**: **cornerstone.js + dcmjs** 조합 선정 (의료 특화 + 파싱 유연성)
-- **종합 기술 스택**: HTML DOM+SVG 기반, React 생태계 중심, 의료 특화 라이브러리 통합
+- **추가 필수**: **file-saver, xml-js, Lexical, Math.js** (EzOrthoWeb 검증 라이브러리)
+- **종합 기술 스택**: HTML DOM+SVG 기반, React 생태계 중심, EzOrthoWeb 검증 라이브러리 통합
 
 ## 1. 개요
 
@@ -262,7 +263,7 @@ PoC-04에서 선정된 HTML DOM+SVG 렌더링 기술을 기반으로 SCP Cloud R
 
 ### 2.3 이미지 처리 라이브러리
 
-**평가 대상**: Sharp, ImageMagick, Pixi.js, Canvas API
+**평가 대상**: Sharp, ImageMagick, html2canvas, HTML img + CSS
 
 #### 2.3.1 Sharp
 
@@ -314,7 +315,37 @@ PoC-04에서 선정된 HTML DOM+SVG 렌더링 기술을 기반으로 SCP Cloud R
 | 커뮤니티        | 80   | 안정적인 커뮤니티                       |
 | **종합 점수**   | **78.0** | 가중치 적용: 70×0.4 + 95×0.3 + 60×0.2 + 80×0.1 |
 
-#### 2.3.3 Pixi.js
+#### 2.3.3 html2canvas
+
+**개요**: HTML DOM을 Canvas/이미지로 변환하는 라이브러리 (EzOrthoWeb에서 실제 사용)
+
+**장점**:
+- HTML/SVG를 이미지로 변환 (인쇄/저장 기능에 필수)
+- 번들 크기 적절 (약 120KB minified)
+- 브라우저 호환성 우수
+- EzOrthoWeb에서 검증된 라이브러리
+
+**단점**:
+- 일부 CSS 속성 지원 제한
+- 외부 이미지 CORS 문제 가능
+- 복잡한 레이아웃에서 품질 저하 가능
+
+**EzOrthoWeb 사용 사례**:
+- `PatientChartPage.vue`: 전체 리포트를 이미지로 변환하여 인쇄
+- `ToothSVG.vue`: 치아 차트를 이미지로 변환하여 저장
+- 실제 의료 리포트 시스템에서 검증됨
+
+**평가 점수**:
+
+| 항목            | 점수 | 비고                                    |
+| --------------- | ---- | --------------------------------------- |
+| 성능            | 80   | 번들 크기 적절, 변환 속도 양호          |
+| 기능 완성도     | 90   | HTML→이미지 변환 필수 기능, 검증됨       |
+| 개발 효율성     | 85   | API 직관적, 기존 프로젝트에서 검증       |
+| 커뮤니티        | 85   | 활발한 커뮤니티 (GitHub 30k+ stars)    |
+| **종합 점수**   | **84.0** | 가중치 적용: 80×0.4 + 90×0.3 + 85×0.2 + 85×0.1 |
+
+#### 2.3.5 Pixi.js
 
 **개요**: WebGL 기반 고성능 2D 렌더링 라이브러리
 
@@ -339,7 +370,7 @@ PoC-04에서 선정된 HTML DOM+SVG 렌더링 기술을 기반으로 SCP Cloud R
 | 커뮤니티        | 85   | 활발한 커뮤니티 (GitHub 45k+ stars)    |
 | **종합 점수**   | **74.5** | 가중치 적용: 85×0.4 + 70×0.3 + 60×0.2 + 85×0.1 |
 
-#### 2.3.4 HTML img + CSS
+#### 2.3.6 HTML img + CSS
 
 **개요**: 브라우저 네이티브 HTML img 태그와 CSS
 
@@ -375,33 +406,40 @@ PoC-04에서 선정된 HTML DOM+SVG 렌더링 기술을 기반으로 SCP Cloud R
 | 커뮤니티        | 100  | 웹 표준, 모든 브라우저 지원             |
 | **종합 점수**   | **92.5** | 가중치 적용: 95×0.4 + 85×0.3 + 95×0.2 + 100×0.1 |
 
-#### 2.3.5 비교 및 선정
+#### 2.3.7 비교 및 선정
 
 | 라이브러리      | 성능 | 기능 완성도 | 개발 효율성 | 커뮤니티 | 종합 점수 | 선정 여부 |
 | --------------- | ---- | ---------- | ---------- | -------- | --------- | --------- |
 | Sharp           | 95   | 90         | 85         | 85       | 90.5      | ✅ **선정 (서버)** |
 | ImageMagick     | 70   | 95         | 60         | 80       | 78.0      | ❌        |
+| html2canvas     | 80   | 90         | 85         | 85       | 84.0      | ✅ **선정 (변환)** |
 | Pixi.js         | 85   | 70         | 60         | 85       | 74.5      | ❌        |
-| HTML img + CSS  | 95   | 85         | 95         | 100      | 92.5      | ✅ **선정 (클라이언트)** |
+| HTML img + CSS  | 95   | 85         | 95         | 100      | 92.5      | ✅ **선정 (표시)** |
 
 **선정 근거**:
 - **Sharp (서버)**: 고성능 이미지 처리, 다양한 포맷 지원, 메모리 효율적
-- **HTML img + CSS (클라이언트)**: 브라우저 네이티브, 번들 크기 0, 이미지 표시 및 기본 편집에 충분
+- **html2canvas (변환)**: HTML/SVG→이미지 변환 필수 기능, EzOrthoWeb에서 검증됨
+- **HTML img + CSS (표시)**: 브라우저 네이티브, 번들 크기 0, 이미지 표시 및 기본 편집에 충분
 
 **구현 전략**:
-- **클라이언트**: HTML `<img>` 태그와 CSS로 이미지 표시 및 편집
+- **이미지 표시**: HTML `<img>` 태그와 CSS로 이미지 표시 및 편집
   - 리사이즈: `width`/`height` 또는 `transform: scale()`
   - 크롭: `clip-path` 또는 `object-fit`
   - 회전: `transform: rotate()`
   - 밝기/채도/대비: `filter: brightness()`, `saturation()`, `contrast()` (GPU 가속)
+- **HTML→이미지 변환**: html2canvas로 리포트를 이미지/PDF로 변환 (인쇄, 저장 기능)
 - **의료 이미지 (DICOM)**: cornerstone.js의 윈도우잉 기능 사용 (의료 표준)
 - **서버**: Sharp로 고성능 이미지 변환 및 최적화
 
+**EzOrthoWeb 검증 결과**:
+- html2canvas는 EzOrthoWeb에서 실제 사용되어 검증된 라이브러리입니다.
+- `PatientChartPage.vue`에서 전체 리포트를 이미지로 변환하여 인쇄 기능 제공
+- `ToothSVG.vue`에서 치아 차트를 이미지로 변환하여 저장 기능 제공
+
 **참고**: 
-- PoC-04에서 HTML DOM + SVG를 선정했으므로, 이미지 렌더링도 HTML `<img>` 태그를 사용합니다.
-- CSS filter는 GPU 가속으로 실시간 밝기/채도 조정이 가능하며, 픽셀 단위 조작 없이도 충분합니다.
+- html2canvas는 HTML/SVG를 이미지로 변환하는 핵심 기능으로 필수입니다.
+- 이미지 표시는 HTML `<img>` 태그 사용 (PoC-04 전략과 일치)
 - DICOM 이미지는 cornerstone.js의 전문적인 윈도우잉 기능을 사용합니다.
-- Canvas API는 정밀한 픽셀 단위 조작이 필요한 특수한 경우에만 보조적으로 사용합니다.
 
 ---
 
@@ -530,6 +568,65 @@ PoC-04에서 선정된 HTML DOM+SVG 렌더링 기술을 기반으로 SCP Cloud R
 
 ---
 
+### 2.5 추가 평가 (EzOrthoWeb 검증 라이브러리)
+
+EzOrthoWeb에서 실제 사용되어 검증된 추가 라이브러리들을 평가합니다.
+
+#### 2.5.1 file-saver
+
+**개요**: 클라이언트 사이드 파일 저장 라이브러리
+
+**장점**:
+- 브라우저에서 직접 파일 저장
+- 경량 (약 10KB minified)
+- 다양한 파일 포맷 지원
+- 브라우저 호환성 우수
+
+**평가 점수**: 90점 (필수 기능, 경량, 안정성 우수)
+
+#### 2.5.2 xml-js
+
+**개요**: XML과 JSON 간 변환 라이브러리
+
+**장점**:
+- 기존 XML 리포트 파싱에 필수
+- 경량 (약 50KB minified)
+- TypeScript 지원
+
+**평가 점수**: 85점 (Migration 필수, 안정성 우수)
+
+#### 2.5.3 React 텍스트 에디터
+
+**tiptap → Lexical (Meta) 또는 Slate.js 고려**:
+
+**Lexical (Meta)**:
+- Facebook/Meta에서 개발
+- React 전용, TypeScript 완벽 지원
+- 현대적 아키텍처, 성능 우수
+- 평가 점수: 90점
+
+**Slate.js**:
+- React 기반 리치 텍스트 에디터
+- 확장성 우수, 커뮤니티 활발
+- TypeScript 지원
+- 평가 점수: 85점
+
+**선정**: **Lexical** (성능, 현대적 아키텍처 우수)
+
+#### 2.5.4 수치 계산 라이브러리
+
+**numeric (기존) → Math.js 고려**:
+
+**Math.js**:
+- 강력한 수학 라이브러리
+- TypeScript 지원 완벽
+- 의료 계산에 필요한 함수 제공
+- 평가 점수: 85점
+
+**선정**: **Math.js** (TypeScript 지원, 기능 완성도 우수)
+
+---
+
 ## 3. 종합 기술 스택
 
 ### 3.1 최종 선정 라이브러리
@@ -539,9 +636,14 @@ PoC-04에서 선정된 HTML DOM+SVG 렌더링 기술을 기반으로 SCP Cloud R
 | **그래픽 렌더링**  | React-Spring                 | 애니메이션 및 상호작용         |
 | **PDF 생성**       | Puppeteer (서버)             | 고품질 HTML→PDF 변환           |
 |                    | React-PDF (클라이언트, 선택)  | 빠른 미리보기                   |
-| **이미지 처리**    | HTML img + CSS (클라이언트)   | 이미지 표시 및 기본 편집       |
+| **이미지 처리**    | HTML img + CSS               | 이미지 표시 및 기본 편집       |
+|                    | html2canvas                   | HTML→이미지 변환 (인쇄/저장)   |
 |                    | Sharp (서버)                  | 고성능 이미지 변환              |
 | **DICOM 지원**     | cornerstone.js + dcmjs       | 의료 이미지 뷰어 + 파싱        |
+| **파일 처리**      | file-saver                    | 파일 저장                      |
+|                    | xml-js                        | XML 파싱 (Migration 지원)      |
+| **텍스트 편집**    | Lexical (Meta)                | 리치 텍스트 에디터             |
+| **수치 계산**      | Math.js                       | 수학 계산 (의료 측정)          |
 
 ### 3.2 기술 스택 아키텍처
 
@@ -551,8 +653,13 @@ PoC-04에서 선정된 HTML DOM+SVG 렌더링 기술을 기반으로 SCP Cloud R
 ├─────────────────────────────────────────────────┤
 │  렌더링: HTML DOM + SVG (PoC-04 선정)          │
 │  애니메이션: React-Spring                       │
-│  이미지 처리: HTML img + CSS (클라이언트)      │
+│  이미지 표시: HTML img + CSS                   │
+│  HTML→이미지: html2canvas                      │
+│  텍스트 편집: Lexical                          │
 │  DICOM: cornerstone.js + dcmjs                 │
+│  파일 저장: file-saver                         │
+│  XML 파싱: xml-js                              │
+│  수치 계산: Math.js                            │
 └─────────────────────────────────────────────────┘
                     │
         ┌───────────┴───────────┐
@@ -569,12 +676,18 @@ PoC-04에서 선정된 HTML DOM+SVG 렌더링 기술을 기반으로 SCP Cloud R
 
 | 라이브러리       | 예상 번들 크기 (minified) | 비고                    |
 | ---------------- | ------------------------- | ----------------------- |
-| React-Spring     | ~50KB                     | 필수                    |
-| cornerstone.js   | ~300KB                    | DICOM 뷰어 (필수)       |
-| dcmjs            | ~100KB                    | DICOM 파싱 (필수)       |
+| React-Spring     | ~50KB                     | 애니메이션 (필수)       |
+| html2canvas      | ~120KB                    | HTML→이미지 변환 (필수) |
+| cornerstone.js   | ~300KB                    | DICOM 뷰어 (조건부)     |
+| dcmjs            | ~100KB                    | DICOM 파싱 (조건부)     |
+| file-saver       | ~10KB                     | 파일 저장 (필수)        |
+| xml-js           | ~50KB                     | XML 파싱 (필수)         |
+| Lexical          | ~80KB                     | 텍스트 편집 (필수)      |
+| Math.js          | ~60KB                     | 수치 계산 (필수)        |
 | React-PDF        | ~80KB                     | 선택적 (미리보기용)     |
-| **총합 (필수)**  | **~450KB**                | React-Spring + DICOM    |
-| **총합 (전체)**  | **~530KB**                | React-PDF 포함          |
+| **총합 (기본)**  | **~370KB**                | DICOM 제외              |
+| **총합 (DICOM)** | **~770KB**                | DICOM 포함              |
+| **총합 (전체)**  | **~850KB**                | 모든 기능 포함          |
 
 **최적화 전략**:
 - 코드 스플리팅: DICOM 뷰어는 필요 시에만 로드
@@ -646,8 +759,9 @@ PoC-04에서 선정된 HTML DOM+SVG 렌더링 기술을 기반으로 SCP Cloud R
 **핵심 라이브러리**:
 - **그래픽 렌더링**: React-Spring (애니메이션)
 - **PDF 생성**: Puppeteer (서버, 고품질), React-PDF (클라이언트, 선택)
-- **이미지 처리**: HTML img + CSS (클라이언트), Sharp (서버)
+- **이미지 처리**: HTML img + CSS (표시), html2canvas (변환), Sharp (서버)
 - **DICOM 지원**: cornerstone.js + dcmjs
+- **필수 도구**: file-saver, xml-js, Lexical, Math.js (EzOrthoWeb 검증)
 
 ### 7.2 핵심 장점
 
@@ -662,9 +776,3 @@ PoC-04에서 선정된 HTML DOM+SVG 렌더링 기술을 기반으로 SCP Cloud R
 2. **PoC-14 (Element 렌더링 엔진 구현)**: 실제 프로토타입 구현 및 성능 테스트
 3. **라이브러리 통합 테스트**: 선정된 라이브러리 조합의 호환성 검증
 
----
-
-**작성일**: 2026년 1월 23일  
-**작성자**: Raymond  
-**검토자**: -  
-**승인자**: -

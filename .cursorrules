@@ -1,0 +1,9 @@
+# Cursor Rules for SCP Architecture Project
+
+## Language Settings
+- All commit messages must be written in Korean (한국어).
+- When using "Generate Commit Message" feature, it must generate messages in Korean.
+- All git-related messages and descriptions should be in Korean.
+
+## Project Context
+This is a medical report system architecture project. All documentation and commit messages should be in Korean unless explicitly required otherwise.
