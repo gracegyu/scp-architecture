@@ -211,7 +211,7 @@ type ElementType =
 | textBox              | O   | O   | O       | O              |
 | label                | O   | O   | O       | textBox로 대체 |
 | toothBox             | X   | X   | O       | O              |
-| treatmentCategory    | X   | X   | O       | X [P2]         |
+| treatmentCategory    | X   | X   | O       | X (P2)         |
 | block                | X   | X   | O       | X              |
 | rectangle            | X   | O   | O       | O              |
 | ellipse              | X   | O   | O       | X              |
@@ -224,7 +224,7 @@ type ElementType =
 | group                | X   | X   | X       | O              |
 
 - O: 지원, X: 미지원. 셀에 설명이 있는 경우 해당 앱에서의 대체 표현 또는 비고.
-- [P2]: Priority 2 구현 요소. 스키마에 포함하되 구현 우선순위 낮음 (전문적/특수 용도).
+- (P2): Priority 2 구현 요소. 스키마에 포함하되 구현 우선순위 낮음 (전문적/특수 용도).
 
 ---
 
@@ -313,7 +313,7 @@ interface AutoFill {
 | selectedToothCodes          | string[]   | N    | 선택된 치아 코드 (FDI 등) |
 | selectedOcclusionToothCodes | string[]   | N    | 교합 측 치아 (예: "21_2") |
 
-### 4.5 TreatmentCategory (EzOrtho) **[P2]**
+### 4.5 TreatmentCategory (EzOrtho) **(P2)**
 
 | 필드                 | 타입                | 필수 | 설명       |
 | -------------------- | ------------------- | ---- | ---------- |
@@ -542,7 +542,7 @@ interface Document {
 | textBox              | O   | O   | O       | O         | content HTML          |
 | label                | O   | O   | O       | -         | CleverOne는 textBox로 |
 | toothBox             | -   | -   | O       | O         | toothCode 호환        |
-| treatmentCategory    | -   | -   | O       | -         | EzOrtho 전용          |
+| treatmentCategory    | -   | -   | O       | -         | (P2) EzOrtho 전용          |
 | block                | -   | -   | O       | -         | EzOrtho               |
 | group                | -   | -   | -       | O         | memberIds             |
 | rectangle            | -   | O   | O       | O         | Annotation            |
