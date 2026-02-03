@@ -238,7 +238,7 @@ type ElementType =
 | fitMode              | "realSize" \| "boxFit" \| "modified"    | Y    | 이미지 맞춤 방식                      |
 | source               | "upload" \| "capture" \| "reference"    | N    | 이미지 출처                           |
 | imageRefs            | string[]                                | N    | 이미지 ID 또는 URL 목록 (Multi 시)    |
-| layout               | { row: number, column: number }         | N    | Multi 시 행/열 (1~20)                 |
+| layout               | { row: number, column: number }         | N    | Multi 시 행/열 (1~20). Single은 생략 가능(생략 시 1×1) |
 | translation          | { x: number, y: number }                | N    | mm 단위 이동                          |
 | scale                | { x: number, y: number }                | N    | 배율                                  |
 | invert               | boolean                                 | N    | 색 반전                               |
@@ -246,6 +246,17 @@ type ElementType =
 | capturedImageInfo    | CapturedImageInfo                       | N    | DICOM/캡처 메타 (CleverOne)           |
 | autoFill             | AutoFill                                | N    | E3/CleverOne 자동 채우기              |
 | linkedBoxId          | string                                  | N    | Reference ImageBox인 경우 참조 Box ID |
+
+**Multi ImageBox란?**
+
+- **한 번에 여러 장을 격자로 표시**한다. 박스를 Row×Column **셀**로 나누고, 각 셀에 `imageRefs`의 이미지를 하나씩 배치한다. 예: layout 2×3 → 6개 셀, 6장을 2행 3열로 동시에 표시.
+- **기존 문서**: E3 RC Report는 "Image의 Cell 분할(Row & Column)", CleverOne은 "Multi Layout인 경우 Image File이 layout 갯수만큼 입력"으로 정의. **한 장씩 넘겨 보는 슬라이더/좌우 버튼은 포맷에 없음.** 필요 시 렌더링 단계에서 슬라이더·페이징 등을 추가할 수 있음.
+
+**Reference ImageBox란?**
+
+- **자신은 이미지 소스를 가지지 않는다.** 다른 ImageBox 하나를 `linkedBoxId`로 가리키고, 그 박스가 보여 주는 이미지를 그대로(또는 동기화된 뷰로) 표시한다.
+- **용도**: 메인 이미지 박스(보통 Multi) 옆에 "참조용" 작은 뷰를 두는 경우. 예: MPR 메인 뷰 + Reference MPR, Scout 메인 + Reference Scout. CleverOne 포맷 문서에는 "Reference: Multi Image Box와 함께 Insert되는 Reference Image Box"로 정의되어 있음.
+- **정리**: Single/Multi는 각자 이미지 목록을 갖고, Reference는 `linkedBoxId`가 가리키는 **한 개의 ImageBox**와 같은 소스를 공유하는 "연결된 뷰"이다.
 
 **CapturedImageInfo** (CleverOne 호환):
 
@@ -366,11 +377,45 @@ interface AutoFill {
 
 ### 4.10 Image (EzOrtho 단순 이미지)
 
-| 필드                 | 타입    | 필수 | 설명               |
-| -------------------- | ------- | ---- | ------------------ |
-| ...CommonElementBase |         | Y    |                    |
-| type                 | "image" | Y    |                    |
-| source               | string  | Y    | URL 또는 파일 참조 |
+| 필드                 | 타입    | 필수 | 설명                                                  |
+| -------------------- | ------- | ---- | ----------------------------------------------------- |
+| ...CommonElementBase |         | Y    |                                                       |
+| type                 | "image" | Y    |                                                       |
+| source               | string  | Y    | 앱 번들 리소스 경로 (예: `:/images/img/img_face.png`) |
+
+**Image 요소란?**
+
+- **ImageBox와 구분**: ImageBox는 캡처/DICOM/자동채우기 등 **의료 이미지**를 다루고, Image는 **위치·크기만 있는 단순 이미지** 한 장을 표시한다. 편집·윈도잉·레이아웃 등은 없음.
+- **고정 요소**: EzOrthoWeb에서 `fixed: true`로 구현되어 **사용자가 이동·크기조정 불가**. 템플릿에 포함된 정적 장식/참조 이미지용.
+
+**EzOrthoWeb 소스코드 분석 결과**:
+
+- **클래스**: `ChartElementImage extends ChartElementBase`
+- **Source 형식**: `":/images/img/img_face.png"` (특별한 경로 포맷)
+- **로딩 방식**: webpack의 `require.context('@/assets/images/img/', false, /\.png$/)`로 앱 번들 정적 리소스 로딩
+- **제한사항**: 
+  - 현재 `:/images/img/` 경로만 지원
+  - PNG 파일만 지원 (`/\.png$/`)
+  - 런타임 동적 이미지 추가 불가
+- **사용 예시**:
+  ```xml
+  <!-- 단독 사용 -->
+  <Image Source=":/images/img/img_face.png" Left="0" Top="0" Width="60" Height="80"/>
+  
+  <!-- Block 내부 사용 (주요 패턴) -->
+  <Block Name="Face" IsVisible="true" Left="5" Top="12">
+    <Image Source=":/images/img/img_face.png" Left="0" Top="0" Width="60" Height="80"/>
+    <Lines>...</Lines>
+    <TextBox>...</TextBox>
+  </Block>
+  ```
+- **fallback**: 이미지 로딩 실패 시 `@/assets/img/img_yet.png` 표시
+
+**통합 스키마 고려사항**:
+
+- **현재 구현**: 앱 번들 정적 리소스만 지원 (제한적)
+- **향후 확장**: URL/동적 파일 경로 지원 가능하도록 설계
+- **Migration**: EzOrtho → Cloud 시 정적 리소스 → 클라우드 스토리지 경로로 변환 필요
 
 ---
 
@@ -520,6 +565,7 @@ interface Document {
 | CleverOne ToothCode           | selectedToothCodes, selectedOcclusionToothCodes | 그대로 매핑                                  |
 | CleverOne CapturedImageInfo   | imageBox.capturedImageInfo                      | 구조 그대로                                  |
 | CleverOne Groups              | group.memberIds                                 | Gruop→group, ID 목록                         |
+| EzOrtho Image Source          | image.source                                    | `:/images/img/` → 클라우드 스토리지 경로 매핑 |
 
 (상세 변환 규칙은 PoC-07 산출물과 연동.)
 
@@ -595,7 +641,6 @@ interface Document {
           "fitMode": "modified",
           "source": "capture",
           "imageRefs": ["image-ref-1"],
-          "layout": { "row": 1, "column": 1 },
           "translation": { "x": 0, "y": 0 },
           "scale": { "x": 1, "y": 1 }
         },
@@ -641,7 +686,7 @@ interface Document {
           "type": "image",
           "position": { "unit": "mm", "x": 145, "y": 60 },
           "size": { "unit": "mm", "width": 25, "height": 15 },
-          "source": "assets/logo.png"
+          "source": ":/images/img/img_face.png"
         },
         {
           "id": "block-1",
