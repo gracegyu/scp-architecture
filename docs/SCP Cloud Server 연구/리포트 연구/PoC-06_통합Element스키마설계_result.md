@@ -211,7 +211,7 @@ type ElementType =
 | textBox              | O   | O   | O       | O              |
 | label                | O   | O   | O       | textBox로 대체 |
 | toothBox             | X   | X   | O       | O              |
-| treatmentCategory    | X   | X   | O       | X              |
+| treatmentCategory    | X   | X   | O       | X [P2]         |
 | block                | X   | X   | O       | X              |
 | rectangle            | X   | O   | O       | O              |
 | ellipse              | X   | O   | O       | X              |
@@ -224,6 +224,7 @@ type ElementType =
 | group                | X   | X   | X       | O              |
 
 - O: 지원, X: 미지원. 셀에 설명이 있는 경우 해당 앱에서의 대체 표현 또는 비고.
+- [P2]: Priority 2 구현 요소. 스키마에 포함하되 구현 우선순위 낮음 (전문적/특수 용도).
 
 ---
 
@@ -231,21 +232,21 @@ type ElementType =
 
 ### 4.1 ImageBox
 
-| 필드                 | 타입                                    | 필수 | 설명                                  |
-| -------------------- | --------------------------------------- | ---- | ------------------------------------- |
-| ...CommonElementBase |                                         | Y    | 공통 속성                             |
-| type                 | "imageBox"                              | Y    |                                       |
-| fitMode              | "realSize" \| "boxFit" \| "modified"    | Y    | 이미지 맞춤 방식                      |
-| source               | "upload" \| "capture" \| "reference"    | N    | 이미지 출처                           |
-| imageRefs            | string[]                                | N    | 이미지 ID 또는 URL 목록 (Multi 시)    |
+| 필드                 | 타입                                    | 필수 | 설명                                                   |
+| -------------------- | --------------------------------------- | ---- | ------------------------------------------------------ |
+| ...CommonElementBase |                                         | Y    | 공통 속성                                              |
+| type                 | "imageBox"                              | Y    |                                                        |
+| fitMode              | "realSize" \| "boxFit" \| "modified"    | Y    | 이미지 맞춤 방식                                       |
+| source               | "upload" \| "capture" \| "reference"    | N    | 이미지 출처                                            |
+| imageRefs            | string[]                                | N    | 이미지 ID 또는 URL 목록 (Multi 시)                     |
 | layout               | { row: number, column: number }         | N    | Multi 시 행/열 (1~20). Single은 생략 가능(생략 시 1×1) |
-| translation          | { x: number, y: number }                | N    | mm 단위 이동                          |
-| scale                | { x: number, y: number }                | N    | 배율                                  |
-| invert               | boolean                                 | N    | 색 반전                               |
-| showRuler            | boolean \| { top, bottom, left, right } | N    | 눈금 표시                             |
-| capturedImageInfo    | CapturedImageInfo                       | N    | DICOM/캡처 메타 (CleverOne)           |
-| autoFill             | AutoFill                                | N    | E3/CleverOne 자동 채우기              |
-| linkedBoxId          | string                                  | N    | Reference ImageBox인 경우 참조 Box ID |
+| translation          | { x: number, y: number }                | N    | mm 단위 이동                                           |
+| scale                | { x: number, y: number }                | N    | 배율                                                   |
+| invert               | boolean                                 | N    | 색 반전                                                |
+| showRuler            | boolean \| { top, bottom, left, right } | N    | 눈금 표시                                              |
+| capturedImageInfo    | CapturedImageInfo                       | N    | DICOM/캡처 메타 (CleverOne)                            |
+| autoFill             | AutoFill                                | N    | E3/CleverOne 자동 채우기                               |
+| linkedBoxId          | string                                  | N    | Reference ImageBox인 경우 참조 Box ID                  |
 
 **Multi ImageBox란?**
 
@@ -312,7 +313,7 @@ interface AutoFill {
 | selectedToothCodes          | string[]   | N    | 선택된 치아 코드 (FDI 등) |
 | selectedOcclusionToothCodes | string[]   | N    | 교합 측 치아 (예: "21_2") |
 
-### 4.5 TreatmentCategory (EzOrtho)
+### 4.5 TreatmentCategory (EzOrtho) **[P2]**
 
 | 필드                 | 타입                | 필수 | 설명       |
 | -------------------- | ------------------- | ---- | ---------- |
@@ -322,6 +323,8 @@ interface AutoFill {
 | category2            | string              | N    | 2단계 분류 |
 | category3            | string              | N    | 3단계 분류 |
 | placeholder          | string              | N    |            |
+
+**P2 (구현 우선순위 낮음)**: 매우 전문적인 EzOrtho 구강외과 수술 분류 전용 요소. 일반 리포트에서는 사용되지 않으며, EzOrtho Treatment Chart Migration 시에만 필요. 스키마 완성도를 위해 포함하되, 구현 우선순위는 낮음.
 
 ### 4.6 Annotation 공통 및 타입별
 
@@ -393,15 +396,16 @@ interface AutoFill {
 - **클래스**: `ChartElementImage extends ChartElementBase`
 - **Source 형식**: `":/images/img/img_face.png"` (특별한 경로 포맷)
 - **로딩 방식**: webpack의 `require.context('@/assets/images/img/', false, /\.png$/)`로 앱 번들 정적 리소스 로딩
-- **제한사항**: 
+- **제한사항**:
   - 현재 `:/images/img/` 경로만 지원
   - PNG 파일만 지원 (`/\.png$/`)
   - 런타임 동적 이미지 추가 불가
 - **사용 예시**:
+
   ```xml
   <!-- 단독 사용 -->
   <Image Source=":/images/img/img_face.png" Left="0" Top="0" Width="60" Height="80"/>
-  
+
   <!-- Block 내부 사용 (주요 패턴) -->
   <Block Name="Face" IsVisible="true" Left="5" Top="12">
     <Image Source=":/images/img/img_face.png" Left="0" Top="0" Width="60" Height="80"/>
@@ -409,6 +413,7 @@ interface AutoFill {
     <TextBox>...</TextBox>
   </Block>
   ```
+
 - **fallback**: 이미지 로딩 실패 시 `@/assets/img/img_yet.png` 표시
 
 **통합 스키마 고려사항**:
@@ -555,16 +560,16 @@ interface Document {
 
 ## 8. Migration 매핑 테이블 (요약)
 
-| 출처                          | 대상 필드                                       | 변환 규칙                                    |
-| ----------------------------- | ----------------------------------------------- | -------------------------------------------- |
-| E2/E3 BoxPosition (비율)      | position                                        | 비율→mm (paper.size, margin 사용)            |
-| E3 RC/CleverOne Position      | position                                        | mm→mm, 정밀도 3자리로 확장                   |
-| EzOrtho Left/Top/Width/Height | position, size                                  | mm→mm, 정밀도 확장                           |
-| 공통 BorderLine/Background    | style                                           | borderColor, borderWidth, backgroundColor 등 |
-| E3/CleverOne Font             | style.fontSize                                  | pt 유지 (PoC-03)                             |
-| CleverOne ToothCode           | selectedToothCodes, selectedOcclusionToothCodes | 그대로 매핑                                  |
-| CleverOne CapturedImageInfo   | imageBox.capturedImageInfo                      | 구조 그대로                                  |
-| CleverOne Groups              | group.memberIds                                 | Gruop→group, ID 목록                         |
+| 출처                          | 대상 필드                                       | 변환 규칙                                     |
+| ----------------------------- | ----------------------------------------------- | --------------------------------------------- |
+| E2/E3 BoxPosition (비율)      | position                                        | 비율→mm (paper.size, margin 사용)             |
+| E3 RC/CleverOne Position      | position                                        | mm→mm, 정밀도 3자리로 확장                    |
+| EzOrtho Left/Top/Width/Height | position, size                                  | mm→mm, 정밀도 확장                            |
+| 공통 BorderLine/Background    | style                                           | borderColor, borderWidth, backgroundColor 등  |
+| E3/CleverOne Font             | style.fontSize                                  | pt 유지 (PoC-03)                              |
+| CleverOne ToothCode           | selectedToothCodes, selectedOcclusionToothCodes | 그대로 매핑                                   |
+| CleverOne CapturedImageInfo   | imageBox.capturedImageInfo                      | 구조 그대로                                   |
+| CleverOne Groups              | group.memberIds                                 | Gruop→group, ID 목록                          |
 | EzOrtho Image Source          | image.source                                    | `:/images/img/` → 클라우드 스토리지 경로 매핑 |
 
 (상세 변환 규칙은 PoC-07 산출물과 연동.)
@@ -577,6 +582,9 @@ interface Document {
 2. **제품 전용 속성**: `extensions.<product>` 또는 `extensions.<feature>` 아래에 두어 스키마 버전과 무관하게 확장.
 3. **스키마 버전**: `metadata.version` 또는 `document.schemaVersion` 올리고, Migration 경로를 PoC-07에 등록.
 4. **하위 호환**: 새 필드는 optional, 기존 필드 삭제/이름 변경은 deprecated 경로를 거쳐 단계적 제거.
+5. **구현 우선순위**:
+   - **P1**: 범용적이고 필수적인 요소 (textBox, imageBox, annotation 등)
+   - **P2**: 전문적/특수 용도 요소 (treatmentCategory 등). 스키마 포함하되 구현 우선순위 낮음. Migration 호환성 목적.
 
 ---
 
@@ -825,6 +833,7 @@ interface Document {
 ## 13. 결론 및 다음 단계
 
 - **통합 Element 스키마**는 mm·pt 단위와 공통/타입별 구조를 명확히 하고, 제품별·기능별 확장은 `extensions`로 분리해 설계되었습니다.
+- **구현 우선순위**: P1(범용 필수 요소)과 P2(전문/특수 요소) 구분으로 단계별 개발 가능. P2 요소(treatmentCategory 등)는 Migration 호환성을 위해 스키마 포함하되 구현 우선순위 낮음.
 - **산출물**: (1) 통합 JSON Schema 초안(별도 파일 권장), (2) TypeScript 타입 정의(본 문서 6절), (3) 호환성 매트릭스(7절), (4) Migration 매핑 요약(8절), (5) 확장 가이드라인(9절), (6) 검증 시나리오(10절), (7) JSON 예시(11절), (8) 검증 도구 안내(12절).
 - **다음 단계**: PoC-07(Migration 시스템)에서 상세 변환 규칙 및 검증, PoC-14(Element 렌더링 엔진)에서 위 스키마 기반 렌더링 및 DragResizeDiv Handler와의 호환성 보장.
 
