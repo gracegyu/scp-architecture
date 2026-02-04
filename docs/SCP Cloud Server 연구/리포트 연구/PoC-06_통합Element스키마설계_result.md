@@ -215,7 +215,7 @@ type ElementType =
 | rectangle            | X   | O   | O       | O              |
 | ellipse              | X   | O   | O       | X              |
 | line                 | X   | O   | O       | O              |
-| arrow                | X   | O   | X       | X              |
+| arrow                | X   | O   | X       | O              |
 | freeDraw             | X   | O   | O       | O              |
 | memo                 | X   | O   | X       | O              |
 | formControl          | X   | X   | O       | X              |
@@ -623,7 +623,7 @@ interface Document {
 | rectangle            | -   | O   | O       | O         | Annotation            |
 | ellipse              | -   | O   | O       | -         | CleverOne는 미지원    |
 | line                 | -   | O   | O       | O         |                       |
-| arrow                | -   | O   | -       | -         | CleverOne 미지원      |
+| arrow                | -   | O   | -       | O         | Annotation            |
 | freeDraw             | -   | O   | O       | O         |                       |
 | memo                 | -   | O   | -       | O         |                       |
 | formControl          | -   | -   | O       | -         | EzOrtho               |
