@@ -189,7 +189,6 @@ type ElementType =
   | 'label'
   | 'toothBox'
   | 'treatmentCategory'
-  | 'block'
   | 'rectangle'
   | 'ellipse'
   | 'line'
@@ -198,7 +197,8 @@ type ElementType =
   | 'memo'
   | 'formControl' // 하위 타입으로 구체화
   | 'image' // 단순 이미지 (EzOrtho)
-  | 'group' // CleverOne Groups
+  | 'block' // EzOrtho Containment
+  | 'group' // CleverOne Reference
 ```
 
 ### 3.5 애플리케이션별 ElementType 지원 현황
@@ -212,7 +212,6 @@ type ElementType =
 | label                | O   | O   | O       | textBox로 대체 |
 | toothBox             | X   | X   | O       | O              |
 | treatmentCategory    | X   | X   | O       | X (P2)         |
-| block                | X   | X   | O       | X              |
 | rectangle            | X   | O   | O       | O              |
 | ellipse              | X   | O   | O       | X              |
 | line                 | X   | O   | O       | O              |
@@ -221,6 +220,7 @@ type ElementType =
 | memo                 | X   | O   | X       | O              |
 | formControl          | X   | X   | O       | X              |
 | image                | X   | X   | O       | X              |
+| block                | X   | X   | O       | X              |
 | group                | X   | X   | X       | O              |
 
 - O: 지원, X: 미지원. 셀에 설명이 있는 경우 해당 앱에서의 대체 표현 또는 비고.
@@ -341,15 +341,29 @@ interface AutoFill {
 
 **points** 형식: `"x1,y1|x2,y2|..."` 또는 `[x1,y1,x2,y2,...]`, 단위 mm, 소수점 3자리.
 
-### 4.7 Block (EzOrtho)
+### 4.7 Block (EzOrtho) - Containment 구조
 
-| 필드                 | 타입     | 필수 | 설명                              |
-| -------------------- | -------- | ---- | --------------------------------- |
-| ...CommonElementBase |          | Y    |                                   |
-| type                 | "block"  | Y    |                                   |
-| children             | string[] | N    | 자식 요소 ID 목록 (중첩 레이아웃) |
+**포함 관계**: 자식 요소들을 물리적으로 포함하는 컨테이너. XML에서 중첩 구조로 표현되며, 자식 요소들의 실제 데이터를 관리한다.
 
-### 4.8 Group (CleverOne)
+| 필드                 | 타입      | 필수 | 설명                           |
+| -------------------- | --------- | ---- | ------------------------------ |
+| ...CommonElementBase |           | Y    |                                |
+| type                 | "block"   | Y    |                                |
+| name                 | string    | N    | Block 이름 (EzOrtho Name 속성) |
+| visible              | boolean   | N    | 표시 여부 (EzOrtho IsVisible)  |
+| children             | Element[] | N    | 자식 요소 배열 (직접 포함)     |
+
+**Block 특징 (Containment)**:
+
+- **소유 관계**: 자식 요소들의 데이터를 **직접 포함** (`children: Element[]`)
+- **상대 좌표**: 자식 요소들의 position은 Block 기준 상대 좌표
+- **중복 불가**: 하나의 요소는 한 Block에만 속할 수 있음
+- **계층 구조**: XML 중첩 구조와 동일
+- **Migration**: Block 내 요소들은 pages.elements에 별도 저장하지 않음
+
+### 4.8 Group (CleverOne) - Reference 구조
+
+**참조 관계**: 기존 독립적 요소들의 ID만 참조하여 논리적으로 그룹핑. 요소들은 독립적으로 존재하며, 그룹은 ID 목록만 관리한다.
 
 여러 요소를 하나의 단위로 다루기 위한 컨테이너. 그룹 선택 시 멤버 전체가 함께 이동·삭제·잠금 처리되며, 편집기에서 일괄 선택/해제에 사용한다.
 
@@ -359,11 +373,62 @@ interface AutoFill {
 - **구조**: `Groups`는 Group 요소들의 컨테이너. 각 `Group`은 **Content(텍스트 노드)** 로 그룹에 포함된 element의 **BoxID**를 `|`로 구분해 가짐. 예: `<Gruop>60|61|59</Gruop>` (예제 XML에는 Gruop 오타 있음).
 - **통합 스키마 매핑**: BoxID 목록 → `memberIds` (string[]).
 
+**Group 특징 (Reference)**:
+
+- **참조 관계**: 요소들의 ID만 참조, 실제 데이터는 소유하지 않음
+- **중복 가능**: 하나의 요소가 여러 그룹에 동시 포함 가능 (예: 전체 그룹 + 부분 그룹)
+- **평면 구조**: 모든 요소는 독립적, 그룹은 논리적 연결만 제공
+- **XML 구조**: `<Groups><Gruop>id1|id2|id3</Gruop></Groups>` 평면 + ID 참조
+
 | 필드                 | 타입     | 필수 | 설명                       |
 | -------------------- | -------- | ---- | -------------------------- |
 | ...CommonElementBase |          | Y    |                            |
 | type                 | "group"  | Y    |                            |
 | memberIds            | string[] | Y    | 그룹에 포함된 요소 ID 목록 |
+
+**Block vs Group 구조적 차이 요약**:
+
+| 항목            | Block (Containment)               | Group (Reference)                        |
+| --------------- | --------------------------------- | ---------------------------------------- |
+| **관계 타입**   | 소유/포함                         | 참조/링크                                |
+| **JSON 구조**   | `children: Element[]` (직접 포함) | `memberIds: string[]` (ID 참조)          |
+| **XML 구조**    | 중첩 `<Block><Child/></Block>`    | 평면 + ID 참조 `<Gruop>id1\|id2</Gruop>` |
+| **좌표 체계**   | 자식 = Block 기준 상대 좌표       | 모든 요소 = 문서 기준 절대 좌표          |
+| **데이터 위치** | 자식이 부모 안에 물리적 존재      | 모든 요소 독립적, ID만 참조              |
+| **중복 소속**   | 불가능 (한 Block에만)             | **가능** (여러 그룹 동시 소속)           |
+| **용도**        | 중첩 레이아웃, 폼 섹션 구성       | 편집 시 일괄 선택/조작                   |
+
+**구조 차이 예시**:
+
+**Block (Containment) - 직접 포함**:
+
+```json
+{
+  "id": "block-face",
+  "type": "block",
+  "position": {"x": 20, "y": 50},
+  "name": "Face",
+  "children": [
+    {"id": "face-image", "type": "image", "position": {"x": 0, "y": 0}, ...},
+    {"id": "face-text1", "type": "textBox", "position": {"x": 10, "y": 30}, ...}
+  ]
+}
+```
+
+**Group (Reference) - ID 참조 + 중복 가능**:
+
+```json
+{
+  "elements": [
+    {"id": "text-100", "type": "textBox", "position": {"x": 50, "y": 50}, ...},
+    {"id": "img-200", "type": "imageBox", "position": {"x": 80, "y": 50}, ...},
+    {"id": "group-all", "type": "group", "memberIds": ["text-100", "img-200"]},
+    {"id": "group-text", "type": "group", "memberIds": ["text-100"]}
+  ]
+}
+```
+
+→ "text-100"이 group-all과 group-text에 **동시 포함 가능**
 
 ### 4.9 Form Controls (EzOrtho)
 
@@ -495,6 +560,18 @@ interface TextBoxElement extends CommonElementBase {
   editable?: boolean
 }
 
+interface BlockElement extends CommonElementBase {
+  type: 'block'
+  name?: string
+  visible?: boolean
+  children?: Element[] // 재귀적 구조: 자식 요소들을 직접 포함
+}
+
+interface GroupElement extends CommonElementBase {
+  type: 'group'
+  memberIds: string[] // ID 참조만
+}
+
 // ... (나머지 타입 동일 패턴)
 
 type Element =
@@ -542,9 +619,7 @@ interface Document {
 | textBox              | O   | O   | O       | O         | content HTML          |
 | label                | O   | O   | O       | -         | CleverOne는 textBox로 |
 | toothBox             | -   | -   | O       | O         | toothCode 호환        |
-| treatmentCategory    | -   | -   | O       | -         | (P2) EzOrtho 전용          |
-| block                | -   | -   | O       | -         | EzOrtho               |
-| group                | -   | -   | -       | O         | memberIds             |
+| treatmentCategory    | -   | -   | O       | -         | (P2) EzOrtho 전용     |
 | rectangle            | -   | O   | O       | O         | Annotation            |
 | ellipse              | -   | O   | O       | -         | CleverOne는 미지원    |
 | line                 | -   | O   | O       | O         |                       |
@@ -553,6 +628,8 @@ interface Document {
 | memo                 | -   | O   | -       | O         |                       |
 | formControl          | -   | -   | O       | -         | EzOrtho               |
 | image                | -   | -   | O       | -         | 단순 이미지           |
+| block                | -   | -   | O       | -         | Containment 구조      |
+| group                | -   | -   | -       | O         | Reference 구조        |
 
 - O: 지원, -: 해당 제품에 해당 타입 없음 또는 대체 요소로 표현.
 
@@ -560,17 +637,18 @@ interface Document {
 
 ## 8. Migration 매핑 테이블 (요약)
 
-| 출처                          | 대상 필드                                       | 변환 규칙                                     |
-| ----------------------------- | ----------------------------------------------- | --------------------------------------------- |
-| E2/E3 BoxPosition (비율)      | position                                        | 비율→mm (paper.size, margin 사용)             |
-| E3 RC/CleverOne Position      | position                                        | mm→mm, 정밀도 3자리로 확장                    |
-| EzOrtho Left/Top/Width/Height | position, size                                  | mm→mm, 정밀도 확장                            |
-| 공통 BorderLine/Background    | style                                           | borderColor, borderWidth, backgroundColor 등  |
-| E3/CleverOne Font             | style.fontSize                                  | pt 유지 (PoC-03)                              |
-| CleverOne ToothCode           | selectedToothCodes, selectedOcclusionToothCodes | 그대로 매핑                                   |
-| CleverOne CapturedImageInfo   | imageBox.capturedImageInfo                      | 구조 그대로                                   |
-| CleverOne Groups              | group.memberIds                                 | Gruop→group, ID 목록                          |
-| EzOrtho Image Source          | image.source                                    | `:/images/img/` → 클라우드 스토리지 경로 매핑 |
+| 출처                          | 대상 필드                                       | 변환 규칙                                       |
+| ----------------------------- | ----------------------------------------------- | ----------------------------------------------- |
+| E2/E3 BoxPosition (비율)      | position                                        | 비율→mm (paper.size, margin 사용)               |
+| E3 RC/CleverOne Position      | position                                        | mm→mm, 정밀도 3자리로 확장                      |
+| EzOrtho Left/Top/Width/Height | position, size                                  | mm→mm, 정밀도 확장                              |
+| 공통 BorderLine/Background    | style                                           | borderColor, borderWidth, backgroundColor 등    |
+| E3/CleverOne Font             | style.fontSize                                  | pt 유지 (PoC-03)                                |
+| CleverOne ToothCode           | selectedToothCodes, selectedOcclusionToothCodes | 그대로 매핑                                     |
+| CleverOne CapturedImageInfo   | imageBox.capturedImageInfo                      | 구조 그대로                                     |
+| EzOrtho Block                 | block.children (Element[])                      | 중첩 구조 → 직접 포함, 상대좌표 → 절대좌표 변환 |
+| CleverOne Groups              | group.memberIds                                 | Gruop→group, ID 목록                            |
+| EzOrtho Image Source          | image.source                                    | `:/images/img/` → 클라우드 스토리지 경로 매핑   |
 
 (상세 변환 규칙은 PoC-07 산출물과 연동.)
 
@@ -701,7 +779,24 @@ interface Document {
           "type": "block",
           "position": { "unit": "mm", "x": 10, "y": 78 },
           "size": { "unit": "mm", "width": 80, "height": 20 },
-          "children": ["label-1", "textBox-1"]
+          "name": "Face",
+          "visible": true,
+          "children": [
+            {
+              "id": "block-image",
+              "type": "image",
+              "position": { "unit": "mm", "x": 0, "y": 0 },
+              "size": { "unit": "mm", "width": 60, "height": 15 },
+              "source": ":/images/img/img_face.png"
+            },
+            {
+              "id": "block-text",
+              "type": "textBox",
+              "position": { "unit": "mm", "x": 10, "y": 5 },
+              "size": { "unit": "mm", "width": 15, "height": 5 },
+              "content": "1"
+            }
+          ]
         },
         {
           "id": "form-radio",
@@ -817,7 +912,7 @@ interface Document {
 }
 ```
 
-**포함된 Element 타입 요약**: label, textBox, imageBox(Single/Multi/Reference), toothBox, treatmentCategory, image, block, formControl(radio/checkbox/button/comboBox/textInput/textArea), rectangle, ellipse, line, arrow, freeDraw, memo, group.
+**포함된 Element 타입 요약**: label, textBox, imageBox(Single/Multi/Reference), toothBox, treatmentCategory(P2), rectangle, ellipse, line, arrow, freeDraw, memo, formControl(radio/checkbox/button/comboBox/textInput/textArea), image, block, group.
 
 ---
 
