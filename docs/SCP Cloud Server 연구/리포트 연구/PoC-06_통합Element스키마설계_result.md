@@ -326,20 +326,120 @@ interface AutoFill {
 
 **P2 (구현 우선순위 낮음)**: 매우 전문적인 EzOrtho 구강외과 수술 분류 전용 요소. 일반 리포트에서는 사용되지 않으며, EzOrtho Treatment Chart Migration 시에만 필요. 스키마 완성도를 위해 포함하되, 구현 우선순위는 낮음.
 
-### 4.6 Annotation 공통 및 타입별
+### 4.6 Annotation 공통 속성
 
-공통: `type`, `position`, `size`(또는 points), `style`(선 색·두께·스타일).
+모든 Annotation은 다음 공통 속성을 가집니다:
 
-| type      | 추가 필드                  | 설명                   |
-| --------- | -------------------------- | ---------------------- |
-| rectangle | -                          | 직사각형, size 사용    |
-| ellipse   | -                          | 타원, size 사용        |
-| line      | points: [x1,y1, x2,y2]     | 직선, mm 좌표          |
-| arrow     | points: [x1,y1, x2,y2]     | 화살표, points로 방향  |
-| freeDraw  | points: string \| number[] | path 또는 점 배열 (mm) |
-| memo      | points, content: string    | 풍선 텍스트 + 포인터   |
+- `type`: Annotation 타입 (rectangle, ellipse, line, arrow, freeDraw, memo)
+- `position`, `size`: 위치·크기 (mm)
+- `style`: 선 색상(`borderColor`), 두께(`borderWidth`), 스타일(`borderStyle`)
 
-**points** 형식: `"x1,y1|x2,y2|..."` 또는 `[x1,y1,x2,y2,...]`, 단위 mm, 소수점 3자리.
+### 4.6.1 Rectangle Annotation
+
+| 필드                  | 타입        | 필수 | 설명          |
+| --------------------- | ----------- | ---- | ------------- |
+| ...CommonElementBase  |             | Y    |               |
+| type                  | "rectangle" | Y    |               |
+| (position, size 사용) |             |      | 직사각형 영역 |
+
+**용도**: 영역 표시, 강조
+
+### 4.6.2 Ellipse Annotation
+
+| 필드                  | 타입      | 필수 | 설명      |
+| --------------------- | --------- | ---- | --------- |
+| ...CommonElementBase  |           | Y    |           |
+| type                  | "ellipse" | Y    |           |
+| (position, size 사용) |           |      | 타원 영역 |
+
+**용도**: 원형 영역 표시, 강조
+
+### 4.6.3 Line Annotation
+
+| 필드                 | 타입   | 필수 | 설명                              |
+| -------------------- | ------ | ---- | --------------------------------- |
+| ...CommonElementBase |        | Y    |                                   |
+| type                 | "line" | Y    |                                   |
+| points               | string | Y    | "x1,y1\|x2,y2" (mm, 소수점 3자리) |
+
+**용도**: 직선 그리기, 연결선
+
+### 4.6.4 Arrow Annotation
+
+| 필드                 | 타입    | 필수 | 설명                         |
+| -------------------- | ------- | ---- | ---------------------------- |
+| ...CommonElementBase |         | Y    |                              |
+| type                 | "arrow" | Y    |                              |
+| points               | string  | Y    | "x1,y1\|x2,y2" (시작→끝, mm) |
+
+**용도**: 방향 표시, 화살표. Line과 동일하지만 끝점에 화살표 머리 표시.
+
+### 4.6.5 FreeDraw Annotation
+
+| 필드                 | 타입       | 필수 | 설명                                |
+| -------------------- | ---------- | ---- | ----------------------------------- |
+| ...CommonElementBase |            | Y    |                                     |
+| type                 | "freeDraw" | Y    |                                     |
+| points               | string     | Y    | "x1,y1\|x2,y2\|x3,y3..." (mm, path) |
+
+**용도**: 자유 곡선 그리기, 손그림 표시
+
+### 4.6.6 Memo Annotation
+
+| 필드                 | 타입                                             | 필수 | 설명                                                    |
+| -------------------- | ------------------------------------------------ | ---- | ------------------------------------------------------- |
+| ...CommonElementBase |                                                  | Y    |                                                         |
+| type                 | "memo"                                           | Y    |                                                         |
+| anchorPoint          | {x, y}                                           | Y    | 포인터가 가리키는 위치 (mm)                             |
+| bubblePosition       | "auto" \| "left" \| "right" \| "top" \| "bottom" | N    | 풍선 위치 (기본: auto)                                  |
+| content              | string                                           | Y    | 메모 텍스트 (평문)                                      |
+| memoStyle            | object                                           | N    | fontSize, fontColor, backgroundColor, backgroundOpacity |
+
+**용도**: 주석/메모. 풍선 모양 박스 + 포인터 선으로 특정 위치 지시.
+
+**Memo vs TextBox/Label 차이**:
+
+- **Memo**: Annotation의 일종. 풍선+포인터 구조로 **특정 위치를 가리키는 주석**. 이미지/차트 위에 겹쳐서 표시.
+- **TextBox**: 독립적인 텍스트 편집 박스. HTML 리치 텍스트 지원. 레이아웃의 일부.
+- **Label**: 정적 텍스트 라벨. 편집 불가. 폼 필드명, 제목 등에 사용.
+
+**기존 포맷 문제점 및 통합 스키마 개선**:
+
+**E3 (1개 점)**:
+
+- Points: 포인터 끝 1개만 → 풍선 위치 불명확
+- 문제: 풍선을 어디에 배치할지 알 수 없음
+
+**CleverOne (2개 점)**:
+
+- Points: "풍선위치|포인터끝" 2개
+- 문제: **풍선의 좌우 방향 구분 불가**. 포인터가 오른쪽 끝에 있을 때 풍선을 왼쪽에 배치 불가.
+
+**통합 스키마 해결 방안**:
+
+```json
+{
+  "type": "memo",
+  "position": { "x": 100, "y": 50 }, // 풍선 좌상단
+  "size": { "width": 30, "height": 18 }, // 풍선 크기
+  "anchorPoint": { "x": 120, "y": 60 }, // 포인터가 가리키는 위치
+  "bubblePosition": "left", // 풍선을 포인터 기준 왼쪽에 배치
+  "content": "메모 텍스트"
+}
+```
+
+**bubblePosition 옵션**:
+
+- `"auto"`: 포인터 위치에 따라 자동 결정 (화면 경계 고려)
+- `"left"`: 포인터 왼쪽에 풍선 배치
+- `"right"`: 포인터 오른쪽에 풍선 배치
+- `"top"`: 포인터 위쪽에 풍선 배치
+- `"bottom"`: 포인터 아래쪽에 풍선 배치
+
+**Migration 매핑**:
+
+- **E3**: 1개 점 → `anchorPoint`, `bubblePosition: "auto"`, position/size는 렌더링 시 계산
+- **CleverOne**: 2개 점 → 첫 점 = `position`, 둘째 점 = `anchorPoint`, `bubblePosition`은 두 점 관계로 계산
 
 ### 4.7 Block (EzOrtho) - Containment 구조
 
@@ -895,9 +995,16 @@ interface Document {
           "type": "memo",
           "position": { "unit": "mm", "x": 160, "y": 115 },
           "size": { "unit": "mm", "width": 30, "height": 18 },
-          "points": "160,133|175,133",
+          "anchorPoint": { "x": 175, "y": 133 },
+          "bubblePosition": "left",
           "content": "메모 텍스트",
-          "style": { "borderColor": "#000000", "borderWidth": 1, "borderStyle": "solid", "backgroundColor": "#ffffcc" }
+          "memoStyle": {
+            "fontSize": 10,
+            "fontColor": "#000000",
+            "backgroundColor": "#ffffcc",
+            "backgroundOpacity": 1
+          },
+          "style": { "borderColor": "#000000", "borderWidth": 1, "borderStyle": "solid" }
         },
         {
           "id": "group-1",
