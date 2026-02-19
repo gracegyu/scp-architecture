@@ -8,6 +8,21 @@
 - **범위**: E2, E3, EzOrtho, CleverOne 리포트 통합 분석 및 Cloud 전환 전략
 - **소스코드 위치**: [Azure DevOps](https://ewoosoft@dev.azure.com/ewoosoft/prototypes/_git/scp-report-poc)
 
+## 중요: 프로젝트 범위
+
+**내부 Cloud 서비스 전용 (Internal Use Only)**:
+- 본 리포트 시스템은 **Ewoosoft 자사 Cloud 서비스들(SCP Cloud, Imaging Cloud, Analytics Cloud 등)에 통합하기 위한 내부 Shared Library**입니다.
+- **주 사용처**: **SCP Cloud** - Desktop 제품(E2, E3, EzOrtho, CleverOne)의 리포트를 import하여 통합 편집/관리
+- **추가 사용처**: 향후 개발될 신규 Cloud 서비스 (Imaging Cloud, Analytics Cloud 등)
+- **외부 고객사 판매 계획 없음** - NPM Public Package 배포, 외부 라이센스 판매, SaaS 서비스 제공 등은 고려하지 않습니다.
+- **목적**: 내부 Cloud 서비스 간 리포트 기능 코드 공유 및 개발 효율성 극대화
+- **배포 방식**: NPM Private Package (Shared Library) 형태로 내부 Cloud 서비스에 통합
+
+**Desktop 제품과의 관계**:
+- E2, E3, EzOrtho, CleverOne은 **Cloud 전환 계획 없음** (Desktop 제품으로 유지)
+- 이들 Desktop 제품에서 생성된 리포트를 **SCP Cloud로 import/migration**
+- SCP Cloud에서 통합 리포트 편집 및 관리 기능 제공
+
 ## PoC 진행 순서 및 일정
 
 ### 순서 결정 기준
@@ -553,39 +568,46 @@ flowchart TD
 
 ### PoC-08: 아키텍처 전략 검증 (Business Critical)
 
-#### NPM Package 방식
+**⚠️ 중요**: 본 PoC는 **내부 서비스 통합 전용**입니다. 외부 고객사 판매가 아닌 E3 Cloud, EzOrtho Cloud, CleverOne Cloud 등 자사 제품에 통합하기 위한 최적 아키텍처를 결정합니다.
+
+#### Shared Library 방식 (권장)
 
 **장점**:
 
-- 각 서비스별 독립적 커스터마이징
-- 라이센스 정책 유연성
-- 오프라인 사용 가능
+- 중복 개발 완전 제거 (단일 코드베이스)
+- 최소 운영 비용 (추가 인프라 불필요)
+- 각 서비스 독립 배포 보장
+- 타입 안정성 (TypeScript)
 
 **단점**:
 
-- 버전 관리 복잡성
-- 일관성 유지 어려움
-- 중복 개발 리스크
+- 버전 동기화 관리 필요
+- 의존성 충돌 가능성
 
-#### SaaS 방식
+#### Microservice 방식
 
 **장점**:
 
+- 완전한 독립성
 - 중앙화된 관리
-- 일관된 사용자 경험
-- 실시간 업데이트 가능
 
 **단점**:
 
+- 높은 운영 비용 (별도 서버, DB, Storage 필요)
 - 네트워크 의존성
-- 커스터마이징 제약
-- 보안 우려사항
+- 성능 오버헤드
 
-#### 하이브리드 방식 (권장)
+**내부 서비스 통합에 부적합** (불필요한 인프라 비용)
 
-- Core Engine: NPM Package
-- 클라우드 서비스: Template, Asset 관리
-- 오프라인 모드 지원
+#### Monolithic 방식
+
+**단점**:
+
+- 심각한 중복 개발 (3배)
+- 막대한 유지보수 비용
+- 버그 수정 비효율
+
+**절대 피해야 할 방식**
 
 ## 성공 기준 및 평가 방법
 
