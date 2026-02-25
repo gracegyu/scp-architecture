@@ -154,10 +154,10 @@ flowchart TD
 ### 제품별 특징
 
 - **E2 (v3.0)**: 기본 리포트 편집, XML 기반, .rpt 파일 저장
-- **E3 (v4.3~v5.1)**: 고급 편집 기능, Template 시스템, Auto Fill 기능
-- **RC Report (v5.1)**: Dialog 기반 편집, 다양한 Annotation 지원, Template 시스템 (현재 구현 범위 외, 추후 확장 대상)
+- **E3 (v4.3~v5.1)**: v5.1에서 RC(방사선센터) 지원을 위해 리포트 포맷을 mm 단위로 전환. 이전 포맷(v1.x/v4/v5.0)은 E3 제품에서 Open 시 RC Report v5.1로 Migration. 고급 편집, Template 시스템, Auto Fill.
+- **RC Report (v5.1)**: E3 v5.1 이후 기본 리포트 포맷. Dialog 기반 편집, mm 좌표, 다양한 Annotation, Template 시스템. SCP Cloud Migration은 RC Report v5.1만 지원; E3 Legacy는 E3에서 변환 후 수집, 필요 시 추후 통합 리포트에서 Legacy 직접 지원 검토.
 - **EzOrtho (v1.0)**: 치료/히스토리 차트 특화, Treatment/History Chart 시스템 (Analysis Chart는 현재 구현 범위 외, 추후 확장 대상)
-- **CleverOne (v5.1.0)**: XML 기반, mm 단위 좌표(소수점 1자리), TextBox/ImageBox/ToothBox/Annotations/Groups 지원, Template 시스템
+- **CleverOne (v5.1.0)**: XML 기반, 실제 샘플은 %(비율) 좌표(Position/Size에 X="6.950%" 등), TextBox/ImageBox/ToothBox/Annotations/Groups 지원, Template 시스템. 기존 스펙 문서의 mm 기술과 상이.
 
 ### 공통 Element 분석
 
@@ -170,9 +170,9 @@ flowchart TD
 ### 기술적 특징
 
 - **파일 포맷**: 모든 제품이 XML 기반
-- **좌표 시스템**: v5.0 이하 비율값 → v5.1 이상 mm 실측값
+- **좌표 시스템**: E3는 v5.1에서 mm 전환(RC 지원); E2는 비율값; EzOrtho는 mm; CleverOne은 실제 샘플 기준 %(비율).
 - **이미지 처리**: Base64 인코딩 또는 파일 경로 참조
-- **Migration**: 복잡한 버전별 호환성 요구
+- **Migration**: E3는 RC Report v5.1만 지원. E3 Legacy는 E3 제품에서 RC로 변환 후 수집; 필요 시 추후 E3 Legacy 직접 지원 검토.
 
 ## PoC 주제 및 우선순위
 
@@ -276,8 +276,9 @@ flowchart TD
   - 부분적 Migration 전략
 - **Migration 경로**:
   - E2 v3.0 → Cloud Format
-  - E3 v1.x → v4.x → v5.1 → Cloud Format
+  - E3 RC Report v5.1 → Cloud Format (E3 이전 포맷은 E3 제품에서 RC v5.1로 Migration 후 수집; 필요 시 추후 통합 리포트에서 E3 Legacy 직접 지원 검토)
   - EzOrtho v1.0 → Cloud Format
+  - CleverOne v5.1.0 → Cloud Format
 - **우선순위**: 높음
 - **산출물**: Migration 도구, 검증 시나리오
 

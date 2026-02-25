@@ -1,0 +1,768 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HistoryChart Name="Basic" Version="1" Locale="ko_KR">
+	<PaperSetting PaperSize="A4" Orientation="" MarginTop="10" MarginBottom="5" MarginLeft="5" MarginRight="5" HeaderHeight="5" FooterHeight="30"/>
+	<Header FontFamily="" FontSize="10pt" HorizontalAlignment="Left" VerticalAlignment="Center">
+		<Label ItemType="30" Left="0" Top="0" Width="5" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="/" ItemType="0" Left="5" Top="0" Width="5" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="32" Left="10" Top="0" Width="5" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Page" ItemType="0" Left="15" Top="0" Width="20" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+	</Header>
+	<Footer FontFamily="" FontSize="10pt" HorizontalAlignment="Left" VerticalAlignment="Top">
+		<Line LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1" X1="0" Y1="2" X2="200" Y2="2"/>
+		<Label Align="Center" ItemType="27" Left="0" Top="5" Width="50" Height="25" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Clinic Name :" ItemType="0" Left="55" Top="5" Width="22" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="24" Left="77" Top="5" Width="68" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Clinic Telephone :" ItemType="0" Left="55" Top="10" Width="30" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="25" Left="83" Top="10" Width="60" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Clinic Fax :" ItemType="0" Left="55" Top="15" Width="30" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="44" Left="72" Top="15" Width="60" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Clinic WebPage :" ItemType="0" Left="55" Top="20" Width="30" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="45" Left="82" Top="20" Width="118" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Clinic Address :" ItemType="0" Left="55" Top="25" Width="25" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="26" Left="80" Top="25" Width="120" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Printed By EzOrtho" ItemType="0" Left="150" Top="5" Width="50" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Printed Date :" ItemType="0" Left="150" Top="10" Width="25" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="6" Left="173" Top="10" Width="35" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Doctor :" ItemType="0" Left="150" Top="15" Width="25" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="29" Left="163" Top="15" Width="35" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+	</Footer>
+	<PageContent FontFamily="" FontSize="10pt" HorizontalAlignment="Left" VerticalAlignment="Center">
+		<Label Content="Dental Survey" FontSize="12pt" ItemType="0" Left="5" Top="20" Width="190" Height="10" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="2026-02-11" ItemType="43" Left="173.135" Top="15" Width="25.865" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="Modified Date :" ItemType="0" Left="148" Top="15" Width="25" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="2026-02-11" ItemType="42" Left="169.167" Top="10" Width="29.833" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="Create Date :" ItemType="0" Left="148" Top="10" Width="25" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="2017-01-01" ItemType="4" Left="116.171" Top="15" Width="29.829" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="D.O.B. :" ItemType="0" Left="104" Top="15" Width="16" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="M " ItemType="3" Left="118.287" Top="10" Width="27.712" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="Gender :" ItemType="0" Left="104" Top="10" Width="16" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="last first" ItemType="2" Left="23.548" Top="15" Width="80.452" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="Patient Name :" ItemType="0" Left="0" Top="15" Width="25" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="1" ItemType="1" Left="16.669" Top="10" Width="67.331" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="ChartNo. :" ItemType="0" Left="0" Top="10" Width="18" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="History Chart" FontSize="20pt" FontStyle="Bold" HorizontalAlignment="Center" ItemType="0" Left="0" Top="0" Width="200" Height="10" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="2">
+			<Points>5,30 195,30</Points>
+		</Lines>
+		<Block Name="Diastema" IsVisible="true" Left="135" Top="213">
+			<Label Content="Diastema" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="37" Left="7" Top="5.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="38" Left="34" Top="5.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="13" FontSize="11pt" HorizontalAlignment="Right" ItemType="33" Left="7" Top="10.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="25" FontSize="11pt" ItemType="34" Left="34" Top="10.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="43" FontSize="11pt" HorizontalAlignment="Right" ItemType="36" Left="7" Top="15.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="32" FontSize="11pt" ItemType="35" Left="34" Top="15.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="40" Left="7" Top="20.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="39" Left="34" Top="20.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>7,15 60,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>33,5 33,25</Points>
+			</Lines>
+			<Button Content="+" Left="0" Top="5" Width="6" Height="6"/>
+		</Block>
+		<Block Name="Recession" IsVisible="true" Left="70" Top="213">
+			<Label Content="Recession" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="37" Left="7" Top="5.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="38" Left="34" Top="5.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="11" FontSize="11pt" HorizontalAlignment="Right" ItemType="33" Left="7" Top="10.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="23" FontSize="11pt" ItemType="34" Left="34" Top="10.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="41" FontSize="11pt" HorizontalAlignment="Right" ItemType="36" Left="7" Top="15.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="32" FontSize="11pt" ItemType="35" Left="34" Top="15.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="40" Left="7" Top="20.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="39" Left="34" Top="20.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>7,15 60,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>33,5 33,25</Points>
+			</Lines>
+			<Button Content="+" Left="0" Top="5" Width="6" Height="6"/>
+		</Block>
+		<Block Name="Protrusions" IsVisible="true" Left="5" Top="213">
+			<Label Content="Protrusions" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="37" Left="7" Top="5.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="38" Left="34" Top="5.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="14" FontSize="11pt" HorizontalAlignment="Right" ItemType="33" Left="7" Top="10.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="23" FontSize="11pt" ItemType="34" Left="34" Top="10.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="46" FontSize="11pt" HorizontalAlignment="Right" ItemType="36" Left="7" Top="15.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="32" FontSize="11pt" ItemType="35" Left="34" Top="15.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="40" Left="7" Top="20.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="39" Left="34" Top="20.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>7,15 60,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>33,5 33,25</Points>
+			</Lines>
+			<Button Content="+" Left="0" Top="5" Width="6" Height="6"/>
+		</Block>
+		<Block Name="Crowding" IsVisible="true" Left="135" Top="188">
+			<Label Content="Crowding" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="37" Left="7" Top="5.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="38" Left="34" Top="5.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="11" FontSize="11pt" HorizontalAlignment="Right" ItemType="33" Left="7" Top="10.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="25" FontSize="11pt" ItemType="34" Left="34" Top="10.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="41" FontSize="11pt" HorizontalAlignment="Right" ItemType="36" Left="7" Top="15.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="31" FontSize="11pt" ItemType="35" Left="34" Top="15.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="40" Left="7" Top="20.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="39" Left="34" Top="20.251" Width="25.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>7,15 60,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>33,5 33,25</Points>
+			</Lines>
+			<Button Content="+" Left="0" Top="5" Width="6" Height="6"/>
+		</Block>
+		<Block Name="Root Resorption" IsVisible="true" Left="70" Top="188">
+			<Label Content="Root Resorption" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="37" Left="0" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="38" Left="34" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="14" FontSize="11pt" HorizontalAlignment="Right" ItemType="33" Left="0" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="21 21_4 23 25" FontSize="11pt" ItemType="34" Left="34" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="44" FontSize="11pt" HorizontalAlignment="Right" ItemType="36" Left="0" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="35" Left="34" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="40" Left="0" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="39" Left="34" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>7,15 60,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>33,5 33,25</Points>
+			</Lines>
+			<Button Content="+" Left="0" Top="5" Width="6" Height="6"/>
+		</Block>
+		<Block Name="Malformed Teeth" IsVisible="true" Left="5" Top="188">
+			<Label Content="Malformed Teeth" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="37" Left="0" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="38" Left="34" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="15 14" FontSize="11pt" HorizontalAlignment="Right" ItemType="33" Left="0" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="34" Left="34" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="43" FontSize="11pt" HorizontalAlignment="Right" ItemType="36" Left="0" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="31 32" FontSize="11pt" ItemType="35" Left="34" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="40" Left="0" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="39" Left="34" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>7,15 60,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>33,5 33,25</Points>
+			</Lines>
+			<Button Content="+" Left="0" Top="5" Width="6" Height="6"/>
+		</Block>
+		<Block Name="Extracted Teeth" IsVisible="true" Left="135" Top="163">
+			<Label Content="Extracted Teeth" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="37" Left="0" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="38" Left="34" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="13" FontSize="11pt" HorizontalAlignment="Right" ItemType="33" Left="0" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="23" FontSize="11pt" ItemType="34" Left="34" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="41" FontSize="11pt" HorizontalAlignment="Right" ItemType="36" Left="0" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="35" Left="34" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="40" Left="0" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="39" Left="34" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>7,15 60,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>33,5 33,25</Points>
+			</Lines>
+			<Button Content="+" Left="0" Top="5" Width="6" Height="6"/>
+		</Block>
+		<Block Name="Congenital Missing" IsVisible="true" Left="70" Top="163">
+			<Label Content="Congenital Missing" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="37" Left="0" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="38" Left="34" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="33" Left="0" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="22" FontSize="11pt" ItemType="34" Left="34" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="44" FontSize="11pt" HorizontalAlignment="Right" ItemType="36" Left="0" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="32" FontSize="11pt" ItemType="35" Left="34" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="40" Left="0" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="39" Left="34" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>7,15 60,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>33,5 33,25</Points>
+			</Lines>
+			<Button Content="+" Left="0" Top="5" Width="6" Height="6"/>
+		</Block>
+		<Block Name="Supernumerary" IsVisible="true" Left="5" Top="163">
+			<Label Content="Supernumerary" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="37" Left="0" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="38" Left="34" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="15" FontSize="11pt" HorizontalAlignment="Right" ItemType="33" Left="0" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="34" Left="34" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="36" Left="0" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="35" Left="34" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="40" Left="0" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="39" Left="34" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>7,15 60,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>33,5 33,25</Points>
+			</Lines>
+			<Button Content="+" Left="0" Top="5" Width="6" Height="6"/>
+		</Block>
+		<Block Name="Impacted Teeth" IsVisible="true" Left="135" Top="138">
+			<Label Content="Impacted Teeth" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="37" Left="0" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="38" Left="34" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="33" Left="0" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="34" Left="34" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="36" Left="0" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="35" FontSize="11pt" ItemType="35" Left="34" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="40" Left="0" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="39" Left="34" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>7,15 60,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>33,5 33,25</Points>
+			</Lines>
+			<Button Content="+" Left="0" Top="5" Width="6" Height="6"/>
+		</Block>
+		<Block Name="Prolonged Retention" IsVisible="true" Left="70" Top="138">
+			<Label Content="Prolonged Retention" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="37" Left="0" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="38" Left="34" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="33" Left="0" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="34" Left="34" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="36" Left="0" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="32" FontSize="11pt" ItemType="35" Left="34" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="40" Left="0" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="39" Left="34" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>7,15 60,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>33,5 33,25</Points>
+			</Lines>
+			<Button Content="+" Left="0" Top="5" Width="6" Height="6"/>
+		</Block>
+		<Block Name="Premature Loss" IsVisible="true" Left="5" Top="138">
+			<Label Content="Premature Loss" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="37" Left="0" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="38" Left="34" Top="5.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="33" Left="0" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="34" Left="34" Top="10.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="43" FontSize="11pt" HorizontalAlignment="Right" ItemType="36" Left="0" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="35" Left="34" Top="15.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" HorizontalAlignment="Right" ItemType="40" Left="0" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="39" Left="34" Top="20.251" Width="32.999" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>7,15 60,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>33,5 33,25</Points>
+			</Lines>
+			<Button Content="+" Left="0" Top="5" Width="6" Height="6"/>
+		</Block>
+		<Block Name="Sub Line" IsVisible="true" Left="5" Top="134">
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>0,2 190,2</Points>
+			</Lines>
+		</Block>
+		<Block Name="Gingivar Recession" IsVisible="true" Left="5" Top="128">
+			<Label Content="Gingivar Recession" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<TextBox Name="Gingivartextbox" Content="123" Left="55" Top="0" Width="135" Height="5"/>
+		</Block>
+		<Block Name="Overbite" IsVisible="true" Left="5" Top="122">
+			<Label Content="Overbite" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="mm" FontSize="7pt" ItemType="0" Left="75" Top="0" Width="7" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="overbite" Content="Palatal" IsChecked="true" Left="82" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="overbite" Content="Deep" IsChecked="false" Left="109" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="overbite" Content="Normal" IsChecked="false" Left="136" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="overbite" Content="Open" IsChecked="false" Left="163" Top="0" Width="27" Height="5"/>
+			<TextBox Name="overbitemm" Content="123" Left="55" Top="0" Width="20" Height="5"/>
+		</Block>
+		<Block Name="Overjet" IsVisible="true" Left="5" Top="116">
+			<Label Content="Overjet" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="mm" FontSize="7pt" ItemType="0" Left="75" Top="0" Width="7" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="Overjet" Content="Large" IsChecked="true" Left="82" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="Overjet" Content="Moderate" IsChecked="false" Left="109" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="Overjet" Content="Normal" IsChecked="false" Left="136" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="Overjet" Content="Negative" IsChecked="false" Left="163" Top="0" Width="27" Height="5"/>
+			<TextBox Name="overjetmm" Content="123" Left="55" Top="0" Width="20" Height="5"/>
+		</Block>
+		<Block Name="Periodontal Condition" IsVisible="true" Left="5" Top="110">
+			<Label Content="Periodontal Condition" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="PeriodontalCondition" Content="Healthy" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="PeriodontalCondition" Content="Gingivitis" IsChecked="false" Left="82" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="PeriodontalCondition" Content="Permanent" IsChecked="false" Left="109" Top="0" Width="27" Height="5"/>
+		</Block>
+		<Block Name="Oral Hygiene" IsVisible="true" Left="5" Top="104">
+			<Label Content="Oral Hygiene" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="OralHygiene" Content="Good" IsChecked="true" Left="55" Top="0" Width="40" Height="5"/>
+			<RadioButton GroupName="OralHygiene" Content="Moderate" IsChecked="false" Left="82" Top="0" Width="40" Height="5"/>
+			<RadioButton GroupName="OralHygiene" Content="Poor" IsChecked="false" Left="109" Top="0" Width="40" Height="5"/>
+		</Block>
+		<Block Name="Palatal" IsVisible="true" Left="5" Top="98">
+			<Label Content="Palatal" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="Palatal" Content="Normal" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="Palatal" Content="High" IsChecked="false" Left="82" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="Palatal" Content="Shallow" IsChecked="false" Left="109" Top="0" Width="27" Height="5"/>
+		</Block>
+		<Block Name="Centerline Lower" IsVisible="true" Left="5" Top="92">
+			<Label Content="Centerline Lower" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="mm to Left" FontSize="7pt" ItemType="0" Left="102" Top="0" Width="24" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="mm to Right" FontSize="7pt" ItemType="0" Left="156" Top="0" Width="24" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<CheckBox Content="Good" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<TextBox Name="ToLeft" Content="123" Left="82" Top="0" Width="20" Height="5"/>
+			<TextBox Name="ToRight" Content="123" Left="136" Top="0" Width="20" Height="5"/>
+		</Block>
+		<Block Name="Centerline Upper" IsVisible="true" Left="5" Top="86">
+			<Label Content="Centerline Upper" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="mm to Left" FontSize="7pt" ItemType="0" Left="102" Top="0" Width="24" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="mm to Right" FontSize="7pt" ItemType="0" Left="156" Top="0" Width="24" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<CheckBox Content="Good" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<TextBox Name="ToLeft" Content="123" Left="82" Top="0" Width="20" Height="5"/>
+			<TextBox Name="ToRight" Content="123" Left="136" Top="0" Width="20" Height="5"/>
+		</Block>
+		<Block Name="Arch Space Lower" IsVisible="true" Left="5" Top="80">
+			<Label Content="Arch Space Lower" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="ArchSpaceLower" Content="Excessive" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="ArchSpaceLower" Content="Adequate" IsChecked="false" Left="82" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="ArchSpaceLower" Content="Deficient" IsChecked="false" Left="109" Top="0" Width="27" Height="5"/>
+		</Block>
+		<Block Name="Arch Space Upper" IsVisible="true" Left="5" Top="74">
+			<Label Content="Arch Space Upper" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="ArchSpaceUpper" Content="Excessive" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="ArchSpaceUpper" Content="Adequate" IsChecked="false" Left="82" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="ArchSpaceUpper" Content="Deficient" IsChecked="false" Left="109" Top="0" Width="27" Height="5"/>
+		</Block>
+		<Block Name="Dental Arch Form - Mn" IsVisible="true" Left="5" Top="68">
+			<Label Content="Dental Arch Form - Mn" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="DentalArchFromMn" Content="Square" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="DentalArchFromMn" Content="Parabolic" IsChecked="false" Left="82" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="DentalArchFromMn" Content="Ovoid" IsChecked="false" Left="109" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="DentalArchFromMn" Content="Tapered" IsChecked="false" Left="136" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="DentalArchFromMn" Content="V-Shape" IsChecked="false" Left="163" Top="0" Width="27" Height="5"/>
+		</Block>
+		<Block Name="Dental Arch Form - Mx" IsVisible="true" Left="5" Top="62">
+			<Label Content="Dental Arch Form - Mx" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="DentalArchFromMx" Content="Square" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="DentalArchFromMx" Content="Parabolic" IsChecked="false" Left="82" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="DentalArchFromMx" Content="Ovoid" IsChecked="false" Left="109" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="DentalArchFromMx" Content="Tapered" IsChecked="false" Left="136" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="DentalArchFromMx" Content="V-Shape" IsChecked="false" Left="163" Top="0" Width="27" Height="5"/>
+		</Block>
+		<Block Name="Molar Relationship - L" IsVisible="true" Left="5" Top="56">
+			<Label Content="Molar Relationship - L" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="MolarRelationshipL" Content="Class I" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="MolarRelationshipL" Content="Class II" IsChecked="false" Left="82" Top="0" Width="20" Height="5"/>
+			<RadioButton GroupName="MolarRelationshipL" Content="Class III" IsChecked="false" Left="136" Top="0" Width="20" Height="5"/>
+			<ComboBox Name="ClassIIcombo" Content="0.25" Left="102" Top="0" Width="24" Height="5">
+				<ComboBoxItem Content="0.25"/>
+				<ComboBoxItem Content="0.5"/>
+				<ComboBoxItem Content="0.75"/>
+			</ComboBox>
+			<ComboBox Name="ClassIIIcombo" Content="0.25" Left="156" Top="0" Width="24" Height="5">
+				<ComboBoxItem Content="0.25"/>
+				<ComboBoxItem Content="0.5"/>
+				<ComboBoxItem Content="0.75"/>
+			</ComboBox>
+		</Block>
+		<Block Name="Molar Relationship - R" IsVisible="true" Left="5" Top="50">
+			<Label Content="Molar Relationship - R" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="MolarRelationshipR" Content="Class I" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="MolarRelationshipR" Content="Class II" IsChecked="false" Left="82" Top="0" Width="20" Height="5"/>
+			<RadioButton GroupName="MolarRelationshipR" Content="Class III" IsChecked="false" Left="136" Top="0" Width="20" Height="5"/>
+			<ComboBox Name="ClassIIcombo" Content="0.25" Left="102" Top="0" Width="24" Height="5">
+				<ComboBoxItem Content="0.25"/>
+				<ComboBoxItem Content="0.5"/>
+				<ComboBoxItem Content="0.75"/>
+			</ComboBox>
+			<ComboBox Name="ClassIIIcombo" Content="0.25" Left="156" Top="0" Width="24" Height="5">
+				<ComboBoxItem Content="0.25"/>
+				<ComboBoxItem Content="0.5"/>
+				<ComboBoxItem Content="0.75"/>
+			</ComboBox>
+		</Block>
+		<Block Name="Incisal Relationship" IsVisible="true" Left="5" Top="44">
+			<Label Content="Incisal Relationship" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="IncisalRelationship" Content="Class I" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="IncisalRelationship" Content="Class II" IsChecked="false" Left="82" Top="0" Width="20" Height="5"/>
+			<RadioButton GroupName="IncisalRelationship" Content="Class III" IsChecked="false" Left="136" Top="0" Width="20" Height="5"/>
+			<ComboBox Name="ClassIIcombo" Content="Mild" Left="102" Top="0" Width="24" Height="5">
+				<ComboBoxItem Content="Mild"/>
+				<ComboBoxItem Content="Severe"/>
+			</ComboBox>
+			<ComboBox Name="ClassIIIcombo" Content="Mild" Left="156" Top="0" Width="24" Height="5">
+				<ComboBoxItem Content="Mild"/>
+				<ComboBoxItem Content="Severe"/>
+			</ComboBox>
+		</Block>
+		<Block Name="Angle Classification" IsVisible="true" Left="5" Top="38">
+			<Label Content="Angle Classification" ItemType="0" Left="0" Top="0" Width="50" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<CheckBox Content="Subdiv" IsChecked="false" Left="163" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="AngleClassification" Content="I" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="AngleClassification" Content="II div.1" IsChecked="false" Left="82" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="AngleClassification" Content="II div.2" IsChecked="false" Left="109" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="AngleClassification" Content="III" IsChecked="false" Left="136" Top="0" Width="27" Height="5"/>
+		</Block>
+		<Block Name="Dentition" IsVisible="true" Left="5" Top="32">
+			<Label Content="Dentition" ItemType="0" Left="0" Top="0" Width="50" Height="6" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="Dentition" Content="Deciduous" IsChecked="true" Left="55" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="Dentition" Content="Mixed" IsChecked="false" Left="82" Top="0" Width="27" Height="5"/>
+			<RadioButton GroupName="Dentition" Content="Permanent" IsChecked="false" Left="109" Top="0" Width="27" Height="5"/>
+		</Block>
+		<PageBreak/>
+		<Label Content="Soft Tissue" FontSize="12pt" ItemType="0" Left="5" Top="97" Width="190" Height="10" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="Facial Survey" FontSize="12pt" ItemType="0" Left="5" Top="0" Width="190" Height="10" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="2">
+			<Points>5,107 195,107</Points>
+		</Lines>
+		<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="2">
+			<Points>5,10 195,10</Points>
+		</Lines>
+		<Block Name="Incisor Exposure at Smiling" IsVisible="true" Left="5" Top="169">
+			<Label Content="Incisor Exposure at Smiling" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="mm" FontSize="7pt" ItemType="0" Left="85" Top="0" Width="22" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<TextBox Name="incisormm" Content="123" Left="65" Top="0" Width="20" Height="5"/>
+		</Block>
+		<Block Name="Gingival Exposure at Smiling" IsVisible="true" Left="5" Top="164">
+			<Label Content="Gingival Exposure at Smiling" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="mm" FontSize="7pt" ItemType="0" Left="85" Top="0" Width="22" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<TextBox Name="gingivalmm" Content="123" Left="65" Top="0" Width="20" Height="5"/>
+		</Block>
+		<Block Name="Tongue Position" IsVisible="true" Left="5" Top="159">
+			<Label Content="Tongue Position" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="TonguePosition" Content="High" IsChecked="false" Left="65" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="TonguePosition" Content="Normal" IsChecked="true" Left="107" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="TonguePosition" Content="Low" IsChecked="false" Left="149" Top="0" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Tongue Size" IsVisible="true" Left="5" Top="154">
+			<Label Content="Tongue Size" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="TongueSize" Content="Large" IsChecked="false" Left="65" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="TongueSize" Content="Normal" IsChecked="true" Left="107" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="TongueSize" Content="Small" IsChecked="false" Left="149" Top="0" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Lip Tonicity" IsVisible="true" Left="5" Top="149">
+			<Label Content="Lip Tonicity" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="Liptonicity" Content="Hypertonic" IsChecked="false" Left="65" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="Liptonicity" Content="Normal" IsChecked="true" Left="107" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="Liptonicity" Content="Hypotonic" IsChecked="false" Left="149" Top="0" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Lip Thickness Lower" IsVisible="true" Left="5" Top="144">
+			<Label Content="Lip Thickness Lower" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="LipThicknesslower" Content="Thin" IsChecked="false" Left="65" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="LipThicknesslower" Content="Average" IsChecked="true" Left="107" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="LipThicknesslower" Content="Full" IsChecked="false" Left="149" Top="0" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Lip Thickness Upper" IsVisible="true" Left="5" Top="139">
+			<Label Content="Lip Thickness Upper" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="LipThicknessUpper" Content="Thin" IsChecked="true" Left="65" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="LipThicknessUpper" Content="Average" IsChecked="false" Left="107" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="LipThicknessUpper" Content="Full" IsChecked="false" Left="149" Top="0" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Lips Posture at Rest" IsVisible="true" Left="5" Top="134">
+			<Label Content="Lips Posture at Rest" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="LipsPostureAtRest" Content="Open" IsChecked="true" Left="65" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="LipsPostureAtRest" Content="Close" IsChecked="false" Left="107" Top="0" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Mentalis Action" IsVisible="true" Left="5" Top="129">
+			<Label Content="Mentalis Action" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="MentalisAction" Content="Close Bite" IsChecked="true" Left="65" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="MentalisAction" Content="Open Bite" IsChecked="false" Left="107" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="MentalisAction" Content="No" IsChecked="false" Left="149" Top="0" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Adenoids" IsVisible="true" Left="5" Top="124">
+			<Label Content="Adenoids" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="Adenoids" Content="Normal" IsChecked="true" Left="65" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="Adenoids" Content="Enlarged" IsChecked="false" Left="107" Top="0" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Tonsils" IsVisible="true" Left="5" Top="119">
+			<Label Content="Tonsils" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="Tonsils" Content="Normal" IsChecked="true" Left="65" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="Tonsils" Content="Enlarged" IsChecked="false" Left="107" Top="0" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Lingual Frenum" IsVisible="true" Left="5" Top="114">
+			<Label Content="Lingual Frenum" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="LingualFrenum" Content="Normal" IsChecked="true" Left="65" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="LingualFrenum" Content="Heavy" IsChecked="false" Left="107" Top="0" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Labial Frenum" IsVisible="true" Left="5" Top="109">
+			<Label Content="Labial Frenum" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="LabialFrenum" Content="Normal" IsChecked="true" Left="65" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="LabialFrenum" Content="Heavy" IsChecked="false" Left="107" Top="0" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Profile-Mn" IsVisible="true" Left="70" Top="50">
+			<Label Content="Profile-Mn" ItemType="0" Left="0" Top="0" Width="38" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="ProfileMn" Content="Protrusive" IsChecked="true" Left="38" Top="0" Width="76" Height="5"/>
+			<RadioButton GroupName="ProfileMn" Content="Normal" IsChecked="false" Left="38" Top="5" Width="76" Height="5"/>
+			<RadioButton GroupName="ProfileMn" Content="Restrusive" IsChecked="false" Left="38" Top="10" Width="76" Height="5"/>
+		</Block>
+		<Block Name="Profile-Mx" IsVisible="true" Left="70" Top="31">
+			<Label Content="Profile-Mx" ItemType="0" Left="0" Top="0" Width="38" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>0,17 125,17</Points>
+			</Lines>
+			<RadioButton GroupName="ProfileMx" Content="Protrusive" IsChecked="false" Left="38" Top="0" Width="76" Height="5"/>
+			<RadioButton GroupName="ProfileMx" Content="Normal" IsChecked="false" Left="38" Top="5" Width="76" Height="5"/>
+			<RadioButton GroupName="ProfileMx" Content="Retrusive" IsChecked="true" Left="38" Top="10" Width="76" Height="5"/>
+		</Block>
+		<Block Name="Facial Type" IsVisible="true" Left="70" Top="12">
+			<Label Content="Facial Type" ItemType="0" Left="0" Top="0" Width="38" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>0,17 125,17</Points>
+			</Lines>
+			<RadioButton GroupName="FacialType" Content="Euryprosopic (Barchy)" IsChecked="true" Left="38" Top="0" Width="76" Height="5"/>
+			<RadioButton GroupName="FacialType" Content="Mesoprosopic (Meso)" IsChecked="false" Left="38" Top="5" Width="76" Height="5"/>
+			<RadioButton GroupName="FacialType" Content="Leptoprosopic (Dolicho)" IsChecked="false" Left="38" Top="10" Width="76" Height="5"/>
+		</Block>
+		<Block Name="Face" IsVisible="true" Left="5" Top="12">
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0.300">
+				<Points>5,40 55,40</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0.300">
+				<Points>30,5 30,75</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0.300">
+				<Points>15,50.7 45,50.7</Points>
+			</Lines>
+			<TextBox Name="" Content=" " Left="14.700" Top="40.300" Width="15" Height="5"/>
+			<TextBox Name="" Content=" " Left="30.400" Top="40.300" Width="15" Height="5"/>
+			<TextBox Name="" Content=" " Left="14.700" Top="45.600" Width="15" Height="5"/>
+			<TextBox Name="" Content=" " Left="30.400" Top="45.600" Width="15" Height="5"/>
+			<TextBox Name="" Content=" " Left="14.700" Top="50.900" Width="15" Height="5"/>
+			<TextBox Name="" Content=" " Left="30.400" Top="50.900" Width="15" Height="5"/>
+			<TextBox Name="" Content=" " Left="14.700" Top="56.200" Width="15" Height="5"/>
+			<TextBox Name="" Content=" " Left="30.400" Top="56.200" Width="15" Height="5"/>
+			<Image Source=":/images/img/img_face.png" Left="0" Top="0" Width="60" Height="80" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		</Block>
+		<PageBreak/>
+		<Label Content="Other Notes" FontSize="12pt" ItemType="0" Left="5" Top="171" Width="60" Height="10" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="Habits" FontSize="12pt" ItemType="0" Left="5" Top="144" Width="190" Height="10" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="Cleft" FontSize="12pt" ItemType="0" Left="5" Top="112" Width="190" Height="10" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Label Content="TMJ" FontSize="12pt" ItemType="0" Left="5" Top="0" Width="190" Height="10" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+		<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="2">
+			<Points>5,154 195,154</Points>
+		</Lines>
+		<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="2">
+			<Points>5,122 195,122</Points>
+		</Lines>
+		<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="2">
+			<Points>5,10 195,10</Points>
+		</Lines>
+		<TextBox Name="" Content="&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;&#10;&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;&#10;p, li { white-space: pre-wrap; }&#10;&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Segoe UI'; font-size:11pt; font-weight:400; font-style:normal;&quot;&gt;&#10;&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;" Left="5" Top="181" Width="190" Height="50"/>
+		<Block Name="Hibits" IsVisible="true" Left="5" Top="156">
+			<Label Content="Hibits" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<CheckBox Content="Tongue Thrust" IsChecked="false" Left="65" Top="0" Width="42" Height="5"/>
+			<CheckBox Content="Lip Biting" IsChecked="false" Left="107" Top="0" Width="42" Height="5"/>
+			<CheckBox Content="Finger Sucking" IsChecked="true" Left="149" Top="0" Width="42" Height="5"/>
+			<CheckBox Content="Mouth Breathing" IsChecked="true" Left="65" Top="5" Width="42" Height="5"/>
+			<CheckBox Content="Musical Instrument" IsChecked="false" Left="107" Top="5" Width="42" Height="5"/>
+			<TextBox Name="HabitsTextBox" Content="" Left="149" Top="5" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Syndrome" IsVisible="true" Left="5" Top="139">
+			<Label Content="Syndrome" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<CheckBox Content="Syndrome" IsChecked="false" Left="65" Top="0" Width="42" Height="5"/>
+			<TextBox Name="SyndromeTextBox" Content="123" Left="107" Top="0" Width="84" Height="5"/>
+		</Block>
+		<Block Name="Cleft" IsVisible="true" Left="5" Top="124">
+			<Label Content="Cleft" ItemType="0" Left="0" Top="0" Width="60" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<CheckBox Content="None" IsChecked="true" Left="65" Top="0" Width="42" Height="5"/>
+			<CheckBox Content="Right" IsChecked="false" Left="107" Top="0" Width="42" Height="5"/>
+			<CheckBox Content="Left" IsChecked="false" Left="149" Top="0" Width="42" Height="5"/>
+			<CheckBox Content="Cleft Lip" IsChecked="false" Left="65" Top="5" Width="42" Height="5"/>
+			<CheckBox Content="Cleft Palate" IsChecked="true" Left="107" Top="5" Width="42" Height="5"/>
+			<CheckBox Content="Cleft Alveolus" IsChecked="true" Left="149" Top="5" Width="42" Height="5"/>
+			<CheckBox Content="Submucosal Cleft" IsChecked="false" Left="65" Top="10" Width="42" Height="5"/>
+			<CheckBox Content="Soft Palate Cleft" IsChecked="false" Left="107" Top="10" Width="42" Height="5"/>
+		</Block>
+		<Block Name="CR-CO Discrepancy" IsVisible="true" Left="5" Top="102">
+			<Label Content="CR-CO Discrepancy" FontSize="12pt" ItemType="0" Left="0" Top="-0.278" Width="59.998" Height="5.556" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="Horizontal" FontSize="7pt" ItemType="0" Left="65" Top="0" Width="20" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="mm" FontSize="7pt" ItemType="0" Left="105" Top="0" Width="10" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="Transverse" FontSize="7pt" ItemType="0" Left="127" Top="0" Width="20" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="mm" FontSize="7pt" ItemType="0" Left="167" Top="0" Width="10" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<TextBox Name="HorizontalTextBox" Content="123" Left="85" Top="0" Width="20" Height="5"/>
+			<TextBox Name="TransverseTextBox" Content="123" Left="147" Top="0" Width="20" Height="5"/>
+		</Block>
+		<Block Name="Muscle Tenderness" IsVisible="true" Left="5" Top="97">
+			<Label Content="Muscle Tenderness" FontSize="12pt" ItemType="0" Left="0" Top="-0.278" Width="59.998" Height="5.556" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<RadioButton GroupName="Muscle Tenderness" Content="Mild" IsChecked="true" Left="65" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="Muscle Tenderness" Content="Moderate" IsChecked="false" Left="107" Top="0" Width="42" Height="5"/>
+			<RadioButton GroupName="Muscle Tenderness" Content="Severe" IsChecked="false" Left="149" Top="0" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Joint Palpation" IsVisible="true" Left="5" Top="67">
+			<Label Content="Joint Palpation" FontSize="12pt" ItemType="0" Left="0" Top="-0.278" Width="59.998" Height="5.556" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<CheckBox Content="No Pain" IsChecked="true" Left="65" Top="15" Width="42" Height="5"/>
+			<CheckBox Content="Pain on Left" IsChecked="false" Left="107" Top="15" Width="42" Height="5"/>
+			<CheckBox Content="Pain on Right" IsChecked="false" Left="149" Top="15" Width="42" Height="5"/>
+			<CheckBox Content="No Sound" IsChecked="false" Left="65" Top="20" Width="42" Height="5"/>
+			<CheckBox Content="Sound on Left" IsChecked="true" Left="107" Top="20" Width="42" Height="5"/>
+			<CheckBox Content="Sound on Right" IsChecked="false" Left="149" Top="20" Width="42" Height="5"/>
+			<CheckBox Content="No Locking" IsChecked="true" Left="65" Top="25" Width="42" Height="5"/>
+			<CheckBox Content="Locking on Left" IsChecked="false" Left="107" Top="25" Width="42" Height="5"/>
+			<CheckBox Content="Locking on Right" IsChecked="false" Left="149" Top="25" Width="42" Height="5"/>
+			<RadioButton GroupName="JointPalpation" Content="Asymptomatic" IsChecked="false" Left="65" Top="10" Width="42" Height="5"/>
+			<RadioButton GroupName="JointPalpation" Content="Symptomatic" IsChecked="true" Left="107" Top="10" Width="42" Height="5"/>
+		</Block>
+		<Block Name="Final" IsVisible="true" Left="130" Top="12">
+			<Label Content="40" ItemType="0" Left="8" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="30" ItemType="0" Left="13" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="20" ItemType="0" Left="18" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="10" ItemType="0" Left="23" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="10" ItemType="0" Left="33" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="20" ItemType="0" Left="38" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="30" ItemType="0" Left="43" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="40" ItemType="0" Left="48" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="10" ItemType="0" Left="31" Top="7" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="10" ItemType="0" Left="31" Top="17" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="20" ItemType="0" Left="31" Top="22" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="30" ItemType="0" Left="31" Top="27" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="40" ItemType="0" Left="31" Top="32" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="41" Left="0" Top="39.854" Width="19.997" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="Final" FontSize="12pt" HorizontalAlignment="Center" ItemType="0" Left="0" Top="45" Width="60" Height="10" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>5,15 55,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>10,14 10,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>15,14 15,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>20,14 20,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>25,14 25,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>35,14 35,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>30,5 30,40</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,10 31,10</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,20 31,20</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,25 31,25</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,30 31,30</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,35 31,35</Points>
+			</Lines>
+			<Button Content="Clear" Left="40" Top="40" Width="15" Height="6"/>
+		</Block>
+		<Block Name="Progress" IsVisible="true" Left="65" Top="12">
+			<Label Content="40" ItemType="0" Left="8" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="30" ItemType="0" Left="13" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="20" ItemType="0" Left="18" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="10" ItemType="0" Left="23" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="10" ItemType="0" Left="33" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="20" ItemType="0" Left="38" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="30" ItemType="0" Left="43" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="40" ItemType="0" Left="48" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="10" ItemType="0" Left="31" Top="7" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="10" ItemType="0" Left="31" Top="17" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="20" ItemType="0" Left="31" Top="22" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="30" ItemType="0" Left="31" Top="27" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="40" ItemType="0" Left="31" Top="32" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="41" Left="0" Top="39.854" Width="19.997" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="Progress" FontSize="12pt" HorizontalAlignment="Center" ItemType="0" Left="0" Top="45" Width="60" Height="10" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>5,15 55,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>10,14 10,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>15,14 15,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>20,14 20,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>25,14 25,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>35,14 35,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>30,5 30,40</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,10 31,10</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,20 31,20</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,25 31,25</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,30 31,30</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,35 31,35</Points>
+			</Lines>
+			<Button Content="Clear" Left="40" Top="40" Width="15" Height="6"/>
+		</Block>
+		<Block Name="Initial" IsVisible="true" Left="5" Top="12">
+			<Label Content="40" ItemType="0" Left="8" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="30" ItemType="0" Left="13" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="20" ItemType="0" Left="18" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="10" ItemType="0" Left="23" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="10" ItemType="0" Left="33" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="20" ItemType="0" Left="38" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="30" ItemType="0" Left="43" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="40" ItemType="0" Left="48" Top="10" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="10" ItemType="0" Left="31" Top="7" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="10" ItemType="0" Left="31" Top="17" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="20" ItemType="0" Left="31" Top="22" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="30" ItemType="0" Left="31" Top="27" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="40" ItemType="0" Left="31" Top="32" Width="8" Height="5" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label FontSize="11pt" ItemType="41" Left="0" Top="39.854" Width="19.997" Height="5.292" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Label Content="Initial" FontSize="12pt" HorizontalAlignment="Center" ItemType="0" Left="0" Top="45" Width="60" Height="10" Fill="#ffffff" FillOpacity="0" LineStyle="0" Stroke="#000000" StrokeOpacity="1" StrokeThickness="0"/>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>5,15 55,15</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>10,14 10,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>15,14 15,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>20,14 20,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>25,14 25,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>35,14 35,16</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>30,5 30,40</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,10 31,10</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,20 31,20</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,25 31,25</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,30 31,30</Points>
+			</Lines>
+			<Lines LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+				<Points>29,35 31,35</Points>
+			</Lines>
+			<Button Content="Clear" Left="40" Top="40" Width="15" Height="6"/>
+		</Block>
+	</PageContent>
+</HistoryChart>

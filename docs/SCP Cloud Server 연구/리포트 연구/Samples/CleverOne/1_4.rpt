@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report TemplateName="RPT_Cross" Version="5.2.0" ARCHIVETYPE="Template">
+	<Paper PaperSize="A4" Orientation="Portrait">
+		<Margin Top="10" Bottom="10" Left="10" Right="10"/>
+	</Paper>
+	<Page Number="1" TemplateName="Cross">
+		<!---->
+		<!-- Report Information -->
+		<!---->
+		<!-- Text Box Item -->
+		<!---->
+		<!-- Image Box Item -->
+		<ImageBox BoxID="59" ImageFitMode="BoxFit" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">
+			<Position X="30%" Y="15%"/>
+			<Size Width="30%" Height="23%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="0.402" ScaleY="0.402"/>
+			<ImageFileNames>
+				<ImageFile>CI20260211_105241_4248_45169241.DCM</ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<ImageBox BoxID="60" ImageFitMode="BoxFit" Invert="false" ImageMacro="" BoxType="Single" Source="None">
+			<Position X="0%" Y="38%"/>
+			<Size Width="30%" Height="23%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="1" ScaleY="1"/>
+			<ImageFileNames>
+				<ImageFile></ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<ImageBox BoxID="61" ImageFitMode="BoxFit" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">
+			<Position X="30%" Y="38%"/>
+			<Size Width="30%" Height="23%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="0.173" ScaleY="0.173"/>
+			<ImageFileNames>
+				<ImageFile>CI20260211_105156_4474_52000178.DCM</ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<ImageBox BoxID="62" ImageFitMode="BoxFit" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">
+			<Position X="60%" Y="38%"/>
+			<Size Width="30%" Height="23%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="0.372" ScaleY="0.372"/>
+			<ImageFileNames>
+				<ImageFile>IC20170801_060602_0247_00000477.jpg</ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<ImageBox BoxID="63" ImageFitMode="BoxFit" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">
+			<Position X="30%" Y="61%"/>
+			<Size Width="30%" Height="23%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="0.688" ScaleY="0.688"/>
+			<ImageFileNames>
+				<ImageFile>CI20260211_105235_2201_89072137.DCM</ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<!---->
+		<!-- Tooth Code Item -->
+		<!---->
+		<!-- Annotations Item -->
+		<Annotations/>
+		<!---->
+		<!-- Groups Item -->
+		<Groups/>
+	</Page>
+</Report>

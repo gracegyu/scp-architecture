@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report TemplateName="RPT_FrameHU1x2L" Version="5.2.0" ARCHIVETYPE="Template">
+	<Paper PaperSize="A4" Orientation="Portrait">
+		<Margin Top="10" Bottom="10" Left="10" Right="10"/>
+	</Paper>
+	<Page Number="1" TemplateName="FrameHU1x2L">
+		<!---->
+		<!-- Report Information -->
+		<!---->
+		<!-- Text Box Item -->
+		<TextBox BoxID="107" TextMacro="HeaderDate" Editable="false">
+			<Position X="0%" Y="0%"/>
+			<Size Width="15.119%" Height="1.782%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Date: 2026-02-11</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="108" TextMacro="HeaderPatientInfo" Editable="false">
+			<Position X="15.119%" Y="0%"/>
+			<Size Width="60.238%" Height="3.742%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Chart No. 1</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">last first 	Gender: Male 	Age: 9Y</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="109" TextMacro="FooterClinicLogo" Editable="false">
+			<Position X="75.357%" Y="87.921%"/>
+			<Size Width="15.119%" Height="5.345%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">VATECH Dental Clinic</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="110" TextMacro="FooterDate" Editable="false">
+			<Position X="0%" Y="91.484%"/>
+			<Size Width="15.119%" Height="1.782%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Date: 2026-02-11</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="111" TextMacro="FooterWebSite" Editable="false">
+			<Position X="15.119%" Y="90.059%"/>
+			<Size Width="20.079%" Height="2.227%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Website: evngmail.com</p></body></html>]]></Text>
+		</TextBox>
+		<!---->
+		<!-- Image Box Item -->
+		<ImageBox BoxID="102" ImageFitMode="BoxFit" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">
+			<Position X="5%" Y="10%"/>
+			<Size Width="81%" Height="38%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="0.450" ScaleY="0.450"/>
+			<ImageFileNames>
+				<ImageFile>CI20260211_112324_6027_26126276.JPG</ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<ImageBox BoxID="103" ImageFitMode="BoxFit" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">
+			<Position X="5%" Y="49%"/>
+			<Size Width="40%" Height="35%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="0.222" ScaleY="0.222"/>
+			<ImageFileNames>
+				<ImageFile>CI20260211_112335_4280_73689992.JPG</ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<ImageBox BoxID="104" ImageFitMode="BoxFit" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">
+			<Position X="46%" Y="49%"/>
+			<Size Width="40%" Height="35%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="0.316" ScaleY="0.316"/>
+			<ImageFileNames>
+				<ImageFile>CI20260211_112344_2321_47524190.JPG</ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<!---->
+		<!-- Tooth Code Item -->
+		<!---->
+		<!-- Annotations Item -->
+		<Annotations/>
+		<!---->
+		<!-- Groups Item -->
+		<Groups/>
+	</Page>
+</Report>

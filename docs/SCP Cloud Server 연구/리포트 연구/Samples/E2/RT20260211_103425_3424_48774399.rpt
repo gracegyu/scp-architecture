@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report Version="3.0">
+    <Page IncludeImageInfo="2" XPercent="300" YPercent="240" PageNumber="0">
+        <ItemBox Type="ImageBox" Index="0" XPercent="0.03" YPercent="0.39" WidthPercent="0.215" HeightPercent="0.11" BackgroundColor="#ffffff" LineThickness="1" LineColor="#00b24a" LineType="1">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+            <Image InformationBoxColor="#ffffff" DateTimeFormat="yyyy-MM-dd" PatientNameFormat="LastName FirstName" FileName="" Invert="0" DrawingMode="0" TransX="0" TransY="0" ZoomFactor="1"><![CDATA[]]></Image>
+        </ItemBox>
+        <ItemBox Type="ImageBox" Index="1" XPercent="0.03" YPercent="0.5" WidthPercent="0.215" HeightPercent="0.11" BackgroundColor="#ffffff" LineThickness="1" LineColor="#00b24a" LineType="1">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+            <Image InformationBoxColor="#ffffff" DateTimeFormat="yyyy-MM-dd" PatientNameFormat="LastName FirstName" FileName="" Invert="0" DrawingMode="0" TransX="0" TransY="0" ZoomFactor="1"><![CDATA[]]></Image>
+        </ItemBox>
+        <ItemBox Type="ImageBox" Index="2" XPercent="0.245" YPercent="0.33" WidthPercent="0.17" HeightPercent="0.17" BackgroundColor="#ffffff" LineThickness="1" LineColor="#00b24a" LineType="1">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left">0[kVp]    0[mA]    0.000 dGyCm^2[DAP]    Other    None    2017-08-01</Text>
+            <Image InformationBoxColor="#ffffff" DateTimeFormat="yyyy-MM-dd" PatientNameFormat="LastName FirstName" FileName="IS20170801_062502_0977_00000481.jpg" Invert="0" DrawingMode="1"><![CDATA[QXdRamw1SCtibUdISlRUWGFVVTdSSEx2M2VFQXNnNHlEWFZaRm5jaVJqUkhMZ0JOTVRBQUxoNDhYUnMwZEJwK0YzbGZRU0owQVdkS2NoRU5jbHRtUndOTVRqa2hVaFkyYzBGVUZqQXRKaHBmYlhnNkhCOW9EWDhNSkdoSFdYcExjMUV1QjJaNUxFMHFhVWtHTG04Y2ZRbGdUZ044VlhSVWFDc0xSR3d0WGo5TExnc1dBV1FrYUR0K0F3OE5UeUpMS1Z0N0xBaFBjSHBhZWdkblJ3aFdEakFBZlhGek1Wd0RXMlV1TFV4VEVYQWNRMXRHTnlnR1JTUklWaXhUZWx0N1J3UWthME1DY1JCa0RTTnVmQ3RMUDFwa2F5Y0lUbk5jSDM1VEdUcHJDMzhXZVZZbUUxRWtRWDkxRkF0bEVuSVZWamNhVUhNaVFqWmZNQjhDU1VwM0kwSWxJRUpUVGtWbFJYbDhIZzhTSXg4d2RIUUhlRkZ3VEdNM0YxTldOR1ZiVVhFTWUxc2ZWemxRSkF4T1kzNTFWWFZKV2hZallSUjlFbndERUcxaE1sMHBTSDAzR1ZScllVRmhISGRaQ0dBYWRSc3ViRUZjYlZGK05oaEpZVGhXT0V3dEFCMVdWWFJJSG50SUh6ZDNGM3RGZFFnRUUxVW1VanRZZURkSVlVQjhVd2NuWTJzbVRqcFRNaDhDU1VwM0kwSWxOR1ZCSzBRdFdUQVFYeUFKS0FnMFprZ2ZQMmdBYndFL1RsRS9UaUJVTlVGcEpRb1hIRHdjSUNsbFZoeG5DR1lTTW4wQ0VTd0RTeVFYWFdZcVJURlFQRU5xQ3dnMVl3WjBRUXNwYXdZNENEUmFMd3RhTDBZbFJHbDBQendCTG5vYlBVNTlPM01kZEFBb2FrZGFVWEZOR1RsOWZUcFJKRmNqRDBsbU1RNEVKQVI1R0N0aEIyOGJkVkVCTXk0Zkl3eE9mVGNSV2k5QkpGZGxlRE13RVMxdUFTNTVTZ2g2RGpBQWZYRnpQMUFrVmpjRlVpMEVKUVU1Zmw0UVBINUJjVTFpWkNZS1JDUWFFREJSVGs0ZGJBQjVQeGRZYlN0WVpteE1MUzVUSTBvcldTa05RRDhzRVQ1dEJTVjBSUU5zVWxoNEdScG5DV2tSUWlvS1cyb3NRMzFOY1I5eFVRcFlNRkVqRWxSN1ptMU5iVTB3V25VZ1JEWkZJRjlNTVQxMUcyMElPMnRQVWxsNVdYa0VZVWtHYWk5Skx3dExmbU5TYmtFSEwyQk1LazByVGkwWUJVNU5iRkIvUGc5Y2NTdHNCV2tkT1dnWFBoOGpERmg0UER4N0VHVVdZazRJSjNCUFJXVlpUQTRvUmlKRE1FVjJNQ1pzQ1gwVk9rVnNEUkpISmtFQ0ltOVBBRlkvV3k4R0NuVmNmVUVWZEZJeUVsOC9VeHhzVEF3a2N3c2tHaEJ4Ym5zNVh4WjRIakJSZnlSaUVIOEtPeVp0Yms5ekowWmdDaVZnRGt3ald6cE5kU1pDZjExc0dodGtUV3hNYkZCVEh5WWxjeHArQ2lNOVhrOThUbXhNUVFjZ2QwdHBXWHNhYlVNUUxBNCtISDBXTW5nZWRnSS9YRTQ5S0Fza0doQnhjaE1NU3lSS1BsOC9FVjR3UW45ZFB5eGRHSDhaZjEwOFRHUTlXV1JHZHdBQmIzSjVXWGxaSkZOM0xGbG5LVWhrSWtOYWV4ZDJCVEF6RkY0dFhpb2dJbWxKR0cxTkkxWjZPeDlPYjFWMVJBOXVSaGRpQ200UE56UlBUSDlQZmtrbE5rWkllVWhvUURaTUpBMUxMa0FrQUZFd0tRaEZKRWhzUlVBQ2R4SXlDR2w0Q1JzdEFEQUlaSGNIR0RaaUIzOUtWeHdmUGg0aWRGd01KR1VJYlZNRkFtQnRIVmxsU2h3MFpFd05ZQVU3TVZCVExpSjNGbkU0RjFKOEhYTUxOVDllUVM5WU9GOFdlRjhURUZ3bFloQi9TeGhuVG05VEZteGpJUlpjQ1dnUEx5cHNXUjk5Q1d3SWRIVmlCMGNMV0IxK2NnMGtHVFp6UVZRV01DMG0=]]></Image>
+        </ItemBox>
+        <ItemBox Type="ImageBox" Index="3" XPercent="0.415" YPercent="0.33" WidthPercent="0.17" HeightPercent="0.17" BackgroundColor="#ffffff" LineThickness="1" LineColor="#00b24a" LineType="1">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+            <Image InformationBoxColor="#ffffff" DateTimeFormat="yyyy-MM-dd" PatientNameFormat="LastName FirstName" FileName="" Invert="0" DrawingMode="0" TransX="0" TransY="0" ZoomFactor="1"><![CDATA[]]></Image>
+        </ItemBox>
+        <ItemBox Type="ImageBox" Index="4" XPercent="0.585" YPercent="0.33" WidthPercent="0.17" HeightPercent="0.17" BackgroundColor="#ffffff" LineThickness="1" LineColor="#00b24a" LineType="1">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+            <Image InformationBoxColor="#ffffff" DateTimeFormat="yyyy-MM-dd" PatientNameFormat="LastName FirstName" FileName="" Invert="0" DrawingMode="0" TransX="0" TransY="0" ZoomFactor="1"><![CDATA[]]></Image>
+        </ItemBox>
+        <ItemBox Type="ImageBox" Index="5" XPercent="0.245" YPercent="0.5" WidthPercent="0.17" HeightPercent="0.17" BackgroundColor="#ffffff" LineThickness="1" LineColor="#00b24a" LineType="1">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+            <Image InformationBoxColor="#ffffff" DateTimeFormat="yyyy-MM-dd" PatientNameFormat="LastName FirstName" FileName="" Invert="0" DrawingMode="0" TransX="0" TransY="0" ZoomFactor="1"><![CDATA[]]></Image>
+        </ItemBox>
+        <ItemBox Type="ImageBox" Index="6" XPercent="0.415" YPercent="0.5" WidthPercent="0.17" HeightPercent="0.17" BackgroundColor="#ffffff" LineThickness="1" LineColor="#00b24a" LineType="1">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left">0[kVp]    0[mA]    0.000 dGyCm^2[DAP]    Other    None    2017-08-01</Text>
+            <Image InformationBoxColor="#ffffff" DateTimeFormat="yyyy-MM-dd" PatientNameFormat="LastName FirstName" FileName="IS20170801_062502_0977_00000481.jpg" Invert="0" DrawingMode="1"><![CDATA[QXdRamw1SCtibUdISlRUWGFVVTdSSEx2M2VFQXNnNHlEWFZaRm5jaVJqUkhMZ0JOTVRBQUxoNDhYUnMwZEJwK0YzbGZRU0owQVdkS2NoRU5jbHRtUndOTVRqa2hVaFkyYzBGVUZqQXRKaHBmYlhnNkhCOW9EWDhNSkdoSFdYcExjMUV1QjJaNUxFMHFhVWtHTG04Y2ZRbGdUZ044VlhSVWFDc0xSR3d0WGo5TExnc1dBV1FrYUR0K0F3OE5UeUpMS1Z0N0xBaFBjSHBhZWdkblJ3aFdEakFBZlhGek1Wd0RXMlV1TFV4VEVYQWNRMXRHTnlnR1JTUklWaXhUZWx0N1J3UWthME1DY1JCa0RTTnVmQ3RMUDFwa2F5Y0lUbk5jSDM1VEdUcHJDMzhXZVZZbUUxRWtRWDkxRkF0bEVuSVZWamNhVUhNaVFqWmZNQjhDU1VwM0kwSWxJRUpUVGtWbFJYbDhIZzhTSXg4d2RIUUhlRkZ3VEdNM0YxTldOR1ZiVVhFTWUxc2ZWemxRSkF4T1kzNTFWWFZKV2hZallSUjlFbndERUcxaE1sMHBTSDAzR1ZScllVRmhISGRaQ0dBYWRSc3ViRUZjYlZGK05oaEpZVGhXT0V3dEFCMVdWWFJJSG50SUh6ZDNGM3RGZFFnRUUxVW1VanRZZURkSVlVQjhVd2NuWTJzbVRqcFRNaDhDU1VwM0kwSWxOR1ZCSzBRdFdUQVFYeUFKS0FnMFprZ2ZQMmdBYndFL1RsRS9UaUJVTlVGcEpRb1hIRHdjSUNsbFZoeG5DR1lTTW4wQ0VTd0RTeVFYWFdZcVJURlFQRU5xQ3dnMVl3WjBRUXNwYXdZNENEUmFMd3RhTDBZbFJHbDBQendCTG5vYlBVNTlPM01kZEFBb2FrZGFVWEZOR1RsOWZUcFJKRmNqRDBsbU1RNEVKQVI1R0N0aEIyOGJkVkVCTXk0Zkl3eE9mVGNSV2k5QkpGZGxlRE13RVMxdUFTNTVTZ2g2RGpBQWZYRnpQMUFrVmpjRlVpMEVKUVU1Zmw0UVBINUJjVTFpWkNZS1JDUWFFREJSVGs0ZGJBQjVQeGRZYlN0WVpteE1MUzVUSTBvcldTa05RRDhzRVQ1dEJTVjBSUU5zVWxoNEdScG5DV2tSUWlvS1cyb3NRMzFOY1I5eFVRcFlNRkVqRWxSN1ptMU5iVTB3V25VZ1JEWkZJRjlNTVQxMUcyMElPMnRQVWxsNVdYa0VZVWtHYWk5Skx3dExmbU5TYmtFSEwyQk1LazByVGkwWUJVNU5iRkIvUGc5Y2NTdHNCV2tkT1dnWFBoOGpERmg0UER4N0VHVVdZazRJSjNCUFJXVlpUQTRvUmlKRE1FVjJNQ1pzQ1gwVk9rVnNEUkpISmtFQ0ltOVBBRlkvV3k4R0NuVmNmVUVWZEZJeUVsOC9VeHhzVEF3a2N3c2tHaEJ4Ym5zNVh4WjRIakJSZnlSaUVIOEtPeVp0Yms5ekowWmdDaVZnRGt3ald6cE5kU1pDZjExc0dodGtUV3hNYkZCVEh5WWxjeHArQ2lNOVhrOThUbXhNUVFjZ2QwdHBXWHNhYlVNUUxBNCtISDBXTW5nZWRnSS9YRTQ5S0Fza0doQnhjaE1NU3lSS1BsOC9FVjR3UW45ZFB5eGRHSDhaZjEwOFRHUTlXV1JHZHdBQmIzSjVXWGxaSkZOM0xGbG5LVWhrSWtOYWV4ZDJCVEF6RkY0dFhpb2dJbWxKR0cxTkkxWjZPeDlPYjFWMVJBOXVSaGRpQ200UE56UlBUSDlQZmtrbE5rWkllVWhvUURaTUpBMUxMa0FrQUZFd0tRaEZKRWhzUlVBQ2R4SXlDR2w0Q1JzdEFEQUlaSGNIR0RaaUIzOUtWeHdmUGg0aWRGd01KR1VJYlZNRkFtQnRIVmxsU2h3MFpFd05ZQVU3TVZCVExpSjNGbkU0RjFKOEhYTUxOVDllUVM5WU9GOFdlRjhURUZ3bFloQi9TeGhuVG05VEZteGpJUlpjQ1dnUEx5cHNXUjk5Q1d3SWRIVmlCMGNMV0IxK2NnMGtHVFp6UVZRV01DMG0=]]></Image>
+        </ItemBox>
+        <ItemBox Type="ImageBox" Index="7" XPercent="0.585" YPercent="0.5" WidthPercent="0.17" HeightPercent="0.17" BackgroundColor="#ffffff" LineThickness="1" LineColor="#00b24a" LineType="1">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+            <Image InformationBoxColor="#ffffff" DateTimeFormat="yyyy-MM-dd" PatientNameFormat="LastName FirstName" FileName="" Invert="0" DrawingMode="0" TransX="0" TransY="0" ZoomFactor="1"><![CDATA[]]></Image>
+        </ItemBox>
+        <ItemBox Type="ImageBox" Index="8" XPercent="0.755" YPercent="0.39" WidthPercent="0.215" HeightPercent="0.11" BackgroundColor="#ffffff" LineThickness="1" LineColor="#00b24a" LineType="1">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+            <Image InformationBoxColor="#ffffff" DateTimeFormat="yyyy-MM-dd" PatientNameFormat="LastName FirstName" FileName="" Invert="0" DrawingMode="0" TransX="0" TransY="0" ZoomFactor="1"><![CDATA[]]></Image>
+        </ItemBox>
+        <ItemBox Type="ImageBox" Index="9" XPercent="0.755" YPercent="0.5" WidthPercent="0.215" HeightPercent="0.11" BackgroundColor="#ffffff" LineThickness="1" LineColor="#00b24a" LineType="1">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left">0[kVp]    0[mA]    0.000 dGyCm^2[DAP]    Other    None    2017-08-01</Text>
+            <Image InformationBoxColor="#ffffff" DateTimeFormat="yyyy-MM-dd" PatientNameFormat="LastName FirstName" FileName="IS20170801_062502_0977_00000481.jpg" Invert="0" DrawingMode="1"><![CDATA[QXdRamw1SCtibUdISlRUWGFVVTdSSEx2M2VFQXNnNHlEWFZaRm5jaVJqUkhMZ0JOTVRBQUxoNDhYUnMwZEJwK0YzbGZRU0owQVdkS2NoRU5jbHRtUndOTVRqa2hVaFkyYzBGVUZqQXRKaHBmYlhnNkhCOW9EWDhNSkdoSFdYcExjMUV1QjJaNUxFMHFhVWtHTG04Y2ZRbGdUZ044VlhSVWFDc0xSR3d0WGo5TExnc1dBV1FrYUR0K0F3OE5UeUpMS1Z0N0xBaFBjSHBhZWdkblJ3aFdEakFBZlhGek1Wd0RXMlV1TFV4VEVYQWNRMXRHTnlnR1JTUklWaXhUZWx0N1J3UWthME1DY1JCa0RTTnVmQ3RMUDFwa2F5Y0lUbk5jSDM1VEdUcHJDMzhXZVZZbUUxRWtRWDkxRkF0bEVuSVZWamNhVUhNaVFqWmZNQjhDU1VwM0kwSWxJRUpUVGtWbFJYbDhIZzhTSXg4d2RIUUhlRkZ3VEdNM0YxTldOR1ZiVVhFTWUxc2ZWemxRSkF4T1kzNTFWWFZKV2hZallSUjlFbndERUcxaE1sMHBTSDAzR1ZScllVRmhISGRaQ0dBYWRSc3ViRUZjYlZGK05oaEpZVGhXT0V3dEFCMVdWWFJJSG50SUh6ZDNGM3RGZFFnRUUxVW1VanRZZURkSVlVQjhVd2NuWTJzbVRqcFRNaDhDU1VwM0kwSWxOR1ZCSzBRdFdUQVFYeUFKS0FnMFprZ2ZQMmdBYndFL1RsRS9UaUJVTlVGcEpRb1hIRHdjSUNsbFZoeG5DR1lTTW4wQ0VTd0RTeVFYWFdZcVJURlFQRU5xQ3dnMVl3WjBRUXNwYXdZNENEUmFMd3RhTDBZbFJHbDBQendCTG5vYlBVNTlPM01kZEFBb2FrZGFVWEZOR1RsOWZUcFJKRmNqRDBsbU1RNEVKQVI1R0N0aEIyOGJkVkVCTXk0Zkl3eE9mVGNSV2k5QkpGZGxlRE13RVMxdUFTNTVTZ2g2RGpBQWZYRnpQMUFrVmpjRlVpMEVKUVU1Zmw0UVBINUJjVTFpWkNZS1JDUWFFREJSVGs0ZGJBQjVQeGRZYlN0WVpteE1MUzVUSTBvcldTa05RRDhzRVQ1dEJTVjBSUU5zVWxoNEdScG5DV2tSUWlvS1cyb3NRMzFOY1I5eFVRcFlNRkVqRWxSN1ptMU5iVTB3V25VZ1JEWkZJRjlNTVQxMUcyMElPMnRQVWxsNVdYa0VZVWtHYWk5Skx3dExmbU5TYmtFSEwyQk1LazByVGkwWUJVNU5iRkIvUGc5Y2NTdHNCV2tkT1dnWFBoOGpERmg0UER4N0VHVVdZazRJSjNCUFJXVlpUQTRvUmlKRE1FVjJNQ1pzQ1gwVk9rVnNEUkpISmtFQ0ltOVBBRlkvV3k4R0NuVmNmVUVWZEZJeUVsOC9VeHhzVEF3a2N3c2tHaEJ4Ym5zNVh4WjRIakJSZnlSaUVIOEtPeVp0Yms5ekowWmdDaVZnRGt3ald6cE5kU1pDZjExc0dodGtUV3hNYkZCVEh5WWxjeHArQ2lNOVhrOThUbXhNUVFjZ2QwdHBXWHNhYlVNUUxBNCtISDBXTW5nZWRnSS9YRTQ5S0Fza0doQnhjaE1NU3lSS1BsOC9FVjR3UW45ZFB5eGRHSDhaZjEwOFRHUTlXV1JHZHdBQmIzSjVXWGxaSkZOM0xGbG5LVWhrSWtOYWV4ZDJCVEF6RkY0dFhpb2dJbWxKR0cxTkkxWjZPeDlPYjFWMVJBOXVSaGRpQ200UE56UlBUSDlQZmtrbE5rWkllVWhvUURaTUpBMUxMa0FrQUZFd0tRaEZKRWhzUlVBQ2R4SXlDR2w0Q1JzdEFEQUlaSGNIR0RaaUIzOUtWeHdmUGg0aWRGd01KR1VJYlZNRkFtQnRIVmxsU2h3MFpFd05ZQVU3TVZCVExpSjNGbkU0RjFKOEhYTUxOVDllUVM5WU9GOFdlRjhURUZ3bFloQi9TeGhuVG05VEZteGpJUlpjQ1dnUEx5cHNXUjk5Q1d3SWRIVmlCMGNMV0IxK2NnMGtHVFp6UVZRV01DMG0=]]></Image>
+        </ItemBox>
+        <ItemBox Type="HeaderDateBox" Index="10" XPercent="0.02" YPercent="0.02" WidthPercent="0.22" HeightPercent="0.03" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left">2026-02-11</Text>
+        </ItemBox>
+        <ItemBox Type="HeaderLogoBox" Index="11" XPercent="0.78" YPercent="0.02" WidthPercent="0.2" HeightPercent="0.12" BackgroundColor="#ffffff" LineThickness="1" LineColor="#000000" LineType="1">
+            <Text Size="8" Face="Segoe UI" Color="#000000" Align="Left">EVN</Text>
+        </ItemBox>
+        <ItemBox Type="HeaderPatientInfoBox" Index="12" XPercent="0.26" YPercent="0.02" WidthPercent="0.5" HeightPercent="0.06" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left">Chart No. : 1 
+Name : last first Gender : Male Date of Birth : 2017-01-01 Age : 9Y</Text>
+        </ItemBox>
+        <ItemBox Type="HeaderNameBox" Index="13" XPercent="0.02" YPercent="0.05" WidthPercent="0.22" HeightPercent="0.03" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="HeaderPhoneBox" Index="14" XPercent="0.02" YPercent="0.11" WidthPercent="0.22" HeightPercent="0.03" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="HeaderWebSiteBox" Index="15" XPercent="0.02" YPercent="0.08" WidthPercent="0.22" HeightPercent="0.03" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="HeaderAddressBox" Index="16" XPercent="0.26" YPercent="0.08" WidthPercent="0.5" HeightPercent="0.06" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="FooterDateBox" Index="17" XPercent="0.02" YPercent="0.86" WidthPercent="0.22" HeightPercent="0.03" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="FooterLogoBox" Index="18" XPercent="0.78" YPercent="0.86" WidthPercent="0.2" HeightPercent="0.12" BackgroundColor="#ffffff" LineThickness="1" LineColor="#000000" LineType="1">
+            <Text Size="8" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="FooterPatientInfoBox" Index="19" XPercent="0.26" YPercent="0.86" WidthPercent="0.5" HeightPercent="0.06" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="FooterNameBox" Index="20" XPercent="0.02" YPercent="0.89" WidthPercent="0.22" HeightPercent="0.03" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left">EVN</Text>
+        </ItemBox>
+        <ItemBox Type="FooterPhoneBox" Index="21" XPercent="0.02" YPercent="0.95" WidthPercent="0.22" HeightPercent="0.03" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left">123</Text>
+        </ItemBox>
+        <ItemBox Type="FooterWebSiteBox" Index="22" XPercent="0.02" YPercent="0.92" WidthPercent="0.22" HeightPercent="0.03" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left">EVN@Ewoosoft.com</Text>
+        </ItemBox>
+        <ItemBox Type="FooterAddressBox" Index="23" XPercent="0.26" YPercent="0.92" WidthPercent="0.5" HeightPercent="0.06" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left">HN,VN</Text>
+        </ItemBox>
+    </Page>
+</Report>

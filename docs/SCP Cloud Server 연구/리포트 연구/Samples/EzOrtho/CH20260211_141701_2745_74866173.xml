@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TreatmentChart Name="" Version="" Locale="ko_KR">
+	<PaperSetting PaperSize="A4" Orientation="" MarginTop="10" MarginBottom="5" MarginLeft="5" MarginRight="5" HeaderHeight="25" FooterHeight="30"/>
+	<Header FontFamily="" FontSize="10pt" HorizontalAlignment="Left" VerticalAlignment="Center">
+		<Label Content="Treatment Chart" FontSize="20pt" FontStyle="Bold" HorizontalAlignment="Center" ItemType="0" Left="0" Top="5" Width="200" Height="10" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="ChartNo. :" ItemType="0" Left="0" Top="15" Width="18" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="01234" ItemType="1" Left="19" Top="15" Width="65" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Patient Name :" ItemType="0" Left="0" Top="20" Width="25" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Ewoosoft Vatech" ItemType="2" Left="26" Top="20" Width="78" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Gender :" ItemType="0" Left="104" Top="15" Width="16" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Male" ItemType="3" Left="120" Top="15" Width="26" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="D.O.B. :" ItemType="0" Left="104" Top="20" Width="16" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="1986/01/03" ItemType="4" Left="118" Top="20" Width="28" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Create Date :" ItemType="0" Left="148" Top="15" Width="25" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="42" Left="174" Top="15" Width="25" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Modified Date :" ItemType="0" Left="148" Top="20" Width="25" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="2026-02-11" ItemType="43" Left="174" Top="20" Width="25" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+	</Header>
+	<Footer FontFamily="" FontSize="10pt" HorizontalAlignment="Left" VerticalAlignment="Top">
+		<Line LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1" X1="0" Y1="2" X2="200" Y2="2"/>
+		<Label Align="Center" ItemType="27" Left="0" Top="5" Width="50" Height="25" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Clinic Name :" ItemType="0" Left="55" Top="5" Width="22" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="24" Left="77" Top="5" Width="68" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Clinic Telephone :" ItemType="0" Left="55" Top="10" Width="30" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="25" Left="83" Top="10" Width="60" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Clinic Fax :" ItemType="0" Left="55" Top="15" Width="30" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="44" Left="72" Top="15" Width="60" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Clinic WebPage :" ItemType="0" Left="55" Top="20" Width="30" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="45" Left="82" Top="20" Width="118" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Clinic Address :" ItemType="0" Left="55" Top="25" Width="25" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="26" Left="80" Top="25" Width="120" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Printed By EzOrtho" ItemType="0" Left="150" Top="5" Width="50" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Printed Date :" ItemType="0" Left="150" Top="10" Width="25" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="6" Left="173" Top="10" Width="35" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label Content="Doctor :" ItemType="0" Left="150" Top="15" Width="25" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+		<Label ItemType="29" Left="163" Top="15" Width="35" Height="5" Fill="" FillOpacity="0" LineStyle="0" Stroke="" StrokeOpacity="0" StrokeThickness="0"/>
+	</Footer>
+	<PageContent FontFamily="Verdana" FontSize="12pt" HorizontalAlignment="Left" VerticalAlignment="Center">
+		<!---->
+		<!-- Patient Information -->
+		<Label Content="TEST 8" FontSize="11pt" ItemType="0" Left="5" Top="1.323" Width="190" Height="10" Fill="#ffffff" FillOpacity="0" LineStyle="1" Stroke="#000000" StrokeOpacity="0" StrokeThickness="1"/>
+		<!---->
+		<!-- Text Box Item -->
+		<TextBox PlaceholderText="" Left="5" Top="12.646" Width="190" Height="50" Fill="#ffffff" FillOpacity="0" LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1"><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:11pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-size:48pt;">TEST 8</span></p></body></html>]]></TextBox>
+		<!---->
+		<!-- Image Box Item -->
+		<ImageBox Source="CI20260211_133545_1057_91058999.JPG" Left="5" Top="63.969" Width="190" Height="50" Fill="#ffffff" FillOpacity="0" LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1"/>
+		<!---->
+		<!-- Tooth Code Item -->
+		<ToothBox Left="5" Top="115.292" Width="190" Height="50" Fill="#ffffff" FillOpacity="0" LineStyle="1" Stroke="#000000" StrokeOpacity="1" StrokeThickness="1">
+			<SelectedToothCode>31</SelectedToothCode>
+		</ToothBox>
+		<!---->
+		<!-- Treatment Category Item -->
+		<TreatmentCategory PlaceholderText="" Left="5" Top="166.615" Width="190" Height="30" Fill="#f2f2f2" FillOpacity="1" LineStyle="1" Stroke="#000000" StrokeOpacity="0" StrokeThickness="1">
+			<Category1>Elastic</Category1>
+			<Category2>Type : 3/16''</Category2>
+			<Category3>Force : 2 oz</Category3>
+		</TreatmentCategory>
+		<!---->
+		<!-- Annotation -->
+		<Annotations/>
+	</PageContent>
+</TreatmentChart>

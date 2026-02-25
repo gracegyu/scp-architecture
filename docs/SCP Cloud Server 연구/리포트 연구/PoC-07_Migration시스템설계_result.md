@@ -3,7 +3,7 @@
 ## 요약
 
 - **목표**: E2, E3, EzOrtho, CleverOne 4개 제품의 다양한 버전 리포트 파일을 SCP Cloud 포맷(PoC-06 통합 스키마)으로 완벽 변환
-- **Migration 경로**: 제품별/버전별 다단계 변환 파이프라인 설계 (E3: v1.x→v1.1.5→v4.0→v5.1→Cloud)
+- **Migration 경로**: 제품별 변환 파이프라인 설계. **E3**: E3 RC Report v5.1 포맷만 지원(입력). E3 이전 포맷(v1.x/v4/v5.0)은 E3 제품(VTE3Migration)에서 RC v5.1로 변환 후 수집; 필요 시 추후 통합 리포트에서 E3 Legacy 직접 지원 검토
 - **좌표 변환**: 비율값/픽셀/mm 혼재 → mm 통일 (소수점 3자리), 용지 크기·Margin 기반 정밀 변환
 - **데이터 처리**: Base64 이미지 추출, Template 정보 변환, Annotation 좌표 정규화, 구조 재편(XML→JSON)
 - **검증 시스템**: 구조 검증(JSON Schema), 시각적 검증(렌더링 비교), 좌표 정확도 검증(±0.1mm 이내)
@@ -18,9 +18,9 @@
 기존 4개 Desktop 제품(E2, E3, EzOrtho, CleverOne)의 다양한 버전에서 생성된 리포트 파일들을 **데이터 손실 없이** SCP Cloud 포맷(PoC-06 통합 Element 스키마)으로 완벽하게 변환하는 자동화된 Migration 시스템을 설계하고 검증합니다.
 
 **핵심 과제**:
-- 제품별 다른 좌표 단위 시스템 (비율값, 픽셀, mm) 통일
-- 버전별 복잡한 호환성 문제 해결 (E3 v1.x→v5.1 다단계 변환)
-- 특수 데이터 처리 (Base64 이미지, Template, Annotation, Chart)
+- 제품별 다른 좌표 단위 시스템 (비율값, mm) 통일
+- E3는 RC Report v5.1(mm) 포맷만 Migration 입력으로 지원; E3 Legacy 변환은 E3 제품 담당
+- 특수 데이터 처리 (Template, Annotation, Chart)
 - 의료 데이터 무결성 보장 및 법적 요구사항 준수
 
 ### 1.2 선행 PoC 반영
@@ -30,7 +30,7 @@
 | PoC-02 | mm 좌표, 소수점 3자리              | 모든 제품 좌표 → mm 변환, 정밀도 통일                       |
 | PoC-03 | pt 폰트, 96/72 DPI                 | 폰트 단위 → pt 변환, DPI 정규화                             |
 | PoC-06 | 통합 Element 스키마 (JSON)         | Migration 목표 포맷, 모든 Element 타입 매핑                 |
-| 기존   | E3 VTE3Migration 도구              | 기존 v1.x→v5.1 변환 로직 활용 및 확장                       |
+| 기존   | E3 RC Report v5.1 (mm 단위 전환)   | E3 Legacy(v1.x/v4/v5.0)는 E3 제품에서 RC v5.1로 Migration 후 수집; 본 Migration은 RC v5.1→Cloud만 지원 |
 
 ### 1.3 설계 원칙
 
@@ -73,60 +73,32 @@ E2 v3.0 XML → 좌표 변환 (비율→mm) → Cloud JSON
 - 용지 정보 누락: 사용자에게 용지 크기 선택 UI 제공
 - 손상된 XML: 복구 가능한 부분까지 변환, 오류 로그 생성
 
-### 2.2 E3 v1.x → Cloud
+### 2.2 E3 RC Report v5.1 → Cloud
 
-**특징**:
-- 가장 복잡한 다단계 변환 경로
-- Base64 이미지 내장 (v1.x)
-- 기존 VTE3Migration 도구 활용
+**배경**: E3가 v5.1로 업그레이드되면서 RC(방사선센터) 지원을 위해 리포트 포맷을 mm 단위로 전환함. 이전 E3 Report(v1.x/v4/v5.0)는 E3 제품에서 Open 시 RC Report v5.1 포맷으로 Migration하며, 본 SCP Cloud Migration 시스템은 **E3 RC Report v5.1 포맷만** 입력으로 지원함.
 
 **Migration 경로**:
 ```
-E3 v1.x → v1.1.5 → v4.0 → v5.1 → Cloud
+E3 RC Report v5.1 XML → 좌표 정밀도 확장 (mm 1자리→3자리) → Cloud JSON
 ```
 
-**버전별 처리**:
+**E3 Legacy(v1.x/v4/v5.0) 처리**:
+- E3 제품(VTE3Migration)에서 RC Report v5.1로 변환 후, 변환된 파일을 본 Migration 입력으로 사용
+- 필요 시 추후 통합 리포트 시스템에서 E3 Legacy 포맷 직접 지원 검토
 
-**v1.0.5 이하**:
-- Migration 미지원 (EEEN-1589 정책)
-- 사용자에게 업그레이드 안내
-
-**v1.1.4 → v1.1.5**:
-- 기존 VTE3Migration 도구 사용
-- Base64 이미지 → 파일 추출 및 저장
-- 이미지 무결성 검증 (체크썸)
-
-**v1.1.5 → v4.0 → v5.1**:
-- 기존 변환 로직 활용
-- Template 정보 정규화
-- Annotation 데이터 구조 변환
-
-**v5.1 → Cloud**:
-- **E3 Report v4.0/v5.0**: 비율값 → mm 변환
-  - **용지 정보**: `<Paper>` 섹션 포함 (PaperSize, Orientation, Margin)
-  - **주의**: PageSetting 미설정 시 Setting의 paper setting 사용
-  - 변환 공식: `mm = (비율값 × (용지크기 - Margin × 2)) + Margin`
+**v5.1 → Cloud 변환**:
 - **E3 RC Report v5.1**: mm (1자리) → mm (3자리)
   - 정밀도만 확장: `105.5mm` → `105.500mm`
   - 기존 값의 정밀도 한계로 인한 오차 허용
 
 **주요 변환 항목**:
-| E3 Element       | Cloud Element | 변환 내용                                 |
+| E3 RC Element    | Cloud Element | 변환 내용                                 |
 | ---------------- | ------------- | ----------------------------------------- |
-| ItemBox(Text)    | textBox       | 좌표 변환, AutoFill 매크로 변환           |
-| ItemBox(Image)   | imageBox      | 좌표 변환, CapturedImageInfo 매핑         |
+| ItemBox(Text)    | textBox       | mm 정밀도 확장, AutoFill 매크로 변환      |
+| ItemBox(Image)   | imageBox      | mm 정밀도 확장, CapturedImageInfo 매핑    |
 | Layout           | -             | Row/Column 레이아웃 → 개별 Element 배치   |
-| Annotation       | annotation    | 6종 타입 매핑, 좌표 변환                  |
+| Annotation       | annotation    | 6종 타입 매핑, 좌표 정밀도 확장           |
 | Template         | metadata      | templateName, Header/Footer 정보 변환     |
-
-**Base64 이미지 처리**:
-```typescript
-interface ImageExtractor {
-  extractBase64(xml: string): ImageData[]
-  saveToPNG(imageData: ImageData): string  // 파일 경로 반환
-  validateChecksum(file: string): boolean
-}
-```
 
 ### 2.3 EzOrtho v1.0 → Cloud
 
@@ -182,23 +154,22 @@ const toothCodeMap: Record<string, string> = {
 - Groups 기능 (Reference 구조, ID 참조)
 - Template 시스템 지원
 
-**좌표 시스템**:
-- **입력**: mm 단위 (소수점 1자리)
-- **변환**: 정밀도 확장 (1자리 → 3자리)
-- **예시**: `105.5mm` → `105.500mm`
+**좌표 시스템** (실제 샘플 기준):
+- **입력**: %(비율) 단위. 실제 리포트 파일(예: 1_40.rpt)에서는 `<Position X="6.950%" Y="50.051%"/>`, `<Size Width="81%" Height="35%"/>` 형태로 저장됨. 기존 스펙 문서의 mm 기술과 상이.
+- **변환**: 비율값 → mm (용지 크기·Margin 기반, E2와 동일 공식)
 
 **Migration 단계**:
 ```
-CleverOne v5.1.0 XML → 좌표 변환 (정밀도 확장) → Groups 변환 → Cloud JSON
+CleverOne v5.1.0 XML → 좌표 변환 (%→mm, 용지 기반) → Groups 변환 → Cloud JSON
 ```
 
 **주요 변환 항목**:
 | CleverOne Element | Cloud Element | 변환 내용                                   |
 | ----------------- | ------------- | ------------------------------------------- |
-| TextBox           | textBox       | HTML 콘텐츠 유지, 좌표 정밀도 확장          |
-| ImageBox          | imageBox      | BoxType 매핑 (Single/Multi/Reference)       |
-| ToothBox          | toothBox      | ToothCode 매핑                              |
-| Annotation        | annotation    | 6종 타입 매핑, Points 정밀도 확장 (4자리)   |
+| TextBox           | textBox       | HTML 콘텐츠 유지, %→mm 좌표 변환            |
+| ImageBox          | imageBox      | %→mm 변환, BoxType 매핑 (Single/Multi/Reference) |
+| ToothBox          | toothBox      | %→mm 변환, ToothCode 매핑                   |
+| Annotation        | annotation    | 6종 타입 매핑, Points % 또는 mm(혼재 시 용지 기반 적용) |
 | Groups            | group         | Reference 구조 유지, memberIds 매핑         |
 | Template          | metadata      | templateName 변환                           |
 
@@ -218,9 +189,7 @@ CleverOne v5.1.0 XML → 좌표 변환 (정밀도 확장) → Groups 변환 → 
 }
 ```
 
-**Annotation Points 정밀도**:
-- CleverOne: 소수점 4자리
-- Cloud: 소수점 3자리로 반올림 (0.0001mm → 0.001mm 정밀도 허용)
+**Annotation Points**: 실제 샘플에서는 % 단위일 수 있음. 스펙 예제의 숫자형은 mm일 수 있어, 파싱 시 단위 판별 또는 용지 기반 변환 적용.
 
 ---
 
@@ -231,12 +200,13 @@ CleverOne v5.1.0 XML → 좌표 변환 (정밀도 확장) → Groups 변환 → 
 | 제품              | 입력 단위                | 출력 단위         | 변환 방식                  |
 | ----------------- | ------------------------ | ----------------- | -------------------------- |
 | E2 v3.0           | 비율값 (0~1, 3자리)      | mm (3자리)        | 용지 크기 기반 계산        |
-| E3 Report v4/v5   | 비율값 (0~1, 3자리)      | mm (3자리)        | 용지 크기 기반 계산        |
-| E3 RC Report v5.1 | mm (1자리)               | mm (3자리)        | 정밀도 확장                |
+| E3 RC Report v5.1 | mm (1자리)               | mm (3자리)        | 정밀도 확장 (본 Migration 지원 포맷) |
 | EzOrtho v1.0      | mm                       | mm (3자리)        | 정밀도 확장                |
-| CleverOne v5.1.0  | mm (1자리)               | mm (3자리)        | 정밀도 확장                |
+| CleverOne v5.1.0  | %(비율, 실제 샘플 기준)  | mm (3자리)        | 용지 크기 기반 계산 (E2와 동일)     |
 
-### 3.2 비율값 → mm 변환 (E2, E3 Report)
+(E3 Report v4/v5는 E3 제품 내부에서 RC v5.1로 변환; 본 시스템에서는 미지원.)
+
+### 3.2 비율값 → mm 변환 (E2, CleverOne)
 
 **변환 공식**:
 ```typescript
@@ -307,12 +277,13 @@ function handleMissingPaperInfo(context: MigrationContext): PaperConfig {
 }
 ```
 
-### 3.3 정밀도 확장 (E3 RC, EzOrtho, CleverOne)
+### 3.3 정밀도 확장 (E3 RC, EzOrtho)
+
+CleverOne은 실제 샘플에서 %(비율) 좌표를 사용하므로 3.2 비율값→mm 변환 적용. 아래는 mm 입력 제품용.
 
 **변환 로직**:
 ```typescript
 function expandPrecision(mmValue: number, sourcePrecision: number): number {
-  // 이미 mm 단위이므로 정밀도만 확장
   return roundTo3Decimals(mmValue)
 }
 
@@ -325,9 +296,6 @@ function roundTo3Decimals(value: number): number {
 ```typescript
 // E3 RC Report v5.1: 105.5mm (1자리)
 expandPrecision(105.5, 1) // → 105.500mm
-
-// CleverOne Annotation Points: 62.3654mm (4자리)
-roundTo3Decimals(62.3654) // → 62.365mm (반올림)
 ```
 
 ### 3.4 좌표 변환 검증
@@ -551,9 +519,11 @@ class MigrationPipeline {
 
 ## 5. 특수 데이터 처리
 
-### 5.1 Base64 이미지 추출 (E3 v1.x)
+### 5.1 Base64 이미지 추출 (참고: E3 Legacy)
 
-**처리 흐름**:
+E3 Legacy(v1.x) 포맷은 본 Migration에서 직접 지원하지 않음. E3 제품(VTE3Migration)에서 RC v5.1로 변환 시 내부적으로 사용하는 처리 방식 참고용.
+
+**처리 흐름** (E3 제품 내부 변환 시):
 ```typescript
 class ImageExtractor {
   async extractBase64Images(xml: string): Promise<ImageData[]> {
@@ -681,7 +651,7 @@ class ImageExtractor {
 
 ### 5.3 Annotation 좌표 변환
 
-**CleverOne Annotation (Points 4자리)**:
+**CleverOne Annotation**: 실제 샘플에서는 Position/Size가 % 단위. Annotation Points는 스펙 예제는 숫자형(mm 가능); 실제 파일에서 % 단위일 경우 용지 기반 변환 적용.
 ```xml
 <Annotation AnnotationType="FreeDraw">
   <Points>62.3654,51.0892|65.1234,52.4567|68.9876,54.3210</Points>
@@ -1467,14 +1437,14 @@ class MigrationCache {
 | ImageBox   | imageBox      | 비율값→mm 변환, fitMode 매핑 (Fit→boxFit, Real→realSize)    |
 | TextBox    | textBox       | 비율값→mm 변환, 평문→`<html><body>...</body></html>` 변환   |
 
-### 9.2 E3 Element 매핑
+### 9.2 E3 RC Report v5.1 Element 매핑
 
-| E3 Element         | Cloud Element | 변환 규칙                                                         |
+| E3 RC Element      | Cloud Element | 변환 규칙                                                         |
 | ------------------ | ------------- | ----------------------------------------------------------------- |
-| ItemBox(Text)      | textBox       | 비율값→mm, AutoFill→textMacro 매핑                                |
-| ItemBox(Image)     | imageBox      | 비율값→mm, CapturedImageInfo→imageRefs 매핑                       |
+| ItemBox(Text)      | textBox       | mm 정밀도 확장, AutoFill→textMacro 매핑                           |
+| ItemBox(Image)     | imageBox      | mm 정밀도 확장, CapturedImageInfo→imageRefs 매핑                  |
 | Layout(Row/Column) | -             | 레이아웃 계산 후 개별 Element로 분해                              |
-| Annotation         | annotation    | 6종 타입 매핑, Points 비율값→mm 변환                              |
+| Annotation         | annotation    | 6종 타입 매핑, Points mm 정밀도 확장                              |
 | Template           | metadata      | templateName, Header/Footer → metadata 및 page.header/footer 매핑 |
 
 **Annotation 타입 매핑**:
@@ -1523,12 +1493,14 @@ const TOOTH_CODE_MAP: Record<string, string> = {
 
 ### 9.4 CleverOne Element 매핑
 
+실제 샘플은 Position/Size가 %(비율) 단위. 용지 정보(Paper, Margin) 기반으로 비율→mm 변환 (E2와 동일 공식).
+
 | CleverOne Element | Cloud Element | 변환 규칙                                              |
 | ----------------- | ------------- | ------------------------------------------------------ |
-| TextBox           | textBox       | mm 정밀도 확장, HTML 콘텐츠 유지                       |
-| ImageBox          | imageBox      | mm 정밀도 확장, BoxType 매핑 (Single/Multi/Reference)  |
-| ToothBox          | toothBox      | mm 정밀도 확장, ToothCode 매핑                         |
-| Annotation        | annotation    | mm 정밀도 확장 (4자리→3자리 반올림), 6종 타입 매핑     |
+| TextBox           | textBox       | %→mm 변환, HTML 콘텐츠 유지                            |
+| ImageBox          | imageBox      | %→mm 변환, BoxType 매핑 (Single/Multi/Reference)       |
+| ToothBox          | toothBox      | %→mm 변환, ToothCode 매핑                              |
+| Annotation        | annotation    | % 또는 mm(혼재 시 용지 기반), 6종 타입 매핑            |
 | Groups            | group         | Reference 구조 유지, memberIds 매핑                    |
 | Template          | metadata      | templateName 매핑                                      |
 
@@ -1548,9 +1520,9 @@ const TOOTH_CODE_MAP: Record<string, string> = {
 | 제품              | 지원 버전                | 변환 경로                          | 지원 Element 수 | 비고                          |
 | ----------------- | ------------------------ | ---------------------------------- | --------------- | ----------------------------- |
 | E2                | v3.0                     | 직접 변환                          | 3               | Template 부재, 단순 구조      |
-| E3                | v1.1.4 이상              | v1.1.5→v4.0→v5.1→Cloud (다단계)    | 10+             | Base64 이미지 처리 필요       |
+| E3                | RC Report v5.1           | 직접 변환 (RC v5.1→Cloud)          | 10+             | E3 Legacy는 E3 제품에서 RC로 변환 후 입력 |
 | EzOrtho           | v1.0                     | 직접 변환                          | 15+             | Chart 구조, ToothCode 매핑    |
-| CleverOne         | v5.1.0                   | 직접 변환                          | 8+              | E3 RC Report와 유사           |
+| CleverOne         | v5.1.0                   | 직접 변환 (%→mm)                  | 8+              | 실제 샘플은 % 좌표, E2와 동일 변환 |
 
 ### 10.2 Element 타입별 지원 현황
 
@@ -1574,10 +1546,9 @@ const TOOTH_CODE_MAP: Record<string, string> = {
 | 제품              | 입력 정밀도 | 출력 정밀도 | 예상 오차     | 검증 결과   |
 | ----------------- | ----------- | ----------- | ------------- | ----------- |
 | E2 v3.0           | 3자리       | 3자리       | ±0.1mm        | 검증 필요   |
-| E3 Report v4/v5   | 3자리       | 3자리       | ±0.1mm        | 검증 필요   |
 | E3 RC Report v5.1 | 1자리       | 3자리       | ±0.05mm       | 검증 필요   |
 | EzOrtho v1.0      | 가변        | 3자리       | ±0.05mm       | 검증 필요   |
-| CleverOne v5.1.0  | 1자리       | 3자리       | ±0.05mm       | 검증 필요   |
+| CleverOne v5.1.0  | %(비율)     | 3자리       | ±0.1mm        | 검증 필요   |
 
 **검증 방법**:
 - 샘플 파일 변환 후 좌표 측정
@@ -1639,10 +1610,8 @@ scp-migrate --report
 - 용지 정보가 없는 경우 기본값(A4 Portrait) 사용
 - 사용자 지정 용지 크기는 수동 입력 필요
 
-**E3 v1.x**:
-- v1.0.5 이하는 Migration 불가, 업그레이드 필요
-- Base64 이미지 추출 시 디스크 공간 확인 (파일당 수 MB)
-- 다단계 변환으로 시간 소요 (파일당 1-2분)
+**E3**:
+- E3 RC Report v5.1 포맷만 지원. E3 이전 포맷(v1.x/v4/v5.0)은 E3 제품에서 Report Open 시 RC v5.1로 Migration한 후, 변환된 파일을 본 도구 입력으로 사용
 
 **EzOrtho v1.0**:
 - Chart 데이터 구조 확인 필요
@@ -1650,7 +1619,7 @@ scp-migrate --report
 - Block 구조는 Containment로 유지 권장
 
 **CleverOne v5.1.0**:
-- Annotation Points 정밀도 손실 허용 (4자리→3자리)
+- 실제 샘플은 Position/Size가 %(비율). 용지(Paper, Margin) 기반 비율→mm 변환 적용
 - Groups 구조는 Reference로 유지
 
 ### 11.3 예외 상황 대응
@@ -1811,9 +1780,7 @@ describe('Validation', () => {
 - 복잡한 리포트 (20+ Element, 다중 페이지)
 
 **E3**:
-- v1.1.4 샘플 (Base64 이미지 포함)
-- v4.0 샘플 (Template 포함)
-- v5.1 RC Report 샘플 (Annotation 포함)
+- E3 RC Report v5.1 샘플 (Annotation 포함, mm 좌표). E3 Legacy 샘플은 본 Migration 범위 외
 
 **EzOrtho v1.0**:
 - Treatment Chart 샘플
@@ -1840,9 +1807,9 @@ describe('Validation', () => {
 ### 13.2 제한사항 및 리스크
 
 **기술적 제한**:
-- E3 v1.0.5 이하 Migration 미지원 (기존 정책)
+- E3는 RC Report v5.1 포맷만 Migration 지원; E3 Legacy는 E3 제품에서 변환 후 사용. 필요 시 추후 E3 Legacy 직접 지원 검토
 - 용지 정보 누락 시 기본값 사용 또는 사용자 입력 필요
-- CleverOne Annotation Points 정밀도 손실 (4자리→3자리)
+- CleverOne: 실제 샘플은 % 좌표, 비율→mm 변환 적용 (스펙 문서의 mm 기술과 상이)
 
 **검증 필요 사항**:
 - E2 v3.0 용지 정보 포함 여부 확인 (실제 파일 분석 필요)
@@ -1851,13 +1818,12 @@ describe('Validation', () => {
 
 **운영 리스크**:
 - 대용량 파일 처리 시 메모리 부족 가능성
-- 다단계 변환(E3 v1.x) 시간 소요
 - 예외 상황 발생 시 수동 개입 필요
 
 ### 13.3 다음 단계
 
 **즉시 실행**:
-1. **샘플 파일 확보**: 각 제품별 다양한 버전의 실제 파일 수집
+1. **샘플 파일 확보**: 각 제품별 실제 파일 수집 (E3는 RC Report v5.1만)
 2. **좌표 변환 검증**: 샘플 파일 변환 후 정확도 실측
 3. **E2 용지 정보 확인**: E2 v3.0 파일 구조 분석
 
@@ -1980,7 +1946,7 @@ scp-migrate report --input-dir ./output
 
 ## 부록 B. 좌표 변환 공식 상세
 
-### B.1 비율값 → mm 변환 (E2, E3 Report)
+### B.1 비율값 → mm 변환 (E2)
 
 **가로 좌표 (X축)**:
 ```
@@ -2045,23 +2011,3 @@ roundTo3Decimals(105.4567) // → 105.457
 roundTo3Decimals(105.4564) // → 105.456
 ```
 
----
-
-## 부록 C. 참고 문서
-
-1. **PoC-06 통합 Element 스키마 설계**: Migration 목표 포맷
-2. **PoC-02 좌표 단위 표준화**: mm 단위, 소수점 3자리 정밀도
-3. **PoC-03 폰트 단위 표준화**: pt 단위, DPI 전략
-4. **E3 v5.1 RC Report FileFormat**: E3 RC Report 파일 구조
-5. **CleverOne Report Format**: CleverOne 파일 구조
-6. **EzOrtho v1.0 SRS**: EzOrtho 파일 구조 및 Chart 정의
-7. **E2 Report Format**: E2 파일 구조 (확보 필요)
-8. **VTE3Migration 도구 문서**: 기존 E3 Migration 로직
-
----
-
-**문서 버전**: 1.0
-**작성일**: 2026년 1월 23일
-**작성자**: Raymond
-**검토자**: (검토 필요)
-**승인자**: (승인 필요)
