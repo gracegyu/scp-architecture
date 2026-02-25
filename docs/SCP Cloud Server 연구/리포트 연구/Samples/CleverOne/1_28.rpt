@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report TemplateName="RPT_Frame2x1L" Version="5.2.0" ARCHIVETYPE="Template">
+	<Paper PaperSize="14x17inch" Orientation="Portrait">
+		<Margin Top="10" Bottom="10" Left="10" Right="10"/>
+	</Paper>
+	<Page Number="1" TemplateName="Frame2x1L">
+		<!---->
+		<!-- Report Information -->
+		<!---->
+		<!-- Text Box Item -->
+		<TextBox BoxID="385" TextMacro="HeaderPatientInfo" Editable="false">
+			<Position X="8.929%" Y="0%"/>
+			<Size Width="76.519%" Height="2.574%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Chart No. 1</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">last first 	Gender: Male 	Age: 9Y</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="386" TextMacro="HeaderClinicName" Editable="false">
+			<Position X="8.929%" Y="2.574%"/>
+			<Size Width="25.506%" Height="1.532%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">EVN</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="387" TextMacro="HeaderFaxNumber" Editable="false">
+			<Position X="34.435%" Y="2.574%"/>
+			<Size Width="25.506%" Height="1.532%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Fax: 123</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="388" TextMacro="FooterPhoneNumber" Editable="false">
+			<Position X="8.929%" Y="93.653%"/>
+			<Size Width="25.506%" Height="1.532%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Phone: 123</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="389" TextMacro="FooterPatientInfo" Editable="false">
+			<Position X="8.929%" Y="91.079%"/>
+			<Size Width="76.519%" Height="2.574%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Chart No. 1</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">last first 	Gender: Male 	Age: 9Y</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="390" TextMacro="FooterAddress" Editable="false">
+			<Position X="34.435%" Y="93.653%"/>
+			<Size Width="51.012%" Height="1.532%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Address: 123</p></body></html>]]></Text>
+		</TextBox>
+		<!---->
+		<!-- Image Box Item -->
+		<ImageBox BoxID="381" ImageFitMode="BoxFit" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">
+			<Position X="6.950%" Y="11.051%"/>
+			<Size Width="81%" Height="38%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="0.308" ScaleY="0.308"/>
+			<ImageFileNames>
+				<ImageFile>DX20170801_060544_0873_00000476.jpg</ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<ImageBox BoxID="384" ImageFitMode="BoxFit" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">
+			<Position X="7.165%" Y="50.558%"/>
+			<Size Width="81%" Height="38%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="1.653" ScaleY="1.653"/>
+			<ImageFileNames>
+				<ImageFile>DI20170801_060652_0839_00000478.jpg</ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<!---->
+		<!-- Tooth Code Item -->
+		<!---->
+		<!-- Annotations Item -->
+		<Annotations/>
+		<!---->
+		<!-- Groups Item -->
+		<Groups/>
+	</Page>
+</Report>

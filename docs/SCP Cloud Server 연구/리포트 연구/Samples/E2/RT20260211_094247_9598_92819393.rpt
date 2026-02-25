@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report Version="3.0">
+    <Page IncludeImageInfo="2" XPercent="210" YPercent="297" PageNumber="0">
+        <ItemBox Type="ImageBox" Index="0" XPercent="0.1" YPercent="0.15" WidthPercent="0.8" HeightPercent="0.36" BackgroundColor="#ffffff" LineThickness="1" LineColor="#00b24a" LineType="1">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left">0[kVp]    0[mA]    0.000 mGyCm^2[DAP]    Image Plate    18    2017-08-01</Text>
+            <Image InformationBoxColor="#ffffff" DateTimeFormat="yyyy-MM-dd" PatientNameFormat="LastName FirstName" FileName="IX20170801_063557_0181_00000487.bmp" Invert="0" DrawingMode="1"><![CDATA[QXdRSWNYd1JnVzREbHhySlc4QStIUHhkcTdzbnVaMmhudWJLaGVTeDFhZlV2WlBlb3FPVHZZMnZ6b2luNTRudGhPck0wckhua3ZUWjRZS2U0Y2oxMUpEZjNhcXl3WVdsNE5MSGhhTyt0WW5NL3V1cGo0ejdudXlmdC92VXl1blk0TUs5bFBYcXY5NjUrdHFWdmZ5UDdwcnozWkR2eHVmSCs3aVkxLysremF6WXZaaUZrdmUzKzZqdGtKeWUzTEhZdXNqb3Y1dmM0K25KNlpUMDFKdkZuYU9UN3VMZ29zK1F5UGE5dnQvQWd1T1AwTWpWcEx1VjFyZmJ4Yi9BNmNqbzFKZTMrTkNSNG9QM25yRDk3N2pZck1uMytMU2IzZURQak8zQWlxbjRtT3lGNnNXMWdNSzMwdXptaDVqMmdlR0d4YVNKdytDeDBhWE1vNHlSMnRua3NORzJzOUhBM2RiMjF1cnZqWnlCc0l5ajUrZVU2OExqMy9Da2hNREZwL2JJd3VLZjZNaU14S3JEdDUvZDhPM214dWJheVlXdzhvZnVnZStRZy83eW9jNjYyKzZraXNmNDh0THlqK1RLbS9PSjVvaTkvOUxQL3NMdHBZdmE4cXZGcTkrK2s0N0Z4dWZiamVqYmpLVGtoT2pXNXB1WGdNYTF3YWpMNjZUYjh0UHZ3SlMwOFBpMTNhbkFvWXlSMnRua3NORzJwL2JTdU5lK3lxT0R6TE9hdTV1bjlkdU1yUHVUL0pLczNjS3MzYlBIcHRMNnRwbUVqNitQczdyMnhZLzBtL1dCb2U2UmdyK1EyTGVFenZXNTFxTERyOUQ1bUp1bThKWG4wcGk2K0pXcm02Zkp2SmpKdk5XMjEvcm5ySytTdmVtSXJ0M3VxT0NPNTVPNytkVEp3dUxlaXFydTdxbkN0OFN3bk5yMW9wMlh0NWZxaTdqeWxQeUk1c0tTb0wyTXNKL2Q3cVNDeWJ6U3Q4VDI2NkNqZ3I3OWtyM3EyWnZwbmFPVDd1TGdyTU8zeGFTV3diNlh0cGFxN2MyRHIrM1M0dDd4OTdXWjE3ZUpnNlBDM2QyTy81UHFySVRML3JqTDlmL2Z2cjNBc05tNHlycWUwNnkvZ3EzK2xyYm4xcEQvd2N2cmlvbjBtdnFDMGJtWnlQbS8wTzdlNG96aXdwbkxvOEt3Z2NmbzlmN2UvdDZqeWVhejE2WFdzOHpmb3E3bWlQNmJxUGpjd2NycXl1cVg4dHFWK2J6YXZKalk3ZkRCL2RLVXZQUGZ1ZDY0M2I2TGx0M2UvOFBzclp6UDRyai9sdnFPcXZ1RXJZeXduOHZycjYvb2cvYUY4ZDJidE9QYzF2YkszNTI3MWJIUW85YmxvN1gvbXU2R3FkYi9ub0hVdGRLUnNmemNrOFdzeUx5Vm1lYlA3dEtHNThHaGdjeXN3SS8vMzUrMzRKaTNpWVBpL2VpcXpJWHJqYVBDN0xmeGcreVpxTFgrL2R6Z3ROWHptYmJ6bmQrd3lLbmU1clhSN003L2lZajMzdi9mLzhQQWpMVzI0SW50bWJDdXpkenYzZi9mMHBTejVOajZ5dWlKL3RDRHY1MnRqKzZGb2V1TjVaR3N6OTJvdkord2pvVGw1b2VZMzdEZXFzdXJoY3FrMXV2SnE3akpqT3VONjhtbzJQQ3B6ZkRTNDVTVisrYnR6ZTNOc01manVNM3p2ZHp3dHRmTzc0UGlrYVNuZ01xNXlyNjB0djNkalBuWnQ4THVyNHZhKzhIaDBKdjYwb1AybnZxYm82RGIyT3ZiNnQyeG90TGM3ZHo4MUtMWXNKbmZ1dFN3bE1Xa3ZaelJzTno0MGRTVzQ0YW1uUDNzblkrNWxLU2M4T09UdXZhWi9aajU0SUdUcXBhNTdjbVNwN3F4a2JHUjdKbXg0WW5yaCtLZDZPK053SlBXNm9UeDJZbmhnKytLOWR5OXZvT3MrSm0vMWZxLzBaUDhoUHZTczZ5QzFyZlEySld5L3IzU3F1M2VrcWIxeXNEZzNOaUJqc3k3MG9ibndjTEhnZlNSOG9haTVabVl6NG5JaEpid2s1K2dxcGE1dmF5NSs1MmpxUT09]]></Image>
+        </ItemBox>
+        <ItemBox Type="HeaderDateBox" Index="1" XPercent="0.02" YPercent="0.02" WidthPercent="0.22" HeightPercent="0.02" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left">2026-02-11</Text>
+        </ItemBox>
+        <ItemBox Type="HeaderLogoBox" Index="2" XPercent="0.78" YPercent="0.02" WidthPercent="0.2" HeightPercent="0.11" BackgroundColor="#ffffff" LineThickness="1" LineColor="#000000" LineType="1">
+            <Text Size="8" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="HeaderPatientInfoBox" Index="3" XPercent="0.26" YPercent="0.02" WidthPercent="0.5" HeightPercent="0.05" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left">Chart No. : 1 
+Name : last first Gender : Male Date of Birth : 2017-01-01 Age : 9Y</Text>
+        </ItemBox>
+        <ItemBox Type="HeaderNameBox" Index="4" XPercent="0.02" YPercent="0.05" WidthPercent="0.22" HeightPercent="0.02" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="HeaderPhoneBox" Index="5" XPercent="0.02" YPercent="0.11" WidthPercent="0.22" HeightPercent="0.02" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="HeaderWebSiteBox" Index="6" XPercent="0.02" YPercent="0.08" WidthPercent="0.22" HeightPercent="0.02" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="HeaderAddressBox" Index="7" XPercent="0.26" YPercent="0.08" WidthPercent="0.5" HeightPercent="0.05" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="FooterDateBox" Index="8" XPercent="0.02" YPercent="0.87" WidthPercent="0.22" HeightPercent="0.02" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="FooterLogoBox" Index="9" XPercent="0.78" YPercent="0.87" WidthPercent="0.2" HeightPercent="0.11" BackgroundColor="#ffffff" LineThickness="1" LineColor="#000000" LineType="1">
+            <Text Size="8" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="FooterPatientInfoBox" Index="10" XPercent="0.26" YPercent="0.87" WidthPercent="0.5" HeightPercent="0.05" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="FooterNameBox" Index="11" XPercent="0.02" YPercent="0.9" WidthPercent="0.22" HeightPercent="0.02" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="FooterPhoneBox" Index="12" XPercent="0.02" YPercent="0.96" WidthPercent="0.22" HeightPercent="0.02" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="FooterWebSiteBox" Index="13" XPercent="0.02" YPercent="0.93" WidthPercent="0.22" HeightPercent="0.02" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="FooterAddressBox" Index="14" XPercent="0.26" YPercent="0.93" WidthPercent="0.5" HeightPercent="0.05" BackgroundColor="#ffffff" LineThickness="0" LineColor="#00ff00" LineType="0">
+            <Text Size="11" Face="Segoe UI" Color="#000000" Align="Left"></Text>
+        </ItemBox>
+        <ItemBox Type="TextBox" Index="15" XPercent="0.1" YPercent="0.52" WidthPercent="0.8" HeightPercent="0.33" BackgroundColor="#ffffff" LineThickness="1" LineColor="#00b24a" LineType="1">
+            <Text Size="11" Face="" Color="#000000" Align="Left">12</Text>
+        </ItemBox>
+    </Page>
+</Report>

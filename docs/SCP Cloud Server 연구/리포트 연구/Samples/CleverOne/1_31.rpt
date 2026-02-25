@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report TemplateName="RPT_Frame2x1L" Version="5.2.0" ARCHIVETYPE="Template">
+	<Paper PaperSize="14x17inch" Orientation="Landscape">
+		<Margin Top="10" Bottom="10" Left="10" Right="10"/>
+	</Paper>
+	<Page Number="1" TemplateName="Frame2x1L">
+		<!---->
+		<!-- Report Information -->
+		<!---->
+		<!-- Text Box Item -->
+		<TextBox BoxID="445" TextMacro="HeaderDate" Editable="false">
+			<Position X="0%" Y="0%"/>
+			<Size Width="7.353%" Height="1.488%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Date: 2026-02-11</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="446" TextMacro="HeaderClinicLogo" Editable="false">
+			<Position X="88.015%" Y="0%"/>
+			<Size Width="7.353%" Height="4.464%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">VATECH Dental Clinic</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="447" TextMacro="HeaderPatientInfo" Editable="false">
+			<Position X="7.353%" Y="0%"/>
+			<Size Width="80.662%" Height="3.125%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Chart No. 1</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">last first 	Gender: Male 	Age: 9Y</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="448" TextMacro="FooterPatientInfo" Editable="false">
+			<Position X="7.353%" Y="89.167%"/>
+			<Size Width="80.662%" Height="3.125%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Chart No. 1</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">last first 	Gender: Male 	Age: 9Y</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="449" TextMacro="FooterWebSite" Editable="false">
+			<Position X="7.353%" Y="92.292%"/>
+			<Size Width="26.887%" Height="1.860%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#ffffff" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Website: evngmail.com</p></body></html>]]></Text>
+		</TextBox>
+		<TextBox BoxID="444" TextMacro="" Editable="true">
+			<Position X="45.198%" Y="60.630%"/>
+			<Size Width="41.885%" Height="25.905%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-size:72pt;">EVN</span></p></body></html>]]></Text>
+		</TextBox>
+		<!---->
+		<!-- Image Box Item -->
+		<ImageBox BoxID="443" ImageFitMode="RealSize" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">
+			<Position X="5.723%" Y="13.419%"/>
+			<Size Width="66.706%" Height="46.143%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="0.283" ScaleY="0.283"/>
+			<ImageFileNames>
+				<ImageFile>PX20170801_060259_0080_00000471.bmp</ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<!---->
+		<!-- Tooth Code Item -->
+		<!---->
+		<!-- Annotations Item -->
+		<Annotations/>
+		<!---->
+		<!-- Groups Item -->
+		<Groups/>
+	</Page>
+</Report>

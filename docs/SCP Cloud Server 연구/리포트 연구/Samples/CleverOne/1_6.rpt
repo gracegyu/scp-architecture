@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report TemplateName="RPT_FrameHD1x2L" Version="5.2.0" ARCHIVETYPE="Template">
+	<Paper PaperSize="A4" Orientation="Portrait">
+		<Margin Top="10" Bottom="10" Left="10" Right="10"/>
+	</Paper>
+	<Page Number="1" TemplateName="FrameHD1x2L">
+		<!---->
+		<!-- Report Information -->
+		<!---->
+		<!-- Text Box Item -->
+		<TextBox BoxID="51" TextMacro="" Editable="true">
+			<Position X="5%" Y="49%"/>
+			<Size Width="81%" Height="35%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Text><![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head><meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Segoe UI'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">EVN</p></body></html>]]></Text>
+		</TextBox>
+		<!---->
+		<!-- Image Box Item -->
+		<ImageBox BoxID="49" ImageFitMode="BoxFit" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">
+			<Position X="5%" Y="10%"/>
+			<Size Width="40%" Height="38%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="0.293" ScaleY="0.293"/>
+			<ImageFileNames>
+				<ImageFile>CI20260211_111922_0821_91949624.JPG</ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<ImageBox BoxID="50" ImageFitMode="BoxFit" Invert="false" ImageMacro="" BoxType="Single" Source="Capture">
+			<Position X="46%" Y="10%"/>
+			<Size Width="40%" Height="38%"/>
+			<Background Color="#ffffff" Opacity="0" Transparent="false"/>
+			<BorderLine Color="#000000" Opacity="1" Width="1" Type="SolidLine"/>
+			<Layout Row="1" Column="1"/>
+			<Translation TransX="0" TransY="0"/>
+			<Scale ScaleX="0.667" ScaleY="0.667"/>
+			<ImageFileNames>
+				<ImageFile>CI20260211_111930_3549_85210655.JPG</ImageFile>
+			</ImageFileNames>
+			<AutoFill TabType="" ViewType="" GroupType="" WithOverlay="true" ApplyFilter="false"/>
+			<Ruler Top="true" Bottom="false" Left="false" Right="true"/>
+			<CapturedImageInfo NeedToDrawInfo="true" Thickness="1" Interval="1" TotalSliceNumber="0" DirectionTitle="">
+				<Spacing SpacingX="0" SpacingY="0"/>
+				<SliceNumbers/>
+				<AcqInfo Date="" DAP="0" kVp="0" Ma="0" CheckDate="false" CheckDAP="false" CheckkVp="false" CheckmA="false"/>
+			</CapturedImageInfo>
+		</ImageBox>
+		<!---->
+		<!-- Tooth Code Item -->
+		<!---->
+		<!-- Annotations Item -->
+		<Annotations/>
+		<!---->
+		<!-- Groups Item -->
+		<Groups/>
+	</Page>
+</Report>
