@@ -108,7 +108,7 @@ E3 RC Report v5.1 XML → 좌표 정밀도 확장 (mm 1자리→3자리) → Clo
 - Block 구조 (Containment, 상대 좌표)
 
 **좌표 시스템**:
-- **입력**: mm 단위 (주석에 `<!-- unit : mm -->` 명시)
+- **입력**: mm 단위 (확보 샘플에는 단위 주석 없음, Left/Top/Width/Height 숫자형으로 mm 해석)
 - **변환**: 기존 mm 값 유지, 정밀도 확장 (소수점 3자리)
 
 **Migration 단계**:
