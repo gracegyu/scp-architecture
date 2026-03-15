@@ -49,8 +49,31 @@ Engineering One Pager
   - PoC-03 (DPI 및 렌더링 전략 결정) 완료
   - PoC-04 (렌더링 기술 선정) 완료
   - PoC-05 (외부 라이브러리 선정) 완료
+- **Repository**: Monorepo로 개발, 완료 후 @ewoosoft/scp-report-library로 NPM Private Publish (PoC-08 반영)
 
 **Technical Description**:
+
+**선행 PoC 결과 반영 (PoC-01 ~ PoC-13)**:
+
+| PoC | 결정 사항 | PoC-14 반영 |
+|-----|-----------|-------------|
+| PoC-01 | JSON 포맷, TypeScript 타입 | document/element 구조 JSON, TS 인터페이스 |
+| PoC-02 | mm 좌표, 소수점 3자리 | position/size 단위 mm, 정밀도 #.### |
+| PoC-03 | pt 폰트, 96 DPI 화면, @media print | 폰트 pt, mm2px 기준 96 DPI, 인쇄 스타일 분리 |
+| PoC-04 | HTML DOM + SVG 렌더링 | SVG 기반 Element 렌더링 확정 (Canvas 대안 제외) |
+| PoC-05 | Lexical(텍스트), Puppeteer(PDF), cornerstone(DICOM) | TextBox: Lexical 연동. PDF/이미지는 호스트 연동 |
+| PoC-06 | 통합 Element 스키마 (document→paper→pages→elements) | 스키마 기반 렌더링. ElementType: imageBox, textBox, rectangle 등 |
+| PoC-07 | Migration 경로 (E2/E3/EzOrtho/CleverOne→Cloud) | Migration 출력 JSON을 렌더링 엔진 입력으로 사용 |
+| PoC-10 | window.print + @media print, 서버 Puppeteer PDF | @media print CSS, mm/pt 단위로 출력 품질 보장 |
+| PoC-11 | 입력 sanitization, 감사 콜백, XSS 방지 | TextBox HTML sanitization, onAuditEvent 콜백, dangerouslySetInnerHTML 금지(사용자 입력) |
+| PoC-12 | 다국어(i18n), RTL | 텍스트/레이블 i18n 키 연동, direction 속성 |
+| PoC-13 | WCAG 2.1 AA, 접근성 | DOM+SVG 기반(PoC-04), ARIA, 키보드 네비게이션 |
+
+**렌더링 엔진 입출력** (PoC-06 통합 스키마):
+
+- **입력**: `Document` (schemaVersion, metadata, paper, pages). pages[].elements가 Element[]
+- **출력**: React 컴포넌트 트리 (SVG/HTML). 인쇄 시 @media print (PoC-10)
+- **설정** (PoC-11): `onAuditEvent?: (event: AuditEvent) => void` — OPEN/SAVE/DELETE/EXPORT/PRINT 시 호출
 
 **기존 ezorthoweb Element 구조 분석**:
 
@@ -231,7 +254,7 @@ interface DragResizeEvents {
 
 **2. Element 렌더링 전략**:
 
-**SVG 기반 렌더링** (PoC-04 결과에 따라 변경 가능):
+**SVG 기반 렌더링** (PoC-04 선정: HTML DOM+SVG 확정):
 
 ```typescript
 // Element 컴포넌트 예시
@@ -253,7 +276,9 @@ const RectangleElement: React.FC<ElementProps> = ({ element, selected, onUpdate 
 }
 ```
 
-**Canvas 기반 렌더링** (대안):
+(PoC-04에서 Canvas는 대안으로 검토되었으나 DOM+SVG 선정. 접근성·텍스트 품질·인쇄 품질 우수.)
+
+**Canvas 기반 렌더링** (현재 범위 외, 대량 Element 100개 이상 시 하이브리드 검토):
 
 ```typescript
 class CanvasElementRenderer {
@@ -426,41 +451,37 @@ const LINE_HANDLES: HandlePosition[] = ['tl', 'br'] // Line용 2개
 - **Canvas Element**: EzOrtho 분석 차트 전용으로 별도 프로젝트에서 다룸 (추후 확장)
 - **EzOrtho 분석 차트 관련 Element들**: 복잡한 분석 도구로 별도 개발 필요 (추후 확장)
 
-**5. 좌표 시스템 통합** (PoC-02와 연계):
+**5. 좌표 시스템 통합** (PoC-02, PoC-03 연계):
 
 ```typescript
-interface Coordinate {
-  x: number // mm 단위 (PoC-02 결과 반영)
-  y: number // mm 단위
+// PoC-06 통합 스키마와 동일 구조
+interface Position {
   unit: 'mm'
+  x: number // 소수점 3자리 (#.###)
+  y: number
 }
 
 interface Size {
-  width: number // mm 단위
-  height: number // mm 단위
   unit: 'mm'
+  width: number
+  height: number
 }
 
-// ezorthoweb의 단위 변환 함수 활용
+// PoC-03: 96 DPI 화면 기준
+const DPMM = 96 / 25.4
 class CoordinateSystem {
   static mm2px(val: number): number {
-    return val * _dpmm // _dpmm = 95 / 25.4
+    return val * DPMM
   }
-
   static px2mm(val: number): number {
-    return val / _dpmm
+    return val / DPMM
   }
 }
 ```
 
 **6. HTML 편집기 통합**:
 
-**외부 컴포넌트 후보**:
-
-- **React-Quill**: 가장 인기 있는 React HTML 편집기
-- **TinyMCE React**: 의료용 텍스트 편집에 적합
-- **CKEditor 5 React**: 고급 편집 기능
-- **Draft.js**: Facebook에서 개발한 Rich Text Editor
+**선정**: **Lexical** (PoC-05 결과). React 통합, 성능·아키텍처 우수.
 
 **HTML 편집기 통합 인터페이스**:
 
@@ -484,9 +505,9 @@ interface HTMLEditorConfig {
 **BaseModel 포팅**:
 
 ```typescript
-// ezorthoweb의 BaseModel을 TypeScript로 포팅
+// ezorthoweb의 BaseModel을 TypeScript로 포팅 (PoC-03: 96 DPI 화면 기준)
 abstract class BaseElement {
-  protected _dpi = 95
+  protected _dpi = 96
   protected _mmpinch = 25.4
   protected _dpmm = this._dpi / this._mmpinch
 
@@ -590,7 +611,7 @@ class ImageBoxElement extends ChartElementBase {
   public imageType: 'single' | 'multi' | 'reference'
   public source: string
   public fitMode: 'realSize' | 'boxFit' | 'modified'
-  public layout?: { rows: number; columns: number } // Multi용
+  public layout?: { row: number; column: number } // Multi용 (PoC-06: 1~20)
   public linkedBoxId?: string // Reference용
 
   render(): React.ReactElement {
@@ -605,8 +626,8 @@ class ImageBoxElement extends ChartElementBase {
   }
 
   private renderMultiImage(): React.ReactElement {
-    // 1~20 Row/Column 레이아웃 구현
-    const { rows, columns } = this.layout!
+    // 1~20 Row/Column 레이아웃 구현 (PoC-06 layout.row, layout.column)
+    const { row, column } = this.layout!
     // 구현 로직
   }
 }
@@ -624,9 +645,10 @@ class HTMLTextBoxElement extends ChartElementBase {
       <foreignObject x={this.position.x} y={this.position.y} width={this.size.width} height={this.size.height}>
         <div className='html-textbox'>
           {this.isEditing ? (
-            <ReactQuill value={this.htmlContent} onChange={this.handleContentChange} modules={this.editorConfig.modules} />
+            <LexicalEditor value={this.htmlContent} onChange={this.handleContentChange} />
           ) : (
-            <div dangerouslySetInnerHTML={{ __html: this.htmlContent }} />
+            // PoC-11: 사용자 입력 HTML은 sanitization 필수. DOMPurify 등 사용
+            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(this.htmlContent) }} />
           )}
         </div>
       </foreignObject>
@@ -1201,27 +1223,146 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 - **Vuex → Redux**: 상태 관리 시스템 변경
 - **이벤트 처리**: Vue 이벤트 시스템 → React 이벤트 시스템
 
-**16. 구현 우선순위**:
+**16. 로드맵 (체크리스트)**:
 
-**1차 (Week 1-2) - 핵심 인프라**:
+### Phase 1: 핵심 인프라 + 기본 Element **(P1)** - 2~3주
 
-- **DragResizeDiv.vue → TypeScript React 포팅** (최우선): 700줄 Handler 시스템 포팅
-- 기본 Element 클래스 구조 설계 (BaseElement, ChartElementBase)
-- Rectangle, Ellipse, Line 구현
-- 포팅된 Handler 시스템과 Element 통합
+- [ ] **Task 0**: 프로젝트 및 문서 준비 (4h)
+  - [ ] TypeScript React 프로젝트 초기화
+  - [ ] PoC-06 통합 스키마 TypeScript 타입 정의 (report-types.ts)
+  - [ ] 좌표 변환 유틸 (mm2px, px2mm, DPMM=96/25.4)
 
-**2차 (Week 3) - Content Element**:
+- [ ] **Task 1.1**: DragResizeDiv 포팅 (16h)
+  - [ ] DragResizeDivProps, DragResizeState 인터페이스 정의
+  - [ ] Vue 템플릿 → JSX 변환 (8개 핸들러 + Line 2개)
+  - [ ] 이벤트 처리 (onDragging, onResizing, onDragStop, onResizeStop)
+  - [ ] Grid Snap, Zoom, 경계 제한 로직 포팅
+  - [ ] 단위 테스트
 
-- ImageBox, TextBox 구현 (DragResizeDiv 활용)
-- HTML 편집기 통합 (React-Quill 등)
-- 선택 및 편집 시스템 구축
+- [ ] **Task 1.2**: BaseElement / ChartElementBase 구조 (8h)
+  - [ ] BaseElement (mm2px, px2mm, _dpi=96)
+  - [ ] ChartElementBase (position, size, fontAttr, lineAttr, fillAttr)
+  - [ ] getDragResizeHandles(), getShape() 추상 메서드
+  - [ ] Position, Size, ElementStyle 타입 (PoC-06 호환)
 
-**3차 (Week 4) - 고급 기능**:
+- [ ] **Task 1.3**: 기본 Shape Element (12h)
+  - **의존**: Task 1.1, Task 1.2
+  - [ ] RectangleElement (SVG rect, 8핸들러)
+  - [ ] EllipseElement (SVG ellipse, 8핸들러)
+  - [ ] LineElement (SVG line, tl/br 2핸들러)
+  - [ ] ResizeHandlers 컴포넌트
+  - [ ] 단위 테스트
 
-- Arrow, Memo 추가 구현
-- Multi ImageBox, Reference ImageBox 구현
-- Form Controls 포팅 (RadioButton, CheckBox 등)
-- 성능 최적화 및 테스트
+- [ ] **Task 1.4**: Document/Paper/Page 렌더러 (8h)
+  - **의존**: Task 1.3
+  - [ ] ReportRenderer (document 입력, paper 크기)
+  - [ ] Page 컴포넌트 (pages[].elements 순회)
+  - [ ] Element 레지스트리 (type → 컴포넌트 매핑)
+  - [ ] PoC-06 JSON 샘플 로딩 검증
+
+- [ ] **Task 1.5**: 선택 및 편집 시스템 (8h)
+  - **의존**: Task 1.4
+  - [ ] 단일/다중 선택 (클릭, Shift+클릭)
+  - [ ] 선택 시 Handler 표시, 테두리 표시
+  - [ ] Delete 키 삭제
+  - [ ] onAuditEvent 콜백 연동 (선택적)
+
+**Phase 1 예상 시간**: 56h (약 2주)
+
+### Phase 2: Content Element + 편집 **(P2)** - 2주
+
+- [ ] **Task 2.1**: ImageBox (Single) (10h)
+  - **의존**: Task 1.5
+  - [ ] ImageBoxElement (fitMode: realSize/boxFit/modified)
+  - [ ] imageRefs, source 매핑
+  - [ ] 이미지 로딩 및 표시 (img 또는 cornerstone 연동은 호스트)
+  - [ ] DragResizeDiv 래핑
+
+- [ ] **Task 2.2**: TextBox + Label (8h)
+  - **의존**: Task 1.5
+  - [ ] LabelElement (평문 텍스트)
+  - [ ] TextBoxElement 기본 구조 (content, editable)
+  - [ ] style.fontSize(pt), fontFamily 적용
+  - [ ] 읽기 전용 렌더링 (편집 모드 전)
+
+- [ ] **Task 2.3**: Lexical 연동 (12h)
+  - **의존**: Task 2.2
+  - [ ] Lexical 에디터 컴포넌트 래퍼
+  - [ ] HTML ↔ Lexical 직렬화
+  - [ ] foreignObject 내 편집기 배치
+  - [ ] sanitizeHtml 적용 (PoC-11, DOMPurify 등)
+
+- [ ] **Task 2.4**: 상태 관리 (10h)
+  - **의존**: Task 2.3
+  - [ ] ElementState (elements, selectedElements, clipboard, history)
+  - [ ] addElement, updateElement, deleteElement, selectElements
+  - [ ] Redux Toolkit slice 또는 Context
+
+- [ ] **Task 2.5**: 복사/붙여넣기, Undo/Redo (8h)
+  - **의존**: Task 2.4
+  - [ ] Ctrl+C, Ctrl+V
+  - [ ] Ctrl+Z, Ctrl+Y (history.past/future)
+  - [ ] Arrow 키 이동 (선택 시)
+
+**Phase 2 예상 시간**: 48h (약 1.5주)
+
+### Phase 3: 고급 Element **(P3)** - 2주
+
+- [ ] **Task 3.1**: Arrow, Memo (12h)
+  - **의존**: Task 2.5
+  - [ ] ArrowElement (Line + 화살표 머리, points)
+  - [ ] MemoElement (anchorPoint, bubblePosition, content)
+  - [ ] Memo 풍선+포인터 렌더링 (PoC-06 스키마)
+
+- [ ] **Task 3.2**: Multi / Reference ImageBox (10h)
+  - **의존**: Task 2.1
+  - [ ] layout.row, layout.column (1~20)
+  - [ ] Multi ImageBox 그리드 렌더링
+  - [ ] Reference ImageBox (linkedBoxId 참조)
+
+- [ ] **Task 3.3**: FreeDraw (6h)
+  - **의존**: Task 2.5
+  - [ ] FreeDrawElement (points → SVG path)
+  - [ ] Path 데이터 직렬화
+
+- [ ] **Task 3.4**: 인쇄 및 @media print (8h)
+  - **의존**: Task 3.3
+  - [ ] @media print CSS (PoC-10)
+  - [ ] @page size, margin
+  - [ ] mm, pt 단위 출력 검증
+  - [ ] window.print() 연동
+
+**Phase 3 예상 시간**: 36h (약 1주)
+
+### Phase 4: EzOrtho 특화 + 통합 검증 **(P4)** - 2주
+
+- [ ] **Task 4.1**: ToothBox, TreatmentCategory (10h)
+  - [ ] ToothBoxElement (selectedToothCodes, selectedOcclusionToothCodes)
+  - [ ] TreatmentCategoryElement (category1/2/3, P2 우선순위 낮음)
+
+- [ ] **Task 4.2**: Form Controls (12h)
+  - [ ] formControl + controlType (radio, checkbox, button, comboBox, textInput, textArea)
+  - [ ] 각 controlType별 렌더링
+
+- [ ] **Task 4.3**: Block, Group (10h)
+  - [ ] BlockElement (children: Element[], 상대 좌표)
+  - [ ] GroupElement (memberIds: string[])
+  - [ ] 그룹 선택 시 일괄 이동/삭제
+
+- [ ] **Task 4.4**: 보안 및 감사 (6h)
+  - [ ] onAuditEvent 콜백 (OPEN, SAVE, DELETE, EXPORT, PRINT)
+  - [ ] ReportLibraryConfig 인터페이스
+  - [ ] TextBox sanitization 최종 검증
+
+- [ ] **Task 4.5**: 통합 테스트 및 검증 (12h)
+  - [ ] Migration 출력 JSON → 렌더링 검증 (PoC-07 연계)
+  - [ ] 브라우저 호환성 (Chrome, Firefox, Safari, Edge)
+  - [ ] 성능 테스트 (50개 Element 목표)
+  - [ ] 호환성 검증 리포트 작성
+
+**Phase 4 예상 시간**: 50h (약 1.5주)
+
+**총 예상 시간**: 190h (약 7주)
 
 **산출물**:
 
@@ -1236,6 +1377,12 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 9. **호환성 검증 리포트**: 기존 파일 호환성 확인
 
 **다음 단계**: 구현된 Element 렌더링 엔진을 PoC-08(아키텍처 전략)에 통합하여 전체 시스템 검증
+
+**참조 문서** (구현 시 필수 확인):
+
+- PoC-06_통합Element스키마설계_result.md: Element 타입, position/size 구조, Memo anchorPoint, Block/Group
+- PoC-10_인쇄및Export품질검증_result.md: @media print, mm/pt 단위, CSS 인쇄 가이드
+- PoC-11_의료데이터보안검증_result.md: sanitizeHtml, onAuditEvent, XSS 방지
 
 **ezorthoweb 코드 분석 완료 현황**:
 
