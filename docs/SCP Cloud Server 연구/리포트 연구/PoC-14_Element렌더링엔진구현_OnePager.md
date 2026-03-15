@@ -1227,10 +1227,12 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 
 ### Phase 1: 핵심 인프라 + 기본 Element **(P1)** - 2~3주
 
-- [ ] **Task 0**: 프로젝트 및 문서 준비 (4h)
-  - [ ] TypeScript React 프로젝트 초기화
-  - [ ] PoC-06 통합 스키마 TypeScript 타입 정의 (report-types.ts)
-  - [ ] 좌표 변환 유틸 (mm2px, px2mm, DPMM=96/25.4)
+- [ ] **Task 0**: 프로젝트 및 Repository 준비 (10h)
+  - [ ] Monorepo 루트 생성 (pnpm workspaces, Turborepo)
+  - [ ] packages/core, components, migration, library 초기화 (PoC-08 구조)
+  - [ ] apps/scp-cloud-demo Vite+React 앱 생성, workspace:* 링크
+  - [ ] PoC-06 통합 스키마 TypeScript 타입 정의 (core/types)
+  - [ ] 좌표 변환 유틸 (core/utils: mm2px, px2mm, DPMM=96/25.4)
 
 - [ ] **Task 1.1**: DragResizeDiv 포팅 (16h)
   - [ ] DragResizeDivProps, DragResizeState 인터페이스 정의
@@ -1267,7 +1269,7 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
   - [ ] Delete 키 삭제
   - [ ] onAuditEvent 콜백 연동 (선택적)
 
-**Phase 1 예상 시간**: 56h (약 2주)
+**Phase 1 예상 시간**: 62h (약 2주)
 
 ### Phase 2: Content Element + 편집 **(P2)** - 2주
 
@@ -1362,7 +1364,7 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 
 **Phase 4 예상 시간**: 50h (약 1.5주)
 
-**총 예상 시간**: 190h (약 7주)
+**총 예상 시간**: 196h (약 7주)
 
 **산출물**:
 
@@ -1378,9 +1380,301 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 
 **다음 단계**: 구현된 Element 렌더링 엔진을 PoC-08(아키텍처 전략)에 통합하여 전체 시스템 검증
 
+---
+
+**17. Repository 구성** (PoC-08 반영):
+
+### 17.1 개발 전략: Monorepo 우선, Publish는 완료 시점
+
+**권장**: Monorepo로 개발하고, SCP Cloud 통합 준비 시점에 @ewoosoft/scp-report-library로 NPM Private Publish.
+
+| 방식 | 장점 | 단점 |
+|------|------|------|
+| **Monorepo + workspace** | 즉시 반영 테스트, publish 없이 개발, atomic commit | 초기 설정 필요 |
+| 처음부터 NPM publish | 단순 | 매 변경마다 publish 필요, 피드백 루프 느림 |
+
+**이유**: `workspace:*`로 데모 앱이 로컬 패키지를 참조하면, 코드 수정 시 저장만으로 HMR 적용. NPM publish 방식은 변경마다 `npm run build && npm publish` 후 소비 앱에서 `npm update` 필요하여 개발 속도 저하.
+
+### 17.2 Repository 구조 (PoC-08 4.1절과 동일)
+
+```
+scp-report/
+├── packages/
+│   ├── core/                            # @ewoosoft/scp-report-core
+│   │   ├── src/
+│   │   │   ├── engine/                  # 렌더링 엔진 (ReportRenderer, Page)
+│   │   │   ├── elements/                # Element 클래스 (BaseElement, Rectangle 등)
+│   │   │   ├── utils/                   # mm2px, px2mm, sanitize
+│   │   │   └── types/                   # PoC-06 스키마 타입
+│   │   └── package.json
+│   │
+│   ├── components/                      # @ewoosoft/scp-report-components
+│   │   ├── src/
+│   │   │   ├── ReportEditor/
+│   │   │   ├── ReportViewer/
+│   │   │   ├── Elements/                # Element React 컴포넌트 (DragResizeDiv 래핑)
+│   │   │   └── Toolbar/
+│   │   └── package.json
+│   │
+│   ├── migration/                       # @ewoosoft/scp-report-migration (PoC-07)
+│   │   ├── src/
+│   │   │   ├── parsers/
+│   │   │   ├── converters/
+│   │   │   └── validators/
+│   │   └── package.json
+│   │
+│   └── library/                         # @ewoosoft/scp-report-library (publish 대상)
+│       ├── src/
+│       │   └── index.ts                 # core, components, migration re-export
+│       └── package.json
+│
+├── apps/
+│   ├── scp-cloud-demo/                  # SCP Cloud 통합 데모 (주 개발용)
+│   └── playground/                      # 최소 테스트 앱 (선택)
+│
+├── package.json
+├── turbo.json                           # Turborepo
+└── tsconfig.json
+```
+
+**패키지 역할** (PoC-08 4.1절):
+- `core`: 핵심 로직만 필요한 경우 (Headless)
+- `components`: React 컴포넌트만 필요한 경우
+- `migration`: Migration 도구만 필요한 경우 (PoC-07 범위)
+- `library`: 전체 기능 통합, SCP Cloud 등에서 `npm install @ewoosoft/scp-report-library`로 사용
+
+**PoC-14 구현 배치**:
+- core: engine, elements, utils, types (Task 1.1~1.5, 2.1~2.2, 3.1~3.3)
+- components: ReportEditor, ReportViewer, Elements, Toolbar (Task 1.4~4.4)
+- migration: PoC-07에서 구현, PoC-14에서는 빈 껍데기 또는 placeholder
+
+### 17.3 개발 플로우
+
+1. **초기 설정**
+   ```bash
+   pnpm install
+   pnpm --filter scp-cloud-demo dev
+   ```
+
+2. **일상 개발**
+   - `packages/core`, `packages/components` 수정
+   - `apps/scp-cloud-demo`에서 즉시 반영 (workspace 링크)
+   - publish 불필요
+
+3. **로컬 통합 테스트** (SCP Cloud 연동 전)
+   - `apps/scp-cloud-demo`에 Migration 출력 JSON 로드
+   - Element 렌더링, 편집, 인쇄 검증
+
+4. **Publish 시점** (Phase 4 완료 또는 SCP Cloud 통합 직전)
+   ```bash
+   pnpm --filter @ewoosoft/scp-report-library build
+   pnpm --filter @ewoosoft/scp-report-library publish
+   ```
+
+### 17.4 package.json 예시
+
+**Root (package.json)**:
+```json
+{
+  "name": "scp-report",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev": "pnpm --filter scp-cloud-demo dev",
+    "build": "turbo run build",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  }
+}
+```
+
+**packages/core/package.json**:
+```json
+{
+  "name": "@ewoosoft/scp-report-core",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts"
+}
+```
+
+**packages/components/package.json**:
+```json
+{
+  "name": "@ewoosoft/scp-report-components",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "peerDependencies": {
+    "@ewoosoft/scp-report-core": "workspace:*",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}
+```
+
+**packages/library/package.json** (re-export):
+```json
+{
+  "name": "@ewoosoft/scp-report-library",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "dependencies": {
+    "@ewoosoft/scp-report-core": "workspace:*",
+    "@ewoosoft/scp-report-components": "workspace:*",
+    "@ewoosoft/scp-report-migration": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "files": ["dist"]
+}
+```
+
+**apps/scp-cloud-demo/package.json**:
+```json
+{
+  "name": "scp-cloud-demo",
+  "private": true,
+  "dependencies": {
+    "@ewoosoft/scp-report-library": "workspace:*",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}
+```
+
+### 17.5 @ewoosoft NPM Private Publish 절차
+
+**사전 조건**:
+- Phase 4 완료 또는 SCP Cloud 통합 직전
+- `pnpm build` 성공, `pnpm test` 통과
+
+**1. Registry 및 .npmrc 설정** (Azure DevOps Artifacts)
+
+```bash
+# 프로젝트 루트 또는 packages/library/.npmrc
+registry=https://pkgs.dev.azure.com/ewoosoft/_packaging/scp-packages/npm/registry/
+always-auth=true
+```
+
+**2. 인증**
+
+- **Azure DevOps**: Project Settings → Artifacts → Connect to Feed → npm → "Get the tools"에서 .npmrc 및 Personal Access Token(PAT) 발급
+- PAT 권한: Packaging (Read & write)
+- 토큰은 환경변수 또는 Pipeline Variable에 저장. 로컬 `.npmrc`에 평문 저장 금지
+
+**3. Publish 순서** (의존성 순)
+
+```bash
+# 1) core → 2) components → 3) migration → 4) library
+pnpm --filter @ewoosoft/scp-report-core build
+pnpm --filter @ewoosoft/scp-report-core publish --no-git-checks
+
+pnpm --filter @ewoosoft/scp-report-components build
+pnpm --filter @ewoosoft/scp-report-components publish --no-git-checks
+
+pnpm --filter @ewoosoft/scp-report-migration build
+pnpm --filter @ewoosoft/scp-report-migration publish --no-git-checks
+
+pnpm --filter @ewoosoft/scp-report-library build
+pnpm --filter @ewoosoft/scp-report-library publish --no-git-checks
+```
+
+**주의**: `workspace:*`는 publish 시 해당 workspace 패키지의 실제 버전으로 치환됨. 모든 패키지 `version`을 동일하게 맞춘 후 publish.
+
+**4. Changeset (버전 관리, 권장)**
+
+```bash
+pnpm add -Dw @changesets/cli
+pnpm changeset init
+
+# 변경 시
+pnpm changeset          # 변경 내용 기록
+pnpm changeset version  # 버전 bump
+pnpm changeset publish  # 순차 publish
+```
+
+**5. CI/CD 파이프라인** (Azure DevOps, 선택)
+
+```yaml
+# azure-pipelines.yml
+trigger:
+  tags:
+    include:
+      - v*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  npmRegistry: 'https://pkgs.dev.azure.com/ewoosoft/_packaging/scp-packages/npm/registry/'
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '20.x'
+  - script: |
+      corepack enable
+      corepack prepare pnpm@9 --activate
+  - script: pnpm install --frozen-lockfile
+    displayName: 'Install'
+  - script: pnpm build
+    displayName: 'Build'
+  - script: pnpm test
+    displayName: 'Test'
+  - script: |
+      echo "//pkgs.dev.azure.com/ewoosoft/_packaging/scp-packages/npm/registry/:_authToken=$(System.AccessToken)" > .npmrc
+      echo "registry=$(npmRegistry)" >> .npmrc
+      pnpm -r publish --no-git-checks
+    displayName: 'Publish'
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+```
+
+Pipeline 설정: "Allow scripts to access the OAuth token" 활성화. Artifacts publish 권한이 없으면 PAT를 Variable(secret)로 등록 후 `_authToken=$(AZURE_ARTIFACTS_TOKEN)` 사용.
+
+**6. SCP Cloud에서 사용**
+
+```bash
+npm install @ewoosoft/scp-report-library
+# 또는
+pnpm add @ewoosoft/scp-report-library
+```
+
+소비 프로젝트 `.npmrc`에 동일 registry 설정 필요.
+
+**상세**: PoC-08_아키텍처전략검증_result.md 4.4절
+
+### 17.6 Task 0 반영
+
+로드맵 Phase 1 Task 0에 Repository 초기화 포함 (PoC-08 구조):
+- [ ] Monorepo 루트 생성 (pnpm workspaces + Turborepo)
+- [ ] packages/core, packages/components, packages/migration, packages/library 초기화
+- [ ] apps/scp-cloud-demo Vite+React 앱 생성
+- [ ] workspace 링크 설정 (core → components → library → scp-cloud-demo)
+- [ ] `pnpm dev` 실행 시 scp-cloud-demo에서 library 사용 검증
+
+---
+
 **참조 문서** (구현 시 필수 확인):
 
 - PoC-06_통합Element스키마설계_result.md: Element 타입, position/size 구조, Memo anchorPoint, Block/Group
+- PoC-08_아키텍처전략검증_result.md: Repository 구조, Monorepo, NPM Private Registry, 패키지 설계
 - PoC-10_인쇄및Export품질검증_result.md: @media print, mm/pt 단위, CSS 인쇄 가이드
 - PoC-11_의료데이터보안검증_result.md: sanitizeHtml, onAuditEvent, XSS 방지
 
