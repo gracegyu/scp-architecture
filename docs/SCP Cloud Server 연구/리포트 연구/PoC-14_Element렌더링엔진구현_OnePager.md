@@ -1234,12 +1234,12 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
   - [x] PoC-06 통합 스키마 TypeScript 타입 정의 (core/types)
   - [x] 좌표 변환 유틸 (core/utils: mm2px, px2mm, DPMM=96/25.4)
 
-- [ ] **Task 1.1**: DragResizeDiv 포팅 (16h)
-  - [ ] DragResizeDivProps, DragResizeState 인터페이스 정의
-  - [ ] Vue 템플릿 → JSX 변환 (8개 핸들러 + Line 2개)
-  - [ ] 이벤트 처리 (onDragging, onResizing, onDragStop, onResizeStop)
-  - [ ] Grid Snap, Zoom, 경계 제한 로직 포팅
-  - [ ] 단위 테스트
+- [x] **Task 1.1**: DragResizeDiv 포팅 (16h)
+  - [x] DragResizeDivProps, DragResizeState 인터페이스 정의
+  - [x] Vue 템플릿 → JSX 변환 (8개 핸들러 + Line 2개)
+  - [x] 이벤트 처리 (onDragging, onResizing, onDragStop, onResizeStop)
+  - [x] Grid Snap, Zoom, 경계 제한 로직 포팅
+  - [x] 단위 테스트
 
 - [ ] **Task 1.2**: BaseElement / ChartElementBase 구조 (8h)
   - [ ] BaseElement (mm2px, px2mm, _dpi=96)
