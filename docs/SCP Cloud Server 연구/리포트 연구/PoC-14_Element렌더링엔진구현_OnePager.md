@@ -1227,12 +1227,12 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 
 ### Phase 1: 핵심 인프라 + 기본 Element **(P1)** - 2~3주
 
-- [ ] **Task 0**: 프로젝트 및 Repository 준비 (10h)
-  - [ ] Monorepo 루트 생성 (pnpm workspaces, Turborepo)
-  - [ ] packages/core, components, migration, library 초기화 (PoC-08 구조)
-  - [ ] apps/scp-cloud-demo Vite+React 앱 생성, workspace:* 링크
-  - [ ] PoC-06 통합 스키마 TypeScript 타입 정의 (core/types)
-  - [ ] 좌표 변환 유틸 (core/utils: mm2px, px2mm, DPMM=96/25.4)
+- [x] **Task 0**: 프로젝트 및 Repository 준비 (10h)
+  - [x] Monorepo 루트 생성 (pnpm workspaces, Turborepo)
+  - [x] packages/core, components, migration, library 초기화 (PoC-08 구조)
+  - [x] apps/scp-cloud-demo Vite+React 앱 생성, workspace:* 링크
+  - [x] PoC-06 통합 스키마 TypeScript 타입 정의 (core/types)
+  - [x] 좌표 변환 유틸 (core/utils: mm2px, px2mm, DPMM=96/25.4)
 
 - [ ] **Task 1.1**: DragResizeDiv 포팅 (16h)
   - [ ] DragResizeDivProps, DragResizeState 인터페이스 정의
@@ -1398,7 +1398,7 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 ### 17.2 Repository 구조 (PoC-08 4.1절과 동일)
 
 ```
-scp-report/
+scp-report-poc/
 ├── packages/
 │   ├── core/                            # @ewoosoft/scp-report-core
 │   │   ├── src/
@@ -1476,7 +1476,7 @@ scp-report/
 **Root (package.json)**:
 ```json
 {
-  "name": "scp-report",
+  "name": "scp-report-poc",
   "private": true,
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
@@ -1663,11 +1663,11 @@ pnpm add @ewoosoft/scp-report-library
 ### 17.6 Task 0 반영
 
 로드맵 Phase 1 Task 0에 Repository 초기화 포함 (PoC-08 구조):
-- [ ] Monorepo 루트 생성 (pnpm workspaces + Turborepo)
-- [ ] packages/core, packages/components, packages/migration, packages/library 초기화
-- [ ] apps/scp-cloud-demo Vite+React 앱 생성
-- [ ] workspace 링크 설정 (core → components → library → scp-cloud-demo)
-- [ ] `pnpm dev` 실행 시 scp-cloud-demo에서 library 사용 검증
+- [x] Monorepo 루트 생성 (pnpm workspaces + Turborepo)
+- [x] packages/core, packages/components, packages/migration, packages/library 초기화
+- [x] apps/scp-cloud-demo Vite+React 앱 생성
+- [x] workspace 링크 설정 (core → components → library → scp-cloud-demo)
+- [x] `pnpm dev` 실행 시 scp-cloud-demo에서 library 사용 검증
 
 ---
 
