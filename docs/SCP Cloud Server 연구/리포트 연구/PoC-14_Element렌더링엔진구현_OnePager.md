@@ -1241,33 +1241,33 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
   - [x] Grid Snap, Zoom, 경계 제한 로직 포팅
   - [x] 단위 테스트
 
-- [ ] **Task 1.2**: BaseElement / ChartElementBase 구조 (8h)
-  - [ ] BaseElement (mm2px, px2mm, _dpi=96)
-  - [ ] ChartElementBase (position, size, fontAttr, lineAttr, fillAttr)
-  - [ ] getDragResizeHandles(), getShape() 추상 메서드
-  - [ ] Position, Size, ElementStyle 타입 (PoC-06 호환)
+- [x] **Task 1.2**: BaseElement / ChartElementBase 구조 (8h)
+  - [x] BaseElement (mm2px, px2mm, _dpi=96)
+  - [x] ChartElementBase (position, size, fontAttr, lineAttr, fillAttr)
+  - [x] getDragResizeHandles(), getShape() 추상 메서드
+  - [x] Position, Size, ElementStyle 타입 (PoC-06 호환)
 
-- [ ] **Task 1.3**: 기본 Shape Element (12h)
+- [x] **Task 1.3**: 기본 Shape Element (12h)
   - **의존**: Task 1.1, Task 1.2
-  - [ ] RectangleElement (SVG rect, 8핸들러)
-  - [ ] EllipseElement (SVG ellipse, 8핸들러)
-  - [ ] LineElement (SVG line, tl/br 2핸들러)
-  - [ ] ResizeHandlers 컴포넌트
-  - [ ] 단위 테스트
+  - [x] RectangleElement (SVG rect, 8핸들러)
+  - [x] EllipseElement (SVG ellipse, 8핸들러)
+  - [x] LineElement (SVG line, tl/br 2핸들러)
+  - [x] ResizeHandlers 컴포넌트
+  - [x] 단위 테스트
 
-- [ ] **Task 1.4**: Document/Paper/Page 렌더러 (8h)
+- [x] **Task 1.4**: Document/Paper/Page 렌더러 (8h)
   - **의존**: Task 1.3
-  - [ ] ReportRenderer (document 입력, paper 크기)
-  - [ ] Page 컴포넌트 (pages[].elements 순회)
-  - [ ] Element 레지스트리 (type → 컴포넌트 매핑)
-  - [ ] PoC-06 JSON 샘플 로딩 검증
+  - [x] ReportRenderer (document 입력, paper 크기)
+  - [x] Page 컴포넌트 (pages[].elements 순회)
+  - [x] Element 레지스트리 (type → 컴포넌트 매핑)
+  - [x] PoC-06 JSON 샘플 로딩 검증
 
-- [ ] **Task 1.5**: 선택 및 편집 시스템 (8h)
+- [x] **Task 1.5**: 선택 및 편집 시스템 (8h)
   - **의존**: Task 1.4
-  - [ ] 단일/다중 선택 (클릭, Shift+클릭)
-  - [ ] 선택 시 Handler 표시, 테두리 표시
-  - [ ] Delete 키 삭제
-  - [ ] onAuditEvent 콜백 연동 (선택적)
+  - [x] 단일/다중 선택 (클릭, Shift+클릭)
+  - [x] 선택 시 Handler 표시, 테두리 표시
+  - [x] Delete 키 삭제
+  - [x] onAuditEvent 콜백 연동 (선택적)
 
 **Phase 1 예상 시간**: 62h (약 2주)
 
