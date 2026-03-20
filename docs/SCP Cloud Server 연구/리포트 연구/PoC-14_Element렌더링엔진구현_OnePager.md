@@ -55,19 +55,19 @@ Engineering One Pager
 
 **선행 PoC 결과 반영 (PoC-01 ~ PoC-13)**:
 
-| PoC | 결정 사항 | PoC-14 반영 |
-|-----|-----------|-------------|
-| PoC-01 | JSON 포맷, TypeScript 타입 | document/element 구조 JSON, TS 인터페이스 |
-| PoC-02 | mm 좌표, 소수점 3자리 | position/size 단위 mm, 정밀도 #.### |
-| PoC-03 | pt 폰트, 96 DPI 화면, @media print | 폰트 pt, mm2px 기준 96 DPI, 인쇄 스타일 분리 |
-| PoC-04 | HTML DOM + SVG 렌더링 | SVG 기반 Element 렌더링 확정 (Canvas 대안 제외) |
-| PoC-05 | Lexical(텍스트), Puppeteer(PDF), cornerstone(DICOM) | TextBox: Lexical 연동. PDF/이미지는 호스트 연동 |
-| PoC-06 | 통합 Element 스키마 (document→paper→pages→elements) | 스키마 기반 렌더링. ElementType: imageBox, textBox, rectangle 등 |
-| PoC-07 | Migration 경로 (E2/E3/EzOrtho/CleverOne→Cloud) | Migration 출력 JSON을 렌더링 엔진 입력으로 사용 |
-| PoC-10 | window.print + @media print, 서버 Puppeteer PDF | @media print CSS, mm/pt 단위로 출력 품질 보장 |
-| PoC-11 | 입력 sanitization, 감사 콜백, XSS 방지 | TextBox HTML sanitization, onAuditEvent 콜백, dangerouslySetInnerHTML 금지(사용자 입력) |
-| PoC-12 | 다국어(i18n), RTL | 텍스트/레이블 i18n 키 연동, direction 속성 |
-| PoC-13 | WCAG 2.1 AA, 접근성 | DOM+SVG 기반(PoC-04), ARIA, 키보드 네비게이션 |
+| PoC    | 결정 사항                                           | PoC-14 반영                                                                             |
+| ------ | --------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| PoC-01 | JSON 포맷, TypeScript 타입                          | document/element 구조 JSON, TS 인터페이스                                               |
+| PoC-02 | mm 좌표, 소수점 3자리                               | position/size 단위 mm, 정밀도 #.###                                                     |
+| PoC-03 | pt 폰트, 96 DPI 화면, @media print                  | 폰트 pt, mm2px 기준 96 DPI, 인쇄 스타일 분리                                            |
+| PoC-04 | HTML DOM + SVG 렌더링                               | SVG 기반 Element 렌더링 확정 (Canvas 대안 제외)                                         |
+| PoC-05 | Lexical(텍스트), Puppeteer(PDF), cornerstone(DICOM) | TextBox: Lexical 연동. PDF/이미지는 호스트 연동                                         |
+| PoC-06 | 통합 Element 스키마 (document→paper→pages→elements) | 스키마 기반 렌더링. ElementType: imageBox, textBox, rectangle 등                        |
+| PoC-07 | Migration 경로 (E2/E3/EzOrtho/CleverOne→Cloud)      | Migration 출력 JSON을 렌더링 엔진 입력으로 사용                                         |
+| PoC-10 | window.print + @media print, 서버 Puppeteer PDF     | @media print CSS, mm/pt 단위로 출력 품질 보장                                           |
+| PoC-11 | 입력 sanitization, 감사 콜백, XSS 방지              | TextBox HTML sanitization, onAuditEvent 콜백, dangerouslySetInnerHTML 금지(사용자 입력) |
+| PoC-12 | 다국어(i18n), RTL                                   | 텍스트/레이블 i18n 키 연동, direction 속성                                              |
+| PoC-13 | WCAG 2.1 AA, 접근성                                 | DOM+SVG 기반(PoC-04), ARIA, 키보드 네비게이션                                           |
 
 **렌더링 엔진 입출력** (PoC-06 통합 스키마):
 
@@ -1230,7 +1230,7 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 - [x] **Task 0**: 프로젝트 및 Repository 준비 (10h)
   - [x] Monorepo 루트 생성 (pnpm workspaces, Turborepo)
   - [x] packages/core, components, migration, library 초기화 (PoC-08 구조)
-  - [x] apps/scp-cloud-demo Vite+React 앱 생성, workspace:* 링크
+  - [x] apps/scp-cloud-demo Vite+React 앱 생성, workspace:\* 링크
   - [x] PoC-06 통합 스키마 TypeScript 타입 정의 (core/types)
   - [x] 좌표 변환 유틸 (core/utils: mm2px, px2mm, DPMM=96/25.4)
 
@@ -1242,7 +1242,7 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
   - [x] 단위 테스트
 
 - [x] **Task 1.2**: BaseElement / ChartElementBase 구조 (8h)
-  - [x] BaseElement (mm2px, px2mm, _dpi=96)
+  - [x] BaseElement (mm2px, px2mm, \_dpi=96)
   - [x] ChartElementBase (position, size, fontAttr, lineAttr, fillAttr)
   - [x] getDragResizeHandles(), getShape() 추상 메서드
   - [x] Position, Size, ElementStyle 타입 (PoC-06 호환)
@@ -1388,10 +1388,10 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 
 **권장**: Monorepo로 개발하고, SCP Cloud 통합 준비 시점에 @ewoosoft/scp-report-library로 NPM Private Publish.
 
-| 방식 | 장점 | 단점 |
-|------|------|------|
-| **Monorepo + workspace** | 즉시 반영 테스트, publish 없이 개발, atomic commit | 초기 설정 필요 |
-| 처음부터 NPM publish | 단순 | 매 변경마다 publish 필요, 피드백 루프 느림 |
+| 방식                     | 장점                                               | 단점                                       |
+| ------------------------ | -------------------------------------------------- | ------------------------------------------ |
+| **Monorepo + workspace** | 즉시 반영 테스트, publish 없이 개발, atomic commit | 초기 설정 필요                             |
+| 처음부터 NPM publish     | 단순                                               | 매 변경마다 publish 필요, 피드백 루프 느림 |
 
 **이유**: `workspace:*`로 데모 앱이 로컬 패키지를 참조하면, 코드 수정 시 저장만으로 HMR 적용. NPM publish 방식은 변경마다 `npm run build && npm publish` 후 소비 앱에서 `npm update` 필요하여 개발 속도 저하.
 
@@ -1438,12 +1438,14 @@ scp-report-poc/
 ```
 
 **패키지 역할** (PoC-08 4.1절):
+
 - `core`: 핵심 로직만 필요한 경우 (Headless)
 - `components`: React 컴포넌트만 필요한 경우
 - `migration`: Migration 도구만 필요한 경우 (PoC-07 범위)
 - `library`: 전체 기능 통합, SCP Cloud 등에서 `npm install @ewoosoft/scp-report-library`로 사용
 
 **PoC-14 구현 배치**:
+
 - core: engine, elements, utils, types (Task 1.1~1.5, 2.1~2.2, 3.1~3.3)
 - components: ReportEditor, ReportViewer, Elements, Toolbar (Task 1.4~4.4)
 - migration: PoC-07에서 구현, PoC-14에서는 빈 껍데기 또는 placeholder
@@ -1451,6 +1453,7 @@ scp-report-poc/
 ### 17.3 개발 플로우
 
 1. **초기 설정**
+
    ```bash
    pnpm install
    pnpm --filter scp-cloud-demo dev
@@ -1474,6 +1477,7 @@ scp-report-poc/
 ### 17.4 package.json 예시
 
 **Root (package.json)**:
+
 ```json
 {
   "name": "scp-report-poc",
@@ -1491,6 +1495,7 @@ scp-report-poc/
 ```
 
 **packages/core/package.json**:
+
 ```json
 {
   "name": "@ewoosoft/scp-report-core",
@@ -1502,6 +1507,7 @@ scp-report-poc/
 ```
 
 **packages/components/package.json**:
+
 ```json
 {
   "name": "@ewoosoft/scp-report-components",
@@ -1518,6 +1524,7 @@ scp-report-poc/
 ```
 
 **packages/library/package.json** (re-export):
+
 ```json
 {
   "name": "@ewoosoft/scp-report-library",
@@ -1547,6 +1554,7 @@ scp-report-poc/
 ```
 
 **apps/scp-cloud-demo/package.json**:
+
 ```json
 {
   "name": "scp-cloud-demo",
@@ -1562,6 +1570,7 @@ scp-report-poc/
 ### 17.5 @ewoosoft NPM Private Publish 절차
 
 **사전 조건**:
+
 - Phase 4 완료 또는 SCP Cloud 통합 직전
 - `pnpm build` 성공, `pnpm test` 통과
 
@@ -1658,11 +1667,12 @@ pnpm add @ewoosoft/scp-report-library
 
 소비 프로젝트 `.npmrc`에 동일 registry 설정 필요.
 
-**상세**: PoC-08_아키텍처전략검증_result.md 4.4절
+**상세**: PoC-08\_아키텍처전략검증\_result.md 4.4절
 
 ### 17.6 Task 0 반영
 
 로드맵 Phase 1 Task 0에 Repository 초기화 포함 (PoC-08 구조):
+
 - [x] Monorepo 루트 생성 (pnpm workspaces + Turborepo)
 - [x] packages/core, packages/components, packages/migration, packages/library 초기화
 - [x] apps/scp-cloud-demo Vite+React 앱 생성
@@ -1673,10 +1683,10 @@ pnpm add @ewoosoft/scp-report-library
 
 **참조 문서** (구현 시 필수 확인):
 
-- PoC-06_통합Element스키마설계_result.md: Element 타입, position/size 구조, Memo anchorPoint, Block/Group
-- PoC-08_아키텍처전략검증_result.md: Repository 구조, Monorepo, NPM Private Registry, 패키지 설계
-- PoC-10_인쇄및Export품질검증_result.md: @media print, mm/pt 단위, CSS 인쇄 가이드
-- PoC-11_의료데이터보안검증_result.md: sanitizeHtml, onAuditEvent, XSS 방지
+- PoC-06\_통합Element스키마설계\_result.md: Element 타입, position/size 구조, Memo anchorPoint, Block/Group
+- PoC-08\_아키텍처전략검증\_result.md: Repository 구조, Monorepo, NPM Private Registry, 패키지 설계
+- PoC-10\_인쇄및Export품질검증\_result.md: @media print, mm/pt 단위, CSS 인쇄 가이드
+- PoC-11\_의료데이터보안검증\_result.md: sanitizeHtml, onAuditEvent, XSS 방지
 
 **ezorthoweb 코드 분석 완료 현황**:
 
