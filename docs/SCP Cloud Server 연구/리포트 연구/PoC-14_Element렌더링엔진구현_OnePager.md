@@ -1223,6 +1223,75 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 - **Vuex → Redux**: 상태 관리 시스템 변경
 - **이벤트 처리**: Vue 이벤트 시스템 → React 이벤트 시스템
 
+### scp-cloud-demo 정적 호스팅 및 CI (Phase 1)
+
+`scp-report-poc/apps/scp-cloud-demo` Vite 빌드 산출물(`dist/`)을 AWS S3에 올려 정적 호스팅한다. AWS 계정 **767397951498 (SCPSharedDev)**.
+
+**자격 증명**
+
+- Access Key / Secret Key는 **Azure DevOps Variable Group 또는 Pipeline variables**에만 둔다. Git·본 문서에 평문 기입 금지.
+- 문서 예시: Access Key ID `AKIA********` 수준만 기재. Secret은 기재하지 않음. 외부 노출 시 IAM에서 즉시 비활성화·교체.
+
+**S3**
+
+- S3 버킷은 **사이트 FQDN과 동일한 이름**으로 생성해 관리한다: **`scp-report-demo.test.scp.esclouddev.com`** (전역 유일·S3 명명 규칙 준수).
+
+**버킷·권한·DNS: AWS 콘솔 기준(초기 1회)**
+
+버킷 생성 이후 **퍼블릭 공개, 웹 호스팅, 버킷 정책, Route 53, CI용 IAM**은 **AWS Management Console**에서 설정한다. 리전은 **ap-northeast-2(서울)** 로 통일하고, 파이프라인 `AWS_REGION`과 맞춘다.
+
+**S3 콘솔**
+
+1. **서비스** → **S3** → **버킷 만들기**. AWS 리전(오른쪽 상단)이 **서울**인지 확인. 버킷 이름 `scp-report-demo.test.scp.esclouddev.com`, 나머지는 팀 규칙에 맞게 두고 생성한다.
+2. 만든 버킷 선택 → **권한** 탭 → **퍼블릭 액세스 차단** → **편집**. 데모용으로 객체를 URL로 열 수 있게 하려면, 콘솔에 표시되는 네 가지 항목 중 **버킷 정책으로 부여되는 퍼블릭 액세스** 등 필요한 것만 해제하고 저장한다(경고 문구 확인). **SCPSharedDev 데모 전용**이며 운영 버킷과 동일하게 두지 않는다.
+3. 같은 **권한** 탭 → **버킷 정책** → **편집**. 아래 JSON **전체**를 복사해 붙여넣고 **변경 사항 저장**한다(다른 버킷 이름을 쓰면 `Resource`의 ARN만 맞게 고친다).
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObjectForStaticDemo",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::scp-report-demo.test.scp.esclouddev.com/*"
+    }
+  ]
+}
+```
+4. **속성** 탭 → 맨 아래 **정적 웹 사이트 호스팅** → **편집** → **활성화**. 인덱스 문서·오류 문서 모두 `index.html`. 저장 후 표시되는 **버킷 웹 사이트 엔드포인트**(예: `http://scp-report-demo.test.scp.esclouddev.com.s3-website.ap-northeast-2.amazonaws.com`)로 동작을 확인한다. 객체를 아직 안 올렸으면 `NoSuchKey` / `index.html` **404**가 나온다. 설정 오류가 아니라 **빈 버킷**이므로, 아래 배포(sync)로 `dist`를 버킷 **루트**에 올리면 된다.
+
+**Route 53 콘솔**
+
+5. **서비스** → **Route 53** → **호스팅 영역** → `test.scp.esclouddev.com` → **레코드 생성**(또는 기존 레코드 편집). 레코드 이름 `scp-report-demo`, FQDN이 `scp-report-demo.test.scp.esclouddev.com` 이 되게 한다. 레코드 유형은 **A**이고 **별칭(Alias)** 을 켠 뒤, 트래픽 대상으로 **S3 웹 사이트 엔드포인트**·리전 **ap-northeast-2**·위 버킷을 고른다. (IPv6이 필요하면 **AAAA** 별칭을 추가한다.) 이 경로는 **HTTP**이다.
+
+**자격 증명(IAM)**
+
+6. **새 IAM 사용자를 꼭 만들 필요는 없다.** 이미 Variable Group 등에 넣은 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`에 해당 버킷에 대한 `s3:ListBucket`, `s3:PutObject`, `s3:DeleteObject`(파이프라인 `sync --delete` 시)가 포함되어 있으면 그대로 쓰면 된다. 관리자 권한 등 넓은 권한으로도 동작하지만, **가능하면 이 버킷에만 최소 권한**을 주는 편이 안전하다. 키를 새로 띄울 때만 IAM 콘솔에서 **사용자** → **보안 자격 증명**에서 액세스 키를 발급하고, 위 S3 권한만 붙인 정책을 연결한다.
+
+**참고(CLI)**
+
+버킷만 CLI로 만들고 나머지는 전부 콘솔에서 해도 된다.
+
+```bash
+aws s3api create-bucket \
+  --bucket scp-report-demo.test.scp.esclouddev.com \
+  --region ap-northeast-2 \
+  --create-bucket-configuration LocationConstraint=ap-northeast-2
+```
+
+- 배포: `aws s3 sync apps/scp-cloud-demo/dist s3://scp-report-demo.test.scp.esclouddev.com/ --delete` (저장소 루트 `azure-pipelines.yml` 참고).
+
+**DNS(요약)**
+
+- 호스팅 영역 `test.scp.esclouddev.com`, 레코드 `scp-report-demo` → FQDN **`scp-report-demo.test.scp.esclouddev.com`**. 상세는 위 **Route 53 콘솔** 단계. HTTPS가 필요하면 이후 **CloudFront + ACM**으로 전환한다.
+
+**Azure DevOps**
+
+- 파이프라인: `scp-report-poc/azure-pipelines.yml`.
+- 변수(Secret 권장: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`): `AWS_REGION`은 **ap-northeast-2**, `S3_BUCKET`은 **`scp-report-demo.test.scp.esclouddev.com`**(YAML 기본값과 동일). 상세는 YAML 주석.
+
 **16. 로드맵 (체크리스트)**:
 
 ### Phase 1: 핵심 인프라 + 기본 Element **(P1)** - 2~3주
@@ -1269,7 +1338,9 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
   - [x] Delete 키 삭제
   - [x] onAuditEvent 콜백 연동 (선택적)
 
-**Phase 1 예상 시간**: 62h (약 2주)
+- [x] **Task 1.6**: scp-cloud-demo S3 호스팅 및 CI 배포 (SCPSharedDev)
+
+**Phase 1 예상 시간**: 62h (약 2주) — Task 1.6은 인프라·DNS 설정 포함 시 별도 가산
 
 ### Phase 2: Content Element + 편집 **(P2)** - 2주
 
