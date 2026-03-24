@@ -827,6 +827,7 @@ const MemoizedElement = React.memo(ElementComponent, (prev, next) => {
 **Phase 2: Content Element**:
 
 - ImageBox (Single 타입)
+- **속성 패널**(오른쪽 Inspector, 공통·타입별 필드)
 - TextBox (기본 텍스트)
 - HTML 편집기 통합
 
@@ -842,6 +843,115 @@ const MemoizedElement = React.memo(ElementComponent, (prev, next) => {
 - ToothBox, TreatmentCategory
 - Form Controls (RadioButton, CheckBox 등)
 - EzOrtho 분석 차트(Canvas 기반)는 현재 구현 범위 외, 추후 확장 대상
+
+**PoC-06 연동 보조 스펙 (로드맵 §16과 분리)**:
+
+구현 스펙·데모 샘플 정책만 정리한다. §16 Phase 2 Task 2.1·2.2 수행 시 이 절을 참조한다.
+
+### 속성 패널 (Element Inspector) — 설계·스펙
+
+**목적**: 다이얼로그 없이 **선택한 Element의 PoC-06 JSON 속성**을 편집한다. Google Slides·Figma류 **오른쪽 도킹 패널**, **표시/숨김 토글**을 기본 UX로 한다.
+
+**데이터 흐름**: `ReportRenderer`의 `selectedIds`·`onDocumentChange`를 호스트(예: `scp-cloud-demo` `App`)에서 유지. 패널은 `document`, `selectedId`(단일 선택 1차 범위), `onPatchElement` 콜백으로 **불변 갱신**(`pages[].elements`에서 id 매칭 후 얕은 복사로 `position`/`size`/`style`/`extensions`만 교체).
+
+**공통 속성 중복 제거(구현 연구)**:
+
+1. **필드 디스크립터**: `{ path, label, kind, options? }` 형태 배열로 정의. `path`는 `position.x`, `style.borderColor`, `extensions.lineEndpoints.x1` 같이 점 경로 또는 커스텀 getter/setter. `kind`는 `number`, `text`, `color`, `select`, `checkbox` 등.
+2. **공통 섹션 한 컴포넌트**: `CommonElementFields`가 `CommonElementBase` + `ElementStyle`에 해당하는 디스크립터만 렌더. 타입별로 **같은 배열을 필터**하거나 **섹션 등록표**로 노출 필드를 제한(예: `line`은 채움 관련 `style.backgroundColor` 숨김).
+3. **타입별 오버레이**: `inspectorSections[type] = [...추가 디스크립터]`로 `rectangle`/`ellipse`/`line`/`imageBox` 전용 필드만 합성. 신규 Element 추가 시 공통 재사용 + 오버레이만 추가.
+4. **(선택) 패키지 분리**: `@ewoosoft/scp-report-components`에 `ElementInspector`를 두고 데모는 레이아웃·토글만 두어 **호스트 앱 재사용**을 허용. 초기에는 데모 전용으로 시작해도 됨.
+5. **단위**: 좌표·크기는 **JSON과 동일하게 mm** 입력; 내부 렌더는 기존 `mm2px` 유지.
+
+**다중 선택(범위 외 명시)**: 1차는 **단일 선택**만 패널 편집. 다중 선택 시 “N개 선택됨”만 표시하거나 비활성 — 로드맵 Task 2.5(상태 관리) 이후 확장 가능.
+
+---
+
+#### A. 공통 (모든 Element, `CommonElementBase` + `style` 일부)
+
+| 순번 | JSON 경로 | 스펙 의미 | UI 제안 |
+|------|-----------|-----------|---------|
+| A1 | `id` | Element 고유 id | 읽기 전용 텍스트(수정 시 참조 깨짐 방지 정책 별도) |
+| A2 | `type` | Element 종류 | 읽기 전용 |
+| A3 | `position.unit` | 좌표 단위 | 고정 `mm`, 표시만 또는 숨김 |
+| A4 | `position.x` | 왼쪽 기준 x (mm) | 숫자 입력 |
+| A5 | `position.y` | 상단 기준 y (mm) | 숫자 입력 |
+| A6 | `size.unit` | 크기 단위 | 고정 `mm` |
+| A7 | `size.width` | 너비 (mm) | 숫자 입력 |
+| A8 | `size.height` | 높이 (mm) | 숫자 입력 |
+| A9 | `locked` | 편집 잠금 | 체크박스 |
+| A10 | `visible` | 표시 여부 | 체크박스 |
+| A11 | `zIndex` | 쌓임 순서 | 정수 입력(선택) |
+
+`style`(`ElementStyle`)은 타입별로 아래 B와 조합해 노출한다. 렌더러는 `elementStyleToLineAttr` / `elementStyleToFillAttr` 등으로 매핑하므로 **패널에서도 동일 키**를 쓴다.
+
+---
+
+#### B. 선·채움 (`ElementStyle` ↔ LineAttr / FillAttr 매핑)
+
+| 순번 | JSON (`style.*`) | 렌더 매핑 | UI 제안 |
+|------|------------------|-----------|---------|
+| B1 | `borderColor` | `lineAttr.color` | color |
+| B2 | `borderWidth` | `lineAttr.thickness` | 숫자 (≥0) |
+| B3 | `borderStyle` | `lineAttr.style` | 선택: none, solid, dashed, dotted |
+| B4 | `backgroundColor` | `fillAttr.color` | color |
+| B5 | `backgroundColorOpacity` | `fillAttr.opacity` | 숫자 0~1 (또는 0~100% 표시 후 변환) |
+
+타입별로 B4·B5를 숨길지는 아래 C~F에 따름.
+
+---
+
+#### C. `rectangle` (현재 구현)
+
+| 순번 | 출처 | 비고 |
+|------|------|------|
+| C1 | A1~A11 전부 | 공통 |
+| C2 | B1~B5 전부 | 테두리 + 면 채움 |
+
+(텍스트 전용 `style.fontSize` 등은 현재 `RectangleElement`에서 미사용 — 패널에 **미노출** 또는 “향후 TextBox” 접기 섹션.)
+
+---
+
+#### D. `ellipse` (현재 구현)
+
+| 순번 | 출처 | 비고 |
+|------|------|------|
+| D1 | A1~A11 | 공통 |
+| D2 | B1~B5 | rectangle과 동일 |
+
+---
+
+#### E. `line` (현재 구현)
+
+| 순번 | JSON 경로 | 스펙 의미 | UI 제안 |
+|------|-----------|-----------|---------|
+| E1 | A1~A11 | 공통(바운딩 박스는 DragResize와 동기) | 동일 |
+| E2 | B1~B3 | 선 색·굵기·점선 | 채움(B4·B5) **미노출** |
+| E3 | `extensions.lineEndpoints.x1` | 끝점1 x (mm) | 숫자 |
+| E4 | `extensions.lineEndpoints.y1` | 끝점1 y (mm) | 숫자 |
+| E5 | `extensions.lineEndpoints.x2` | 끝점2 x (mm) | 숫자 |
+| E6 | `extensions.lineEndpoints.y2` | 끝점2 y (mm) | 숫자 |
+
+`extensions` 없을 때 생성 규칙은 기존 `ElementRegistry`와 동일하게 패치 시 보장.
+
+---
+
+#### F. `imageBox` — Single (현재 구현)
+
+| 순번 | JSON 경로 | 스펙 의미 | UI 제안 |
+|------|-----------|-----------|---------|
+| F1 | A1~A11 | 공통 | 동일 |
+| F2 | B1~B3 | 박스 테두리(`ImageBoxElement` 외곽 rect) | color/굵기/스타일 |
+| F3 | B4·B5 | 면 채움 | 현재 내부 foreignObject 위주라 **선택**: 숨기거나 향후 배경용 |
+| F4 | `extensions.imageBoxType` | single/multi/reference | 1차 **single 고정** 또는 읽기 전용 |
+| F5 | `extensions.imageRef` | `Document.imageRefs` 키 | `Object.keys(document.imageRefs)` 셀렉트 + 직접 입력(키 문자열) |
+| F6 | `extensions.fitMode` | realSize / boxFit / modified | 셀렉트 |
+
+`imageRefs` 본문 편집은 패널에서 **별도 “문서 이미지 맵” 접기**로 URL 편집(고급)하거나 2차 Task로 분리.
+
+### ImageBox(Single) — 데모 샘플·이미지 소스
+
+- **데모 샘플**: `scp-cloud-demo/public/sample.jpg`, `sample.png`, `sample.dcm`. `sample-report.json`의 `imageRefs`: `sampleJpg`→`/sample.jpg`, `samplePng`→`/sample.png`, `sampleDcm`→`/sample.dcm`, 각각 대응 `type: imageBox` + `extensions.imageBoxType: single` + `imageRef` + `fitMode`.
+- **이미지 소스(결정)**: 문서에 **바이트 저장 위치는 규정하지 않음**. 렌더러는 `imageRefs`와 `extensions.imageRef`로 최종 URL을 만든다. **PoC·데모**는 위 public 정적 파일·동일 출처 URL. **운영**: 호스트가 동일 필드에 S3·API URL 등을 채움.
 
 **14. 테스트 계획**:
 
@@ -1339,41 +1449,54 @@ aws s3api create-bucket \
   - [x] imageRefs, `extensions.imageRef` 매핑 (`Document.imageRefs`, PoC-06 `ImageBoxElementExtensions`)
   - [x] 래스터: `<img>` + foreignObject. DICOM(`.dcm`): `dicom-parser`로 메타(모달리티·행/열 등) 표시, 픽셀 표시는 **Task 3.5**에서 구현(현재는 안내 문구 + 다운로드).
   - [x] DragResizeDiv 래핑 (`ResizeHandlers` / `ImageBoxElement`)
-  - **데모 샘플**: `scp-cloud-demo/public/sample.jpg`, `sample.png`, `sample.dcm`. `sample-report.json`의 `imageRefs`: `sampleJpg`→`/sample.jpg`, `samplePng`→`/sample.png`, `sampleDcm`→`/sample.dcm`, 각각 대응 `type: imageBox` + `extensions.imageBoxType: single` + `imageRef` + `fitMode`.
-  - **이미지 소스(결정)**: 문서에 **바이트 저장 위치는 규정하지 않음**. 렌더러는 `imageRefs`와 `extensions.imageRef`로 최종 URL을 만든다. **PoC·데모**는 위 public 정적 파일·동일 출처 URL. **운영**: 호스트가 동일 필드에 S3·API URL 등을 채움.
+  - 데모 샘플·`imageRefs`·이미지 소스 정책: **PoC-06 연동 보조 스펙** 절의 **ImageBox(Single) — 데모 샘플·이미지 소스**.
 
-- [ ] **Task 2.2**: TextBox + Label (8h)
+- [ ] **Task 2.2**: 속성 패널 (Element Inspector) (18h)
+  - **의존**: Task 1.5
+  - **참조**: **PoC-06 연동 보조 스펙** 절 — **속성 패널 (Element Inspector) — 설계·스펙**(A~F 표).
+  - [ ] 데모(또는 components) **오른쪽 도킹 패널** + show/hide 토글; 단일 선택 시에만 편집 활성.
+  - [ ] `onDocumentChange`와 연동하는 **불변 `patchElement`**(pageIndex·elementId·deep partial).
+  - [ ] **공통 필드 컴포넌트**: A1~A11을 디스크립터 또는 공통 폼 한 벌로 구현(중복 JSX 금지).
+  - [ ] **선·채움 공통**: B1~B5를 한 서브섹션으로 구현; 타입별 표시 필터(`line`은 B4·B5 숨김 등).
+  - [ ] **rectangle**: C1·C2 — A 전부 + B 전부 연결 검증.
+  - [ ] **ellipse**: D1·D2 — rectangle과 동일 조합 재사용.
+  - [ ] **line**: E1~E6 — 공통 + B1~B3 + `extensions.lineEndpoints` 네 좌표(mm); 패치 후 렌더·핸들 동기.
+  - [ ] **imageBox**: F1~F6 — 공통 + B1~B3 + `imageRef` 셀렉트(`document.imageRefs` 키) + `fitMode` 셀렉트; F3(B4·B5) 정책은 스펙 표와 동일.
+  - [ ] 단위 테스트: 패치 유틸·(선택) 디스크립터 순회 렌더 스냅샷.
+
+- [ ] **Task 2.3**: TextBox + Label (8h)
   - **의존**: Task 1.5
   - [ ] LabelElement (평문 텍스트)
   - [ ] TextBoxElement 기본 구조 (content, editable)
   - [ ] style.fontSize(pt), fontFamily 적용
   - [ ] 읽기 전용 렌더링 (편집 모드 전)
+  - [ ] (후속) Task 2.2 패널에 TextBox/Label 전용 `ElementStyle` 텍스트 필드 항목 추가 — 본 Task에서는 요소 구현 우선.
 
-- [ ] **Task 2.3**: Lexical 연동 (12h)
-  - **의존**: Task 2.2
+- [ ] **Task 2.4**: Lexical 연동 (12h)
+  - **의존**: Task 2.3
   - [ ] Lexical 에디터 컴포넌트 래퍼
   - [ ] HTML ↔ Lexical 직렬화
   - [ ] foreignObject 내 편집기 배치
   - [ ] sanitizeHtml 적용 (PoC-11, DOMPurify 등)
 
-- [ ] **Task 2.4**: 상태 관리 (10h)
-  - **의존**: Task 2.3
+- [ ] **Task 2.5**: 상태 관리 (10h)
+  - **의존**: Task 2.4
   - [ ] ElementState (elements, selectedElements, clipboard, history)
   - [ ] addElement, updateElement, deleteElement, selectElements
   - [ ] Redux Toolkit slice 또는 Context
 
-- [ ] **Task 2.5**: 복사/붙여넣기, Undo/Redo (8h)
-  - **의존**: Task 2.4
+- [ ] **Task 2.6**: 복사/붙여넣기, Undo/Redo (8h)
+  - **의존**: Task 2.5
   - [ ] Ctrl+C, Ctrl+V
   - [ ] Ctrl+Z, Ctrl+Y (history.past/future)
   - [ ] Arrow 키 이동 (선택 시)
 
-**Phase 2 예상 시간**: 48h (약 1.5주)
+**Phase 2 예상 시간**: 약 66h (2.1의 10h 포함 시 Phase 2 누적) — 속성 패널(Task 2.2) 18h 반영, Task 번호 2.3~2.6으로 이동
 
 ### Phase 3: 고급 Element **(P3)** - 2주
 
 - [ ] **Task 3.1**: Arrow, Memo (12h)
-  - **의존**: Task 2.5
+  - **의존**: Task 2.6
   - [ ] ArrowElement (Line + 화살표 머리, points)
   - [ ] MemoElement (anchorPoint, bubblePosition, content)
   - [ ] Memo 풍선+포인터 렌더링 (PoC-06 스키마)
@@ -1385,7 +1508,7 @@ aws s3api create-bucket \
   - [ ] Reference ImageBox (linkedBoxId 참조)
 
 - [ ] **Task 3.3**: FreeDraw (6h)
-  - **의존**: Task 2.5
+  - **의존**: Task 2.6
   - [ ] FreeDrawElement (points → SVG path)
   - [ ] Path 데이터 직렬화
 
@@ -1447,7 +1570,7 @@ aws s3api create-bucket \
 
 **Phase 4 예상 시간**: 50h (약 1.5주)
 
-**총 예상 시간**: 210h (약 7주) — Task 3.5 반영
+**총 예상 시간**: 228h (약 7~8주) — Task 3.5·속성 패널(Task 2.2) 반영
 
 **산출물**:
 
@@ -1457,10 +1580,11 @@ aws s3api create-bucket \
 4. **Handler 시스템**: 완전한 Drag & Resize 핸들러 (8개 + Line용 2개)
 5. **HTML 편집기 통합**: 의료용 텍스트 편집 시스템
 6. **상태 관리 시스템**: Element 편집 상태 관리
-7. **DragResizeDiv 포팅 가이드**: Vue → TypeScript React 포팅 상세 방법론 (핵심 자산)
-8. **성능 벤치마크**: Element 렌더링 성능 분석
-9. **호환성 검증 리포트**: 기존 파일 호환성 확인
-10. **DICOM 뷰 통합**(Task 3.5 완료 시): ImageBox 내 픽셀 렌더링·지원 전송 문법·번들 전략 문서
+7. **속성 패널**(Task 2.2): 공통·타입별 필드 디스크립터 기반 Inspector
+8. **DragResizeDiv 포팅 가이드**: Vue → TypeScript React 포팅 상세 방법론 (핵심 자산)
+9. **성능 벤치마크**: Element 렌더링 성능 분석
+10. **호환성 검증 리포트**: 기존 파일 호환성 확인
+11. **DICOM 뷰 통합**(Task 3.5 완료 시): ImageBox 내 픽셀 렌더링·지원 전송 문법·번들 전략 문서
 
 **다음 단계**: 구현된 Element 렌더링 엔진을 PoC-08(아키텍처 전략)에 통합하여 전체 시스템 검증
 
@@ -1530,7 +1654,7 @@ scp-report-poc/
 
 **PoC-14 구현 배치**:
 
-- core: engine, elements, utils, types (Task 1.1~1.5, 2.1~2.2, 3.1~3.3)
+- core: types, utils, attrs (Task 1.2·PoC-06 등); components: engine, Elements, ReportRenderer, **속성 패널(Task 2.2)**, ImageBox(Task 2.1) 및 Task 2.3~2.6·Phase 3 범위
 - components: ReportEditor, ReportViewer, Elements, Toolbar (Task 1.4~4.4)
 - migration: PoC-07에서 구현, PoC-14에서는 빈 껍데기 또는 placeholder
 
