@@ -433,7 +433,7 @@ const LINE_HANDLES: HandlePosition[] = ['tl', 'br'] // Line용 2개
 **Content Elements** (DragResizeDiv 활용):
 
 - **ImageBox**: DragResizeDiv로 감싼 이미지 표시 + 크기 조정
-  - Single ImageBox (기본, DragResizeDiv 8개 핸들러 활용)
+  - Single ImageBox: **구현됨** (`ImageBoxElement`, `Document.imageRefs` + `extensions.imageRef`/`fitMode`). 래스터 JPG·PNG 등은 `<img>`. DICOM은 현재 메타 패널 + 다운로드만; **리포트 내 픽셀 표시는 로드맵 Task 3.5**.
   - Multi ImageBox: 1~20 Row/Column 레이아웃 (추가 구현 필요, DragResizeDiv 활용)
   - Reference ImageBox: 다른 ImageBox 참조 (추가 구현 필요, DragResizeDiv 활용)
 - **TextBox**: DragResizeDiv로 감싼 HTML 텍스트 편집
@@ -835,6 +835,7 @@ const MemoizedElement = React.memo(ElementComponent, (prev, next) => {
 - Arrow, Memo 구현
 - Multi ImageBox 구현
 - FreeDraw 구현
+- **ImageBox DICOM 픽셀 표시**(Task 3.5): 리포트 박스 내 영상 디코드·뷰포트(Cornerstone 계열 등)
 
 **Phase 4: EzOrtho 특화** (일반 리포트용):
 
@@ -1227,6 +1228,8 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 
 `scp-report-poc/apps/scp-cloud-demo` Vite 빌드 산출물(`dist/`)을 AWS S3에 올려 정적 호스팅한다. AWS 계정 **767397951498 (SCPSharedDev)**.
 
+- **데모 사이트 URL**: `http://scp-report-demo.test.scp.esclouddev.com/` — 배포·DNS 적용 후 브라우저에서 접속하는 주소다. (HTTP, Route 53 → S3 웹 사이트 호스팅.)
+
 **자격 증명**
 
 - Access Key / Secret Key는 **Azure DevOps Variable Group 또는 Pipeline variables**에만 둔다. Git·본 문서에 평문 기입 금지.
@@ -1246,20 +1249,6 @@ const DragResizeDiv: React.FC<DragResizeDivProps> = ({
 2. 만든 버킷 선택 → **권한** 탭 → **퍼블릭 액세스 차단** → **편집**. 데모용으로 객체를 URL로 열 수 있게 하려면, 콘솔에 표시되는 네 가지 항목 중 **버킷 정책으로 부여되는 퍼블릭 액세스** 등 필요한 것만 해제하고 저장한다(경고 문구 확인). **SCPSharedDev 데모 전용**이며 운영 버킷과 동일하게 두지 않는다.
 3. 같은 **권한** 탭 → **버킷 정책** → **편집**. 아래 JSON **전체**를 복사해 붙여넣고 **변경 사항 저장**한다(다른 버킷 이름을 쓰면 `Resource`의 ARN만 맞게 고친다).
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublicReadGetObjectForStaticDemo",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::scp-report-demo.test.scp.esclouddev.com/*"
-    }
-  ]
-}
-```
 4. **속성** 탭 → 맨 아래 **정적 웹 사이트 호스팅** → **편집** → **활성화**. 인덱스 문서·오류 문서 모두 `index.html`. 저장 후 표시되는 **버킷 웹 사이트 엔드포인트**(예: `http://scp-report-demo.test.scp.esclouddev.com.s3-website.ap-northeast-2.amazonaws.com`)로 동작을 확인한다. 객체를 아직 안 올렸으면 `NoSuchKey` / `index.html` **404**가 나온다. 설정 오류가 아니라 **빈 버킷**이므로, 아래 배포(sync)로 `dist`를 버킷 **루트**에 올리면 된다.
 
 **Route 53 콘솔**
@@ -1285,7 +1274,7 @@ aws s3api create-bucket \
 
 **DNS(요약)**
 
-- 호스팅 영역 `test.scp.esclouddev.com`, 레코드 `scp-report-demo` → FQDN **`scp-report-demo.test.scp.esclouddev.com`**. 상세는 위 **Route 53 콘솔** 단계. HTTPS가 필요하면 이후 **CloudFront + ACM**으로 전환한다.
+- 호스팅 영역 `test.scp.esclouddev.com`, 레코드 `scp-report-demo` → FQDN **`scp-report-demo.test.scp.esclouddev.com`**. 사용자 접속 URL은 **`http://scp-report-demo.test.scp.esclouddev.com/`** (위 데모 사이트 URL과 동일). 상세는 **Route 53 콘솔** 단계. HTTPS가 필요하면 이후 **CloudFront + ACM**으로 전환한다.
 
 **Azure DevOps**
 
@@ -1344,12 +1333,14 @@ aws s3api create-bucket \
 
 ### Phase 2: Content Element + 편집 **(P2)** - 2주
 
-- [ ] **Task 2.1**: ImageBox (Single) (10h)
+- [x] **Task 2.1**: ImageBox (Single) (10h)
   - **의존**: Task 1.5
-  - [ ] ImageBoxElement (fitMode: realSize/boxFit/modified)
-  - [ ] imageRefs, source 매핑
-  - [ ] 이미지 로딩 및 표시 (img 또는 cornerstone 연동은 호스트)
-  - [ ] DragResizeDiv 래핑
+  - [x] ImageBoxElement (fitMode: realSize/boxFit/modified)
+  - [x] imageRefs, `extensions.imageRef` 매핑 (`Document.imageRefs`, PoC-06 `ImageBoxElementExtensions`)
+  - [x] 래스터: `<img>` + foreignObject. DICOM(`.dcm`): `dicom-parser`로 메타(모달리티·행/열 등) 표시, 픽셀 표시는 **Task 3.5**에서 구현(현재는 안내 문구 + 다운로드).
+  - [x] DragResizeDiv 래핑 (`ResizeHandlers` / `ImageBoxElement`)
+  - **데모 샘플**: `scp-cloud-demo/public/sample.jpg`, `sample.png`, `sample.dcm`. `sample-report.json`의 `imageRefs`: `sampleJpg`→`/sample.jpg`, `samplePng`→`/sample.png`, `sampleDcm`→`/sample.dcm`, 각각 대응 `type: imageBox` + `extensions.imageBoxType: single` + `imageRef` + `fitMode`.
+  - **이미지 소스(결정)**: 문서에 **바이트 저장 위치는 규정하지 않음**. 렌더러는 `imageRefs`와 `extensions.imageRef`로 최종 URL을 만든다. **PoC·데모**는 위 public 정적 파일·동일 출처 URL. **운영**: 호스트가 동일 필드에 S3·API URL 등을 채움.
 
 - [ ] **Task 2.2**: TextBox + Label (8h)
   - **의존**: Task 1.5
@@ -1405,7 +1396,28 @@ aws s3api create-bucket \
   - [ ] mm, pt 단위 출력 검증
   - [ ] window.print() 연동
 
-**Phase 3 예상 시간**: 36h (약 1주)
+- [ ] **Task 3.5**: ImageBox DICOM 픽셀 표시 (리포트 내 뷰) (14h)
+  - **의존**: Task 2.1
+  - **목표**: `.dcm`을 리포트 ImageBox 박스 안에서 **실제 영상 픽셀**으로 표시(메타 전용 패널에서 전환 또는 병행). PoC-05·ezortho의 Cornerstone 계열 연동 방향과 맞출 것.
+  - [ ] **디코딩 스택 선정**: `@cornerstonejs/core`(또는 후속 권장 스택) + DICOM Part 10 바이트 로드(기존 `imageRefs` URL·ArrayBuffer). 전송 문법(JPEG, JPEG-LS, RLE, 미압축 등) 지원 범위를 문서화.
+  - [ ] **ImageBox 통합**: `ImageBoxElement`의 DICOM 분기에서 `foreignObject` 내 **Canvas/WebGL 뷰포트** 또는 Cornerstone 래퍼 컴포넌트로 렌더. `fitMode`(realSize/boxFit/modified)와 박스 리사이즈 시 뷰포트 크기 동기화.
+  - [ ] **윈도/레벨·VOI**: 기본값(자동 또는 DICOM 태그) 및 추후 슬라이더는 선택; 1차는 읽기 가능한 기본 창이면 됨.
+  - [ ] **멀티프레임**: 1차는 단일 프레임(또는 첫 프레임); 필요 시 프레임 인덱스 `extensions` 확장 검토.
+  - [ ] **번들·의존성**: Cornerstone 계열은 용량이 크므로 **peerDependency** 또는 **동적 import**(호스트 앱에서 프리로드) 여부 결정. `@ewoosoft/scp-report-components` 기본 번들에 항상 넣지 않을지 검토.
+  - [ ] **실패 시**: 디코딩 실패·미지원 전송 문법 시 현행과 같이 메타 + 다운로드 폴백.
+  - [ ] **데모**: `sample.dcm`으로 scp-cloud-demo에서 픽셀 확인. 인쇄(Task 3.4)와 겹치면 캔버스 스냅샷 또는 인쇄 시 경고 문구 정책 정리.
+
+**DICOM 픽셀 표시 — 구현 시 정리할 기술 요약**(Task 3.5 산출 기준):
+
+| 항목 | 내용 |
+|------|------|
+| 입력 | `Document.imageRefs`의 `.dcm` URL(동일 출처·CORS) 또는 호스트가 넘기는 `ArrayBuffer` 콜백(선택 설계) |
+| 디코드 | DICOM 파서 + 이미지 로더 코덱; 샘플·운영에서 쓰는 전송 문법 목록을 명시 |
+| 출력 | 2D 그레이스케일/컬러를 박스 크기에 맞게 표시; `DragResizeDiv`와 충돌 없게 포인터 이벤트 처리 |
+| 성능 | 대용량 시 Web Worker·캐시 키(instance URL); 페이지 전환 시 리소스 dispose |
+| 보안 | 리포트 JSON만으로는 민감정보 최소화; 픽셀 데이터는 기존 URL 접근 정책 따름 |
+
+**Phase 3 예상 시간**: 50h (약 1.5주) — Task 3.5 포함
 
 ### Phase 4: EzOrtho 특화 + 통합 검증 **(P4)** - 2주
 
@@ -1435,7 +1447,7 @@ aws s3api create-bucket \
 
 **Phase 4 예상 시간**: 50h (약 1.5주)
 
-**총 예상 시간**: 196h (약 7주)
+**총 예상 시간**: 210h (약 7주) — Task 3.5 반영
 
 **산출물**:
 
@@ -1448,6 +1460,7 @@ aws s3api create-bucket \
 7. **DragResizeDiv 포팅 가이드**: Vue → TypeScript React 포팅 상세 방법론 (핵심 자산)
 8. **성능 벤치마크**: Element 렌더링 성능 분석
 9. **호환성 검증 리포트**: 기존 파일 호환성 확인
+10. **DICOM 뷰 통합**(Task 3.5 완료 시): ImageBox 내 픽셀 렌더링·지원 전송 문법·번들 전략 문서
 
 **다음 단계**: 구현된 Element 렌더링 엔진을 PoC-08(아키텍처 전략)에 통합하여 전체 시스템 검증
 
