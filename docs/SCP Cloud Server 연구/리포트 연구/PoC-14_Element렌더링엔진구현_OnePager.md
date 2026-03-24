@@ -1451,18 +1451,18 @@ aws s3api create-bucket \
   - [x] DragResizeDiv 래핑 (`ResizeHandlers` / `ImageBoxElement`)
   - 데모 샘플·`imageRefs`·이미지 소스 정책: **PoC-06 연동 보조 스펙** 절의 **ImageBox(Single) — 데모 샘플·이미지 소스**.
 
-- [ ] **Task 2.2**: 속성 패널 (Element Inspector) (18h)
+- [x] **Task 2.2**: 속성 패널 (Element Inspector) (18h)
   - **의존**: Task 1.5
   - **참조**: **PoC-06 연동 보조 스펙** 절 — **속성 패널 (Element Inspector) — 설계·스펙**(A~F 표).
-  - [ ] 데모(또는 components) **오른쪽 도킹 패널** + show/hide 토글; 단일 선택 시에만 편집 활성.
-  - [ ] `onDocumentChange`와 연동하는 **불변 `patchElement`**(pageIndex·elementId·deep partial).
-  - [ ] **공통 필드 컴포넌트**: A1~A11을 디스크립터 또는 공통 폼 한 벌로 구현(중복 JSX 금지).
-  - [ ] **선·채움 공통**: B1~B5를 한 서브섹션으로 구현; 타입별 표시 필터(`line`은 B4·B5 숨김 등).
-  - [ ] **rectangle**: C1·C2 — A 전부 + B 전부 연결 검증.
-  - [ ] **ellipse**: D1·D2 — rectangle과 동일 조합 재사용.
-  - [ ] **line**: E1~E6 — 공통 + B1~B3 + `extensions.lineEndpoints` 네 좌표(mm); 패치 후 렌더·핸들 동기.
-  - [ ] **imageBox**: F1~F6 — 공통 + B1~B3 + `imageRef` 셀렉트(`document.imageRefs` 키) + `fitMode` 셀렉트; F3(B4·B5) 정책은 스펙 표와 동일.
-  - [ ] 단위 테스트: 패치 유틸·(선택) 디스크립터 순회 렌더 스냅샷.
+  - [x] 데모(또는 components) **오른쪽 도킹 패널** + show/hide 토글; 단일 선택 시에만 편집 활성.
+  - [x] `onDocumentChange`와 연동하는 **불변 `patchElement`**(pageIndex·elementId·deep partial).
+  - [x] **공통 필드 컴포넌트**: A1~A11을 디스크립터 또는 공통 폼 한 벌로 구현(중복 JSX 금지).
+  - [x] **선·채움 공통**: B1~B5를 한 서브섹션으로 구현; 타입별 표시 필터(`line`은 B4·B5 숨김 등).
+  - [x] **rectangle**: C1·C2 — A 전부 + B 전부 연결 검증.
+  - [x] **ellipse**: D1·D2 — rectangle과 동일 조합 재사용.
+  - [x] **line**: E1~E6 — 공통 + B1~B3 + `extensions.lineEndpoints` 네 좌표(mm); 패치 후 렌더·핸들 동기.
+  - [x] **imageBox**: F1~F6 — 공통 + B1~B3 + `imageRef` 셀렉트(`document.imageRefs` 키) + `fitMode` 셀렉트; F3(B4·B5) 정책은 스펙 표와 동일.
+  - [x] 단위 테스트: 패치 유틸·(선택) 디스크립터 순회 렌더 스냅샷.
 
 - [ ] **Task 2.3**: TextBox + Label (8h)
   - **의존**: Task 1.5
