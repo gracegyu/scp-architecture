@@ -1464,13 +1464,13 @@ aws s3api create-bucket \
   - [x] **imageBox**: F1~F6 — 공통 + B1~B3 + `imageRef` 셀렉트(`document.imageRefs` 키) + `fitMode` 셀렉트; F3(B4·B5) 정책은 스펙 표와 동일.
   - [x] 단위 테스트: 패치 유틸·(선택) 디스크립터 순회 렌더 스냅샷.
 
-- [ ] **Task 2.3**: TextBox + Label (8h)
+- [x] **Task 2.3**: TextBox + Label (8h)
   - **의존**: Task 1.5
-  - [ ] LabelElement (평문 텍스트)
-  - [ ] TextBoxElement 기본 구조 (content, editable)
-  - [ ] style.fontSize(pt), fontFamily 적용
-  - [ ] 읽기 전용 렌더링 (편집 모드 전)
-  - [ ] (후속) Task 2.2 패널에 TextBox/Label 전용 `ElementStyle` 텍스트 필드 항목 추가 — 본 Task에서는 요소 구현 우선.
+  - [x] LabelElement (평문 텍스트)
+  - [x] TextBoxElement 기본 구조 (content, editable)
+  - [x] style.fontSize(pt), fontFamily 적용
+  - [x] 읽기 전용 렌더링 (편집 모드 전)
+  - [x] (후속) Task 2.2 패널에 TextBox/Label 전용 필드 — Label: G1~G7·`extensions.text` / TextBox: `extensions.html`·`editable`만(타이포는 Lexical·HTML).
 
 - [ ] **Task 2.4**: Lexical 연동 (12h)
   - **의존**: Task 2.3
