@@ -633,15 +633,32 @@ EzOrthoWeb에서 실제 사용되어 검증된 추가 라이브러리들을 평�
 
 **평가 점수**: 85점 (Migration 필수, 안정성 우수)
 
-#### 2.5.3 React 텍스트 에디터
+#### 2.5.3 리포트 HTML 텍스트 에디터 (TextBox / PoC-14 연동)
 
-**tiptap → Lexical (Meta) 또는 Slate.js 고려**:
+**용도 (PoC-14 Task 2.3~2.4)**:
+
+- SCP Cloud Report의 **`TextBox` Element**: 박스 안에서 **리치 텍스트(HTML 계열)** 를 편집·저장한다.
+- **읽기 전용 모드**: 편집기 없이 저장된 HTML(또는 직렬화 결과)만 안전하게 렌더링한다.
+- **Label** Element는 평문 위주로 별도 구현하며, 본 절의 “HTML 에디터” 범위는 **TextBox**에 해당한다.
+
+**레거시 참고 (EzOrthoWeb)**:
+
+- EzOrthoWeb은 **Vue 2** 기반으로 **tiptap v1** (`tiptap`, `tiptap-extensions`)를 사용한다. (패키지 의존성 기준)
+- SCP Cloud PoC 스택은 **React**이므로 tiptap을 그대로 이식하기보다, **React 18 + TypeScript**에 맞는 에디터를 별도 선정한다. EzOrthoWeb 코드는 **UX·기능 요구** 참고용이다.
+
+**후보 비교**:
+
+| 후보 | 특징 | PoC 적합성 |
+|------|------|------------|
+| **Lexical (Meta)** | React 전용, 세분화된 확장, Meta 유지 | PoC-14 로드맵·의존 표와 일치 |
+| **Slate.js** | React 친화, 데이터 모델 유연 | 대안 |
+| **TipTap v2+** | ProseMirror 기반, React 래퍼 제공 | Vue 레거시와 이름만 같고 스택이 다름; PoC에서는 후순위 |
 
 **Lexical (Meta)**:
 
 - Facebook/Meta에서 개발
-- React 전용, TypeScript 완벽 지원
-- 현대적 아키텍처, 성능 우수
+- React 전용, TypeScript 지원
+- 문서 모델과 직렬화(HTML/JSON) 전략을 PoC-14 Task 2.4와 맞추기 용이
 - 평가 점수: 90점
 
 **Slate.js**:
@@ -651,7 +668,18 @@ EzOrthoWeb에서 실제 사용되어 검증된 추가 라이브러리들을 평�
 - TypeScript 지원
 - 평가 점수: 85점
 
-**선정**: **Lexical** (성능, 현대적 아키텍처 우수)
+**선정 (SCP Cloud Report PoC)**: **Lexical** (`@lexical/react` 등). PoC-14 의존 표(PoC-05: Lexical, TextBox 연동) 및 Task 2.4 “HTML ↔ Lexical 직렬화”와 동일하게 진행한다.
+
+**Element `style` vs 본문(HTML) 내부 서식**:
+
+- **`Element.style` (PoC-06 ElementStyle)**: 박스 **기본** 타이포·정렬 등(예: `fontSize`, `fontFamily`, `color`, `textAlign`) — Inspector에서 조정 가능한 **요소 단위** 속성.
+- **본문 내부**: 굵게, 제목, 리스트, 인라인 색 등은 **에디터가 만든 마크업**(또는 Lexical 노드)에 들어간다. 저장 시 **HTML 문자열** 또는 **Lexical EditorState JSON** 등으로 문서에 넣고, 표시 시 박스 CSS와 **합쳐져** 렌더링된다(구체 직렬화 필드는 PoC-06 확장 스펙·Task 2.4에서 고정).
+- **보안**: 사용자 입력 HTML 표시 전 **sanitization**(PoC-11, DOMPurify 등). `dangerouslySetInnerHTML` 남용 금지 원칙은 PoC-14와 동일.
+
+**패키지(구현 시 참고)**:
+
+- 런타임: `@lexical/react`, `lexical`, 필요 시 `@lexical/rich-text` 등 확장.
+- 번들 크기 요약은 아래 §3.3 표(Lexical ~80KB)를 따른다.
 
 #### 2.5.4 수치 계산 라이브러리
 
@@ -683,8 +711,10 @@ EzOrthoWeb에서 실제 사용되어 검증된 추가 라이브러리들을 평�
 | **DICOM 지원**    | cornerstone.js + dcmjs       | 의료 이미지 뷰어 + 파싱      |
 | **파일 처리**     | file-saver                   | 파일 저장                    |
 |                   | xml-js                       | XML 파싱 (Migration 지원)    |
-| **텍스트 편집**   | Lexical (Meta)               | 리치 텍스트 에디터           |
+| **텍스트 편집**   | Lexical (Meta)               | PoC-14 `TextBox` 리치 편집 (§2.5.3) |
 | **수치 계산**     | Math.js                      | 수학 계산 (의료 측정)        |
+
+EzOrthoWeb의 tiptap(v1·Vue)과 별개로, React PoC는 위 표대로 Lexical을 쓴다.
 
 ### 3.2 기술 스택 아키텍처
 
