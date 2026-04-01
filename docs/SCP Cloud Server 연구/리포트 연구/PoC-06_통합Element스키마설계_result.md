@@ -296,6 +296,8 @@ interface AutoFill {
 | editable             | boolean   | N    | 기본 true                              |
 | placeholder          | string    | N    | placeholder 텍스트                     |
 
+**PoC-14 JSON (`scp-report-poc`)**: `CommonElementBase.extensions`를 쓰는 형태가 일관되므로, 위 `content`·`editable` 등은 실제 파일에서는 **`extensions.html`**, **`extensions.editable`** 등으로 둔다(의미는 본 표와 동일). Export 시 TextBox의 `style.fontSize`·`fontFamily` 등 **본문 타이포**는 넣지 않는다(`normalizeDocumentForJsonExport`).
+
 ### 4.3 Label
 
 | 필드                 | 타입    | 필수 | 설명        |

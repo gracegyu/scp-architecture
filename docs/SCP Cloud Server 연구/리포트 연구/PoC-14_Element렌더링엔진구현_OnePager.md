@@ -500,6 +500,41 @@ interface HTMLEditorConfig {
 }
 ```
 
+**TextBox Lexical — 속성 패널(및 에디터) vs [Lexical Playground](https://playground.lexical.dev/) 툴바 기능 대응표** (분류는 PoC-05 §2.5.3과 동일):
+
+Lexical Playground는 플러그인 조합 **쇼케이스**이며, 아래 “Lexical에서 표현 가능” 항목은 이론적·플러그인 확장 기준이다. **PoC 지원** 열은 `scp-report-poc` TextBox(속성 패널 `TextBoxInspectorLexicalControls` + `TextBoxLexicalBridgeProvider` + 캔버스 Lexical) 기준이다. 확장 시 PoC-05 표·`extensions.html`·sanitize 허용 태그를 함께 갱신한다.
+
+| 구분 | 설정 항목 | PoC 지원 | 비고 |
+|------|-----------|:--------:|------|
+| 인라인 | Bold | O | `FORMAT_TEXT_COMMAND`, 속성 패널 버튼 |
+| 인라인 | Italic | O | 동일 |
+| 인라인 | Underline | O | 동일 |
+| 인라인 | Strikethrough(취소선) | X | PoC 최소 범위 제외; HTML·sanitize 정책 정 후 추가 가능 |
+| 인라인 | Inline code(`<code>`) | X | 리포트 본문에서 빈도 낮음, PoC 제외 |
+| 인라인 | 글자색(color) | O | `$patchStyleText`, 속성 패널 color input |
+| 인라인 | 배경/하이라이트색 | X | Playground는 지원; 인쇄/PDF·스타일 일관성 검토 후 제품화 시 검토 |
+| 인라인 | 글자 크기(font-size) | O | px 고정 목록만; 속성 패널 select |
+| 인라인 | 글꼴(font-family) | X | 리포트 전역 타이포와 충돌 가능; 별도 정책 없이 PoC 제외 |
+| 인라인 | 위첨자/아래첨자 | X | 치과 리포트 PoC에서 우선순위 낮음 |
+| 블록 | 일반 문단 | O | Lexical 기본; 별도 툴바 없음 |
+| 블록 | 제목(H1~H6) | 부분 | 노드만 등록·**패널에서 블록 전환 없음**; HTML/붙여넣기로 들어올 수 있음. **PoC 권장**: 섹션 제목은 **Label·고정 레이아웃**으로 두고 TextBox는 단락+인라인(굵게·크기·색)으로 강조 — 계층·인쇄 스타일이 단순해짐. Hn이 필수로 밝혀지면 속성 패널에 블록 타입+sanitize를 추가 |
+| 블록 | 인용(blockquote) | 부분 | QuoteNode만 등록·UI 없음. **치과 일반 진단서**에서는 빈도 낮음; 학술·문헌 인용 템플릿이 필요해지면 인용 UI·허용 태그부터 정의 |
+| 블록 | 코드 블록 | X | PoC 제외 |
+| 블록 | 구분선(HR) | X | PoC 제외 |
+| 목록 | 글머리/번호 목록 | 부분 | ListPlugin 등록; **서식 패널에서 목록 토글 없음**; HTML·붙여넣기 경로 가능 |
+| 정렬 | 문단 정렬(좌·중·우·양쪽) | X | 레이아웃·인쇄 재현 비용; 제품 요구 시 우선 검토 |
+| 정렬 | 들여쓰기/내어쓰기 | X | 동일 |
+| 삽입 | 링크 | 부분 | LinkPlugin 등록; **패널에서 URL 편집 UI 없음** |
+| 삽입 | 이미지/표/임베드 | X | 복잡도·sanitize·레이아웃 이슈로 PoC 제외 |
+| 편집 | 실행 취소/다시 실행 | O | Lexical `HistoryPlugin`; **속성 패널 버튼 없음**, 키보드 단축키 위주 |
+| 편집 | 붙여넣기(외부 HTML) | 부분 | 브라우저 기본; **PoC-14 Task 2.6·sanitize와 연계해 정책 확정 예정** |
+| UI | 캔버스 인라인 툴바 | X | 리포트 시각과 분리; 서식은 **속성 패널**에만 배치 |
+| UI | Playground 수준 툴바 일괄 제공 | X | 데모용 조합이며 리포트 PoC 범위 아님 |
+
+**치과 리포트·PoC 관점 — 제목(Hn)·인용 vs 글자 크기 등 인라인**: TextBox 안에 **제목 블록까지 넣는 방식**은 일반 웹 에디터와는 맞지만, **템플릿 기반 의료 리포트**에서는 “섹션 타이틀 = 별도 요소(Label 등)·고정 스타일”, “본문 박스 = 단락 + 굵게/크기/색”으로 나누는 편이 **레이아웃·접근성·PDF 재현**을 맞추기 쉽다. 따라서 **PoC 1차는 인라인 서식 중심을 유지**하고, Hn·인용은 **제품 요구가 명확해질 때** 패널·스키마·sanitize를 함께 추가하는 것을 권장한다.
+
+**표기**: O = 패널 또는 에디터에서 의도적으로 지원. **부분** = 노드·플러그인은 있으나 툴바/패널로 노출하지 않거나 HTML 경로에만 의존. X = PoC에서 의도적으로 미지원.
+
 **7. ezorthoweb에서 React로 포팅할 주요 클래스들**:
 
 **BaseModel 포팅**:

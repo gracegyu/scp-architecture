@@ -681,6 +681,19 @@ EzOrthoWeb에서 실제 사용되어 검증된 추가 라이브러리들을 평�
 - 런타임: `@lexical/react`, `lexical`, 필요 시 `@lexical/rich-text` 등 확장.
 - 번들 크기 요약은 아래 §3.3 표(Lexical ~80KB)를 따른다.
 
+**Lexical 공식 Playground 대비 — PoC TextBox에서 다루는 “속성(서식)” 범위**:
+
+- 참고 UI: [Lexical Playground](https://playground.lexical.dev/)는 Undo/블록 타입·글꼴·정렬·들여쓰기·링크·목록·표 등 **플러그인 조합 예시**이며, SCP Cloud Report PoC의 요구 범위와 동일하지 않다.
+- **Lexical이 원칙적으로 다룰 수 있는 것(개념)**: 블록(문단/제목/인용/목록)·인라인(굵게/기울임/밑줄/취소선·색·배경·크기·글꼴)·링크·정렬·들여쓰기·표 등 — 전부 **노드·명령·플러그인**으로 확장 가능.
+- **현재 PoC 구현(`scp-report-poc`, TextBox + 속성 패널)에서 명시적으로 지원하는 인라인 서식**:
+  | 항목 | 지원 | 비고 |
+  |------|:----:|------|
+  | Bold / Italic / Underline | O | `FORMAT_TEXT_COMMAND` |
+  | 글자색 `color` | O | `$patchStyleText` |
+  | 글자 크기 `font-size`(px 고정 목록) | O | `$patchStyleText` |
+- **PoC에서 두지 않은 것(추가 시 별도 설계)**: 블록 타입·문단 정렬·목록·링크·배경(하이라이트)색·취소선·글꼴 패밀리·표·이미지 삽입 등. HTML 직렬화·sanitize 허용 태그와 함께 PoC-14 후속 Task로 확장한다.
+- **선정 이유(치과 리포트·PoC 최소)**: 소견·수치 문장 위주에서 **강조·색·크기 단계**만으로도 구분 가능한 경우가 많고, 일반 웹 에디터 수준 풀 툴바는 레이아웃·검증·인쇄/PDF 일관성 비용이 크다. 제품 단계에서 정렬·목록 등이 필수로 밝혀지면 동일 표에 행을 추가해 버전 관리한다.
+
 #### 2.5.4 수치 계산 라이브러리
 
 **numeric (기존) → Math.js 고려**:
