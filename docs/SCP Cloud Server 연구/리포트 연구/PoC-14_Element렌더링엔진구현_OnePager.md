@@ -1503,16 +1503,16 @@ aws s3api create-bucket \
   - **의존**: Task 1.5
   - [x] LabelElement (평문 텍스트)
   - [x] TextBoxElement 기본 구조 (content, editable)
-  - [x] style.fontSize(pt), fontFamily 적용
+  - [x] TextBox 박스는 테두리·배경 등 `style`만; 본문 타이포는 `extensions.html`(Label은 `style`+`extensions.text`)
   - [x] 읽기 전용 렌더링 (편집 모드 전)
   - [x] (후속) Task 2.2 패널에 TextBox/Label 전용 필드 — Label: G1~G7·`extensions.text` / TextBox: `extensions.html`·`editable`만(타이포는 Lexical·HTML).
 
-- [ ] **Task 2.4**: Lexical 연동 (12h)
+- [x] **Task 2.4**: Lexical 연동 (12h)
   - **의존**: Task 2.3
-  - [ ] Lexical 에디터 컴포넌트 래퍼
-  - [ ] HTML ↔ Lexical 직렬화
-  - [ ] foreignObject 내 편집기 배치
-  - [ ] sanitizeHtml 적용 (PoC-11, DOMPurify 등)
+  - [x] Lexical 에디터: `TextBoxLexicalMount`(Composer·RichText·History·List·Link·OnChange·Bridge)
+  - [x] HTML ↔ Lexical: `$generateNodesFromDOM` 초기 로드, `$generateHtmlFromNodes` 변경 시·블러 커밋
+  - [x] `foreignObject` 내 XHTML `div`에 편집기 배치(`TextBoxElement`)
+  - [x] DOMPurify 정제: `lexicalTextBoxHtml`(import·저장 공통), 읽기 전용·Lexical 초기 HTML·블러 패치·인스펙터 `extensions.html` 패치 경로
 
 - [ ] **Task 2.5**: 상태 관리 (10h)
   - **의존**: Task 2.4
