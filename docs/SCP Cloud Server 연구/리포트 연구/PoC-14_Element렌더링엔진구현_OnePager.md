@@ -1514,17 +1514,17 @@ aws s3api create-bucket \
   - [x] `foreignObject` 내 XHTML `div`에 편집기 배치(`TextBoxElement`)
   - [x] DOMPurify 정제: `lexicalTextBoxHtml`(import·저장 공통), 읽기 전용·Lexical 초기 HTML·블러 패치·인스펙터 `extensions.html` 패치 경로
 
-- [ ] **Task 2.5**: 상태 관리 (10h)
+- [x] **Task 2.5**: 상태 관리 (10h)
   - **의존**: Task 2.4
-  - [ ] ElementState (elements, selectedElements, clipboard, history)
-  - [ ] addElement, updateElement, deleteElement, selectElements
-  - [ ] Redux Toolkit slice 또는 Context
+  - [x] `ReportDocumentEditorModel`: `document`, `selectedIds`, `clipboard`, `historyPast` / `historyFuture` (`packages/components/src/state/`)
+  - [x] API: `commitDocument`, `replaceDocument`, `setSelection`, `deleteSelectedElements`, `updateElement`, `addElement`, `copySelection`, `cutSelection`, `paste`, `undo`, `redo` — `ReportDocumentStateProvider` + `useReportDocumentState` (`useReducer`, Redux 미사용)
+  - [x] Core 보조: `documentMutations`(불변 패치·클립보드 id·붙여넣기 오프셋), `findPageIndexForElementId`
 
 - [ ] **Task 2.6**: 복사/붙여넣기, Undo/Redo (8h)
   - **의존**: Task 2.5
-  - [ ] Ctrl+C, Ctrl+V
-  - [ ] Ctrl+Z, Ctrl+Y (history.past/future)
-  - [ ] Arrow 키 이동 (선택 시)
+  - [x] Ctrl/Cmd+C, V, X 및 Z / Shift+Z / Y — `scp-cloud-demo` `DemoEditorLayout`에서 연결(입력·contenteditable 포커스 시 무시)
+  - [x] Undo/Redo 스택 — Task 2.5 reducer와 동일
+  - [x] Arrow 키 이동 (선택 시): 1mm / Shift+10mm, `nudgeElementsByIdsInDocument` + `ReportRenderer` 키보드
 
 **Phase 2 예상 시간**: 약 66h (2.1의 10h 포함 시 Phase 2 누적) — 속성 패널(Task 2.2) 18h 반영, Task 번호 2.3~2.6으로 이동
 
