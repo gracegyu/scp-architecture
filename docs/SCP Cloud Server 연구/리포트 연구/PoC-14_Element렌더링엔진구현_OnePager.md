@@ -505,7 +505,7 @@ interface HTMLEditorConfig {
 Lexical Playground는 플러그인 조합 **쇼케이스**이며, 아래 “Lexical에서 표현 가능” 항목은 이론적·플러그인 확장 기준이다. **PoC 지원** 열은 `scp-report-poc` TextBox(속성 패널 `TextBoxInspectorLexicalControls` + `TextBoxLexicalBridgeProvider` + 캔버스 Lexical) 기준이다. 확장 시 PoC-05 표·`extensions.html`·sanitize 허용 태그를 함께 갱신한다.
 
 | 구분 | 설정 항목 | PoC 지원 | 비고 |
-|------|-----------|:--------:|------|
+| --- | --- | :-: | --- |
 | 인라인 | Bold | O | `FORMAT_TEXT_COMMAND`, 속성 패널 버튼 |
 | 인라인 | Italic | O | 동일 |
 | 인라인 | Underline | O | 동일 |
@@ -903,19 +903,19 @@ const MemoizedElement = React.memo(ElementComponent, (prev, next) => {
 
 #### A. 공통 (모든 Element, `CommonElementBase` + `style` 일부)
 
-| 순번 | JSON 경로 | 스펙 의미 | UI 제안 |
-|------|-----------|-----------|---------|
-| A1 | `id` | Element 고유 id | 읽기 전용 텍스트(수정 시 참조 깨짐 방지 정책 별도) |
-| A2 | `type` | Element 종류 | 읽기 전용 |
-| A3 | `position.unit` | 좌표 단위 | 고정 `mm`, 표시만 또는 숨김 |
-| A4 | `position.x` | 왼쪽 기준 x (mm) | 숫자 입력 |
-| A5 | `position.y` | 상단 기준 y (mm) | 숫자 입력 |
-| A6 | `size.unit` | 크기 단위 | 고정 `mm` |
-| A7 | `size.width` | 너비 (mm) | 숫자 입력 |
-| A8 | `size.height` | 높이 (mm) | 숫자 입력 |
-| A9 | `locked` | 편집 잠금 | 체크박스 |
-| A10 | `visible` | 표시 여부 | 체크박스 |
-| A11 | `zIndex` | 쌓임 순서 | 정수 입력(선택) |
+| 순번 | JSON 경로       | 스펙 의미        | UI 제안                                            |
+| ---- | --------------- | ---------------- | -------------------------------------------------- |
+| A1   | `id`            | Element 고유 id  | 읽기 전용 텍스트(수정 시 참조 깨짐 방지 정책 별도) |
+| A2   | `type`          | Element 종류     | 읽기 전용                                          |
+| A3   | `position.unit` | 좌표 단위        | 고정 `mm`, 표시만 또는 숨김                        |
+| A4   | `position.x`    | 왼쪽 기준 x (mm) | 숫자 입력                                          |
+| A5   | `position.y`    | 상단 기준 y (mm) | 숫자 입력                                          |
+| A6   | `size.unit`     | 크기 단위        | 고정 `mm`                                          |
+| A7   | `size.width`    | 너비 (mm)        | 숫자 입력                                          |
+| A8   | `size.height`   | 높이 (mm)        | 숫자 입력                                          |
+| A9   | `locked`        | 편집 잠금        | 체크박스                                           |
+| A10  | `visible`       | 표시 여부        | 체크박스                                           |
+| A11  | `zIndex`        | 쌓임 순서        | 정수 입력(선택)                                    |
 
 `style`(`ElementStyle`)은 타입별로 아래 B와 조합해 노출한다. 렌더러는 `elementStyleToLineAttr` / `elementStyleToFillAttr` 등으로 매핑하므로 **패널에서도 동일 키**를 쓴다.
 
@@ -923,13 +923,13 @@ const MemoizedElement = React.memo(ElementComponent, (prev, next) => {
 
 #### B. 선·채움 (`ElementStyle` ↔ LineAttr / FillAttr 매핑)
 
-| 순번 | JSON (`style.*`) | 렌더 매핑 | UI 제안 |
-|------|------------------|-----------|---------|
-| B1 | `borderColor` | `lineAttr.color` | color |
-| B2 | `borderWidth` | `lineAttr.thickness` | 숫자 (≥0) |
-| B3 | `borderStyle` | `lineAttr.style` | 선택: none, solid, dashed, dotted |
-| B4 | `backgroundColor` | `fillAttr.color` | color |
-| B5 | `backgroundColorOpacity` | `fillAttr.opacity` | 숫자 0~1 (또는 0~100% 표시 후 변환) |
+| 순번 | JSON (`style.*`)         | 렌더 매핑            | UI 제안                             |
+| ---- | ------------------------ | -------------------- | ----------------------------------- |
+| B1   | `borderColor`            | `lineAttr.color`     | color                               |
+| B2   | `borderWidth`            | `lineAttr.thickness` | 숫자 (≥0)                           |
+| B3   | `borderStyle`            | `lineAttr.style`     | 선택: none, solid, dashed, dotted   |
+| B4   | `backgroundColor`        | `fillAttr.color`     | color                               |
+| B5   | `backgroundColorOpacity` | `fillAttr.opacity`   | 숫자 0~1 (또는 0~100% 표시 후 변환) |
 
 타입별로 B4·B5를 숨길지는 아래 C~F에 따름.
 
@@ -937,10 +937,10 @@ const MemoizedElement = React.memo(ElementComponent, (prev, next) => {
 
 #### C. `rectangle` (현재 구현)
 
-| 순번 | 출처 | 비고 |
-|------|------|------|
-| C1 | A1~A11 전부 | 공통 |
-| C2 | B1~B5 전부 | 테두리 + 면 채움 |
+| 순번 | 출처        | 비고             |
+| ---- | ----------- | ---------------- |
+| C1   | A1~A11 전부 | 공통             |
+| C2   | B1~B5 전부  | 테두리 + 면 채움 |
 
 (텍스트 전용 `style.fontSize` 등은 현재 `RectangleElement`에서 미사용 — 패널에 **미노출** 또는 “향후 TextBox” 접기 섹션.)
 
@@ -948,23 +948,23 @@ const MemoizedElement = React.memo(ElementComponent, (prev, next) => {
 
 #### D. `ellipse` (현재 구현)
 
-| 순번 | 출처 | 비고 |
-|------|------|------|
-| D1 | A1~A11 | 공통 |
-| D2 | B1~B5 | rectangle과 동일 |
+| 순번 | 출처   | 비고             |
+| ---- | ------ | ---------------- |
+| D1   | A1~A11 | 공통             |
+| D2   | B1~B5  | rectangle과 동일 |
 
 ---
 
 #### E. `line` (현재 구현)
 
-| 순번 | JSON 경로 | 스펙 의미 | UI 제안 |
-|------|-----------|-----------|---------|
-| E1 | A1~A11 | 공통(바운딩 박스는 DragResize와 동기) | 동일 |
-| E2 | B1~B3 | 선 색·굵기·점선 | 채움(B4·B5) **미노출** |
-| E3 | `extensions.lineEndpoints.x1` | 끝점1 x (mm) | 숫자 |
-| E4 | `extensions.lineEndpoints.y1` | 끝점1 y (mm) | 숫자 |
-| E5 | `extensions.lineEndpoints.x2` | 끝점2 x (mm) | 숫자 |
-| E6 | `extensions.lineEndpoints.y2` | 끝점2 y (mm) | 숫자 |
+| 순번 | JSON 경로                     | 스펙 의미                             | UI 제안                |
+| ---- | ----------------------------- | ------------------------------------- | ---------------------- |
+| E1   | A1~A11                        | 공통(바운딩 박스는 DragResize와 동기) | 동일                   |
+| E2   | B1~B3                         | 선 색·굵기·점선                       | 채움(B4·B5) **미노출** |
+| E3   | `extensions.lineEndpoints.x1` | 끝점1 x (mm)                          | 숫자                   |
+| E4   | `extensions.lineEndpoints.y1` | 끝점1 y (mm)                          | 숫자                   |
+| E5   | `extensions.lineEndpoints.x2` | 끝점2 x (mm)                          | 숫자                   |
+| E6   | `extensions.lineEndpoints.y2` | 끝점2 y (mm)                          | 숫자                   |
 
 `extensions` 없을 때 생성 규칙은 기존 `ElementRegistry`와 동일하게 패치 시 보장.
 
@@ -972,14 +972,14 @@ const MemoizedElement = React.memo(ElementComponent, (prev, next) => {
 
 #### F. `imageBox` — Single (현재 구현)
 
-| 순번 | JSON 경로 | 스펙 의미 | UI 제안 |
-|------|-----------|-----------|---------|
-| F1 | A1~A11 | 공통 | 동일 |
-| F2 | B1~B3 | 박스 테두리(`ImageBoxElement` 외곽 rect) | color/굵기/스타일 |
-| F3 | B4·B5 | 면 채움 | 현재 내부 foreignObject 위주라 **선택**: 숨기거나 향후 배경용 |
-| F4 | `extensions.imageBoxType` | single/multi/reference | 1차 **single 고정** 또는 읽기 전용 |
-| F5 | `extensions.imageRef` | `Document.imageRefs` 키 | `Object.keys(document.imageRefs)` 셀렉트 + 직접 입력(키 문자열) |
-| F6 | `extensions.fitMode` | realSize / boxFit / modified | 셀렉트 |
+| 순번 | JSON 경로                 | 스펙 의미                                | UI 제안                                                         |
+| ---- | ------------------------- | ---------------------------------------- | --------------------------------------------------------------- |
+| F1   | A1~A11                    | 공통                                     | 동일                                                            |
+| F2   | B1~B3                     | 박스 테두리(`ImageBoxElement` 외곽 rect) | color/굵기/스타일                                               |
+| F3   | B4·B5                     | 면 채움                                  | 현재 내부 foreignObject 위주라 **선택**: 숨기거나 향후 배경용   |
+| F4   | `extensions.imageBoxType` | single/multi/reference                   | 1차 **single 고정** 또는 읽기 전용                              |
+| F5   | `extensions.imageRef`     | `Document.imageRefs` 키                  | `Object.keys(document.imageRefs)` 셀렉트 + 직접 입력(키 문자열) |
+| F6   | `extensions.fitMode`      | realSize / boxFit / modified             | 셀렉트                                                          |
 
 `imageRefs` 본문 편집은 패널에서 **별도 “문서 이미지 맵” 접기**로 URL 편집(고급)하거나 2차 Task로 분리.
 
@@ -1520,7 +1520,7 @@ aws s3api create-bucket \
   - [x] API: `commitDocument`, `replaceDocument`, `setSelection`, `deleteSelectedElements`, `updateElement`, `addElement`, `copySelection`, `cutSelection`, `paste`, `undo`, `redo` — `ReportDocumentStateProvider` + `useReportDocumentState` (`useReducer`, Redux 미사용)
   - [x] Core 보조: `documentMutations`(불변 패치·클립보드 id·붙여넣기 오프셋), `findPageIndexForElementId`
 
-- [ ] **Task 2.6**: 복사/붙여넣기, Undo/Redo (8h)
+- [x] **Task 2.6**: 복사/붙여넣기, Undo/Redo (8h)
   - **의존**: Task 2.5
   - [x] Ctrl/Cmd+C, V, X 및 Z / Shift+Z / Y — `scp-cloud-demo` `DemoEditorLayout`에서 연결(입력·contenteditable 포커스 시 무시)
   - [x] Undo/Redo 스택 — Task 2.5 reducer와 동일
@@ -1567,13 +1567,13 @@ aws s3api create-bucket \
 
 **DICOM 픽셀 표시 — 구현 시 정리할 기술 요약**(Task 3.5 산출 기준):
 
-| 항목 | 내용 |
-|------|------|
-| 입력 | `Document.imageRefs`의 `.dcm` URL(동일 출처·CORS) 또는 호스트가 넘기는 `ArrayBuffer` 콜백(선택 설계) |
-| 디코드 | DICOM 파서 + 이미지 로더 코덱; 샘플·운영에서 쓰는 전송 문법 목록을 명시 |
-| 출력 | 2D 그레이스케일/컬러를 박스 크기에 맞게 표시; `DragResizeDiv`와 충돌 없게 포인터 이벤트 처리 |
-| 성능 | 대용량 시 Web Worker·캐시 키(instance URL); 페이지 전환 시 리소스 dispose |
-| 보안 | 리포트 JSON만으로는 민감정보 최소화; 픽셀 데이터는 기존 URL 접근 정책 따름 |
+| 항목   | 내용                                                                                                 |
+| ------ | ---------------------------------------------------------------------------------------------------- |
+| 입력   | `Document.imageRefs`의 `.dcm` URL(동일 출처·CORS) 또는 호스트가 넘기는 `ArrayBuffer` 콜백(선택 설계) |
+| 디코드 | DICOM 파서 + 이미지 로더 코덱; 샘플·운영에서 쓰는 전송 문법 목록을 명시                              |
+| 출력   | 2D 그레이스케일/컬러를 박스 크기에 맞게 표시; `DragResizeDiv`와 충돌 없게 포인터 이벤트 처리         |
+| 성능   | 대용량 시 Web Worker·캐시 키(instance URL); 페이지 전환 시 리소스 dispose                            |
+| 보안   | 리포트 JSON만으로는 민감정보 최소화; 픽셀 데이터는 기존 URL 접근 정책 따름                           |
 
 **Phase 3 예상 시간**: 50h (약 1.5주) — Task 3.5 포함
 
