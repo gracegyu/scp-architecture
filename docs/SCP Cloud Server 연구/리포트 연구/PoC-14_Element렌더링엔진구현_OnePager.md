@@ -370,13 +370,12 @@ const LINE_HANDLES: HandlePosition[] = ['tl', 'br'] // Line용 2개
   ```typescript
   class ArrowElement extends ChartElementBase {
     public arrowHeadSize: number = 8
-    public arrowHeadType: 'triangle' | 'diamond' = 'triangle'
 
     render(): React.ReactElement {
       return (
         <g>
           <line x1={this.x1} y1={this.y1} x2={this.x2} y2={this.y2} />
-          <polygon points={this.getArrowHeadPoints()} fill={this.lineAttr.color} />
+          <polygon points={this.getTriangleHeadPoints()} fill={this.lineAttr.color} />
         </g>
       )
     }
@@ -1530,11 +1529,11 @@ aws s3api create-bucket \
 
 ### Phase 3: 고급 Element **(P3)** - 2주
 
-- [ ] **Task 3.1**: Arrow, Memo (12h)
+- [x] **Task 3.1**: Arrow, Memo (12h)
   - **의존**: Task 2.6
-  - [ ] ArrowElement (Line + 화살표 머리, points)
-  - [ ] MemoElement (anchorPoint, bubblePosition, content)
-  - [ ] Memo 풍선+포인터 렌더링 (PoC-06 스키마)
+  - [x] ArrowElement: `LineElement` 확장, 끝점2 쪽 삼각형 머리, `lineEndpoints`·`extensions.arrowHeadLengthMm`, DragResize Line 모드
+  - [x] MemoElement: `position`/`size` 풍선, `extensions.anchorPoint`·`content`, 드래그 시 앵커 동반 이동
+  - [x] Memo SVG: 포인터 선 + 둥근 rect + `foreignObject` 본문; Inspector·`patchElement`·`offsetElementForPasteMm`·샘플 JSON 반영
 
 - [ ] **Task 3.2**: Multi / Reference ImageBox (10h)
   - **의존**: Task 2.1
@@ -1940,7 +1939,10 @@ pnpm add @ewoosoft/scp-report-library
 - ✅ 좌표 변환 시스템 확인 (mm2px, px2mm)
 - ✅ **DragResizeDiv.vue 분석 완료**: 700줄의 완벽한 Handler 시스템 (95% 재사용 가능)
 - ✅ Vue 컴포넌트 구조 확인 (PatientChartElements 등)
-- 🔄 추가 구현 필요: Arrow, Memo, Multi ImageBox, Reference ImageBox
+- 추가 구현 필요: Multi ImageBox, Reference ImageBox (Arrow·Memo는 Task 3.1 반영)
 - 🔄 현재 구현 범위 외: Canvas Element (EzOrtho 분석 차트 전용, 추후 확장 대상)
 
 **핵심 자산**: DragResizeDiv.vue는 PoC-14의 가장 중요한 참고 자료로, 이 컴포넌트만 완벽히 포팅하면 모든 Element의 Drag & Resize 기능이 해결됨
+
+
+
