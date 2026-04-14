@@ -395,7 +395,7 @@ const LINE_HANDLES: HandlePosition[] = ['tl', 'br'] // Line용 2개
   }
   ```
 
-- **Memo**: 풍선 텍스트 + 포인터, DragResizeDiv 8개 핸들러 + 포인터 이동 핸들러 (추가 구현 필요)
+- **Memo**: 풍선 텍스트 + 포인터, DragResizeDiv 8개 핸들러 + **앵커 전용 핸들**; 본문은 Label과 동일 인라인 편집(`PlainInlineTextEdit`). 구현됨(scp-report-poc).
 
   ```typescript
   class MemoElement extends ChartElementBase {
@@ -435,8 +435,9 @@ const LINE_HANDLES: HandlePosition[] = ['tl', 'br'] // Line용 2개
   - Single ImageBox: **구현됨** (`ImageBoxElement`, `Document.imageRefs` + `extensions.imageRef`/`fitMode`). 래스터 JPG·PNG 등은 `<img>`. DICOM은 현재 메타 패널 + 다운로드만; **리포트 내 픽셀 표시는 로드맵 Task 3.5**.
   - Multi ImageBox: 1~20 Row/Column 레이아웃 (추가 구현 필요, DragResizeDiv 활용)
   - Reference ImageBox: 다른 ImageBox 참조 (추가 구현 필요, DragResizeDiv 활용)
-- **TextBox**: DragResizeDiv로 감싼 HTML 텍스트 편집
-- **Label**: DragResizeDiv로 감싼 단순 텍스트
+- **TextBox**: DragResizeDiv로 감싼 HTML 텍스트 편집(Lexical)
+- **Label**: DragResizeDiv로 감싼 평문. **캔버스 인라인 편집** — `foreignObject` 내 `PlainInlineTextEdit`(textarea), blur 시 `extensions.text` 패치; 본문은 `dragCancel`으로 박스 드래그와 분리, 박스 이동은 본문 위에서 Alt(Option)+드래그(TextBox와 동일 패턴).
+- **Memo**(본문): Label과 동일한 인라인 패턴(blur 시 `extensions.content`). 풍선만 드래그할 때 앵커는 문서 좌표 고정, 앵커는 별도 핸들로 이동.
 
 **EzOrtho 특화 Elements** (DragResizeDiv 활용):
 
@@ -864,10 +865,11 @@ const MemoizedElement = React.memo(ElementComponent, (prev, next) => {
 - **속성 패널**(오른쪽 Inspector, 공통·타입별 필드)
 - TextBox (기본 텍스트)
 - HTML 편집기 통합
+- [x] **Label·Memo 캔버스 인라인 편집**(평문 textarea, blur 시 `patchElement`로 `extensions.text` / `extensions.content`) — `PlainInlineTextEdit`, `CreateElementOptions` 콜백, TextBox와 동일 `dragCancel`·Alt+드래그 규칙
 
 **Phase 3: 고급 Element**:
 
-- Arrow, Memo 구현
+- Arrow, Memo 구현(Memo 본문 인라인은 Phase 2 항목과 동일 컴포넌트로 연동, 앵커 핸들은 Memo 전용)
 - Multi ImageBox 구현
 - FreeDraw 구현
 - **ImageBox DICOM 픽셀 표시**(Task 3.5): 리포트 박스 내 영상 디코드·뷰포트(Cornerstone 계열 등)
@@ -1505,6 +1507,8 @@ aws s3api create-bucket \
   - [x] TextBox 박스는 테두리·배경 등 `style`만; 본문 타이포는 `extensions.html`(Label은 `style`+`extensions.text`)
   - [x] 읽기 전용 렌더링 (편집 모드 전)
   - [x] (후속) Task 2.2 패널에 TextBox/Label 전용 필드 — Label: G1~G7·`extensions.text` / TextBox: `extensions.html`·`editable`만(타이포는 Lexical·HTML).
+  - [x] **Label 캔버스 인라인 편집**: `PlainInlineTextEdit`(foreignObject 내 textarea), blur 시 `onLabelTextBlurCommit` → `patchElement`로 `extensions.text`; `onDocumentChange` 없으면 읽기 전용 div만 표시.
+  - [x] 인라인과 박스 드래그 분리: 본문에 `scp-report-plain-inline-text`(`dragCancel`), `getDragCancelPassWithAltKey`로 Alt+드래그 시 박스 이동(TextBox 본문과 동일 UX).
 
 - [x] **Task 2.4**: Lexical 연동 (12h)
   - **의존**: Task 2.3
@@ -1532,8 +1536,9 @@ aws s3api create-bucket \
 - [x] **Task 3.1**: Arrow, Memo (12h)
   - **의존**: Task 2.6
   - [x] ArrowElement: `LineElement` 확장, 끝점2 쪽 삼각형 머리, `lineEndpoints`·`extensions.arrowHeadLengthMm`, DragResize Line 모드
-  - [x] MemoElement: `position`/`size` 풍선, `extensions.anchorPoint`·`content`, 드래그 시 앵커 동반 이동
+  - [x] MemoElement: `position`/`size` 풍선, `extensions.anchorPoint`·`content`; **풍선만** 드래그·리사이즈 시 앵커는 문서 좌표 고정(포인터 선만 변함), **앵커 전용 핸들**로 `anchorPoint` 이동
   - [x] Memo SVG: 포인터 선 + 둥근 rect + `foreignObject` 본문; Inspector·`patchElement`·`offsetElementForPasteMm`·샘플 JSON 반영
+  - [x] **Memo 본문 캔버스 인라인 편집**: Label과 동일 `PlainInlineTextEdit`, blur 시 `onMemoContentBlurCommit` → `extensions.content`; 잠금 시 읽기 전용.
 
 - [ ] **Task 3.2**: Multi / Reference ImageBox (10h)
   - **의존**: Task 2.1
@@ -1939,7 +1944,7 @@ pnpm add @ewoosoft/scp-report-library
 - ✅ 좌표 변환 시스템 확인 (mm2px, px2mm)
 - ✅ **DragResizeDiv.vue 분석 완료**: 700줄의 완벽한 Handler 시스템 (95% 재사용 가능)
 - ✅ Vue 컴포넌트 구조 확인 (PatientChartElements 등)
-- 추가 구현 필요: Multi ImageBox, Reference ImageBox (Arrow·Memo는 Task 3.1 반영)
+- 추가 구현 필요: Multi ImageBox, Reference ImageBox (Arrow·Memo·Label/Memo 본문 인라인 편집·Memo 앵커 핸들은 Task 2.3·3.1 반영)
 - 🔄 현재 구현 범위 외: Canvas Element (EzOrtho 분석 차트 전용, 추후 확장 대상)
 
 **핵심 자산**: DragResizeDiv.vue는 PoC-14의 가장 중요한 참고 자료로, 이 컴포넌트만 완벽히 포팅하면 모든 Element의 Drag & Resize 기능이 해결됨
