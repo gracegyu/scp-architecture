@@ -1540,11 +1540,11 @@ aws s3api create-bucket \
   - [x] Memo SVG: 포인터 선 + 둥근 rect + `foreignObject` 본문; Inspector·`patchElement`·`offsetElementForPasteMm`·샘플 JSON 반영
   - [x] **Memo 본문 캔버스 인라인 편집**: Label과 동일 `PlainInlineTextEdit`, blur 시 `onMemoContentBlurCommit` → `extensions.content`; 잠금 시 읽기 전용.
 
-- [ ] **Task 3.2**: Multi / Reference ImageBox (10h)
+- [x] **Task 3.2**: Multi / Reference ImageBox (10h)
   - **의존**: Task 2.1
-  - [ ] layout.row, layout.column (1~20)
-  - [ ] Multi ImageBox 그리드 렌더링
-  - [ ] Reference ImageBox (linkedBoxId 참조)
+  - [x] layout.row, layout.column (1~20)
+  - [x] Multi ImageBox 그리드 렌더링
+  - [x] Reference ImageBox (linkedBoxId 참조)
 
 - [ ] **Task 3.3**: FreeDraw (6h)
   - **의존**: Task 2.6
