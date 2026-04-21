@@ -989,6 +989,53 @@ const MemoizedElement = React.memo(ElementComponent, (prev, next) => {
 - **데모 샘플**: `scp-cloud-demo/public/sample.jpg`, `sample.png`, `sample.dcm`. `sample-report.json`의 `imageRefs`: `sampleJpg`→`/sample.jpg`, `samplePng`→`/sample.png`, `sampleDcm`→`/sample.dcm`, 각각 대응 `type: imageBox` + `extensions.imageBoxType: single` + `imageRef` + `fitMode`.
 - **이미지 소스(결정)**: 문서에 **바이트 저장 위치는 규정하지 않음**. 렌더러는 `imageRefs`와 `extensions.imageRef`로 최종 URL을 만든다. **PoC·데모**는 위 public 정적 파일·동일 출처 URL. **운영**: 호스트가 동일 필드에 S3·API URL 등을 채움.
 
+### scp-cloud-demo — 「요소 추가」버튼·배치 모드 스펙
+
+**적용 범위**: `scp-report-poc/apps/scp-cloud-demo`의 `DemoEditorLayout` 툴바 「요소 추가」와, `ReportRenderer`에 전달하는 **`placementOverlay`**(렌더러 내부 용지 스택 좌상단 기준·줌과 동일한 논리 좌표계 위 투명 레이어). **라이브러리 필수 동작은 아님** — 호스트(데모) UX 정책이다.
+
+**모드 진입·해제**
+
+- 툴바에서 도구(사각형·타원·직선·화살·자유선·메모·라벨·텍스트박스)를 누르면 **즉시 JSON 요소가 생기지 않고**, 해당 도구 전용 **요소 추가 모드**만 켜진다(버튼에 활성 표시).
+- **같은 도구 버튼을 다시 누르면** 모드만 해제된다(토글).
+- **Esc** 키로도 모드 해제(`ElementPlacementOverlay`에서 `window` `keydown` 처리).
+- 모드에 들어갈 때 **현재 선택은 비운다**(`selectedIds` 초기화).
+
+**좌표·페이지**
+
+- 포인터 위치는 오버레이 **논리 px**(줌 적용 전 용지 콘텐츠 너비·전체 세로 높이 기준)로 바꾼 뒤 **`px2mm`**로 페이지 **문서 좌표(mm)** 로 변환한다.
+- 세로로 여러 페이지가 쌓인 스택에서 **어느 `pages[i]`에 속하는지**는 논리 Y와 **페이지 높이(px) + 페이지 간 간격(데모: 20px)** 으로 구한다.
+- **시작점과 끝점이 서로 다른 페이지**에 걸리는 조작(박스·직선·화살)은 **배치를 완료하지 않고** 버린다(데모 정책).
+
+**도구별 입력 시퀀스**
+
+| 도구 | 사용자 조작 | 생성 규칙(요약) |
+| ---- | ----------- | ----------------- |
+| 사각형, 타원, 라벨, 텍스트박스 | 포인터 **Down → Drag → Up** | 드래그 **축정렬 최소 사각형**이 `position`·`size`(mm). 가로·세로 각각 **2mm 미만**이면 무시. 스타일·기본 텍스트 등은 데모 팩토리 고정값. |
+| 직선, 화살표 | 동일 | **시작점·끝점**을 드래그 시작·끝의 문서 mm로 두고 `extensions.lineEndpoints`에 저장. **선분 길이(mm)** 가 **2mm 미만**이면 무시. 화살은 `arrowHeadLengthMm` 등 데모 기본값. |
+| 자유선(`freeDraw`) | **버튼을 누른 채** 이동(Drag 궤적) 후 Up | 포인터가 지나간 경로를 **연속 점열**로 `extensions.points`(문서 mm)에 저장. 연속 샘플은 논리 좌표에서 **이전 점과 0.35px 미만**이면 생략(과밀 방지). **Up 시점**에 끝점을 한 번 더 반영할 수 있다. **점이 2개 미만**이면 요소를 만들지 않음. |
+| 메모(`memo`) | **한 번 클릭**(짧은 Down–Up) | 클릭 위치를 **`extensions.anchorPoint`(포인터 끝, mm)** 로 두고, 풍선 박스는 **고정 크기(데모: 52×28mm)** 로 앵커 **오른쪽**에 두되, 용지 오른쪽을 넘으면 **왼쪽**에 배치. **Down 위치와 Up 위치의 논리 거리가 8px 초과**면 “클릭”이 아니라고 보고 배치하지 않음. |
+
+**드래그 중 미리보기(WYSIWYG)**
+
+- **Down → Drag** 구간에서, 오버레이 상단의 SVG(`placementOverlay`와 동일 논리 좌표)에 **완성될 요소와 같은 형태**를 실시간으로 그린다. 예전처럼 **점선 사각형만** 보여 주지 않는다.
+- **사각형**: `rect` — 채움 `#e8f4f8`, 테두리 `#333333`(데모 `buildRectangleMm`과 동일 톤).
+- **타원**: `ellipse` — 채움 `#f0e8f8`, 테두리 `#555555`.
+- **직선**: `line` — 끝점은 드래그 시작·현재 포인터 논리 좌표와 동일, 선색 `#000000`, 굵기 2(px 논리).
+- **화살표**: 선분 `line` + 끝점 쪽 `polygon` 삼각 머리 — 선색·머리 채움 `#cc4400`, 머리 길이는 **`mm2px(5)`**(JSON `arrowHeadLengthMm: 5` 및 `ArrowElement` 렌더와 동일 기준). 선분 두께 2(px 논리).
+- **라벨 / 텍스트박스**: 면·테두리만 사각형으로 구분(라벨: 배경 `#f7f7f7`·테두리 `#999999`, 텍스트박스: 배경 `#ffffff`·테두리 `#333333`). 본문 글자는 미리보기에 넣지 않음.
+- 미리보기 도형에는 약한 **불투명도(예: 0.92)** 를 두어 용지 위에서 “유령” 상태임을 구분할 수 있게 한다.
+- **Pointer Up** 시 `elementPlacementFactories`의 `build*Mm`이 쓰는 **동일한 기하**(시작·끝 논리점 → `px2mm` 한 값)로 요소가 생성되므로, **미리보기와 최종 요소의 모양·비율은 일치**한다(부동·반올림에 따른 미세 차이만 허용).
+- **구현**: `ElementPlacementOverlay` 내부 `PlacementDragPreview`(같은 파일). 자유선은 기존과 같이 **폴리라인** 궤적 미리보기.
+
+**렌더러 연동**
+
+- `@ewoosoft/scp-report-components`의 `ReportRenderer`는 **`placementOverlay?: React.ReactNode`** 를 받아, 용지 transform 블록 안 **절대 위치**(`z-index` 상위)로 렌더한다. 모드 중에는 이 레이어가 포인터를 가로채 기존 요소 선택·드래그와 겹치지 않게 한다.
+
+**구현 참조(저장소 경로)**
+
+- `apps/scp-cloud-demo/src/ElementPlacementOverlay.tsx` — 포인터·도구별 SVG 미리보기(`PlacementDragPreview`)·Esc.
+- `apps/scp-cloud-demo/src/elementPlacementFactories.ts` — mm 기준 `Element` 생성·용지 클램프.
+
 **14. 테스트 계획**:
 
 **기능 테스트**:
@@ -1546,10 +1593,10 @@ aws s3api create-bucket \
   - [x] Multi ImageBox 그리드 렌더링
   - [x] Reference ImageBox (linkedBoxId 참조)
 
-- [ ] **Task 3.3**: FreeDraw (6h)
+- [x] **Task 3.3**: FreeDraw (6h)
   - **의존**: Task 2.6
-  - [ ] FreeDrawElement (points → SVG path)
-  - [ ] Path 데이터 직렬화
+  - [x] FreeDrawElement (points → SVG path)
+  - [x] Path 데이터 직렬화
 
 - [ ] **Task 3.4**: 인쇄 및 @media print (8h)
   - **의존**: Task 3.3
