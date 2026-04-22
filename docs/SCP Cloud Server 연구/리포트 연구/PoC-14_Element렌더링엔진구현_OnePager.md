@@ -1605,16 +1605,16 @@ aws s3api create-bucket \
   - [x] mm, pt 단위 출력 검증 — `coordinate.test.ts` (96dpi mm↔px, CSS pt→px)
   - [x] window.print() 연동 — 툴바「인쇄」, 줌 100% 맞춤 후 `afterprint`에 복원
 
-- [ ] **Task 3.5**: ImageBox DICOM 픽셀 표시 (리포트 내 뷰) (14h)
+- [x] **Task 3.5**: ImageBox DICOM 픽셀 표시 (리포트 내 뷰) (14h)
   - **의존**: Task 2.1
   - **목표**: `.dcm`을 리포트 ImageBox 박스 안에서 **실제 영상 픽셀**으로 표시(메타 전용 패널에서 전환 또는 병행). PoC-05·ezortho의 Cornerstone 계열 연동 방향과 맞출 것.
-  - [ ] **디코딩 스택 선정**: `@cornerstonejs/core`(또는 후속 권장 스택) + DICOM Part 10 바이트 로드(기존 `imageRefs` URL·ArrayBuffer). 전송 문법(JPEG, JPEG-LS, RLE, 미압축 등) 지원 범위를 문서화.
-  - [ ] **ImageBox 통합**: `ImageBoxElement`의 DICOM 분기에서 `foreignObject` 내 **Canvas/WebGL 뷰포트** 또는 Cornerstone 래퍼 컴포넌트로 렌더. `fitMode`(realSize/boxFit/modified)와 박스 리사이즈 시 뷰포트 크기 동기화.
-  - [ ] **윈도/레벨·VOI**: 기본값(자동 또는 DICOM 태그) 및 추후 슬라이더는 선택; 1차는 읽기 가능한 기본 창이면 됨.
-  - [ ] **멀티프레임**: 1차는 단일 프레임(또는 첫 프레임); 필요 시 프레임 인덱스 `extensions` 확장 검토.
-  - [ ] **번들·의존성**: Cornerstone 계열은 용량이 크므로 **peerDependency** 또는 **동적 import**(호스트 앱에서 프리로드) 여부 결정. `@ewoosoft/scp-report-components` 기본 번들에 항상 넣지 않을지 검토.
-  - [ ] **실패 시**: 디코딩 실패·미지원 전송 문법 시 현행과 같이 메타 + 다운로드 폴백.
-  - [ ] **데모**: `sample.dcm`으로 scp-cloud-demo에서 픽셀 확인. 인쇄(Task 3.4)와 겹치면 캔버스 스냅샷 또는 인쇄 시 경고 문구 정책 정리.
+  - [x] **디코딩 스택 선정**: `@cornerstonejs/core` 1.x + `@cornerstonejs/dicom-image-loader` **NoWebWorkers** 번들, `dicom-parser`. `imageRefs` URL → `wadouri:` + `loadAndCacheImage` + `renderToCanvasCPU`. **전송 문법**: dicom-image-loader/Cornerstone3 문서(Explicit VR, JPEG Baseline, JPEG-LS, RLE, JPEG2000, HTJ2K 등)에 따르며, 미지원/실패는 폴백.
+  - [x] **ImageBox 통합**: `ImageBoxElement` DICOM 분기 `foreignObject` 내 `<canvas>`, `fitMode`는 CSS(박스/멀티 격자 동일)로 정렬.
+  - [x] **윈도/레벨·VOI**: 코어 `renderToCanvasCPU` + 이미지 메타 기본 W/L(태그/추론). 슬라이더·수동 W/L UI는 이후.
+  - [x] **멀티프레임**: **첫 프레임(슬라이스 0)**만 로드(loader 기본). `extensions.dicomFrameIndex`는 미구현(확장 후보).
+  - [x] **번들·의존성**: 컴포넌트 `ensureAndDrawDicomToCanvas`에서 **동적 import**로 Cornerstone·NoWebWorker 로더 1회 초기화(호스트는 Vite `optimizeDeps` 권장).
+  - [x] **실패 시**: `parseDicom` 기반 **메타 + 다운로드** (기존 UI).
+  - [x] **데모**: `sample.dcm`·ImageBox; 인쇄는 `canvas` 브라우저 인쇄(동작은 브라우저/드라이버에 따름, 별도 스냅샷은 미고정).
 
 **DICOM 픽셀 표시 — 구현 시 정리할 기술 요약**(Task 3.5 산출 기준):
 
