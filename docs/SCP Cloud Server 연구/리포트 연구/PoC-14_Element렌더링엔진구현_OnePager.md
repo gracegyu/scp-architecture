@@ -1598,12 +1598,12 @@ aws s3api create-bucket \
   - [x] FreeDrawElement (points → SVG path)
   - [x] Path 데이터 직렬화
 
-- [ ] **Task 3.4**: 인쇄 및 @media print (8h)
+- [x] **Task 3.4**: 인쇄 및 @media print (8h)
   - **의존**: Task 3.3
-  - [ ] @media print CSS (PoC-10)
-  - [ ] @page size, margin
-  - [ ] mm, pt 단위 출력 검증
-  - [ ] window.print() 연동
+  - [x] @media print CSS (PoC-10) — `apps/scp-cloud-demo/src/print.css`
+  - [x] @page size, margin — `doc.paper`에 맞춰 `#scp-print-page`로 `size: Nmm Mmm; margin: 0;`, `print.css`에 기본값
+  - [x] mm, pt 단위 출력 검증 — `coordinate.test.ts` (96dpi mm↔px, CSS pt→px)
+  - [x] window.print() 연동 — 툴바「인쇄」, 줌 100% 맞춤 후 `afterprint`에 복원
 
 - [ ] **Task 3.5**: ImageBox DICOM 픽셀 표시 (리포트 내 뷰) (14h)
   - **의존**: Task 2.1
