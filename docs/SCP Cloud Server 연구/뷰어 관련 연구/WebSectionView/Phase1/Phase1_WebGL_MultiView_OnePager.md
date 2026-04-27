@@ -4,7 +4,8 @@ Engineering One Pager
 Phase 1: WebGL 11개 View 동시 표시 기술 검증
 
 ## Date
-2026-04-27
+- **기획/제출(초안)**: 2026-04-27
+- **상태**: 검증 완료(실행 화면·요약: 동일 폴더 `Phase1_WebGL_MultiView_결과.md`, `screenshot.png`)
 
 ## Submitter Info
 Raymond
@@ -12,7 +13,7 @@ Raymond
 ## Project Description
 브라우저(WebGL) 환경에서 치과 CT Section View에 필요한 11개의 View(Scout 1 + Panorama 1 + Section 9)를 동시에 안정적으로 표시할 수 있는지 검증한다.
 
-이전 시도([POPV-959](https://vts.vatech.com/browse/POPV-959))에서는 각 View마다 별도 WebGL Context를 생성하여 Chrome의 Context 수 제한(최대 15개)에 걸려 CONTEXT_LOST_WEBGL 에러가 발생했다. 본 PoC에서는 Context 공유 + Viewport 분할 전략을 사용하여 이 문제를 우회한다.
+이전 시도([POPV-959](https://vts.vatech.com/browse/POPV-959))에서는 각 View마다 별도 WebGL Context를 생성하여 Chrome의 Context 수 제한(최대 15개)에 걸려 CONTEXT_LOST_WEBGL 에러가 발생했다. 본 PoC에서는 **WebGL Context를 3개로 제한**하고(Scout·Panorama·Section 각 1), 특히 Section은 **같은 Context 안에서 9개 Viewport(+ Scissor)로** 타일을 나누어 이 문제를 우회한다. (Context를 여러 뷰가 “하나로 공유”하는 것이 아니라, **개수를 줄이고** 한 Context 내에서 **화면만 분할**하는 방식이다.)
 
 ### 화면 레이아웃 (CleverOne 참고)
 
@@ -211,7 +212,7 @@ SectionViewer (CSS Grid)
 - **브라우저**: Chrome (최신), Edge (최신), Safari (최신)
 - **GPU**: 내장 GPU (Intel/Apple Silicon) + 외장 GPU (가능 시)
 - **해상도**: 1920x1080, 2560x1440
-- **더미 데이터**: 각 View에 서로 다른 256x256 ~ 512x512 텍스처 (Phase 1에서는 CT 데이터 불필요, 랜덤/그라데이션 이미지 사용)
+- **데이터**: 초기 단계는 더미(256x256~512x512) 텍스처로도 검증 가능. **실 CT/섹션 이미지·오버레이**를 쓰는 것도 가능하나, Phase 1의 제안 목표는 “11 View 동시 렌더 + Context 수”이므로 **볼륨/리슬라이스 품질은 이후 Phase**에서 다룬다.
 
 ### Phase 1 성공 기준
 
@@ -223,7 +224,7 @@ SectionViewer (CSS Grid)
 
 ### Phase 1 산출물
 
-1. 3 Canvas 전략 동작 데모 (section-demo 앱)
-2. 성능 벤치마크 결과 (FPS, GPU 메모리, CPU 사용률)
-3. 크로스 브라우저 테스트 결과
-4. Demo site 배포 완료 (`http://scp-section-demo.test.scp.esclouddev.com/`)
+1. 3 Canvas 전략 동작 데모 (section-demo 앱) — **완료(결과·캡처: `Phase1_WebGL_MultiView_결과.md`, `screenshot.png`)**
+2. 성능 벤치마크 결과 (FPS, GPU 메모리, CPU 사용률) — 측정치는 데모/로그에 기록되면 본 One Pager에 표로 보강 가능
+3. 크로스 브라우저 테스트 결과 — 동일
+4. Demo site 배포 완료 (`http://scp-section-demo.test.scp.esclouddev.com/`) — 인프라는 계획서 기준; URL·배포 상태는 운영 시점에 맞게 확인
