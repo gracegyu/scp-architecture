@@ -30,6 +30,8 @@ Section View 화면 구성:
 - **전략 A**: 1개의 WebGL Context + 11개의 Viewport로 분할
 - **전략 B**: 3개의 WebGL Context (Scout 1개, Panorama 1개, Section 9개 통합 1개) + Section 영역은 9개 Viewport로 분할
 
+> **렌더링 기술 선택**: 본 PoC는 **WebGL2를 채택한다**. 단순 표시뿐 아니라 **CT 볼륨에서 매 프레임 다수 단면을 재계산해 그대로 화면에 표시**하는 워크로드라, ① 픽셀 단위 데이터-병렬 연산(3선형 보간), ② 표시까지의 회수(read-back) 비용 0, ③ 9뷰 동시 인터랙션 측면에서 GPU 경로가 구조적으로 강제된다. 자세한 근거는 [Phase1 결과 문서 — “왜 WebGL이 필요한가”](./Phase1/Phase1_WebGL_MultiView_결과.md#왜-webgl이-필요한가--왜-cpu만으로는-부적합한가) 참조. **CPU(JS, Worker) 대비 정량 수치**는 의사결정에는 영향이 없으므로 본 PoC의 결정 가지에서는 빼고, **Phase 6의 부속 PoC**에서 필요 시 측정한다(아래 Technical Description 참고).
+
 ## Business and Marketing Justification
 - SCP Cloud 제품에서 치과 CT Section View는 핵심 진단 기능이며, Web 환경에서의 구현은 Cloud-first 전략의 필수 요소이다.
 - Desktop 전용이었던 Section View를 Web에서 제공하면, 브라우저만으로 치과 CT 진단이 가능해져 접근성이 크게 향상된다.
@@ -218,6 +220,24 @@ scp-report-poc의 배포 패턴을 동일하게 적용한다. (참고: [SCP Clou
   - Server-side Rendering: 모든 렌더링을 서버에서 수행하고 영상 스트리밍 (RemoteViz 방식 참고)
   - 각 방식별 응답 시간, FPS, CPU/GPU 사용률, 메모리 사용량 비교
 - **성공 기준**: SCP Cloud 제품에 적용 가능한 성능 수준의 아키텍처 방안 도출
+
+#### Phase 6 - 부속 PoC: GPU(WebGL) vs CPU(JS) 정량 비교 (선택)
+
+본 PoC 전체에서 **WebGL은 이미 채택**된 결정이다(Project Description 참조). 다만 SCP Cloud 제품 보고/대외 공유 시 **수치로 보여달라는 요구가 있을 때** 짧게 수행할 수 있도록 절차만 정리한다. 의사결정에는 영향이 없으므로 **착수 여부는 Phase 6 진입 시 별도 판단**한다.
+
+- **언제 한다**: 위 비교 항목(Client-only / Client+WASM / Server-side …) 평가 표를 만드는 단계에서 **참고 행** 한 줄을 더 채워야 할 때만.
+- **무엇을 측정한다**: 동일 입력(같은 CT 볼륨, 같은 단면 9개, 같은 출력 해상도, 같은 windowing)에서 다음을 비교한다.
+
+  | 경로 | 설명 | 핵심 지표 |
+  |------|------|-----------|
+  | A. **WebGL(채택안)** | CT를 GPU 텍스처(3D/2D Array)로 1회 업로드 후, 셰이더에서 reslice + 표시 | 평균 FPS, 1프레임 ms(9뷰 합), 첫 업로드 ms |
+  | B. **CPU 단일 스레드 JS** | typed array에서 trilinear reslice → ImageData → `putImageData` | 위와 동일 |
+  | C. (옵션) **CPU + Web Worker N개** | 9개 단면을 N Worker로 분할, 결과를 메인에서 표시 | 위와 동일 |
+  | D. (옵션) **CPU 계산 + WebGL 표시** | 계산은 CPU, 표시만 WebGL 텍스처 업로드 | “표시 비용” vs “계산 비용” 분리 |
+
+- **고정 조건**: 같은 브라우저(Chrome 최신), 같은 GPU(내장/외장 둘 다 1회씩이면 충분), 같은 데이터·해상도(예: 256³ 볼륨, 출력 512² × 9뷰).
+- **산출물**: 결과 표 + 한 단락 결론(“표시까지의 회수 비용까지 합치면 자릿수 차이가 측정되었음”과 같은 형태).
+- **명시적 비목표**: 이 부속 PoC는 **WebGL 채택 자체의 재검토를 위한 것이 아니다.** 결과가 어떻든 본 PoC의 채택안(WebGL2)은 변경되지 않는다. 보고용 정량 보강이 목적이다.
 
 ### 기술 스택 (예상)
 - Frontend: TypeScript, WebGL2, HTML5 Canvas
