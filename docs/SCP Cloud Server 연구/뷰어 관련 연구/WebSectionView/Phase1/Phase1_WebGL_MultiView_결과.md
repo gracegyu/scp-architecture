@@ -4,8 +4,10 @@
 
 | 항목 | 내용 |
 |------|------|
-| 과제 | `Phase1_WebGL_MultiView_OnePager.md` (11 View 동시 표시 기술 검증) |
+| 과제 | [Phase 1: WebGL 11개 View 동시 표시 기술 검증](https://vks.vatech.com/spaces/ESDEVELOPER/pages/302045959/Phase+1+WebGL+11%EA%B0%9C+View+%EB%8F%99%EC%8B%9C+%ED%91%9C%EC%8B%9C+%EA%B8%B0%EC%88%A0+%EA%B2%80%EC%A6%9D) (11 View 동시 표시 기술 검증) |
 | 결론 | **완료** — WebGL **Context 3개**만 사용하고, **Viewport(및 Scissor) 분할**로 11개 화면을 구성하는 방식으로 Context 수 제한 문제를 해소함. |
+| 데모 사이트 | http://scp-section-demo.test.scp.esclouddev.com/ |
+| 소스코드 | [Azure DevOps](https://ewoosoft@dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc) |
 | 근거 문서 | 상세 기획·리스크·성공 기준은 One Pager 동일 경로 파일 참고. |
 
 ## 해법 요약
@@ -188,4 +190,5 @@ sequenceDiagram
 ## 결론 (Gate)
 
 - Phase 1 One Pager에서 정한 **「3 Context + 11 Viewport로 11 View 동시 표시」** 전략이 구현·동작이 확인되었고, **이후 Phase(2~6)를 진행할 수 있는 기술 전제**는 충족된 것으로 본다.
-- 데모 URL·빌드·벤치마크 수치는 저장소/파이프라인 및 측정 로그에 따른다.
+- 데모 사이트: http://scp-section-demo.test.scp.esclouddev.com/
+- 빌드·벤치마크 수치는 저장소/파이프라인 및 측정 로그에 따른다.
