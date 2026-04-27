@@ -1,0 +1,11 @@
+- section view를 9개 이상 분리하는 방법 (WebGL vs Canvas)
+    - 최초 목표는 11개 view (2개의 control view, 9개의 section view)
+    - WebGL이 선명하고 빠른데, GLContext로 제한이 있다.
+    - section 이 가장 많은 layout을 공유한다. [민진우/ Thomas]
+- server side rendering도 함께 검토 (3d volume, mesh, section 등)
+    - 참고: https://developer.openinventor.com/index.php/general-documentation/remoteviz-getting-started-guide/
+    - [~~EZDM-9~~](https://vts.vatech.com/browse/EZDM-9) - RemoveBiz를 evaluate 한다. **Closed**
+    - 무손실은 local 리소스, 손실은 cloud 리소스(backup 개념) 사용 검토(local first vs cloud first)
+- slice할 point 를 자동으로 찾는 방법 (AI, AI+ 수동 등)
+- slice를 바탕으로 panorama를 생성하는 방법 (WASM, server side compute 등)
+- 속도, quality 요구사항 (desktop 대비 속도가 이슈가 될 것으로 예상)
