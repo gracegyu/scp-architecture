@@ -5,7 +5,7 @@ Phase 1: WebGL 11개 View 동시 표시 기술 검증
 
 ## Date
 - **기획/제출(초안)**: 2026-04-27
-- **상태**: 검증 완료(실행 화면·요약: 동일 폴더 `Phase1_WebGL_MultiView_결과.md`, `screenshot.png`)
+- **상태**: 검증 완료
 
 ## Submitter Info
 Raymond
