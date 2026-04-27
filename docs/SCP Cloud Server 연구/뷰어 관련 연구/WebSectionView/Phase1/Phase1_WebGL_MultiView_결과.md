@@ -14,6 +14,50 @@
 - View마다 Context를 11개 둔 이전 방식(Chrome `CONTEXT_LOST_WEBGL` 유발)을 대체한다.
 - Section Grid 쪽은 `viewport` + `scissor`로 타일마다 별도 텍스처/쿼드 렌더(One Pager 의사코드와 동일).
 
+## 왜 WebGL이 필요한가 (= 왜 CPU만으로는 부적합한가)
+
+본 PoC의 최종 형태(이후 Phase 4~5)는 “**CT Volume에서 매 프레임 9개 단면을 다시 만들고 화면에 그린다**”이다. 이 작업은 **단순 표시 부하**가 아니라 **연산 + 표시가 엮인 부하**이며, 이런 종류 작업은 구조적으로 **GPU 경로(WebGL)가 거의 강제되는 것**에 가깝다. 정량 비교는 [WebSectionView_PoC_OnePager.md](../WebSectionView_PoC_OnePager.md) **Phase 6 - 부속 PoC**에서 다룬다(아래 참조). 결과 문서에는 **이론적 근거**만 정리한다.
+
+### 1) 픽셀당 연산이 “거의 SIMD에 최적화된” 형태이다
+
+각 출력 픽셀은 다음 3단계 정도가 거의 전부이다.
+1. 단면 평면 좌표(u, v) → CT Volume 인덱스(x, y, z) 행렬곱 1회
+2. **3선형 보간**: 8개 voxel 샘플 + 14회 정도의 곱·덧셈
+3. windowing/CLUT(밝기 매핑)
+
+이 패턴은 **픽셀끼리 의존성이 0**인 **fully data-parallel** 워크로드라, GPU 셰이더 한 줄과 거의 1:1로 매핑된다. CPU에서 같은 일을 하면 동일 알고리즘을 **수십만~수백만 번 반복**해야 하고, JS 엔진/typed array 한계 안에서 **순차 실행**된다.
+
+### 2) **표시까지의 경로**에서 GPU만 “회수(read-back) 비용 0”
+
+CPU 경로는 항상 다음 중 하나의 추가 비용을 낸다.
+- ImageData 만들고 `putImageData`(Canvas2D) — **CPU→DOM/GPU 복사**
+- 또는 만든 픽셀을 다시 WebGL 텍스처로 업로드 — **CPU→GPU 복사**
+
+WebGL 경로는 **CT 볼륨을 한 번만 GPU로 올린 뒤**(3D 텍스처 또는 2D Array), 매 프레임 단면만 셰이더로 만들어서 **그대로 표시**한다. **회수가 없다.** 이게 사실상 가장 큰 절대 차이이며, “계산이 빠르다” 이상의 본질적 우위다.
+
+### 3) 9뷰 동시 갱신 + 사용자 인터랙션
+
+- 위치 슬라이더/드래그를 **체감 부드럽게(>= 30 FPS)** 갱신하려면 한 프레임이 **약 33ms 이내**여야 한다.
+- 9뷰 × 출력 256²~512² × 8 voxel sample/픽셀이면 프레임당 **수백만~수천만 voxel fetch + 보간**이다.
+- 이 양은 **typed array + 단일 스레드 JS**로는 자릿수가 안 맞고, Worker로 N개 코어 분산해도 “계산은 어느 정도 따라가지만 **결과를 다시 표시하려면 회수 비용이 또 발생**” 한다(=2번 항목).
+- WebGL이면 **모든 단면을 같은 context 안에서 viewport만 바꿔가며 그리고**, 표시까지 그대로 끝난다(이번 Phase 1에서 이미 검증한 패턴).
+
+### 4) 자릿수 추정(이론적 근거)
+
+| 항목 | 대략 값 | 코멘트 |
+|------|---------|--------|
+| 출력 1프레임(9뷰, 512²) 연산 | 약 19~38 M voxel fetch + 보간 | 픽셀 0.26 M × 9 × 8 sample(~14 곱셈) |
+| GPU 처리량 | 보통 수십~수백 GFLOPS, 텍스처 캐시 수백 GB/s | 내장 GPU 기준 자릿수 |
+| 단일 스레드 JS 처리량 | 수 GFLOPS 미만 | typed array 최적화 시 |
+| 회수 비용 | GPU=0, CPU=프레임마다 발생 | 본질적 차이 |
+
+→ **계산만 비교해도 자릿수 차이**, 게다가 **표시까지의 회수 비용**까지 겹치면 “WebGL을 쓰지 않을 이유가 없다”는 결론이 곧바로 나온다.
+
+### 5) 그러면 왜 정량 비교 PoC를 지금 안 하나
+
+- 결정 자체에는 영향이 없고(이미 채택), **수치는 데이터·브라우저·GPU에 따라 자릿수 안에서 흔들린다.**
+- 다만 SCP Cloud 제품 적용 시점에 **숫자로 보여줘야 할 자리**가 있을 수 있어, **Phase 6에서 부속 PoC로** “WebGL vs CPU 단일 스레드(+옵션 Worker)” 미니 벤치를 잡는 절차만 OnePager에 정리해 둔다.
+
 ## 핵심 개념: Canvas · WebGL Context · Viewport
 
 Phase 1을 이해하려면 우선 세 가지의 **계층 관계**가 분명해야 한다.
@@ -43,7 +87,7 @@ Canvas / Context / Viewport 외에 본 PoC에서 직접 쓰거나, 이후 Phase�
 
 (이후 Phase에서 더 추가될 만한 것: **WebGL 확장(EXT_color_buffer_float 등)**, **Compute(WebGPU 이행 시)**, **DICOM Loader**, **3D Texture / 2D Texture Array**(volume), **Render-to-Texture(FBO)**)
 
-### Mermaid: Canvas → Context → Viewport (3 Canvas 전략)
+### Diagram: Canvas → Context → Viewport (3 Canvas 전략)
 
 ```mermaid
 graph TD
@@ -101,7 +145,7 @@ graph TD
   class T1,T2,T3 tex;
 ```
 
-### Mermaid: Section Grid 1프레임 렌더 시퀀스
+### Diagram: Section Grid 1프레임 렌더 시퀀스
 
 ```mermaid
 sequenceDiagram
