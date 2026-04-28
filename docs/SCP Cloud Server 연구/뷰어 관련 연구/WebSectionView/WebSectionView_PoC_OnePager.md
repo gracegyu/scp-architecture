@@ -56,6 +56,8 @@ Section View 화면 구성:
 | Axial Slice 자동 선택(AI) 정확도 부족                  | 중간   | 중간        | 수동 Slider UI를 기본으로 제공하고, AI는 초기값 추천 용도로 활용 |
 | 파노라마 생성 속도가 실시간 상호작용에 부적합          | 중간   | 중간        | WASM 또는 Server-side Compute 검토                               |
 | 브라우저/GPU 호환성 문제                               | 낮음   | 낮음        | WebGL2 기준으로 구현, fallback 방안 검토                         |
+| 치아 Segmentation 모델의 브라우저 추론 성능 부족       | 중간   | 중간        | Server-side 추론 후 결과만 전송하는 방식으로 대체 가능           |
+| 전통적 알고리즘으로 치아 경계선 정확도 부족            | 중간   | 높음        | AI 기반 Segmentation으로 전환, 또는 두 방식 병행 검토            |
 
 ## Resource and Scheduling Details
 
@@ -73,7 +75,8 @@ Section View 화면 구성:
 | Phase 4  | 파노라마 이미지 생성                    | 1주       | 곡선을 따라 Volume Reslice             |
 | Phase 5  | 9개 Section 이미지 실시간 생성 및 표시  | 2주       | 기능 구현 + 성능 측정                  |
 | Phase 6  | 종합 성능 검증 및 아키텍처 결정         | 1주       | Client vs WASM vs Server-side 비교     |
-| **합계** |                                         | **7~8주** |                                        |
+| Phase 7  | 치아 Segmentation 오버레이              | 2~3주     | Scout/Section 치아 경계선 표시         |
+| **합계** |                                         | **9~11주** |                                       |
 
 ### 필요 장비 및 환경
 
@@ -181,6 +184,7 @@ scp-report-poc의 배포 패턴을 동일하게 적용한다. (참고: [SCP Clou
 | Phase 4 | (Phase 3 완료 후 작성 예정) | - |
 | Phase 5 | (Phase 4 완료 후 작성 예정) | - |
 | Phase 6 | (Phase 5 완료 후 작성 예정) | - |
+| Phase 7 | (Phase 6 완료 후 작성 예정) | - |
 
 ## Technical Description
 
@@ -258,10 +262,23 @@ scp-report-poc의 배포 패턴을 동일하게 적용한다. (참고: [SCP Clou
 - **산출물**: 결과 표 + 한 단락 결론(“표시까지의 회수 비용까지 합치면 자릿수 차이가 측정되었음”과 같은 형태).
 - **명시적 비목표**: 이 부속 PoC는 **WebGL 채택 자체의 재검토를 위한 것이 아니다.** 결과가 어떻든 본 PoC의 채택안(WebGL2)은 변경되지 않는다. 보고용 정량 보강이 목적이다.
 
+### Phase 7: 치아 Segmentation 오버레이
+
+- **목표**: Scout View(Axial Slice)와 Section View(Cross-section)에서 치아 경계선(윤곽)을 검출하여 오버레이로 표시하는 기능의 기술적 타당성을 검증
+- **배경**: CleverOne 등 Desktop 제품에서는 Scout View에서 각 치아의 외곽선을 반투명으로 표시하고, Section View에서도 치관(crown) 부분의 윤곽선을 표시한다. 이 기능이 전통적 영상처리 알고리즘(OpenCV 류)인지 AI 기반인지는 확인 필요하며, Web 환경에서의 구현 가능성을 검증한다.
+- **검증 방법**:
+  - 전통적 알고리즘: Threshold + Edge Detection (Canny 등), Contour Extraction. Client-side JavaScript 또는 WASM(OpenCV.js) 활용
+  - AI 기반: U-Net 등 의료 영상 Segmentation 모델. ONNX Runtime Web 또는 TensorFlow.js로 브라우저 추론, 또는 Server-side 추론 후 결과 전송
+  - Scout View 대상: Axial Slice에서 치아 영역 segmentation -> 외곽선 추출 -> WebGL 오버레이
+  - Section View 대상: Cross-section에서 치관 영역 segmentation -> 외곽선 추출 -> 각 Viewport에 오버레이
+  - 성능: 실시간 상호작용(Slice 변경, 위치 이동) 시 segmentation 갱신 속도 측정
+- **성공 기준**: 치아 경계선이 Desktop 제품과 유사한 정확도로 표시되고, Slice/위치 변경 시 체감상 끊김 없이 갱신됨
+
 ### 기술 스택 (예상)
 
 - Frontend: TypeScript, WebGL2, HTML5 Canvas
 - Volume 처리: vtk.js 또는 자체 Reslice 구현
 - (선택) WASM: C++/Rust -> WebAssembly 빌드
 - (선택) Server-side: Node.js/Python 서버 또는 기존 SCP Cloud 인프라 활용
-- AI (검토): 치열 Slice 자동 선택, 치열궁 곡선 자동 검출 모델
+- AI (검토): 치열 Slice 자동 선택, 치열궁 곡선 자동 검출, 치아 Segmentation 모델
+- Segmentation (검토): OpenCV.js(WASM) 또는 ONNX Runtime Web / TensorFlow.js (브라우저 추론)
