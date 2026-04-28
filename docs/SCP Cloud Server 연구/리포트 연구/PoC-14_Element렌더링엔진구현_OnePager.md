@@ -1630,15 +1630,15 @@ aws s3api create-bucket \
 
 ### Phase 4: EzOrtho 특화 + 통합 검증 **(P4)** - 2주
 
-- [ ] **Task 4.1**: ToothBox, TreatmentCategory (10h)
-  - [ ] ToothBoxElement (selectedToothCodes, selectedOcclusionToothCodes)
-  - [ ] TreatmentCategoryElement (category1/2/3, P2 우선순위 낮음)
+- [x] **Task 4.1**: ToothBox, TreatmentCategory (10h)
+  - [x] ToothBoxElement (selectedToothCodes, selectedOcclusionToothCodes)
+  - [x] TreatmentCategoryElement (category1/2/3, P2 우선순위 낮음)
 
 - [ ] **Task 4.2**: Form Controls (12h)
   - [ ] formControl + controlType (radio, checkbox, button, comboBox, textInput, textArea)
   - [ ] 각 controlType별 렌더링
 
-- [ ] **Task 4.3**: Block, Group (10h)
+- [ ] **Task 4.3**: Block, Group (10h)dd
   - [ ] BlockElement (children: Element[], 상대 좌표)
   - [ ] GroupElement (memberIds: string[])
   - [ ] 그룹 선택 시 일괄 이동/삭제
