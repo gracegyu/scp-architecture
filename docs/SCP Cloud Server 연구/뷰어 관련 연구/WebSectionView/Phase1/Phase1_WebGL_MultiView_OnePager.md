@@ -15,6 +15,15 @@ Raymond
 
 이전 시도([POPV-959](https://vts.vatech.com/browse/POPV-959))에서는 각 View마다 별도 WebGL Context를 생성하여 Chrome의 Context 수 제한(최대 15개)에 걸려 CONTEXT_LOST_WEBGL 에러가 발생했다. 본 PoC에서는 **WebGL Context를 3개로 제한**하고(Scout·Panorama·Section 각 1), 특히 Section은 **같은 Context 안에서 9개 Viewport(+ Scissor)로** 타일을 나누어 이 문제를 우회한다. (Context를 여러 뷰가 “하나로 공유”하는 것이 아니라, **개수를 줄이고** 한 Context 내에서 **화면만 분할**하는 방식이다.)
 
+### Canvas 요소와 WebGL Context
+
+브라우저에서는 일반적으로 **`<canvas>` 요소 하나에 WebGL(WebGL2) Context 하나**를 연결하여 사용한다.
+
+- **채택 구현(전략 B)**: **서로 다른 `<canvas>` 요소 3개** — Scout용 1개, Panorama용 1개, Section Grid용 1개 — 에 각각 WebGL Context 1개씩 연결하여 **WebGL Context 합계 3개**. Section용 canvas **한 장**에서만 `viewport`를 9번 바꿔 9칸을 그린다.
+- **대안(전략 A)**: `<canvas>` **1개** + WebGL Context **1개** + viewport로 11영역 분할. 본 Phase 1에서는 구현하지 않았다.
+
+전체 PoC 문서와 동일 정의는 메인 [`WebSectionView_PoC_OnePager.md`](../WebSectionView_PoC_OnePager.md) **「Canvas 요소와 WebGL Context」** 절을 참조한다.
+
 ### 화면 레이아웃 (CleverOne 참고)
 
 ```

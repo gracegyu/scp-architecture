@@ -12,6 +12,34 @@
 
 ## 구현 결과
 
+### 전체 화면 분할 (section-demo · Phase 2 탭)
+
+Phase 1에서 정의한 **3영역 그리드**(좌상 Scout · 좌하 Panorama · 우측 Section 3×3)는 그대로 `SectionViewer`(`packages/components/src/SectionViewer.tsx`)의 CSS Grid로 유지한다. Phase 2·3에서는 그 **위에** 앱 수준 헤더와 CT 로드 UI를 둔다.
+
+```
++------------------------------------------------------------------+
+| [DOM] App 헤더 — 제목, Phase 1 / Phase 2 탭                       |
++------------------------------------------------------------------+
+| [DOM] CTLoader — CT 선택, Load CT, 진행·완료·에러 메시지          |
++------------------------------------------------------------------+
+| Scout 슬롯           | Section 슬롯 (세로 통합)                    |
+| Axial + 곡선 + 슬라이더 | 3×3 WebGL Grid (9 Viewport)           |
++----------------------|                                           |
+| Panorama 슬롯        |                                           |
+| WebGL (더미)         |                                           |
++----------------------+-------------------------------------------+
+```
+
+| 영역 | 렌더링 | 구현 참고 |
+| --- | --- | --- |
+| 헤더·탭·CT 바 | **DOM만** (Canvas 없음) | `App.tsx`, `CTLoader.tsx` |
+| Scout 뷰포트 | **Canvas 2D** ×2 (CT + 오버레이), Edit는 DOM 버튼 | `ScoutView.tsx` |
+| Scout 하단 Slice/WC/WW/INT | **DOM** (`input range`) | `ScoutView.tsx` 하단 패널 |
+| Panorama | **WebGL** | `PanoramaView.tsx` |
+| Section Grid | **WebGL**, 9 Viewport | `SectionGrid.tsx` |
+
+**WebGL Context 3개 전략**과의 관계: Panorama·Section은 각각 WebGL Canvas 1개( Section은 내부 9분할)를 쓴다. **Scout 슬롯은 현재 구현에서 Canvas 2D만 사용**하므로, “3 Canvas 모두 WebGL”인 Phase 1 더미 시나리오와 달리 **Scout 칸에는 WebGL Context가 없다**(메인 OnePager 「뷰별 렌더링 경로」와 동일). 상단 CT Loading·타이틀은 **어떤 Canvas에도 속하지 않는 일반 UI**이다.
+
 ### 렌더링 구조
 
 Canvas 2겹 구조를 사용하여 CT Slice와 곡선 오버레이를 독립적으로 관리한다.
