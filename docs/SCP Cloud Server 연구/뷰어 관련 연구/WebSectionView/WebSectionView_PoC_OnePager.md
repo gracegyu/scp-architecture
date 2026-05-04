@@ -37,7 +37,19 @@ Section View 화면 구성:
 - **전략 A**: 1개의 WebGL Context + 11개의 Viewport로 분할
 - **전략 B**: 3개의 WebGL Context (Scout 1개, Panorama 1개, Section 9개 통합 1개) + Section 영역은 9개 Viewport로 분할
 
-> **렌더링 기술 선택**: 본 PoC는 **WebGL2를 채택한다**. 단순 표시뿐 아니라 **CT 볼륨에서 매 프레임 다수 단면을 재계산해 그대로 화면에 표시**하는 워크로드라, ① 픽셀 단위 데이터-병렬 연산(3선형 보간), ② 표시까지의 회수(read-back) 비용 0, ③ 9뷰 동시 인터랙션 측면에서 GPU 경로가 구조적으로 강제된다. 자세한 근거는 [Phase1 결과 문서 — “왜 WebGL이 필요한가”](./Phase1/Phase1_WebGL_MultiView_결과.md#왜-webgl이-필요한가--왜-cpu만으로는-부적합한가) 참조. **CPU(JS, Worker) 대비 정량 수치**는 의사결정에는 영향이 없으므로 본 PoC의 결정 가지에서는 빼고, **Phase 6의 부속 PoC**에서 필요 시 측정한다(아래 Technical Description 참고).
+> **렌더링 기술 선택 (Section 중심)**: **9개 Section View(3×3 Grid)에서의 CT 볼륨 리슬라이스 + 실시간 표시**에는 **WebGL2를 채택한다**. 이 경로는 단순 2D 이미지 나열이 아니라 **CT 볼륨에서 매 프레임 다수 단면을 재계산해 화면에 올리는** 워크로드라, ① 픽셀 단위 데이터-병렬 연산(3선형 보간), ② 표시까지의 GPU read-back 최소화, ③ 9뷰 동시 인터랙션 측면에서 GPU 경로가 구조적으로 유리하다. 자세한 근거는 [Phase1 결과 문서 — “왜 WebGL이 필요한가”](./Phase1/Phase1_WebGL_MultiView_결과.md#왜-webgl이-필요한가--왜-cpu만으로는-부적합한가) 참조. **CPU(JS, Worker) 대비 정량 수치**는 의사결정에는 영향이 없으므로 본 PoC의 결정 가지에서는 빼고, **Phase 6의 부속 PoC**에서 필요 시 측정한다(아래 Technical Description 참고).
+
+### 뷰별 렌더링 경로 (PoC 기준 확정)
+
+11뷰 레이아웃은 Phase 1에서 **3 Canvas · 3 WebGL Context**(Scout / Panorama / Section Grid)로 Context 수 제한을 피하는 것이 검증되었다. **Phase 2 이후** Scout에서 실제 DICOM Axial을 **Canvas 2D**로 그리는 구성이 PoC 기본이므로, Scout 영역에는 **WebGL Context 없이 2D Canvas만** 둘 수 있다(정적 `scout.png` 데모만 쓸 때는 Phase 1과 같이 WebGL이 될 수 있음). Panorama·Section Grid는 **WebGL Canvas**를 유지하는 전제를 유지한다. **각 Canvas에 그리는 내용(GPU 리슬라이스 vs 2D 비트맵)** 은 아래 표와 같이 뷰마다 다르게 둔다.
+
+| 뷰 | PoC에서의 표시(렌더) 경로 | 볼륨 리슬라이스 등 연산 | 비고 |
+| --- | --- | --- | --- |
+| **Scout** | **Canvas 2D**를 기본으로 한다. CT Axial 한 장 + Windowing + Phase 3 곡선·수직선 오버레이는 2D가 구현·디버깅에 유리하다. Phase 1에서는 정적 `scout.png`를 **WebGL 텍스처**로 표시한 데모가 있다. | Axial은 이미 메모리 볼륨에서 추출한 2D 슬라이스. Scout 표시를 WebGL로 **통일할 필요는 PoC 범위에서 두지 않는다.** | 제품화 시 볼륨을 **GPU 3D 텍스처 한 번만** 올리는 아키텍처를 택하면, Scout에서도 동일 텍스처를 샘플링하도록 **WebGL로 옮길 수 있는 선택지**는 남긴다. |
+| **Panorama** | **2D 결과 이미지**(Phase 4에서 합성)를 **Canvas 2D 또는 WebGL 텍스처(단일 쿼드)** 중 하나로 표시한다. PoC는 구현 단순성 우선. | 곡선 따라 Reslice로 파노라마를 **만드는** 쪽은 **GPU(WebGL)** 경로를 우선 검토한다(Client / WASM / Server 비교는 Phase 6에서 병행). **표시**만으로 WebGL이 필수는 아니다. | 연산은 GPU, 표시는 2D라도 파이프라인 검증에는 충분한 경우가 많다. |
+| **Section Grid (9뷰)** | **WebGL2**로 **9 Viewport**(+ Scissor)에 각각 리슬라이스 결과를 **셰이더 기반**으로 그리는 것을 **본 PoC의 채택안**으로 둔다. | **CT 볼륨 → GPU(3D/2D Array 텍스처) 업로드 후**, 곡선·위치에 따른 단면을 **프래그먼트 셰이더에서 샘플링**하는 경로를 Phase 5 목표로 한다. | PoC의 **성능·아키텍처 검증 핵심**은 이 뷰이다. **“Section만 WebGL로 충분한가?”**에 대한 답은 **이 워크로드까지 커버하면 PoC 목적에는 충분**하다고 본다. Scout·Panorama는 2D 위주로 남겨도 된다. |
+
+**정리**: **WebGL2 필수·채택의 중심은 Section Grid(9뷰)의 볼륨 리슬라이스 + 실시간 표시**이다. Scout·Panorama는 PoC 단계에서 **Canvas 2D 중심**으로 두어도 본 OnePager의 기술 방향과 모순되지 않으며, Phase 4~5에서 Panorama **연산**을 GPU로 가져가더라도 **표시**까지 WebGL로 통일할 의무는 없다.
 
 ## Business and Marketing Justification
 
@@ -98,10 +110,10 @@ scp-section-poc/
 ├── packages/
 │   ├── core/                           # @ewoosoft/scp-section-core
 │   │   ├── src/
-│   │   │   ├── webgl/                  # WebGL Context 관리, Viewport 분할, Texture 관리 (Phase 1)
+│   │   │   ├── webgl/                  # WebGL Context, Viewport(Phase 1)·Section Grid GPU 파이프라인(Phase 5)
 │   │   │   ├── dicom/                  # DICOM 파싱, ZIP Stream Unzip, Volume 구성 (Phase 2)
-│   │   │   ├── volume/                 # CT Volume 데이터 로딩 및 Reslice (Phase 5~6)
-│   │   │   ├── curve/                  # 치열궁 곡선 처리 (Phase 4)
+│   │   │   ├── volume/                 # CT Volume Reslice·GPU 연동 (Phase 4~5)
+│   │   │   ├── curve/                  # 치열궁 곡선 (Phase 3)
 │   │   │   └── utils/                  # 좌표 변환, 수학 유틸리티
 │   │   ├── package.json
 │   │   └── tsconfig.json
@@ -109,9 +121,9 @@ scp-section-poc/
 │   └── components/                     # @ewoosoft/scp-section-components
 │       ├── src/
 │       │   ├── SectionViewer.tsx        # 최상위 컴포넌트 (11 View 레이아웃)
-│       │   ├── ScoutView.tsx            # Scout View 컴포넌트 (Phase 3~4)
-│       │   ├── PanoramaView.tsx         # Panorama View 컴포넌트 (Phase 5)
-│       │   ├── SectionGrid.tsx          # 3x3 Section Grid 컴포넌트 (Phase 6)
+│       │   ├── ScoutView.tsx            # Scout View (Phase 2~3, 기본 Canvas 2D)
+│       │   ├── PanoramaView.tsx         # Panorama View (Phase 4, 2D 또는 단일 WebGL 쿼드)
+│       │   ├── SectionGrid.tsx          # 3x3 Section Grid (Phase 5, WebGL2 + 9 Viewport)
 │       │   └── hooks/                   # WebGL 관련 React hooks
 │       ├── package.json
 │       └── tsconfig.json
@@ -292,6 +304,7 @@ scp-report-poc의 배포 패턴을 동일하게 적용한다. (참고: [SCP Clou
 ### Phase 4: 파노라마 이미지 생성
 
 - **목표**: Phase 3에서 정의한 치열궁 곡선을 따라 CT Volume을 Reslice하여 파노라마 이미지를 생성
+- **렌더·표시**: 파노라마 **결과는 2D 비트맵**이다. OnePager **「뷰별 렌더링 경로」**에 따라 **표시는 Canvas 2D 또는 단일 WebGL 텍스처** 중 PoC 구현 편의로 선택한다. **연산(Reslice 합성)** 은 GPU(WebGL) 우선 검토하며, Client / WASM / Server-side 비교는 Phase 6에서 병행한다.
 - **검증 방법**:
   - 곡선을 일정 간격으로 샘플링하여 각 위치에서 곡선에 수직인 단면을 추출
   - 추출한 단면들을 이어 붙여 파노라마 이미지 합성
@@ -301,10 +314,11 @@ scp-report-poc의 배포 패턴을 동일하게 적용한다. (참고: [SCP Clou
 ### Phase 5: 9개 Section 이미지 실시간 생성 및 표시
 
 - **목표**: Scout View에서 위치를 선택하면 해당 위치 기준으로 9개의 Cross-section 이미지를 자동 생성하여 3x3 Grid에 실시간 표시
+- **채택 렌더 경로**: **WebGL2**. CT 볼륨을 GPU 텍스처로 올린 뒤, 곡선에 수직인 단면을 **셰이더에서 리슬라이스**하고, Phase 1에서 검증한 **단일 Section Canvas 안의 9 Viewport(+ Scissor)** 에 출력하는 것을 본 Phase의 구현 목표로 한다(OnePager 상단 **「뷰별 렌더링 경로」** 참조).
 - **검증 방법**:
   - 치열궁 곡선 위의 선택 지점 기준, 전후 일정 간격(Interval)으로 9개 단면 위치 계산
   - 각 위치에서 곡선에 수직인 방향으로 CT Volume을 Reslice하여 Section 이미지 생성
-  - 9개 이미지를 Phase 1의 Section View에 실시간으로 렌더링
+  - 9개 이미지를 **WebGL Section Grid**에 실시간으로 렌더링
   - 위치 변경(드래그) 시 실시간 갱신 FPS 측정
 - **성공 기준**: 위치 변경 시 9개 Section 이미지가 30 FPS 이상으로 갱신됨 (또는 체감상 끊김 없는 수준)
 
@@ -351,7 +365,7 @@ scp-report-poc의 배포 패턴을 동일하게 적용한다. (참고: [SCP Clou
 
 ### 기술 스택 (예상)
 
-- Frontend: TypeScript, WebGL2, React, Vite
+- Frontend: TypeScript, **WebGL2(Section Grid·볼륨 리슬라이스 파이프라인 중심)**, React, Vite. Scout·Panorama 결과 표시는 PoC에서 **Canvas 2D 병행** 가능(본 문서 「뷰별 렌더링 경로」).
 - DICOM 처리: `dicom-parser` (DICOM 파일 파싱), `fflate` (ZIP Stream Unzip)
 - Volume 처리: vtk.js 또는 자체 Reslice 구현
 - (선택) WASM: C++/Rust -> WebAssembly 빌드
