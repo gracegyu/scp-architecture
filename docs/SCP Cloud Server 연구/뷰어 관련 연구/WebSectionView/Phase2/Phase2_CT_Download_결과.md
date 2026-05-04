@@ -1,10 +1,10 @@
-# Phase 2: CT Data Download 및 Volume 구성 결과
+# Phase 2: CT Data Download 및 Axial Slice 선택 결과
 
 ## 개요
 
 | 항목 | 내용 |
 | --- | --- |
-| 목표 | S3에서 CT ZIP 다운로드 + Stream Unzip + DICOM 파싱 + 3D Volume 메모리 구성 |
+| 목표 | S3에서 CT ZIP 다운로드 + Stream Unzip + DICOM 파싱 + 3D Volume 메모리 구성 + 11-View Scout에서 Axial Slice 선택 |
 | 기간 | 2026-05-04 |
 | 상태 | 구현 완료 |
 | 데모 사이트 | http://scp-section-demo.test.scp.esclouddev.com/ (Phase 2 탭) |
@@ -36,12 +36,26 @@ S3 (scp-section-ct-data)
   │  (메모리)          │  + VolumeMetadata
   └──────────────────┘
          │
-         ▼  Axial Slice 추출 + Windowing
+         ▼  11-View 레이아웃 전환
   ┌──────────────────┐
-  │  AxialSliceViewer │  Canvas 2D 렌더링
-  │  Slider UI        │  Slice/WC/WW 조절
+  │  SectionViewer    │  Scout / Panorama / Section 3x3 Grid
+  │  (11-View Layout) │
+  └──────────────────┘
+         │
+         ▼  Scout View에 Volume 전달
+  ┌──────────────────┐
+  │  ScoutView        │  Canvas 2D Axial Slice 렌더링
+  │  Slider UI        │  Slice Index / WC / WW 조절
   └──────────────────┘
 ```
+
+### UI 흐름
+
+1. Phase 2 탭 선택 -> CTLoader 표시 (CT 선택 + Load CT 버튼)
+2. CT 선택 후 "Load CT" 클릭 -> 다운로드/파싱 진행률 표시
+3. Volume 구성 완료 -> 11-View 레이아웃(SectionViewer)으로 전환
+4. Scout View에서 실제 CT Axial Slice가 렌더링됨
+5. Slider로 Slice Index, Window Center, Window Width 조절 가능
 
 ### 주요 구현 모듈
 
@@ -61,7 +75,7 @@ CT ZIP 다운로드부터 3D Volume 구성까지의 전체 파이프라인을 �
   - Rescale Intercept/Slope (0028,1052/1053)
   - Pixel Data (7FE0,0010)
 - **Volume 구성**: Instance Number 또는 Image Position Z 기준 정렬 후 연속 `Int16Array`로 합산
-- **진행 상황 콜백**: downloading → parsing → building 3단계로 UI에 진행률 전달
+- **진행 상황 콜백**: downloading -> parsing -> building 3단계로 UI에 진행률 전달
 
 #### 2. `packages/components/src/CTLoader.tsx`
 
@@ -73,21 +87,34 @@ CT 데이터 선택 및 다운로드 UI 컴포넌트.
 - 완료 시 소요 시간 표시
 - 에러 발생 시 에러 메시지 표시
 
-#### 3. `packages/components/src/AxialSliceViewer.tsx`
+#### 3. `packages/components/src/ScoutView.tsx`
 
-로드된 Volume의 Axial Slice를 Canvas 2D로 렌더링하는 검증용 컴포넌트.
+Scout View 컴포넌트. Phase 2에서 CTVolume 통합 지원 추가.
 
-- Slice Index Slider: 0 ~ (sliceCount-1) 범위에서 Axial Slice 탐색
-- Window Center/Width Slider: CT Windowing 조절 (HU 기반)
-- Volume 메타데이터 표시: dimensions, 메모리 크기, spacing
-- Rescale Intercept/Slope 적용하여 HU 값 변환 후 Windowing
+- **volume 미제공 시**: 기존 WebGL 텍스처 렌더링 (정적 이미지, Phase 1 동작 유지)
+- **volume 제공 시**: Canvas 2D로 Axial Slice 렌더링 + Slider UI
+  - Slice Index Slider: 0 ~ (sliceCount-1) 범위에서 Axial Slice 탐색
+  - Window Center Slider: -1000 ~ 3000 범위 조절
+  - Window Width Slider: 1 ~ 4000 범위 조절
+  - Rescale Intercept/Slope 적용하여 HU 값 변환 후 Windowing
 
-#### 4. `apps/section-demo/src/App.tsx`
+#### 4. `packages/components/src/SectionViewer.tsx`
 
-Phase 1/2 탭 전환 UI 추가.
+11-View 레이아웃 컴포넌트. Phase 2에서 `volume` prop 추가.
 
-- Phase 1 탭: 기존 WebGL Multi-View (SectionViewer)
-- Phase 2 탭: CT Download + AxialSliceViewer
+- volume이 전달되면 ScoutView에 전달하여 실제 CT Axial Slice 렌더링
+- Panorama/Section Grid는 기존 정적 이미지 유지 (Phase 4, 5에서 구현 예정)
+
+#### 5. `apps/section-demo/src/App.tsx`
+
+Phase 1/2 탭 전환 UI. Phase 2 흐름 개선.
+
+- Phase 1 탭: 기존 WebGL Multi-View (정적 이미지)
+- Phase 2 탭: CTLoader -> 로드 완료 시 11-View 레이아웃(SectionViewer)에 Volume 전달
+
+#### 6. `packages/components/src/AxialSliceViewer.tsx` (참고용 유지)
+
+독립적인 Axial Slice 검증 컴포넌트. ScoutView에 기능이 통합되었으나, 향후 독립 용도로 유지.
 
 ### 기술 스택
 
@@ -138,9 +165,11 @@ Phase 1/2 탭 전환 UI 추가.
 | Stream Unzip 정상 동작 (다운로드와 동시 압축 해제) | O (fflate Unzip/UnzipInflate) |
 | DICOM 파싱으로 픽셀 데이터 + 메타데이터 추출 | O (dicom-parser) |
 | 3D Volume (Int16Array) 메모리 구성 | O (슬라이스 정렬 + 연속 배열) |
-| 구성된 Volume에서 임의 Axial Slice 추출 및 화면 표시 | O (Canvas 2D + Windowing) |
+| CT 로드 후 11-View 레이아웃 전환 | O (SectionViewer에 volume 전달) |
+| Scout View에서 Axial Slice 렌더링 + Slider UI | O (Slice/WC/WW 조절) |
+| Slider로 치열이 잘 보이는 Slice 수동 선택 | O (Canvas 2D + Windowing) |
 | 다운로드 진행률 UI | O (3단계 진행 상황 콜백) |
 
 ## 다음 단계
 
-Phase 3에서는 이 Volume을 기반으로 Scout View에 Axial Slice를 표시하고, Slider로 최적 Slice를 선택하는 UI를 구현한다. Phase 2의 `AxialSliceViewer`가 Phase 3의 기초가 된다.
+Phase 3에서는 Scout View에 표시된 Axial Slice 위에서 치열궁을 따르는 곡선(Arch Curve)을 수동으로 정의하는 UI를 구현한다. Control Point 배치 및 Spline 곡선 연결 기능이 핵심이다.
