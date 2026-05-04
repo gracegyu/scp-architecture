@@ -241,8 +241,8 @@ scp-report-poc의 배포 패턴을 동일하게 적용한다. (참고: [SCP Clou
 | Phase | OnePager 파일 | 상태 |
 | --- | --- | --- |
 | Phase 1 | [Phase 1: WebGL 11개 View 동시 표시 기술 검증](https://vks.vatech.com/spaces/ESDEVELOPER/pages/302045959/Phase+1+WebGL+11%EA%B0%9C+View+%EB%8F%99%EC%8B%9C+%ED%91%9C%EC%8B%9C+%EA%B8%B0%EC%88%A0+%EA%B2%80%EC%A6%9D) | 완료 |
-| Phase 2 | (착수 시 작성 예정) | 진행중 |
-| Phase 3 | (Phase 2 완료 후 작성 예정) | - |
+| Phase 2 | [Phase 2 결과](./Phase2/Phase2_CT_Download_결과.md) | 완료 |
+| Phase 3 | [Phase 3 OnePager](./Phase3/Phase3_ArchCurve_OnePager.md) / [Phase 3 결과](./Phase3/Phase3_ArchCurve_결과.md) | 완료 |
 | Phase 4 | (Phase 3 완료 후 작성 예정) | - |
 | Phase 5 | (Phase 4 완료 후 작성 예정) | - |
 | Phase 6 | (Phase 5 완료 후 작성 예정) | - |
