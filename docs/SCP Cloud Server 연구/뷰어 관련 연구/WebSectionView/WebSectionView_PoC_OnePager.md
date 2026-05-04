@@ -34,14 +34,25 @@ Section View 화면 구성:
 
 이전 시도에서는 11개의 View를 각각 별도의 WebGL Context로 생성하려다 Context 수 제한(Chrome 기준 최대 15개)에 걸려 실패한 것으로 추정된다. 하지만 이 접근법은 불필요하며, 아래와 같은 대안 전략이 가능하다:
 
-- **전략 A**: 1개의 WebGL Context + 11개의 Viewport로 분할
-- **전략 B**: 3개의 WebGL Context (Scout 1개, Panorama 1개, Section 9개 통합 1개) + Section 영역은 9개 Viewport로 분할
+- **전략 A**: **`<canvas>` 1개** + **WebGL Context 1개** — `gl.viewport`(및 필요 시 scissor)로 **11개 논리 영역**을 한 표면에 나눈다.
+- **전략 B (Phase 1에서 구현·채택)**: **`<canvas>` 3개**(Scout · Panorama · Section 각각 1요소) + **WebGL Context 3개**(요소마다 Context 1개). Section 영역 canvas **1장 안**에서만 `viewport`를 **9번** 적용해 9칸을 그린다(합계 Viewport = 1+1+9).
+
+### Canvas 요소와 WebGL Context (사실 정리)
+
+브라우저에서는 일반적으로 **`<canvas>` HTML 요소 하나에 WebGL(WebGL2) Context 하나**를 연결하여 사용한다. 본 PoC에서의 대안은 다음과 같다.
+
+| 구분 | 설명 |
+| --- | --- |
+| **`<canvas>` 개수** | 화면에 깔리는 **표면(요소) 수**. 전략 B는 Scout·Panorama·Section이 **서로 다른 canvas 요소**이다. Phase 2 이후 Scout는 Axial+오버레이용으로 **동일 그리드 셀 안에 2D `<canvas>` 2장**을 겹쳐 쓸 수 있다(요소 수는 이보다 많아질 수 있음). |
+| **WebGL Context 개수** | GPU 렌더링 컨텍스트 수. **전략 B + Phase 1 데모**: Scout/Panorama/Section 각 WebGL 1개 → **최대 3개**. **CT 로드 후 Scout만 Canvas 2D**로 둔 경우 Scout canvas에는 WebGL Context가 없어, **전체 WebGL Context는 2개**(Panorama + Section)만 존재할 수 있다. |
+
+**전략과의 대응**: 채택안(전략 B)은 **`<canvas>` 요소 3개 + WebGL Context 3개**이고, 대안(전략 A)은 **요소 1개 + Context 1개 + 뷰포트 11분할**이다. 문서에서 말하는 **「3 Canvas · 3 Context」**는 **서로 다른 `<canvas>` 요소 세 칸**을 의미한다.
 
 > **렌더링 기술 선택 (Section 중심)**: **9개 Section View(3×3 Grid)에서의 CT 볼륨 리슬라이스 + 실시간 표시**에는 **WebGL2를 채택한다**. 이 경로는 단순 2D 이미지 나열이 아니라 **CT 볼륨에서 매 프레임 다수 단면을 재계산해 화면에 올리는** 워크로드라, ① 픽셀 단위 데이터-병렬 연산(3선형 보간), ② 표시까지의 GPU read-back 최소화, ③ 9뷰 동시 인터랙션 측면에서 GPU 경로가 구조적으로 유리하다. 자세한 근거는 [Phase1 결과 문서 — “왜 WebGL이 필요한가”](./Phase1/Phase1_WebGL_MultiView_결과.md#왜-webgl이-필요한가--왜-cpu만으로는-부적합한가) 참조. **CPU(JS, Worker) 대비 정량 수치**는 의사결정에는 영향이 없으므로 본 PoC의 결정 가지에서는 빼고, **Phase 6의 부속 PoC**에서 필요 시 측정한다(아래 Technical Description 참고).
 
 ### 뷰별 렌더링 경로 (PoC 기준 확정)
 
-11뷰 레이아웃은 Phase 1에서 **3 Canvas · 3 WebGL Context**(Scout / Panorama / Section Grid)로 Context 수 제한을 피하는 것이 검증되었다. **Phase 2 이후** Scout에서 실제 DICOM Axial을 **Canvas 2D**로 그리는 구성이 PoC 기본이므로, Scout 영역에는 **WebGL Context 없이 2D Canvas만** 둘 수 있다(정적 `scout.png` 데모만 쓸 때는 Phase 1과 같이 WebGL이 될 수 있음). Panorama·Section Grid는 **WebGL Canvas**를 유지하는 전제를 유지한다. **각 Canvas에 그리는 내용(GPU 리슬라이스 vs 2D 비트맵)** 은 아래 표와 같이 뷰마다 다르게 둔다.
+11뷰 레이아웃은 Phase 1에서 **서로 다른 `<canvas>` 요소 3개**(Scout / Panorama / Section Grid)에 WebGL Context를 각각 붙여 **총 3 Context**로 Context 수 제한을 피하는 것이 검증되었다(위 절 **「Canvas 요소와 WebGL Context」** 참조). **Phase 2 이후** Scout에서 실제 DICOM Axial을 **Canvas 2D**로 그리는 구성이 PoC 기본이므로, Scout 영역에는 **WebGL Context 없이 2D Canvas만** 둘 수 있다(정적 `scout.png` 데모만 쓸 때는 Phase 1과 같이 WebGL이 될 수 있음). Panorama·Section Grid는 **WebGL Canvas**를 유지하는 전제를 유지한다. **각 Canvas에 그리는 내용(GPU 리슬라이스 vs 2D 비트맵)** 은 아래 표와 같이 뷰마다 다르게 둔다.
 
 | 뷰 | PoC에서의 표시(렌더) 경로 | 볼륨 리슬라이스 등 연산 | 비고 |
 | --- | --- | --- | --- |

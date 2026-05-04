@@ -23,6 +23,40 @@ CleverOne Section View(`CleverOneSectionView.png`) 참고: Scout 화면에 Contr
 
 **참조 문서**: 메인 로드맵 [`WebSectionView_PoC_OnePager.md`](../WebSectionView_PoC_OnePager.md).
 
+### 데모 화면 레이아웃 (Phase 2 탭 · CleverOne 3영역 + 상단 도구줄)
+
+Phase 1 OnePager의 **좌 2행 / 우 Section 한 덩어리** 구성([`Phase1_WebGL_MultiView_OnePager.md`](../Phase1/Phase1_WebGL_MultiView_OnePager.md) ASCII)과 동일하게, **뷰 11개를 담는 본문 그리드**는 세 영역으로 나뉜다. Phase 2·3 데모(`apps/section-demo`)에서는 그 **위에** CT 로드·모드 전환용 **HTML 레이어(DOM)** 가 올라가 있다. 이 영역은 **Canvas가 아니며 WebGL Context와도 무관**하다.
+
+```
++------------------------------------------------------------------+
+| [DOM] 제목 · Phase 1 / Phase 2 탭                                 |
++------------------------------------------------------------------+
+| [DOM] CT Data Download — 샘플 CT 선택, Load CT, 진행률·완료 문구    |
++------------------------------------------------------------------+
+|                                                                  |
+|  Scout 영역 (Phase1 좌상과 동일 슬롯)   |  Section 3x3 (우, 통째) |
+|  ┌ Axial 뷰포트 ──────────────────┐   |  [1] [2] [3]            |
+|  │ Canvas 2D: CT 슬라이스           │   |  [4] [5] [6]            |
+|  │ Canvas 2D: 곡선 오버레이         │   |  [7] [8] [9]            |
+|  │ [DOM] Edit Curve 버튼            │   |  (WebGL · 9 Viewport)   |
+|  └─────────────────────────────────┘   |                         |
+|  [DOM] Slice / WC / WW / INT 슬라이더   |                         |
++------------------------------------------+                         |
+|  Panorama 영역 (Phase1 좌하와 동일 슬롯) |                         |
+|  (WebGL Canvas · Phase1 더미 패턴)      |                         |
++------------------------------------------+-------------------------+
+```
+
+| 구역 | 기술 | 비고 |
+| --- | --- | --- |
+| 상단 제목·탭 | DOM (React) | `App.tsx` 헤더 |
+| CT Data Download 바 | DOM (React) | `CTLoader.tsx`, Canvas 밖 |
+| Scout Axial + 곡선 | **Canvas 2D** 2겹 + **DOM** 버튼·슬라이더 | Phase 2·3 구현 기준; WebGL Context 없음 |
+| Panorama | **WebGL** 1 Context | Phase 1과 동일한 텍스처 쿼드 데모 |
+| Section 3×3 | **WebGL** 1 Context, **9 Viewport** | Phase 1 검증 구성 유지 |
+
+**정리**: “WebGL Context 3개(Scout / Panorama / Section)”는 **본문 3영역**에 대응하는 **원칙적/Phase1 구성**이다. **현재(Phase 2·3) Scout 슬롯**은 실제 CT·곡선을 **Canvas 2D**로 그리므로, Scout 칸에는 **WebGL Context가 없을 수 있다**. 상단 CT Loading·타이틀은 **항상 DOM**이다. 자세한 렌더 경로 결정은 메인 [`WebSectionView_PoC_OnePager.md`](../WebSectionView_PoC_OnePager.md) 「뷰별 렌더링 경로」 참조.
+
 ## Business and Marketing Justification
 
 - Section View 파이프라인에서 **파노라마/9개 Section 생성의 입력**이 되는 치열궁 곡선 정의가 필요하다. Web에서 동일 UX로 곡선을 편집할 수 있어야 제품 수준의 Section View와 비교 검증이 가능하다.
