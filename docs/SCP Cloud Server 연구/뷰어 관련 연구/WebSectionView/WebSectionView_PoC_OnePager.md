@@ -311,14 +311,14 @@ scp-report-poc의 배포 패턴을 동일하게 적용한다. (참고: [SCP Clou
 ### Phase 4: 파노라마 이미지 생성
 
 - **목표**: Phase 3에서 정의한 치열궁 곡선을 따라 CT Volume을 Reslice하여 파노라마 이미지를 생성
-- **상세 알고리즘·구현 순서(JS 우선·WASM 비교·슬랩 MIP)**: [Phase 4: 치열궁 곡선 기반 파노라마(Curved MPR) 이미지 생성 기술 검증](https://vks.vatech.com/spaces/ESDEVELOPER/pages/303490289/Phase+4+%EC%B9%98%EC%97%B4%EA%B6%81+%EA%B3%A1%EC%84%A0+%EA%B8%B0%EB%B0%98+%ED%8C%8C%EB%85%B8%EB%9D%BC%EB%A7%88+Curved+MPR+%EC%9D%B4%EB%AF%B8%EC%A7%80+%EC%83%9D%EC%84%B1+%EA%B8%B0%EC%88%A0+%EA%B2%80%EC%A6%9D)
+- **상세 알고리즘·구현 순서(JS 우선·WASM 비교·슬랩 투영 MIP/Mean/백분위)**: [Phase 4: 치열궁 곡선 기반 파노라마(Curved MPR) 이미지 생성 기술 검증](https://vks.vatech.com/spaces/ESDEVELOPER/pages/303490289/Phase+4+%EC%B9%98%EC%97%B4%EA%B6%81+%EA%B3%A1%EC%84%A0+%EA%B8%B0%EB%B0%98+%ED%8C%8C%EB%85%B8%EB%9D%BC%EB%A7%88+Curved+MPR+%EC%9D%B4%EB%AF%B8%EC%A7%80+%EC%83%9D%EC%84%B1+%EA%B8%B0%EC%88%A0+%EA%B2%80%EC%A6%9D)
 - **도해**(곡선·수직 슬랩 방향): Axial 단면 위 녹색 곡선·제어점·수직 빨간 샘플링 직선.
 - **렌더·표시**: 파노라마 **결과는 2D 비트맵**이다. OnePager 「뷰별 렌더링 경로」에 따라 **표시는 Canvas 2D 또는 단일 WebGL 텍스처** 중 PoC 구현 편의로 선택한다. Phase 4 PoC에서는 **연산을 우선 클라이언트 JS**로 구현·측정하고, 목표 시간 미달 시 WASM 등을 검토한다(GPU 우선은 Section Phase에 두어도 된다).
 - **검증 방법**:
   - 곡선을 일정 간격으로 샘플링하여 각 위치에서 곡선에 수직인 단면을 추출
   - 추출한 단면들을 이어 붙여 파노라마 이미지 합성
   - 구현 위치 비교: Client-side JavaScript vs WASM vs Server-side (Phase 6에서 종합)
-- **성공 기준**: Desktop 파노라마와 동등한 화질, 생성 시간 1초 이내 (곡선 변경 시 실시간 갱신 가능 여부). 투영은 Phase 4 OnePager 기준 **슬랩 MIP**로 고정.
+- **성공 기준**: Desktop 파노라마와 동등한 화질, 생성 시간 1초 이내 (곡선 변경 시 실시간 갱신 가능 여부). 투영은 Phase 4 OnePager 기준 **슬랩 MIP·Mean·백분위** 중 UI 선택.
 
 ### Phase 5: 9개 Section 이미지 실시간 생성 및 표시
 
