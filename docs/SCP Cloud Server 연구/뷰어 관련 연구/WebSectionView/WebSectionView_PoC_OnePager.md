@@ -46,7 +46,7 @@ Section View 화면 구성:
 | **`<canvas>` 개수** | 화면에 깔리는 **표면(요소) 수**. 전략 B는 Scout·Panorama·Section이 **서로 다른 canvas 요소**이다. Phase 2 이후 Scout는 Axial+오버레이용으로 **동일 그리드 셀 안에 2D `<canvas>` 2장**을 겹쳐 쓸 수 있다(요소 수는 이보다 많아질 수 있음). |
 | **WebGL Context 개수** | GPU 렌더링 컨텍스트 수. **전략 B + Phase 1 데모**: Scout/Panorama/Section 각 WebGL 1개 → **최대 3개**. **CT 로드 후 Scout만 Canvas 2D**로 둔 경우 Scout canvas에는 WebGL Context가 없어, **전체 WebGL Context는 2개**(Panorama + Section)만 존재할 수 있다. |
 
-**전략과의 대응**: 채택안(전략 B)은 **`<canvas>` 요소 3개 + WebGL Context 3개**이고, 대안(전략 A)은 **요소 1개 + Context 1개 + 뷰포트 11분할**이다. 문서에서 말하는 **「3 Canvas · 3 Context」**는 **서로 다른 `<canvas>` 요소 세 칸**을 의미한다.
+**전략과의 대응**: 채택안(전략 B)은 **`<canvas>` 요소 3개 + WebGL Context 3개**이고, 대안(전략 A)은 **요소 1개 + Context 1개 + 뷰포트 11분할**이다. 문서에서 말하는 「3 Canvas · 3 Context」는 **서로 다른 `<canvas>` 요소 세 칸**을 의미한다.
 
 > **렌더링 기술 선택 (Section 중심)**: **9개 Section View(3×3 Grid)에서의 CT 볼륨 리슬라이스 + 실시간 표시**에는 **WebGL2를 채택한다**. 이 경로는 단순 2D 이미지 나열이 아니라 **CT 볼륨에서 매 프레임 다수 단면을 재계산해 화면에 올리는** 워크로드라, ① 픽셀 단위 데이터-병렬 연산(3선형 보간), ② 표시까지의 GPU read-back 최소화, ③ 9뷰 동시 인터랙션 측면에서 GPU 경로가 구조적으로 유리하다. 자세한 근거는 [Phase1 결과 문서 — “왜 WebGL이 필요한가”](./Phase1/Phase1_WebGL_MultiView_결과.md#왜-webgl이-필요한가--왜-cpu만으로는-부적합한가) 참조. **CPU(JS, Worker) 대비 정량 수치**는 의사결정에는 영향이 없으므로 본 PoC의 결정 가지에서는 빼고, **Phase 6의 부속 PoC**에서 필요 시 측정한다(아래 Technical Description 참고).
 
@@ -58,7 +58,7 @@ Section View 화면 구성:
 | --- | --- | --- | --- |
 | **Scout** | **Canvas 2D**를 기본으로 한다. CT Axial 한 장 + Windowing + Phase 3 곡선·수직선 오버레이는 2D가 구현·디버깅에 유리하다. Phase 1에서는 정적 `scout.png`를 **WebGL 텍스처**로 표시한 데모가 있다. | Axial은 이미 메모리 볼륨에서 추출한 2D 슬라이스. Scout 표시를 WebGL로 **통일할 필요는 PoC 범위에서 두지 않는다.** | 제품화 시 볼륨을 **GPU 3D 텍스처 한 번만** 올리는 아키텍처를 택하면, Scout에서도 동일 텍스처를 샘플링하도록 **WebGL로 옮길 수 있는 선택지**는 남긴다. |
 | **Panorama** | **2D 결과 이미지**(Phase 4에서 합성)를 **Canvas 2D 또는 WebGL 텍스처(단일 쿼드)** 중 하나로 표시한다. PoC는 구현 단순성 우선. | 곡선 따라 Reslice로 파노라마를 **만드는** 쪽은 **GPU(WebGL)** 경로를 우선 검토한다(Client / WASM / Server 비교는 Phase 6에서 병행). **표시**만으로 WebGL이 필수는 아니다. | 연산은 GPU, 표시는 2D라도 파이프라인 검증에는 충분한 경우가 많다. |
-| **Section Grid (9뷰)** | **WebGL2**로 **9 Viewport**(+ Scissor)에 각각 리슬라이스 결과를 **셰이더 기반**으로 그리는 것을 **본 PoC의 채택안**으로 둔다. | **CT 볼륨 → GPU(3D/2D Array 텍스처) 업로드 후**, 곡선·위치에 따른 단면을 **프래그먼트 셰이더에서 샘플링**하는 경로를 Phase 5 목표로 한다. | PoC의 **성능·아키텍처 검증 핵심**은 이 뷰이다. **“Section만 WebGL로 충분한가?”**에 대한 답은 **이 워크로드까지 커버하면 PoC 목적에는 충분**하다고 본다. Scout·Panorama는 2D 위주로 남겨도 된다. |
+| **Section Grid (9뷰)** | **WebGL2**로 **9 Viewport**(+ Scissor)에 각각 리슬라이스 결과를 **셰이더 기반**으로 그리는 것을 **본 PoC의 채택안**으로 둔다. | **CT 볼륨 → GPU(3D/2D Array 텍스처) 업로드 후**, 곡선·위치에 따른 단면을 **프래그먼트 셰이더에서 샘플링**하는 경로를 Phase 5 목표로 한다. | PoC의 **성능·아키텍처 검증 핵심**은 이 뷰이다. “Section만 WebGL로 충분한가?”에 대한 답은 **이 워크로드까지 커버하면 PoC 목적에는 충분**하다고 본다. Scout·Panorama는 2D 위주로 남겨도 된다. |
 
 **정리**: **WebGL2 필수·채택의 중심은 Section Grid(9뷰)의 볼륨 리슬라이스 + 실시간 표시**이다. Scout·Panorama는 PoC 단계에서 **Canvas 2D 중심**으로 두어도 본 OnePager의 기술 방향과 모순되지 않으며, Phase 4~5에서 Panorama **연산**을 GPU로 가져가더라도 **표시**까지 WebGL로 통일할 의무는 없다.
 
@@ -71,16 +71,16 @@ Section View 화면 구성:
 
 ## Risk Assessment
 
-| 리스크                                                 | 영향도 | 발생 가능성 | 대응 방안                                                        |
-| ------------------------------------------------------ | ------ | ----------- | ---------------------------------------------------------------- |
-| WebGL Context 수 제한으로 11개 View 동시 표시 불가     | 높음   | 낮음        | Viewport 분할 전략 (1~3 Context + 다수 Viewport) 적용            |
-| CT ZIP 다운로드 시간이 과도하거나 메모리 부족          | 중간   | 낮음        | Stream Unzip으로 점진적 로딩, 대용량 CT 시 메모리 한도 사전 측정 |
+| 리스크                                                 | 영향도 | 발생 가능성 | 대응 방안                                                         |
+| ------------------------------------------------------ | ------ | ----------- | ----------------------------------------------------------------- |
+| WebGL Context 수 제한으로 11개 View 동시 표시 불가     | 높음   | 낮음        | Viewport 분할 전략 (1~3 Context + 다수 Viewport) 적용             |
+| CT ZIP 다운로드 시간이 과도하거나 메모리 부족          | 중간   | 낮음        | Stream Unzip으로 점진적 로딩, 대용량 CT 시 메모리 한도 사전 측정  |
 | DICOM Volume 메모리 적재 시 브라우저 메모리 한도 초과  | 중간   | 낮음        | 치과 CT 기준 ~250MB 이내, 필요 시 Slice 범위 제한 또는 다운샘플링 |
-| 9개 Section 이미지 실시간 생성 시 클라이언트 성능 부족 | 높음   | 중간        | WASM 또는 Server-side Compute로 대체 가능 여부 함께 검증         |
-| 파노라마 생성 속도가 실시간 상호작용에 부적합          | 중간   | 중간        | WASM 또는 Server-side Compute 검토                               |
-| 브라우저/GPU 호환성 문제                               | 낮음   | 낮음        | WebGL2 기준으로 구현, fallback 방안 검토                         |
-| 치아 Segmentation 모델의 브라우저 추론 성능 부족       | 중간   | 중간        | Server-side 추론 후 결과만 전송하는 방식으로 대체 가능           |
-| 전통적 알고리즘으로 치아 경계선 정확도 부족            | 중간   | 높음        | AI 기반 Segmentation으로 전환, 또는 두 방식 병행 검토            |
+| 9개 Section 이미지 실시간 생성 시 클라이언트 성능 부족 | 높음   | 중간        | WASM 또는 Server-side Compute로 대체 가능 여부 함께 검증          |
+| 파노라마 생성 속도가 실시간 상호작용에 부적합          | 중간   | 중간        | WASM 또는 Server-side Compute 검토                                |
+| 브라우저/GPU 호환성 문제                               | 낮음   | 낮음        | WebGL2 기준으로 구현, fallback 방안 검토                          |
+| 치아 Segmentation 모델의 브라우저 추론 성능 부족       | 중간   | 중간        | Server-side 추론 후 결과만 전송하는 방식으로 대체 가능            |
+| 전통적 알고리즘으로 치아 경계선 정확도 부족            | 중간   | 높음        | AI 기반 Segmentation으로 전환, 또는 두 방식 병행 검토             |
 
 ## Resource and Scheduling Details
 
@@ -90,16 +90,16 @@ Section View 화면 구성:
 
 ### 일정 (순차 진행)
 
-| 단계     | 검증 항목                               | 예상 기간 | 비고                                            |
-| -------- | --------------------------------------- | --------- | ----------------------------------------------- |
-| Phase 1  | WebGL 11개 View 동시 표시               | 1주       | Context/Viewport 전략 검증 (완료)               |
-| Phase 2  | CT Data Download 및 Axial Slice 선택    | 1주       | S3 ZIP 다운로드 + Volume 구성 + Scout View Slider |
-| Phase 3  | 치열궁 곡선(Arch Curve) 연결            | 1주       | 수동 Point 편집 UI (간소화)                     |
-| Phase 4  | 파노라마 이미지 생성                    | 1주       | 곡선을 따라 Volume Reslice                      |
-| Phase 5  | 9개 Section 이미지 실시간 생성 및 표시  | 2주       | 기능 구현 + 성능 측정                           |
-| Phase 6  | 종합 성능 검증 및 아키텍처 결정         | 1주       | Client vs WASM vs Server-side 비교              |
-| Phase 7  | 치아 Segmentation 오버레이              | 2~3주     | Scout/Section 치아 경계선 표시                  |
-| **합계** |                                         | **8~10주** |                                                |
+| 단계     | 검증 항목                              | 예상 기간  | 비고                                              |
+| -------- | -------------------------------------- | ---------- | ------------------------------------------------- |
+| Phase 1  | WebGL 11개 View 동시 표시              | 1주        | Context/Viewport 전략 검증 (완료)                 |
+| Phase 2  | CT Data Download 및 Axial Slice 선택   | 1주        | S3 ZIP 다운로드 + Volume 구성 + Scout View Slider |
+| Phase 3  | 치열궁 곡선(Arch Curve) 연결           | 1주        | 수동 Point 편집 UI (간소화)                       |
+| Phase 4  | 파노라마 이미지 생성                   | 1주        | 곡선을 따라 Volume Reslice                        |
+| Phase 5  | 9개 Section 이미지 실시간 생성 및 표시 | 2주        | 기능 구현 + 성능 측정                             |
+| Phase 6  | 종합 성능 검증 및 아키텍처 결정        | 1주        | Client vs WASM vs Server-side 비교                |
+| Phase 7  | 치아 Segmentation 오버레이             | 2~3주      | Scout/Section 치아 경계선 표시                    |
+| **합계** |                                        | **8~10주** |                                                   |
 
 ### 필요 장비 및 환경
 
@@ -182,16 +182,16 @@ CT DICOM 데이터는 수십~수백 MB 규모이므로 앱 번들에 포함하�
 
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "PublicReadGetObject",
-            "Effect": "Allow",
-            "Principal": "*",
-            "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::scp-section-ct-data/*"
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::scp-section-ct-data/*"
+    }
+  ]
 }
 ```
 
@@ -201,17 +201,13 @@ CT DICOM 데이터는 수십~수백 MB 규모이므로 앱 번들에 포함하�
 
 ```json
 [
-    {
-        "AllowedHeaders": ["*"],
-        "AllowedMethods": ["GET", "HEAD"],
-        "AllowedOrigins": [
-            "http://scp-section-demo.test.scp.esclouddev.com",
-            "http://localhost:5173",
-            "http://localhost:4173"
-        ],
-        "ExposeHeaders": ["Content-Length", "Content-Type"],
-        "MaxAgeSeconds": 3600
-    }
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedOrigins": ["http://scp-section-demo.test.scp.esclouddev.com", "http://localhost:5173", "http://localhost:4173"],
+    "ExposeHeaders": ["Content-Length", "Content-Type"],
+    "MaxAgeSeconds": 3600
+  }
 ]
 ```
 
@@ -266,7 +262,7 @@ scp-report-poc의 배포 패턴을 동일하게 적용한다. (참고: [SCP Clou
 | Phase 1 | [Phase 1: WebGL 11개 View 동시 표시 기술 검증](https://vks.vatech.com/spaces/ESDEVELOPER/pages/302045959/Phase+1+WebGL+11%EA%B0%9C+View+%EB%8F%99%EC%8B%9C+%ED%91%9C%EC%8B%9C+%EA%B8%B0%EC%88%A0+%EA%B2%80%EC%A6%9D) | 완료 |
 | Phase 2 | [Phase 2 결과](./Phase2/Phase2_CT_Download_결과.md) | 완료 |
 | Phase 3 | [Phase 3 OnePager](./Phase3/Phase3_ArchCurve_OnePager.md) / [Phase 3 결과](./Phase3/Phase3_ArchCurve_결과.md) | 완료 |
-| Phase 4 | (Phase 3 완료 후 작성 예정) | - |
+| Phase 4 | [Phase 4 OnePager — 파노라마](./Phase4/Phase4_Panorama_OnePager.md) | 초안 |
 | Phase 5 | (Phase 4 완료 후 작성 예정) | - |
 | Phase 6 | (Phase 5 완료 후 작성 예정) | - |
 | Phase 7 | (Phase 6 완료 후 작성 예정) | - |
@@ -315,17 +311,19 @@ scp-report-poc의 배포 패턴을 동일하게 적용한다. (참고: [SCP Clou
 ### Phase 4: 파노라마 이미지 생성
 
 - **목표**: Phase 3에서 정의한 치열궁 곡선을 따라 CT Volume을 Reslice하여 파노라마 이미지를 생성
-- **렌더·표시**: 파노라마 **결과는 2D 비트맵**이다. OnePager **「뷰별 렌더링 경로」**에 따라 **표시는 Canvas 2D 또는 단일 WebGL 텍스처** 중 PoC 구현 편의로 선택한다. **연산(Reslice 합성)** 은 GPU(WebGL) 우선 검토하며, Client / WASM / Server-side 비교는 Phase 6에서 병행한다.
+- **상세 알고리즘·구현 순서(JS 우선·WASM 비교·슬랩 MIP)**: [Phase 4: 치열궁 곡선 기반 파노라마(Curved MPR) 이미지 생성 기술 검증](https://vks.vatech.com/spaces/ESDEVELOPER/pages/303490289/Phase+4+%EC%B9%98%EC%97%B4%EA%B6%81+%EA%B3%A1%EC%84%A0+%EA%B8%B0%EB%B0%98+%ED%8C%8C%EB%85%B8%EB%9D%BC%EB%A7%88+Curved+MPR+%EC%9D%B4%EB%AF%B8%EC%A7%80+%EC%83%9D%EC%84%B1+%EA%B8%B0%EC%88%A0+%EA%B2%80%EC%A6%9D)
+- **도해**(곡선·수직 슬랩 방향): Axial 단면 위 녹색 곡선·제어점·수직 빨간 샘플링 직선.
+- **렌더·표시**: 파노라마 **결과는 2D 비트맵**이다. OnePager 「뷰별 렌더링 경로」에 따라 **표시는 Canvas 2D 또는 단일 WebGL 텍스처** 중 PoC 구현 편의로 선택한다. Phase 4 PoC에서는 **연산을 우선 클라이언트 JS**로 구현·측정하고, 목표 시간 미달 시 WASM 등을 검토한다(GPU 우선은 Section Phase에 두어도 된다).
 - **검증 방법**:
   - 곡선을 일정 간격으로 샘플링하여 각 위치에서 곡선에 수직인 단면을 추출
   - 추출한 단면들을 이어 붙여 파노라마 이미지 합성
-  - 구현 위치 비교: Client-side JavaScript vs WASM vs Server-side
-- **성공 기준**: Desktop 파노라마와 동등한 화질, 생성 시간 1초 이내 (곡선 변경 시 실시간 갱신 가능 여부)
+  - 구현 위치 비교: Client-side JavaScript vs WASM vs Server-side (Phase 6에서 종합)
+- **성공 기준**: Desktop 파노라마와 동등한 화질, 생성 시간 1초 이내 (곡선 변경 시 실시간 갱신 가능 여부). 투영은 Phase 4 OnePager 기준 **슬랩 MIP**로 고정.
 
 ### Phase 5: 9개 Section 이미지 실시간 생성 및 표시
 
 - **목표**: Scout View에서 위치를 선택하면 해당 위치 기준으로 9개의 Cross-section 이미지를 자동 생성하여 3x3 Grid에 실시간 표시
-- **채택 렌더 경로**: **WebGL2**. CT 볼륨을 GPU 텍스처로 올린 뒤, 곡선에 수직인 단면을 **셰이더에서 리슬라이스**하고, Phase 1에서 검증한 **단일 Section Canvas 안의 9 Viewport(+ Scissor)** 에 출력하는 것을 본 Phase의 구현 목표로 한다(OnePager 상단 **「뷰별 렌더링 경로」** 참조).
+- **채택 렌더 경로**: **WebGL2**. CT 볼륨을 GPU 텍스처로 올린 뒤, 곡선에 수직인 단면을 **셰이더에서 리슬라이스**하고, Phase 1에서 검증한 **단일 Section Canvas 안의 9 Viewport(+ Scissor)** 에 출력하는 것을 본 Phase의 구현 목표로 한다(OnePager 상단 「뷰별 렌더링 경로」 참조).
 - **검증 방법**:
   - 치열궁 곡선 위의 선택 지점 기준, 전후 일정 간격(Interval)으로 9개 단면 위치 계산
   - 각 위치에서 곡선에 수직인 방향으로 CT Volume을 Reslice하여 Section 이미지 생성
