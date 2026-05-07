@@ -2,12 +2,12 @@ Engineering One Pager
 
 ## Project Name
 
-Phase 5: 9개 Cross-Section 이미지 실시간 생성·표시(WebGL vs Canvas 2D 비교)
+Phase 5: 9개 Cross-Section 이미지 실시간 생성·표시(WebGL vs Canvas 2D·**JS vs WASM 연산** 비교)
 
 ## Date
 
 - **기획/제출(초안)**: 2026-05-07
-- **상태**: 착수 전 (본 문서로 범위·UI·알고리즘·검증 계획 확정)
+- **상태**: 진행 중 — WebGL2/Canvas2D 표시 경로, JS/WASM 9장 생성 경로, 툴바 ms 표시 반영
 
 ## Submitter Info
 
@@ -102,17 +102,17 @@ CleverOne Section 화면(참고 UI):
 - 좌/우 가장자리에 작은 **B / L** 텍스트(법선 부호 규약에 따른 buccal/lingual 가이드).
 - **눈금(ruler)·축선은 PoC에서 미구현**.
 
-### Section View 렌더 경로 토글 (PoC 핵심 검증)
+### Section View 렌더·연산 토글 (PoC 핵심 검증)
 
-- Section 영역 상단(또는 헤더 우측)에 **Section: WebGL2 ▾ / Canvas 2D ▾** 토글.
-- 두 경로 모두 같은 알고리즘(샘플링 결과)으로 화면을 만들고, **위치 드래그 중 FPS·평균 ms** 를 화면 모서리에 표시한다.
-- WebGL2 경로: Phase 1의 **9 Viewport(Scissor)** 한 캔버스에 **단일 Texture 또는 9 Texture**로 출력(상세는 구현 단계 결정).
-- Canvas 2D 경로: 9개 `<canvas>` 또는 단일 캔버스에 9분할 후 `putImageData`/`drawImage`.
+- Section 영역 상단에 **표시: WebGL2 ▾ / Canvas 2D ▾** 토글(Phase 1과 동일한 9 Viewport·Scissor vs `putImageData`).
+- **연산: JS ▾ / WASM ▾** 토글: 동일 `ImageData` 결과를 **순수 JS**(`generateSectionImagesData`)와 **AssemblyScript→WASM**(`@ewoosoft/scp-section-wasm`, `sectionGenerate9`) 중 선택해 생성한다. 곡선 전처리·`s_k`·B/L 반전 규약은 JS 코어와 동일하고, 핫패스(trilinear·슬랩·윈도)만 WASM에서 수행한다.
+- **9장 생성 ms**는 선택된 연산 경로 기준으로 표시한다(JS/WASM 전환 시 서로 다른 수치로 비교 가능).
+- 두 표시 경로 모두 같은 `ImageData`를 소비하므로 **화면 차이는 미미**할 수 있다(연산 토글은 시간 비교가 목적).
 
 ### 생성 트리거 (자동/실시간)
 
 - **별도 “Section 생성” 버튼은 두지 않는다.** 다음 조건 변화에 즉시(또는 짧은 스로틀 후) 9장을 다시 만든다.
-  - `sectionCenterMm`, `INT`, `topMm`/`bottomMm`, `sectionWidthMm`, **WC/WW**, **곡선**, **현재 곡선 슬라이스 인덱스**, 투영·슬랩 옵션, 렌더 경로 토글.
+  - `sectionCenterMm`, `INT`, `topMm`/`bottomMm`, `sectionWidthMm`, **WC/WW**, **곡선**, **현재 곡선 슬라이스 인덱스**, 투영·슬랩 옵션, **표시(WebGL2/Canvas2D)**, **연산(JS/WASM)** 토글.
 - 마우스 드래그 같은 **연속 입력**은 약 **1 frame 스로틀(또는 60 ms 디바운스)** 정도로 제한. 일정 ms 안에 끝나면 그대로 매 프레임 재계산.
 - **목표는 끊김 없는 갱신**이므로 “명시적 버튼”은 본 PoC의 검증 의도와 반대다.
 
@@ -143,39 +143,41 @@ CleverOne Section 화면(참고 UI):
 
 ---
 
-## JS → WASM 전략
+## JS → WASM 전략 (Phase 5에 포함)
 
 | 단계 | 결정 |
 | --- | --- |
-| 1차 | **JS** 로 9장 동시 생성 + 위 트리거에서 갱신. Phase 4와 동일하게 핫 패스를 정수·`Float32Array` 위주로 작성. |
-| 2차(필요 시) | 30 FPS 미달 또는 메인 스레드 블로킹이 보이면 **Web Worker** 에 같은 JS 알고리즘을 옮겨 UI 스레드 분리. |
-| 3차(선택) | 그래도 부족하면 **WASM**(AssemblyScript 또는 Rust)으로 이전, **동일 입력·출력**으로 ms·FPS 비교(Phase 6과 직접 연결). |
+| 1차 | **JS·WASM 병렬 제공**: Section 툴바에서 연산 경로 선택, 동일 조건에서 **9장 1회 생성 ms** 비교. WASM은 `packages/section-wasm`(AssemblyScript), 볼륨은 선형 메모리 상단 64KiB 이후에 복사해 정적 데이터와 충돌 방지. |
+| 2차(필요 시) | 메인 스레드 블로킹이 보이면 **Web Worker**에 JS 또는 WASM 인스턴스를 옮겨 UI 분리. |
+| 3차(Phase 6) | SIMD·Rust 등으로 확장하거나 서버 오프로드 검토. Phase 5 결과(ms·정확도)를 Phase 6 베이스라인으로 사용. |
 
-처음부터 WASM을 채택하지 않는 이유: 현재 PoC 단계의 핫 패스가 단순 루프라 **JIT가 이미 잘 최적화**한다. WASM의 빌드·메모리 공유·디버깅 비용 대비 이득이 불확실하다.
+처음에 JS만 두지 않고 WASM을 Phase 5에 넣은 이유: PoC에서 **체감·수치 비교**를 빠르게 하고, 이후 Phase 6에서 동일 스펙으로 심화하기 위함.
 
 ---
 
-## WebGL vs Canvas 2D 비교 (PoC 핵심 검증)
+## WebGL vs Canvas 2D·JS vs WASM 비교 (PoC 핵심 검증)
 
 ### 측정 항목
 
 - **위치 드래그 중 평균 FPS / 95퍼센타일 프레임 ms**
-- **9장 1회 생성 ms**(샘플링 + 표시)
+- **9장 1회 생성 ms** — **연산(JS)**, **연산(WASM)** 각각(툴바에 표시). WASM 측정은 `WebAssembly.instantiate` 이후·볼륨 복사 포함 시간(현재 글루 구현 기준). 공정 비교가 필요하면 문서에 “순수 `sectionGenerate9`만” 별도 프로파일 항목으로 분리해 기록한다.
 - **메인 스레드 long task** 발생 빈도(가능하면 PerformanceObserver)
-- 시각 비교: WebGL2가 **확연히 더 부드러운지**
+- 시각 비교: WebGL2·Canvas2D는 **스케일/필터** 차이만 있을 수 있음. JS·WASM은 동일 `ImageData`가 목표.
 
 ### 비교 조건
 
 - 같은 `INT`, `topMm/bottomMm`, `sectionWidthMm`, 슬랩, 투영, WC/WW.
+- JS vs WASM **ms만** 비교할 때는 **표시 모드(WebGL2 등)를 고정**하고 연산 토글만 바꾼다.
 - 같은 입력 디바이스(마우스)로 같은 패턴 드래그.
 
 ### 성공 기준 (Phase 5)
 
 1. 9개 Section이 **드래그 중에도 끊김 없이** 보이며, **WebGL2 경로**에서 **30 FPS 이상**(또는 체감상 끊김 없는 수준)을 달성한다.
 2. **Canvas 2D 경로**도 동작하여 같은 화면을 만들고, FPS/ms 비교 수치를 결과 문서에 남긴다.
-3. ScoutView·PanoramaView 어느 쪽에서 위치를 바꿔도 **양쪽 표시·9장 결과가 동기화**된다.
-4. Top/Bottom 핸들 조절이 즉시 9장에 반영되며, FOV가 큰 볼륨에서도 **불필요한 세로 영역을 잘라** 사용성을 확보한다.
-5. 곡선·INT가 바뀌면 9장이 즉시 갱신되고, `sectionCenterMm` 보존/리셋 규칙대로 동작한다.
+3. **JS·WASM 연산** 모두 동작하고, 동일 조건에서 **9장 생성 ms**를 기록·비교한다(상대 우열은 볼륨·브라우저마다 다를 수 있음).
+4. ScoutView·PanoramaView 어느 쪽에서 위치를 바꿔도 **양쪽 표시·9장 결과가 동기화**된다.
+5. Top/Bottom 핸들 조절이 즉시 9장에 반영되며, FOV가 큰 볼륨에서도 **불필요한 세로 영역을 잘라** 사용성을 확보한다.
+6. 곡선·INT가 바뀌면 9장이 즉시 갱신되고, `sectionCenterMm` 보존/리셋 규칙대로 동작한다.
 
 ---
 
@@ -195,7 +197,7 @@ CleverOne Section 화면(참고 UI):
 - Volume·곡선(제어점 ≥ 2)·`topMm < bottomMm` 이 모두 만족할 때만 9장 생성.
 - 위 조건을 만족하지 않으면 Section 칸은 **검은 배경 + 짧은 안내**.
 - 드래그 중 스로틀 정책으로 **메인 스레드 부하 제어**, 끝났을 때 마지막 값으로 1회 마무리 갱신.
-- **렌더 경로 토글** 변경 시 즉시 새로 그림(샘플 데이터는 공유 가능하면 재사용).
+- **렌더·연산 토글** 변경 시 즉시 새로 그림(동일 입력이면 `ImageData`는 경로만 다르고 동일해야 한다).
 - `INT`의 의미는 Phase 3과 동일(`Section Cut 표시 간격` 그대로). UI에 별도 라벨 두지 않음.
 
 ---
@@ -212,7 +214,8 @@ CleverOne Section 화면(참고 UI):
 
 | 리스크 | 영향도 | 발생 가능성 | 대응 방안 |
 | --- | --- | --- | --- |
-| 드래그 중 30 FPS 미달 | 중 | 중 | Worker 분리 → WASM. `sectionWidthMm`/`slabSampleStepMm` 스윕 |
+| 드래그 중 30 FPS 미달 | 중 | 중 | Worker 분리. `sectionWidthMm`/`slabSampleStepMm` 스윕. WASM은 이미 Phase 5에서 비교 가능 |
+| WASM 볼륨 복사·메모리 grow 비용 | 중 | 중 | 볼륨 변경 시에만 재복사·서버 프리패치 등(결과 문서에 ms 구성 기록) |
 | 곡선 변경 시 `sectionCenterMm` 의미 변동 | 중 | 중 | 위 보존/리셋 규칙. 결과 문서에 케이스 기록 |
 | FOV가 큰 볼륨에서 세로 영역 비대 | 중 | 중 | Top/Bottom 핸들 기본값 자동 추정 + 사용자 조정 |
 | 9 Viewport(Scissor) 단일 캔버스 vs 9 캔버스 선택 | 중 | 중 | 1차는 단일 WebGL2 캔버스 + Scissor; 비교 필요 시 9 캔버스 변형 추가 측정 |
@@ -225,15 +228,15 @@ CleverOne Section 화면(참고 UI):
 
 - **기간**: 1주(5일) 목표(메인 OnePager와 동일 오더)
 - **인력**: 1명 (TS + WebGL2)
-- **산출물**: Section Core 모듈 초안, `ScoutView`·`PanoramaView` 위치 핸들, `SectionGrid` 9 Viewport 출력 + Canvas 2D 경로 토글, FPS/ms 측정·결과 문서
+- **산출물**: Section Core 모듈(JS), **`@ewoosoft/scp-section-wasm`**(AssemblyScript·`section.wasm`), `ScoutView`·`PanoramaView` 위치 핸들, `SectionGrid` 표시 토글(WebGL2/Canvas2D)·**연산 토글(JS/WASM)** , FPS·ms 측정·결과 문서
 
 | Day | 작업 | 산출물 |
 | --- | --- | --- |
 | 1 | `sectionCenterMm` 공유 상태(`useScoutAxialUi` 확장), Scout/Panorama 핸들 UI, 9장 위치 계산 | 핸들 동작 |
 | 2 | Section Core(JS): 9장 `ImageData` 동시 생성, Top/Bottom·INT 반영 | Core 함수 + 단위 테스트 |
 | 3 | **Canvas 2D 경로** 표시 + 드래그 스로틀 + WC/WW 공유 | 1차 동작 영상 |
-| 4 | **WebGL2 경로**(9 Viewport/Scissor) + 토글 + FPS/ms 표시 | 비교 측정 |
-| 5 | 결과 md·스크린샷, OnePager Phase 5 링크 갱신, 필요시 Worker 1차 실험 | 문서 |
+| 4 | **WebGL2 경로**(9 Viewport/Scissor) + 표시 토글 + **JS/WASM 연산 토글** + 생성 ms 표시 | 비교 측정 |
+| 5 | 결과 md·스크린샷, OnePager 링크 갱신, 필요 시 Worker 1차 실험 | 문서 |
 
 ---
 
@@ -241,16 +244,16 @@ CleverOne Section 화면(참고 UI):
 
 ### 핵심 함수(예상 시그니처)
 
-- `generateSectionImagesData(volume, controlPoints, curveSliceIndex, sectionCenterMm, intervalMm, topMm, bottomMm, sectionWidthMm, wc, ww, opts)`
-  - 반환: `{ images: ImageData[9]; elapsedMs: number; positions: { sMm: number, P: Point2D, T̂: Vec2, N̂: Vec2 }[9] }`
+- `generateSectionImagesData(...)` — JS 핫패스.
+- `generateSectionImagesDataWasm(wasmUrl, ...)` / `initSectionWasm(wasmUrl)` — `@ewoosoft/scp-section-wasm`. 데모는 `predev`/`prebuild`로 `section.wasm`을 `public/section-wasm.wasm`에 복사 후 `/section-wasm.wasm`으로 fetch.
 - WebGL 경로는 위 결과를 **9 Texture 업로드** 후 단일 캔버스의 9 Viewport에 그린다(또는 동일 텍스처 + per-section uniform).
 
 ### 산출물
 
 1. 본 OnePager + Phase 5 결과 md(구현 후)
-2. `packages/core` 내 `section/` 모듈, `useSectionState` 훅(또는 `useScoutAxialUi` 확장)
-3. `ScoutView` 9장 강조 표시, `PanoramaView` 세로 9선 + Top/Bottom 핸들, `SectionGrid` Canvas 2D / WebGL2 토글
-4. 비교 결과(평균 FPS, 95퍼센타일 ms, 1회 생성 ms, 시각 비교 캡처)
+2. `packages/core` 내 `section/` 모듈, **`packages/section-wasm`**, `useScoutAxialUi` 확장(`sectionComputeMode` 등)
+3. `ScoutView` 9장 강조 표시, `PanoramaView` 세로 9선 + Top/Bottom 핸들, `SectionGrid` Canvas 2D / WebGL2·**JS/WASM** 토글
+4. 비교 결과(평균 FPS, 95퍼센타일 ms, **JS vs WASM 9장 생성 ms**, 시각 비교 캡처)
 
 ### 참고 (용어)
 
