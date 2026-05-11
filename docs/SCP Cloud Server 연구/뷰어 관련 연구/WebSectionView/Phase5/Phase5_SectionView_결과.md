@@ -28,9 +28,9 @@ Phase 3 치열궁 곡선·Phase 4 파노라마에 이어, 사용자가 지정한
 
 ### 3.1 JavaScript vs WebAssembly(9장 생성 시간)
 
-| 연산 경로 | 관측 범위(대표) |
-| --- | --- |
-| **JS** (`generateSectionImagesData`) | 약 **350~420 ms** |
+| 연산 경로                                                             | 관측 범위(대표)   |
+| --------------------------------------------------------------------- | ----------------- |
+| **JS** (`generateSectionImagesData`)                                  | 약 **350~420 ms** |
 | **WASM** (`sectionGenerate9` + 글루: 볼륨 복사·메모리·ImageData 구성) | 약 **390~450 ms** |
 
 평균적으로 **JS가 약 10% 정도 빠른 것으로 관측**되었다. 이는 이 PoC 구조에서 충분히 나올 수 있는 결과다.
@@ -100,10 +100,3 @@ Phase 3 치열궁 곡선·Phase 4 파노라마에 이어, 사용자가 지정한
 - **기능:** 9장 Cross-Section 실시간 생성·WebGL2/Canvas2D 표시·JS/WASM 연산 선택·CleverOne 방향에 가까운 B/L·파노라마·Scout와의 연동을 PoC 수준에서 달성했다.
 - **성능:** 동일 알고리즘 비교에서 **JS가 다소 유리**했고, 이는 **복사 비용·JIT·측정 구간**을 감안하면 자연스럽다. WASM의 이점은 **후속 최적화(상주 메모리·Worker·SIMD 등)** 에서 다시 평가하는 것이 맞다.
 - **표시:** WebGL2와 Canvas2D는 **거의 차이 없음**, WebGL2가 **미세하게 부드러울 수 있음** 정도로 정리한다.
-
----
-
-## 6. 참고 문서
-
-- 기획·범위: [Phase5_SectionView_OnePager.md](./Phase5_SectionView_OnePager.md)
-- 상위: [WebSectionView_PoC_OnePager.md](../WebSectionView_PoC_OnePager.md)
