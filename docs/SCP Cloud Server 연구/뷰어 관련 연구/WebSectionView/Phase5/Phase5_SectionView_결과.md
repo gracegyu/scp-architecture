@@ -2,7 +2,7 @@
 
 ## 1. 개요
 
-Phase 3 치열궁 곡선·Phase 4 파노라마에 이어, 사용자가 지정한 **Section 중심**을 기준으로 곡선에 **수직인 단면 9장**을 실시간 생성해 우측 3×3 그리드에 표시하는 PoC를 구현했다. CleverOne 등 상용 UI와의 배치·B/L 방향을 맞추기 위한 좌표 규약과, **표시 경로(WebGL2 / Canvas 2D)**·**연산 경로(JavaScript / WebAssembly)** 비교를 수행했다.
+Phase 3 치열궁 곡선·Phase 4 파노라마에 이어, 사용자가 지정한 **Section 중심**을 기준으로 곡선에 **수직인 단면 9장**을 실시간 생성해 우측 3×3 그리드에 표시하는 PoC를 구현했다. CleverOne 등 상용 UI와의 배치·B/L 방향을 맞추기 위한 좌표 규약과, **표시 경로(WebGL2 / Canvas 2D)**·**연산 경로(JS / WASM 매번 복사 / WASM 상주)** 비교를 수행했다. **픽셀 생성 알고리즘(삼선형 보간·슬랩·윈도) 상세는 `Phase5_SectionView_OnePager.md` 알고리즘 절·아래 4.2절**을 본다.
 
 ---
 
@@ -18,7 +18,7 @@ Phase 3 치열궁 곡선·Phase 4 파노라마에 이어, 사용자가 지정한
 - 투영: **MIP(최댓값)**
 - WC / WW: **3000 / 9100** (Scout·Section 공유, 파노라마는 별도 Pan WC/WW 가능)
 - INT: **1.0 mm**
-- Section 표시: **WebGL2**, 연산: **WASM**, 9장 생성 표시: **약 445 ms** (측정치는 환경·슬라이스·곡선 상태에 따라 변동)
+- Section 표시: **WebGL2**, 연산 모드 예시(WASM 경로): 툴바 **약 445 ms** (한 시점 값; **아래 3.1 절 표는 콘솔 다중 샘플 평균**과 다를 수 있음)
 
 동일 조건에서 파노라마 1회 생성은 화면상 **약 132 ms** 수준으로, 9장 Section이 단일 파노라마 생성보다 무거운 작업임을 확인할 수 있다.
 
@@ -26,23 +26,25 @@ Phase 3 치열궁 곡선·Phase 4 파노라마에 이어, 사용자가 지정한
 
 ## 3. 성능 비교
 
-### 3.1 JavaScript vs WebAssembly(9장 생성 시간)
+### 3.1 연산 경로별 9장 생성 시간(콘솔 측정)
 
-| 연산 경로                                                             | 관측 범위(대표)   |
-| --------------------------------------------------------------------- | ----------------- |
-| **JS** (`generateSectionImagesData`)                                  | 약 **350~420 ms** |
-| **WASM** (`sectionGenerate9` + 글루: 볼륨 복사·메모리·ImageData 구성) | 약 **390~450 ms** |
+데모에서 **동일 볼륨·Scout/Panorama에서 Section 위치를 연속 변경**하며 `console.log`로 남긴 `{ "tag":"SectionGen", "mode", "ms" }` 샘플을 모아 산출했다. **`ms`는 JS·WASM 공통으로 `nU`/`nV` 확정 직후부터 9장 `ImageData`가 준비될 때까지**이다(JS: `buildCurveArcContext` 이전 단계 제외. WASM: 해당 구간에 **힙 레이아웃·`mem.grow`·(경로에 따라) 전체 볼륨 `Int16` 복사·곡선 버퍼·`sectionGenerate9`·RGBA→`ImageData` 복사** 포함. **`initSectionWasm`(최초 fetch/instantiate)은 제외**.)
 
-평균적으로 **JS가 약 10% 정도 빠른 것으로 관측**되었다. 이는 이 PoC 구조에서 충분히 나올 수 있는 결과다.
+| 연산 경로 | 표본 수 n | 평균 ms | 최소~최대 ms |
+| --- | ---: | ---: | --- |
+| **JS** (`generateSectionImagesData`) | 16 | **393.2** | 362.7 ~ 427.4 |
+| **WASM (매번 복사)** (`generateSectionImagesDataWasm`) | 19 | **420.3** | 370.9 ~ 483.2 |
+| **WASM (상주)** (`generateSectionImagesDataWasmResident`, 동일 `CTVolume` 참조) | 19 | **415.9** | 371.9 ~ 454.9 |
 
-**WASM이 더 느리게 보이는 주요 요인(정리):**
+이번 세션에서는 **평균이 JS < WASM(상주) < WASM(매번 복사)** 순이었다. 구간을 맞춘 뒤 **매번 복사**에는 호출마다 **전체 볼륨 복사(~187MB)** 가 포함되어 평균·최댓값이 가장 크게 나오는 것이 타당하다. **상주**는 동일 참조에서 복사를 생략해 **복사 대비 평균 약 4ms 낮았**지만, 여전히 **JS 평균보다 약 23ms 높았**다(WASM 호출·메모리·JIT 대비 등). 표본마다 분산(`wasm-copy` 최대 483ms 등)이 커서 **더 긴 반복 측정**이 필요하다. 콘솔 **`setTimeout` handler long task** 경고는 **체감 지연**이 표의 ms보다 클 수 있음을 시사한다.
 
-- 매 생성 시(또는 메모리 정책상) **전체 볼륨 `Int16`을 WASM 선형 메모리로 복사**하는 비용이 크다. JS 경로는 `volume.data`를 **제자리**에서 trilinear 샘플링한다.
-- `WebAssembly.Memory` **페이지 확장(grow)** 비용.
-- 단일 스레드·단순 이중/삼중 루프 위주 핫패스는 브라우저 **JIT**에 유리한 경우가 많고, AssemblyScript WASM은 **SIMD·볼륨 상주 메모리 최적화 없이**는 역전되기 쉽다.
-- 툴바에 표시되는 ms는 WASM 쪽이 **순수 `sectionGenerate9`만**이 아니라 **복사·호출 전후**를 포함하는 쪽에 가깝다(공정 분리 측정은 별도 프로파일이 필요).
+**정리:**
 
-**시사점:** “WASM이면 항상 빠르다”가 아니라, **현재 설계(매번 복사 + 동일 알고리즘)** 에서는 JS가 유리할 수 있다. 이득을 보려면 **볼륨을 한 번만 올려 재사용**, **Worker 이동(메인 스레드 체감)** , **SIMD/알고리즘 정리** 등 추가 작업이 필요하다.
+- **JS**는 볼륨을 WASM으로 옮기지 않고 **`volume.data` 제자리 샘플링**이라 동일 정의의 `elapsedMs`에서 유리한 편으로 나왔다.
+- **WASM(복사) vs (상주)** 는 같은 WASM 글루 안에서 **복사 포함 여부**만 달라, 평균 차이로 **상주 이득**이 드러난다(이번 데이터 기준 약 4ms).
+- **SIMD·Worker·프로파일러 기준 분해**는 별도 과제.
+
+**시사점:** 연산 경로 선택은 **수치·메모리·향후 오프로드**를 함께 본다. “항상 WASM이 빠르다”는 이번 조건에서 성립하지 않는다.
 
 ### 3.2 WebGL2 vs Canvas 2D(표시)
 
@@ -60,11 +62,24 @@ Phase 3 치열궁 곡선·Phase 4 파노라마에 이어, 사용자가 지정한
 - `spacing`: **`[pixelSpacingX, pixelSpacingY, sliceSpacing]`** (단위 mm). DICOM `Pixel Spacing`(보통 row\column 문자열)을 파싱한 뒤, 볼륨 메타에서는 **열·행 순으로 재배치**해 넣는다.
 - **Z 간격(`spacing[2]`):** 인접 슬라이스 `Image Position Patient`의 **z 차이**를 우선 사용하고, 비정상이면 DICOM **`(0018,0088) Spacing Between Slices`** 로 보조한다. Axial 스택 물리 두께와 Section의 **세로(v) 샘플링**·파노라마 **행(z) 샘플링**에 직결된다.
 
-### 4.2 샘플링 좌표와 데이터 레이아웃
+### 4.2 Section 픽셀 알고리즘(보간~윈도)
 
-- `sampleTrilinear`는 복셀 인덱스 **`(x, y, z)`** 에 대해 **열**은 `0..cols-1`, **행**은 `0..rows-1`, **z**는 `0..slices-1`의 **연속 좌표**로 보간한다.
+**목표:** 치열궁에 **수직인 단면** 9장(각 `nU×nV`)의 **그레이스케일(윈도 후 RGBA)**. 수학·구현 상세는 **`Phase5_SectionView_OnePager.md` — 알고리즘: Section 픽셀 생성** 절을 본다.
+
+**파이프라인(요지):**
+
+1. 호장 `s_k`마다 `P_k`, `T̂_k`, `N̂_k` 계산. 단면은 **u∥`T̂_k`**, **v∥환자 Z**; 슬랩은 **`N̂_k`** 방향(Phase 4 파노라마 **한 열**의 평면·슬랩 정의와 혼동하지 말 것).
+2. 각 출력 `(iu, j)`에서 **u·v(mm)** → 볼륨 내 3D 샘플점. 슬랩 스텝마다 **연속 복셀 좌표** `(fx, fy, fz)`로 변환.
+3. **`sampleTrilinear`:** **삼선형(trilinear) 보간** — 감싸는 격자 **8꼭짓점** `Int16`을 읽어 x·y·z로 각각 선형 보간(최근접 이웃만 사용 아님, IDW 아님). **z도 연속**이라 인접 슬라이스 간 혼합이 포함된다. 구현: `packages/core/src/panorama/panorama.ts`; WASM 동일 수식: `packages/section-wasm/assembly/index.ts`.
+4. 슬랩 내 HU에 **MIP / Mean / Percentile** → **Rescale** → **`windowToByte(WC, WW)`**. 출력 열 **법선 방향 반전**(`nU-1-iu`, B/L).
+
+**데이터 레이아웃:**
+
+- `sampleTrilinear` 인자 `(x,y,z)`는 각각 **열·행·슬라이스 인덱스의 연속값**(복셀 경계 내).
 - `volume.data`는 **`[z * (cols*rows) + y * cols + x]`** 순서의 `Int16`이다.
-- Scout Axial 상의 곡선 제어점은 **현재 슬라이스 인덱스**의 **픽셀 좌표**이며, 호장(mm) 계산 시 **in-plane spacing**으로 mm로 환산한다.
+- Scout Axial 곡선 제어점은 **현재 슬라이스**의 **픽셀 좌표**; 호장(mm)은 **in-plane spacing**으로 환산한다.
+
+**Phase 4와의 관계:** `Phase4_Panorama_OnePager.md` §3 복셀 샘플링과 같이 **삼선형 보간 + 슬랩 + 투영**이라는 **값 읽기 방식**은 공유한다. Section은 **어떤 3D 점을 찍을지(단면+슬랩 축)** 가 다르다.
 
 ### 4.3 파노라마 “좌우(호장)” 확장·열 간격
 
@@ -97,6 +112,6 @@ Phase 3 치열궁 곡선·Phase 4 파노라마에 이어, 사용자가 지정한
 
 ## 5. 결론
 
-- **기능:** 9장 Cross-Section 실시간 생성·WebGL2/Canvas2D 표시·JS/WASM 연산 선택·CleverOne 방향에 가까운 B/L·파노라마·Scout와의 연동을 PoC 수준에서 달성했다.
-- **성능:** 동일 알고리즘 비교에서 **JS가 다소 유리**했고, 이는 **복사 비용·JIT·측정 구간**을 감안하면 자연스럽다. WASM의 이점은 **후속 최적화(상주 메모리·Worker·SIMD 등)** 에서 다시 평가하는 것이 맞다.
+- **기능:** 9장 Cross-Section 실시간 생성·WebGL2/Canvas2D 표시·**JS / WASM(복사) / WASM(상주)** 연산 선택·CleverOne 방향에 가까운 B/L·파노라마·Scout와의 연동을 PoC 수준에서 달성했다.
+- **성능:** 위 콘솔 샘플 기준 **평균 ms는 JS(약 393ms) < WASM 상주(약 416ms) < WASM 매번 복사(약 420ms)** 에 가까웠다. 상주는 복사 경로 대비 소폭 유리했으나 JS보다는 느렸다. `wasm-copy` 최댓값 등 분산이 커 추가 측정이 필요하다.
 - **표시:** WebGL2와 Canvas2D는 **거의 차이 없음**, WebGL2가 **미세하게 부드러울 수 있음** 정도로 정리한다.
