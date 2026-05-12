@@ -2,86 +2,87 @@
 
 ## 1. 개요
 
-Phase 3 치열궁 곡선·Phase 4 파노라마에 이어, 사용자가 지정한 **Section 중심**을 기준으로 곡선에 **수직인 단면 9장**을 실시간 생성해 우측 3×3 그리드에 표시하는 PoC를 구현했다. CleverOne 등 상용 UI와의 배치·B/L 방향을 맞추기 위한 좌표 규약과, **표시 경로(WebGL2 / Canvas 2D)**·**연산 경로(JS / WASM 매번 복사 / WASM 상주)** 비교를 수행했다. **픽셀 생성 알고리즘(삼선형 보간·슬랩·윈도) 상세는 `Phase5_SectionView_OnePager.md` 알고리즘 절·아래 4.2절**을 본다.
+Phase 3 치열궁 곡선과 Phase 4 파노라마에 이어, 사용자가 지정한 **Section 중심**을 기준으로 곡선에 수직인 단면 9장을 생성해 우측 3×3 그리드에 표시하는 PoC를 구현했다.
+
+비교한 항목은 다음 두 축이다.
+
+- **표시 경로**: WebGL2 / Canvas 2D
+- **연산 경로**: JS / WASM(매번 복사) / WASM(상주)
+
+픽셀 생성 알고리즘(삼선형 보간·슬랩·윈도) 상세는 `Phase5_SectionView_OnePager.md`의 알고리즘 절과 본 문서 4.2절을 본다.
 
 ---
 
 ## 2. 결과 화면
 
-데모에서 CT 볼륨 로드 후 Scout·Panorama·Section이 동작하는 화면이다.
+CT 볼륨 로드 후 Scout · Panorama · Section이 동시에 동작하는 화면이다.
 
 ![Phase 5 Section View PoC 결과 화면](Screenshot.png)
 
-스크린샷 예시 조건(화면 표시 기준):
+스크린샷 예시 조건:
 
-- 샘플 볼륨: **496 × 496 × 399** (약 187 MB)
-- 투영: **MIP(최댓값)**
-- WC / WW: **3000 / 9100** (Scout·Section 공유, 파노라마는 별도 Pan WC/WW 가능)
-- INT: **1.0 mm**
-- Section 표시: **WebGL2**, 연산 모드 예시(WASM 경로): 툴바 **약 445 ms** (한 시점 값; **아래 3.1 절 표는 콘솔 다중 샘플 평균**과 다를 수 있음)
+- 샘플 볼륨: 496 × 496 × 399 (약 187 MB)
+- 투영: MIP(최댓값), INT 1.0 mm
+- WC / WW: 3000 / 9100 (Scout·Section 공유, 파노라마는 별도 Pan WC/WW 가능)
+- Section 표시: WebGL2, 연산 모드 예시(WASM 경로): 툴바 약 445 ms (한 시점 값. 3.1절 표는 콘솔 다중 샘플 평균)
 
-동일 조건에서 파노라마 1회 생성은 화면상 **약 132 ms** 수준으로, 9장 Section이 단일 파노라마 생성보다 무거운 작업임을 확인할 수 있다.
+같은 조건에서 파노라마 1회 생성은 화면상 약 132 ms 수준으로, 9장 Section은 단일 파노라마보다 명확히 무거운 작업이다.
 
 ---
 
 ## 3. 성능 비교
 
-### 3.1 연산 경로별 9장 생성 시간(콘솔 측정)
+### 3.1 9장 생성 시간 (콘솔 측정)
 
-데모에서 **동일 볼륨·Scout/Panorama에서 Section 위치를 연속 변경**하며 `console.log`로 남긴 `{ "tag":"SectionGen", "mode", "ms" }` 샘플을 모아 산출했다. **`ms`는 JS·WASM 공통으로 `nU`/`nV` 확정 직후부터 9장 `ImageData`가 준비될 때까지**이다(JS: `buildCurveArcContext` 이전 단계 제외. WASM: 해당 구간에 **힙 레이아웃·`mem.grow`·(경로에 따라) 전체 볼륨 `Int16` 복사·곡선 버퍼·`sectionGenerate9`·RGBA→`ImageData` 복사** 포함. **`initSectionWasm`(최초 fetch/instantiate)은 제외**.)
+같은 볼륨에서 Scout/Panorama로 Section 위치를 연속 변경하며 `console.log`로 남긴 `{ "tag":"SectionGen", "mode", "ms" }` 샘플을 모아 산출했다.
+
+`ms` 정의(JS·WASM 공통): **`nU`/`nV` 확정 직후 ~ 9장 `ImageData` 준비 완료**까지. 다음을 포함한다.
+
+- JS: 본 절에서 `buildCurveArcContext` 이전 단계는 제외.
+- WASM: 힙 레이아웃, `mem.grow`, (경로에 따라) 전체 볼륨 `Int16` 복사, 곡선 버퍼, `sectionGenerate9`, RGBA → `ImageData` 복사 포함.
+- 둘 다 `initSectionWasm`(최초 fetch/instantiate)은 제외.
 
 | 연산 경로 | 표본 수 n | 평균 ms | 최소~최대 ms |
 | --- | ---: | ---: | --- |
-| **JS** (`generateSectionImagesData`) | 16 | **393.2** | 362.7 ~ 427.4 |
-| **WASM (매번 복사)** (`generateSectionImagesDataWasm`) | 19 | **420.3** | 370.9 ~ 483.2 |
-| **WASM (상주)** (`generateSectionImagesDataWasmResident`, 동일 `CTVolume` 참조) | 19 | **415.9** | 371.9 ~ 454.9 |
+| JS (`generateSectionImagesData`) | 16 | 393.2 | 362.7 ~ 427.4 |
+| WASM 매번 복사 (`generateSectionImagesDataWasm`) | 19 | 420.3 | 370.9 ~ 483.2 |
+| WASM 상주 (`generateSectionImagesDataWasmResident`, 동일 `CTVolume`) | 19 | 415.9 | 371.9 ~ 454.9 |
 
-이번 세션에서는 **평균이 JS < WASM(상주) < WASM(매번 복사)** 순이었다. 구간을 맞춘 뒤 **매번 복사**에는 호출마다 **전체 볼륨 복사(~187MB)** 가 포함되어 평균·최댓값이 가장 크게 나오는 것이 타당하다. **상주**는 동일 참조에서 복사를 생략해 **복사 대비 평균 약 4ms 낮았**지만, 여전히 **JS 평균보다 약 23ms 높았**다(WASM 호출·메모리·JIT 대비 등). 표본마다 분산(`wasm-copy` 최대 483ms 등)이 커서 **더 긴 반복 측정**이 필요하다. 콘솔 **`setTimeout` handler long task** 경고는 **체감 지연**이 표의 ms보다 클 수 있음을 시사한다.
+해석:
 
-**WASM vs JS(개념):** “WASM이면 계산이 항상 더 빠르다”는 **일반적으로 성립하지 않는다.** WASM은 **같은 JS보다 항상 빠른 VM**이라기보다, **어떤 종류의 작업**에 맞을 때 이점이 분명하다.
+- 평균 순서는 **JS < WASM(상주) < WASM(매번 복사)**. 매번 복사 쪽은 호출마다 187 MB 볼륨 복사가 들어가므로 평균·최댓값이 가장 큰 것이 자연스럽다.
+- 상주는 복사를 생략해 매번 복사 대비 평균 약 4 ms 낮았으나, JS 대비는 여전히 약 23 ms 높다.
+- 표본별 분산이 크고(`wasm-copy` 최대 483 ms), 콘솔에 long task 경고가 뜨는 등 **체감 지연은 표 ms보다 클 수 있다.**
 
-| 구분 | 내용 |
+### 3.2 “WASM이 더 빠르지 않은” 이유
+
+PoC에서 JS가 자주 더 빠른 이유는 한 가지가 아니라, 다음 요인이 누적된 결과로 본다.
+
+| 요인 | 내용 |
 | --- | --- |
-| **WASM에 흔히 기대하는 강점** | 오래 도는 **수치 핫패스**(분기·객체 생성이 적고 메모리 접근이 단순한 루프), **예측 가능한 실행**(엔진·JIT 편차·JS GC 영향이 상대적으로 적은 선형 메모리 구간), **C/Rust 등 네이티브 코드 이식**, (타겟·브라우저가 허용하면) **SIMD·스레드**로 추가 이득 |
-| **JS가 비슷하거나 유리할 수 있는 이유** | V8 등 **JIT**가 뜨거운 루프에서 매우 공격적으로 최적화함. **데이터가 이미 `TypedArray` 등 JS 힙에 있을 때** **제자리 샘플링**은 **전체 볼륨을 WASM 메모리로 옮기는 비용·JS↔WASM 경계**가 없음. **호출·전환·출력 패킹(RGBA→`ImageData`)** 등 글루 비중이 크면 순수 연산 이득이 **상쇄**되기 쉬움 |
-| **이번 PoC와의 대응** | 핵심 루프는 **삼선형·슬랩** 형태로 **JIT에 잘 먹는 패턴**에 가깝다. 표의 `elapsedMs`는 WASM 쪽에 **힙 레이아웃·(경로에 따른) 복사·`sectionGenerate9`·버퍼→`ImageData`** 가 함께 들어가므로, **핵심 보간만 놓고 WASM이 JS를 자동 역전**하지 않는 결과와 모순되지 않는다 |
+| 측정 구간에 **글루·복사 포함** | `elapsedMs`에는 볼륨 `Int16` 복사, JS↔WASM 경계, RGBA → `ImageData` 패킹이 같이 들어간다. 핵심 보간만 떼어 놓은 시간이 아니다. |
+| **JS는 제자리 샘플링** | `volume.data`(`TypedArray`)를 그대로 읽기 때문에 “복사·경계 비용 0”에서 출발한다. |
+| **JIT 친화적 핵심 루프** | 삼선형·슬랩 루프는 분기가 단순하고 `Float64`/`Int32` 위주라 V8 등 JIT가 잘 최적화한다. |
+| **AssemblyScript 툴체인** | `section-wasm`은 AssemblyScript 기반이다. C++/Rust(LLVM) 대비 동일 알고리즘이라도 생성 코드 품질·SIMD/벡터화 여지가 다를 수 있다. “언어가 느리다”라기보다 **컴파일·튜닝 폭의 차이**에 가깝다. |
 
-**정리(측정·선택):**
+요약하면, 이번 측정은 **WASM 핫패스가 느려서**가 아니라 **WASM 경로가 측정 구간 안에서 추가로 해야 할 일(복사·글루·패킹)이 있고, JS 쪽이 그 일을 안 해도 되는 구조**라 평균이 비슷하거나 JS가 약간 빠르게 나오는 것이다.
 
-- **JS**는 볼륨을 WASM으로 옮기지 않고 **`volume.data` 제자리 샘플링**이라 동일 정의의 `elapsedMs`에서 유리한 편으로 나왔다(위 표의 “경계·복사 없음”과 정합).
-- **WASM(복사) vs (상주)** 는 같은 WASM 글루 안에서 **복사 포함 여부**만 달라, 평균 차이로 **상주 이득**이 드러난다(이번 데이터 기준 약 4ms).
-- **SIMD·Worker·프로파일러 기준 분해**(복사·핫패스·패킹 각 ms)는 별도 과제.
+### 3.3 그래도 WASM이 유리한 경우
 
-**시사점:** 연산 경로 선택은 **수치·메모리·향후 오프로드(Worker 등)** 를 함께 본다. WASM 채택 여부는 **“이식·예측 가능성·향후 SIMD”** 같은 요소와 **“이번 구간에 복사·글루가 얼마나 들어가는가”** 를 분리해 판단하는 것이 타당하다.
+“WASM이 빠르다”고 일반적으로 이야기되는 전형은 다음 조건과 겹칠 때다. 이번 Section PoC는 이 조건과 부분적으로만 겹친다.
 
-### 3.2 WASM이 상대적으로 유리하기 쉬운 경우
+- **길고 무거운 순수 CPU 루프** (압축·해시·암호, DSP 등). 분기·할당이 적고 연속 버퍼 위 루프가 오래 도는 형태.
+- **C/C++/Rust로 이미 튜닝된 라이브러리 이식**.
+- **SIMD·멀티스레드**가 가능한 환경에서의 큰 덩어리 연산.
+- 평균보다 **worst case·편차**가 중요한 워크로드(JS의 JIT 편차·GC 스파이크 회피).
 
-아래는 **“흔히 WASM이 빠르다고 말하는”** 전형에 가깝다. 전제는 **`elapsedMs`에 복사·JS↔WASM 경계가 시간을 잡아먹지 않거나**(데이터가 이미 WASM 측에 상주·공유됨), **JS 구현이 JIT·GC·타입 불안정으로 불리한** 쪽일 때다. **짧은 호출을 자주 반복**하거나 **볼륨을 매번 넘기는 구조**면 이 이점이 **상쇄**되기 쉽다.
+따라서 “WASM 채택” 결정은 “이번 구간이 위 4가지 중 어디에 가까운가”와 “복사·글루를 얼마나 줄일 수 있는가”를 같이 본다.
 
-1. **길고 무거운 순수 CPU 핫패스** — 압축·해시·암호, 큰 행렬·픽셀 배치 연산, DSP 등. **분기·객체·문자열 할당이 적고** **연속 버퍼 위 루프**가 오래 도는 형태.
-2. **C/C++/Rust 등으로 이미 튜닝된 코드 이식** — 동일 알고리즘을 JS로 재작성하면 느리거나 유지보수가 어려울 때.
-3. **(환경이 되면) SIMD·멀티스레드** — 벡터 연산, Worker·공유 메모리와 묶인 **큰 덩어리 연산**에서 차이가 나기 쉽다.
-4. **평균보다 worst case·편차가 중요한 경우** — JS는 엔진·입력에 따라 JIT 편차가 생길 수 있고 할당이 끼면 GC 스파이크가 난다. **틱·실시간 갱신**에서 **상한을 줄이고 싶을 때** WASM 구간이 **상대적으로 안정적**이라고 보는 경우가 많다.
+### 3.4 WebGL2 vs Canvas 2D (표시)
 
-**이번 Section PoC**는 **볼륨이 JS `TypedArray`에 붙어 있고** 핵심 루프가 **삼선형·슬랩**처럼 **JIT 친화적**이라, 위 1~4와 조건이 **완전히 겹치지 않을 수 있다**(위 3.1 표·개념 표와 동일 결론).
-
-### 3.3 AssemblyScript 등 스크립트형 WASM과 C/C++/Rust
-
-PoC의 `section-wasm`은 **AssemblyScript(`assembly/*.ts`) → WASM** 경로다. **C++/Rust(LLVM) 대비 “언어 때문에 항상 느리다”는 뜻은 아니나**, **생성 코드 품질·최적화 여지**는 툴체인마다 달라질 수 있다.
-
-| 요인 | 설명 |
-| --- | --- |
-| **컴파일 백엔드** | C/C++/Rust는 보통 **LLVM** 계열 최적화가 오래 쌓여 있다. AssemblyScript도 WASM을 잘 뽑지만, **동일 수식·루프라도** 로드/스토어·분기 패턴이 LLVM 결과와 **다를 수 있다**. |
-| **SIMD·저수준 튜닝** | LLVM 쪽에서 익숙한 **벡터화·언롤·메모리 레이아웃** 튜닝을 하지 않았다면, 이론 상한이 **낮아질 수 있다**(“언어”라기보다 **컴파일·튜닝** 문제에 가깝다). |
-| **관용 구현** | TS에 가까운 문법에서 **임시 할당·함수 호출**이 늘면 WASM으로 풀렸을 때 **불필요한 연산**이 늘 수 있다. |
-
-**이번 측정과의 관계:** JS와 WASM 평균이 비슷해 보인 이유를 **AssemblyScript 탓만**으로 돌리기는 어렵다. 3.1에서 정의한 `elapsedMs`에는 **볼륨 복사·글루·RGBA 패킹**이 함께 들어간다. **언어/컴파일러 영향**과 **경계·복사 영향**은 **프로파일 또는 구간별 `performance.now()`** 로 나누어 보는 것이 타당하다.
-
-### 3.4 WebGL2 vs Canvas 2D(표시)
-
-- 두 경로 모두 **동일한 9장 `ImageData`** 를 소비한다.
-- **시각적으로는 거의 차이를 느끼기 어렵다.** WebGL2 쪽이 **텍스처 선형 보간** 등으로 **아주 미세하게 더 부드러운 느낌**은 있을 수 있으나, **큰 차이는 없다**고 보는 것이 타당하다.
-- PoC 목적은 “표시 파이프라인 검증 + 연속 갱신 시 부담 비교”에 가깝고, Section **해상도·연산**이 지배적인 경우 표시 방식만으로 체감이 크게 바뀌지는 않는다.
+- 두 경로 모두 **같은 9장 `ImageData`** 를 소비한다.
+- 시각적으로는 차이를 거의 느끼기 어렵다. WebGL2가 텍스처 선형 보간 등으로 미세하게 부드러울 수 있는 정도.
+- Section은 해상도·연산이 지배적이라, 표시 방식만으로 체감이 크게 바뀌지는 않는다.
 
 ---
 
@@ -89,60 +90,60 @@ PoC의 `section-wasm`은 **AssemblyScript(`assembly/*.ts`) → WASM** 경로다.
 
 ### 4.1 볼륨 축·메타데이터(`dimensions`, `spacing`)
 
-- `dimensions`: **`[columns, rows, sliceCount]`** 즉 **X(열)·Y(행)·Z(슬라이스 개수)** 를 의미한다.
-- `spacing`: **`[pixelSpacingX, pixelSpacingY, sliceSpacing]`** (단위 mm). DICOM `Pixel Spacing`(보통 row\column 문자열)을 파싱한 뒤, 볼륨 메타에서는 **열·행 순으로 재배치**해 넣는다.
-- **Z 간격(`spacing[2]`):** 인접 슬라이스 `Image Position Patient`의 **z 차이**를 우선 사용하고, 비정상이면 DICOM **`(0018,0088) Spacing Between Slices`** 로 보조한다. Axial 스택 물리 두께와 Section의 **세로(v) 샘플링**·파노라마 **행(z) 샘플링**에 직결된다.
+- `dimensions`: `[columns, rows, sliceCount]`, 즉 X(열) · Y(행) · Z(슬라이스 개수).
+- `spacing`: `[pixelSpacingX, pixelSpacingY, sliceSpacing]` (mm). DICOM `Pixel Spacing`(보통 row\column 문자열)을 파싱해 **열·행 순으로 재배치**한다.
+- Z 간격(`spacing[2]`)은 인접 슬라이스 `Image Position Patient`의 z 차이를 우선 쓰고, 비정상이면 DICOM `(0018,0088) Spacing Between Slices`로 보조한다. Axial 스택의 물리 두께와 Section의 v 샘플링·파노라마 행 샘플링에 직결된다.
 
-### 4.2 Section 픽셀 알고리즘(보간~윈도)
+### 4.2 Section 픽셀 알고리즘 (보간 ~ 윈도)
 
-**목표:** 치열궁에 **수직인 단면** 9장(각 `nU×nV`)의 **그레이스케일(윈도 후 RGBA)**. 축 관계 스케치: [`Phase5_SectionGeometry_Schematic.png`](Phase5_SectionGeometry_Schematic.png). 수학·구현 상세는 **`Phase5_SectionView_OnePager.md` — 알고리즘: Section 픽셀 생성** 절을 본다.
+목표: 치열궁에 수직인 단면 9장(`nU × nV`)의 그레이스케일을 윈도 처리해 RGBA로 출력. 축 관계 스케치는 [`Phase5_SectionGeometry_Schematic.png`](Phase5_SectionGeometry_Schematic.png), 수학·구현 상세는 `Phase5_SectionView_OnePager.md` 알고리즘 절을 본다.
 
-**파이프라인(요지):**
+파이프라인 요지:
 
-1. 호장 `s_k`마다 `P_k`, `T̂_k`, `N̂_k` 계산. 단면은 **u∥`T̂_k`**, **v∥환자 Z**; 슬랩은 **`N̂_k`** 방향(Phase 4 파노라마 **한 열**의 평면·슬랩 정의와 혼동하지 말 것).
-2. 각 출력 `(iu, j)`에서 **u·v(mm)** → 볼륨 내 3D 샘플점. 슬랩 스텝마다 **연속 복셀 좌표** `(fx, fy, fz)`로 변환.
-3. **`sampleTrilinear`:** **삼선형(trilinear) 보간** — 감싸는 격자 **8꼭짓점** `Int16`을 읽어 x·y·z로 각각 선형 보간(최근접 이웃만 사용 아님, IDW 아님). **z도 연속**이라 인접 슬라이스 간 혼합이 포함된다. 구현: `packages/core/src/panorama/panorama.ts`; WASM 동일 수식: `packages/section-wasm/assembly/index.ts`.
-4. 슬랩 내 HU에 **MIP / Mean / Percentile** → **Rescale** → **`windowToByte(WC, WW)`**. 출력 열 **법선 방향 반전**(`nU-1-iu`, B/L).
+1. 호장 `s_k`마다 `P_k`, `T̂_k`, `N̂_k` 계산. 단면은 u ∥ `T̂_k`, v ∥ 환자 Z, 슬랩은 `N̂_k` 방향. (Phase 4 파노라마의 한 열 평면·슬랩 정의와 다르다.)
+2. 각 출력 `(iu, j)`에서 u·v(mm)를 볼륨 내 3D 점으로 변환. 슬랩 스텝마다 연속 복셀 좌표 `(fx, fy, fz)`로 푼다.
+3. `sampleTrilinear`: 감싸는 격자 8꼭짓점 `Int16`을 읽어 x·y·z 각각 선형 보간. z도 연속이라 인접 슬라이스가 섞인다. 구현은 `packages/core/src/panorama/panorama.ts`, WASM 동일 수식은 `packages/section-wasm/assembly/index.ts`.
+4. 슬랩 내 HU에 MIP / Mean / Percentile → Rescale → `windowToByte(WC, WW)` → 출력 열을 법선 방향으로 좌우 반전(`nU - 1 - iu`, B/L 정렬).
 
-**데이터 레이아웃:**
+데이터 레이아웃:
 
-- `sampleTrilinear` 인자 `(x,y,z)`는 각각 **열·행·슬라이스 인덱스의 연속값**(복셀 경계 내).
-- `volume.data`는 **`[z * (cols*rows) + y * cols + x]`** 순서의 `Int16`이다.
-- Scout Axial 곡선 제어점은 **현재 슬라이스**의 **픽셀 좌표**; 호장(mm)은 **in-plane spacing**으로 환산한다.
+- `sampleTrilinear` 인자 `(x, y, z)`는 각각 열·행·슬라이스 인덱스의 연속값.
+- `volume.data`는 `[z * (cols * rows) + y * cols + x]` 순서의 `Int16`.
+- Scout Axial 곡선 제어점은 현재 슬라이스의 픽셀 좌표. 호장(mm)은 in-plane spacing으로 환산한다.
 
-**Phase 4와의 관계:** `Phase4_Panorama_OnePager.md` §3 복셀 샘플링과 같이 **삼선형 보간 + 슬랩 + 투영**이라는 **값 읽기 방식**은 공유한다. Section은 **어떤 3D 점을 찍을지(단면+슬랩 축)** 가 다르다.
+Phase 4와의 관계: 삼선형 보간 + 슬랩 + 투영이라는 “값 읽기 방식”은 공유한다. Section은 **어떤 3D 점을 찍을지**(단면 + 슬랩 축)가 다르다.
 
-### 4.3 파노라마 “좌우(호장)” 확장·열 간격
+### 4.3 파노라마 좌우(호장) 확장과 열 간격
 
-- 파노라마는 곡선을 따라 **호장(mm) 간격**으로 열을 늘려 **가로 방향(치열궁 따라)** “확장”된다.
-- 열 간격(mm)은 `panoramaColumnSpacingFromVolumeSpacing`에서 **`min(spacing[0], spacing[1])`** 로 둔다. **X·Y 픽셀 간격 중 더 촘촘한 쪽**에 맞추면, 한 열이 대략 **한 격자 스텝**과 비슷한 물리 스케일이 되도록 하기 위함이다. (둘 다 비정상이면 기본값 0.4 mm 등으로 폴백.)
-- Section 생성 옵션에도 동일한 `panoramaColumnSpacingMm`이 넘어가나, **9장 자체의 u·v 격자**는 `sectionWidthMm`, `topMm/bottomMm`, `spacing`으로 별도 결정된다.
+- 파노라마는 곡선을 따라 호장(mm) 간격으로 열을 늘려 가로 방향(치열궁 따라)으로 확장된다.
+- 열 간격(mm)은 `panoramaColumnSpacingFromVolumeSpacing`에서 `min(spacing[0], spacing[1])`로 둔다. X·Y 픽셀 간격 중 더 촘촘한 쪽에 맞춰, 한 열이 한 격자 스텝과 비슷한 물리 스케일이 되도록 한다. (둘 다 비정상이면 0.4 mm 등으로 폴백.)
+- Section 옵션에도 `panoramaColumnSpacingMm`이 넘어가지만, 9장의 u·v 격자는 `sectionWidthMm`, `topMm/bottomMm`, `spacing`으로 별도 결정된다.
 
-### 4.4 Section 단면 기하(파노라마와의 차이)
+### 4.4 Section 단면 기하 (파노라마와의 차이)
 
-- 한 장의 단면 평면: **접선 `T̂`(u축, 치열궁 따라)** × **볼륨 스택 Z(v축)**. **법선 `N̂`** 는 Axial 평면 내에서 곡선에 수직이다.
-- **슬랩 적분 축은 접선 방향**이다. 파노라마 열이 쓰는 평면과 동일해지지 않도록 한 것이 Phase 5 핵심 정정 사항이다(이전에는 단면이 “파노라마 조각”처럼 보이는 문제가 있었음).
-- **CleverOne B/L 정렬:** 법선 방향 출력 열을 **좌우 반전**(`nU-1-iu`)하여 CleverOne 등 관례와 맞췄다(JS·WASM 동일).
+- 한 장의 단면 평면은 접선 `T̂`(u축, 치열궁 따라) × 볼륨 스택 Z(v축). 법선 `N̂`은 Axial 평면 내에서 곡선에 수직이다.
+- 슬랩 적분 축은 접선 방향이다. 파노라마 열의 평면과 같아지지 않게 한 것이 Phase 5의 핵심 정정 사항이다(이전엔 단면이 “파노라마 조각”처럼 보이는 문제가 있었음).
+- CleverOne B/L 정렬: 법선 방향 출력 열을 좌우 반전해 상용 관례에 맞춘다(JS·WASM 동일).
 
-### 4.5 UI·상태·동기화
+### 4.5 UI · 상태 · 동기화
 
-- `sectionCenterMm`, INT, Top/Bottom(mm), WC/WW, 곡선, 슬라이스 인덱스, 투영·슬랩 옵션이 바뀌면 **짧은 지연(스로틀)** 후 9장을 재생성한다.
-- 파노라마·Scout에서 **동일 `axialUi`** 로 Section 중심과 핸들을 공유한다.
-- **Edit Curve** 모드에서는 Section 위치 픽이 막히도록 해 곡선 편집과 충돌을 줄였다.
+- `sectionCenterMm`, INT, Top/Bottom(mm), WC/WW, 곡선, 슬라이스 인덱스, 투영·슬랩 옵션이 바뀌면 짧은 스로틀 후 9장을 재생성한다.
+- 파노라마·Scout는 동일 `axialUi`로 Section 중심과 핸들을 공유한다.
+- Edit Curve 모드에서는 Section 위치 픽이 막히도록 해 곡선 편집과 충돌을 줄였다.
 
-### 4.6 개발 중 발견한 이슈·대응(요약)
+### 4.6 개발 중 발견한 이슈 · 대응
 
 | 이슈 | 내용 |
 | --- | --- |
-| WASM 404 | `public/section-wasm.wasm`이 없으면 `fetch` 실패 후 조용히 Section이 비어 보였음. **Vite 개발 서버에서 `packages/section-wasm/dist/section.wasm`을 직접 서빙**하는 플러그인으로 보완. |
-| WebGL `bindTexture` 삭제 객체 | `sectionImages` 갱신 시 텍스처 cleanup과 `renderGrid`가 **같은 틱에서** 어긋나 **삭제된 텍스처**를 bind하는 레이스. **`texturesLiveRef`**로 업로드 직후 참조를 동기화해 해결. |
-| `sectionCenterMm` 초기값 | 곡선이 유효해지기 전 `0`이면 9장이 잘못 겹칠 수 있어 **배치 전 `-1`** 등으로 “미배치”를 두고, 유효 곡선 시 **호장 중앙**으로 채움. |
-| DICOM Z 간격 | IPP z 차이만으로는 spacing이 깨지는 데이터가 있어 **`Spacing Between Slices`** 태그를 보조로 사용. |
+| WASM 404 | `public/section-wasm.wasm`이 없으면 `fetch` 실패 후 Section이 조용히 비어 보였다. Vite 개발 서버에서 `packages/section-wasm/dist/section.wasm`을 직접 서빙하는 플러그인으로 보완. |
+| WebGL `bindTexture` 삭제 객체 | `sectionImages` 갱신 시 텍스처 cleanup과 `renderGrid`가 같은 틱에서 어긋나 삭제된 텍스처를 bind하는 레이스. `texturesLiveRef`로 업로드 직후 참조를 동기화해 해결. |
+| `sectionCenterMm` 초기값 | 곡선이 유효해지기 전 `0`이면 9장이 잘못 겹칠 수 있어 배치 전 `-1` 등 “미배치”를 두고, 유효 곡선 시 호장 중앙으로 채운다. |
+| DICOM Z 간격 | IPP z 차이만으로 spacing이 깨지는 데이터가 있어 `Spacing Between Slices` 태그를 보조로 사용. |
 
 ---
 
 ## 5. 결론
 
-- **기능:** 9장 Cross-Section 실시간 생성·WebGL2/Canvas2D 표시·**JS / WASM(복사) / WASM(상주)** 연산 선택·CleverOne 방향에 가까운 B/L·파노라마·Scout와의 연동을 PoC 수준에서 달성했다.
-- **성능:** 위 콘솔 샘플 기준 **평균 ms는 JS(약 393ms) < WASM 상주(약 416ms) < WASM 매번 복사(약 420ms)** 에 가까웠다. 상주는 복사 경로 대비 소폭 유리했으나 JS보다는 느렸다. `wasm-copy` 최댓값 등 분산이 커 추가 측정이 필요하다.
-- **표시:** WebGL2와 Canvas2D는 **거의 차이 없음**, WebGL2가 **미세하게 부드러울 수 있음** 정도로 정리한다.
+- 기능: 9장 Cross-Section 실시간 생성, WebGL2 / Canvas 2D 표시, JS / WASM(복사) / WASM(상주) 연산 선택, CleverOne 방향에 가까운 B/L, 파노라마·Scout 연동을 PoC 수준에서 달성했다.
+- 성능: 콘솔 샘플 기준 평균 ms는 JS 약 393 ms < WASM 상주 약 416 ms < WASM 매번 복사 약 420 ms. 상주는 복사 경로 대비 소폭 유리하지만 JS보다는 느리다. 분산이 커서 추가 측정이 필요하다. 이번 조건에서 “WASM이 항상 빠르다”는 성립하지 않는다(자세한 이유는 3.2, WASM이 유리한 전형은 3.3).
+- 표시: WebGL2와 Canvas 2D는 거의 차이 없음. WebGL2 쪽이 미세하게 부드러울 수 있는 정도.
