@@ -1634,9 +1634,9 @@ aws s3api create-bucket \
   - [x] ToothBoxElement (selectedToothCodes, selectedOcclusionToothCodes)
   - [x] TreatmentCategoryElement (category1/2/3, P2 우선순위 낮음)
 
-- [ ] **Task 4.2**: Form Controls (12h)
-  - [ ] formControl + controlType (radio, checkbox, button, comboBox, textInput, textArea)
-  - [ ] 각 controlType별 렌더링
+- [x] **Task 4.2**: Form Controls (12h)
+  - [x] formControl + controlType (radio, checkbox, button, comboBox, textInput, textArea)
+  - [x] 각 controlType별 렌더링
 
 - [ ] **Task 4.3**: Block, Group (10h)dd
   - [ ] BlockElement (children: Element[], 상대 좌표)
