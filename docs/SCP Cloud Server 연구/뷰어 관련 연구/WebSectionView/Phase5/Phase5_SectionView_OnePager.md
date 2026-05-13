@@ -40,7 +40,7 @@ CleverOne Section 화면(참고 UI):
 | Scout 위 9 단면 표시 | 9개 빨간 짧은 선들이 곡선 위에 1~9 번호로 정렬 | 동일 의미. 번호는 **3×3 그리드 매핑**과 일치. |
 | Panorama 위 단면 위치 | 세로 9선 + 가로 2선(상·하 핸들) | 동일. 가운데 1선이 **현재 중심**, 좌우 4선이 ±k·INT. |
 | Panorama 우측 Ruler | 있음(mm 자) | **PoC 미구현**(시야 단순화). |
-| Section 칸 라벨 | B / L 등 방향, 1~9 번호, mm 자 | 1~9 번호·B/L 방향만. **눈금(ruler)·축선 미구현**(필요 시 캡션 한 줄). |
+| Section 칸 라벨 | B / L 등 방향, 1~9 번호, mm 자 | 1~9 번호·B/L·**가로·세로 mm 눈금**(CleverOne에 가깝게 contain·물리 스케일 정합). |
 | 위치 변경 | Scout/Panorama 핸들 드래그 | 동일. 키보드 좌·우 키로 INT 단위 미세 이동 가능(선택 사항). |
 
 ---
@@ -73,6 +73,7 @@ CleverOne Section 화면(참고 UI):
 - Panorama 좌·우 끝에 **수평 핸들 2개**(상·하). 드래그로 mm 단위 조절.
 - 초기값: 볼륨 z 범위(`0..nz·spacing[2]`) 안에서 자동 추정(예: 중심 ±50 mm) 후 사용자가 조정.
 - Section의 `v` 범위가 곧 `[topMm, bottomMm]`. 동시에 **Panorama의 보이는 영역**도 동일 범위로 자르거나 두 핸들 사이 영역을 강조한다(둘 중 단순한 쪽 채택, 결과 문서에 표기).
+- **Scout 하단 「Sec 높이」 슬라이더**(구현): Z 구간 **길이(mm)** = `bottomMm - topMm`만 조절하고, **현재 구간의 z 중점**은 유지한 채 상·하 경계를 벌리거나 줄인다. 볼륨 Z 물리 길이(`zExtent`) 안으로 클램프. Panorama Top/Bottom 핸들과 **같은 `topMm`/`bottomMm`** 을 공유한다.
 
 ### 슬랩(법선 방향) 두께
 
@@ -87,6 +88,8 @@ CleverOne Section 화면(참고 UI):
 - 곡선 위 **클릭** 또는 기존 곡선 영역에서 **드래그** 시 가장 가까운 호장 위치를 `sectionCenterMm`로 설정.
 - Phase 3의 “수직 짧은 빨간 선”은 그대로 두되, **현재 9장에 해당하는 9개 선**은 **굵게/번호와 함께** 강조한다.
 - Edit Curve 모드일 때는 위치 선택을 **막는다**(드래그 충돌 방지). 둘 중 한 가지 모드만.
+- **Sec 폭(mm)**: 하단 슬라이더로 `sectionWidthMm` 조절(코어 기본값은 CleverOne에 맞춰 좁은 폭부터). **드래그 중에는 표시값만 갱신**하고, **포인터 업·취소·blur**에서 상태를 커밋해 9장 재생성이 연쇄 호출되지 않도록 한다.
+- **Sec 높이(mm)**: `topMm`/`bottomMm` 구간 길이만 바꾸는 슬라이더(중점 유지·`zExtent` 클램프). **커밋 시점은 Sec 폭과 동일**(포인터 업·blur).
 
 ### Panorama View (좌하)
 
@@ -94,13 +97,13 @@ CleverOne Section 화면(참고 UI):
 - 세로선 9개 표시. **가운데(굵은) 선**을 좌우로 드래그하면 9개가 함께 이동(`sectionCenterMm` 변경).
 - 좌우 4개의 보조선은 표시만(드래그하면 일부 PoC만 가운데 선과 동일하게 동작; 1차에서는 **표시만**).
 - 파노라마 영역 우측 **Ruler 미표시**.
-- 기존 Phase 4 툴바는 그대로(투영·생성·Pan WC/WW).
+- 기존 Phase 4 툴바는 그대로(투영·생성). **WC/WW는 Scout와 공유**(`useScoutAxialUi`).
 
 ### Section View (우, 3×3)
 
 - 칸 좌상단 작은 **번호 1~9**(좌→우, 위→아래 = `s_0..s_8`).
 - 좌/우 가장자리에 작은 **B / L** 텍스트(법선 부호 규약에 따른 buccal/lingual 가이드).
-- **눈금(ruler)·축선은 PoC에서 미구현**.
+- 타일 **가로·세로 mm 눈금**: `sectionWidthMm` 및 `[topMm, bottomMm]`과 출력 `nU`×`nV`에 맞춰 스케일한다. **화면에 올라간 9장 `ImageData`가 샘플링된 mm**와 눈금 물리 스케일을 짝지어 두어, 폭·높이 커밋 직후 **새 비트맵이 오기 전**에 이전 이미지가 늘어나 보이는 현상을 막는다(`SectionViewer`에서 마지막 성공 `apply` 기준 mm를 `tileMmMetrics`에 사용).
 
 ### Section View 렌더·연산 토글 (PoC 핵심 검증)
 
@@ -117,6 +120,7 @@ CleverOne Section 화면(참고 UI):
 
 - **별도 “Section 생성” 버튼은 두지 않는다.** 다음 조건 변화에 즉시(또는 짧은 스로틀 후) 9장을 다시 만든다.
   - `sectionCenterMm`, `INT`, `topMm`/`bottomMm`, `sectionWidthMm`, **WC/WW**, **곡선**, **현재 곡선 슬라이스 인덱스**, 투영·슬랩 옵션, **표시(WebGL2/Canvas2D)**, **연산(JS / WASM 복사 / WASM 상주)** 토글.
+- **Scout의 Sec 폭·Sec 높이 슬라이더**는 값이 매 프레임 바뀌어도 **`sectionWidthMm` / `topMm`·`bottomMm`은 커밋(포인터 업 등) 시에만 반영**한다. 그 외 입력은 기존 스로틀 정책을 따른다.
 - 마우스 드래그 같은 **연속 입력**은 약 **1 frame 스로틀(또는 60 ms 디바운스)** 정도로 제한. 일정 ms 안에 끝나면 그대로 매 프레임 재계산.
 - **목표는 끊김 없는 갱신**이므로 “명시적 버튼”은 본 PoC의 검증 의도와 반대다.
 
@@ -169,6 +173,8 @@ CleverOne Section 화면(참고 UI):
 | 삼선형 보간 | `packages/core/src/panorama/panorama.ts` — `sampleTrilinear` |
 | WASM 핫패스 | `packages/section-wasm/assembly/index.ts` — `sampleTrilinear`(동일 수식), `sectionGenerate9` |
 | WASM 글루 | `packages/section-wasm/src/index.ts` |
+| Scout 슬라이더(Sec 폭·높이) | `packages/components/src/ScoutView.tsx` |
+| 9장 생성·비트맵–mm 동기 `tileMmMetrics` | `packages/components/src/SectionViewer.tsx` |
 
 ### 다이어그램 (Mermaid)
 
@@ -348,7 +354,7 @@ flowchart TB
 
 1. 본 OnePager + Phase 5 결과 md(구현 후)
 2. `packages/core` 내 `section/` 모듈, **`packages/section-wasm`**, `useScoutAxialUi` 확장(`sectionComputeMode`, `SECTION_COMPUTE_INCLUDE_LEGACY_WASM_COPY`)
-3. `ScoutView` 9장 강조 표시, `PanoramaView` 세로 9선 + Top/Bottom 핸들, `SectionGrid` Canvas 2D / WebGL2·**연산(JS·WASM 복사·WASM 상주)** 토글
+3. `ScoutView` 9장 강조 표시·**Sec 폭·Sec 높이 슬라이더**, `PanoramaView` 세로 9선 + Top/Bottom 핸들, `SectionGrid` Canvas 2D / WebGL2·**연산(JS·WASM 복사·WASM 상주)** 토글
 4. 비교 결과(평균 FPS, 95퍼센타일 ms, **JS / WASM(복사) / WASM(상주)** 9장 생성 ms, 시각 비교 캡처)
 
 ### 참고 (용어)

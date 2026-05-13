@@ -9,7 +9,7 @@ Phase 3 치열궁 곡선과 Phase 4 파노라마에 이어, 사용자가 지정�
 - **표시 경로**: WebGL2 / Canvas 2D
 - **연산 경로**: JS / WASM(매번 복사) / WASM(상주)
 
-픽셀 생성 알고리즘(삼선형 보간·슬랩·윈도) 상세는 `Phase5_SectionView_OnePager.md`의 알고리즘 절과 본 문서 4.2절을 본다.
+픽셀 생성 알고리즘(삼선형 보간·슬랩·윈도) 상세는 [Phase 5: 9개 Cross-Section 이미지 실시간 생성·표시(WebGL vs Canvas 2D·JS / WASM(복사) / WASM(상주) 연산 비교)](https://vks.vatech.com/spaces/ESDEVELOPER/pages/305058086/Phase+5+9%EA%B0%9C+Cross-Section+%EC%9D%B4%EB%AF%B8%EC%A7%80+%EC%8B%A4%EC%8B%9C%EA%B0%84+%EC%83%9D%EC%84%B1%C2%B7%ED%91%9C%EC%8B%9C+WebGL+vs+Canvas+2D%C2%B7JS+vs+WASM+%EC%97%B0%EC%82%B0+%EB%B9%84%EA%B5%90)의 알고리즘 절과 본 문서 4.2절을 본다.
 
 ---
 
@@ -23,7 +23,8 @@ CT 볼륨 로드 후 Scout · Panorama · Section이 동시에 동작하는 화�
 
 - 샘플 볼륨: 496 × 496 × 399 (약 187 MB)
 - 투영: MIP(최댓값), INT 1.0 mm
-- WC / WW: 3000 / 9100 (Scout·Section 공유, 파노라마는 별도 Pan WC/WW 가능)
+- WC / WW: 3000 / 9100 (Scout·파노라마·Section 공유)
+- Scout 하단 **Sec 폭·Sec 높이** 슬라이더로 단면 가로(mm)·Z 구간 길이(mm) 조절 가능(폭/높이는 포인터 업·blur에서 커밋)
 - Section 표시: WebGL2, 연산 모드 예시(WASM 경로): 툴바 약 445 ms (한 시점 값. 3.1절 표는 콘솔 다중 샘플 평균)
 
 같은 조건에서 파노라마 1회 생성은 화면상 약 132 ms 수준으로, 9장 Section은 단일 파노라마보다 명확히 무거운 작업이다.
@@ -130,6 +131,9 @@ Phase 4와의 관계: 삼선형 보간 + 슬랩 + 투영이라는 “값 읽기 
 - `sectionCenterMm`, INT, Top/Bottom(mm), WC/WW, 곡선, 슬라이스 인덱스, 투영·슬랩 옵션이 바뀌면 짧은 스로틀 후 9장을 재생성한다.
 - 파노라마·Scout는 동일 `axialUi`로 Section 중심과 핸들을 공유한다.
 - Edit Curve 모드에서는 Section 위치 픽이 막히도록 해 곡선 편집과 충돌을 줄였다.
+- **Sec 폭(mm)**(`sectionWidthMm`): Scout 하단 슬라이더. **드래그 중에는 draft만 변경**하고 **포인터 업·취소·blur**에서 커밋해 재생성 호출을 줄인다(기본 폭은 코어 `DEFAULT_SECTION_WIDTH_MM`, CleverOne에 맞춰 상대적으로 좁게 둠).
+- **Sec 높이(mm)**: `bottomMm - topMm`만 바꾼다. **현재 Z 구간 중점**을 유지한 채 상·하 경계를 조정하며, 볼륨 Z 물리 길이 `zExtent` 안으로 클램프한다. Panorama의 Top/Bottom 핸들과 **같은 state**이므로 한쪽을 바꾸면 다른 쪽 표시도 따라간다.
+- **눈금과 비트맵 짝**: Section 타일의 `tileMmMetrics`에는 `axialUi`의 최신 폭·높이가 아니라 **마지막으로 9장 `apply`에 성공한 샘플링 mm**를 쓴다. 커밋 직후 새 `ImageData`가 오기 전에 이전 텍스처가 새 눈금에 늘어져 보이는 깜빡임을 막기 위함이다(`SectionViewer`의 `bitmapSectionLayout` 등).
 
 ### 4.6 개발 중 발견한 이슈 · 대응
 
@@ -139,11 +143,12 @@ Phase 4와의 관계: 삼선형 보간 + 슬랩 + 투영이라는 “값 읽기 
 | WebGL `bindTexture` 삭제 객체 | `sectionImages` 갱신 시 텍스처 cleanup과 `renderGrid`가 같은 틱에서 어긋나 삭제된 텍스처를 bind하는 레이스. `texturesLiveRef`로 업로드 직후 참조를 동기화해 해결. |
 | `sectionCenterMm` 초기값 | 곡선이 유효해지기 전 `0`이면 9장이 잘못 겹칠 수 있어 배치 전 `-1` 등 “미배치”를 두고, 유효 곡선 시 호장 중앙으로 채운다. |
 | DICOM Z 간격 | IPP z 차이만으로 spacing이 깨지는 데이터가 있어 `Spacing Between Slices` 태그를 보조로 사용. |
+| 폭·높이 커밋 vs 비트맵 지연 | `sectionWidthMm` 또는 Z 구간이 바뀌어도 새 9장이 도착하기 전에 `tileMmMetrics`만 이어질 경우 이전 이미지가 가로로 늘어난 듯 보일 수 있어, **적용 성공 시점의 mm**로 눈금 물리 스케일을 고정한다. |
 
 ---
 
 ## 5. 결론
 
-- 기능: 9장 Cross-Section 실시간 생성, WebGL2 / Canvas 2D 표시, JS / WASM(복사) / WASM(상주) 연산 선택, CleverOne 방향에 가까운 B/L, 파노라마·Scout 연동을 PoC 수준에서 달성했다.
+- 기능: 9장 Cross-Section 실시간 생성, WebGL2 / Canvas 2D 표시, JS / WASM(복사) / WASM(상주) 연산 선택, CleverOne 방향에 가까운 B/L·mm 눈금, Scout **Sec 폭·Sec 높이** 슬라이더 및 Panorama·Scout 연동을 PoC 수준에서 달성했다.
 - 성능: 콘솔 샘플 기준 평균 ms는 JS 약 393 ms < WASM 상주 약 416 ms < WASM 매번 복사 약 420 ms. 상주는 복사 경로 대비 소폭 유리하지만 JS보다는 느리다. 분산이 커서 추가 측정이 필요하다. 이번 조건에서 “WASM이 항상 빠르다”는 성립하지 않는다(자세한 이유는 3.2, WASM이 유리한 전형은 3.3).
 - 표시: WebGL2와 Canvas 2D는 거의 차이 없음. WebGL2 쪽이 미세하게 부드러울 수 있는 정도.
