@@ -180,7 +180,7 @@ CleverOne Section 화면(참고 UI):
 
 **정적 도식(PNG):** Axial 뷰에서 곡선·`P_k`·`T_hat`·`N_hat`과 단면 평면(`u`×`v`)·슬랩 방향을 묶어 표현한 스케치다. 의학 해부 정확도보다 **코드에서 쓰는 축 관계** 전달이 목적이다.
 
-![Section 기하 개념 도식](Phase5_SectionGeometry_Schematic.png)
+![Axial 뷰에서 치열궁·접선·법선·단면(u×v)·슬랩 축 관계 도식 — Phase5_SectionGeometry_Schematic.png](Phase5_SectionGeometry_Schematic.png)
 
 아래 Mermaid는 GitHub·일부 뷰어에서 렌더된다. 로컬에서는 Mermaid 지원 미리보기를 쓰거나 [Mermaid Live Editor](https://mermaid.live)에 붙여 확인하면 된다.
 
