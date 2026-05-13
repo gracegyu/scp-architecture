@@ -97,7 +97,9 @@ PoC에서 JS가 자주 더 빠른 이유는 한 가지가 아니라, 다음 요�
 
 ### 4.2 Section 픽셀 알고리즘 (보간 ~ 윈도)
 
-목표: 치열궁에 수직인 단면 9장(`nU × nV`)의 그레이스케일을 윈도 처리해 RGBA로 출력. 축 관계 스케치는 [`Phase5_SectionGeometry_Schematic.png`](Phase5_SectionGeometry_Schematic.png), 수학·구현 상세는 `Phase5_SectionView_OnePager.md` 알고리즘 절을 본다.
+목표: 치열궁에 수직인 단면 9장(`nU × nV`)의 그레이스케일을 윈도 처리해 RGBA로 출력. 수학·구현 상세는 [Phase 5: 9개 Cross-Section 이미지 실시간 생성·표시(WebGL vs Canvas 2D·JS / WASM(복사) / WASM(상주) 연산 비교)](https://vks.vatech.com/spaces/ESDEVELOPER/pages/305058086/Phase+5+9%EA%B0%9C+Cross-Section+%EC%9D%B4%EB%AF%B8%EC%A7%80+%EC%8B%A4%EC%8B%9C%EA%B0%84+%EC%83%9D%EC%84%B1%C2%B7%ED%91%9C%EC%8B%9C+WebGL+vs+Canvas+2D%C2%B7JS+vs+WASM+%EC%97%B0%EC%82%B0+%EB%B9%84%EA%B5%90) 알고리즘 절을 본다.
+
+![Axial 뷰에서 치열궁 위 점 P_k, 접선 T_hat(u), 법선 N_hat, 단면 직사각형(u×v), 슬랩 적분 축(N_hat) 관계를 요약한 도식 — 파일명 Phase5_SectionGeometry_Schematic.png](Phase5_SectionGeometry_Schematic.png)
 
 파이프라인 요지:
 
@@ -145,6 +147,32 @@ Phase 4와의 관계: 삼선형 보간 + 슬랩 + 투영이라는 “값 읽기 
 | DICOM Z 간격 | IPP z 차이만으로 spacing이 깨지는 데이터가 있어 `Spacing Between Slices` 태그를 보조로 사용. |
 | 폭·높이 커밋 vs 비트맵 지연 | `sectionWidthMm` 또는 Z 구간이 바뀌어도 새 9장이 도착하기 전에 `tileMmMetrics`만 이어질 경우 이전 이미지가 가로로 늘어난 듯 보일 수 있어, **적용 성공 시점의 mm**로 눈금 물리 스케일을 고정한다. |
 
+### 4.7 레거시(Viewport·VTK)에서의 입력/아치 검출 고충과 이번 PoC의 관계
+
+**(정리) 이전 제품/연구 측 회고(Kevin 의견 요지)**
+
+- **한 윈도우·다중 viewport**: 윈도우로 들어온 키보드·마우스 이벤트를 **어느 viewport로 넘길지** 연결이 까다로웠다.
+- **VTK**: `vtkInteractorStyle`을 쓰지 않고 **자체 이벤트 체계**로 처리하는 방식이었다면, 포커스·피킹·카메라 조작과의 정합을 매번 맞춰야 하는 부담이 있었을 수 있다(구체 구현은 레거시 코드 기준).
+- **Axial Arch Curve**: OpenCV 기반 자동 검출 경로가 있었다. 관련 소스 트리 예: `http://essvn.vatech.co.kr/svn/vatech/trunk/product/common/ailib/detection/VTDentalArchDetection/` (이 PoC 저장소와는 무관).
+
+**이번 Phase 5 웹 PoC에서는 위와 같은 형태의 문제가 “그대로” 재현되지 않는다. 다만 스택이 다르기 때문이다.**
+
+| 구분 | 레거시에서 겪기 쉬운 부분 | 이번 PoC(`scp-section-poc`) |
+| --- | --- | --- |
+| 뷰 구성 | 단일 앱윈도우 안 VTK 다중 렌더 뷰 + 이벤트 라우팅 | **브라우저 DOM**: Scout·Panorama·Section이 **서로 다른 캔버스/영역**. 마우스는 각 요소에 붙은 리스너로 들어가며, “한 interactor가 여러 VTK viewport를 돌리는” 구조가 아니다. |
+| Section 표시 WebGL | (해당 시) VTK 파이프라인·스타일과 결합 | **표시 전용**: 9장 `ImageData`를 텍스처로 올려 scissor로 그릴 뿐, Section 쪽 WebGL이 **별도 카메라 조작 interactor**를 두지 않는다. 조작은 Scout/Panorama·슬라이더가 담당. |
+| 치열궁 곡선 | OpenCV 자동 검출 등 | Phase 3 PoC는 **Catmull-Rom 제어점 편집** 중심. OpenCV 아치 검출 모듈은 **사용하지 않는다**. |
+
+정리하면, **“VTK 다중 viewport + 커스텀 이벤트”에서 나온 클래스의 어려움은 이 웹 PoC 코드 경로에는 없다.** 반대로, 나중에 **동일 UI를 네이티브 VTK 뷰어에 붙일 때**에는 그때 다시 포커스·라우팅 설계가 필요하다. 즉 **문제가 원천적으로 불가능해졌다**기보다, **현재 검증 범위(브라우저 PoC)에서는 해당 난제를 타지 않는다**가 정확한 표현이다.
+
+### 4.8 키보드(좌·우) Section 미세 이동
+
+- 기획 문서([Phase 5: 9개 Cross-Section 이미지 실시간 생성·표시(WebGL vs Canvas 2D·JS / WASM(복사) / WASM(상주) 연산 비교)](https://vks.vatech.com/spaces/ESDEVELOPER/pages/305058086/Phase+5+9%EA%B0%9C+Cross-Section+%EC%9D%B4%EB%AF%B8%EC%A7%80+%EC%8B%A4%EC%8B%9C%EA%B0%84+%EC%83%9D%EC%84%B1%C2%B7%ED%91%9C%EC%8B%9C+WebGL+vs+Canvas+2D%C2%B7JS+vs+WASM+%EC%97%B0%EC%82%B0+%EB%B9%84%EA%B5%90)) CleverOne 비교 표에는 위치 변경에 대해 “키보드 좌·우 키로 INT 단위 미세 이동 가능(선택 사항)”이라고 적혀 있으나, 이는 **제품 UI를 가정한 선택 항목**에 가깝다.
+- **현재 `scp-section-poc` 구현에는 `keydown` 등 키보드 핸들러가 없다.** Section 중심(`sectionCenterMm`)은 **Scout에서 곡선 클릭/드래그**, **Panorama에서 중앙 세로선 드래그** 등 **마우스(포인터)** 로 조정한다.
+- 레거시 데스크톱 뷰어에서 키보드로 단면을 한 칸씩 옮겼는지는 본 문서 범위에서 코드로 확인하지 않았다. 필요 시 제품 스펙·구 코드와 대조하면 된다.
+
+**추가 개발 여부**: 접근성·파워 유저용으로 **INT(또는 고정 mm) 단위로 `sectionCenterMm`만 키보드로 ±조정**하는 것은 구현 난이도는 낮고, 포커스가 어느 패널에 있을 때만 동작하게 하면 Scout 오버레이와의 충돌도 줄일 수 있다. 다만 Phase 5 PoC의 검증 목적(표시·연산 경로·9장 생성)에는 **필수는 아니다**. 상용 CleverOne급 조작 감각을 맞출 때 **후속 과제**로 넣을지 결정하면 된다.
+
 ---
 
 ## 5. 결론
@@ -152,3 +180,4 @@ Phase 4와의 관계: 삼선형 보간 + 슬랩 + 투영이라는 “값 읽기 
 - 기능: 9장 Cross-Section 실시간 생성, WebGL2 / Canvas 2D 표시, JS / WASM(복사) / WASM(상주) 연산 선택, CleverOne 방향에 가까운 B/L·mm 눈금, Scout **Sec 폭·Sec 높이** 슬라이더 및 Panorama·Scout 연동을 PoC 수준에서 달성했다.
 - 성능: 콘솔 샘플 기준 평균 ms는 JS 약 393 ms < WASM 상주 약 416 ms < WASM 매번 복사 약 420 ms. 상주는 복사 경로 대비 소폭 유리하지만 JS보다는 느리다. 분산이 커서 추가 측정이 필요하다. 이번 조건에서 “WASM이 항상 빠르다”는 성립하지 않는다(자세한 이유는 3.2, WASM이 유리한 전형은 3.3).
 - 표시: WebGL2와 Canvas 2D는 거의 차이 없음. WebGL2 쪽이 미세하게 부드러울 수 있는 정도.
+- 아키텍처·입력: VTK·다중 viewport 기반의 키보드/마우스 라우팅 난제는 **이번 브라우저 PoC에서는 경로가 다르다**(§4.7). **키보드로 Section 위치를 옮기는 기능은 현재 없다**(§4.8).
