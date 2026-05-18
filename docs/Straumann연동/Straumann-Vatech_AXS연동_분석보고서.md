@@ -224,10 +224,11 @@ Straumann에 Auth Server 구축을 요청하는 것은 비현실적이다. Strau
 | 5 | **테스트/샌드박스 환경** | 실제 환자 데이터 없이 개발 중 검증 가능한 환경 | O |
 | 6 | **IP whitelist 정책** | NAT Gateway 고정 IP를 사전 등록해야 하는지 여부 | O |
 | 7 | **파일 업로드 스펙 상세** | Pre-signed URL 방식이 확정인지(회의에서는 "예: S3 URL"로 예시 수준 언급), 업로드 방식(단일 PUT/Multipart), URL 유효 시간, 파일 크기 제한, 업로드 완료 후 callback API 유무 등 | O |
-| 8 | **API Gateway 구축 가이드** (있다면) | Straumann이 제3자 연동을 위해 이미 가이드를 보유하고 있을 수 있음. 있다면 개발 기간을 더 단축할 수 있음 | - |
-| 8 | **SDK / 샘플 코드** (있다면) | OAuth 인증, API 호출 예시 등. 있으면 도움이 되지만 없어도 스펙만 있으면 개발 가능 | - |
+| 8 | **Organization-ID 관리 정책** | 유실 시 Access 포털에서 재확인/재발급 가능 여부, 1개 클리닉에 복수 ID 가능 여부, 철회 후 재등록 시 동일 ID인지 여부 | O |
+| 9 | **API Gateway 구축 가이드** (있다면) | Straumann이 제3자 연동을 위해 이미 가이드를 보유하고 있을 수 있음. 있다면 개발 기간을 더 단축할 수 있음 | - |
+| 10 | **SDK / 샘플 코드** (있다면) | OAuth 인증, API 호출 예시 등. 있으면 도움이 되지만 없어도 스펙만 있으면 개발 가능 | - |
 
-1~6번은 **없으면 개발을 시작할 수 없는 필수 항목**이다. 7~8번은 있으면 좋지만 없어도 진행 가능하다.
+1~8번은 **없으면 개발을 시작할 수 없는 필수 항목**이다. 9~10번은 있으면 좋지만 없어도 진행 가능하다.
 
 ### 진행 단계
 
@@ -429,6 +430,57 @@ EzServer(각 치과) ──HTTPS──→ AWS API Gateway ──→ Lambda ─�
 ```
 
 영상 파일은 Vatech AWS를 경유하지 않으므로 Vatech S3나 CloudFront는 불필요하다.
+
+#### EzServer ↔ API Gateway 인증
+
+EzServer가 Vatech API Gateway에 접근할 때도 인증이 필요하다. 인증을 두 층으로 분리한다:
+
+| 층 | 역할 | 방법 | 관리 대상 |
+|---|------|------|----------|
+| **1층: 출처 확인** | "Vatech EzServer인가?" | 공유 API Key (전체 EzServer 공통 1개) | Key 1개 |
+| **2층: 클리닉 식별** | "어느 클리닉인가?" | Organization-ID (Straumann 온보딩 시 발급, 클리닉별 고유) | DynamoDB 등록 목록 |
+
+클리닉별 API Key를 개별 발급/관리하는 방식은 수백~수천 클리닉 규모에서 관리 비용이 과도하다. 대신 **공유 API Key 1개 + Organization-ID 검증**으로 충분한 보안을 확보한다.
+
+동작 방식:
+1. API Gateway에서 공유 API Key 검증 (출처 확인)
+2. Lambda에서 요청의 Organization-ID를 DynamoDB 등록 클리닉 목록과 대조 (미등록 시 거부)
+3. 검증 통과 시 AXS API 호출
+
+보안 수준 분석:
+- API Key가 유출되어도 **유효한 Organization-ID 없이는 AXS 호출 불가**
+- Straumann `client_id`/`client_secret`은 Secrets Manager에 보관되므로 **API Key 유출과 무관하게 안전**
+- Key 로테이션이 필요하면 **1개만 변경**하면 됨 (클리닉별 개별 작업 불필요)
+- 관리 대상이 API Key 1개 + DynamoDB 클리닉 목록이므로 운영 부담 최소
+
+#### 클리닉 온보딩 및 Organization-ID 관리
+
+**온보딩 프로세스** (클리닉당 1회):
+
+1. 클리닉이 Straumann 고객이며 EzServer가 설치된 상태에서 "AXS 연동" 요청
+2. Straumann Customer Number 입력 (Invoice에 기재된 번호)
+3. Straumann Access 포털에 동의 요청 생성
+4. 클리닉 관리자가 Access 포털에서 승인
+5. **Organization-ID 생성** (이 시점에서 처음 발급. Customer Number과 별개)
+6. EzServer에 Organization-ID 설정 + Vatech DynamoDB에 등록
+
+> Customer Number(기존 Straumann 고객 식별자)와 Organization-ID(연동 동의 후 생성되는 매핑 ID)는 별개의 개념으로, 동의 이전에는 Organization-ID를 확인할 수 없다.
+
+**Organization-ID 저장 및 사용**:
+
+| 위치 | 용도 | 비고 |
+|------|------|------|
+| **EzServer (로컬)** | API 호출 시 자신의 클리닉 식별 값으로 전송 | 암호화 저장 필수 |
+| **DynamoDB** | Lambda에서 요청의 Organization-ID 유효성 검증 (허용 목록) | 마스터 저장소 역할 겸함 |
+
+**EzServer 복구 시 Organization-ID 복구 문제**: EzServer는 On-premise이므로 로컬 데이터의 백업/복구는 EzServer 운영 책임이다. 서버 교체, 디스크 장애, OS 재설치 등으로 Organization-ID가 유실되면 AXS 연동이 불가능해진다. 이를 위해 DynamoDB에 이중 저장하며, 유실 시 Vatech 측에서 해당 클리닉의 Organization-ID를 안내하여 재설정할 수 있는 복구 경로를 확보한다.
+
+| 시나리오 | 대응 |
+|---------|------|
+| EzServer 장애/교체 | DynamoDB에서 해당 클리닉의 Organization-ID 조회 → EzServer에 재설정 |
+| 클리닉 연동 해제 | Straumann Access 포털에서 철회 + DynamoDB 상태를 revoked로 변경 |
+| Organization-ID 유실 (EzServer 로컬) | DynamoDB에서 복구 가능 |
+| Organization-ID 유실 (DynamoDB 포함 전체) | Straumann Access 포털에서 재확인 가능 여부 미확인 → **Straumann에 확인 필요** |
 
 #### Vatech AWS 보안 범위
 
