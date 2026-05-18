@@ -1,0 +1,8 @@
+- AXS API
+    - https://developer.axs.straumann.com/api
+- 4/2 바텍 제안
+    - [Confidential_Review of Vatech SW Integration with AXS Platform_260402.pdf](./Confidential_Review%20of%20Vatech%20SW%20Integration%20with%20AXS%20Platform_260402.pdf)
+- 4/30 회의
+    - [Vatech meeting 30th April 2026.pdf](./Vatech%20meeting%2030th%20April%202026.pdf) (Straumann 제공)
+    - [AXS Cloud Integration - Technical Discussion_ES_'260430.pdf](./AXS%20Cloud%20Integration%20-%20Technical%20Discussion_ES_'260430.pdf) (VT)
+    - [AXS 연동 회의_'260430_v0.9.pdf](./AXS%20%EC%97%B0%EB%8F%99%20%ED%9A%8C%EC%9D%98_'260430_v0.9.pdf) (회의록)
