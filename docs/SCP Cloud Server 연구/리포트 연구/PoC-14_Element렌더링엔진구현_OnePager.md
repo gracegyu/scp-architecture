@@ -1638,10 +1638,10 @@ aws s3api create-bucket \
   - [x] formControl + controlType (radio, checkbox, button, comboBox, textInput, textArea)
   - [x] 각 controlType별 렌더링
 
-- [ ] **Task 4.3**: Block, Group (10h)dd
-  - [ ] BlockElement (children: Element[], 상대 좌표)
-  - [ ] GroupElement (memberIds: string[])
-  - [ ] 그룹 선택 시 일괄 이동/삭제
+- [x] **Task 4.3**: Block, Group (10h)
+  - [x] BlockElement (children: Element[], 상대 좌표)
+  - [x] GroupElement (memberIds: string[])
+  - [x] 그룹 선택 시 일괄 이동/삭제
 
 - [ ] **Task 4.4**: 보안 및 감사 (6h)
   - [ ] onAuditEvent 콜백 (OPEN, SAVE, DELETE, EXPORT, PRINT)
