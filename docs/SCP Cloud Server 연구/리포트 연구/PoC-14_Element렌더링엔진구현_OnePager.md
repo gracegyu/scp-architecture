@@ -432,9 +432,9 @@ const LINE_HANDLES: HandlePosition[] = ['tl', 'br'] // Line용 2개
 **Content Elements** (DragResizeDiv 활용):
 
 - **ImageBox**: DragResizeDiv로 감싼 이미지 표시 + 크기 조정
-  - Single ImageBox: **구현됨** (`ImageBoxElement`, `Document.imageRefs` + `extensions.imageRef`/`fitMode`). 래스터 JPG·PNG 등은 `<img>`. DICOM은 현재 메타 패널 + 다운로드만; **리포트 내 픽셀 표시는 로드맵 Task 3.5**.
-  - Multi ImageBox: 1~20 Row/Column 레이아웃 (추가 구현 필요, DragResizeDiv 활용)
-  - Reference ImageBox: 다른 ImageBox 참조 (추가 구현 필요, DragResizeDiv 활용)
+  - Single ImageBox: **구현됨** (`ImageBoxElement`, `Document.imageRefs` + `extensions.imageRef`/`fitMode`). 래스터 JPG·PNG 등은 `<img>`. DICOM은 Task 3.5 기준 **박스 내 픽셀 렌더**(코너스톤 동적 로드, 미지원 시 메타·다운로드 폴백).
+  - Multi ImageBox: **구현됨** — `layout.row` / `layout.column`(1~20), DragResizeDiv 격자
+  - Reference ImageBox: **구현됨** — `linkedBoxId`로 다른 ImageBox 참조
 - **TextBox**: DragResizeDiv로 감싼 HTML 텍스트 편집(Lexical)
 - **Label**: DragResizeDiv로 감싼 평문. **캔버스 인라인 편집** — `foreignObject` 내 `PlainInlineTextEdit`(textarea), blur 시 `extensions.text` 패치; 본문은 `dragCancel`으로 박스 드래그와 분리, 박스 이동은 본문 위에서 Alt(Option)+드래그(TextBox와 동일 패턴).
 - **Memo**(본문): Label과 동일한 인라인 패턴(blur 시 `extensions.content`). 풍선만 드래그할 때 앵커는 문서 좌표 고정, 앵커는 별도 핸들로 이동.
@@ -444,7 +444,8 @@ const LINE_HANDLES: HandlePosition[] = ['tl', 'br'] // Line용 2개
 - **ToothBox**: DragResizeDiv로 감싼 치아 선택 UI
 - **TreatmentCategory**: DragResizeDiv로 감싼 치료 분류 선택
 - **Form Controls**: 각각 DragResizeDiv로 감싼 RadioButton, CheckBox, Button, ComboBox, TextInput, TextArea
-- **Block**: DragResizeDiv로 감싼 요소 그룹핑 컨테이너
+- **Block**: DragResizeDiv 컨테이너 — `children: Element[]`, 자식 **상대 좌표**; 페이지에서는 절대 좌표로 펼쳐 렌더
+- **Group**: `type: 'group'`, **`memberIds: string[]`** 로 동일 페이지 내 평면 요소만 참조(포함 관계 없음). **Group화** 시 셸의 `position`/`size`는 멤버 **페이지 절대 바운딩 합집합**(line·freeDraw·memo 등 규칙은 `scp-report-core` `elementTree`와 동일). **중첩 그룹 금지**: `memberIds`에 다른 그룹 id 불가(`groupElementsInDocument` 및 데모 `Group화` 조건). **Shift+클릭**으로 그룹을 멀티 선택에 **추가하지 않음**(단일 클릭·이미 선택된 그룹의 Shift 토글 해제는 가능). 데모 툴바 **UnGroup화**는 그룹 노드만 제거하고 멤버 유지
 
 **현재 구현 범위 외 사항** (추후 확장 대상):
 
@@ -1639,9 +1640,10 @@ aws s3api create-bucket \
   - [x] 각 controlType별 렌더링
 
 - [x] **Task 4.3**: Block, Group (10h)
-  - [x] BlockElement (children: Element[], 상대 좌표)
-  - [x] GroupElement (memberIds: string[])
-  - [x] 그룹 선택 시 일괄 이동/삭제
+  - [x] **Block**: `children: Element[]`, 블록 기준 상대 좌표 — `ReportPage`·Registry에서 절대 좌표로 펼쳐 렌더, ResizeHandlers/DragResizeDiv
+  - [x] **Group**: `memberIds: string[]`, 페이지 최상위(또는 스키마 허용 범위)에서 id 참조; 그룹 셸 드래그 시 멤버 동반 이동, 선택 하이라이트(`selectionHighlightsForRendering`), 삭제 API는 그룹 선택 시 멤버 연쇄 삭제 규칙 유지(PoC-06·`resolveIdsToRemoveFromDocument`). **UnGroup**은 `deleteElementsByIdSetFromDocument`로 셸만 제거
+  - [x] **Group화 / UnGroup화**: `@ewoosoft/scp-report-core` — `groupElementsInDocument`(합 bbox, 용지 클램프, `stripMemberIdsFromAllGroups`), `ungroupElementsInDocument`; 멤버에 `type: 'group'` 포함 시 그룹 생성 **거부**
+  - [x] **데모** (`apps/scp-cloud-demo`): 다중 선택 후 **Group화**, 그룹 선택 시 **UnGroup화**; `@ewoosoft/scp-report-components` `ReportRenderer`에서 Shift 멀티 선택 시 그룹 id **추가 차단**
 
 - [ ] **Task 4.4**: 보안 및 감사 (6h)
   - [ ] onAuditEvent 콜백 (OPEN, SAVE, DELETE, EXPORT, PRINT)
@@ -1696,18 +1698,20 @@ scp-report-poc/
 ├── packages/
 │   ├── core/                            # @ewoosoft/scp-report-core
 │   │   ├── src/
-│   │   │   ├── engine/                  # 렌더링 엔진 (ReportRenderer, Page)
-│   │   │   ├── elements/                # Element 클래스 (BaseElement, Rectangle 등)
-│   │   │   ├── utils/                   # mm2px, px2mm, sanitize
+│   │   │   ├── element/                 # Chart 연계 베이스 등
+│   │   │   ├── utils/                   # documentMutations, elementTree, coordinate, patch…
 │   │   │   └── types/                   # PoC-06 스키마 타입
 │   │   └── package.json
 │   │
 │   ├── components/                      # @ewoosoft/scp-report-components
 │   │   ├── src/
-│   │   │   ├── ReportEditor/
-│   │   │   ├── ReportViewer/
-│   │   │   ├── Elements/                # Element React 컴포넌트 (DragResizeDiv 래핑)
-│   │   │   └── Toolbar/
+│   │   │   ├── engine/                  # ReportRenderer, Page, ElementRegistry
+│   │   │   ├── Elements/                # 타입별 SVG·DragResizeDiv 래핑
+│   │   │   ├── DragResizeDiv/
+│   │   │   ├── inspector/               # ElementInspector, 필드 디스크립터
+│   │   │   ├── state/                   # ReportDocumentState (호스트 연동)
+│   │   │   ├── ChartElementBase/, dicom/, ezortho/ …
+│   │   │   └── index.ts
 │   │   └── package.json
 │   │
 │   ├── migration/                       # @ewoosoft/scp-report-migration (PoC-07)
@@ -1738,11 +1742,11 @@ scp-report-poc/
 - `migration`: Migration 도구만 필요한 경우 (PoC-07 범위)
 - `library`: 전체 기능 통합, SCP Cloud 등에서 `npm install @ewoosoft/scp-report-library`로 사용
 
-**PoC-14 구현 배치**:
+**PoC-14 구현 배치** (현재 저장소 기준):
 
-- core: types, utils, attrs (Task 1.2·PoC-06 등); components: engine, Elements, ReportRenderer, **속성 패널(Task 2.2)**, ImageBox(Task 2.1) 및 Task 2.3~2.6·Phase 3 범위
-- components: ReportEditor, ReportViewer, Elements, Toolbar (Task 1.4~4.4)
-- migration: PoC-07에서 구현, PoC-14에서는 빈 껍데기 또는 placeholder
+- `core`: `types`, `utils`(coordinate, `elementTree`, `documentMutations`, patch, export…), `element`(attrs, BaseElement)
+- `components`: `engine`·`Elements`·`DragResizeDiv`·`inspector`·`state`, DICOM·EzOrtho 보조 모듈 등 — 툴바/배치 UI는 주로 `apps/scp-cloud-demo`에 둠
+- `migration`: PoC-07에서 구현, PoC-14에서는 빈 껍데기 또는 placeholder
 
 ### 17.3 개발 플로우
 
@@ -1961,8 +1965,6 @@ pnpm add @ewoosoft/scp-report-library
 
 소비 프로젝트 `.npmrc`에 동일 registry 설정 필요.
 
-**상세**: PoC-08\_아키텍처전략검증\_result.md 4.4절
-
 ### 17.6 Task 0 반영
 
 로드맵 Phase 1 Task 0에 Repository 초기화 포함 (PoC-08 구조):
@@ -1972,29 +1974,4 @@ pnpm add @ewoosoft/scp-report-library
 - [x] apps/scp-cloud-demo Vite+React 앱 생성
 - [x] workspace 링크 설정 (core → components → library → scp-cloud-demo)
 - [x] `pnpm dev` 실행 시 scp-cloud-demo에서 library 사용 검증
-
----
-
-**참조 문서** (구현 시 필수 확인):
-
-- PoC-06\_통합Element스키마설계\_result.md: Element 타입, position/size 구조, Memo anchorPoint, Block/Group
-- PoC-08\_아키텍처전략검증\_result.md: Repository 구조, Monorepo, NPM Private Registry, 패키지 설계
-- PoC-10\_인쇄및Export품질검증\_result.md: @media print, mm/pt 단위, CSS 인쇄 가이드
-- PoC-11\_의료데이터보안검증\_result.md: sanitizeHtml, onAuditEvent, XSS 방지
-
-**ezorthoweb 코드 분석 완료 현황**:
-
-- ✅ BaseModel 구조 분석 (단위 변환, XML/JSON 처리)
-- ✅ ChartElementBase 구조 분석 (Element 기본 클래스)
-- ✅ 18개 Element 타입 확인 (일반 리포트용)
-- ✅ 속성 클래스 4개 확인 (Font, Line, Fill, Paper)
-- ✅ 좌표 변환 시스템 확인 (mm2px, px2mm)
-- ✅ **DragResizeDiv.vue 분석 완료**: 700줄의 완벽한 Handler 시스템 (95% 재사용 가능)
-- ✅ Vue 컴포넌트 구조 확인 (PatientChartElements 등)
-- 추가 구현 필요: Multi ImageBox, Reference ImageBox (Arrow·Memo·Label/Memo 본문 인라인 편집·Memo 앵커 핸들은 Task 2.3·3.1 반영)
-- 🔄 현재 구현 범위 외: Canvas Element (EzOrtho 분석 차트 전용, 추후 확장 대상)
-
-**핵심 자산**: DragResizeDiv.vue는 PoC-14의 가장 중요한 참고 자료로, 이 컴포넌트만 완벽히 포팅하면 모든 Element의 Drag & Resize 기능이 해결됨
-
-
 
