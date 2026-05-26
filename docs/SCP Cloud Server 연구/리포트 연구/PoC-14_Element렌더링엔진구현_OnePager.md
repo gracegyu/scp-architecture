@@ -73,7 +73,7 @@ Engineering One Pager
 
 - **입력**: `Document` (schemaVersion, metadata, paper, pages). pages[].elements가 Element[]
 - **출력**: React 컴포넌트 트리 (SVG/HTML). 인쇄 시 @media print (PoC-10)
-- **설정** (PoC-11): `onAuditEvent?: (event: AuditEvent) => void` — OPEN/SAVE/DELETE/EXPORT/PRINT 시 호출
+- **설정** (PoC-11·Task 4.4): `onAuditEvent?: (event: AuditEvent) => void` — `@ewoosoft/scp-report-core`의 생명주기 `OPEN`/`SAVE`/`DELETE`/`EXPORT`/`PRINT`(빌더 `build*AuditEvent`) 및 편집 상세(`selectionChange`, `dragStop` 등). `ReportLibraryConfig.auditEnabled`(기본 true)로 라이브러리 내부 감사 호출 생략 가능
 
 **기존 ezorthoweb Element 구조 분석**:
 
@@ -1645,10 +1645,12 @@ aws s3api create-bucket \
   - [x] **Group화 / UnGroup화**: `@ewoosoft/scp-report-core` — `groupElementsInDocument`(합 bbox, 용지 클램프, `stripMemberIdsFromAllGroups`), `ungroupElementsInDocument`; 멤버에 `type: 'group'` 포함 시 그룹 생성 **거부**
   - [x] **데모** (`apps/scp-cloud-demo`): 다중 선택 후 **Group화**, 그룹 선택 시 **UnGroup화**; `@ewoosoft/scp-report-components` `ReportRenderer`에서 Shift 멀티 선택 시 그룹 id **추가 차단**
 
-- [ ] **Task 4.4**: 보안 및 감사 (6h)
-  - [ ] onAuditEvent 콜백 (OPEN, SAVE, DELETE, EXPORT, PRINT)
-  - [ ] ReportLibraryConfig 인터페이스
-  - [ ] TextBox sanitization 최종 검증
+- [x] **Task 4.4**: 보안 및 감사 (6h)
+  - [x] **`AuditEvent`** 생명주기: `OPEN`·`SAVE`·`DELETE`·`EXPORT`·`PRINT` 타입 및 `build*` 헬퍼(`@ewoosoft/scp-report-core`); 상세 상호작용(`selectionChange`, `dragStop` 등)은 Renderer가 동일 콜백으로 노출
+  - [x] **`ReportLibraryConfig`**: `auditEnabled`, `sanitizationDomPurify`; `DEFAULT_REPORT_LIBRARY_CONFIG`
+  - [x] **`ReportRenderer`** / **`ReportDocumentStateProvider`**: `onAuditEvent`(감사 off 시 스킵), `libraryConfig`로 DOMPurify 병합; 키보드 삭제는 `DELETE` 이벤트; Provider 마운트·`REPLACE_DOCUMENT`·`DELETE_SELECTED`·`CUT_SELECTION` 감사
+  - [x] **데모**: `SAVE` 버튼(로컬 스냅샷+SAVE), 내보내기/인쇄 시 `EXPORT`/`PRINT`; 콘솔 `[scp-report audit]`
+  - [x] **TextBox sanitization**: `sanitizeReportHtml` 옵션 병합 — `sanitizeReportHtml.test.ts`(onclick/javascript/onerror)·`lexicalTextBoxHtml`· Inspector/블러 커밋 동일 설정
 
 - [ ] **Task 4.5**: 통합 테스트 및 검증 (12h)
   - [ ] Migration 출력 JSON → 렌더링 검증 (PoC-07 연계)
