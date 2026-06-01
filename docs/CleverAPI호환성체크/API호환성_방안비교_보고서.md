@@ -36,13 +36,30 @@ CleverOne ↔ EzServer ↔ CleverSpace 연동에서 **클라이언트 버전이 
 
 VKS에서 정리한 두 경로는 **동시에 존재**하며, ESLinkageCloudPlatform이 **기능별로 분기**한다.
 
-```
-[경로 A] CleverOne ──HTTP(EPI)──► EzServer(EPI) ──HTTP──► CleverSpace / OneID
-              └──MQTT(wss)──► EzServer Messenger ──► (업로드/공유 결과)
+**AS-IS 전체 구조 (현재)**
 
-[경로 B] CleverOne ──HTTP──► OneID / CleverSpace (Direct, OAuth)
-              └── CheckUploadCondition, tenant/member 조회 등
+```mermaid
+flowchart LR
+    subgraph CLINIC["클리닉 온프레미스 (버전 혼재)"]
+        CO["CleverOne<br/>클라이언트마다 버전 상이<br/>UserAgent='CleverOne' (버전 없음)"]
+        EPI["EzServer / EPI<br/>클리닉마다 버전 상이<br/>Server + Client 이중 역할"]
+    end
+    subgraph CLOUD["CleverSpace Cloud (단일·항상 최신)"]
+        OID["OneID (인증)"]
+        CS["CleverSpace API<br/>API 점증 추가<br/>제품 버전 API 없음"]
+    end
+
+    CO -->|"경로A: 업로드/공유 HTTP(EPI)"| EPI
+    EPI -->|"HTTP/OAuth (client 버전 미전달)"| CS
+    EPI -.->|"MQTT 결과 (error code relay)"| CO
+    CO -->|"경로B Direct: OAuth"| OID
+    CO -->|"경로B Direct: limit/member 조회"| CS
+
+    classDef gap fill:#fdecea,stroke:#c0392b,color:#000;
+    class CO,CS gap;
 ```
+
+> 붉은 노드 = 호환성 gap 지점. CleverOne은 버전 미전달, CleverSpace는 제품 버전·API별 호환 정보를 노출하지 않음.
 
 | 기능 | 경로 | ESLinkageCloudPlatform 구현 |
 |------|------|----------------------------|
@@ -225,15 +242,18 @@ EzServer Releases CSV와 유사하되, **축이 다르다.** CleverSpace는 단�
 
 ### 4.1 경로 A: CleverOne → EzServer → CleverSpace
 
-```
-CleverOne                    EzServer (EPI)                 CleverSpace
-   │  POST /ezcloud/cases/upload (버전 헤더 추가)              │
-   │ ─────────────────────────► │  validate-limits (신규)     │
-   │                            │ ───────────────────────────►│
-   │                            │  upload/share API           │
-   │  MQTT (clever_space_error_codes)                         │
-   │ ◄───────────────────────── │                             │
-   │  MessagingDialog 표시       │                             │
+```mermaid
+sequenceDiagram
+    participant CO as CleverOne
+    participant EPI as EzServer (EPI)
+    participant CS as CleverSpace
+    CO->>EPI: POST /ezcloud/cases/upload (+ Client 식별 헤더)
+    EPI->>CS: validate-limits (신규, + 헤더 대리 전달)
+    CS-->>EPI: 한도·구독 검증 결과
+    EPI->>CS: upload / share API
+    CS-->>EPI: 결과 (clever_space_error_codes)
+    EPI-->>CO: MQTT 결과 알림
+    Note over CO: MessagingDialog 표시<br/>400116 등 신규 code + unknown fallback
 ```
 
 | 항목 | 담당 | 내용 |
@@ -248,13 +268,17 @@ EzServer 수정 **1곳(EPI)** 으로 경로 A를 타는 **모든 Imaging App**(C
 
 ### 4.2 경로 B: CleverOne → CleverSpace (Direct)
 
-```
-CleverOne (ESLinkageCloudPlatform)
-   │  OneID OAuth, GET /organization-data/upload/limit  (기존)
-   │  POST /tenants/subscriptions/validate-limits       (v1.3 신규)
-   │  GET tenant/member (공유 UI)
-   ▼
-CleverSpace / OneID
+```mermaid
+sequenceDiagram
+    participant CO as CleverOne (ESLinkageCloudPlatform)
+    participant OID as OneID
+    participant CS as CleverSpace
+    CO->>OID: OAuth 로그인 (+ Client 식별 헤더)
+    CO->>CS: GET /organization-data/upload/limit (기존)
+    CO->>CS: POST validate-limits (v1.3 신규)
+    CS-->>CO: 한도·지원 여부 (min client version 검증 가능)
+    CO->>CS: GET tenant / member (공유 UI)
+    Note over CS: Direct 수신이라 CleverOne 헤더로<br/>버전·API 지원 여부 직접 판정 가능
 ```
 
 | 항목 | 담당 | 내용 |
@@ -294,6 +318,34 @@ CleverSpace / OneID
 | F | CleverSpace 호환성 매트릭스 v0.1 | 문서 | PM/아키텍처 |
 | G | unknown error → 업데이트 안내 UX | A+B | CleverOne |
 
+**TO-BE 1차 전체 구조**
+
+```mermaid
+flowchart LR
+    subgraph CLINIC["클리닉 (버전 혼재 그대로)"]
+        CO["CleverOne<br/>+ Client 식별 헤더(제품/버전/OS)<br/>+ error code 매핑 / fallback"]
+        EPI["EzServer / EPI<br/>+ validate-limits 호출<br/>+ 헤더 대리 전달<br/>+ error code MQTT relay"]
+    end
+    subgraph CLOUD["CleverSpace (단일 버전, 제약의 기준)"]
+        CS["CleverSpace<br/>+ validate-limits API<br/>+ (선택) min client version"]
+        OID["OneID"]
+    end
+    MTX["호환성 매트릭스<br/>API × 최소 클라이언트 버전<br/>(릴리즈 프로세스)"]
+
+    CO -->|"경로A (+헤더)"| EPI
+    EPI -->|"validate-limits + upload/share (+헤더)"| CS
+    EPI -.->|"MQTT 결과 (400110~116)"| CO
+    CO -->|"경로B Direct (+헤더) validate-limits"| CS
+    CO --> OID
+    MTX -.->|"기준 제공"| CS
+    MTX -.->|"내장 표/안내"| CO
+
+    classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
+    class CO,EPI,CS,MTX new;
+```
+
+> 핵심: 제약의 기준은 **단일 서버(CleverSpace)**, EzServer는 경로 A의 게이트로 헤더·error 전달, CleverOne·ESLinkageCloudPlatform은 경로 B 헤더·사전검증을 담당.
+
 ### 5.2 2차 — 구조 개선
 
 **목표:** VKS 회의록 “연동 기능은 자동 업데이트/호환” + Tom idea(모듈 단위 업데이트).
@@ -307,13 +359,39 @@ CleverSpace / OneID
 | 3 | ESLinkageCloudPlatform **부분 업데이트** 채널 |
 | 4 | 호환성 매트릭스 CI gate (EzServer Releases CSV 수준) |
 
+**TO-BE 2차 전체 구조**
+
+```mermaid
+flowchart LR
+    subgraph CLINIC["클리닉"]
+        CO["CleverOne<br/>모듈 단위 업데이트(연동부 자동)<br/>capability 조회"]
+        EPI["EzServer Gateway (EPI)<br/>CleverSpace API 대리<br/>단일 Policy Enforcement Point"]
+    end
+    subgraph CLOUD["CleverSpace (단일 버전)"]
+        WK["/.well-known<br/>features + API별 min-client-versions"]
+        CS["CleverSpace API"]
+        OID["OneID"]
+    end
+
+    CO -->|"capability 조회"| WK
+    EPI -->|"capability 조회"| WK
+    CO -->|"모든 연동 요청 (Direct 점진 폐기)"| EPI
+    EPI -->|"검증·버전·error 변환 후 호출"| CS
+    EPI --> OID
+
+    classDef new fill:#eaf2fb,stroke:#21618c,color:#000;
+    class WK,EPI new;
 ```
-[1차]  헤더 표준 ─┬─ validate-limits (CleverSpace)
-                 ├─ EPI 연동 (경로 A)
-                 ├─ ESLinkageCloudPlatform (경로 B)
-                 └─ error map + 호환표 + fallback
-                        ↓
-[2차]  well-known capability → Gateway → 모듈 단위 업데이트
+
+> 1차의 런타임 보완을 **구조적으로 흡수**: 서버가 well-known으로 API별 호환을 공시하고, EzServer Gateway가 단일 집행점이 되며, CleverOne은 연동 모듈만 자동 업데이트한다.
+
+**1차 → 2차 진화 흐름**
+
+```mermaid
+flowchart TB
+    A["1차 (런타임 보완)<br/>헤더 표준 · validate-limits · error map · 호환 매트릭스"]
+    B["2차 (구조 개선)<br/>well-known capability · EzServer Gateway · 모듈 단위 업데이트"]
+    A --> B
 ```
 
 ---
