@@ -1,0 +1,39 @@
+﻿"* Error Response Body
+  {
+    code: string;
+    message: string;
+  }
+* Error Name은 이 문서 내 식별을 위해 작성, Response에 Name은 포함되지 않는다. 
+* 에러코드는 구현 과정에서 구체화한다. ",,,,
+,,,,
+Http status,Error Code,Error Name,Error Message,
+400,400101,QUOTA_EXCEEDED,Quota exceeded.,
+,400102,INVALID_REQUEST,Field option is required when keyword option is provided.,
+,,,Invalid sort option.,
+,,,Invalid request.,(Levi)
+,,,,
+401,401101,UNAUTHORIZED_REQUEST,Unauthorized request.,(Levi)
+,401102,INVALID_TOKEN,Invalid token.,
+,401103,TOKEN_EXPIRED,Token has expired.,
+,,,,
+403,403101,UNSUPPORTED_COUNTRY,The specified country is not supported for this service. ,
+,403102,MISSING_REQUIRED_TERMS ,All required terms must be agreed to.,
+,403201,TENANT_NOT_FOUND,The tenant is not subscribed to this service.,
+,403202,MEMBER_NOT_FOUND,The Member is not subscribed to this service.,
+,403203,TENANT_TERMS_NOT_ACCEPTED,Tenant has not agreed to required terms.,
+,403204,MEMBER_TERMS_NOT_ACCEPTED,Member has not agreed to required terms.,
+,,,,
+404,404101,NOT_FOUND,"-
+(상황에 따라 메시지 추가)",
+,,,,
+409,409101,DUPLICATE_DATA,Some terms have already been agreed to,
+,,,,
+,,,,
+500,500101,UNKNOWN_INTERNAL_ERROR,Unknown internal server error occurred.,
+,500102,AXIOS_ERROR,Internal api call error occurred.,
+,500103,TYPEORM_ERROR,Internal DB error occurred.,
+,500104,TRANSACTION_ERROR,Internal logic error occurred.,
+,,,,
+,,,,
+,,,,
+,,,,

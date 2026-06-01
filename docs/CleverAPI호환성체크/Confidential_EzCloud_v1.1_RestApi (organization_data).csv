@@ -1,0 +1,744 @@
+﻿/organization-data,,,,,Notes,,,,,,,
+,,,,,,,,,,,,
+Description,조직 데이터 업로드 제약사항을 조회한다. ,,,,,,,,,,,
+URI,/organization-data/upload/limit,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,1. Config 파일에서 업로드 제약사항을 조회한다. ,,,,,,,,,,,
+...,Types,Name,Schema,,,,,,,,,
+,-,-,-,,,,,,,,,
+Response,Body,-,"{
+  maxSingleUploadSize: int;   // Maximum allowable upload size for a single upload (MB)
+  maxSingleFileCount: int;      // Maximum allowable file count for a single upload 
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,"조직 데이터 업로드를 위한 Presigned URL을 생성한다. 
+- 조직 데이터 업로드 불가능한 경우, 에러를 전달한다.",,,,"[Uploaded Zip]
+
+/ image : image files
+/ meta: tag,project, project_thumbnail files
+/ thumbnail: thumbnail files",,,,,,,
+URI,/organization-data/upload/presigned-url,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header (EzCloud EzServer Token),,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"1. 클라이언트에서 전달한 업로드 정보를 기반으로 아래 조건을 체크한다.
+  - 단일 업로드 최대 파일 사이즈: 요청된 파일의 사이즈가 최대 파일 사이즈를 초과하는지 체크한다.
+  - 단일 업로드 최대 파일 개수: 요청된 파일의 개수가 최대 파일 개수를 초과하는지 체크한다.
+  - 조직 데이터 용량: 요청된 파일 크기와 현재 사용 중인 용량을 합산하여 조직 데이터의 총 용량을 초과하는지 체크한다.
+2. 모든 검증을 통과한 경우:
+   - 업로드를 위한 presigned url을 생성한다.
+3.하나 이상의 검증을 통과하지 못한 경우: 
+   - 에러 처리한다. (response body에 검증 결과를 포함한다.)
+
+[error codes]
+- 400101(QUOTA_EXCEEDED)",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  requestMemberEmail: string;   // E-mail for the member requesting the upload
+  zipFileInfo: {
+    size: int;                            // Size of the data to be uploaded before compression (MB)
+    count: int;                         // Number of original file names to be uploaded
+  }
+}",,,,,,,,,
+Response,Body,-,"[Success]
+{
+  s3Key: string;                    // The key that will be used to save the uploaded file in S3.
+  presignedUrl: string;           // A temporary URL that allows the client to upload the file directly to S3
+                                       // The token(ezserver token) must be included in the request when calling this presigned URL for authentication.
+}",,,,,,,,,
+,Body,-,"[Fail - QUOTA_EXCEEDED Error]
+{
+  errorCode: string;
+  message?: string;
+  details?: {
+    subscription: {          
+       totalSize: int;         // Total size of the subscription (MB)
+       usedSize: int;         // Currently used size of the subscription (MB)
+    };
+    maxUploadSize: int;   // Maximum allowable upload size for a single upload
+    maxFileCount: int;     // Maximum allowable file count for a single upload
+  }
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,조직 데이터를 생성한다. ,,,,,,,,,,,
+URI,/organization-data,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header (EzCloud EzServer Token),,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"1.환자 정보를 처리한다. 
+  - DB에서 환자 정보 존재 여부를 확인한다. (동일 환자 판단 기준: TenantUID + EzServerUID + ChartNo)
+  - 이미 존재하는 환자인 경우, DB에 환자 정보를 업데이트한다. 
+  - 존재하지 않는 환자인 경우, DB에 환자 정보를 추가한다. 
+2. 이미지 정보를 처리한다. (동일 이미지 판단 기준: TenantUID + EzServerUID + orgFileName)
+  - DB에서 이미지 정보 존재 여부를 확인한다. 
+  - 이미 존재하는 이미지인 경우, DB에 이미지 정보를 업데이트한다.
+  - 존재하지 않는 이미지인 경우, DB에 이미지 정보를 추가한다. 
+4. s3Key에 해당하는 zip 파일을 조직 데이터 버킷에 압축 해제한다. 
+  - EzCloud Viewer의 편집 내역을 별도 관리하기 위해 Meta/Project 파일의 복사본을 생성한다.
+5. DB에 tenant subscription metrics을 업데이트한다.
+
+[ref]
+next: 복수 EzServer를 지원하는 경우, upload quota check 필요하다. ",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  requestMemberEmail: string;      // E-mail for the member requesting the upload
+  zipS3Key: string;                      // S3 key for the uploaded zip file
+  patient: {                               // Patient information 
+    chartNo: string;
+    lastName?: string;
+    firstName?: string;
+    middleName?: string;
+    gender?: string;
+    birthDate?: string;
+    email?: string;
+    phone?: string;
+    mobile?: string;
+    zipCode?: string;
+    address?: string;
+    race?: string;
+  };
+  images: [                             // Image information
+    {
+      orgFileName: string;           // ezserver file name                  
+      thumbnaiFileName: string;
+      metaFileName?: string;
+ 
+      modality:? string;
+      mode?: string;
+      acqDateTime?: string;
+      kvp?: number;
+      mA?: number;
+      dose?: number;
+    }
+  ];
+ }
+}",,,,,,,,,
+Response,Body,-,"{
+   patientUid: string;    // update 02/14/Ann
+}",  ,,,,,,,,
+,,,,,,,,,,,,
+Description,"조직 데이터를 공유한다.
+- 공유 시점의 데이터를 copy하여 공유한다.",,,,"* 만료 기간: 14일
+* share_case table > meta_data
+  {
+     type: 'org-data/patient';    // 추후 필요시 type 추가
+
+     // if type is 'org-data/patient'
+     chartNo: string;
+     firstName: string;
+     middleName: string;
+     lastName: string;
+     gender: string;
+     birthDate: string;     
+   }
+* 공유 환자 정보의 익명화 필요 여부 확인 필요",,,,,,,
+URI,/organization-data/shared,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,"Authorization Header (EzCloud EzServer Token, EzCloud User Token)",,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"1. 데이터 제한(공유 파일 개수, 공유 파일 용량) 및 허용하는 공유 횟수를 초과하는지 체크한다.
+2. 공유 횟수를 초과하는 경우 에러처리하고, 초과하지 않는 경우 아래 스텝을 진행한다.
+3. DB에 공유 정보를 저장한다.
+  - 조직 데이터의 정보를 조회하여 Shared 데이터에 copy한다. 
+  - 공유 케이스의 정보로 저장되는 정보는 https://vatechcorp.sharepoint.com/:x:/s/es/Ed0skjpt1FJMv9f9Sksas50Bo9xHs5bFZIDm8BuyIXddUA?e=JuC41k > ezserver_data를 참고한다.
+  - 비회원 공유인 경우, password(security code)를 생성하여 저장한다.
+4. 선택된 이미지 파일을 Shared bucket로 copy한다. 
+  - EzCloud Viewer의 편집 내역을 별도 관리하기 위해 Meta/Project 파일의 복사본을 생성한다.
+  - patientAnonymizationInImage가 true인 경우, dicom image의 patient tag를 익명화 처리한다. (익명화 처리 방법은 구현 과정에서 구체화한다.)
+5. DB에 tenant subscription metrics을 업데이트한다.
+6. 공유 메일을 전송한다.
+
+[error codes]
+- 400101(QUOTA_EXCEEDED)",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  sender: {
+    tenantUID: string;                                  // Unique identifier for the tenant sharing the data
+    memberEmail: string;                             // E-mail for the member sharing the data
+  };
+  receiver: {
+     type: ""Member"" | ""Guest"";                      // ""Member"" for registered users or ""Guest"" for None-member
+     tenantUID?: string;                               // Unique identifier for the recipient tenant  
+     email?: string;                                     // Email address of the recipient
+     password?: string;                                // Encrypted password for guest (if guest) (요구 사항에 사용자 입력 없음)
+  };
+
+  title: string;                                             // Title of the shared data
+  description?: string;                                    // Description of the shared data (0317 Jin)
+
+  patientId: int;                                           // ID of the patient whose data is being shared
+  imageIds: int[];                                         // Array of image Ids for the images being shared
+  
+  patientAnonymizationInImage: boolean;         // Whether patient information within the image has been anonymized to pivacy
+}",,,,,,,,,
+Response,Body,-,"// 200 (성공)
+{
+  sharedUID: string;
+}",,,,,,,,,
+,Body,-,"[Fail - QUOTA_EXCEEDED Error]
+{
+  code: string;             
+  message?: string;
+  details?: {
+    subscription: {          
+      monthlyShareLimit: int;           // Monthly share limit
+      monthlySharedCount: int;        // Mothly shares made
+    };
+    maxUploadSize: int;   // Maximum allowable upload size for a share case (MB)
+    maxFileCount: int;     // Maximum allowable file count for a share case
+  }
+}",,,,,,,,,
+,,,,,,,,,,,,
+/organization-data/patient,,,,,,,,,,,,
+,,,,,,,,,,,,
+Description,조직 내 전체 환자 정보를 조회한다. ,,,,"[EP04_F001_UploadedLayout] [1. Search Field] 
+[EP04_F001_OrganizationDataLayout] [1. Search Field]
+* 키워드 검색이 가능한 필드는 name, chart_no이다.
+
+[EP02_F001_UploadedLayout] [3. Patient List] 
+[EP04_F001_OrganizationDataLayout] [3. Patient List]
+* EzCloud 설정 페이지의 환자 이름 표시 설정에 대한 대응을 위해 first, middle, last name을 분리하여 전달한다. (EP07_F001_Settings - Display)
+* DB에서 환자 검색 시, first, middle, last name이 전부 없는 경우, name을 전달하지 않는다. 이후 name이 없는 환자는 FE에서 처리한다.
+* birthdate, updatedAt은 Backend에서 각 형태에 맞게 가공 후 전달한다.
+* 검색된 환자는 updated_at 값을 사용하여 sort할 수 있고, 기본 값은 desc이다.
+
+",,,,,,,
+URI,/organization-data/patients?keyword=:keyword&sort=:sort&page=:page&perpage=:perpage,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Auhorization header (EzCloud User Token),,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"[EzCloud DB]
+
+1. 현재 사용자의 access token에서 tenant uid를 추출한다.
+2. OrganizationData - patient 테이블에서 추출된 tenant_uid를 사용하여 데이터를 조회한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Query,keyword,"string [Optional | 검색 대상: name, chartNumber]",,,,,,,,,
+,,sort,string [Optinal | Values - updatedAt:asc/desc | createdAt:asc/desc | Default - updatedAt:desc],,,,,,,,,
+,,page,number [Optional | Default - 1),,,,,,,,,
+,,perpage,number [Optional | Default - 15],,,,,,,,,
+Response,Body,Success,"{
+    result: [
+        {
+            id: number;
+            uid: string; (0210 Levi EZCLD-423)
+            chartNo: string;
+            name?: {
+                firstName?: string;
+                middleName?: string;
+                lastName?: string;
+            }
+            birthdate?: string;
+            updatedAt: string;
+             sourceSystem: 'EzServer' | 'EzCloud';  // EzCloud v1.1 - Jin 추가
+        }
+    ];
+    meta: {
+        itemsPerPage: number;
+        totalItems: number;
+        currentPage: number;
+        totalPages: number;
+    }
+}",,,,,,,,,
+,,Error,"INVALID_REQUEST
+UNAUTHORIZED_REQUEST",,,,,,,,,
+,,,,,,,,,,,,
+Description,조직 내 특정 환자의 상세 정보를 조회한다.,,,,"[EP02_F001_UploadedLayout] [4. Update Patient]
+[EP04_F001_OrganizationDataLayout] [1. Patient Info]
+* 환자 이미지는 가상의 데이터로 전달하며 M/F/Othoer 3가지로 사용한다.
+* S3에 업로드 된 환자 이미지의 presigned url을 전달한다.
+
+[문의사항]
+* 환자 이미지 presigned url을 BE에서 전달하는 방향으로 진행?(Levi)",,,,,,,
+URI,/organization-data/patients/:uid (0210 Levi EZCLD-423),,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Auhorization header (EzCloud User Token),,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"[EzCloud DB]
+
+1. 현재 사용자의 access token에서 tenant uid를 추출한다.
+2. OrganizationData - patient 테이블에서 추출된 tenant_uid와 chart_no를 사용하여 데이터를 조회한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Path,uid,string,,,,,,,,,
+Response,Body,Success,"{
+    id: number;
+    patientImage?: string;
+    name?: {
+        firstName?: string;
+        middleName?: string;
+        lastName?: string;
+    }
+    chartNo: string;
+    gender?: string;
+    age?: string;
+    birthdate?: string;
+    phone?: string;
+    mobile?: string;
+    email?: string;
+    zipCode?: string;
+    address?: string
+}",,,,,,,,,
+,,Error,"UNAUTHORIZED_REQUEST
+NOT_FOUND (Cannot found patient)",,,,,,,,,
+,,,,,,,,,,,,
+Description,조직 내 환자를 삭제한다.,,,,"[EP04_F007_DeletePatient] [6. Delelte Image]
+* 논의 결과 환자 정보 및 이미지는 DB에서 완전히 삭제한다.
+* v1.0에서 권한은 필요하지 않기에 Onwer 권한 체크 로직은 포함하지 않는다.
+* 환자에 이미지가 존재하는 상황이라면 모든 이미지를 우선 제거 후 환자를 제거한다.",,,,,,,
+URI,/organization-data/patients/:uid (0210 Levi EZCLD-423),,,,,,,,,,,
+Method,DELETE,,,,,,,,,,,
+Authentication,Auhorization header (EzCloud User Token),,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"[EzCloud DB]
+
+1. 현재 사용자의 access token에서 tenant uid를 추출한다.
+2. 추출한 tenant uid를 사용하여 OrganizationData - patient 테이블에서 환자 정보를 조회한다.
+3. 조회된 환자에 이미지가 존재하지 않는다면 환자 정보를 제거한다.
+4. 조회된 환자에 이미지가 존재한다면 이미지를 모두 제거하고 환자를 제거한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Path,uid,string,,,,,,,,,
+Response,Body,Success,-,,,,,,,,,
+,,Error,"UNAUTHORIZED_REQUEST
+NOT_FOUND (Cannot found patient)",,,,,,,,,
+,,,,,,,,,,,,
+organization-data/patient/images,,,,,,,,,,,,
+,,,,,,,,,,,,
+Description,특정 환자의 이미지 정보 리스트를 조회한다.,,,,"[EP04_F001_UploadedLayout] [5. Thumbnail List]
+[EP04_F003_ThumbnailFiltering] [3. Select Date Option]
+* start 혹은 end 값이 포함된 요청의 경우 이미지 촬영 시간을 필터링하여 결과를 반환한다.
+* 썸네일 필터링의 All chip이 선택된 경우, start와 end를 포함하지 않고 API를 요청해야 한다. (default와 동일하게 처리하기 위함)
+
+[EP04_F001_UploadedLayout] [5. Thumbnail List]
+* 이미지는 이미지 촬영 시간을 내림차순으로 정렬하여 반환한다.
+
+[문의사항]
+* presigned url의 유효기간 결정이 필요합니다. (Levi)
+
+
+",,,,,,,
+URI,/organization-data/patients/:uid/images?start=:start&end=:end&page=:page&perpage=:perpage (0210 Levi EZCLD-423),,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"[EzCloud App]
+
+1. 이미지 정보 조회를 원하는 환자의 chart_no를 추출하여 API 호출에 사용한다.
+
+[EzCloud DB]
+
+1. 현재 사용자의 access token에서 tenant uid를 추출한다.
+2. OrganizationData - patient 테이블에서 API 호출 시 전달된 chart_no를 사용하여 특정 환자를 조회한다.
+3. 조회된 환자의 id와 OrganizationData - patient_image 테이블의 patient_id가 일치하는 이미지 정보를 조회한다.
+4. 조회된 이미지 썸네일의 presigned url 리스트를 반환한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Path,uid,string,,,,,,,,,
+,Query,start,string [Optional | 검색 대상: acquisition_datetime],,,,,,,,,
+,,end,string [Optional | 검색 대상: acquisition_datetime],,,,,,,,,
+,,sort,string [Optinal | Values - acquisitionDatetime:desc/asc | createdAt:desc/asc | updatedAt:desc/asc | Default - acquisitionDatetime:desc],,,,,,,,,
+,,page,number [Optional | Default - 1),,,,,,,,,
+,,perpage,number [Optional | Default - 15],,,,,,,,,
+Response,Body,Success,"{
+    result: [
+        {
+            id: number;
+            thumbnailPresignedUrl?: string;           // 0205 Levi
+            acquisitionDatetime: string;
+            uploadStatus: string;                        // 0205 Levi
+            sourceSystem: string;                       // Added in v1.1| default: 'EzServer'
+        }
+    ],
+    meta: {
+        itemsPerPage: number;
+        totalItems: number;
+        currentPage: number;
+        totalPages: number;
+    }
+}",,,,,,,,,
+,,Error,"INVALID_REQUEST
+UNAUTHORIZED_REQUEST",,,,,,,,,
+,,,,,,,,,,,,
+Description,특정 환자의 특정 이미지 상세 정보를 조회한다.,,,,,,,,,,,
+URI,/organization-data/patients/:chartNo/images/:imageId,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"[EzCloud App]
+
+1. 전체 이미지 정보 조회를 원하는 환자의 chart_no를 추출하여 API 호출에 사용한다.
+2. 이미지 상세 정보 조회를 원하는 image_id를 추출하여 API 호출에 사용한다.
+
+[EzCloud DB]
+
+1. 현재 사용자의 access token에서 tenant uid를 추출한다.
+2. 추출한 tenant uid, parameter의 patient id, image_id를 사용하여 OrganizationData - patient_image 테이블에서 환자 이미지 정보를 조회한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Path,chartNo,string,,,,,,,,,
+,,imageId,string,,,,,,,,,
+Response,Body,Success,"{
+    id: number;
+    info: {
+        orgFileName: string;
+        modality: string;
+        mode?: string;
+        kvp?: number;
+        mA?: number;
+        does?: number;
+        acquisitionDatetime: string;
+    };
+    file: {
+        imageS3Key: string;                                   // imagePresignedURL, editedMetaJson, commentDocumentName로 변경 필요
+        orgMetaS3Key: string;
+        editedMetaS3Key: string;
+        commentDocumentName?: string;
+        imagePresignedURL: string;
+        metadata: { 
+           s3Key: string;
+           data: object;
+        };
+        commentDocumentName?: string;
+    }
+    patient: {
+        id: number;
+        chartNo: string;
+        name?: {
+            firstName?: string;
+            middleName?: string;
+            lastName?: string;
+        };
+        age?: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+}",,,,,,,,,
+,,Error,"UNAUTHORIZED_REQUEST
+NOT_FOUND (Cannot found patient)
+NOT_FOUND (Cannot found patient image)",,,,,,,,,
+,,,,,,,,,,,,
+Description,"선택된 환자의 특정 이미지를 삭제한다. (Updated: '24/12/16, Ann)",,,,,,,,,,,
+URI,"/organization-data/patients/:uid/images?imageids=:imageId1, imageId2, imageId3… (0210 Levi EZCLD-423)",,,,,,,,,,,
+Method,DELETE,,,,,,,,,,,
+Authentication,,,,,,,,,,,,
+Required Permission,Auhorization header,,,,,,,,,,,
+Actions,"[EzCloud App]
+
+1. 현재 로그인한 사용자의 access token에서 tenant_uid를 추출하여 API 호출에 사용한다.
+2. 삭제할 이미지 정보 조회를 원하는 환자의 chart_no를 추출하여 API 호출에 사용한다.
+3. 이미지 삭제를 원하는 image_id를 추출하여 API 호출에 사용한다.
+
+[EzCloud DB]
+
+1. 현재 사용자의 access token에서 tenant uid를 추출한다.
+2. 추출한 tenant uid, parameter의 patient id, image_id를 사용하여 OrganizationData - patient_image 테이블에서 환자 이미지 정보를 삭제한다.
+
+[S3]
+
+1. imageID에 해당하는 파일을 S3에서 삭제한다.
+   파일 삭제에 실패하면 DB는 rollback한다. ",,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Path,uid,string,,,,,,,,,
+,Query,imageIds,number(array)  // A comma-separated list of image id's to delete (maximum: 10),,,,,,,,,
+Response,Body,Success,"{
+  success: [ ids… ],
+  failed: [
+   {
+      id: string;
+      reason: string;
+    }
+  ]
+}",,,,,,,,,
+,,Error,"INVALID_REQUEST
+UNAUTHORIZED_REQUEST
+NOT_FOUND (Cannot found patient)
+NOT_FOUND (Cannot found patient image)",,,,,,,,,
+,,,,,,,,,,,,
+Description,선택된 환자의 특정 이미지 메타데이터를 업데이트한다. ,,,,,,,,,,,
+URI,/organization-data/patients/:chartNo/images/:imageId/metadata,,,,,,,,,,,
+Method,PUT,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"1. 이미지에 해당하는 메타 데이터 파일을 업데이트한다. 
+
+- ""metadata"" 파라미터가 undefiend인 경우, ""editiedMetadata""를 ""originalMetaData""로 overwrite한다.
+- 아닌 경우, ""editedMetadata""를 ""metadata""로 overwrite한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Path,chartNo,string,,,,,,,,,
+,,imageId,string,,,,,,,,,
+,Body,-,"{
+   s3key: string;
+   data?: object;
+}",,,,,,,,,
+Response,Body,Success,-,,,,,,,,,
+,,,,,,,,,,,,
+Description,선택된 환자의 특정 이미지 메타데이터를 조회한다.,,,,,,,,,,,
+URI,/organization-data/patients/:chartNo/images/:imageId/metadata,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"1. 이미지에 해당하는 메타 데이터 파일을 s3에서 가져온다. 이떄 s3key 는 DB > patient_image > edited_meta_s3_key 이다.
+2. 메타 데이터 파일은 이미지 형식에 따라, json 과 tag, project 파일등으로 나뉜다.
+3.1. tag 파일의 경우, key를 통해 데이터를 복호화 한 후 json으로 변환해 res body data 프로퍼티로 리턴한다.
+3.2.. json 파일의 경우 res body data 프로퍼티로 리턴한다. 
+3.3. project 파일의 경우,, (wip)",,,,메타데이터 파일 형식,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Path,chartNo,string,,,,,,,,,
+,,imageId,string,,,,,,,,,
+,Body,-,"{
+   s3key: string;
+}",,,,,,,,,
+Response,Body,-,-,,,,,,,,,
+,,,,,,,,,,,,
+Description,"선택된 환자의 특정 이미지 파일 관련 정보를 조회한다. 
+- 요구사항은, https://vatechcorp.sharepoint.com/:x:/s/es/EWe5ssKf-1tGqVW065afI_0BIOs8L1OXHgULlWL5qH2VKg?e=NIEIKr 을 참고한다.",,,,,,,,,,,
+URI,/organization-data/patients/:uid/images/:imageId/fileinfo (0210 Levi EZCLD-423),,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"구현 시점에, dicom parser 선정 후 Actions을 구체화한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Path,uid,string,,,,,,,,,
+,,imageId,string,,,,,,,,,
+,Body,-,"Jin) 0219 삭제
+{
+   s3key: string;
+}",,,,,,,,,
+Response,Body,-,"{
+  patientInfo: {
+    chartNo: string;
+    gender: string;
+    name: string;
+    age: string;
+  },
+  imageInfo: {
+    fileType: string;
+    dimenstion: {
+      imageWidth: number;
+      imageHeight: number;
+    };
+    resolution: {
+      x: string;
+      y: string;
+      sliceThickness: string;
+    };
+    dataSize: string;
+    modality: string;
+    position: {
+       toothIndex: string;
+       formVertical: string;
+       formHorizontal: string; 
+    };
+  },
+  acquisitionInfo: {
+    date: string;
+    kVp: string;
+    dose: string;
+    mA: string;
+  }
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,특정 환자의 특정 이미지(최대 10개) 간략 정보를 조회한다. (공유 Dialog에서 사용),,,,,,,,,,,
+URI,"/organization-data/patients/:chartNo/images/brief?imageids=:imageId1,imageId2,imageId3...",,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"1. DB에서 이미지 정보를 조회한다.
+2. S3 SDK를 이용하여 File Size를 조회한다. ",,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Path,chartNo,string,,,,,,,,,
+,,imageids,string(array)  ,,,,,,,,,
+Response,Body,Success,"[
+    {
+      id: number;
+      orgFileName: string;
+      modality: string;
+      sizeByte: int;  
+      createdAt: string;
+      updatedAt: string;
+    }
+  ]",,,,,,,,,
+,,,,,,,,,,,,
+Description,특정 환자의 특정 이미지(최대 5개) 상세 정보를 조회한다. (Viewer Open 위해 사용),,,,,,,,,,,
+URI,"/organization-data/patients/:uid/images/details?imageids=:imageId1,imageId2,imageId3…  (0210 Levi EZCLD-423)",,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"1. 인증된 사용자의 access token에서 tenant uid를 추출한다.
+2. 추출한 tenant uid, parameter의 patient id, image_id를 사용하여 OrganizationData - patient_image 테이블에서 환자 이미지 정보를 조회한다.
+3. 환자 이미지 정보의 s3 key를 이용하여 presigned url을 생성한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Path,uid,string,,,,,,,,,
+,,imageids,string(array)  // A comma-separated list of image id's to search (maximum: 5),,,,,,,,,
+Response,Body,Success,"[
+    {
+      id: number;
+      info: {
+          orgFileName: string;
+          modality: string;
+          mode?: string;
+          kvp?: number;
+          mA?: number;
+          does?: number;
+          acquisitionDatetime: string;
+          sourceSystem: string;                     // Added in v1.1 | Default: ""EzServer""
+      };
+      file: {
+        imageS3Key: string;
+        originMetaS3Key: string;
+        editedMetaS3Key: string;
+        commentDocumentName?: string;
+      }
+      createdAt: string;
+      updatedAt: string;
+    }
+  ]",,,,,,,,,
+,,Error,UNAUTHORIZED_REQUEST,,,,,,,,,
+,,,NOT_FOUND,,,,,,,,,
+,,,,,,,,,,,,
+Description,조직데이터 이미지 파일을 Zip으로 다운로드한다. ,,,,,,,,,,,
+URI,organization-data/patients/:uid/images/:imageId/download-zip,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions," v1.0 CT만 지원
+1. S3에서 파일을 Stream로 가져와서 zip stream로 생성하여 전달한다. ",,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Path,uid,string,,,,,,,,,
+,,imageId,string,,,,,,,,,
+Response,ContentType,application/zip,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+organization-data/files,,,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"조직 데이터에 저장된 파일의 조회 및 업데이트를 위한 presigend-url을 가져온다.  (추가)
+- 조회: GET_presignedURL
+- 업데이트: PUT_presingedURL",,,,,,,,,,,
+URI,/organization-data/files/presigned-url,,,,,,,,,,,
+Method,presigned-url,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,1. CloudFront Signer를 이용하여 S3 Key Signed URL을 생성한다. ,,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Body,-,"{
+  s3Key: string;
+}",,,,,,,,,
+Response,Body,Success,"{
+   s3key: string;
+   presignedURL: string;
+}
+",,,,,,,,,
+,,,,,,,,,,,,
+Description,"Parameter의 sourceS3Key에 해당하는 파일을 targetS3Key에 overwrite한다. (추가)
+- v1.0은 Viewer의 Reset Cloud Work 기능에서 사용한다. ",,,,,,,,,,,
+URI,/organization-data/files/overwrite,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"1. sourceS3Key object -> targetS3Key object overwrite한다. 
+   CopyObjectCommand 활용",,,,,,,,,,,
+Parameters,Types,Name,Schema ,,,,,,,,,
+,Body,-,"{
+  sourceS3Key: string;
+  targetS3Key: string;
+}",,,,,,,,,
+Response,Body,Success,-,,,,,,,,,
+,,,,,,,,,,,,
+Description,조직 데이터를 생성하고 공유한다. (02/13: Ann),,,,,,,,,,,
+URI,/organization-data/create-and-share,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header (EzCloud EzServer Token),,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  orgData: {
+     requestMemberEmail: string;      // E-mail for the member requesting the upload
+     zipS3Key: string;                      // S3 key for the uploaded zip file
+     patient: {                               // Patient information 
+       chartNo: string;
+       lastName?: string;
+       firstName?: string;
+      middleName?: string;
+      gender?: string;
+      birthDate?: string;
+      email?: string;
+      phone?: string;
+      mobile?: string;
+      zipCode?: string;
+      address?: string;
+     race?: string;
+    };
+    images: [                             // Image information
+      {
+        orgFileName: string;           // ezserver file name                  
+        thumbnaiFileName: string;
+        metaFileName?: string[];      // Post_organization-data API 도 변경 필요
+ 
+        modality:? string;
+        mode?: string;
+        acqDateTime?: string;
+        kvp?: number;
+        mA?: number;
+        dose?: number;
+      }
+    ];
+  },
+  share: {
+     sender: {
+       tenantUID: string;                                  // Unique identifier for the tenant sharing the data
+       memberEmail: string;                             // E-mail for the member sharing the data
+     };
+    receiver: {
+      type: ""Member"" | ""Guest"";                      // ""Member"" for registered users or ""Guest"" for None-member
+      tenantUID?: string;                               // Unique identifier for the recipient tenant (if member)     
+      email?: string;                                     // Email address of the recipient (if guest)
+      password?: string;                                // Encrypted password for guest (if guest) (요구 사항에 사용자 입력 없음)
+    };
+    title: string;                                             // Title of the shared data
+    description?: string;                                    // Description of the shared data (0317 Jin)
+    patientAnonymizationInImage: boolean;         // Whether patient information within the image has been anonymized to pivacy
+  }
+}",,,,,,,,,
+Response,Body,-,"// 200 (성공)
+{
+  ""data"": {
+    ""patientUID"": ""12345"",
+    ""shareCaseUID"": ""12345""
+  }
+}
+
+// 200 (일부 실패 - 조직 데이터 생성 성공 / 공유 실패: 반대 케이스는 없음)
+{
+  ""data"": {
+    ""patientUID"": ""12345,
+    ""shareCaseUID"": undefiend
+  },
+  ""error"": [
+     {
+        ""code"": ""..."",
+        ""message"": ""........"",
+        ""details""?: Object
+     }
+   ]
+}
+
+// details: QUOTA_EXCEEDED Error
+  details?: {
+    subscription: {          
+      totalSize: number;
+      usedSize: number;
+      monthlyShareLimit: int;           // Monthly share limit
+      monthlySharedCount: int;        // Mothly shares made
+    };
+    maxUploadSize: int;   // Maximum allowable upload size for a share case (MB)
+    maxFileCount: int;     // Maximum allowable file count for a share case
+  }",,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,

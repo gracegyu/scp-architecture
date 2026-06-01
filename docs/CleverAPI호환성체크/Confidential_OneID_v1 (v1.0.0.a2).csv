@@ -1,0 +1,320 @@
+﻿"- a2 new API (EzCloud 연동)
+- 구현 완료 후 각 sheet로 이동",,,,,,,,,,,,
+- DB Schema ( pw: escloud1024),https://dbdiagram.io/d/oneid-v1-1-66d910c1eef7e08f0ebb017a,,,,,,,,,,,
+,,,,,,,,,,,,
+Sysconfig,,,,,,,,,,,,
+,,,,,,,,,,,,
+Description,OneID 설정 및 구성 정보를 조회한다. ,,,,"GET_sysconfig/userconsole API 제거
+GET_.well-known/server-configuration.json API로 대체 ",,,,,,,
+URI,/.well-known/server-configuration.json,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Public,,,,,,,,,,,
+Required Permission,-,,,,,,,,,,,
+Actions,-,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,-,-,-,,,,,,,,,
+Response,Body,-,"{
+  version: string;                  // The version information.
+  api-endpoint: string;           // The URL for making API Calls.
+  auth-entpoint: string;          // The URL for authentication.
+  app-endpoint: string;           // The URL for the application endpoint. 
+  authentication-flow: string[];  // The type of supported authentication flow.
+}",,,,,,,,,
+,,,,,,,,,,,,
+Client Registration,,,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"Auth Server(Keycloak)에 클라이언트를 생성한다. 
+- Runtime에 Client를 생성해야하는 application을 위한 동적 클라이언트 등록 API 이다. 
+- OneID는 ""Service Admin""과 ""Service User"" 타입이 있다. 특정 타입의 접근을 제한하려면, ""accessRestrictedType"" 을 지정한다. ",,,,"[Client Registration Guide]
+
+Description
+
+Application이 OneID를 활용하기 위해서는 OneID의 Auth Server에 클라이언트를 등록해야한다. 
+OneID는 클라이언트 등록은 아래 2가지 방법으로 가능하다.
+  1. 관리자에게 등록 요청: 서비스 관리자에게 클라이언트 등록을 요청하여 수동으로 클라이언트를 등록한다.
+  2. 동적 클라이언트 등록: 런타임에 클라이언트 생성이 필요한 Application을 위해 API를 제공한다. 
+
+관리자에게 등록 요청
+1. 클라이언트 등록에 필요한 정보를 전달하여 OneID 서비스 관리자에게 등록을 요청한다.
+  * 필요 정보는 post_auth/clients 파라미터와 동일
+2. OneID 서비스 관리자는 클라이언트 등록 후, Client ID/Secret를 전달한다.
+
+동적 클라이언트 등록
+1. 동적 클라이언트 등록 API를 사용하기 위한 토큰 발급을 관리자에게 요청한다.
+   - 지원하는 인증 방식은 아래와 같다. 
+      * Bearer Token: 'create-client' 권한이 있는 Service Account 발급
+      * Initial Access Token: 'create-client' 권한 및 만료일/생성 횟수 제한이 있는 Access Token 발급
+2. API를 호출하여 클라이언트를 등록하고, ID/Secret을 발급 받는다.
+   아래 2가지 API를 제공한다. 
+   - OneID 클라이언트 등록 API (POST_{api-server}/auth/clients)
+     * 이 API는 OIDC 클라이언트 등록과 함께 접근 제한 등 추가 설정을 제공한다. 
+     * Bearer Token 인증 방식만 지원한다. 
+   - OIDC 클라이언트 등록 API (POST_{auth-server}/clients-registrations/openid-connect)
+     * 이 API는 OIDC 클라이언트를 등록한다. 접근 제한 등 추가 설정은 하지 않는다. 
+     * 참고: https://openid.net/specs/openid-connect-registration-1_0.html",,,,,,,
+URI,/auth/client  // Updated 250910 EZCLD-870 Larry,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization header (Bearer),,,,,,,,,,,
+Required Permission,-,,,,,,,,,,,
+Actions,"1. Client를 생성한다.
+  - POST {auth-server}/clients-registrations/openid-connect
+2. ""accessRestrictedType""이 정의된 경우, Access 제한을 위한 설정을 추가한다.
+  - POST /admin/realms/{realm}/clients/{client-uuid}/roles
+  - POST /admin/realms/{realm}/groups/{group-id}/role-mappings/clients/{client-id}",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  grantTypes?: string; (default: off all options)                   // The grant types supprted by the client. 
+                                                                            // Possible values can be verified through the /.well-known/server-configruation.json endpoint.
+  redirectUris?: string[];                                               // The valid redirect URIs for the client.
+  redirectLogoutUris?: string[];
+  origins?: string;   // Updated/ 250121 / EZCLD-440 / Max
+  scopes?: string[];                                                                                 // The scopes that the client can request.
+  accessRestrictedType?: ""ServiceAdmin"" | ""ServiceUser""; (default: ServiceUser)      // Defines access restrictions. 
+}",,,,,,,,,
+Response,Body,-,"{
+  clientID: string;        
+  clientSecret: string;
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,Auth Server(Keycloak)에 클라이언트 정보를 업데이트한다. (oneid-api-server service account role에 manage-client 추가 필요),,,,,,,,,,,
+URI,/auth/client/:clientId  // Updated 250910 EZCLD-870 Larry,,,,,,,,,,,
+Method,PUT,,,,,,,,,,,
+Authentication,Authorization header (Bearer),,,,,,,,,,,
+Required Permission,-,,,,,,,,,,,
+Actions,"1. Client 정보를 업데이트 한다.
+   PUT /admin/realms/{realm}/clients/{id}",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  grantTypes?: string;                                                 // The grant types supprted by the client. 
+                                                                            // Possible values can be verified through the /.well-known/server-configruation.json endpoint.
+  redirectUris?: string[];                                               // The valid redirect URIs for the client.
+  redirectLogoutUris?: string[];
+  origins?: string;      // Updated/ 250121 / EZCLD-440 / Max
+  scopes?: string[];                                                     // The scopes that the client can request.
+}",,,,,,,,,
+Response,Body,-,,,,,,,,,,
+,,,,,,,,,,,,
+EzServer Management,,,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트에 EzServer를 추가한다. 
+- EzServer UID를 생성하고 저장한다.
+- v1.0: 테넌트의 EzServer는 1개 등록 가능하다. 이미 EzServer가 등록되어 있는 경우 에러를 리턴한다. ",,,,"- “EzServer” 연동 설정을 위한 로그인은 반드시 테넌트 소유자 계정으로 로그인해야한다.
+- 멤버 계정으로 로그인 시, 이후 단계에서 권한 에러가 발생한다.                                                                                                                                                                                                                                                                  
+  (OneID 화면에서 로그아웃 이후 재 로그인해야한다.)
+- 테넌트 UID와 EzServer UID는 이후 클라우드 서비스(ex. EzCloud) 연동에 필요하므로, EzServer에 반드시 저장해야 한다.",,,,,,,
+URI,/tenants/:tenantUID/ezserver,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,UpdateTenant,,,,,,,,,,,
+Actions,"[OneID DB]
+1. EzServer UID를 생성한다. (snowflake uid)
+2. tenant_ezserver 테이블에 EzServer 정보를 저장한다. 
+3. Tenant UID와 EzServer UID를 response로 전달한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Path,"tenantUID uid
+// Updated/ 250121 / EZCLD-440 / Max",Tenant UID,,,,,,,,,
+,Body,-,"{
+  clientId: string;
+  name?: string;
+  description?: string;
+}",,,,,,,,,
+Response,Body,-,"{
+  tenantUid: string;
+  ezServerUid: string;
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트의 EzServer 정보를 검색 한다. 
+- 데이터가 없는 경우 에러 처리하지 않는다.",,,,,,,,,,,
+URI,/tenants/:uid/ezserver?request-type={type}&request-uid={ezserverUid},,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,ReadTenant,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_ezserver 테이블에서 TenantUID에 해당하는 데이터를 검색한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Path,uid,Tenant UID // Updated/ 250121 / EZCLD-440 / Max,,,,,,,,,
+,Query,request-type,"Client Type (Possible Values: ""ezserver"", ""tenant"", Optional, Default: ""tenant"") // update (Ann, 02/13/목)",,,,,,,,,
+,,request-uid,"EzServer UID (Optional, request-type이 ezserver인 경우에만 유효함) // update (Ann, 02/13/목)",,,,,,,,,
+Response,Body,-,"{
+  result: [
+    { 
+       ezserverUID: string;
+       name: string;
+       description: string;
+    }
+  ],
+  meta: {
+    count: number;
+  }
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,테넌트의 EzServer 정보를 삭제한다. ,,,,,,,,,,,
+URI,/tenants/:tenantUID/ezserver/:ezserverUID,,,,,,,,,,,
+Method,DELETE,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,UpdateTenant,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_server 테이블에서 'ezserverUID'에 해당하는 데이터를 삭제한다.
+2. Auth Server 클라이언트를 삭제한다. 
+   DELETE /admin/realms/{realm}/clients/{client-uuid}",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Path,"tenantUID uid
+// Updated/ 250121 / EZCLD-440 / Max",Tenant UID,,,,,,,,,
+,,ezserverUID,EzServer UID,,,,,,,,,
+Response,-,-,,,,,,,,,,
+,,,,,,,,,,,,
+Service Management (SCPS-157),,,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"사용 가능한 서비스 목록을 조회한다. 
+- 인증된 사용자의 국가에서 접근 가능한 서비스 정보를 가져온다.",,,,"[DB]
+- ServiceGroup 추가 필요 
+
+[API]
+- v1.0은 서비스 관련 등록/수정/삭제는 개발자가 수동으로 진행한다. 
+- POST/PUT/DELETE API는 이후 버전에서 필요 시 추가한다.
+
+[S3]
+- 서비스 Resource 등록 필요",,,,,,,
+URI,/services,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,-,,,,,,,,,,,
+Actions,"1. 인증된 사용자의 국가 정보를 조회한다.
+2. DB에서 사용자의 국가에서 사용 가능한 서비스 목록을 조회한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,-,-,,,,,,,,,,
+Response,Body,-,"[
+   {
+      name: string;
+      iconUrl: string; 
+      endPoint: string;
+   }
+]",,,,,,,,,
+,,,,,,,,,,,,
+Description,"특정 서비스의 정보를 조회한다.
+- 인증된 사용자의 국가에서 접근 가능한 서비스 정보를 가져온다.",,,,,,,,,,,
+URI,/services/:serviceName,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,-,,,,,,,,,,,
+Actions,"1. 인증된 사용자의 국가 정보를 조회한다.
+2. DB에서 ""serviceName"" 및 국가에 해당하는 endpoint를 조회한다. 
+   인증된 사용자의 국가에 서비스를 지원하지 않는 경우 에러를 전송한다. ",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Path,serviceName,"Service Name  [v1.0: ""EzCloud""]",,,,,,,,,
+Response,Body,-,"{
+  name: string;
+  iconUrl: string;
+  endPoint: string;
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,테넌트의 구독 리스트를 검색한다. (수정),,,,,,,,,,,
+URI,/tenants/:uid/subscriptions?sort=:sort&page=:page&perpage=:perpage,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,
+Required Permission,ReadTenant,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_subscriptions 테이블에서 테넌트의 구독 리스트를 검색한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Path,uid,string,,,,,,,,,
+,Query,sort ,"string [Optinal | Values - serviceName, startsAt, endsAt | Default - startsAt:desc]",,,,,,,,,
+,,page,number [Optional | Default - 1),,,,,,,,,
+,,perpage,number [Optional | Default - 15],,,,,,,,,
+Response,Body,-,"{
+  result: [
+    {
+      uid: string;
+      type: 'free', 'paid', 'promotion';   // v1.0 only supports 'free'
+
+      serviceName: string;
+      planCancelUrl: string;
+  
+      service: {
+        name: string;
+        iconUrl: string;
+        endPoint: string;
+      }    
+
+      planName: string;
+      planCancelUrl: string;
+      planInfo: Object;
+ 
+      startsAt: string;  
+      endsAt: string;
+
+      createdAt: string;
+      updatedAt: string;
+    }
+  ],
+  meta: {
+    itemsPerPage: number;
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }
+}",,,,,,,,,
+,,,,,,,,,,,,
+Locale Settings (SCPS-59),,,,,,,,,,,,
+,,,,,,,,,,,,
+Description,Admin 계정의 설정 정보를 조회한다.,,,,,,,,,,,
+URI,/admins/settings,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,-,,,,,,,,,,,
+Actions,"1. AccessToken에서 admin의 account uid를 추출하여 계정 정보 조회에 사용한다.
+2. Accout uid를 사용하여 AccountSettings table에서 계정의 설정 정보를 조회한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,-,-,,,,,,,,,,
+Response,Body,-,"{
+  locale: string
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,Admin 계정의 설정 정보를 저장한다.,,,,,,,,,,,
+URI,/admins/settings,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,-,,,,,,,,,,,
+Actions,"1. AccessToken에서 admin의 account uid를 추출하여 계정 정보 조회에 사용한다.
+2. Accout uid를 사용하여 AccountSettings table에서 계정의 설정 정보를 조회한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,,-,,,,,,,,,,
+Response,Body,-,"{
+  locale: string
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,User 계정의 설정 정보를 조회한다.,,,,,,,,,,,
+URI,/users/settings,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,-,,,,,,,,,,,
+Actions,"1. AccessToken에서 user의 account uid를 추출하여 계정 정보 조회에 사용한다.
+2. Accout uid를 사용하여 AccountSettings table에서 계정의 설정 정보를 조회한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,-,-,,,,,,,,,,
+Response,Body,-,"{
+  locale: string
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,User 계정의 설정 정보를 저장한다.,,,,,,,,,,,
+URI,/users/settings,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,-,,,,,,,,,,,
+Actions,"1. AccessToken에서 user의 account uid를 추출하여 계정 정보 조회에 사용한다.
+2. Accout uid를 사용하여 AccountSettings table에서 계정의 설정 정보를 조회한다.",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,,-,,,,,,,,,,
+Response,Body,-,"{
+  locale: string
+}",,,,,,,,,
+,,,,,,,,,,,,
+- Keycloak Token에 사용자 국가 추가,,,,,,,,,,,,
+- MQ Event 추가 (메시지는 구현 시점에 정의한다.),,,,,,,,,,,,
+OneID MQ Publish message,,EzCloud Subscribe,,,,,,,,,,
+테넌트 이벤트,이름 변경,EzCloud DB의 테넌트 이름을 변경한다.,,,테넌트/사용자 생성은 EzCloud 약관 동의 시점에 처리한다.,,,,,,,
+,이관,EzCloud DB의 테넌트 소유자를 변경한다.,,,,,,,,,,
+,삭제,"EzCloud DB의 테넌트를 삭제한다. 
+- 해당 테넌트가 공유하거나 받은 데이터는 ref tenant id를 null로 설정한다.",,,,,,,,,,
+사용자 이벤트,이름 변경,EzCloud DB의 테넌트 멤버 이름을 변경한다.,,,,,,,,,,
+,테넌트 탈퇴,"EzCloud DB의 테넌트 멤버를 삭제한다. 
+- 해당 사용자가 공유하거나 받은 데이터는 ref tenant member를 null로 설정한다.",,,,,,,,,,

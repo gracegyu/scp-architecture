@@ -1,0 +1,584 @@
+﻿,/shared-data/cases,,,,,Notes,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스를 조회한다. ,,,,"[EP05_F002_SearchCase] [4. New Case]
+* DB case_read_at 컬럼을 기준으로 response body의 isRead를 결정한다.
+* 내가 공유한 항목에는 적용하지 않는다.
+
+[EP05_F002_SearchCase] [5. updating Case]
+* DB case_updated_at 컬럼을 기준으로 response body의 isCaseUpdated를 결정한다.
+
+[EP05_F001_SharedLayout] [2.d 예외처리]
+* 조직이 해체된 경우, 보낸 사람의 조직명을 ""조직명(retired)""로 표시
+* 공유자가 탈퇴된 경우, 보낸 사람에 ""E-mail(retired)""로 표시
+* 탈퇴한 회원 정보 보관 기간이 끝나면 ""탈퇴한 사용자""로 단독 표시
+
+[Jay, Ann 논의 사항]
+* to의 memeber는 소유자가 아닌 공유 케이스의 타겟 대상 정보를 가져온다. (Levi)",,,,,,
+,URI,/shared-data/cases,,,,,,,,,,
+,Method,GET,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,"[EzCloud DB]
+
+1. 현재 로그인된 사용자의 Access Token에서 tenant_uid와 email을 추출한다.
+2. SharedData - share_case 테이블에서 추출한 tenant_uid가 share_case의 shared_by_tenant_id 필드와 일치하는 결과를 조회한다.
+3. Query에 start, end 값이 전달되면 created_at 필드에서 해당 값에 일치하는 결과를 반환한다.
+
+[공유 케이스 메트릭 조회]
+* isCaseUpdated의 경우, share_case_metrics table의 case_updated_at 값을 사용하여 판단한다.
+
+[탈퇴한 사용자/조직 예외처리]
+* shared_case table의 shared_by_tenant_id 혹은 shared_with_tenant_id가 없는 경우는 보관 간이 끝난 경우로 ""탈퇴한 사용자""로 처리하여 반환한다.
+* shared_by_tenant_id 혹은 shared_with_tenant_id가 있지만 데이터가 soft delete 상태인 경우 state에 ""deleted""를 전달한다.
+* shared_by_tenant_id 혹은 shared_with_tenant_id가 있고 데이터가 지워지지 않은 경우 state에 ""activated""를 전달한다.",,,,,,,,,,
+,Parameters,Types,Name,Schema ,,,,,,,,
+,,Query,filter,"string [Required | value: shared, received]",,,,,,,,
+,,,status,"status [Optional | value: shared, accessed, expired]",,,,,,,,
+,,,start,string [Optional | 검색 대상: created_at],,,,,,,,
+,,,end,string [Optional | 검색 대상: created_at],,,,,,,,
+,,,field,"string [Optinal | 검색 대상: tenantName, email, subject | Default - TBD]",,,,,,,,
+,,,keyword,string [Optional],,,,,,,,
+,,,sort,"string [Optinal | Values - createdAt:asc/desc, expiredAt:asc/desc, updatedAt:asc/desc | Default - createdAt:desc]",,,,,,,,
+,,,page,number [Optional | Default - 1),,,,,,,,
+,,,perpage,number [Optional | Default - 15],,,,,,,,
+,Response,Body,Success,"{
+    result: [
+        {
+            uid: string;
+            uploadStatus: string; (0205 Levi)
+            status: string;
+            isGuest: boolean; (0318 Jin)
+            isArchived: boolean;      // Added in v1.1 | Default: false   (next, v1.1 스펙아웃)
+            sender: {
+                tenant: {
+                    uid: string;
+                    name: string;
+                    address: string;
+                    state: string;
+                };
+                member: {
+                    uid: string;
+                    email: string;
+                    state: string;
+                };
+            };
+            receiver: {
+                tenant?: {
+                    uid: string;
+                    name: string;
+                    address: string;
+                    state: string;
+                };
+                member?: {
+                    uid: string;
+                    email: string;
+                    state: string;
+                };
+                email?: string;
+            };
+            email?: string;  Levi) 불필요한 중복값이므로 제거하겠습니다.
+            subject: string;
+            isRead?: boolean;
+            isCaseUpdated: boolean;
+            createdAt: string;
+            expiredAt: string;
+            expirationExtendedAt?: string;   // Added in v1.1 
+        }
+    ];
+    meta: {
+        itemsPerPage: number;
+        totalItems: number;
+        currentPage: number;
+        totalPages: number;
+    }
+}",,,,,,,,
+,,,,,,,,,,,,
+,,,Error,"INVALID_REQUEST
+UNAUTHORIZED_REQUEST",,,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스(발신)를 조회한다.,,,,,,,,,,
+,URI,/shared-data/cases/shared,,,,,,,,,,
+,Method,GET,,,,,,,,,,
+i,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+i,Actions,"[EzCloud DB]
+
+1. 현재 로그인된 사용자의 Access Token에서 tenant_uid와 email을 추출한다.
+2. SharedData - share_case 테이블에서 추출한 tenant_uid가 share_case의 shared_with_tenant_id 필드와 일치하는 결과를 조회한다.
+3. Query에 start, end 값이 전달되면 created_at 필드에서 해당 값에 일치하는 결과를 반환한다.",,,,,,,,,,
+,Parameters,Types,Name, ,,,,,,,,
+,,Query,start,string [Optional | 검색 대상: created_at],,,,,,,,
+,,,end,string [Optional | 검색 대상: created_at],,,,,,,,
+,,,field,"string [Optinal | Values - TBD | Default - status, sharedTo, Subject]",,,,,,,,
+,,,keyword,string [Optional],,,,,,,,
+,,,sort,"string [Optinal | Values - created_at, expired_at | Default - created_at:desc]",,,,,,,,
+,,,page,number [Optional | Default - 1),,,,,,,,
+,,,perpage,number [Optional | Default - 15],,,,,,,,
+,Response,Body,-,"{
+    result: [
+        {
+            uid: string;
+            status: string;
+            sharedTo: string;
+            subject: string;
+            isRead: boolean;
+            createdAt: string;
+            expiredAt: string;
+        }
+    ];
+    meta: {
+        itemsPerPage: number;
+        totalItems: number;
+        currentPage: number;
+        totalPages: number;
+    }
+}",,,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스 Metric 정보를 조회한다. (Home > Card Summary에서 사용),,,,,,,,,,
+,URI,/shared-data/cases/metrics/:type,,,,,,,,,,
+,Method,GET,,,,,,,,,,
+,Authentication,Authorization Header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,"[EzCloud DB] 
+
+- 현재 로그인한 사용자의 access token에서 tenantUid를 추출하여 API 호출에 사용한다.
+ * Sent: tenantUid = ShareCaseEntity.sharedWithTenant.uid를 사용
+ * Receive: tenantUid = ShareCaseEntity.sharedByTenant.uid를 사용",,,,,,,,,,
+,Parameters,Types,Name,Schema,,,,,,,,
+,,path,type,sent' | 'received',,,,,,,,
+,,query,sort,string [Optinal | Values - updatedAt:asc/desc | createdAt:asc/desc | expiredAt:asc/desc | Default - caseSharedAt::desc] ,,"""caseSharedAt:desc"" --> HOME > card > Shared 구현을 위해 생성한 sort 키워드
+MMI p.50 에서 time 내림차순 요구사항에 대응하기 위함",,,,,,
+,,,page,number [Optional | Default - 1],,,,,,,,
+,,,perpage,number [Optional | Default - 15],,,,,,,,
+,Response,Body,-,"{
+  result: [  
+    { 
+       case: {  
+          title: string;
+          tenantName: string; 
+          email: string;          
+          // 0318 Jin
+          isGuest: boolean 
+          tenantState?: 'activated' | 'deleted'   // isGuest==false 인 경우 존재
+          memberState?: 'activated' | 'deleted'  // isGuest==false 인 경우 존재
+       }, 
+       caseUpdatedAt?: string; 
+       expiredAt?: string; 
+       createdAt: string;
+       updatedAt: string;
+    }
+  ],
+  meta: {
+    itemsPerPage: number;
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }
+}",,,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스 상세 정보를 조회한다.,,,,"[EP05_F003_CaseDetail] [2. 열람 권한 제한]
+* 공유한 케이스는 만료되어도 열람이 가능하다.
+* 공유 받은 케이스는 만료되면 열람이 불가능하다. (에러처리 필요)
+
+[EP05_F003_CaseDetail] [4. Attachment]
+* 썸네일 정렬 순서는 최근 촬영된 순서로 정렬한다.
+
+[EP05_F003_CaseDetail] [8. 공유자 탈퇴]
+* 공유자 계정 탈퇴 유무를 조회해야 한다.
+* 정보 보관 기간이 지나 정보가 제거되었는지 확인이 필요하다.
+
+[EP05_F003_CaseDetail] [8. 조직 해체]
+* 조직 해체 유무를 조회해야 한다.
+* 정보 보관 기간이 지나 정보가 제거되었는지 확인이 필요하다.
+
+[EP05_F003_CaseDetail] [10. Comment 표시]
+* 이미지의 코멘트 유무를 조회해야 한다.
+
+[EP05_F003_CaseDetail] [2. Expired Case]
+* 이미지 썸네일 리스트 대신 아래 정보를 담고있는 이미지 파일 정보를 반환한다.
+  * image name
+  * modality
+  * acquisition_datetime
+  * created_at
+* 내가 공유 받은 케이스가 만료된 케이스인 경우 에러를 반환한다. (CANNOT_VIEW_EXPIRED_CASE)
+* 내가 공유한 케이스는 만료된 케이스여도 상세 내용 조회가 가능하다.
+
+[EP05_F001_SharedLayout] [2.d 예외처리]
+* 조직이 해체된 경우, 보낸 사람의 조직명을 ""조직명(retired)""로 표시
+* 공유자가 탈퇴된 경우, 보낸 사람에 ""E-mail(retired)""로 표시
+* 탈퇴한 회원 정보 보관 기간이 끝나면 ""탈퇴한 사용자""로 단독 표시
+
+[Jay, Ann 논의 사항]
+* to의 memeber는 소유자가 아닌 공유 케이스의 타겟 대상 정보를 가져온다. (Levi)",,,,,,
+,URI,/shared-data/cases/:caseUID,,,,,,,,,,
+,Method,GET,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,"[EzCloud DB]
+
+1. 현재 로그인된 사용자의 Access Token에서 tenant_uid와 email을 추출한다.
+2. SharedData - share_case 테이블에서 parameter로 전달된 case_uid와 일치하는 케이스를 조회한다.
+3. 조회된 케이스의 공유자 혹은 수신자의 tenant_uid가 추출된 tenant_uid와 일치하지 않으면 조회할 수 없다.
+4. Query에 start, end 값이 전달되면 created_at 필드에서 해당 값에 일치하는 결과를 반환한다.
+
+[공유 케이스 메트릭 업데이트]
+* 공유를 받은 타겟이 공유 케이스를 열람한 경우 share_case_metrics table의 case_is_read 값을 true로 변경한다.
+* 공유자가 케이스를 열람한 경우는 업데이트 하지 않는다.
+
+[탈퇴한 사용자/조직 예외처리]
+* shared_case table의 shared_by_tenant_id 혹은 shared_with_tenant_id가 없는 경우는 보관 간이 끝난 경우로 ""탈퇴한 사용자""로 처리하여 반환한다.
+* shared_by_tenant_id 혹은 shared_with_tenant_id가 있지만 데이터가 soft delete 상태인 경우 state에 ""deleted""를 전달한다.
+* shared_by_tenant_id 혹은 shared_with_tenant_id가 있고 데이터가 지워지지 않은 경우 state에 ""activated""를 전달한다.",,,,,,,,,,
+,Parameters,Types,Name,Schema ,,,,,,,,
+,,Path,caseUID,string,,,,,,,,
+,Response,Body,Success,"{
+    uid: string;
+    title: string;
+    isGuest: boolean; (0318 Jin)
+    comment: string;
+    downloadCount: number;
+    sender: {
+        tenant: {
+            uid: string;
+            name: string;
+            address: string;
+            state: string;
+        };
+        member: {
+            uid: string;
+            email: string;
+            state: string;
+        };
+    };
+    receiver: {
+        tenant?: {
+            uid: string;
+            name: string;
+            address: string;
+            state: string;
+        };
+        member?: {
+            uid: string;
+            email: string;
+            state: string;
+        };
+        email?: string;
+    };
+    images: [
+        {
+            id: number;
+            thumbnailPresignedUrl?: string;
+            isCommented: boolean;
+            orgFileName: string;
+            modality: string;
+            acquisitionDateTime: string;
+            createdAt: string;
+        }
+    ]
+    imageFileInfo: [
+      {
+        orgFileName: string;
+        modality: string;
+        acquisitionDateTime: string;
+        createdAt: string;
+      };
+    ];
+    createdAt: string;
+    expiredAt: string;
+    expirationExtendedAt?: string;   // Added in v1.1 
+}",,,,,,,,
+,,,,,,,,,,,,
+,,,Error,"UNAUTHORIZED_REQUEST
+NOT_FOUND (Cannot found share case)",,,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스의 특정 이미지 상세 정보를 조회한다.,,,,,,,,,,
+,URI,/shared-data/cases/:caseUID/image/:imageId,,,,,,,,,,
+,Method,GET,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,"[EzCloud DB]
+
+1. 현재 로그인된 사용자의 Access Token에서 tenant_uid와 email을 추출한다.
+2. SharedData - share_case_image 테이블에서 parameter로 전달된 case_uid, image_id와 일치하는 이미지를 조회한다.
+3. 조회된 케이스의 공유자 혹은 수신자의 tenant_uid가 추출된 tenant_uid와 일치하지 않으면 조회할 수 없다.
+
+[공유 케이스 이미지 메타데이터]
+* metadata의 정보는 edited_meta_s3_key 정보를 기반으로 전달한다.",,,,,,,,,,
+,Parameters,Types,Name,Schema,,,,,,,,
+,,Path,caseUID,string,,,,,,,,
+,,,imageId,string,,,,,,,,
+,Response,Body,Success,"{
+    id: number;
+    image: {
+        orgFileName: string;
+        modality: string;
+        mode: string;
+        kvp: number;
+        mA: number;
+        does: number;
+        acquisition_datetime: string;
+    };
+    fileInfo: {
+        imageS3Key: string;
+        orgMetaS3Key: string;
+        editedMetaS3Key: string;
+        commentDocumentName: string;
+    }
+    file: {
+        imagePresignedURL: string;
+        metadata: {
+           s3Key: string;
+           data: object;
+        };
+        commentDocumentName?: string;
+    }
+    createdAt: string;
+    updatedAt: string;
+}",,,,,,,,
+,,,Error,"UNAUTHORIZED_REQUEST
+NOT_FOUND (Cannot found share case)
+NOT_FOUND (Cannot found share case image)",,,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스의 특정 이미지 메타 데이터를 업데이트한다.,,,,,,,,,,
+,URI,/shared-data/cases/:caseUID/image/:imageId/metadata,,,,,,,,,,
+,Method,PUT,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,"1. 이미지에 해당하는 메타 데이터 파일을 업데이트한다. 
+
+- ""metadata"" 파라미터가 undefiend인 경우, ""editiedMetadata""를 ""originalMetaData""로 overwrite한다.
+- 아닌 경우, ""editedMetadata""를 ""metadata""로 overwrite한다.",,,,,,,,,,
+,Parameters,Types,Name,Schema ,,,,,,,,
+,,Path,caseUID,string,,,,,,,,
+,,,imageId,string,,,,,,,,
+,,Body,-,"{
+   s3key: string;
+   metadata?: object;
+}",,,,,,,,
+,Response,Body,Success,-,,,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스의 특정 이미지 메타 데이터를 조회한다.,,,,,,,,,,
+,URI,/shared-data/cases/:caseUID/image/:imageId/metadata,,,,,,,,,,
+,Method,GET,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,1. 이미지에 해당하는 메타 데이터 파일을 조회한다.,,,,,,,,,,
+,Parameters,Types,Name,Schema ,,,,,,,,
+,,Path,caseUID,string,,,,,,,,
+,,,imageId,string,,,,,,,,
+,,Body,-,"{
+   s3key: string;
+}",,,,,,,,
+,Response,Body,-,"{
+   s3key: string;
+   data? object;
+}",,,,,,,,
+,,,,,,,,,,,,
+,Description,"공유 케이스의 특정 이미지 파일 관련 정보를 조회한다. 
+- 요구사항은, https://vatechcorp.sharepoint.com/:x:/s/es/EWe5ssKf-1tGqVW065afI_0BIOs8L1OXHgULlWL5qH2VKg?e=NIEIKr 을 참고한다.",,,,,,,,,,
+,URI,/shared-data/cases/:caseUID/images/:imageId/fileinfo,,,,,,,,,,
+,Method,GET,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,"구현 시점에, dicom parser 선정 후 Actions을 구체화한다.",,,,,,,,,,
+,Parameters,Types,Name,Schema ,,,,,,,,
+,,Path,caseUID,string,,,,,,,,
+,,,imageId,string,,,,,,,,
+,,Body,-,"Jin) 0219 삭제
+{
+   s3key: string;
+}",,,,,,,,
+,Response,Body,-,"Jin) patientInfo Optional 추가 (0207)
+{
+  patientInfo?: {
+    chartNo?: string;
+    gender?: string;
+    name?: string;
+    age?: string;
+  },
+  imageInfo: {
+    fileType: string;
+    dimenstion: {
+      imageWidth: number;
+      imageHeight: number;
+    };
+    resolution: {
+      x: string;
+      y: string;
+      sliceThickness: string;
+    };
+    dataSize: string;
+    modality: string;
+    position: {
+       toothIndex: string;
+       formVertical: string;
+       formHorizontal: string; 
+    };
+  },
+  acquisitionInfo: {
+    date: string;
+    kVp: string;
+    dose: string;
+    mA: string;
+  }
+}",,,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스를 만료 처리한다. (FE Stop 요청 시 호출) ,,,,"[EP05_F008_SharedYou] [3. 공유 조직 해체 / 4. 공유 받은 조직 해체]
+조직이 해체되면 조직에 공유되거나 조직이 공유한 모든 케이스는 만료처리 된다.",,,,,,
+,URI,shared-data/cases/:caseUID/expiration,,,,,,,,,,
+,Method,POST,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,"1. 케이스의 expired_at 필드를 업데이트 한다.
+  * DB에 저장된 정보는 공유를 중단/만료하여도 바로 삭제하지 않는다.
+  * DB에 저장된 정보는 만료 3개월 이후 삭제된다. (배치 스케줄러 적용)
+2. 공유 케이스에 포함된 파일을 삭제 요청한다. (Prefix lifecycle 적용)",,,,,,,,,,
+,Parameters,Types,Name,Schema,,,,,,,,
+,,Path,caseUID,string,,,,,,,,
+,Response,Body,Success,-,,,,,,,,
+,,,Error,"UNAUTHORIZED_REQUEST
+NOT_FOUND (Cannot found share case)",,,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스를 삭제한다.,,,,,,,,,,
+,URI,/shared-data/cases/:caseUID,,,,,,,,,,
+,Method,DELETE,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,"[EzCloud DB]
+
+1. 현재 로그인된 사용자의 Access Token에서 tenant_uid와 email을 추출한다.
+2. 케이스를 DB와 S3에서 제거한다. (Prefix lifecycle 적용)",,,,,,,,,,
+,Parameters,Types,Name,Schema,,,,,,,,
+,,Path,caseUID,string,,,,,,,,
+,Response,Body,Success,-,,,,,,,,
+,,,Error,"UNAUTHORIZED_REQUEST
+NOT_FOUND",,,,,,,,
+,,,,,,,,,,,,
+,Description,"공유 수신자 목록을 조회한다.
+- 수신자는 특정 기준에 따라 정렬되며, 반환되는 수의 제한을 설정할 수 있다.",,,,,,,,,,
+,URI,/shared/recipients?limt={limit}&sort={sort},,,,,,,,,,
+,Method,GET,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,"1. DB에서 인증된 사용자의 tenant_uid에 해당하는 공유 데이터의 수신자를 쿼리 파라미터에 따라 쿼리한다. 
+2. 쿼리 결과를 반환한다.",,,,,,,,,,
+,Parameters,Types,Name,Schema,,,,,,,,
+,,Query,limit,"number  반환할 최대 수신자 수 [optional, max: 20, default: 5]",,,,,,,,
+,,,sort,"string 수신자 목록 정렬 기준 [optiona;l, possible values: created:desc | updated:desc, defulat: created:desc]",,,,,,,,
+,Response,Body,-,"[
+    {
+       tenantName: string;
+       email: string;
+    }
+]",,,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스 다운로드를 위한 Presigned URL을 생성한다. ,,,,,,,,,,
+,URI,/shared-data/cases/:casUID/download/presigned-url,,,,,,,,,,
+,Method,POST,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,"1. DB의 공유 케이스 및 테넌트 메트릭의 다운로드 횟수를 증가한다.
+2. 공유 케이스에 속한 파일을 zip로 압축하여 S3에 생성한다. 
+3. S3에 생성한 zip 파일을 download하기 위한 presigned-url을 생성한다. 
+
+* zip 파일 생성 효율을 위해, 구현 시점에 생성된 zip 파일의 보관 여부를 고려한다. ",,,,,,,,,,
+,Parameters,Types,Name,Schema,,,,,,,,
+,,Path,caseUID,string,,,,,,,,
+,Response,Body,-,-,,,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스의 이미지(최대 5개) 상세 정보를 조회한다. (Viewer Open 용),,,,,,,,,,
+,URI,"/shared-data/cases/:caseUID/images/details?imageids=:imageId1,imageId2,imageId3...",,,,,,,,,,
+,Method,GET,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,"1. 인증된 사용자의 access token에서 tenant uid를 추출한다.
+2. 추출한 tenant uid, parameter의 patient id, image_id를 사용하여 OrganizationData - patient_image 테이블에서 환자 이미지 정보를 조회한다.
+3. 환자 이미지 정보의 s3 key를 이용하여 presigned url을 생성한다.",,,,,,,,,,
+,Parameters,Types,Name,Schema ,,,,,,,,
+,,Path, caseUID,string,,,,,,,,
+,,,imageids,string(array)  // A comma-separated list of image id's to delete (maximum: 5),,,,,,,,
+,Response,Body,Success,"[
+    {
+      id: number;
+      info: {
+          orgFileName: string;
+          modality: string;
+          mode?: string;
+          kvp?: number;
+          mA?: number;
+          does?: number;
+          acquisitionDatetime: string;
+      };
+      file: {
+       imageS3Key: string;
+       originMetaS3Key: string;
+       editedMetaS3Key: string;
+       commentDocumentName?: string;
+      }
+      createdAt: string;
+      updatedAt: string;
+    }
+  ]",,,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스 이미지 파일을 파일을  ZIP으로 다운로드한다. ,,,,,,,,,,
+,URI,/shared-data/cases/:caseUID/images/:imageId/download-zip,,,,,,,,,,
+,Method,GET,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions," v1.0 CT만 지원
+1. S3에서 파일을 Stream로 가져와서 zip stream로 생성하여 전달한다. ",,,,,,,,,,
+,Parameters,Types,Name,Schema ,,,,,,,,
+,,Path,caseUID,string,,,,,,,,
+,,,imageId,string,,,,,,,,
+,Response,ContentType,application/zip,,,,,,,,,
+,,,,,,,,,,,,
+,Description,공유 케이스 파일을 다운로드한다. ,,,,,,,,,,
+,URI,/shared-data/cases/:caseUID/download,,,,,,,,,,
+,Method,GET,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,1. S3에서 파일을 Stream로 가져와서 zip stream로 생성하여 전달한다. ,,,,,,,,,,
+,Parameters,Types,Name,Schema ,,,,,,,,
+,,Path,caseUID,공유 케이스 UID,,,,,,,,
+,Response,ContentType,application/zip,,,,,,,,,
+,,,,,,,,,,,,
+,Description,"공유 데이터에 저장된 파일의 조회 및 업데이트를 위한 presigend-url을 가져온다.
+- 조회: GET_presignedURL
+- 업데이트: PUT_presingedURL",,,,,,,,,,
+,URI,/shared-data/files/presigned-url,,,,,,,,,,
+,Method,POST,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,1. CloudFront Signer를 이용하여 S3 Key Signed URL을 생성한다. ,,,,,,,,,,
+,Parameters,Types,Name,Schema ,,,,,,,,
+,,Body,-,"{
+  s3Key: string;
+}",,,,,,,,
+,Response,Body,Success,"{
+   s3key: string;
+   presignedURL: string;
+}
+",,,,,,,,
+,,,,,,,,,,,,
+,Description,"Parameter의 sourceS3Key에 해당하는 파일을 targetS3Key에 overwrite한다.
+- v1.0은 Viewer의 Reset Cloud Work 기능에서 사용한다. ",,,,,,,,,,
+,URI,/shared-data/files/overwrite,,,,,,,,,,
+,Method,POST,,,,,,,,,,
+,Authentication,Auhorization header,,,,,,,,,,
+,Required Permission,,,,,,,,,,,
+,Actions,"1. sourceS3Key object -> targetS3Key object overwrite한다. 
+   CopyObjectCommand 활용",,,,,,,,,,
+,Parameters,Types,Name,Schema ,,,,,,,,
+,,Body,-,"{
+  sourceS3Key: string;
+  targetS3Key: string;
+}",,,,,,,,
+,Response,Body,Success,-,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,

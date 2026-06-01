@@ -1,0 +1,64 @@
+﻿,,,,,  ,,,,,
+/sysconfig,,,,,,,,,,
+,,,,,,,,,,
+Description,EzCloud 설정 및 구성 정보를 조회한다. ,,,,,,,,,
+URI,/.well-known/server-configuration.json,,,,,,,,,
+Method,GET,,,,,,,,,
+Authentication,Public,,,,,,,,,
+Required Permission,-,,,,,,,,,
+Actions,-,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,
+,-,-,-,,,,,,,
+Response,Body,-,"{
+  version: string;                 // The version information.
+  api-endpoint: string;          // The URL for making API Calls.
+  app-endpoint: string;          // The URL for the application endpoint. 
+}",,,,,,,
+,,,,,,,,,,
+Description,서비스를 지원하는 국가 목록을 조회한다. ,,,,,,,,,
+URI,/countries,,,,,,,,,
+Method,GET,,,,,,,,,
+Authentication,Authroziation Header,,,,,,,,,
+Required Permission,,,,,,,,,,
+Actions,1. active 상태인 국가 목록을 DB에서 조회한다. ,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,
+,-,-,,,,,,,,
+Response,Body,-,"[
+  {
+    code: string;
+    name: string;
+  }
+]",,,,,,,
+,,,,,,,,,,
+Description,약관 목록을 조회한다. ,,,,,,,,,
+URI,/terms,,,,,,,,,
+Method,GET,,,,,,,,,
+Authentication,Public,,,,,,,,,
+Required Permission,-,,,,,,,,,
+Actions,1. 약관 목록을 DB에서 조회한다. ,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,
+,-,-,,,,,,,,
+Response,Body,-,"[
+   {
+       id: number;
+       type: TermsType;
+       title: string;
+       required: boolean;
+       requiredFor: string;
+       order: number;
+    }
+]",,,,,,,
+,,,,,,,,,,
+Description,약관을 조회한다. ,,,,,,,,,
+URI,/terms/:id/:localeCode,,,,,,,,,
+Method,GET,,,,,,,,,
+Authentication,Public,,,,,,,,,
+Required Permission,-,,,,,,,,,
+Actions,1. locale code에 해당하는 약관 컨텐츠 url을 포함한 정보를 조회한다. ,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,
+,Path,id,Terms ID,,,,,,,
+,,localeCode,Terms Locale Code,,,,,,,
+Response,Body,-,"{
+  id: number;
+  url: string;   // html url 
+}",,,,,,,

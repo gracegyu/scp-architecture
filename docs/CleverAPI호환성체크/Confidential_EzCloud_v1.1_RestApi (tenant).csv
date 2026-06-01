@@ -1,0 +1,514 @@
+﻿/tenants,,,,,Notes,,,,,,,
+,,,,,,,,,,,,
+Description,"EzCloud에 테넌트 및 소유자를 온보딩한다.
+- EzCloud App에서 테넌트 소유자인 멤버가 약관에 동의하는 경우, 이 API를 호출한다. ",,,,"[필수 약관 확인]
+- 인증된 멤버가 테넌트 소유자인경우
+  * terms 테이블에서 is_reuqired===true && (required_for==='Tenant'|required_for==='Member')인 약관
+- 인증된 멤버가 테넌트 소유자가 아닌 경우: 
+   * terms 테이블에서 is_required===true && required_for==='Member'인 약관
+
+[약관 동의 여부 저장]
+- required_for가 Tenant인 약관은 tenant_consent 테이블에 저장한다.
+- required_for가 Member인 약관은 tenant_member_consent 테이블에 저장한다.",,,,,,,
+URI,/tenants,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header (OneID Token),,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"1. 테넌트의 국가가 지원하지 않는 국가인 경우, 에러 처리한다. 
+2. 필수 약관 동의 여부를 확인하고 필수 약관에 모두 동의하지 않은 경우, 에러 처리한다.
+3. 인증된 사용자의 테넌트 및 멤버 상세 정보를 OneID에서 조회한다.
+4. 조회한 테넌트 정보와 멤버 정보를 DB에 저장한다.
+5. 테넌트의 구독 정보를 DB에 저장한다. (""Freetier"")
+
+[error codes]
+* 403101(UNSUPPORTED_COUNTRY)
+* 403102(MISSING_REQUIRED_TERMS)",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  termIds: number[];
+}",,,,,,,,,
+Response,-,-,-,,,,,,,,,
+,,,,,,,,,,,,
+Description,선택 조건에 따라 테넌트를 조회한다. ,,,,,,,,,,,
+URI,/tenants?countryCode=:countryCode&field=:field&keyword=:keyword&sort=:sort&page=:page&perpage=:perpage,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,1. DB에서 테넌트 정보를 조회한다. ,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Query,countryCode,"string [Optional, Default: alll] // 국가 코드 ",,,,,,,,,
+,,field,"string [Optioanl, Values: name | phoneNumber | address | ownerEmail]",,,,,,,,,
+,,keyword,string [Optional],,,,,,,,,
+,,sort,"string [Optional, Values: createdAt:desc | createdAt:asc | name:desc | name:asc | ownerEmail:desc | ownerEmail:asc , Default: name:asc]",,,,,,,,,
+,,page,"number [Optional, Default: 1]",,,,,,,,,
+,,perpage,"number [Optional, Default: 15]",,,,,,,,,
+Response,Body,-,"{
+    result: [
+        {
+            uid: string;
+            name: string;
+            address?: {
+              text?: string;
+              lat?: number;
+              lng?: number;
+            };
+            phone?: {
+              phoneNumber: string;
+              phoneCountryCode: string;
+            };
+            ownerEmail: string;
+        }
+    ];
+    meta: {
+        itemsPerPage: number;
+        totalItems: number;
+        currentPage: number;
+        totalPages: number;
+    }
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,특정 이메일을 가진 테넌트 멤버십 정보를 조회한다. ,,,,"[EP02_F004_Recipient] [2. Recipient Field]
+
+* 이메일 형식 유효성 검사 필요
+  - 클라이언트에서 regex 적용
+* 같은 조직에 속한 멤버에게는 공유 불가능
+  - 로그인된 계정의 tenant_uid와 GET_tenants/memberships response tenant uid를 비교하여 체크 
+* 가입된 회원이 아닌 경우 에러 처리 / 탈퇴한 회원인 경우 에러 처리. 
+  -  GET_tenants/memberships 호출 시 에러코드로 확인",,,,,,,
+URI,/tenants/memberships?email=:email,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"1. DB에서 e-mail이 속한 테넌트/멤버 정보를 조회한다.
+
+[error codes]
+- 404101(NOT_FOUND) | ""No memberships found for the provided email.""",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Query,email,string [Required],,,,,,,,,
+Response,Body,-,"{
+  tenant: {
+     uid: string;
+     name: string;
+  };
+  member: {
+    uid: string;
+    isOwner: boolean;
+  }
+}",,,,,,,,,
+,,,,,,,,,,,,
+/tenants/members,,,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"EzCloud에 테넌트 멤버를 온보딩한다. 
+- EzCloud App에서 테넌트 소유자가 아닌 멤버가 약관에 동의하는 경우, 이 API를 호출한다. ",,,,,,,,,,,
+URI,/tenants/members,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header (OneID Token),,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,"1. 테넌트 멤버의 국가가 지원하지 않는 국가인 경우, 에러 처리한다.
+2. 필수 약관 동의 여부를 확인하고 필수 약관에 모두 동의하지 않은 경우, 에러 처리한다.
+3. 인증된 사용자가 속한 테넌트가 온보딩 되지 않은 경우, 에러 처리한다.
+4. 인증된 사용자의 멤버 상세 정보를 OneID에서 조회한다.
+5. 조회한 테넌트 멤버 정보를 DB에 저장한다.
+
+[error codes]
+* 403101(UNSUPPORTED_COUNTRY)
+* 403102(MISSING_REQUIRED_TERMS)
+* 403201(TENANT_NOT_FOUND)",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  termIds: number[];
+}",,,,,,,,,
+Response,-,-,-,,,,,,,,,
+,,,,,,,,,,,,
+Description,테넌트 멤버 정보를 조회한다.,,,,,,,,,,,
+URI,/tenants/members,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header (OneID Token),,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,1. 인증된 사용자의 정보를 DB에서 조회한다.,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,-,-,-,,,,,,,,,
+Response,Body,-,"{
+  uid: string;
+  email: string;
+  name: string;
+  isOwner: boolean;
+  tenant: {   // update '25/02/07 ann
+    uid: string; 
+    name: string;
+  }
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트 약관 동의 이력을 추가한다.
+- Optional 약관의 경우만 이 API를 이용하여 동의할 수 있다.
+- 필수 약관은 가입 시점에 동의한다. ",,,,"v1.0에서 Optional 약관 - 마케팅 프로모션 등의 기능을 제공하지 않는다면, 
+해당 API는 구현 범위에서 제외",,,,,,,
+URI,/tenants/consent,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,UpdateTenant,,,,,,,,,,,
+Actions,"1. 테넌트의 약관 동의 이력을 DB에 저장한다. 
+
+[error codes]
+- 400102(INVALID_REQUEST) | ""Some Required terms cannot be handled""",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  termIds: number[];
+}",,,,,,,,,
+Response,-,-,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트 약관 동의 이력을 조회한다. 
+- Optional 약관 동의 이력을 조회한다.",,,,,,,,,,,
+URI,/tenants/consent,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,ReadTenant,,,,,,,,,,,
+Actions,1. 테넌트의 약관 동의 이력을 DB에서 조회한다.,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,-,-,-,,,,,,,,,
+Response,Body,-,"{
+  termIds: number[];
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트 약관 동의 이력을 삭제한다.
+- Optional 약관의 경우만 이 API를 이용하여 동의 여부를 해지할 수 있다.
+- 필수 약관의 해지는 서비스 해지와 동일하다.",,,,,,,,,,,
+URI,/tenants/consent,,,,,,,,,,,
+Method,DELETE,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,UpdateTenant,,,,,,,,,,,
+Actions,"1. 테넌트의 약관 동의 이력을 DB에서 삭제한다. 
+
+[error codes]
+- 400102(INVALID_REQUEST) | ""Required terms cannot be handled""",,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  termIds: number[];
+}",,,,,,,,,
+Response,-,-,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트 멤버의 약관 동의 이력을 추가한다.
+- Optional 약관의 경우만 이 API를 이용하여 동의할 수 있다.
+- 필수 약관은 가입 시점에 동의한다. ",,,,"v1.0에서 Optional 약관 - 마케팅 프로모션 등의 기능을 제공하지 않는다면, 
+해당 API는 구현 범위에서 제외",,,,,,,
+URI,/tenants/members/consent,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,1. 인증된 사용자의 약관 동의 이력을 DB에 저장한다. ,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  termIds: number[];
+}",,,,,,,,,
+Response,-,-,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트 멤버의 약관 동의 이력을 조회한다. 
+- Optional 약관 동의 이력을 조회한다.",,,,,,,,,,,
+URI,/tenants/members/consent,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,1. 인증된 사용자의 약관 동의 이력을 DB에서 조회한다.,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,-,-,-,,,,,,,,,
+Response,Body,-,"{
+  termIds: number[];
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트 멤버의 약관 동의 이력을 삭제한다.
+- Optional 약관의 경우만 이 API를 이용하여 동의 여부를 해지할 수 있다.
+- 필수 약관의 해지는 서비스 해지와 동일하다.",,,,,,,,,,,
+URI,/tenants/members/consent,,,,,,,,,,,
+Method,DELETE,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,1. 인증된 사용자의 약관 동의 이력을 DB에서 삭제한다. ,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  termIds: number[];
+}",,,,,,,,,
+Response,-,-,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트의 설정을 저장한다.
+- 모든 설정을 업데이트하며, 일부 설정만 업데이트할 수 없다.",,,,,,,,,,,
+URI,/tenants/settings,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,UpdateTenant,,,,,,,,,,,
+Actions,1. 인증된 사용자가 속한 테넌트의 설정을 DB에 저장한다. (Owner가 아닌 경우 설정을 업데이트할 수 없다.),,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  version: int;
+  displayRule: {
+    teethCode: string;
+    patientName: string;
+  };
+  emailNotification: {
+    share: boolean;
+  };
+  privacyPolicy: {
+    on: boolean;
+    anonymizedData: {
+       name: boolean;
+       birthdate: boolean;
+       phone: boolean;
+       age: boolean;
+       gender: boolean;
+    }
+  };
+}",,,,,,,,,
+Response,-,-,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트의 설정을 조회한다.
+- 테넌트 셋팅이 저장되지 않은 경우, default 값을 전달한다.",,,,,,,,,,,
+URI,/tenants/settings,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,ReadTenant,,,,,,,,,,,
+Actions,1. 인증된 사용자가 속한 테넌트의 설정을 DB에서 조회한다. ,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,-,-,,,,,,,,,,
+Response,Body,-,"  {
+    version: int;
+    displayRule: {
+      teethCode: string;
+      patientName: string;
+    };
+    emailNotification: {
+      share: boolean;
+    };
+    privacyPolicy: {
+      on: boolean;
+      anonymizedData: {
+        name: boolean;
+        birthdate: boolean;
+        phone: boolean;
+        age: boolean;
+      }
+    };
+  }",,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트 멤버의 설정을 저장한다.
+- 모든 설정을 업데이트하며, 일부 설정만 업데이트할 수 없다.",,,,"[Setting]
+
+- Setting 최종 요구사항 체크 필요 (개인/조직 셋팅) -> 현재는 개인으로 되어있으나, 변경 시 API 및 DB 변경 필요하다.
+- JSON 형태로 DB에 저장된다.
+- Default 값은 Backend API Server에 저장하고, 사용한다. 
+{
+  version: ""1"";
+  displayRule: {
+    teethCode: ""Universal"";
+    patientName: ""Last Name First Name"";
+  };
+  emailNotification: {
+    share: false;
+  };
+  privacyPolicy: {
+    on: true;
+    anonymizedData: {
+       name: false;
+       birthdate: false;
+       phone: false;
+       age: false;
+       gender: false;
+    }
+  };
+  viewer: {
+    ... // viewer setting 
+  }
+}",,,,,,,
+URI,/tenants/members/settings,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,UpdateMe,,,,,,,,,,,
+Actions,1. 인증된 사용자의 설정을 DB에 저장한다.,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"{
+  localeCode: string
+}",,,,,,,,,
+Response,-,-,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트 멤버의 설정을 조회한다.
+- 멤버 셋팅이 저장되지 않은 경우, default 값을 전달한다. ",,,,,,,,,,,
+URI,/tenants/members/settings,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,ReadMe,,,,,,,,,,,
+Actions,1. 인증된 사용자의 설정을 DB에서 조회한다.,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,-,-,,,,,,,,,,
+Response,Body,-,"{
+  localeCode: string
+}",,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트 멤버의 로케일 코드 설정을 저장한다. 
+- 다른 설정과는 다르게 모든 페이지에서 변경 가능하므로, 별도 API로 분리하여 제공한다.",,,,,,,,,,,
+URI,/tenants/members/settings/locale-code,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,1. 인증된 사용자의 로케일 코드 설정을 DB에 저장한다. ,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,-,-,"{
+  localeCode: string;
+}",,,,,,,,,
+Response,-,-,-,,,,,,,,,
+,,,,,,,,,,,,
+Description,테넌트의 구독 및 관련 메트릭 정보를 조회한다. ,,,,,,,,,,,
+URI,/tenants/subscriptions/metrics,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,,,,,,,,,,,,
+Actions,1. 인증된 사용자가 속한 테넌트의 구독 및 관련 메트릭 정보를 DB에서 조회한다. ,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,-,-,,,,,,,,,,
+Response,Body,-,"{
+   plan: {
+      name: string;
+      price?: number;
+
+      orgdataSizeLimit: number;               // MB
+      monthlyShareLimit: number;
+      monthlyDownloadLimit: number;
+   };
+   metrics: {
+     orgdataUsedSize: number;                // MB
+     monthlySharedCount: number;
+     monthlyDownloadCount: number;
+   };
+}",,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트 멤버의 뷰어 설정을 저장한다.
+- 모든 설정을 업데이트하며, 일부 설정만 업데이트할 수 없다.",,,,,,,,,,,
+URI,/tenants/members/settings/viewer,,,,,,,,,,,
+Method,POST,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,UpdateMe,,,,,,,,,,,
+Actions,1. 인증된 사용자의 설정을 DB에 저장한다.,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,Body,-,"https://vks.vatech.com/pages/viewpage.action?pageId=211014626 #0211 회의록에 따라, 타입 정의 없이 object를 body로 제공하는 방식으로 변경합니다. 
+{ }
+
+{
+  view: {
+    ioSensorRatioSetting: string;
+    ioCameraRatioSetting: string;
+    captureImageRatioSetting: string;
+  };
+  ctView: {
+    ct3DViewSetting: {
+      defaultZoomRate: number;
+    };
+    vrColoringAdjustSetting: {
+      opacity: number;
+      brightness: number;
+      contrast: number;
+    };
+    mprViewSetting: {
+      defaultThickness: number;
+      defaultInterval: string;
+      defaultZoom: number;
+    };
+  };
+  tools: {
+    useToolGuide: boolean;
+    grid: {
+      spacing: number;
+      color: {
+        name: string;
+        opacity: number;
+      };
+      width: number;
+    };
+  };
+  measurement: {
+    visibleUnit: boolean;
+    angleColor: string;
+    lengthColor: string;
+    fontSize: number;
+    lineThickness: number;
+    decimalPlaces: number;
+  };
+  annotation: {
+    freeDraw: {
+      thickness: number;
+      color: string;
+    };
+    pointer: {
+      thickness: number;
+      color: string;
+    };
+  };
+};
+",,,,,,,,,
+Response,-,-,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+Description,"테넌트 멤버의 뷰어설정을 조회한다.
+- 멤버 셋팅이 저장되지 않은 경우, default 값을 전달한다. ",,,,,,,,,,,
+URI,/tenants/members/settings/viewer,,,,,,,,,,,
+Method,GET,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,
+Required Permission,ReadMe,,,,,,,,,,,
+Actions,1. 인증된 사용자의 설정을 DB에서 조회한다.,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,
+,-,-,,,,,,,,,,
+Response,Body,-,"https://vks.vatech.com/pages/viewpage.action?pageId=211014626 #0211 회의록에 따라, 타입 정의 없이 object를 body로 제공하는 방식으로 변경합니다. 
+{ } 
+
+{
+  view: {
+    ioSensorRatioSetting: string;
+    ioCameraRatioSetting: string;
+    captureImageRatioSetting: string;
+  };
+  ctView: {
+    ct3DViewSetting: {
+      defaultZoomRate: number;
+    };
+    vrColoringAdjustSetting: {
+      opacity: number;
+      brightness: number;
+      contrast: number;
+    };
+    mprViewSetting: {
+      defaultThickness: number;
+      defaultInterval: string;
+      defaultZoom: number;
+    };
+  };
+  tools: {
+    useToolGuide: boolean;
+    grid: {
+      spacing: number;
+      color: {
+        name: string;
+        opacity: number;
+      };
+      width: number;
+    };
+  };
+  measurement: {
+    visibleUnit: boolean;
+    angleColor: string;
+    lengthColor: string;
+    fontSize: number;
+    lineThickness: number;
+    decimalPlaces: number;
+  };
+  annotation: {
+    freeDraw: {
+      thickness: number;
+      color: string;
+    };
+    pointer: {
+      thickness: number;
+      color: string;
+    };
+  };
+};",,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
