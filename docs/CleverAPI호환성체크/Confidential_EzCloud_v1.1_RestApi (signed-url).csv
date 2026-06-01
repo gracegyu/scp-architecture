@@ -1,0 +1,33 @@
+﻿250220-Jin 작성,,,
+,,,
+"아래 API로부터 가져온 presigned url을 사용할 때에는 반드시 token을 포함한 Authorization header를 포함해야 합니다. 
+
+  - /shared-data/files/presigned-url (GET-썸네일 조회, PUT- 파일 업데이트 또는 업로드)
+  - /organization-data/files/presigned-url (GET-썸네일 조회, PUT-파일 업데이트 또는 업로드)
+  - /organization-data/upload/presigned-url (PUT-zip 파일 업로드)
+
+<참고> 이런 검증이 포함되어있는 data bucket은 아래와 같습니다. 검증 로직은 bucket과 연결된 CloudFront 위에 Lambda@Edge로 적용되어 있습니다. 
+* 조직데이터(ezcloud-organization-data-${env})
+* 공유데이터(ezcloud-shared-data-${env})
+* 임시데이터 (ezcloud-temporary-data-${env})
+
+header로 보내준 토큰이 {{ezcloud_endpoint}}/api/v1/auth/token/verify 결과 201이 나오면 검증 성공으로 판단합니다. 
+
+",,,
+,,,
+,,,
+Description,signed-url 을 통해 이미지 또는 파일을 조회합니다.,,
+URI,<모든 signed-url>,,
+Method,GET,,
+Actions,,,
+headers,Types,Name,Schema 
+, - ,Authorization,"Bearer <TOKEN> (ezserver token, user token 둘 다 사용 가능합니다. )"
+Response, - ,,
+,,,
+Description,signed-url 을 통해 이미지 또는 파일을 업로드합니다.,,
+URI,<모든 signed-url>,,
+Method,PUT,,
+Actions,,,
+headers,Types,Name,Schema 
+, - ,Authorization,"Bearer <TOKEN> (ezserver token, user token 둘 다 사용 가능합니다. )"
+Response, - ,,

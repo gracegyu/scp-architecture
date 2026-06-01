@@ -1,0 +1,701 @@
+﻿/admins,,,,,Notes,,,,,,
+,,,,,,,,,,,
+Description,관리자를 생성한다.,,,,"[관리자 관리]
+
+1. 관리자 생성
+
+  - 요구 사항 
+    * 최상위 관리자인 ""Admin""은 ES 개발자가 script를 활용하여 수동 생성한다.
+    * 이외 관리자는 상위 관리자의 초대 메일을 통해 가입하면 생성한다. 
+
+   - 데이터 처리
+     * 관리자 정보를 생성한다. (OneID, Keycloak) 
+     * 초대를 통해 가입하는 관리자인 경우, 초대 처리가 완료되었으므로 초대 이력을 삭제한다. (OneID)
+
+2. 관리자 삭제
+
+  - 요구 사항 
+    * 관리자가 탈퇴를 요청하는 경우 관리자를 삭제한다. 
+
+  - 관리자 데이터 
+    * Keyclaok 계정
+    * 관리자 정보 (admins, accounts, account_terms)
+    * 관리자 영업 지역 (admin_salesarea)
+    * 관리자 역할 (admin_role_mapping)
+
+  - 데이터처리 
+   * 사용자 계정을 삭제한다. (Keycloak)
+   * 사용자 계정을 soft delete 한다. (OneID DB)
+    * 관리자의 영업지역 및 역할 정보를 삭제한다. (OneID DB)",,,,,,
+URI,/admins,,,,,,,,,,
+Method,POST,,,,,,,,,,
+Authentication,Public,,,,,,,,,,
+Permissions,Public,,,,,,,,,,
+Actions,"[OneID DB]
+1. accounts, admins 테이블에 관리자를 추가한다.
+  - admins > uid는 Snowflake ID로 생성한다.
+2. 초대를 통해 가입하는 계정 (Parameter > invitationId 포함)인 경우 account_invitations 테이블에서 초대 이력을 삭제한다. 
+
+[Keycloak]
+2. Admin API(POST_admin/realms/{realm}/users)를 이용하여 관리자 계정을 생성한다.
+   - Keycloak 계정 생성에 실패하면 OneID DB Transaction은 rollback하고, 에러 처리한다. 
+3. (Optional)
+   Admin API(PUT_admin/realms/users/{id}/send-verify-email)를 이용하여 관리자 계정의 이메일 인증 메일을 전송한다. 
+   - 인증 메일 전송 실패 시 에러 처리하지 않는다. ",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Body,-,"{ 
+  email: string;
+  password: string;
+  name?: string;
+  phone?: {
+     phoneNumber: string,
+     phoneCountryCode: string
+  };
+  agreements: string[]; number[];    // Updated/ 250121 / EZCLD-440 / Max
+  sendVerificationMail?: {
+    clientId: string;
+    redirectUri: string;
+  };
+ salesAreaId?: string; number;
+ roleId?: string; number;
+ invitationId?: string; number;
+}",,,,,,,,
+Response,Body,-,"{
+  uid: string;
+}",,,,,,,,
+,,,,,,,,,,,
+Description,"관리자 리스트를 검색한다. 
+- 키워드/필터를 지정하여 선택적으로 목록을 검색할 수 있다. 
+ * 필터: salesarea, role
+ * 검색 키워드: email, name
+- 삭제(탈퇴)된 관리자는 검색 결과에서 제외한다.",,,,"[검색 필드]
+Keyword 검색을 진행하려면 field는 반드시 선택되어야 한다.
+* REQUIRED_FILED_NOT_EXIST (The field value must be required to proceed with the keyword search.)
+* 400 Bad Reqeust (HttpExceptionEnum 01002)
+
+검색 필드의 허용 값은 다음과 같다. [ 쿼리값(App내 표기 이름) : column(table) ]
+* email(E-mail): email(account)
+* name(Name): name(account)",,,,,,
+URI,/admins?salesarea=:salesarea&role=:role&field=:field&keyword=:keyword&sort=:sort&page=:page&perpage=:perpage,,,,,,,,,,
+Method,GET,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,
+Required Permission,ReadAdminInSalesarea,,,,,,,,,,
+Actions,"[OneID DB]
+
+1. admins, accounts 테이블에서 관리자를 검색한다.",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Query,salesarea,string [Optional],,,,,,,,
+,,role,string [Optional],,,,,,,,
+,,field,"string [Optional | 검색 대상: email, name]",,,,,,,,
+,,keyword,string [Optional | 검색 대상: field],,,,,,,,
+,,sort,string [Optinal | Values - salesarea | Default - email:asc],,,,,,,,
+,,page,number [Optional | Default - 1),,,,,,,,
+,,perpage,number [Optional | Default - 15],,,,,,,,
+Response,Body,-,"{
+  result: [
+    {
+      uid: string;        
+      email: string;
+      name?: string;
+      role: string;
+      salesArea: [
+        name: string;
+      ]; string[];       // Updated/ 250121 / EZCLD-440 / Max
+     createdAt: string;    // Added / 0909 / Levi 요청 /  Ann
+    }
+  ],
+  meta: {
+    itemsPerPage: number;
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }
+}",,,,,,,,
+,,,,,,,,,,,
+Description,관리자 정보를 검색한다. ,,,,,,,,,,
+URI,/admins/:uid,,,,,,,,,,
+Method,GET,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,
+Required Permission,ReadAdmin | ReadAdminInSalesarea,,,,,,,,,,
+Actions,"[OneID DB]
+
+1. admins, accounts, admin_salesarea, admin_role_mapping 테이블에서 관리자 정보를 검색한다.",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Path,id,string,,,,,,,,
+Response,Body,-,"{
+  uid: string;
+  email: string;
+  name: string;
+  phone?: {
+        phoneNumber: string,
+        phoneCountryCode: string
+   };
+  createdAt: string;
+  updatedAt: string;
+  salesArea: [
+    { 
+      id: number;                       // Added / 0905 / SCPS-109 /  Ann
+      name: string;                     // Added / 0909 /SCPS-109 / Larry, Salesarea, countries의 값 전달로 변경
+      countries: [
+        {
+          id: number;
+          code: string;
+          name: string;
+        }
+      ]
+    }
+  ];
+  roleName: string;
+}",,,,,,,,
+,,,,,,,,,,,
+Description,관리자 간략 정보를 조회한다.,,,,,,,,,,
+URI,/admins/:uid/brief,,,,,,,,,,
+Method,GET,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,ReadAdminInSalesarea,,,,요청된 어드민의 uid의 salesarea가 포함된 invitation들만 조회할 수 있다.,,,,,,
+Actions,"[OneID DB]
+1. admins, account_invitations테이블에서 정보를 조회한다.",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Path,uid,string,,,,,,,,
+Response,Body,-,"{
+  adminTotalCount: number;
+  accessAdminCount: number;
+  invitationCount: number;
+}",,,,,,,,
+,,,,,,,,,,,
+Description,관리자 정보를 업데이트한다. ,,,,,,,,,,
+URI,/admins/:uid,,,,,,,,,,
+Method,PUT,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,
+Required Permission,UpdateAdmin,,,,,,,,,,
+Actions,"[OneID DB]
+1. accounts 테이블에서 사용자 정보를 업데이트한다. ",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Path,id,string,,,,,,,,
+,Body,-,"{
+  name?: string;
+  phone?: {
+     phoneNumber: string,
+     phoneCountryCode: string
+  };
+}",,,,,,,,
+Response,-,-,,,,,,,,,
+,,,,,,,,,,,
+Description,관리자를 삭제한다. ,,,,,,,,,,
+URI,/admins/:uid,,,,,,,,,,
+Method,DELETE,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,
+Required Permission,DeleteAdmin | DeleteAdminInSalesarea,,,,,,,,,,
+Actions,"[OneID DB]
+1. accounts 테이블에서 계정의 상태를 'removed'로 변경하고, e-mail을 제외한 정보를 삭제한다. 
+2. account_terms 테이블에서 사용자의 데이터를 삭제한다. 
+3. admins 테이블에서 관리자를 삭제한다. 
+  - admin_salesarea:  on delete cascade
+  - admin_role_mapping: on delete cascade
+
+[Keycloak]
+3. Keycloak Admin API(DELETE /admin/realms/{realm}/users/{id})를 이용하여 계정을 삭제한다. 
+4. Keycloak 계정 삭제에 실패한 경우, OneID DB Transaction은 rollback하고 에러 처리한다.",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Path,uid,string,,,,,,,,
+Response,-,-,,,,,,,,,
+,,,,,,,,,,,
+Description,관리자 영업지역을 업데이트한다. ,,,,,,,,,,
+URI,/admins/:uid/salesarea,,,,,,,,,,
+Method,POST,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,
+Required Permission,UpdateAdminInSalesarea,,,,,,,,,,
+Actions,"[OneID DB]
+1. admin_salesarea 테이블에서 데이터를 업데이트한다. (추가/삭제)",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Path,uid,string,,,,,,,,
+,Body,-,[ salesAreaId: number ],,08/29/목 (Larry): string -> number 변경,,,,,,
+Response,-,-,,,,,,,,,
+,,,,,,,,,,,
+Description,관리자의 권한 리스트를 검색한다. ,,,,,,,,,,
+URI,/admins/:uid/abilities,,,,,,,,,,
+Method,GET,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,
+Required Permission,ReadAdmin,,,,,,,,,,
+Actions,"[OneID DB]
+1. 관리자 모든 권한을 검색한다. (admin_role_mapping, admin_role, admin_role_permissions, permissions table)
+
+이후 step은 /users/:id/abilities와 동일하다.",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Path,uid,string,,,,,,,,
+Response,Body,,object (packRules 호출 결과물),,,,,,,,
+,,,,,,,,,,,
+/admins/invitations,,,,,,,,,,,
+,,,,,,,,,,,
+Description,관리자를 초대한다. ,,,,"[관리자 초대 관리]
+
+1. 초대 생성
+
+  - 요구 사항
+   * 관리자가 다른 관리자를 초대하면 초대 이력을 생성한다.
+   * 초대 대상에게 초대 이메일을 전송한다. 
+
+  - 데이터 처리
+    * 초대 정보를 저장한다. (OneID DB)
+
+2. 초대 삭제
+
+ - 요구 사항
+   * 관리자가 초대를 취소하면 초대 이력을 삭제한다. 
+   * 초대를 통해 관리자가 가입하면 초대 이력을 삭제한다. 
+
+ - 데이터 처리 
+   * 초대 정보를 삭제한다. (OneID DB)
+
+3. 초대 재전송 
+  
+ - 요구 사항
+    * 관리자가 초대 재전송을 요청하면 기존 초대 이력을 삭제하고 새로운 초대 이력을 생성한다.
+
+ - 데이터 처리
+   * 기존 초대 정보을 삭제하고 신규 초대 이력을 생성한다. (OneID DB)
+   * 클라이언트는 삭제 api 호출 후 생성 api를 호출한다. (서버는 재전송을 위한 api를 별도로 제공하지 않는다.) 
+
+4. 초대 만료
+
+ - 요구 사항
+   * 초대 시점에서 14일 이후(parameter 지정 가능) 초대는 만료된다.
+
+ - 데이터 처리
+   * 만료된 초대 이력은 작업 스케줄링을 통해 주기적으로 삭제한다. (pg_cron: daily 자정)
+
+[초대 링크]
+
+- 초대 이메일을 통해 초대 Link에 접속한다. (:domain/invitations/:invitation_id)
+- 가입 페이지는 invitation_id를 이용하여 초대 정보를 조회하고, 가입 화면을 표시한다. 
+- 초대 정보 조회 시 에러를 전달 받으면, 사용자에게 안내한다. (화면 필요)
+
+[검색 필드]
+Keyword 검색을 진행하려면 field는 반드시 선택되어야 한다.
+* REQUIRED_FILED_NOT_EXIST (The field value must be required to proceed with the keyword search.)
+* 400 Bad Reqeust (HttpExceptionEnum 01002)
+
+검색 필드의 허용 값은 다음과 같다. [ 쿼리값(App내 표기 이름) : column(table) ]
+* invitee-email(E-mail): invitee_email(account_invitation)
+* comment(Comment): comment(account_invitation)",,,,,,
+URI,/admins/invitations,,,,,,,,,,
+Method,POST,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,CreateAdminInvitation,,,,,,,,,,
+Actions,"[OneID DB]
+1. accounts 테이블에서 이미 등록된 계정인지 확인한다.
+2. account_invitations 테이블에서 이미 초대된 계정인지 확인한다.
+3. account_invitations 테이블에 초대 이력을 추가한다.
+  - type: AdminInvitation
+  - inviter_email: Authorization Header의 사용자 e-mail을 저장한다.
+  - expired_at: current date time + parameter expiredIn로 저장한다.
+
+[E-mail Service]
+3. 초대 대상에게 메일을 전송한다.
+  - 메일 전송 실패 시 OneID DB Transaction을 Rollback하고 에러 처리한다.
+
+[Errors]
+- ALREADY_REGISTERED_EMAIL: 이미 등록된 사용자 초대 
+- DUPLICATED_EMAIL: 이미 초대 진행 중인 사용자 ",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Body,-,"{
+  inviteeEmail: string;
+  comment: string;
+  expiredIn?: number; (default: 14)
+}",,,,,,,,
+Response,-,-,-,,,,,,,,
+,,,,,,,,,,,
+Description,"관리자 초대 리스트를 검색한다. 
+- 만료일이 지난 초대는 검색 결과에서 제외한다.
+- 키워드를 지정하여 선택적으로 목록을 검색할 수 있다.",,,,,,,,,,
+URI,/admins/invitations?field=:field&keyword=:keyword&sort=:sort&page=:page&perpage=:perpage,,,,,,,,,,
+Method,GET,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,ReadAdminInvitaion,,,,,,,,,,
+Actions,"[OneID DB]
+1. account_invitations 테이블에서 관리자 초대 이력 중 검색 조건에 해당하는 데이터를 검색한다. ",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Query,field,"string [Optional | 검색 대상: invitee-email, comment]",,,,,,,,
+,,keyword,string [Optional | 검색 대상: field],,,,,,,,
+,,sort,string [Optinal | Values - expiredAt | Default - expiredAt:desc],,,,,,,,
+,,page,number [Optional | Default - 1),,,,,,,,
+,,perpage,number [Optional | Default - 15],,,,,,,,
+Response,Body,-,"{
+  result: [
+    {
+      id: string; number; // Updated/ 250121 / EZCLD-440 / Max
+      inviteeEmail: string;
+      comment: string;
+      expiredAt: string;
+    }
+  ],
+  meta: {
+    itemsPerPage: number;
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }
+}",,,,,,,,
+,,,,,,,,,,,
+Description,관리자 초대 정보를 검색한다. ,,,,,,,,,,
+URI,/admins/invitations/:id,,,,,,,,,,
+Method,GET,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,Public    // Updated / 0905 / SCPS-105 /  Ann,,,,,,,,,,
+Actions,"[OneID DB]
+1. account_invitations 테이블에서 초대 이력 정보를 검색한다. 
+
+[Errors]
+ - INVAILD_INVITAION: 지정된 ID에 해당하는 초대 이력이 이미 삭제되어 유효하지 않은 경우
+ - EXPIRED_INVITATION: 지정된 ID에 해당하는 초대 이력의 만료일이 지난 경우 ",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Path,id,string,,,,,,,,
+Response,Body,-,"{
+  id: string; number; // Updated/ 250121 / EZCLD-440 / Max
+
+  inviteeEmail: string;
+  inviterEmail: string;
+  comment: string;
+  
+  createdAt: string;
+  updatedAt: string;
+  expiredAt: string;
+}",,,,,,,,
+,,,,,,,,,,,
+Description,"관리자 초대를 재전송 한다.   // Added / 0905 / SCPS-105 /  Ann
+- 기존 초대를 삭제하고, 신규 초대를 생성한다. ",,,,,,,,,,
+URI,/admins/invitations/:id,,,,,,,,,,
+Method,PUT,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,CreateAdminInvitation,,,,,,,,,,
+Actions,"[OneID DB]
+1. account_invitations 테이블에서 초대 이력을 신규로 생성하고, 기존 정보를 삭제한다. 트랜잭션 실패 시 롤백한다. ",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Path,id,string,,,,,,,,
+Response,Body,-,"{
+  newInvitationId: number;
+}",,,,,,,,
+,,,,,,,,,,,
+Description,관리자 초대를 삭제한다. ,,,,,,,,,,
+URI,/admins/invitations/:id,,,,,,,,,,
+Method,DELETE,,,,,,,,,,
+Authentication,Authorization header,,,,,,,,,,
+Required Permission,DeleteAdminInvitation,,,,,,,,,,
+Actions,"[OneID DB]
+1. account_invitations 테이블에서 초대 이력을 삭제한다.",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Path,id,string,,,,,,,,
+Response,-,-,-,,,,,,,,
+,,,,,,,,,,,
+/admins/tenant/invitations,,,,,,,,,,,
+,,,,,,,,,,,
+Description,테넌트를 초대한다. ,,,,"[테넌트 초대 관리]
+
+1. 초대 생성
+
+  - 요구 사항
+   * 관리자가 테넌트를 초대하면 초대 이력을 생성한다.
+   * 초대 대상에게 초대 이메일을 전송한다. 
+   * 이미 가입한 이력이 있는 계정(가입된 사용자, 탈퇴한 사용자)은 초대할 수 없다. 
+   * 초대 진행 중인 계정은 초대할 수 없다. 
+
+  - 데이터 처리
+    *  초대 정보를 저장한다. (OneID DB)
+
+2. 초대 삭제
+
+ - 요구 사항
+   * 관리자가 초대를 취소하면 초대 이력을 삭제한다. 
+   * 초대를 통해 테넌트가 가입하면 초대 이력을 삭제한다. 
+
+ - 데이터 처리 
+   * 초대 정보를 삭제한다. (OneID DB)
+
+3. 초대 재전송 
+  
+ - 요구 사항
+    * 관리자가 초대 재전송을 요청하면 기존 초대 이력을 삭제하고 새로운 초대 이력을 생성한다.
+
+ - 데이터 처리
+   * 기존 초대 정보을 삭제하고 신규 초대 이력을 생성한다. (OneID DB)
+   * 클라이언트는 삭제 api 호출 후 생성 api를 호출한다. (서버는 재전송을 위한 api를 별도로 제공하지 않는다.) 
+
+4. 초대 만료
+
+ - 요구 사항
+   * 초대 시점에서 14일 이후(parameter 지정 가능) 초대는 만료된다.
+
+ - 데이터 처리
+   * 만료된 초대 이력은 작업 스케줄링을 통해 주기적으로 삭제한다. (pg_cron: daily 자정)
+
+[초대 링크]
+
+- 초대 이메일을 통해 초대 Link에 접속한다. (:domain/invitations/:invitation_id)
+- 가입 페이지는 invitation_id를 이용하여 초대 정보를 조회하고, 가입 화면을 표시한다. 
+- 초대 정보 조회 시 에러를 전달 받으면, 사용자에게 안내한다. (화면 필요)
+
+[검색 필드]
+Keyword 검색을 진행하려면 field는 반드시 선택되어야 한다.
+* REQUIRED_FILED_NOT_EXIST (The field value must be required to proceed with the keyword search.)
+* 400 Bad Reqeust (HttpExceptionEnum 01002)
+
+검색 필드의 허용 값은 다음과 같다. [ 쿼리값(App내 표기 이름) : column(table) ]
+* invitee-email(E-mail): invitee_email(account_invitation)
+* comment(Comment): comment(account_invitation)",,,,,,
+URI,/admins/tenants/invitations,,,,,,,,,,
+Method,POST,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,CreateTenantInvitation,,,,,,,,,,
+Actions,"[OneID DB]
+1. accounts 테이블에서 이미 등록된 계정인지 확인한다.
+2. account_invitations 테이블에서 이미 초대된 계정인지 확인한다. 
+3. account_inivtations 테이블에 초대 이력을 추가한다. 
+  - type: TenantInvitation
+  - inviter_email: Authorization Header의 사용자 e-mail을 저장한다.
+  - expired_at: current date time + parameter expiredIn로 저장한다.
+
+[E-mail Service]
+4. 초대대상에게 메일을 전송한다.
+  - 메일 전송 실패 시 OneID DB Transaction을 Rollback하고 에러 처리한다.
+
+[Errors]
+- ALREADY_REGISTERED_EMAIL: 이미 등록된 사용자 초대 (tenant_users, admins에 이미 추가된 사용자 초대 불가) 
+- DUPLICATED_EMAIL: 이미 초대 진행 중인 사용자 ",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Body,-,"{
+  inviteeEmail: string;
+  comment: string;
+  expiredIn?: number; (default: 14)
+}",,,,,,,,
+Response,-,-,-,,,,,,,,
+,,,,,,,,,,,
+Description,"테넌트 초대 리스트를 검색한다. 
+- 만료일이 지난 초대는 검색 결과에서 제외한다.
+- 키워드를 지정하여 선택적으로 목록을 검색할 수 있다.",,,,,,,,,,
+URI,/admins/tenants/invitations?field=:field&keyword=:keyword&sort=:sort&page=:page&perpage=:perpage,,,,,,,,,,
+Method,GET,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,ReadTenantInvitation,,,,,,,,,,
+Actions,"[OneID DB]
+1. account_invitations 테이블에서 테넌트 초대 이력 중 검색 조건에 해당하는 데이터를 검색한다.",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Query,field,"string [Optional | 검색 대상: invitee-email, comment]",,,,,,,,
+,,keyword,string [Optional | 검색 대상: field],,,,,,,,
+,,sort,string [Optinal | Values - expiredAt | Default - expiredAt:desc],,,,,,,,
+,,page,number [Optional | Default - 1),,,,,,,,
+,,perpage,number [Optional | Default - 15],,,,,,,,
+Response,Body,-,"{
+  result: [
+    {
+      id: string; number; // Updated/ 250121 / EZCLD-440 / Max
+      inviteeEmail: string;
+      comment: string;
+      expiredAt: string;
+    }
+  ],
+  meta: {
+    itemsPerPage: number;
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }
+}",,,,,,,,
+,,,,,,,,,,,
+Description,테넌트 초대 정보를 검색한다. ,,,,,,,,,,
+URI,/admins/tenants/invitations/:id,,,,,,,,,,
+Method,GET,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,Public    // Updated / 0905 / SCPS-105 /  Ann,,,,,,,,,,
+Actions,GET_admins/invitations/:id Actions와 동일,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Path,id,string,,,,,,,,
+Response,Body,-,"{
+  id: string; number;  // Updated/ 250121 / EZCLD-440 / Max
+
+  inviteeEmail: string;
+  inviterEmail: string;
+  comment: string;
+  
+  createdAt: string;
+  updatedAt: string;
+  expiredAt: string;
+}",,,,,,,,
+,,,,,,,,,,,
+Description,"테넌트 초대를 재전송 한다.   // Added / 0905 / SCPS-105 /  Ann
+- 기존 초대를 삭제하고, 신규 초대를 생성한다. ",,,,,,,,,,
+URI,/admins/tenants/invitations/:id,,,,,,,,,,
+Method,PUT,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,CreateTenantInvitation,,,,,,,,,,
+Actions,"[OneID DB]
+1. account_invitations 테이블에 초대 이력을 신규로 생성하고, 기존 정보를 삭제한다. 트랜잭션 실패 시 롤백한다. ",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Path,id,string,,,,,,,,
+Response,Body,-,"{
+  newInvitationId: number;
+}",,,,,,,,
+,,,,,,,,,,,
+Description,테넌트 초대를 삭제한다. ,,,,,,,,,,
+URI,/admins/tenants/invitations/:id,,,,,,,,,,
+Method,DELETE,,,,,,,,,,
+Authentication,Authorization header,,,,,,,,,,
+Required Permission,DeleteTenantInvitation,,,,,,,,,,
+Actions,GET_admins/invitations/:id Actions와 동일,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Path,id,string,,,,,,,,
+Response,-,-,-,,,,,,,,
+,,,,,,,,,,,
+/admins/tenants,,,,,,,,,,,
+,,,,,,,,,,,
+Description,"테넌트 리스트를 검색한다. 
+- 키워드를 지정하여 선택적으로 목록을 검색할 수 있다.",,,,"09/05/목 Larry: country -> countryCode 수정
+
+[검색 필드]
+Keyword 검색을 진행하려면 field는 반드시 선택되어야 한다.
+* REQUIRED_FILED_NOT_EXIST (The field value must be required to proceed with the keyword search.)
+* 400 Bad Reqeust (HttpExceptionEnum 01002)
+
+검색 필드의 허용 값은 다음과 같다. [ 쿼리값(App내 표기 이름) : column(table) ]
+* email(Owner E-mail): email(account)
+* address(Address): address(tenant)
+* phone-number(Phone Number): phone_number(tenant)
+* tenant-name(Organization Name): name(tenant)
+* tenant-uid(Organization Uid): uid(tenant)",,,,,,
+URI,/admins/tenants?countryCode=:countryCode&field=:field&keyword=:keyword&sort=:sort&page=:page&perpage=:perpage,,,,,,,,,,
+Method,GET,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,ReadTenantInSalesarea,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenants, tenant_memberships, tenant_users, accounts 테이블에서 검색 조건에 해당하는 데이터를 검색한다. ",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,Query,countryCode,string [Optional],,,,,,,,
+,,field,"string [Optional | 검색 대상: tenant-name, tenant-uid, email, address, phone-number]",,,,,,,,
+,,keyword,string [Optional | 검색 대상: field],,,,,,,,
+,,sort,string [Optinal | Values - name | Default - name:asc],,,,,,,,
+,,page,number [Optional | Default - 1),,,,,,,,
+,,perpage,number [Optional | Default - 15],,,,,,,,
+Response,Body,-,"{
+  result: [
+    {
+      uid: string;
+      name: string;
+      country: {
+         code: string;
+         name: string;
+      };
+     address: {
+       text: string;
+       lat?: number;
+       lng?: number;
+     };
+     phone?: {
+       phoneNumber: string,
+       phoneCountryCode: string
+     };
+     orgCode?: string;
+
+     createdAt: string;
+     updatedAt: string;
+
+     owner: {
+        email: string;
+        name: string;
+     };
+    }
+  ],
+  meta: {
+    itemsPerPage: number;
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }
+}",,,,,,,,
+,,,,,,,,,,,
+Description,관리 대상 테넌트의 간략 정보를 조회한다.  // Added / 0911 / SCPS-122 /  Levi,,,,,,,,,,
+URI,/admins/tenants/brief,,,,,,,,,,
+Method,GET,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,ReadTenantInSalesarea,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant 테이블에서 정보를 조회한다.",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,-,-,-,,,,,,,,
+Response,Body,-,"{
+  tenantTotalCount: number;
+}",,,,,,,,
+,,,,,,,,,,,
+/admins/users,,,,,,,,,,,
+,,,,,,,,,,,
+Description,"사용자 리스트를 검색한다. 
+- 키워드를 지정하여 선택적으로 목록을 검색할 수 있다.
+- 삭제된 사용자는 검색 대상에서 제외한다.",,,,,,,,,,
+URI,/admins/users?countryCode=:countryCode&field=:field&keyword=:keyword&sort=:sort&page=:page&perpage=:perpage,,,,,,,,,,
+Method,GET,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,ReadUserInSalesarea,,,,,,,,,,
+Actions,"[OneID DB]
+1. users, accounts, tenants 테이블에서 검색 조건에 해당하는 데이터를 검색한다. ",,,,,,,,,,
+Parameters,Types,Name,Schema,,"09/05/목 Larry: country -> countryCode 수정
+
+[검색 필드]
+Keyword 검색을 진행하려면 field는 반드시 선택되어야 한다.
+* REQUIRED_FILED_NOT_EXIST (The field value must be required to proceed with the keyword search.)
+* 400 Bad Reqeust (HttpExceptionEnum 01002)
+
+검색 필드의 허용 값은 다음과 같다. [ 쿼리값(App내 표기 이름) : column(table) ]
+* email(E-mail): email(account)
+* name(Name): name(account)
+* tenant-name(Organization Name): name(tenant)
+* tenant-uid(Organization Uid): uid(tenant)
+",,,,,,
+,Query,countryCode,string [Optional],,,,,,,,
+,,field,"string [Optional | 검색 대상: email, name, tenant-name, tenant-uid]",,,,,,,,
+,,keyword,string [Optional | 검색 대상: field],,,,,,,,
+,,sort,string [Optinal | Values - email | Default - email:asc],,,,,,,,
+,,page,number [Optional | Default - 1),,,,,,,,
+,,perpage,number [Optional | Default - 15],,,,,,,,
+Response,Body,-,"{
+  result: [
+   {
+     uid: string;
+     email: string;
+     name?: string;
+     phone?: {
+        phoneNumber: string,
+        phoneCountryCode: string
+     };
+     createdAt: string;
+     updatedAt: sttring;
+     tenants: [
+      {
+          uid: string;      // Added / 0909 / SCPS-120 /  Ann
+          name: string;
+       }
+     ],
+    country: {
+      code: string;
+     name: string;
+    };
+   }
+  ],
+  meta: {
+    itemsPerPage: number;
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }
+}",,,,,,,,
+,,,,,,,,,,,
+Description,관리 대상 사용자의 간략 정보를 조회한다.  // Added / 0911 / SCPS-119 /  Levi,,,,,,,,,,
+URI,/admins/users/brief,,,,,,,,,,
+Method,GET,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,
+Required Permission,ReadUserInSalesarea,,,,,,,,,,
+Actions,"[OneID DB]
+1. admins 테이블에서 정보를 조회한다.",,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,
+,-,-,-,,,,,,,,
+Response,Body,-,"{
+  userTotalCount: number;
+  userInvitationCount: number;
+}",,,,,,,,

@@ -1,0 +1,1028 @@
+﻿/tenants,,,,,Notes,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트를 추가한다.,,,,"[테넌트 관리]
+
+1. 테넌트 생성
+
+ - 요구사항 
+   * OneID 가입 페이지를 통해 가입하는 경우, 테넌트와 Role이 'Owner'인 사용자를 생성한다.
+
+ - 데이터 처리
+   * 테넌트 정보를 저장한다. (OneID DB)
+   * 테넌트 소유자 계정 정보를 저장한다. (OneID DB, Keycloak)
+   * 초대를 통해 가입하는 계정의 경우, 초대 처리가 완료되었으므로 이력을 삭제한다. (OneID DB)
+   * 테넌트 소유자의 멤버십 정보를 저장한다. (OneID DB)
+
+2. 테넌트 삭제
+
+ - 요구사항
+   * OneID Console 페이지에서 조직 삭제를 요청하는 경우, 테넌트 데이터를 삭제한다. 
+
+ - 테넌트 데이터
+   * 테넌트 정보(tenants)
+   * 구독 정보(tenant_subscriptions: on delete restrict)
+   * 멤버십 (tenanat_memberships: on delete restrict)
+   * 초대 이력(tenant_user_invitations: on delete restrict)
+   * 이관 이력(tenant_trasfers: on delete cascade)
+ 
+  - 데이터 처리
+   * 테넌트 정보를 삭제한다. (OneID DB) 
+      * 구독 중인 서비스가 있는 경우 테넌트를 삭제할 수 없다.
+         -> GET_tenants/:uid/subscription api를 이용하여 구독 중인 서비스를 조회하고, 
+             구독 서비스 정보 내에 cancel url(을 이용하여 서비스 구독을 해지한 이후에 테넌트 삭제를 요청해야한다. 
+       * 테넌트에 소유자를 제외한 사용자가 있는 경우 삭제할 수 없다.   
+          -> /tenants/:uid/users?role=:role api를 이용하여 테넌트 멤버를 삭제(탈퇴)처리한 이후에 테넌트 삭제를 요청해야한다.
+              멤버 삭제 오류시 안내 페이지 필요
+        * 서비스 구독 해지 및 OneID 탈퇴 처리 페이지 필요
+   * 초대 이력 및 이관 이력을 삭제한다. (OneID DB)
+   ",,,,,,,,
+URI,/tenants,,,,,,,,,,,,
+Method,POST,,,,,,,,,,,,
+Authentication,Public,,,,,,,,,,,,
+Required Permission,Public,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenants 테이블에 테넌트를 추가한다.
+  - uid는 snowflake id를 생성하여 저장한다. 
+2. tenant owner를 추가한다. 
+   - accounts, users 테이블에 계정을 추가한다. 
+   - 초대를 통해 가입하는 계정(Parameter > invitationId 포함)인 경우 account_invitations 테이블에서 초대 이력을 삭제한다. 
+     (tenant_user_invitations 정보는 account_invitations on delete cascade)
+   - tenant_memberships 테이블에 테넌트 사용자를 추가한다. (role: 'Owner')
+
+[Keycloak]
+4. Admin API(POST_admin/realms/{realm}/users)를 이용하여 소유자 계정을 생성한다.
+   - Keycloak 계정 생성에 실패하면 OneID DB Transaction은 rollback하고, 에러 처리한다. 
+5. Admin API(PUT_admin/realms/users/{id}/send-verify-email)를 이용하여 소유자 계정의 이메일 인증 메일을 전송한다. 
+   - 인증 메일 전송 실패 시 에러 처리하지 않는다. ",,,,,,,,,,,,
+Parameters,Types,Name, ,,,,,,,,,,
+,Body,-,"{
+  countryCode: string;
+  tenant: {
+     name: string;
+     address: {
+        text: string;
+        lat?: number;
+        lng?: number;
+     },
+     phone?: {
+      phoneNumber: string,
+      phoneCountryCode: string
+     };
+     orgCode? string;
+  },
+  owner: { 
+    email: string;
+    password: string;
+    name?: string;
+    phone?: {
+      phoneNumber: string,
+      phoneCountryCode: string
+     };
+    agreements: number[]; 
+    marketingConsent: boolean;
+    sendVerificationMail?: {
+      clientId: string;
+      redirectUri: string;
+    }
+  },
+  invitationId?: string;
+}",,,,,,,,,,
+Response,Body,-,"{
+  uid: string;
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트 정보를 검색한다.,,,,,,,,,,,,
+URI,/tenants/:uid,,,,,,,,,,,,
+Method,GET,,,,,,,,,,,,
+Authentication,Auhorization header ,,,,,,,,,,,,
+Required Permission,ReadTenant,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenants 테이블에서 테넌트 정보를 검색한다.",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+Response,Body,-,"{
+  uid: string;
+  name: string;
+  country: {
+    code: string;
+    name: string;
+  };
+  address: {
+    text: string;
+    lat?: number;
+    lng?: number;
+  };
+  phone?: {
+    phoneNumber: string,
+    phoneCountryCode: string
+  };
+  orgCode?: string;
+
+  createdAt: string;
+  updatedAt: string;
+
+  owner: {
+    uid: string; // 241210 Levi
+    email: string;
+    name: string;
+  };
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트 간략 정보를 조회한다.,,,,,,,,,,,,
+URI,/tensnts/:uid/brief,,,,,,,,,,,,
+Method,GET,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,ReadTenant,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenants,  tenant_user_invitations테이블에서 정보를 조회한다.",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+Response,Body,-,"{
+  userCount: number;
+  invitationCount: number;
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트 정보를 업데이트한다.,,,,,,,,,,,,
+URI,/tensnts/:uid,,,,,,,,,,,,
+Method,PUT,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,UpdateTenant,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenants 테이블에서 테넌트 정보를 업데이트한다.",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,PATH,uid,string,,,,,,,,,,
+,BODY,-,"{
+  name?: string;
+  address?: {
+    text: string;
+    lat?: number;
+    lng?: number;
+  };
+  phone?: {
+    phoneNumber: string,
+    phoneCountryCode: string
+  };
+  orgCode?: string;
+}",,,,,,,,,,
+Response,-,-,,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,"테넌트를 삭제한다.
+- 구독 중인 서비스가 있는 경우 테넌트를 삭제할 수 없다.
+- 테넌트에 소유자를 제외한 사용자가 있는 경우 삭제할 수 없다. 
+- 테넌트 초대 및 이관데이터가 삭제된다. ",,,,,,,,,,,,
+URI,/tensnts/:uid,,,,,,,,,,,,
+Method,DELETE,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,DeleteTenant,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. accounts 테이블에서 테넌트 소유자의 계정을 soft delete(type orm: https://typeorm.io/delete-query-builder#soft-delete)한다.
+  - e-mail을 제외한 정보를 삭제한다.
+  - deleted_at을 업데이트한다. 
+3. users 테이블에서 사용자를 삭제한다. 
+  - tenant_memberships table: users_id on delete cascade
+3. tenant_user_invitations 테이블에서 테넌트 관련 초대 정보를 조회하고, account_invitations 테이블에서 해당 초대 정보를 삭제한다. 
+2. tenants 테이블에서 테넌트를 삭제한다. 
+  - tenant_transfers 테이블: on delete cascade
+  - tenant_subscriptions, tenant_memberships 테이블: on delete restrict
+  - tenant_user_invitations 테이블: account_invitations on delete cascade
+3. 데이터 삭제 중 오류 발생 시 Transaction은 rollback하고 에러 처리한다.
+
+[Keycloak]
+2. Keycloak Admin API(DELETE /admin/realms/{realm}/users/{id})를 이용하여 소유자 계정을 삭제한다. 
+3. Keycloak 계정 삭제에 실패한 경우, OneID DB Transaction은 rollback하고 에러 처리한다.",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+Response,-,-,,,,,,,,,,,
+,,,,,,,,,,,,,
+/tenants/:id/subscriptions,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트의 구독 정보를 생성한다.,,,,"[테넌트 구독 관리]
+
+1. 구독
+
+  - 요구사항
+    * OneID를 사용하는 각 서비스에서 구독 페이지를 제공한다.
+    * OneID v1.0은 EzCloud가 OneID를 사용하며, 
+      EzCloud v1.0은 약관에 동의하면 자동으로 무료 플랜을 부여한다. 무료 플랜만 지원하며, 과금 기능은 제공하지 않는다. 
+     따라서 OneID v1.0은 과금/결제는 지원하지 않는다. 
+
+ - 데이터 처리
+   * 각 서비스는 구독 요청을 받으면 OneID에 구독 정보 저장 및 결제(next)를 요청한다.
+   * OneID는 각 서비스에 전달한 구독 정보(tenants_subscriptions)를 저장한다.
+
+2. 구독 해지
+
+  - 요구 사항
+    * OneID v1.0은 EzCloud의 무료 플랜만 부여하므로, 사용자가 탈퇴를 요청하면 구독 해지가 자동으로 진행되어야한다. 
+    * 이후 버전에서 플랜의 확장 및 과금 기능을 제공하면, 사용자에게 구독 해지 후 탈퇴하도록 변경해야한다. 
+    * 무료플랜만 제공하므로, 사용자가 구독을 변경하는 기능은 제공하지 않는다. 
+
+  - 데이터 처리
+   * OneID는 저장된 구독 정보 내의 서비스 해지 url로 redirect 하여 서비스내의 테넌트 관련 데이터를 삭제 및 OneID의 구독 정보 삭제를
+     요청한다. 
+   * 서비스 해지 화면 필요 (상태 표시, Back button 제공)
+     서비스 해지 작업 완료 시, Back button을 이용해 이전 탈퇴 화면으로 이동해 OneID 탈퇴 작업을 수행한다. - prototype 필요",,,,,,,,
+URI,/tenants/:uid/subscriptions,,,,,,,,,,,,
+Method,POST,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,UpdateTenant,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_subscriptions 테이블에 테넌트의 구독 정보를 추가한다.",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,Body,,"{
+  uid: string; 
+  type: 'free', 'paid', 'promotion';   // v1.0 only supports 'free'
+
+  serviceName: string;
+  planCancelUrl: string;
+  
+  planName: string;
+  planInfo: Object; 
+  startsAt: string;  
+  endsAt: string;
+}",,,,,,,,,,
+Response,-,-,,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트의 구독 리스트를 검색한다.,,,,,,,,,,,,
+URI,/tenants/:uid/subscriptions?sort=:sort&page=:page&perpage=:perpage,,,,,,,,,,,,
+Method,GET,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,ReadTenant,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_subscriptions 테이블에서 테넌트의 구독 리스트를 검색한다.",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,Query,sort ,"string [Optinal | Values - serviceName, startsAt, endsAt | Default - startsAt:desc]",,,,,,,,,,
+,,page,number [Optional | Default - 1),,,,,,,,,,
+,,perpage,number [Optional | Default - 15],,,,,,,,,,
+Response,Body,-,"{
+  result: [
+    {
+      uid: string;
+      type: 'free', 'paid', 'promotion';   // v1.0 only supports 'free'
+
+      serviceName: string;
+      service: {              // Updated / 250121 / EZCLD-440 / Max
+        name: string;
+        iconUrl: string;
+        endPoint: string;
+      };
+      planCancelUrl: string;
+  
+      planName: string;
+      planInfo: Object;
+ 
+      startsAt: string;  
+      endsAt: string;
+
+      createdAt: string;
+      updatedAt: string;
+    }
+  ],
+  meta: {
+    itemsPerPage: number;
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트의 구독 정보를 업데이트 한다. ,,,,,,,,,,,,
+URI,/tenants/:uid/subscriptions/:subscription_uid,,,,,,,,,,,,
+Method,PUT,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,UpdateTenant,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_subscriptions 테이블에서 구독 정보를 업데이트한다.",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,,subscription_uid,string,,,,,,,,,,
+,Body,-,"{
+  type?: 'free', 'paid', 'promotion';   // v1.0 only supports 'free'
+  
+  planName?: string;
+  planInfo?: Object; 
+
+  startsAt?: string;  
+  endsAt?: string;
+}",,,,,,,,,,
+Response,-,-,,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트의 구독 정보를 삭제한다.,,,,,,,,,,,,
+URI,/tenants/:uid/subscriptions/:subscription_uid,,,,,,,,,,,,
+Method,DELETE,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,UpdateTenant,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_subscriptions 테이블에서 구독 정보를 삭제한다. ",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,,subscription_uid,string,,,,,,,,,,
+Response,-,-,,,,,,,,,,,
+,,,,,,,,,,,,,
+/tenants/:id/users/invitations,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트 사용자를 초대한다. ,,,,"[테넌트 초대 이력 관리]
+
+1. 초대 생성
+
+ - 요구 사항
+   * 테넌트 소유가자 사용자를 초대하면 초대 이력을 생성한다.
+   * 초대 이메일을 전송한다. 
+   * 초대 이력의 만료일은 초대 시점으로부터 14일 이후이다.
+
+ - 데이터 처리
+   * 초대 정보를 저장한다. (OneID)
+
+2. 초대 삭제
+
+ - 요구 사항
+   * 테넌트 소유자가 사용자 초대를 취소하면 초대 이력을 삭제한다. 
+   * 초대를 통해 사용자가 가입하면 초대 이력을 삭제한다. 
+   * 테넌트가 삭제되면 초대 이력은 삭제된다. 
+
+ - 데이터 처리 
+   * 초대 정보를 삭제한다. (OneID)
+
+3. 초대 재전송 
+  
+ - 요구 사항
+    * 테넌트 소유가자 사용자 초대를 재전송하면 기존 초대 이력을 삭제하고 새로운 초대 이력을 생성한다.
+
+ - 데이터 처리
+   * 기존 초대 정보을 삭제하고 신규 초대 이력을 생성한다. (OneIDB)
+   * 클라이언트는 삭제 api 호출 후 생성 api를 호출한다. (서버는 재전송을 위한 api를 별도로 제공하지 않는다.) 
+
+4. 초대 만료
+
+ - 요구 사항
+   * 초대 시점에서 14일 이후(parameter 지정 가능) 초대는 만료된다.
+   * 만료 시, 조직 이관 요청자에게 메일을 전송한다.
+     (기획에 요구사항 제외 요청- 만료 시점을 캐치하여 메일 전송을 하기 위해서는 별도 방식의 설계가 필요)
+
+ - 데이터 처리
+   * 만료된 초대 이력은 작업 스케줄링을 통해 주기적으로 삭제한다. (pg_cron: daily 자정)
+
+[초대 링크]
+
+ - 초대 이메일을 통해 초대 Link에 접속한다. (가입 페이지/:invitation_id)
+ - 가입 페이지는 invitation_id를 이용하여 초대 정보를 조회하고, 가입 화면을 표시한다. 
+ - 초대 정보 조회 시 에러를 전달 받으면, 사용자에게 안내한다. 
+
+[검색 필드]
+Keyword 검색을 진행하려면 field는 반드시 선택되어야 한다.
+* REQUIRED_FILED_NOT_EXIST (The field value must be required to proceed with the keyword search.)
+* 400 Bad Reqeust (HttpExceptionEnum 01002)
+
+검색 필드의 허용 값은 다음과 같다. [ 쿼리값(App내 표기 이름) : column(table) ]
+* invitee-email(E-mail): invitee_email(account_invitation)
+* comment(Comment): comment(account_invitation)",,,,,,,,
+URI,/tenants/:uid/users/invitations,,,,,,,,,,,,
+Method,POST,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,CreateTenantUserInviation,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. accounts 테이블에서 이미 등록된 계정인지 확인한다.
+2. tenant_user_invitations 테이블에서 이미 초대된 계정인지 확인한다.
+3. account_invitations, tenant_user_invitations 테이블에 사용자 초대 이력을 추가한다.
+  - type: TenantUserInvitation
+  - inviter_email: Authorization Header의 사용자 e-mail을 저장한다.
+  - expired_at: current date time + parameter expiredIn로 저장한다.
+
+[E-mail Service]
+4. 초대 사용자에게 메일을 전송한다.
+  - 메일 전송 실패 시 OneID DB Transaction을 Rollback하고 에러 처리한다.
+
+[Errors]
+- ALREADY_REGISTERED_EMAIL: 이미 등록된 사용자 초대 
+- DUPLICATED_EMAIL: 이미 초대 진행 중인 사용자 ",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,Body,-,"{
+  inviteeEmail: string;
+  comment: string;
+  expiredIn?: number; (default: 14)
+}",,,,,,,,,,
+Response,-,-,,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,"테넌트 사용자 초대 리스트를 검색한다. 
+- 만료일이 지난 초대는 검색 결과에서 제외한다.
+- 키워드를 지정하여 선택적으로 목록을 검색할 수 있다.",,,,,,,,,,,,
+URI,/tenants/:uid/users/invitations?field=:field&keyword=:keyword&sort=:sort&page=:page&perpage=:perpage,,,,,,,,,,,,
+Method,GET,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,ReadTenantUserInvitation,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_user_invitations, account_invitations 테이블에서 테넌트에 속한 사용자 초대 이력 중 검색 조건에 해당하는 데이터를 검색한다.",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,Query,field,"string [Optional | 검색 대상: invitee-email, comment]",,,,,,,,,,
+,,keyword,string [Optional | 검색 대상: field],,,,,,,,,,
+,,sort,string [Optinal | Values - expiredAt | Default - expiredAt:desc],,,,,,,,,,
+,,page,number [Optional | Default - 1),,,,,,,,,,
+,,perpage,number [Optional | Default - 15],,,,,,,,,,
+Response,Body,-,"{
+  result: [
+    {
+      id: string;
+      inviteeEmail: string;
+      comment: string;
+      expiredAt: string;
+    }
+  ],
+  meta: {
+    itemsPerPage: number;
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트 사용자 초대 이력을 검색한다.,,,,,,,,,,,,
+URI,/tenants/:uid/users/invitations/:invitation_id,,,,,,,,,,,,
+Method,GET,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,Public    // Updated / 0905 / SCPS-105 /  Ann,,,,,,,,,,,,
+Actions,"[OneID DB]
+1.  tenant_user_invitations, account_invitations 테이블에서 초대 이력 정보를 검색한다. 
+
+[Errors]
+ - INVAILD_INVITAION: 지정된 ID에 해당하는 초대 이력이 이미 삭제되어 유효하지 않은 경우
+ - EXPIRED_INVITATION: 지정된 ID에 해당하는 초대 이력의 만료일이 지난 경우 ",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,,invitation_id,string,,,,,,,,,,
+Response,Body,-,"{
+  id: string;
+
+  countryCode: string;  // tenant country
+  inviteeEmail: string;
+  inviterEmail: string;
+  comment: string;
+  
+  createdAt: string;
+  updatedAt: string;
+  expiredAt: string;
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,"테넌트 사용자 초대를 재전송 한다.   // Added / 0905 / SCPS-105 /  Ann
+- 기존 초대를 삭제하고, 신규 초대를 생성한다. ",,,,,,,,,,,,
+URI,/tenants/:uid/users/inivations/:invitation_id,,,,,,,,,,,,
+Method,PUT,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,CreateTenantInvitation,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_user_invitations, account_invitations에서 초대 이력을 신규로 생성하고, 기존 정보를 삭제한다. 
+  트랜잭션 실패 시 롤백한다. ",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,id,string,,,,,,,,,,
+,,invitation_id,string       // Added / 250121 / EZCLD-440 / Max,,,,,,,,,,
+Response,Body,-,"{
+  newInvitationId: number;
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트 사용자 초대를 삭제한다.,,,,,,,,,,,,
+URI,/tenants/:uid/invitations/:invitation_id,,,,,,,,,,,,
+Method,DELETE,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,DeleteTenantUserInviation,,,,,,,,,,,,
+Actions,"[OneID DB]
+1.  account_invitations 테이블에서 초대 이력을 삭제한다.
+  - tenant_user_invitations: on delete cascade",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,,invitation_id,string,,,,,,,,,,
+Response,-,-,,,,,,,,,,,
+,,,,,,,,,,,,,
+/tenants/:uid/users,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,"테넌트 사용자를 추가한다.  
+- 이 API는 ""Member"" 역할의 사용자만 추가할 수 있다. ",,,,"[테넌트 사용자 관리]
+
+1. 테넌트 사용자 생성
+
+ - 요구 사항
+   * OneID 가입 url을 통해 가입하는 경우, 테넌트 생성과 함께 Role이 'Owner'인 사용자를 생성한다.
+   * 테넌트 'Owner'의 초대 메일을 통해 가입하는 경우, Role이 'Member'인 사용자를 생성한다. 
+   * 테넌트와는 별도로 사용자만 추가(가입)할 수 없다.
+
+ - 데이터 처리
+   * 테넌트 정보를 저장한다. (OneID DB)
+   * 테넌트 사용자 정보를 저장한다. (OneID DB, Keycloak)
+   * 초대를 통해 가입하는 사용자인 경우, 초대 처리가 완료되었으므로 이력을 삭제한다. (OneID DB)
+   * 테넌트 사용자의 멤버십 정보를 저장한다. (OneID DB)
+
+2. 테넌트 사용자 삭제
+
+ - 요구 사항
+   * 테넌트 삭제(탈퇴)하는 경우 테넌트 내 모든 사용자를 삭제 처리한다.
+   * 테넌트 'Owner'가 사용자를 삭제하는 경우 사용자가 삭제된다. 
+
+ - 테넌트 사용자 데이터
+   * Keycloak 계정
+   * 사용자 정보 (users, accounts, account_terms)
+   * 테넌트 멤버십 (tenant_memberships)
+   * 테넌트 이관 이력 (tenant_transfers)
+
+ - 데이터 처리
+   * 사용자 계정을 삭제한다. (Keycloak)
+   * 사용자 계정을 soft delete 한다. (OneID DB)
+   * 테넌트 멤버십 데이터를 삭제한다. (OneIDB)
+     서비스에 따라 탈퇴한 사용자의 테넌트 멤버십 정보가 필요한 경우, 각 서비스에서 보관한다. 
+   * 제약 사항
+       * 테넌트 멤버십의 Role이 'owner'인 경우 삭제할 수 없다. 
+       * 테넌트 이관 요청을 받은 사용자는 삭제할 수 없다. 이관 신청을 취소한 이후에 삭제할 수 있다.
+
+ - 기타
+   * 삭제된 사용자는 로그인할 수 없다. (keycloak 계정 삭제)",,,,,,,,
+URI,/tenants/:uid/users,,,,,,,,,,,,
+Method,POST,,,,,,,,,,,,
+Authentication,Public,,,,,,,,,,,,
+Required Permission,Public,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. accounts, users 테이블에 계정을 추가한다.
+  - users > uid는 snowflake ID로 생성하여 저장한다.
+2. 초대를 통해 가입하는 계정 (Parameter > invitationId 포함)인 경우 account_invitations 테이블에서 초대 이력을 삭제한다. 
+3. tenant_memberships 테이블에 테넌트 사용자를 추가한다. (role: 'member')
+
+[Keycloak]
+3. Admin API(POST_admin/realms/{realm}/users)를 이용하여 멤버 계정을 생성 한다.
+   - Keycloak 계정 생성에 실패하면 OneID DB Transaction은 rollback하고, 에러 처리한다. 
+4: Optional.  
+   Admin API(PUT_admin/realms/users/{id}/send-verify-email)를 이용하여 소유자 계정의 이메일 인증 메일을 전송한다. 
+   - 인증 메일 전송 실패 시 에러 처리하지 않는다. ",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,Body,-,"{
+  email: string;
+  password: string;
+
+  name?: string;
+  phone?: {
+    phoneNumber: string,
+    phoneCountryCode: string
+  };
+
+  agreements: string[]; number[];       // Updated/ 250121 / EZCLD-440 / Max
+  marketingConsent: boolean;
+
+  sendVerificationMail?: {
+    clientId: string;
+    redirectUri: string;
+  };
+  
+  invitationId?: string;
+}",,,,,,,,,,
+Response,Body,-,"{
+  uid: string;
+  keycloakId: string;
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,"테넌트의 유효한 사용자 리스트를 검색한다. 
+- 삭제된 사용자는 제외되며, 키워드를 지정하여 선택적으로 목록을 검색할 수 있다.
+- 검색 키워드: email, name",,,,,,,,,,,,
+URI,/tenants/:uid/users?field=:field&keyword=:keyword&sort=:sort&page=:page&perpage=:perpage,,,,,,,,,,,,
+Method,GET,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,ReadTenantUser,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_memberships, users, accounts 테이블에서 테넌트의 유효한 사용자 리스트를 검색한다. ",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,"[검색 필드]
+Keyword 검색을 진행하려면 field는 반드시 선택되어야 한다.
+* REQUIRED_FILED_NOT_EXIST (The field value must be required to proceed with the keyword search.)
+* 400 Bad Reqeust (HttpExceptionEnum 01002)
+
+검색 필드의 허용 값은 다음과 같다. [ 쿼리값(App내 표기 이름) : column(table) ]
+* email(E-mail): email(account)
+* name(Name): name(account)",,,,,,,,
+,Query,field,"string [Optional | 검색 대상: email, name]",,,,,,,,,,
+,,keyword,string [Optional | 검색 대상: field],,,,,,,,,,
+,,sort,"string [Optinal | Values - email, createdAt | Default - email:asc]",,,,,,,,,,
+,,page,number [Optional | Default - 1),,,,,,,,,,
+,,perpage,number [Optional | Default - 15],,,,,,,,,,
+Response,-,-,"{
+  result: [
+    {
+      uid: string;        // user uid
+      email: string;
+      name?: string;
+      membership: {
+         id: number;           Updated / 0814 / SCPS-82 /  Ann
+         role: 'owner' | 'member;
+         createdAt: string;
+         updatedAt: string;
+      }
+    }
+  ],
+  meta: {
+    itemsPerPage: number;
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,"테넌트에 속한 모든 사용자를 삭제한다.
+- 'role' parameter 지정 시, 특정 역할의 사용자만 삭제할 수 있다.",,,,,,,,,,,,
+URI,/tenants/:uid/users?role=:role,,,,,,,,,,,,
+Method,DELETE,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,DeleteTenantUser,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_memberships 테이블을 조회하여 테넌트 사용자 목록을 검색한다.
+2. DELETE_tenants/:id/users/:user_id Actions step을 반복하여 모든 사용자를 삭제한다. ",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,Query,role,string [Optional],,,,,,,,,,
+Response,-,-,,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트 사용자 정보를 검색한다.,,,,,,,,,,,,
+URI,/tenants/:uid/users/:user_uid,,,,,,,,,,,,
+Method,GET,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,ReadTenantUser,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_memberships, users, accounts 테이블에서 테넌트 사용자 정보를 검색한다. ",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,,user_uid,string,,,,,,,,,,
+Response,,,"{
+  uid: string;
+  email: string;
+  name?: string;
+  phone?: {
+    phoneNumber: string,
+    phoneCountryCode: string
+  };
+  state: 'activated' | 'removed';
+  
+  membership: {
+    role: 'owner' | 'member';
+    createdAt: string;
+    updatedAt: string;
+  }
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,"테넌트 사용자를 삭제한다. 
+- 역할이 'Owner'인 사용자는 삭제할 수 없다. 
+- 테넌트 이관을 요청 받은 사용자는 삭제할 수 없다. ",,,,,,,,,,,,
+URI,/tenants/:uid/users/:user_uid,,,,,,,,,,,,
+Method,DELETE,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,DeleteTenantUser,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. accounts 테이블에서 계정을 soft delete(type orm: https://typeorm.io/delete-query-builder#soft-delete)한다.
+  - e-mail을 제외한 정보를 삭제한다.
+  - deleted_at을 업데이트한다. 
+2. account_terms 테이블에서 사용자의 데이터를 삭제한다. 
+3. users 테이블에서 사용자를 삭제한다. 
+  - tenant_memberships table: users_id on delete cascade
+
+[Keycloak]
+4. Keycloak Admin API(DELETE /admin/realms/{realm}/users/{id})를 이용하여 사용자의 계정을 삭제한다. 
+5. Keycloak 계정 삭제에 실패한 경우, OneID DB Transaction은 rollback하고 에러 처리한다.
+
+[Errors]
+- OWNER_DELETE_FORBIDDEN: Tenant Owner cannot be deleted.
+- TRANSFER_PENDING_DELETE_FORBIDDEN: User with pending transfer request cannot be deleted",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,,user_uid,string,,,,,,,,,,
+Response,-,-,,,,,,,,,,,
+,,,,,,,,,,,,,
+tenants/:id/transfers,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트 이관을 요청한다. ,,,,"[테넌트 이관 관리]
+
+1. 테넌트 이관 요청
+
+ - 요구 사항
+   * 테넌트 소유자가 조직 관리 페이지에서 테넌트 이관을 요청하면, 테넌트 이관 정보를 생성한다. 
+      * 테넌트 이관은 테넌트내 사용자에게만 가능하다.
+      * 이미 활성화된 이관 요청이 있는 경우 추가로 요청할 수 없다. 이전 이력을 취소하고 재 요청해야한다. 
+   * 테넌트 이관 요청 메일을 전송한다. 
+     이관 요청 메일 재전송 기능은 제공하지 않는다. (취소 후 재전송해야한다.)
+   * 테넌트 이관 요청의 만료일은 요청 시점으로 부터 14일 이후이다.
+   * Next: 결제 기능 지원 시, 이관 요청 전에 결제 정보 변경 등의 절차 고려가 필요하다.
+     v1.0은 EzCloud 무료 플랜만 제공하므로, 구독 서비스 확인 없이 이관이 가능하다. 
+
+ - 데이터 처리
+   * 이관 요청 정보를 저장한다. (OneID DB)
+
+2. 테넌트 이관 요청 삭제
+
+ - 요구 사항
+   * 테넌트 소유자가 조직 관리 페이지에서 테넌트 이관을 취소하면, 이관 정보를 삭제한다. (메일 전송 여부 확인 필요)
+   * 테넌트 이관을 요청 받은 사용자가 수락/거절하면, 이관 정보를 삭제한다. 
+   * 테넌트 이관 요청 시, 만료된 이관 정보가 있는 경우 삭제한다. 
+   * 테넌트가 삭제되면 테넌트 이관이력을 삭제한다. 
+ 
+  - 데이터 처리 
+    * 이관 요청 정보를 삭제한다.  (OneID DB)
+
+3. 테넌트 이관 요청 수락/거절
+
+  - 요구 사항
+    * 이관 요청을 받은 사용자가 이관을 수락하면, 이전 소유자의 역할은 'Member'로 변경되고 수락한 사용자의 역할은 'Owner'로 변경된다. 
+    * 이관 요청을 받은 사용자가 이관을 거절하면, 이관 이력을 삭제한다. 
+   * 이관 요청 수락/거절 시, 이전 소유자에게 메일을 전송한다. 
+
+  - 데이터 처리
+    * 수락
+       * 테넌트 멤버십 정보를 업데이트한다. (OneID DB)
+       * 이관 이력을 삭제한다. (OneID DB)
+    * 거절
+      * * 이관 이력을 삭제한다. (OneID DB)
+
+4. 테넌트 이관 요청 만료
+
+  - 요구 사항
+    * 초대 시점에서 14일 이후(parameter 지정 가능) 이관 요청은 만료된다. 
+
+  - 데이터 처리
+    * 만료된 초대 이력은 작업 스케줄링을 통해 주기적으로 삭제한다.  (pg_cron: daily 자정) 
+    * 이관 요청 시점에 만료된 초대 이력이 있는 경우 삭제한다.
+
+[테넌트 이관 링크(페이지])
+
+  - 이관 요청 이메일을 통해 Link에 접속한다. (Link: domain/transfer/:tenant_id/:transfer_id)
+  - 테넌트 정보를 조회(GET_/tensnts/:id)하고, 화면에 표시한다. 
+ - Link 페이지에서 사용자가 수락/거절을 선택하면, 테넌트 이관 수락/거절을 서버에 요청하고 완료 페이지를 표시한다. 
+   (Link: domain/trnasfer/result)
+",,,,,,,,
+URI,/tenants/:uid/transfers,,,,,,,,,,,,
+Method,POST,,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,,
+Required Permission,RequestTenantTransfer,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_transfers 테이블에서 이관 이력을 학인한다. 
+  - 활성화된 이력(만료전)이 있는 경우, 에러 처리한다.
+  - 만료된 이력이 있는 경우, 이력을 삭제한다. 
+2. tenant_transfers 테이블에 이관 요청 내역을 저장한다. 
+  - expired_at: current date time + parameter expiredIn로 저장한다.
+
+[E-mail Service]
+2. 이관 요청 메일을 전송한다. 
+3. 메일 전송에 실패한 경우 OneID DB transaction을 rollback한다. 
+
+[Errors]
+- DUPLICATED_TENANT_TRANSFERS: 테넌트 이관 요청 이력이 이미 존재
+- INVALID_TRANSFERS: 유효하지 않은 이관 요청 (테넌트 멤버가 아닌 사용자에게 이관을 요청하거나, 테넌트 소유자가 아닌 사용자가 이관을 요청한 경우 등- 버그가 아닌 이상 발생하지 않아야함)",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,Body,-,"{
+  currentOwnerMembershipId: number;   // SCPS-82: 0814 업데이트 Ann
+  newOwnerMembershipId: number;
+  expiredIn?: number; (default: 14) 
+}",,,,,,,,,,
+Response,-,-,"{
+  transferId: number;
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,"테넌트의 활성화된 이관 이력 정보를 조회한다.
+- 활성화된 이관 이력정보는 1개이다. 1개 이상인 경우 시스템 에러로 처리한다. ",,,,,,,,,,,,
+URI,/tenants/:uid/transfers,,,,,,,,,,,,
+Method,GET,,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,,
+Required Permission,RequestTenantTransfer,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_transfers, tenant_memberships, users, accounts 테이블에서 테넌트의 이관 이력 및 이관 요청자 정보를 검색한다.",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+Response,Body,-,"// Updated / 0902 / sprint#3 dev test #19 /  Ann
+{
+  id: number;
+  tenant: {
+     uid: string;
+     name: string;
+     address: {
+         text: string;
+         lat?: number;
+         lng?: number;
+     }
+     phone?: {
+      phoneNumber: string,
+      phoneCountryCode: string
+     };
+   };
+  curOwner: {
+    uid: string;  
+    email: string;
+    name?: string;      // Added / 250121 / EZCLD-440 / Max
+  };
+  newOwner: {
+    uid: string;
+    email: string;
+    name?: string;      // Added / 250121 / EZCLD-440 / Max
+  };
+  createdAt: string;
+  updatedAt: string;
+  expiredAt: string;
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트 이관 ID를 이용하여 이관 정보를 조회한다.  //  Added / 0902 / sprint#3 dev test #19 / Ann,,,,,,,,,,,,
+URI,/tenants/:uid/transfers/:transfer_id,,,,,,,,,,,,
+Method,GET,,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,,
+Required Permission,RequestTenantTransfer | ResponseTenantTransfer,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_transfers, tenant_memberships, users, accounts 테이블에서 테넌트의 이관 이력 및 이관 요청자 정보를 검색한다.",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,,transfer_id,string,,,,,,,,,,
+Response,Body,-,"{
+  id: number;
+  tenant: {
+     uid: string;
+     name: string;
+     address: {
+         text: string;
+         lat?: number;
+         lng?: number;
+     }
+       phone?: {
+        phoneNumber: string,
+        phoneCountryCode: string
+      };
+   };
+  curOwner: {
+    uid: string;  
+    email: string;
+  };
+  newOwner: {
+    uid: string;
+    email: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  expiredAt: string;
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트 이관 요청을 수락/거절 한다. ,,,,,,,,,,,,
+URI,/tenants/:uid/transfers/:transfer_id,,,,,,,,,,,,
+Method,PUT,,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,,
+Required Permission,ResponseTenantTransfer,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. accept parameter가 true이면, tenant_memberships 테이블에서 역할을 변경한다.
+   - current_owner_id: 'Member'
+   - new_owner_id: 'Owner'
+2. tenant_transfers 테이블에서 이관 요청 내역을 삭제한다. 
+
+[E-mail Service]
+3. 이관 요청자(이전 소유자)에게 이관 요청 결과 메일을 전송한다. ",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,,transfer_id,string,,,,,,,,,,
+,Body,-,"{
+  accept: boolean;
+}",,,,,,,,,,
+Response,-,-,-,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,테넌트 이관을 취소(삭제한다.),,,,,,,,,,,,
+URI,/tenants/:uid/transfers/:transfer_id,,,,,,,,,,,,
+Method,DELETE,,,,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,,,,
+Required Permission,RequestTenantTransfer,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_transfers 테이블에서 이관 요청 내역을 삭제한다. ",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,,transfer_id,string,,,,,,,,,,
+Response,-,-,-,,,,,,,,,,
+,,,,,,,,,,,,,
+/users: ,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,사용자 정보를 검색한다.,,,,"[사용자 관리]
+
+1. 사용자 생성
+
+ - 요구 사항
+   * 테넌트와는 별도로 사용자만 추가(가입)할 수 없다.
+
+ - 데이터 처리
+   * N/A
+
+2. 사용자 삭제
+
+ - 요구 사항
+   * 사용자가 탈퇴를 요청하면 사용자 관련 정보를 삭제한다. 
+
+ - 관련 데이터, 데이터 처리, 기타
+   * 테넌트 사용자 삭제와 동일 
+",,,,,,,,
+URI,/users/:uid,,,,,,,,,,,,
+Method,GET,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,ReadUser,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. users, accounts 테이블에서 사용자 정보를 검색한다.",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+Response,Body,-,"{
+  uid: string;
+  email: string;
+  name?: string;
+  phone?: {
+    phoneNumber: string,
+    phoneCountryCode: string
+  };
+  state: 'activated' | 'removed';
+  agreementTerms: string[];
+  createdAt: string;
+  updatedAt: sttring;
+}",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,사용자가 속한 테넌트와 멤버십 정보를 검색한다.,,,,,,,,,,,,
+URI,/users/:uid/tenants,,,,,,,,,,,,
+Method,GET,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,ReadUser,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. tenant_memberships, tenants 테이블에서 사용자의 테넌트 및 멤버십 정보를 검색한다.",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+Response,Body,-,"[  // v1.0: only one
+  {
+    uid: string;
+    name: string;
+    country: {
+      code: string;
+      name: string;
+    };
+   address: {
+     text: string;
+     lat?: number;
+     lng?: number;
+    };
+   phone?: {
+    phoneNumber: string,
+    phoneCountryCode: string
+   };
+   membership: {
+     role: 'owner' | 'member';
+     createdAt: string;
+     updatedAt: string;
+   };
+  owner: {
+    email: string;
+    name: string;
+  };
+]",,,,,,,,,,
+,,,,,,,,,,,,,
+Description,사용자 정보를 업데이트한다.,,,,,,,,,,,,
+URI,/users/:uid,,,,,,,,,,,,
+Method,PUT,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,UpdateUser,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. accounts 테이블에서 사용자 정보를 업데이트한다. ",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+,Body,-,"{
+  name?: string;
+  phone?: {
+    phoneNumber: string,
+    phoneCountryCode: string
+  };
+  marketingConsent?: boolean;
+}",,,,,,,,,,
+Response,-,-,-,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,사용자를 삭제한다.,,,,,,,,,,,,
+URI,/users/:uid,,,,,,,,,,,,
+Method,DELETE,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,DeleteUser,,,,,,,,,,,,
+Actions,DELETE_tenants/:id/users/:user_id Actions과 동일하다. ,,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+Response,-,-,-,,,,,,,,,,
+,,,,,,,,,,,,,
+Description,사용자 권한 리스트를 검색한다.,,,,,,,,,,,,
+URI,/users/:uid/abilities,,,,,,,,,,,,
+Method,GET,,,,,,,,,,,,
+Authentication,Auhorization header,,,,,,,,,,,,
+Required Permission,ReadUser,,,,,,,,,,,,
+Actions,"[OneID DB]
+1. 사용자의 모든 권한을 검색한다. (tenant_memberships, tenant_role, tenant_role_permissions, permissions table)
+
+[casl: https://casl.js.org/v6/en/ ]
+2. 조회한 권한을 이용하여 casl ability instance를 생성한다.
+3. 권한 규칙을 패킹한다. (casl > packRules function)
+4. 패킹된 권한 규칙을 response에 포함한다.
+
+[참고]
+- BE
+  const packedRules = packRules(aility.rules);
+  res.json({ packedRules });
+- FE
+  const rules = unpackedRules(packedRules);
+  const userAbility = new Ability();
+  userAbility.update(rules);
+",,,,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,,,,
+,Path,uid,string,,,,,,,,,,
+Response,Body,-,object (packRules 호출 결과물),,,,,,,,,,

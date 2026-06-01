@@ -1,0 +1,368 @@
+﻿"v1.1 개발 완료 후 각 시트로 이동 예정
+* Response는 success case만 정의한다. Error case는 구현 시점에 swagger로 정의한다.",,,,,,,
+,,,,,,,
+/organization-data,,,,,,,
+,,,,,,,
+Description,EzCloud에서 환자를 추가한다 ,,,,,,
+URI,/organization-data/patients,,,,,,
+Method,POST,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,CreateOrgData,,,,,,
+Actions,"환자를 추가한다.
+- 환자 이름을 단일 input으로 입력받는 경우, name.lastname을 사용한다..
+- gender는 [""Male"", ""Female"", ""Other""] 를 가지는 enum으로 정의한다. 
+- sourceSystem [""EzServer"", ""EzCloud""] 를 가지는 enum으로 정의한다.
+",,,,,,
+Parameters,Types,Name,Schema,,,,
+,Body,-,"{
+  sourceSystem: enum;  
+  name: {
+      firstName?: string;
+      middleName?: string;
+      lastName: string;  
+  },
+  gender: enum,
+  birthdate: string,
+  phone?: string,
+  mobile?: string,
+  email?: string,
+  zipCode?: string,
+  address?: string
+}",,,,
+Response,Body,Success,-,,,,
+,,,,,,,
+Description,"EzCloud에서 추가한 환자 정보를 수정한다. 
+- EzServer를 통해 업로드된 환자 정보는 수정할 수 없다.",,,,,,
+URI,/organization-data/patients/{patientUID},,,,,,
+Method,PUT,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,updateOrgData,,,,,,
+Actions,"환자를 수정한다.
+- 환자 이름을 단일 input으로 입력받는 경우, name.lastname을 사용한다..
+- gender는 [""Male"", ""Female"", ""Other""] 를 가지는 enum으로 정의한다.",,,,,,
+Parameters,Types,Name,Schema,,,,
+,Path,patientUID,string (환자 고유 식별자),,,,
+,Body,-,"{
+  name?:  {
+      firstName?: string;
+      middleName?: string;
+      lastName: string;
+  },
+  gender?: enum,
+  birthdate?: string,
+  phone?: string,
+  mobile?: string,
+  email?: string,
+  zipCode?: string,
+  address?: string
+}",,,,
+Response,Body,Success,-,,,,
+,,,,,,,
+Description,"환자의 이미지 업로드를 위한 Cloud Front Signed URL을 생성한다. 
+- 한번의 요청으로 최대 20개의 Signed URL을 생성할 수 있다.",,,,,,
+URI,/organization-data/patients/{patientUID}/images/signed-url,,,,,,
+Method,POST,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,CreateOrgData,,,,,,
+Actions,"요청된 파일 목록에 대해 Cloud Front Signd URL을 생성하여 응답에 포함한다.
+
+* 업로드 대상 위치는 temporary-data-bucket이다.
+* URL 만료 시간은 Modality가 'CT'인 경우 5min, 그외는 1min이다.",,,,,,
+Parameters,Types,Name,Schema,,,,
+,Path,patientUID,string (환자 고유 식별자),,,,
+,Body,-,"[
+  {
+    modality: string;
+    fileName: string;    // 확장자포함
+    fileSizeBytes: int;
+  }
+]",,,,
+Response,Body,-,"[
+  {
+     fileName: string;
+     s3Key: string;        // {job_uid}/{fileName}
+     signedUrl: string;
+  }
+]",,,,
+,,,,,,,
+Description,"환자에 업로드된 이미지 정보를 DB에 저장하고, 파일 처리를 위한 Job을 Queue에 등록한다. 
+⚠️이 API는 단일 이미지 파일 등록만 지원한다. 
+  - 이는 파일 단위의 진행률, 상태 추적 등에 최적화된 UX 흐름을 반영한 설계이다.",,,,,,
+URI,/organization-data/patients/{patientUID}/images,,,,,,
+Method,POST,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,CreateOrgData,,,,,,
+Actions,"1. 전달 받은 정보를 patient_image table에 저장한다. 
+2. Modality가 'CT""인 경우, 'zip-file-upload' job에 추가하여 후처리를 요청한다.
+   Modality가 'CT'가 아닌 경우, 'single-file-upload' job을 등록하여 후처리를 요청한다. ",,,,,,
+Parameters,Types,Name,Schema,,,,
+,Path,patientUID,string (환자 고유 식별자),,,,
+,Body,-,"{
+  orgFileName: string;
+  modality: string;
+  sourceSystem: 'EzServer' | 'EzCloud';
+  s3Key: string;
+  acquisitionDateTime?: string;
+  mode?: string;
+}",,,,
+Response,Body,-,"{
+  imageUid: string; 
+}",,,,
+,,,,,,,
+/shared-data,,,,,,,
+,,,,,,,
+Description,"특정 케이스의 만료일을 1회에 한해 연장한다.
+- 최초 공유 시점 기준으로 만료일을 연장한다. 
+- 연장 요청 시점(now())과 무관하게, 만료일(expired_at)은 최초 공유일(created_at)에 연장 기간(extend_days)을 더한 날짜로 갱신된다.",,,,,,
+URI,/shared-data/cases/{caseUID}/expiration/extend,,,,,,
+Method,POST,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,UpdateSharedData (수신자만 가능),,,,,,
+Actions,"1. expried_at을 created_at + extend_days로 계산하여 저장한다.
+2. prefix(case uid)를 이용하여 S3 Object life cycle을 설정한다. ",,,,,,
+Parameters,Types,Name,Schema,,,,
+,Path,caseUID,string (공유 케이스 식별자),,,,
+,Body,-,"{
+  extendDays?: integer;   // optional, default: 30
+}",,,,
+Response,Body (Success),-,"{
+  caseUID: string;
+  expiredAt: string;       // utc, iso string
+}",,,,
+,Body (Fail),-,"Guard에서 에러 처리를 고려한다.
+
+// Case 1: 이미 만료일을 연장한 경우 (expiration_extended_at이 null이 아닌 경우)
+http status: 403, body: { errorCode: ""403207"", message: ""Expiration date has already been extended once. Further extension is not allowed."" }
+// Case 2: 공유 케이스가 이미 만료된 경우 (Guard에서 처리)
+http status: 403, body: { errorCode: ""403206"", meessage:  ""The data has expired and is no longer accessible."" }
+// Case 3: 공유 케이스가 존재하지 않는 경우 (삭제된 경우)
+http status: 404, body: { errorCode: ""404101"", message: ""Not found."" }",,,,
+,,,,,,,
+"/shared-data (next, v1.1 스펙아웃)",,,,,,,
+,,,,,,,
+Description,"특정 공유 케이스를 아카이브하여 Archive DB에 저장하고, 파일 처리를 위한 Job을 Queue에 등록한다. ",,,,,,
+URI,/shared-data/cases/{caseUID}/archive,,,,,,
+Method,POST,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,CreateArchiveSharedData,,,,,,
+Actions,"1. share_case / share_case_image 테이블에서 공유 케이스 및 이미지 정보를 조회하고, archive_share_case / archive_share_case_image 테이블에 데이터를 카피한다. 
+2. share_case_image에 포함된 파일을 카피를 요청 하기 위해 'file-share-processor' Job에 추가한다.
+⚠️테넌트의 plan > orgdata_size_limit을 초과하는 경우, 에러 처리한다.
+⚠️ file-share-processo는 조직 데이터의 공유를 위한 처리에만 종속적으로 구현되어있다. 아카이브 공유 케이스를 처리 가능한 구조로 개선 필요하다.",,,,,,
+Parameters,Types,Name,Schema,,,,
+,Path,caseUID,string (공유 케이스 식별자),,,,
+Response,Body,,"{
+  archiveUid: string;
+}",,,,
+,,,,,,,
+"/archive-shared-data  (next, v1.1 스펙아웃)",,,,,,,
+,,,,,,,
+Description,아카이브된 공유 케이스 리스트를 조회한다. ,,,,,,
+URI,/archive-shared-data/cases,,,,,,
+Method,GET,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,ReadArchiveSharedData,,,,,,
+Actions,"1. 로그인된 사용자의 Access Token에서 tenant_uid를 추출한다.
+2. archive_share_case table에서 tenant_uid 및 필터 조건에 해당하는 데이터를 조회하여 응답에 포함한다.
+
+[ 발신조직/발신자가 탈퇴한 경우: null인 경우]
+* resposne의 sender에 tenant/mebmer 정보가 포함되지 않는다. Undefined인 경우 탈퇴한 사용자로 간주한다. ",,,,,,
+Parameters,Types,Name,Schema,,,,
+,Query,field,"string [Optinal | 검색 대상: sender_tenant_name, sender_member_email, title]",,,,
+,,keyword,string [Optional],,,,
+,,sort,"string [Optinal | Values - createdAt:asc/desc, sharedAt:asc/desc | Default - createdAt:desc]",,,,
+,,page,number [Optional | Default - 1),,,,
+,,perpage,number [Optional | Default - 15],,,,
+Response,Body,-,"{
+    result: [
+        {
+            uid: string;
+            uploadStatus: string;    // ""Pending"", ""Success"", ""Fail""
+            sender: {
+                tenant?: {
+                    uid: string;
+                    name: string;
+                };
+                member?: {
+                    uid: string;
+                    email: string;
+                };
+            };
+            title: string;
+            createdAt: string;
+            sharedAt: string;
+        }
+    ];
+    meta: {
+        itemsPerPage: number;
+        totalItems: number;
+        currentPage: number;
+        totalPages: number;
+    }
+}",,,,
+,,,,,,,
+Description,공유 케이스 상세 정보를 조회한다.,,,,,,
+URI,/archive-shared-data/cases/{caseUID},,,,,,
+Method,GET,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,ReadArchiveSharedData,,,,,,
+Actions,"1. 현재 로그인된 사용자의 Access Token에서 tenant_uid를 추출한다.
+2. archive_share_case / archive_share_case_image table에서 tenant_uid/caseUid에 해당하는 데이터를 조회하여 응답에 포함한다.",,,,,,
+Parameters,Types,Name,Schema ,,,,
+,Path,caseUID,string,,,,
+Response,Body,-,"{
+    uid: string;
+    title: string;
+    comment: string;
+    downloadCount: number;
+    sender: {
+        tenant?: {
+            uid: string;
+            name: string;
+        };
+        member?: {
+            uid: string;
+            email: string;
+        };
+    };
+    images: [
+        {
+            id: number;
+            thumbnailUrl?: string;
+            modality: string;
+            acquisitionDateTime: string;
+            createdAt: string;
+        }
+    ]
+    createdAt: string;
+    sharedAt: string;
+  }
+}",,,,
+,,,,,,,
+Description,아카이브된 공유 케이스를 삭제한다.,,,,,,
+URI,/archive-shared-data/cases/{caseUID},,,,,,
+Method,DELETE,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,DeleteArchiveSharedData,,,,,,
+Actions,"1. 로그인된 사용자의 Access Token에서 tenant_uid를 추출한다.
+2. archive_share_case / archive_share_caseiamge table에서 tenant_uid / case_uid에 해당하는 정보를 삭제한다.
+3. archive_share_case에 포함된 파일 삭제를 요청하기 위해 'file-delete-processor' Job에 추가한다. 
+⚠️ file-delete-processor는 조직 데이터 삭제에만 종속적으로 구현되어있다. 아카이브 공유 케이스를 처리 가능한 구조로 개선 필요하다.",,,,,,
+Parameters,Types,Name,Schema,,,,
+,Path,caseUID,string (아카이브 공유 케이스 고유 식별자),,,,
+Response,Body,-,,,,,
+,,,,,,,
+Description,"아카이브된 공유 케이스의 특정 이미지 파일 관련 정보를 조회한다. 
+- 요구사항은, https://vatechcorp.sharepoint.com/:x:/s/es/EWe5ssKf-1tGqVW065afI_0BIOs8L1OXHgULlWL5qH2VKg?e=NIEIKr 을 참고한다.",,,,,,
+URI,/archive-shared-data/cases/{caseUID}/images/{imageId}/fileinfo,,,,,,
+Method,GET,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,ReadArchiveSharedData,,,,,,
+Actions,* GET_shared-data/cases/{caseUid}/images/{imageId}/filinfo를 참고한다. ,,,,,,
+Parameters,Types,Name,Schema ,,,,
+,Path,caseUID,string,,,,
+,,imageId,string,,,,
+Response,Body,-,"{
+  patientInfo?: {
+    chartNo?: string;
+    gender?: string;
+    name?: string;
+    age?: string;
+  },
+  imageInfo: {
+    fileType: string;
+    dimenstion: {
+      imageWidth: number;
+      imageHeight: number;
+    };
+    resolution: {
+      x: string;
+      y: string;
+      sliceThickness: string;
+    };
+    dataSize: string;
+    modality: string;
+    position: {
+       toothIndex: string;
+       formVertical: string;
+       formHorizontal: string; 
+    };
+  },
+  acquisitionInfo: {
+    date: string;
+    kVp: string;
+    dose: string;
+    mA: string;
+  }
+}",,,,
+,,,,,,,
+Description,아카이브된 공유케이스의 이미지 (최대 5개) 의 상세 정보를 조회한다. (Viewer Open 용도),,,,,,
+URI,"/archive-shared-data/cases/{caseUID}/images/details?imageids=[imageId1,imageId2,imageId3…]",,,,,,
+Method,GET,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,ReadArchiveSharedData,,,,,,
+Actions,"* GET_shared-data/cases/{caseUid}/images/details?imageids=[imageId1,imageId2,imageId3…]를 참고한다.",,,,,,
+Parameters,Types,Name,Schema ,,,,
+,Path,caseUID,string,,,,
+,,imageids,string(array)  // A comma-separated list of image id's to delete (maximum: 5),,,,
+Response,Body,Success,"[
+    {
+      id: number;
+      info: {
+          orgFileName: string;
+          modality: string;
+          mode?: string;
+          kvp?: number;
+          mA?: number;
+          does?: number;
+          acquisitionDatetime: string;
+      };
+      file: {
+       imageS3Key: string;
+       originMetaS3Key: string;
+       editedMetaS3Key: string;
+       commentDocumentName?: string;
+      }
+      createdAt: string;
+      updatedAt: string;
+    }
+  ]",,,,
+,,,,,,,
+Description,아카이브된 공유 케이스 이미지 파일을 파일을  ZIP으로 다운로드한다. ,,,,,,
+URI,/archive-shared-data/cases/{caseUID}/images/{imageId}/download-zip,,,,,,
+Method,GET,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,ReadArchiveSharedData,,,,,,
+Actions,"⚠️ v1.1: CT만 지원 / 기존 공유 케이스에 poc 로직이 포함되어 있어 코드 정리 필요하다. 
+* GET_shared-data/cases/{caseUID}/images/{imageId}/download-zip을 참고한다. ",,,,,,
+Parameters,Types,Name,Schema ,,,,
+,Path,caseUID,string,,,,
+,,imageId,string,,,,
+Response,ContentType,application/zip,,,,,
+,,,,,,,
+Description,아카이브된 공유 케이스에 포함된 파일 전체를 zip로 다운로드한다. ,,,,,,
+URI,/archive-shared-data/cases/{caseUID}/download,,,,,,
+Method,GET,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,DownloadArchiveSharedData,,,,,,
+Actions,* GET_shared-data/cases/{caseUID}/download을 참고한다. ,,,,,,
+Parameters,Types,Name,Schema ,,,,
+,Path,caseUID,공유 케이스 UID,,,,
+Response,ContentType,application/zip,,,,,
+,,,,,,,
+Description,"아카이브된 공유케이스에 포함된 파일의 조회 및 업데이트를 위한 Cloud Front Signed URL을 생성한다. 
+- 조회: GET_{signedURL} / - 업데이트: PUT_{signedURL}",,,,,,
+URI,/archive-shared-data/files/signed-url,,,,,,
+Method,POST,,,,,,
+Authentication,Required (EzCloud JWT Token via Authorization: Bearer),,,,,,
+Required Permission,UpdateArchiveSharedData,,,,,,
+Actions,* GET_shared-data/files/presigned-url을 참고한다. ,,,,,,
+Parameters,Types,Name,Schema ,,,,
+,Body,-,"{
+  s3Key: string;
+}",,,,
+Response,Body,-,"{
+   s3key: string;
+   url: string;
+}",,,,
+,,,,,,,

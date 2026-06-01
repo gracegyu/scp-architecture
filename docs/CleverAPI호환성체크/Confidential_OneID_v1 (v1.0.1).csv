@@ -1,0 +1,80 @@
+﻿logs,,,
+,,,
+Description,Log를 조회한다.,,
+URI,/logs/users,,
+Method,GET,,
+Authentication,Auhorization header,,
+Required Permission,-,,
+Actions,-,,
+Parameters,Types,Name,Schema
+,Query,-,"{
+  sort?: string.
+  page?: number,
+  perpage?: number,
+  actionType: string,
+  startDate: string,
+  endDate: string,
+}"
+Response,Body,-,"{
+  result: [
+    timestamp: string,
+    unixTime: number,
+    actionType: string,
+    userAgent?: string,
+    ipAddress: string,
+    ip2geo: [
+      country: string,
+      location: [
+        lat: number,
+        lng: number,
+        city: string,
+      ]
+      timeZone: string,
+    ],
+  ],
+  meta: {
+    itemsPerPage: number,
+    totalItems: number,
+    currentPage: number,
+    totalPages: number,
+  }
+}"
+,,,
+Description,Log를 그룹화 하여 조회한다.,,
+URI,/logs/users/aggregation,,
+Method,GET,,
+Authentication,Auhorization header,,
+Required Permission,-,,
+Actions,-,,
+Parameters,Types,Name,Schema
+,Query,-,"{
+  sort?: string.
+  perpage?: number,
+  actionType: string,
+  startDate: string,
+  endDate: string,
+  groupBy: string,
+  sortField: string,
+  afterGroupKey?: string,
+  afterSortKey?: string,
+}"
+Response,Body,-,"{
+  result: [
+    timestamp: string,
+    unixTime: number,
+    actionType: string,
+    userAgent?: string,
+    ipAddress: string,
+    ip2geo: [
+      country: string,
+      location: [
+        lat: number,
+        lng: number,
+        city: string,
+      ]
+      timeZone: string,
+    ],
+  ],
+  afterGroupKey: string,
+  afterSortKey: string
+}"

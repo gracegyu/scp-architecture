@@ -1,0 +1,126 @@
+﻿Description,국가 목록을 검색한다. ,,,,,,,,,
+URI,sysconfig/countries,,,,,,,,,
+Method,GET,,,,,,,,,
+Authentication,Public,,,,,,,,,
+Required Permission,Public,,,,,,,,,
+Actions,"[OneID DB]
+1. countries 테이블에서 데이터를 검색한다. ",,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,
+,-,-,-,,,,,,,
+Response,Body,-,"[
+  {
+    id: number;
+    code: string;
+    name: string;
+  }
+]",,,,,,,
+,,,,,,,,,,
+Description,약관 목록을 검색한다. ,,,,,,,,,
+URI,terms,,,,,,,,,
+Method,GET,,,,,,,,,
+Authentication,Public,,,,,,,,,
+Required Permission,Public,,,,,,,,,
+Actions,"[OneID DB]
+1. terms 테이블에서 데이터를 검색한다. ",,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,
+,-,-,-,,,,,,,
+Response,Body,-,"[
+  {
+    id: number;
+    title: string;
+    type: TermsType;
+    required: boolean;
+    order: number;
+  }
+]",Ann: 07/22/화 type 추가,,,,,,
+,,,,,,,,,,
+Description,약관을 조회한다. ,,,,,,,,,
+URI,terms/:id/:locale,,,,,,,,,
+Method,GET,,,,,,,,,
+Authentication,Public,,,,,,,,,
+Required Permission,Public,,,,,,,,,
+Actions,"[OneID DB]
+1. terms 테이블에서 데이터를 검색한다.
+2. parameter로 전달 받은 locale과 terms 테이블에 저장된 content_key 정보를 이용하여, 약관 content url을 생성한다. 
+  - 약관 파일은 S3에 지원 언어 별로 S3에 html 파일로 저장한다. ",,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,
+,Path,id,string,,,,,,,
+,,locale,string,,,,,,,
+Response,Body,-,"{
+  id: number;
+  url: string;   // html url 
+}",,,,,,,
+,,,,,,,,,,
+Description,Sales Area 목록을 검색한다.,,,,,,,,,
+URI,/salesarea,,,,,,,,,
+Method,GET,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,
+Required Permission,ReadAdminConfig,,,,,,,,,
+Actions,"[OneID DB]
+1. salesarea 테이블에서 데이터를 검색한다. ",,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,
+,Path,-,-,,,,,,,
+Response,Body,-,"[
+  {
+    id: number;
+    name: string;
+  }
+]
+",08/29/목 (Larry): string -> number 변경,,,,,,
+,,,,,,,,,,
+Description,Sales Area에 속한 국가 목록을 검색한다. ,,,,,,,,,
+URI,/salesarea/:id/countries,,,,,,,,,
+Method,GET,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,
+Required Permission,ReadAdminConfig,,,,,,,,,
+Actions,"[OneID DB]
+1. salesarea, countries 테이블에서 데이터를 검색한다. ",,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,
+,Path,id,number,08/29/목 (Larry): string -> number 변경,,,,,,
+Response,Body,-,"[
+  {
+    code: string;
+    name: string;
+  }
+]
+",,,,,,,
+,,,,,,,,,,
+Description,관리자 역할 목록을 검색한다.,,,,,,,,,
+URI,/admins/roles&sort=:sort&page=:page&perpage=:perpage,,,,,,,,,
+Method,GET,,,,,,,,,
+Authentication,Authorization Header,,,,,,,,,
+Required Permission,ReadAdminConfig,,,,,,,,,
+Actions,"[OneID DB]
+1. admin_roles 테이블에서 관리자 역할 리스트를 검색한다. ",,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,
+,Query,sort,string [Optinal | Values - name | Default - name:asc],,,,,,,
+,,page,number [Optional | Default - 1),,,,,,,
+,,perpage,number [Optional | Default - 15],,,,,,,
+Response,Body,-,"{
+  result: [
+    {
+      id: number;
+      type: 'SystemDefinedRoles' | 'CustomRoles';
+      name: string;
+      level: number;
+    }
+  ],
+  meta: {
+    itemsPerPage: number;
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }
+}",,,,,,,
+,,,,,,,,,,
+Description,User Console end point를 조회한다. ,,,,,,,,,
+URI,sysconfig/userconsole,,,,,,,,,
+Method,GET,,,,,,,,,
+Authentication,Public,,,,,,,,,
+Required Permission,Public,,,,,,,,,
+Actions,User console end point를 전달한다. ,,,,,,,,,
+Parameters,Types,Name,Schema,,,,,,,
+,,,,,,,,,,
+Response,Body,-,"{
+  endpoint: string; 
+}",,,,,,,
