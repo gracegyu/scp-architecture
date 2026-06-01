@@ -14,8 +14,10 @@ CleverOne ↔ EzServer ↔ CleverSpace 연동에서 **클라이언트 버전이 
 
 - 연동 경로가 **2개**다: `CleverOne → EzServer → CleverSpace`(경로 A), `CleverOne → CleverSpace`(경로 B, Direct).
 - **EzServer는 Server이면서 Client**다. CleverOne 입장의 서버이고, CleverSpace·OneID 입장의 클라이언트다.
+- **버전 분포가 비대칭**이다. CleverSpace는 **단일(항상 최신) 버전 1개**인 반면, EzServer는 **클리닉마다**, CleverOne은 **클라이언트마다(심지어 한 클리닉 안에서도) 여러 버전**이 공존한다. 따라서 “클라이언트가 서버 버전을 확인”하는 기존 모델(EzServer `CheckServerVersion`)을 CleverSpace에는 **그대로 적용할 수 없다.**
+- **호환의 단위는 제품 버전이 아니라 API(기능)다.** CleverSpace는 단일 버전이지만 API를 **점증적으로 추가**해 왔고, 최근 추가 API는 **최신 CleverOne/EzServer만 지원**한다. 즉 같은 CleverSpace 1개를 두고도 **API별로 요구되는 최소 클라이언트 버전이 다르다.** 호환성 매트릭스도 `API(기능) × 최소 클라이언트 버전` 형태여야 한다.
 - 호환성 제어 방안 4가지는 **배타적 선택이 아니다**. 서버가 **제약을 집행**하고, 클라이언트는 **사전에 호환 여부를 알아 UX를 개선**하는 **2~3개 조합**이 현실적이다.
-- 클라이언트(CleverOne, EzDent-i 등)는 **여러 개**를 고쳐야 하지만, CleverSpace·EzServer는 **한 곳(또는 소수) 수정으로 전 클라이언트에 효과**를 줄 수 있다.
+- 클라이언트(CleverOne, EzDent-i 등)는 **여러 개·여러 버전**을 고쳐야 하지만, CleverSpace는 **단일 버전 1곳 수정으로 전 클라이언트에 효과**를 줄 수 있다(서버 집중이 비용 효율적인 근거).
 
 **권장 조합**
 
@@ -60,6 +62,35 @@ SRS v6.2(EzServer PMS Integration)는 경로 A의 시퀀스를 정의한다. Ima
 | EzServer → CleverOne | **Server** (MQTT messenger) | `clever_space_error_codes`를 MQTT payload로 전달 |
 
 **시사점:** CleverSpace에서 min client version을 검증하려면 **경로 B(Direct)는 CleverOne 헤더**를, **경로 A는 EzServer가 대리 전달**해야 한다. EzServer만 고치면 경로 A는 일괄 적용되지만, **경로 B는 CleverOne(ESLinkageCloudPlatform) 수정 없이는 버전을 알 수 없다.**
+
+### 1.3 버전 분포 비대칭과 “API별 호환성”
+
+> **이 과제의 핵심 이슈**(VKS): “CleverSpace가 **새로 추가한 API**를 구버전 CleverOne·EzServer가 인식하지 못해 제약이 생긴다.” 즉 문제의 단위는 제품 버전이 아니라 **API별 지원 여부**다. 본 절은 그 구조를 정리하고, 본 보고서의 목적은 **‘버전(=API 지원 여부)을 확인하는 방법’ 제시**에 있다. **API별 정확한 최소 버전 값은 이 보고서 범위가 아니며**, 전략 적용 시 각 API 도입 릴리즈를 추적해 확정한다. 여기서는 **소스로 확인된 것만 기재하고, 모르는 값은 ‘미상’으로 둔다.**
+
+호환성 문제의 근본 원인은 **세 제품의 버전 분포가 다르다**는 점이다.
+
+| 제품 | 배포 형태 | 버전 분포 | 호환성 관점 |
+|------|-----------|-----------|-------------|
+| **CleverSpace** | 클라우드 SaaS | **단일(항상 최신) 1개** | API를 점증 추가. 구버전 API 제거는 드묾 → **하위호환은 서버가 쥠** |
+| **EzServer** | 클리닉 온프레미스 설치 | **클리닉마다 상이** (다수) | 클리닉 업데이트 주기에 종속. 한 시점에 여러 버전 운영 |
+| **CleverOne** | 데스크톱 클라이언트 | **클라이언트마다 상이**, **한 클리닉 안에서도 혼재** 가능 | 가장 분산. 자동 업데이트 어려움 |
+
+이로부터 두 가지가 도출된다.
+
+1. **방향 역전:** 기존엔 “클라이언트(CleverOne)가 서버(EzServer) 버전을 확인”했다(`CheckServerVersion`). 그러나 CleverSpace는 단일·항상-최신이라 **클라이언트가 CleverSpace 버전을 확인하는 것은 무의미**하다. 대신 **“이 클라이언트 버전이 이 API/기능을 쓸 수 있는가”**를 판정해야 한다. 즉 **서버가 API별 최소 클라이언트 버전을 알고**, 클라이언트는 **기능(capability) 단위로 조회**하는 모델이 맞다.
+
+2. **호환성 단위 = API/기능:** CleverSpace 1개를 두고도 API마다 도입 시점이 달라 **요구 최소 클라이언트 버전이 제각각**이다. 따라서 호환성 매트릭스는 제품 버전 곱(`CleverSpace × EzServer × CleverOne`)이 아니라 **아래 형태**가 핵심이다. 아래 표는 **형식(템플릿) 예시**이며, 값은 소스로 확인된 항목만 채우고 나머지는 `미상`으로 둔다.
+
+| API / 기능 | CleverSpace 도입 | CleverOne 현재 지원 | EzServer(EPI) 현재 지원 | 최소 클라이언트 버전 | 경로 |
+|------------|------------------|---------------------|--------------------------|----------------------|------|
+| `GET /organization-data/upload/limit` | v1.1 | 지원 (`CheckUploadCondition`) | — | **미상** | B |
+| 400110~400113 (한도 초과) | v1.1 이하 | 지원 (`MessagingDialog`) | relay 됨 | **미상** | A |
+| `POST /tenants/subscriptions/validate-limits` | v1.3(PLAN-1191) | **미연동** | **미연동** | **미상** (계획: PLAN-1191 타겟 CleverOne v1.5.5 / EzServer v6.5.0) | A·B |
+| 400116 (일일 업로드) | v1.3 | **미처리** | relay 필요 | **미상** (validate-limits와 동일 릴리즈 추정) | A |
+
+표에서 **확인된 것**은 “현재 CleverOne/EzServer 소스가 그 API·error code를 지원하는가”(지원/미지원)이고, **미상**은 “그 API를 처음 지원한 최소 클라이언트 버전 번호”다. 후자는 각 API 도입 릴리즈 노트를 추적해야 알 수 있으므로 본 보고서에서는 채우지 않는다(방법 4 적용 단계의 산출물).
+
+**결론:** “단일 서버 1곳 수정으로 다수 클라이언트 커버”라는 이점은 **서버가 API별 호환 정보를 보유·노출**할 때 성립한다. 이것이 방법 1(capability 조회)·방법 4(매트릭스)를 **API 단위**로 설계해야 하는 이유다.
 
 ---
 
@@ -134,7 +165,7 @@ PLAN-1191: EzServer가 MQTT error code 확장·히스토리 에러 표시 담당
 
 ### 방법 1: 클라이언트 주도 — capability·호환 범위 **사전 조회**
 
-클라이언트(또는 ESLinkageCloudPlatform)가 CleverSpace/EzServer **지원 기능·min version**을 조회하고, 미달 시 기능 비활성화·업데이트 안내.
+클라이언트(또는 ESLinkageCloudPlatform)가 CleverSpace/EzServer의 **API별 지원 여부·기능(capability)**을 조회하고, 미지원 시 해당 기능만 비활성화·업데이트 안내. CleverSpace가 단일 버전이므로 “서버 버전 비교”가 아니라 **“이 기능을 내 버전이 쓸 수 있는가”를 기능 단위로 묻는** 형태여야 한다.
 
 | 장점 | 단점 |
 |------|------|
@@ -168,12 +199,12 @@ CleverOne Direct를 점진 폐기하고 CleverSpace API를 **EzServer EPI가 대
 
 ### 방법 4: 계약·호환성 매트릭스 — 릴리즈 프로세스
 
-EzServer Releases CSV와 유사한 **CleverSpace 호환성 테이블** + error code registry + unknown code **fallback** 규칙.
+EzServer Releases CSV와 유사하되, **축이 다르다.** CleverSpace는 단일 버전이므로 `제품 × 제품` 곱이 아니라 **`API/기능 × 최소 클라이언트 버전`(§1.3 표)** 형태의 테이블을 유지한다. + error code registry + unknown code **fallback** 규칙.
 
 | 장점 | 단점 |
 |------|------|
-| QA·릴리즈 노트·버전 조합 **명시적 관리** | 매트릭스 **운영 부담** (자동화 없으면 drift) |
-| 런타임(2) + 프로세스 이중 안전 | 런타임만으로는 구버전 차단 불가 |
+| API 추가 때마다 **최소 CleverOne/EzServer 버전**을 명시 → QA·릴리즈 노트 연동 | 매트릭스 **운영 부담** (자동화 없으면 drift) |
+| 런타임(2) + 프로세스 이중 안전. 방법 1·2의 **데이터 소스** | 런타임만으로는 구버전 차단 불가 |
 
 **단독 적용:** 불충분. **방법 2의 설계 입력** + **방법 1의 클라이언트 내장표**로 사용.
 
@@ -271,7 +302,7 @@ CleverSpace / OneID
 
 | 순서 | 작업 |
 |------|------|
-| 1 | `/.well-known/server-configuration.json`에 `release`, `min-client-versions`, `features` |
+| 1 | `/.well-known/server-configuration.json`에 `features`(API/기능별 `min-client-versions`) 노출 — 단일 서버가 **API별 최소 클라이언트 버전**을 공시 |
 | 2 | EzServer Gateway — Direct API **점진 EPI 흡수** |
 | 3 | ESLinkageCloudPlatform **부분 업데이트** 채널 |
 | 4 | 호환성 매트릭스 CI gate (EzServer Releases CSV 수준) |
@@ -290,10 +321,11 @@ CleverSpace / OneID
 ## 6. 권장안 요약
 
 1. **4방안 중 1개 선택이 아니라 2+4+1 조합**이 VKS·PLAN-1191·2경로 구조에 가장 맞다.
-2. **서버(CleverSpace)가 제약의 source of truth** — `validate-limits`, min version, error code 발급. **클라이언트는 사전 조회(1)로 UX**를 부드럽게 한다.
-3. **EzServer는 1차에서 “CleverSpace 앞단 게이트”** 역할을 강화하면 경로 A 다수 클라이언트를 **한 번에** 올릴 수 있다. **경로 B는 ESLinkageCloudPlatform 필수 수정.**
-4. v1.3 **400116** 등 MMI code는 CleverOne switch **하드코딩 확장(단기)** + error registry **(중기)**.
-5. EzServer PMS `/versions` 패턴을 CleverSpace **compatibility endpoint** 또는 well-known 확장으로 **대칭 구현** 검토(2차).
+2. **버전 분포가 비대칭**(CleverSpace 단일 vs EzServer·CleverOne 다수)이라, **호환의 단위를 제품 버전이 아닌 API/기능**으로 잡아야 한다. 단일 서버에 **API별 최소 클라이언트 버전**을 보유시키는 것이 다수 클라이언트를 가장 적은 수정으로 커버하는 길이다.
+3. **서버(CleverSpace)가 제약의 source of truth** — `validate-limits`, API별 min client version, error code 발급. **클라이언트는 기능 단위 사전 조회(1)로 UX**를 부드럽게 한다. CleverSpace가 단일·최신이라 **클라이언트가 서버 버전을 보는 기존 방식은 무효**하다.
+4. **EzServer는 1차에서 “CleverSpace 앞단 게이트”** 역할을 강화하면 경로 A 다수 클라이언트를 **한 번에** 올릴 수 있다. **경로 B는 ESLinkageCloudPlatform 필수 수정.**
+5. v1.3 **400116** 등 MMI code는 CleverOne switch **하드코딩 확장(단기)** + error registry **(중기)**.
+6. EzServer PMS `/versions` 패턴을 CleverSpace **compatibility endpoint** 또는 well-known 확장(**API별 최소 버전 노출**)으로 **대칭 구현** 검토(2차).
 
 ---
 
@@ -304,7 +336,7 @@ CleverSpace / OneID
 | P0 | Client 식별 헤더 스펙 1p (User-Agent vs `X-Ewoosoft-Client`, 경로 A/B/EPI 전달 규칙) | Thomas / Raymond |
 | P0 | MMI error code ↔ CleverOne/EPI 매핑표 (400116 포함) | Thomas + CleverSpace |
 | P1 | `validate-limits` **호출 주체·시점** 확정 (EPI only vs Direct also) | Jay / CleverSpace |
-| P1 | CleverSpace 호환성 매트릭스 v0.1 (EzServer Releases CSV 컬럼 참고) | Raymond |
+| P1 | CleverSpace 호환성 매트릭스 v0.1 — **`API/기능 × 최소 CleverOne/EzServer 버전`** 축 (§1.3 표 확장) | Raymond |
 | P1 | ESLinkageCloudPlatform `CheckUploadCondition` → validate-limits | ESLinkageCloudPlatform |
 | P2 | well-known capability / Gateway 로드맵 | 아키텍처 |
 
