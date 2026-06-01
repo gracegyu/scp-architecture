@@ -482,3 +482,109 @@ flowchart TB
 | EPI CleverSpace error → MQTT | `ezserver_pms_integration/src/upload_manager/upload_manager_context.rs` |
 | EzServer PMS version check | `ezserver_pms_integration/src/epi_api_server/handler/post_clinics.rs` |
 | CleverSpace error enums | `ezcloud/packages/apis/api-types/src/errors/*.ts` |
+
+---
+
+## 부록 C: 관리 대상 파일 샘플
+
+호환성 전략을 운영하려면 아래 파일들을 **누가·어디서 관리하는지**가 분명해야 한다. 각 샘플의 버전 값은 **예시이며, 실제 값은 §1.3 주의대로 확정 필요**(미상).
+
+### C.1 `server-configuration.json` (CleverSpace·OneID 보관)
+
+CleverSpace와 OneID가 각각 환경별로 보관하는 **서버 디스커버리 파일**이다. 클라이언트는 이 파일을 먼저 받아 endpoint를 확인한다.
+
+- 위치(실제): CleverSpace `ezcloud/packages/apis/api-server/src/static/.well-known/<env>/server-configuration.json`, OneID `oneid/packages/apis/api-server/src/.well-known/<env>/server-configuration.json`
+- 조회: `GET /.well-known/server-configuration.json`
+
+**AS-IS (현재 실제 내용 — production 예)**
+
+```json
+{
+  "version": "v1",
+  "api-endpoint": "https://server.cleverspacecloud.com",
+  "app-endpoint": "https://cleverspacecloud.com"
+}
+```
+
+`version`은 **URI API 버전(v1)**일 뿐 제품 릴리즈 버전이 아니며, **API별 호환·min client 정보가 없다.** 이것이 §1.3에서 말한 gap이다.
+
+**TO-BE 2차 제안 (capability·호환 정보 확장 — 예시)**
+
+```json
+{
+  "version": "v1",
+  "api-endpoint": "https://server.cleverspacecloud.com",
+  "app-endpoint": "https://cleverspacecloud.com",
+  "product-release": "1.3.0",
+  "features": {
+    "subscription.validate-limits": {
+      "min-client": { "CleverOne": "1.5.5", "EzServer": "6.5.0" }
+    },
+    "organization-data.upload.limit": {
+      "min-client": { "CleverOne": "1.0.0", "EzServer": "6.0.0" }
+    }
+  },
+  "known-error-codes": [400110, 400111, 400112, 400113, 400116, 401101, 403100, 404101]
+}
+```
+
+> 클라이언트(또는 EzServer Gateway)는 `features[].min-client`로 **자기 버전이 그 기능을 쓸 수 있는지** 판정한다(방법 1·§1.3 방향 역전). 위 `min-client` 값은 **예시(미상)**.
+
+### C.2 호환성 매트릭스 (릴리즈 프로세스 — 신규 관리 파일)
+
+**현재는 파일로 존재하지 않는다.** 방법 4·§1.3 표를 **버전 관리되는 파일**(리포지토리에 두고 릴리즈 때 갱신)로 운영하자는 제안이다. EzServer Releases CSV와 같은 결의 산출물이며, 축은 `API/기능 × 최소 클라이언트 버전`이다. CSV(표 친화) 또는 YAML(구조화) 중 택1.
+
+**CSV 예시** (`compatibility-matrix.csv`)
+
+```csv
+api_or_feature,cleverspace_introduced,min_cleverone,min_ezserver,path,status,note
+GET /organization-data/upload/limit,v1.1,미상,미상,B,지원,기존
+errorcode:400110-400113,v1.1,지원,relay,A,지원,한도 초과
+POST /tenants/subscriptions/validate-limits,v1.3,미상,미상,A·B,미연동,v1.3 신규(계획 CleverOne 1.5.5 / EzServer 6.5.0)
+errorcode:400116,v1.3,미처리,relay 필요,A,미처리,일일 업로드
+```
+
+**YAML 예시** (`compatibility-matrix.yaml`) — well-known 자동 생성 소스로 쓰기 좋음
+
+```yaml
+features:
+  - id: subscription.validate-limits
+    introduced: "1.3.0"
+    path: [A, B]
+    min-client: { CleverOne: "1.5.5", EzServer: "6.5.0" }   # 미상: 확정 필요
+    status: not-integrated
+  - id: organization-data.upload.limit
+    introduced: "1.1"
+    path: [B]
+    min-client: { CleverOne: "1.0.0", EzServer: "6.0.0" }   # 미상: 확정 필요
+    status: supported
+```
+
+### C.3 오류 코드 registry (CleverOne·EPI 공용 — 신규 관리 파일)
+
+`MessagingDialog`의 하드코딩 switch(§2.3)를 대체할 **코드→분류→메시지** 매핑과, 모르는 코드의 **fallback** 규칙을 한 파일로 둔다. CleverOne·EPI가 같은 소스를 참조하면 코드 추가 시 일관 처리된다.
+
+**JSON 예시** (`error-code-registry.json`)
+
+```json
+{
+  "400110": { "category": "USAGE_LIMIT",       "message_key": "Usage Limit Exceed", "since": "1.1" },
+  "400111": { "category": "USAGE_LIMIT",       "message_key": "Usage Limit Exceed", "since": "1.1" },
+  "400116": { "category": "USAGE_LIMIT",       "message_key": "Usage Limit Exceed", "since": "1.3" },
+  "401101": { "category": "PERMISSION_DENIED", "message_key": "Permission Denied",  "since": "1.1" },
+  "403100": { "category": "PERMISSION_DENIED", "message_key": "Permission Denied",  "since": "1.1" },
+  "404101": { "category": "PERMISSION_DENIED", "message_key": "Permission Denied",  "since": "1.1" },
+  "400102": { "category": "FAIL",              "message_key": "Fail",               "since": "1.1" },
+  "_fallback": { "category": "UNKNOWN", "message_key": "Please update your client", "action": "prompt_update" }
+}
+```
+
+> `_fallback`이 §4.1·§5.1의 “unknown code → 업데이트 안내” 규칙이다. 신규 코드(예: 400116)는 이 파일에만 추가하면 클라이언트 코드 수정 없이 분류·메시지가 적용되도록 설계한다.
+
+### C.4 관리 주체 요약
+
+| 파일 | 보관/관리 주체 | 비고 |
+|------|----------------|------|
+| `server-configuration.json` | **CleverSpace, OneID** (서버) | 현존. 2차에서 features·min-client 확장 |
+| `compatibility-matrix.(csv\|yaml)` | **PM/아키텍처** (릴리즈 프로세스) | 신규. well-known 생성 소스로 활용 가능 |
+| `error-code-registry.json` | **CleverOne·EzServer 공용** | 신규. MMI/CleverSpace error 정의와 동기화 |
