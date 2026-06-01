@@ -70,6 +70,8 @@ flowchart LR
 
 SRS v6.2(EzServer PMS Integration)는 경로 A의 시퀀스를 정의한다. Imaging App(CleverOne)이 EPI에 업로드/공유를 요청하면, EPI가 presigned URL·organization-data API를 호출하고 **결과를 MQTT로 Imaging App에 전달**한다.
 
+**경로가 둘로 갈리는 기준 = EzServer(EPI) 지원 여부.** 업로드·공유처럼 **EPI가 대리 API를 제공하는 기능**은 경로 A로 가고, OneID 로그인·`upload/limit`·tenant/member 조회처럼 **EPI가 노출하지 않는 CleverSpace/OneID API**는 CleverOne이 ESLinkageCloudPlatform으로 **직접(경로 B)** 호출한다. 즉 Direct 경로는 “굳이 직접 가고 싶어서”가 아니라 **EzServer가 해당 API를 중계하지 않기 때문에** 생긴 우회로다. CleverSpace가 새 API를 추가할 때 EPI가 따라가지 못하면 그만큼 **경로 B가 늘어나는** 구조다.
+
 ### 1.2 EzServer의 이중 역할
 
 | 관점 | 역할 | 버전·식별 현황 |
@@ -108,6 +110,22 @@ SRS v6.2(EzServer PMS Integration)는 경로 A의 시퀀스를 정의한다. Ima
 표에서 **확인된 것**은 “현재 CleverOne/EzServer 소스가 그 API·error code를 지원하는가”(지원/미지원)이고, **미상**은 “그 API를 처음 지원한 최소 클라이언트 버전 번호”다. 후자는 각 API 도입 릴리즈 노트를 추적해야 알 수 있으므로 본 보고서에서는 채우지 않는다(방법 4 적용 단계의 산출물).
 
 **결론:** “단일 서버 1곳 수정으로 다수 클라이언트 커버”라는 이점은 **서버가 API별 호환 정보를 보유·노출**할 때 성립한다. 이것이 방법 1(capability 조회)·방법 4(매트릭스)를 **API 단위**로 설계해야 하는 이유다.
+
+### 1.4 경로 B(Direct)에 대한 우려 — 인증·연동 창구 일원화
+
+이것은 버전 호환성과 **별개로 다뤄야 할 중요한 구조 이슈**다(VKS 추가 주제: “CleverOne→CleverSpace Direct를 EzServer를 통하도록”, “EzServer Gateway”, “각 연결의 authentication”).
+
+**현재 (AS-IS) 문제 제기**
+
+- CleverOne이 EzServer가 **지원하지 않는 CleverSpace/OneID API**를 직접 호출하면서(경로 B), CleverSpace로 가는 **연동 창구가 둘**로 갈렸다.
+- 이에 대해 **“모든 CleverOne의 CleverSpace 연동도 결국 EzServer를 거쳐야 하는 것 아니냐”**는 의견이 있다. 근거는 다음과 같다.
+  - **인증 분산:** 경로 B는 CleverOne이 OneID OAuth 토큰을 **직접** 보관·갱신한다(`ProgramData/.../oneid/oauth.json`). 경로 A의 EzServer client_id/secret 기반 인증과 **이원화**되어, 토큰 관리·만료·권한 정책이 두 곳에 흩어진다.
+  - **정책 집행 공백:** 버전·quota·error code 검증을 경로 A는 EPI에서 할 수 있지만, 경로 B는 **CleverOne(클라이언트) 또는 CleverSpace(서버) 양끝**에만 의존한다. 클리닉마다·클라이언트마다 버전이 다른 환경에서 Direct는 통제점이 없다.
+  - **창구 증식:** §1.1대로 CleverSpace가 새 API를 늘릴수록 EPI 미중계분이 경로 B로 쌓여, 일관성·감사(audit)·보안 표면이 계속 벌어진다.
+
+**제안 방향**: EzServer가 **Gateway(단일 연동 창구)** 역할을 맡아, CleverOne의 CleverSpace 연동을 **인증·검증·중계까지 한곳에서** 처리하자는 것이다. 이는 방법 3(§3)·TO-BE 2차(§5.2)의 핵심이며, 본 보고서는 이를 **권장하되 점진 전환**으로 본다(아래 주의).
+
+> **주의 — 2차에서 경로 B를 “제거”하는 것이 아니라 “EzServer Gateway로 흡수”한다.** 즉 CleverOne 입장에서 Direct 호출을 EzServer 경유로 **대체**하는 것이며, 기능 자체를 없애는 것이 아니다. 전환에는 (1) EPI가 현재 Direct로만 가능한 API(OneID OAuth, `upload/limit`, tenant/member 등)를 **중계 endpoint로 추가**, (2) 인증 모델 통일(EzServer 경유 토큰 발급/위임), (3) ESLinkageCloudPlatform이 Direct 대신 EPI를 호출하도록 전환 — 이 선행돼야 한다. 그래서 **1차에서는 경로 B를 유지**하고(헤더·validate-limits 적용), **2차에서 EPI 중계가 준비된 API부터 순차 흡수**한다.
 
 ---
 
@@ -205,11 +223,11 @@ CleverSpace(및 EzServer EPI)가 Client 식별 헤더를 파싱하거나, **사�
 
 ### 방법 3: EzServer Gateway — Policy Enforcement Point
 
-CleverOne Direct를 점진 폐기하고 CleverSpace API를 **EzServer EPI가 대리**. 버전·quota·error code 변환을 EPI 한곳에 집중.
+CleverOne Direct(경로 B)를 **EzServer EPI가 대리·흡수**하고, 버전·quota·error code 변환과 **인증을 EPI 한곳에 집중**. §1.4 Direct 우려(인증 이원화·정책 공백·창구 증식)에 대한 근본 해법이다.
 
 | 장점 | 단점 |
 |------|------|
-| 검증·로깅·호환 **단일 지점**. PMS `/versions` 패턴 재사용 | **아키텍처 변경**. Direct 경로(OneID OAuth, member search) 이전 비용 |
+| 검증·로깅·호환·**인증 단일 지점**. PMS `/versions` 패턴 재사용. 연동 창구 일원화 | **아키텍처 변경**. Direct 전용 API(OneID OAuth, `upload/limit`, member search)를 EPI에 **중계 endpoint로 추가**해야 흡수 가능 |
 | EzServer가 CleverSpace **대표 Client** → 헤더·버전 일원화 | 단기 v1.3 일정에 과함 |
 
 **단독 적용:** 2차 목표. 1차에서는 EPI에 **validate-limits 호출·error 전달 강화**만 선적용.
@@ -346,18 +364,21 @@ flowchart LR
 
 > 핵심: 제약의 기준은 **단일 서버(CleverSpace)**, EzServer는 경로 A의 게이트로 헤더·error 전달, CleverOne·ESLinkageCloudPlatform은 경로 B 헤더·사전검증을 담당.
 
-### 5.2 2차 — 구조 개선
+### 5.2 2차 — 구조 개선 (경로 B의 EzServer Gateway 흡수 포함)
 
-**목표:** VKS 회의록 “연동 기능은 자동 업데이트/호환” + Tom idea(모듈 단위 업데이트).
+**목표:** VKS 회의록 “연동 기능은 자동 업데이트/호환” + Tom idea(모듈 단위 업데이트) + **VKS 추가 주제(§1.4)의 연동 창구 일원화·인증 통일**.
+
+**핵심: 경로 B(Direct)를 “제거”가 아니라 “EzServer Gateway로 흡수”한다.** §1.4에서 제기한 Direct 우려(인증 이원화·정책 공백·창구 증식)를 구조적으로 해소하는 단계다. CleverOne은 더 이상 CleverSpace/OneID를 직접 호출하지 않고, **모든 연동을 EzServer 경유**로 보낸다. 단, 이는 EPI가 해당 API를 **중계할 수 있게 된 것부터 순차적으로** 이뤄지며, 전환이 끝나기 전까지는 일부 기능이 한시적으로 Direct로 남는다(점선).
 
 **권장 조합: 방법 3 + 4 + 1**
 
-| 순서 | 작업 |
-|------|------|
-| 1 | `/.well-known/server-configuration.json`에 `features`(API/기능별 `min-client-versions`) 노출 — 단일 서버가 **API별 최소 클라이언트 버전**을 공시 |
-| 2 | EzServer Gateway — Direct API **점진 EPI 흡수** |
-| 3 | ESLinkageCloudPlatform **부분 업데이트** 채널 |
-| 4 | 호환성 매트릭스 CI gate (EzServer Releases CSV 수준) |
+| 순서 | 작업 | 경로 B 흡수와의 관계 |
+|------|------|----------------------|
+| 1 | `/.well-known/server-configuration.json`에 `features`(API/기능별 `min-client-versions`) 노출 | Gateway·클라이언트 공통 호환 기준 |
+| 2 | **EPI 중계 endpoint 확충** — 현재 Direct 전용 API(OneID OAuth, `upload/limit`, tenant/member 등)를 EPI에 추가 | **경로 B → A 전환의 전제** |
+| 3 | **인증 모델 통일** — EzServer 경유 토큰 발급/위임으로 OAuth 창구 일원화 | §1.4 인증 이원화 해소 |
+| 4 | ESLinkageCloudPlatform이 Direct 대신 **EPI 호출로 전환** + 모듈 단위 부분 업데이트 채널 | 클라이언트 측 흡수 |
+| 5 | 호환성 매트릭스 CI gate (EzServer Releases CSV 수준) | 릴리즈 자동 검증 |
 
 **TO-BE 2차 전체 구조**
 
@@ -365,7 +386,7 @@ flowchart LR
 flowchart LR
     subgraph CLINIC["클리닉"]
         CO["CleverOne<br/>모듈 단위 업데이트(연동부 자동)<br/>capability 조회"]
-        EPI["EzServer Gateway (EPI)<br/>CleverSpace API 대리<br/>단일 Policy Enforcement Point"]
+        EPI["EzServer Gateway (EPI)<br/>CleverSpace/OneID API 대리·인증 일원화<br/>단일 Policy Enforcement Point"]
     end
     subgraph CLOUD["CleverSpace (단일 버전)"]
         WK["/.well-known<br/>features + API별 min-client-versions"]
@@ -375,15 +396,20 @@ flowchart LR
 
     CO -->|"capability 조회"| WK
     EPI -->|"capability 조회"| WK
-    CO -->|"모든 연동 요청 (Direct 점진 폐기)"| EPI
-    EPI -->|"검증·버전·error 변환 후 호출"| CS
+    CO ==>|"모든 연동 요청 (경로 A로 통합)"| EPI
+    EPI -->|"검증·버전·error 변환·인증 위임 후 호출"| CS
     EPI --> OID
+    CO -.->|"경로B 잔여분: 미중계 API 한시 유지 후 폐기"| CS
 
     classDef new fill:#eaf2fb,stroke:#21618c,color:#000;
+    classDef dep fill:#fdecea,stroke:#c0392b,color:#000,stroke-dasharray:5 3;
     class WK,EPI new;
+    class CO dep;
 ```
 
-> 1차의 런타임 보완을 **구조적으로 흡수**: 서버가 well-known으로 API별 호환을 공시하고, EzServer Gateway가 단일 집행점이 되며, CleverOne은 연동 모듈만 자동 업데이트한다.
+> **굵은 화살표** = 경로 A로 통합된 정상 연동. **붉은 점선** = 아직 EPI가 중계하지 못해 한시적으로 남는 경로 B 잔여분(중계 준비되면 폐기). 즉 Direct는 한 번에 끊는 게 아니라 **API별 중계 완료 순서대로 닫힌다.**
+>
+> 1차의 런타임 보완을 **구조적으로 흡수**: 서버가 well-known으로 API별 호환을 공시하고, EzServer Gateway가 인증·검증의 단일 집행점이 되며, CleverOne은 연동 모듈만 자동 업데이트한다.
 
 **1차 → 2차 진화 흐름**
 
@@ -404,6 +430,7 @@ flowchart TB
 4. **EzServer는 1차에서 “CleverSpace 앞단 게이트”** 역할을 강화하면 경로 A 다수 클라이언트를 **한 번에** 올릴 수 있다. **경로 B는 ESLinkageCloudPlatform 필수 수정.**
 5. v1.3 **400116** 등 MMI code는 CleverOne switch **하드코딩 확장(단기)** + error registry **(중기)**.
 6. EzServer PMS `/versions` 패턴을 CleverSpace **compatibility endpoint** 또는 well-known 확장(**API별 최소 버전 노출**)으로 **대칭 구현** 검토(2차).
+7. **경로 B(Direct)는 별도의 중요 이슈(§1.4)다.** Direct는 EzServer 미중계 API의 우회로이며, 인증 이원화·정책 공백을 낳는다. **2차에서 EzServer Gateway가 흡수**하되(제거 아님), EPI 중계 endpoint·인증 통일이 준비된 API부터 **점진 전환**한다.
 
 ---
 
@@ -416,7 +443,8 @@ flowchart TB
 | P1 | `validate-limits` **호출 주체·시점** 확정 (EPI only vs Direct also) | Jay / CleverSpace |
 | P1 | CleverSpace 호환성 매트릭스 v0.1 — **`API/기능 × 최소 CleverOne/EzServer 버전`** 축 (§1.3 표 확장) | Raymond |
 | P1 | ESLinkageCloudPlatform `CheckUploadCondition` → validate-limits | ESLinkageCloudPlatform |
-| P2 | well-known capability / Gateway 로드맵 | 아키텍처 |
+| P1 | **경로 B Direct API 목록·인증 흐름 정리** (어떤 CleverSpace/OneID API가 EPI 미중계로 Direct인지) — Gateway 흡수 대상 산정 | Thomas / Nick |
+| P2 | well-known capability / Gateway 로드맵 + **EPI 중계 endpoint·인증 통일 설계** (경로 B 흡수, §1.4·§5.2) | 아키텍처 |
 
 ---
 
