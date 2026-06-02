@@ -13,7 +13,7 @@
 **해결 방향.** 한 제품만 고쳐서는 풀리지 않는다. **서버(CleverSpace)가 호환 기준을 정해 제약을 집행하고, 클라이언트는 그 기준을 미리 확인**하도록 역할을 나눠 **2단계**로 해결한다.
 
 | 단계 | 핵심 조치 | 기대 효과 |
-|------|-----------|-----------|
+| --- | --- | --- |
 | **1차 (단기 대응)** | CleverSpace **사전 검증 API**(한도 확인) + **클라이언트 식별 정보(버전) 전달** + **오류 코드 매핑·업데이트 안내** + **API별 호환성 표** 운영 | 구버전에서도 **명확한 한도·권한 안내**와 **업데이트 유도**, 원인불명 실패 제거 |
 | **2차 (구조 개선, 장기)** | CleverSpace가 **API별 지원 버전을 공시** + **EzServer를 단일 게이트웨이로 일원화(경로 B 흡수)** + 연동 모듈 **자동 업데이트** | **인증·정책 단일 창구**, 신규 API 자동 호환, 운영·보안 단순화 |
 
@@ -67,12 +67,12 @@ flowchart LR
 
 > 붉은 노드 = 호환성 gap 지점. CleverOne은 버전 미전달, CleverSpace는 제품 버전·API별 호환 정보를 노출하지 않음.
 
-| 기능 | 경로 | ESLinkageCloudPlatform 구현 |
-|------|------|----------------------------|
-| 업로드·공유·이력·파일크기 | **A** (EzServer 경유) | `CEzServerLinker` → EPI `/ezcloud/cases/*` |
-| OneID 로그인·OAuth | **B** (Direct) | `COneIdLinker` |
-| 업로드 제한 조회, tenant/member 검색 | **B** (Direct) | `CEzCloudLinker` → `GET /organization-data/upload/limit` 등 |
-| 업로드/공유 **결과 알림** | **A** (EzServer MQTT) | CleverOne `CMQTTManager` → EzServer messenger |
+| 기능                                 | 경로                  | ESLinkageCloudPlatform 구현                                 |
+| ------------------------------------ | --------------------- | ----------------------------------------------------------- |
+| 업로드·공유·이력·파일크기            | **A** (EzServer 경유) | `CEzServerLinker` → EPI `/ezcloud/cases/*`                  |
+| OneID 로그인·OAuth                   | **B** (Direct)        | `COneIdLinker`                                              |
+| 업로드 제한 조회, tenant/member 검색 | **B** (Direct)        | `CEzCloudLinker` → `GET /organization-data/upload/limit` 등 |
+| 업로드/공유 **결과 알림**            | **A** (EzServer MQTT) | CleverOne `CMQTTManager` → EzServer messenger               |
 
 SRS v6.2(EzServer PMS Integration)는 경로 A의 시퀀스를 정의한다. Imaging App(CleverOne)이 EPI에 업로드/공유를 요청하면, EPI가 presigned URL·organization-data API를 호출하고 **결과를 MQTT로 Imaging App에 전달**한다.
 
@@ -81,7 +81,7 @@ SRS v6.2(EzServer PMS Integration)는 경로 A의 시퀀스를 정의한다. Ima
 ### 1.2 EzServer의 이중 역할
 
 | 관점 | 역할 | 버전·식별 현황 |
-|------|------|----------------|
+| --- | --- | --- |
 | CleverOne → EzServer | **Server** (EzWebServer + EPI) | CleverOne이 `GetVersion` 후 `CheckServerVersion`(최소 6.3.1). UserAgent에 `"CleverOne"`만, **버전 없음** |
 | EzServer → CleverSpace/OneID | **Client** (EPI HTTP) | OAuth client_id 기반. UserAgent·client product version **미전달** |
 | EzServer → CleverOne | **Server** (MQTT messenger) | `clever_space_error_codes`를 MQTT payload로 전달 |
@@ -95,7 +95,7 @@ SRS v6.2(EzServer PMS Integration)는 경로 A의 시퀀스를 정의한다. Ima
 호환성 문제의 근본 원인은 **세 제품의 버전 분포가 다르다**는 점이다.
 
 | 제품 | 배포 형태 | 버전 분포 | 호환성 관점 |
-|------|-----------|-----------|-------------|
+| --- | --- | --- | --- |
 | **CleverSpace** | 클라우드 SaaS | **단일(항상 최신) 1개** | API를 점증 추가. 구버전 API 제거는 드묾 → **하위호환은 서버가 쥠** |
 | **EzServer** | 클리닉 온프레미스 설치 | **클리닉마다 상이** (다수) | 클리닉 업데이트 주기에 종속. 한 시점에 여러 버전 운영 |
 | **CleverOne** | 데스크톱 클라이언트 | **클라이언트마다 상이**, **한 클리닉 안에서도 혼재** 가능 | 가장 분산. 자동 업데이트 어려움 |
@@ -107,7 +107,7 @@ SRS v6.2(EzServer PMS Integration)는 경로 A의 시퀀스를 정의한다. Ima
 2. **호환성 단위 = API/기능 (오류 코드는 단위가 아님):** CleverSpace 1개를 두고도 API마다 도입 시점이 달라 **요구 최소 클라이언트 버전이 제각각**이다. 따라서 호환성 매트릭스는 제품 버전 곱(`CleverSpace × EzServer × CleverOne`)이 아니라 **`API(기능) × 최소 클라이언트 버전`** 형태다. **오류 코드는 호환성 단위가 아니라 특정 기능이 돌려주는 응답**이므로, 매트릭스의 행이 아니라 그 기능의 **속성(관련 오류 코드)**으로 둔다. 아래 표는 **형식(템플릿) 예시**이며, 값은 소스로 확인된 항목만 채우고 나머지는 `미상`으로 둔다.
 
 | API / 기능 | CleverSpace 도입 | CleverOne 현재 지원 | EzServer(EPI) 현재 지원 | 최소 클라이언트 버전 | 경로 | 관련 오류 코드(응답) |
-|------------|------------------|---------------------|--------------------------|----------------------|------|----------------------|
+| --- | --- | --- | --- | --- | --- | --- |
 | `GET /organization-data/upload/limit` (업로드 한도 조회) | v1.1 | 지원 (`CheckUploadCondition`) | — | **미상** | B | (조회 기능) |
 | `POST /tenants/subscriptions/validate-limits` (한도·구독 사전검증) | v1.3(PLAN-1191) | **미연동** | **미연동** | **미상** (계획: CleverOne v1.5.5 / EzServer v6.5.0) | A·B | `400110`~`400113`(기존), `400116`(v1.3 신규) |
 | 업로드·공유 (`POST /ezcloud/cases/upload`·`/share`, EPI) | v1.0 | 지원 | 지원 | **미상** | A | `400110`~`400113`, `400116` 등을 MQTT relay |
@@ -141,7 +141,7 @@ SRS v6.2(EzServer PMS Integration)는 경로 A의 시퀀스를 정의한다. Ima
 ### 2.1 Client 식별·버전 전달
 
 | 구간 | UserAgent / Header | 버전 체크 | 근거 |
-|------|-------------------|-----------|------|
+| --- | --- | --- | --- |
 | CleverOne → EzServer | `"CleverOne"` (PRODUCT_NAME) | CleverOne → EzServer **있음** | `CleverOneInitializer.cpp`: `pHttp->Set(..., PRODUCT_NAME, ...)`, `CheckServerVersion(..., REQUIRE_EZWEBSERVER_API_VERSION)` |
 | CleverOne → OneID/CleverSpace (Direct) | `"CleverOne"` (`strAgent`) | **없음** | `EzCloudController.cpp` → `CEzCloudServiceHelper(..., "CleverOne")` → `EzCloudLinker`/`OneIdLinker` → `m_pHttp->Set(..., strAgent, ...)` |
 | EzServer → CleverSpace | client_id/OAuth | **없음** | EPI HTTP client, SRS v6.2 |
@@ -170,14 +170,14 @@ VKS 논의사항(제안): 지난 회의에서 **Client의 UserAgent에 제품명
 
 #### MMI v1.3 Error code (EzServer → CleverOne MQTT, Desktop)
 
-| 우선순위 | 유형 | Code | CleverOne `MessagingDialog` |
-|----------|------|------|----------------------------|
-| 4 | 네트워크 | EzServer 동적 code | 별도 분기 없음 |
-| 3 | 사용 한도 초과 | 400110~400113 | **처리** |
-| 3 | 일일 업로드(남용) | **400116** (v1.3 신규) | **미처리** |
-| 2 | 권한 없음 | 404101, 403100, 401101 | **처리** (403100은 v1.1 CSV에 4031xx와 번호 체계 상이 — 구현·문서 정합 확인 필요) |
-| 1 | 사용자 오류(zip 등) | 400102 | **처리** |
-| 5 | 시스템 | 500xxx | 5xx prefix만 |
+| 우선순위 | 유형                | Code                   | CleverOne `MessagingDialog`                                                       |
+| -------- | ------------------- | ---------------------- | --------------------------------------------------------------------------------- |
+| 4        | 네트워크            | EzServer 동적 code     | 별도 분기 없음                                                                    |
+| 3        | 사용 한도 초과      | 400110~400113          | **처리**                                                                          |
+| 3        | 일일 업로드(남용)   | **400116** (v1.3 신규) | **미처리**                                                                        |
+| 2        | 권한 없음           | 404101, 403100, 401101 | **처리** (403100은 v1.1 CSV에 4031xx와 번호 체계 상이 — 구현·문서 정합 확인 필요) |
+| 1        | 사용자 오류(zip 등) | 400102                 | **처리**                                                                          |
+| 5        | 시스템              | 500xxx                 | 5xx prefix만                                                                      |
 
 #### EzCloud v1.1 RestApi `(errors).csv` vs v1.3
 
@@ -191,11 +191,11 @@ P1 요구(스토리지·공유·다운로드·CT 조회 제한)는 MMI error cod
 
 ### 2.4 v1.3 신규 API (문서·구현 gap)
 
-| API | 출처 | v1.1 CSV | ezcloud repo |
-|-----|------|----------|--------------|
-| `POST /tenants/subscriptions/validate-limits` | PLAN-1191 | **없음** | **미구현** (검색 결과 없음) |
-| `GET /organization-data/upload/limit` | v1.1 | **있음** | 구현됨 (CleverOne Direct 사전 조회에 사용) |
-| `GET /tenants/subscriptions/metrics` | v1.1 | **있음** | 홈·플랜 현황용 |
+| API                                           | 출처      | v1.1 CSV | ezcloud repo                               |
+| --------------------------------------------- | --------- | -------- | ------------------------------------------ |
+| `POST /tenants/subscriptions/validate-limits` | PLAN-1191 | **없음** | **미구현** (검색 결과 없음)                |
+| `GET /organization-data/upload/limit`         | v1.1      | **있음** | 구현됨 (CleverOne Direct 사전 조회에 사용) |
+| `GET /tenants/subscriptions/metrics`          | v1.1      | **있음** | 홈·플랜 현황용                             |
 
 PLAN-1191: EzServer가 MQTT error code 확장·히스토리 에러 표시 담당, CleverSpace가 `validate-limits` 제공 — **호출 주체·시점(EzServer vs CleverOne Direct)은 미확정**.
 
@@ -209,10 +209,10 @@ PLAN-1191: EzServer가 MQTT error code 확장·히스토리 에러 표시 담당
 
 클라이언트(또는 ESLinkageCloudPlatform)가 CleverSpace/EzServer의 **API별 지원 여부·기능(capability)**을 조회하고, 미지원 시 해당 기능만 비활성화·업데이트 안내. CleverSpace가 단일 버전이므로 “서버 버전 비교”가 아니라 **“이 기능을 내 버전이 쓸 수 있는가”를 기능 단위로 묻는** 형태여야 한다.
 
-| 장점 | 단점 |
-|------|------|
+| 장점                                                                                  | 단점                                                       |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | UX 선제 제어(grey-out, 업로드 버튼 비활성). EzServer `CheckServerVersion` 패턴과 일관 | **N개 클라이언트** 배포 필요. 구버전은 서버 없이 우회 가능 |
-| Direct 경로에서 **업로드 전** `upload/limit`·`validate-limits` 호출 가능 | capability API **신규** 필요(현재 없음) |
+| Direct 경로에서 **업로드 전** `upload/limit`·`validate-limits` 호출 가능              | capability API **신규** 필요(현재 없음)                    |
 
 **단독 적용:** 불충분. **방법 2·4와 병행** 시 “미리 알려주는” UX 레이어로 적합.
 
@@ -220,11 +220,11 @@ PLAN-1191: EzServer가 MQTT error code 확장·히스토리 에러 표시 담당
 
 CleverSpace(및 EzServer EPI)가 Client 식별 헤더를 파싱하거나, **사전 검증 API**로 quota·min version을 집행.
 
-| 장점 | 단점 |
-|------|------|
+| 장점                                                                    | 단점                                        |
+| ----------------------------------------------------------------------- | ------------------------------------------- |
 | **한 곳(CleverSpace) 수정으로 모든 클라이언트에 효과** (Direct 수신 시) | 경로 A는 EzServer가 **헤더 대리 전달** 필요 |
-| `validate-limits`로 v1.3 유상화 **업로드/공유 직전** 차단 | 헤더 표준화 선행 |
-| PLAN-1191 “웹·앱 버전 확인 후 업데이트 안내”와 부합 | |
+| `validate-limits`로 v1.3 유상화 **업로드/공유 직전** 차단               | 헤더 표준화 선행                            |
+| PLAN-1191 “웹·앱 버전 확인 후 업데이트 안내”와 부합                     |                                             |
 
 **단독 적용:** UX는 거칠 수 있음(갑작스런 403). **방법 1·4와 병행** 권장.
 
@@ -233,7 +233,7 @@ CleverSpace(및 EzServer EPI)가 Client 식별 헤더를 파싱하거나, **사�
 CleverOne Direct(경로 B)를 **EzServer EPI가 대리·흡수**하고, 버전·quota·error code 변환과 **인증을 EPI 한곳에 집중**. §1.4 Direct 우려(인증 이원화·정책 공백·창구 증식)에 대한 근본 해법이다.
 
 | 장점 | 단점 |
-|------|------|
+| --- | --- |
 | 검증·로깅·호환·**인증 단일 지점**. PMS `/versions` 패턴 재사용. 연동 창구 일원화 | **아키텍처 변경**. Direct 전용 API(OneID OAuth, `upload/limit`, member search)를 EPI에 **중계 endpoint로 추가**해야 흡수 가능 |
 | EzServer가 CleverSpace **대표 Client** → 헤더·버전 일원화 | 단기 v1.3 일정에 과함 |
 
@@ -244,7 +244,7 @@ CleverOne Direct(경로 B)를 **EzServer EPI가 대리·흡수**하고, 버전·
 EzServer Releases CSV와 유사하되 **축이 다르다.** CleverSpace는 단일 버전이므로 `제품 × 제품` 곱이 아니라 **`API/기능 × 최소 클라이언트 버전`(§1.3 표)** 형태의 테이블을 릴리즈 프로세스에서 유지한다. 여기에 **오류 코드 목록(registry)**과, 클라이언트가 모르는 코드를 만났을 때의 **fallback 규칙**(“업데이트 필요” 안내)을 함께 관리한다.
 
 | 장점 | 단점 |
-|------|------|
+| --- | --- |
 | API 추가 때마다 **최소 CleverOne/EzServer 버전**을 명시 → QA·릴리즈 노트 연동 | 매트릭스 **운영 부담** (자동화 없으면 drift → §C.2.1 단일 소스·CI gate로 완화) |
 | 런타임(2) + 프로세스 이중 안전. 방법 1·2의 **데이터 소스** | 런타임만으로는 구버전 차단 불가 |
 
@@ -252,14 +252,14 @@ EzServer Releases CSV와 유사하되 **축이 다르다.** CleverSpace는 단�
 
 ### 3.1 방안 조합 비교
 
-| 조합 | 서버 1곳 수정 효과 | 클라이언트 UX | 2경로 커버 | v1.3 적합도 |
-|------|-------------------|---------------|-----------|-------------|
-| **2 + 4** (1차 core) | **높음** | 중간 | A: EzServer/EPI, B: CleverSpace Direct | **최우선** |
-| **2 + 4 + 1** (1차 권장) | 높음 | **높음** | A+B | **권장** |
-| **2 + 1** (헤더 없이) | 높음 | 중간 | B만 Direct 검증 | 차선 |
-| **3 + 4 + 1** (2차) | **최고** | 높음 | Direct 축소 후 단순 | 장기 |
-| 1만 | 낮음 | 높음(신규만) | 구버전 우회 | 부족 |
-| 2만 | 높음 | 낮음 | B는 헤더 필요 | 부분 |
+| 조합                     | 서버 1곳 수정 효과 | 클라이언트 UX | 2경로 커버                             | v1.3 적합도 |
+| ------------------------ | ------------------ | ------------- | -------------------------------------- | ----------- |
+| **2 + 4** (1차 core)     | **높음**           | 중간          | A: EzServer/EPI, B: CleverSpace Direct | **최우선**  |
+| **2 + 4 + 1** (1차 권장) | 높음               | **높음**      | A+B                                    | **권장**    |
+| **2 + 1** (헤더 없이)    | 높음               | 중간          | B만 Direct 검증                        | 차선        |
+| **3 + 4 + 1** (2차)      | **최고**           | 높음          | Direct 축소 후 단순                    | 장기        |
+| 1만                      | 낮음               | 높음(신규만)  | 구버전 우회                            | 부족        |
+| 2만                      | 높음               | 낮음          | B는 헤더 필요                          | 부분        |
 
 ---
 
@@ -281,13 +281,13 @@ sequenceDiagram
     Note over CO: MessagingDialog 표시<br/>400116 등 신규 code + unknown fallback
 ```
 
-| 항목 | 담당 | 내용 |
-|------|------|------|
-| Client 식별 | CleverOne → EPI | `X-Ewoosoft-Client` 또는 User-Agent 확장 (제품/버전/OS) |
-| 헤더 전달 | EPI → CleverSpace | EPI HTTP client가 CleverOne 식별 정보 **대리 전달** (또는 EPI 자체 버전 + originating client) |
-| 사전 검증 | EPI | 업로드/공유 **직전** `validate-limits` (PLAN-1191) |
-| Error 전달 | EPI → CleverOne MQTT | MMI code(400110~116 등)를 `clever_space_error_codes`에 포함 — **이미 구조 존재**, code 목록·매핑 갱신 |
-| Error 표시 | CleverOne | `MessagingDialog` switch 확장(400116), unknown → “업데이트 필요” fallback |
+| 항목        | 담당                 | 내용                                                                                                  |
+| ----------- | -------------------- | ----------------------------------------------------------------------------------------------------- |
+| Client 식별 | CleverOne → EPI      | `X-Ewoosoft-Client` 또는 User-Agent 확장 (제품/버전/OS)                                               |
+| 헤더 전달   | EPI → CleverSpace    | EPI HTTP client가 CleverOne 식별 정보 **대리 전달** (또는 EPI 자체 버전 + originating client)         |
+| 사전 검증   | EPI                  | 업로드/공유 **직전** `validate-limits` (PLAN-1191)                                                    |
+| Error 전달  | EPI → CleverOne MQTT | MMI code(400110~116 등)를 `clever_space_error_codes`에 포함 — **이미 구조 존재**, code 목록·매핑 갱신 |
+| Error 표시  | CleverOne            | `MessagingDialog` switch 확장(400116), unknown → “업데이트 필요” fallback                             |
 
 EzServer 수정 **1곳(EPI)** 으로 경로 A를 타는 **모든 Imaging App**(CleverOne, EzDent-i 등 EPI 사용 제품)에 사전 검증·error 전달을 통일할 수 있다.
 
@@ -306,22 +306,22 @@ sequenceDiagram
     Note over CS: Direct 수신이라 CleverOne 헤더로<br/>버전·API 지원 여부 직접 판정 가능
 ```
 
-| 항목 | 담당 | 내용 |
-|------|------|------|
-| Client 식별 | ESLinkageCloudPlatform | `EzCloudLinker`/`OneIdLinker`의 `strAgent`를 **버전 포함** 문자열로 확장 |
-| 사전 검증 | ESLinkageCloudPlatform | `CheckUploadCondition`에 `validate-limits` **병행** (upload/limit만으로는 v1.3 quota 부족) |
-| 서버 거부 | CleverSpace | min client version middleware (방법 2) — **Direct만으로는 여기서 차단 가능** |
-| Error | HTTP 응답 | Direct API 호출 실패 시 CleverOne UI 처리 (MQTT 아님) |
+| 항목        | 담당                   | 내용                                                                                       |
+| ----------- | ---------------------- | ------------------------------------------------------------------------------------------ |
+| Client 식별 | ESLinkageCloudPlatform | `EzCloudLinker`/`OneIdLinker`의 `strAgent`를 **버전 포함** 문자열로 확장                   |
+| 사전 검증   | ESLinkageCloudPlatform | `CheckUploadCondition`에 `validate-limits` **병행** (upload/limit만으로는 v1.3 quota 부족) |
+| 서버 거부   | CleverSpace            | min client version middleware (방법 2) — **Direct만으로는 여기서 차단 가능**               |
+| Error       | HTTP 응답              | Direct API 호출 실패 시 CleverOne UI 처리 (MQTT 아님)                                      |
 
 경로 B는 **CleverSpace + ESLinkageCloudPlatform** 수정이 필요하다. 서버만 고쳐서는 CleverOne이 보내는 헤더 없이는 버전을 알 수 없다.
 
 ### 4.3 EzServer 이중 역할 정리
 
-| EzServer 동작 | 1차 조치 |
-|---------------|----------|
-| CleverOne의 Server | (선택) EPI min version API 제공 — CleverOne `CheckServerVersion` 확장 |
-| CleverSpace의 Client | validate-limits 호출, CleverOne origin header 전달, error code MQTT relay |
-| CleverOne의 MQTT Server | payload 스펙 유지, error code 필드 문서화 |
+| EzServer 동작           | 1차 조치                                                                  |
+| ----------------------- | ------------------------------------------------------------------------- |
+| CleverOne의 Server      | (선택) EPI min version API 제공 — CleverOne `CheckServerVersion` 확장     |
+| CleverSpace의 Client    | validate-limits 호출, CleverOne origin header 전달, error code MQTT relay |
+| CleverOne의 MQTT Server | payload 스펙 유지, error code 필드 문서화                                 |
 
 ---
 
@@ -335,15 +335,15 @@ sequenceDiagram
 
 **권장 조합: 방법 2 + 4 + 1**
 
-| 순서 | 작업 | 경로 | 주체 |
-|------|------|------|------|
-| A | Client 식별 헤더 스펙 합의 | A+B | 전사(VKS 논의 tick) |
-| B | CleverSpace `validate-limits` 구현 | A+B | CleverSpace |
-| C | EPI: upload/share 전 validate-limits | **A** | EzServer |
-| D | ESLinkageCloudPlatform: Direct validate-limits + 헤더 | **B** | ESLinkageCloudPlatform |
-| E | Error code 매핑 (400116, 400101 legacy, fallback) | A primarily | CleverOne, EPI |
-| F | CleverSpace 호환성 매트릭스 v0.1 | 문서 | PM/아키텍처 |
-| G | unknown error → 업데이트 안내 UX | A+B | CleverOne |
+| 순서 | 작업                                                  | 경로        | 주체                   |
+| ---- | ----------------------------------------------------- | ----------- | ---------------------- |
+| A    | Client 식별 헤더 스펙 합의                            | A+B         | 전사(VKS 논의 tick)    |
+| B    | CleverSpace `validate-limits` 구현                    | A+B         | CleverSpace            |
+| C    | EPI: upload/share 전 validate-limits                  | **A**       | EzServer               |
+| D    | ESLinkageCloudPlatform: Direct validate-limits + 헤더 | **B**       | ESLinkageCloudPlatform |
+| E    | Error code 매핑 (400116, 400101 legacy, fallback)     | A primarily | CleverOne, EPI         |
+| F    | CleverSpace 호환성 매트릭스 v0.1                      | 문서        | PM/아키텍처            |
+| G    | unknown error → 업데이트 안내 UX                      | A+B         | CleverOne              |
 
 **TO-BE 1차 전체 구조**
 
@@ -383,13 +383,13 @@ flowchart LR
 
 **권장 조합: 방법 3 + 4 + 1**
 
-| 순서 | 작업 | 경로 B 흡수와의 관계 |
-|------|------|----------------------|
-| 1 | `/.well-known/server-configuration.json`에 `features`(API/기능별 `min-client-versions`) 노출 | Gateway·클라이언트 공통 호환 기준 |
-| 2 | **EPI 중계 endpoint 확충** — 현재 Direct 전용 API(OneID OAuth, `upload/limit`, tenant/member 등)를 EPI에 추가 | **경로 B → A 전환의 전제** |
-| 3 | **인증 모델 통일** — EzServer 경유 토큰 발급/위임으로 OAuth 창구 일원화 | §1.4 인증 이원화 해소 |
-| 4 | ESLinkageCloudPlatform이 Direct 대신 **EPI 호출로 전환** + 모듈 단위 부분 업데이트 채널 | 클라이언트 측 흡수 |
-| 5 | 호환성 매트릭스 CI gate (EzServer Releases CSV 수준) | 릴리즈 자동 검증 |
+| 순서 | 작업                                                                                                          | 경로 B 흡수와의 관계              |
+| ---- | ------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| 1    | `/.well-known/server-configuration.json`에 `features`(API/기능별 `min-client-versions`) 노출                  | Gateway·클라이언트 공통 호환 기준 |
+| 2    | **EPI 중계 endpoint 확충** — 현재 Direct 전용 API(OneID OAuth, `upload/limit`, tenant/member 등)를 EPI에 추가 | **경로 B → A 전환의 전제**        |
+| 3    | **인증 모델 통일** — EzServer 경유 토큰 발급/위임으로 OAuth 창구 일원화                                       | §1.4 인증 이원화 해소             |
+| 4    | ESLinkageCloudPlatform이 Direct 대신 **EPI 호출로 전환** + 모듈 단위 부분 업데이트 채널                       | 클라이언트 측 흡수                |
+| 5    | 호환성 매트릭스 CI gate (EzServer Releases CSV 수준)                                                          | 릴리즈 자동 검증                  |
 
 **TO-BE 2차 전체 구조**
 
@@ -447,48 +447,50 @@ flowchart TB
 
 ## 7. 다음 액션
 
-담당은 **역할·제품 기준**으로 배정한다. 설계·아키텍처 성격은 아키텍처(Raymond), 의사결정·조율은 PM(Jay), 구현·소스 확인·버전 데이터 채우기는 **해당 제품 개발자**가 맡는다.
+담당은 **역할·제품 기준**으로 배정한다. 설계·아키텍처 성격은 아키텍처, 의사결정·조율은 PM, 구현·소스 확인·버전 데이터 채우기는 **해당 제품팀**이 맡는다.
 
 | 우선순위 | Action | 성격 | 담당(역할·제품) |
-|----------|--------|------|-----------------|
-| P0 | Client 식별 헤더 스펙 1p (User-Agent vs `X-Ewoosoft-Client`, 경로 A/B/EPI 전달 규칙) | 설계 | **아키텍처(Raymond)** 주관 + CleverOne·EzServer 개발 리뷰 |
+| --- | --- | --- | --- |
+| P0 | Client 식별 헤더 스펙 1p (User-Agent vs `X-Ewoosoft-Client`, 경로 A/B/EPI 전달 규칙) | 설계 | **아키텍처** 주관 + CleverOne·EzServer 팀 리뷰 |
 | P0 | MMI error code ↔ CleverOne/EPI 매핑표 (400116 포함) | 구현/데이터 | CleverSpace 팀(코드 정의) + CleverOne·EzServer 개발(매핑 반영) |
-| P1 | `validate-limits` **호출 주체·시점** 확정 (EPI only vs Direct also) | 의사결정 | **PM(Jay)** 주관 + CleverSpace 팀 |
-| P1 | CleverSpace 호환성 매트릭스 v0.1 — **`API/기능 × 최소 CleverOne/EzServer 버전`** 축 (§1.3 표 확장) | 데이터 취합 | CleverSpace 팀 취합, 각 제품 개발자가 자기 버전 제공 (PM(Jay) 조율) |
+| P1 | `validate-limits` **호출 주체·시점** 확정 (EPI only vs Direct also) | 의사결정 | **PM** 주관 + CleverSpace 팀 |
+| P1 | CleverSpace 호환성 매트릭스 v0.1 — **`API/기능 × 최소 CleverOne/EzServer 버전`** 축 (§1.3 표 확장) | 데이터 취합 | CleverSpace 팀 취합, 각 제품팀이 자기 버전 제공 (PM 조율) |
 | P1 | ESLinkageCloudPlatform `CheckUploadCondition` → validate-limits | 구현 | ESLinkageCloudPlatform 개발 |
-| P1 | **경로 B Direct API 목록·인증 흐름 정리** (어떤 CleverSpace/OneID API가 EPI 미중계로 Direct인지) — Gateway 흡수 대상 산정 | 구현/조사 | CleverOne·EzServer 개발(Thomas·Nick) |
-| P2 | well-known capability / Gateway 로드맵 + **EPI 중계 endpoint·인증 통일 설계** (경로 B 흡수, §1.4·§5.2) | 설계 | **아키텍처(Raymond)** 주관 + PM(Jay) |
+| P1 | **경로 B Direct API 목록·인증 흐름 정리** (어떤 CleverSpace/OneID API가 EPI 미중계로 Direct인지) — Gateway 흡수 대상 산정 | 구현/조사 | CleverOne·EzServer 개발 담당 |
+| P2 | well-known capability / Gateway 로드맵 + **EPI 중계 endpoint·인증 통일 설계** (경로 B 흡수, §1.4·§5.2) | 설계 | **아키텍처** 주관 + PM |
 
-> 역할: **PM** Jay / **개발** Thomas·Nick(CleverOne·EzServer 클라이언트), CleverSpace·ESLinkageCloudPlatform 각 팀 / **아키텍처·설계** Raymond. 구체 담당자는 각 제품팀에서 확정한다.
+> 담당은 **역할·제품팀 기준**으로 표기했다. **PM**·**아키텍처/설계**를 제외한 구현·조사·데이터 항목은 **해당 제품팀(CleverOne, EzServer, CleverSpace, ESLinkageCloudPlatform)에서 담당자를 지정**한다. 본 보고서는 특정 담당자를 지정하지 않는다.
 
 ---
 
 ## 부록 A: 분석에 사용한 문서
 
-| 문서 | 용도 |
-|------|------|
-| VKS | VKS 과제 요청·이슈·2경로·논의사항·개선방안 검토 범위 |
-| PLAN-1191.xml, EZSV-2506.xml | v1.3 scope, validate-limits, 타겟 버전 |
-| Confidential_OneID_v1 (*.csv) | OAuth, tenant — client version API **없음** 확인 |
-| Confidential_EzCloud_v1.1_RestApi (*.csv) | API·error v1.1 baseline, upload/limit |
-| Confidential_CleverSpace_v1.3.0_MMI_Kor_rev2_ErrorCode.png | Desktop MQTT error code |
-| Confidential_20260105_CleverSpace v1.3_기능 요구 사항 정의서 (*.csv) | P1 한도 제한 요구 |
-| Confidential_EzServer_PMS_Integration_v6.2_SRS.md | EPI upload/share 시퀀스, API 목록 |
-| EzServer Releases CSV | 호환성 매트릭스 참고 모델 |
+아래는 **원본 문서** 기준이다. 일부 문서는 분석 편의를 위해 변환본(괄호 안)을 사용했다.
+
+| 원본 문서                                                           | 용도                                             |
+| ------------------------------------------------------------------- | ------------------------------------------------ |
+| VKS 과제 (Jira)                                                     | 과제 요청·이슈·2경로·논의사항·개선방안 검토 범위 |
+| Jira 이슈 PLAN-1191, EZSV-2506                                      | v1.3 scope, validate-limits, 타겟 버전           |
+| Confidential_OneID_v1.xlsx                                          | OAuth, tenant — client version API **없음** 확인 |
+| Confidential_EzCloud_v1.1_RestApi.xlsx                              | API·error v1.1 baseline, upload/limit            |
+| Confidential_CleverSpace_v1.3.0_MMI_Kor_rev2.pptx (MMI 문서)        | Desktop MQTT error code                          |
+| Confidential\_20260105\_CleverSpace v1.3\_기능 요구 사항 정의서.xlsx | P1 한도 제한 요구                                |
+| Confidential_EzServer_PMS_Integration_v6.2_SRS.docx                 | EPI upload/share 시퀀스, API 목록                |
+| EzServer Releases (ES_Internal).xlsx                                | 호환성 매트릭스 참고 모델                        |
 
 ## 부록 B: 참고 코드 위치
 
-| 내용 | 경로 |
-|------|------|
-| CleverOne EzServer 버전 체크 | `cleveronegroup/cleverone/src/Main/CleverOneInitializer.cpp` |
-| CleverOne CleverSpace 연동·MQTT | `cleveronegroup/cleverone/src/Common/EzCloud/EzCloudController.cpp` |
-| CleverOne MQTT error switch | `cleveronegroup/cleverone/src/Common/EzCloud/MessagingDialog.cpp` |
+| 내용                            | 경로                                                                        |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| CleverOne EzServer 버전 체크    | `cleveronegroup/cleverone/src/Main/CleverOneInitializer.cpp`                |
+| CleverOne CleverSpace 연동·MQTT | `cleveronegroup/cleverone/src/Common/EzCloud/EzCloudController.cpp`         |
+| CleverOne MQTT error switch     | `cleveronegroup/cleverone/src/Common/EzCloud/MessagingDialog.cpp`           |
 | 경로 A/B 분기 (upload vs limit) | `common/ESLinkageCloudPlatform/EzCloudService/src/EzCloudServiceHelper.cpp` |
-| UserAgent (`strAgent`) | `common/ESLinkageCloudPlatform/.../EzCloudLinker.cpp`, `OneIdLinker.cpp` |
-| EPI EzServer API 래퍼 | `common/ESLinkageCloudPlatform/.../EzServerLinker.cpp` |
-| EPI CleverSpace error → MQTT | `ezserver_pms_integration/src/upload_manager/upload_manager_context.rs` |
-| EzServer PMS version check | `ezserver_pms_integration/src/epi_api_server/handler/post_clinics.rs` |
-| CleverSpace error enums | `ezcloud/packages/apis/api-types/src/errors/*.ts` |
+| UserAgent (`strAgent`)          | `common/ESLinkageCloudPlatform/.../EzCloudLinker.cpp`, `OneIdLinker.cpp`    |
+| EPI EzServer API 래퍼           | `common/ESLinkageCloudPlatform/.../EzServerLinker.cpp`                      |
+| EPI CleverSpace error → MQTT    | `ezserver_pms_integration/src/upload_manager/upload_manager_context.rs`     |
+| EzServer PMS version check      | `ezserver_pms_integration/src/epi_api_server/handler/post_clinics.rs`       |
+| CleverSpace error enums         | `ezcloud/packages/apis/api-types/src/errors/*.ts`                           |
 
 ---
 
@@ -557,15 +559,15 @@ POST /ezcloud/cases/upload|share (EPI),v1.0,지원,지원,A,지원,400110-400113
 ```yaml
 features:
   - id: subscription.validate-limits
-    introduced: "1.3.0"
+    introduced: '1.3.0'
     path: [A, B]
-    min-client: { CleverOne: "1.5.5", EzServer: "6.5.0" }   # 미상: 확정 필요
+    min-client: { CleverOne: '1.5.5', EzServer: '6.5.0' } # 미상: 확정 필요
     status: not-integrated
-    related-errorcodes: [400110, 400111, 400112, 400113, 400116]   # 응답 코드(참고), 단위 아님
+    related-errorcodes: [400110, 400111, 400112, 400113, 400116] # 응답 코드(참고), 단위 아님
   - id: organization-data.upload.limit
-    introduced: "1.1"
+    introduced: '1.1'
     path: [B]
-    min-client: { CleverOne: "1.0.0", EzServer: "6.0.0" }   # 미상: 확정 필요
+    min-client: { CleverOne: '1.0.0', EzServer: '6.0.0' } # 미상: 확정 필요
     status: supported
 ```
 
@@ -610,13 +612,13 @@ flowchart LR
 
 ```json
 {
-  "400110": { "category": "USAGE_LIMIT",       "message_key": "Usage Limit Exceed", "since": "1.1" },
-  "400111": { "category": "USAGE_LIMIT",       "message_key": "Usage Limit Exceed", "since": "1.1" },
-  "400116": { "category": "USAGE_LIMIT",       "message_key": "Usage Limit Exceed", "since": "1.3" },
-  "401101": { "category": "PERMISSION_DENIED", "message_key": "Permission Denied",  "since": "1.1" },
-  "403100": { "category": "PERMISSION_DENIED", "message_key": "Permission Denied",  "since": "1.1" },
-  "404101": { "category": "PERMISSION_DENIED", "message_key": "Permission Denied",  "since": "1.1" },
-  "400102": { "category": "FAIL",              "message_key": "Fail",               "since": "1.1" },
+  "400110": { "category": "USAGE_LIMIT", "message_key": "Usage Limit Exceed", "since": "1.1" },
+  "400111": { "category": "USAGE_LIMIT", "message_key": "Usage Limit Exceed", "since": "1.1" },
+  "400116": { "category": "USAGE_LIMIT", "message_key": "Usage Limit Exceed", "since": "1.3" },
+  "401101": { "category": "PERMISSION_DENIED", "message_key": "Permission Denied", "since": "1.1" },
+  "403100": { "category": "PERMISSION_DENIED", "message_key": "Permission Denied", "since": "1.1" },
+  "404101": { "category": "PERMISSION_DENIED", "message_key": "Permission Denied", "since": "1.1" },
+  "400102": { "category": "FAIL", "message_key": "Fail", "since": "1.1" },
   "_fallback": { "category": "UNKNOWN", "message_key": "Please update your client", "action": "prompt_update" }
 }
 ```
@@ -625,8 +627,8 @@ flowchart LR
 
 ### C.4 관리 주체 요약
 
-| 파일 | 보관/관리 주체 | 비고 |
-|------|----------------|------|
-| `server-configuration.json` | **CleverSpace, OneID** (서버) | 현존. 2차에서 features·min-client 확장 |
-| `compatibility-matrix.(csv\|yaml)` | **PM/아키텍처** (릴리즈 프로세스) | 신규. well-known 생성 소스로 활용 가능 |
-| `error-code-registry.json` | **CleverOne·EzServer 공용** | 신규. MMI/CleverSpace error 정의와 동기화 |
+| 파일                               | 보관/관리 주체                    | 비고                                      |
+| ---------------------------------- | --------------------------------- | ----------------------------------------- |
+| `server-configuration.json`        | **CleverSpace, OneID** (서버)     | 현존. 2차에서 features·min-client 확장    |
+| `compatibility-matrix.(csv\|yaml)` | **PM/아키텍처** (릴리즈 프로세스) | 신규. well-known 생성 소스로 활용 가능    |
+| `error-code-registry.json`         | **CleverOne·EzServer 공용**       | 신규. MMI/CleverSpace error 정의와 동기화 |
