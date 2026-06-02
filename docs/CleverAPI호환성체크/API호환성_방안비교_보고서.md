@@ -31,7 +31,7 @@
 
 이 보고서의 분석과 권고가 전제로 삼는 **구조적 사실**을 먼저 정리한다. 각 항목의 상세 근거는 괄호 안에 표기한 절에서 다룬다.
 
-- **연동 경로는 2개다.** 경로 A `CleverOne → EzServer → CleverSpace`, 경로 B `CleverOne → CleverSpace`(Direct). 두 경로는 **EzServer(EPI)가 그 API를 중계하는지** 여부로 갈린다(§1.1).
+- **연동 경로는 2개다.** 경로 A `CleverOne → EzServer → CleverSpace`, 경로 B `CleverOne → CleverSpace`(Direct). 두 경로는 **EzServer(EPI)가 그 API를 중계하는지** 여부로 갈린다(§1.1). 여기서 **EPI = EzServer PMS Integration**, 즉 EzServer에서 PMS·클라우드(CleverSpace) 연동을 담당하는 모듈을 가리킨다.
 - **EzServer는 Server이자 Client다.** CleverOne에게는 서버, CleverSpace·OneID에게는 클라이언트, 결과 알림에서는 MQTT 서버로 동작한다(§1.2).
 - **버전 분포가 비대칭이다.** CleverSpace는 **단일(항상 최신) 1개**지만, EzServer는 **클리닉마다**, CleverOne은 **PC마다(한 클리닉 안에서도) 여러 버전**이 공존한다. 그래서 “클라이언트가 서버 버전을 확인”하던 기존 방식(`CheckServerVersion`)은 CleverSpace에 **그대로 쓸 수 없다**(§1.3).
 - **호환의 단위는 제품 버전이 아니라 API/기능이다.** 단일 CleverSpace라도 API마다 도입 시점이 달라 **요구 최소 클라이언트 버전이 제각각**이다. 호환성 표도 `API(기능) × 최소 클라이언트 버전` 형태여야 한다(§1.3).
