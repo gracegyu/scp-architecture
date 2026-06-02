@@ -104,16 +104,17 @@ SRS v6.2(EzServer PMS Integration)는 경로 A의 시퀀스를 정의한다. Ima
 
 1. **방향 역전:** 기존엔 “클라이언트(CleverOne)가 서버(EzServer) 버전을 확인”했다(`CheckServerVersion`). 그러나 CleverSpace는 단일·항상-최신이라 **클라이언트가 CleverSpace 버전을 확인하는 것은 무의미**하다. 대신 **“이 클라이언트 버전이 이 API/기능을 쓸 수 있는가”**를 판정해야 한다. 즉 **서버가 API별 최소 클라이언트 버전을 알고**, 클라이언트는 **기능(capability) 단위로 조회**하는 모델이 맞다.
 
-2. **호환성 단위 = API/기능:** CleverSpace 1개를 두고도 API마다 도입 시점이 달라 **요구 최소 클라이언트 버전이 제각각**이다. 따라서 호환성 매트릭스는 제품 버전 곱(`CleverSpace × EzServer × CleverOne`)이 아니라 **아래 형태**가 핵심이다. 아래 표는 **형식(템플릿) 예시**이며, 값은 소스로 확인된 항목만 채우고 나머지는 `미상`으로 둔다.
+2. **호환성 단위 = API/기능 (오류 코드는 단위가 아님):** CleverSpace 1개를 두고도 API마다 도입 시점이 달라 **요구 최소 클라이언트 버전이 제각각**이다. 따라서 호환성 매트릭스는 제품 버전 곱(`CleverSpace × EzServer × CleverOne`)이 아니라 **`API(기능) × 최소 클라이언트 버전`** 형태다. **오류 코드는 호환성 단위가 아니라 특정 기능이 돌려주는 응답**이므로, 매트릭스의 행이 아니라 그 기능의 **속성(관련 오류 코드)**으로 둔다. 아래 표는 **형식(템플릿) 예시**이며, 값은 소스로 확인된 항목만 채우고 나머지는 `미상`으로 둔다.
 
-| API / 기능 | CleverSpace 도입 | CleverOne 현재 지원 | EzServer(EPI) 현재 지원 | 최소 클라이언트 버전 | 경로 |
-|------------|------------------|---------------------|--------------------------|----------------------|------|
-| `GET /organization-data/upload/limit` | v1.1 | 지원 (`CheckUploadCondition`) | — | **미상** | B |
-| 400110~400113 (한도 초과) | v1.1 이하 | 지원 (`MessagingDialog`) | relay 됨 | **미상** | A |
-| `POST /tenants/subscriptions/validate-limits` | v1.3(PLAN-1191) | **미연동** | **미연동** | **미상** (계획: PLAN-1191 타겟 CleverOne v1.5.5 / EzServer v6.5.0) | A·B |
-| 400116 (일일 업로드) | v1.3 | **미처리** | relay 필요 | **미상** (validate-limits와 동일 릴리즈 추정) | A |
+| API / 기능 | CleverSpace 도입 | CleverOne 현재 지원 | EzServer(EPI) 현재 지원 | 최소 클라이언트 버전 | 경로 | 관련 오류 코드(응답) |
+|------------|------------------|---------------------|--------------------------|----------------------|------|----------------------|
+| `GET /organization-data/upload/limit` (업로드 한도 조회) | v1.1 | 지원 (`CheckUploadCondition`) | — | **미상** | B | (조회 기능) |
+| `POST /tenants/subscriptions/validate-limits` (한도·구독 사전검증) | v1.3(PLAN-1191) | **미연동** | **미연동** | **미상** (계획: CleverOne v1.5.5 / EzServer v6.5.0) | A·B | `400110`~`400113`(기존), `400116`(v1.3 신규) |
+| 업로드·공유 (`POST /ezcloud/cases/upload`·`/share`, EPI) | v1.0 | 지원 | 지원 | **미상** | A | `400110`~`400113`, `400116` 등을 MQTT relay |
 
-표에서 **확인된 것**은 “현재 CleverOne/EzServer 소스가 그 API·error code를 지원하는가”(지원/미지원)이고, **미상**은 “그 API를 처음 지원한 최소 클라이언트 버전 번호”다. 후자는 각 API 도입 릴리즈 노트를 추적해야 알 수 있으므로 본 보고서에서는 채우지 않는다(방법 4 적용 단계의 산출물).
+> **단위 구분:** 표의 행은 **호출 대상(엔드포인트·기능)**이고, `관련 오류 코드`는 그 기능이 돌려줄 수 있는 **응답 코드**다. “이 버전이 그 기능을 **호출할 수 있는가**”(버전 게이트)와 “그 응답 코드를 **알아듣는가**”(코드 인식)는 별개 문제이며, 후자는 §C.3 오류 코드 registry와 fallback으로 처리한다(모르는 코드는 “업데이트 필요”로 안내).
+
+표에서 **확인된 것**은 “현재 CleverOne/EzServer 소스가 그 기능을 지원하는가”(지원/미지원)이고, **미상**은 “그 기능을 처음 지원한 최소 클라이언트 버전 번호”다. 후자는 각 기능의 도입 릴리즈 노트를 추적해야 알 수 있으므로 본 보고서에서는 채우지 않는다(방법 4 적용 단계의 산출물).
 
 **결론:** “단일 서버 1곳 수정으로 다수 클라이언트 커버”라는 이점은 **서버가 API별 호환 정보를 보유·노출**할 때 성립한다. 이것이 방법 1(capability 조회)·방법 4(매트릭스)를 **API 단위**로 설계해야 하는 이유다.
 
@@ -146,7 +147,7 @@ SRS v6.2(EzServer PMS Integration)는 경로 A의 시퀀스를 정의한다. Ima
 | EzServer → CleverSpace | client_id/OAuth | **없음** | EPI HTTP client, SRS v6.2 |
 | CleverSpace → Client | `server-configuration.json` `"version":"v1"` | URI API 버전만, **제품 릴리즈 버전 API 없음** | ezcloud repo |
 
-VKS 논의사항(tick): Client는 UserAgent에 **제품명·버전·OS명·OS버전**을 넣도록 전사 표준화 — **현재 미적용**.
+VKS 논의사항(제안): 지난 회의에서 **Client의 UserAgent에 제품명·버전·OS명·OS버전을 담는 전사 표준을 만들자**는 의견이 제시되었다. 아직 정해진 규칙은 아니며, 현재 소스는 위 표처럼 제품명만(또는 일부만) 넣고 있다. 본 보고서는 이 표준화를 **앞으로 도입할 권고 사항**으로 다룬다(방법 2의 전제, §3 참조).
 
 ### 2.2 기존 호환성 패턴
 
@@ -238,13 +239,13 @@ CleverOne Direct(경로 B)를 **EzServer EPI가 대리·흡수**하고, 버전·
 
 **단독 적용:** 2차 목표. 1차에서는 EPI에 **validate-limits 호출·error 전달 강화**만 선적용.
 
-### 방법 4: 계약·호환성 매트릭스 — 릴리즈 프로세스
+### 방법 4: 호환성 매트릭스 — 릴리즈 프로세스
 
 EzServer Releases CSV와 유사하되 **축이 다르다.** CleverSpace는 단일 버전이므로 `제품 × 제품` 곱이 아니라 **`API/기능 × 최소 클라이언트 버전`(§1.3 표)** 형태의 테이블을 릴리즈 프로세스에서 유지한다. 여기에 **오류 코드 목록(registry)**과, 클라이언트가 모르는 코드를 만났을 때의 **fallback 규칙**(“업데이트 필요” 안내)을 함께 관리한다.
 
 | 장점 | 단점 |
 |------|------|
-| API 추가 때마다 **최소 CleverOne/EzServer 버전**을 명시 → QA·릴리즈 노트 연동 | 매트릭스 **운영 부담** (자동화 없으면 drift) |
+| API 추가 때마다 **최소 CleverOne/EzServer 버전**을 명시 → QA·릴리즈 노트 연동 | 매트릭스 **운영 부담** (자동화 없으면 drift → §C.2.1 단일 소스·CI gate로 완화) |
 | 런타임(2) + 프로세스 이중 안전. 방법 1·2의 **데이터 소스** | 런타임만으로는 구버전 차단 불가 |
 
 **단독 적용:** 불충분. **방법 2의 설계 입력** + **방법 1의 클라이언트 내장표**로 사용.
@@ -363,14 +364,16 @@ flowchart LR
     EPI -.->|"MQTT 결과 (400110~116)"| CO
     CO -->|"경로B Direct (+헤더) validate-limits"| CS
     CO --> OID
-    MTX -.->|"기준 제공"| CS
-    MTX -.->|"내장 표/안내"| CO
+    MTX -.->|"빌드 시 서버 검증 기준 반영"| CS
+    MTX -.->|"빌드 시 클라이언트 내장표 반영"| CO
 
     classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
     class CO,EPI,CS,MTX new;
 ```
 
 > 핵심: 제약의 기준은 **단일 서버(CleverSpace)**, EzServer는 경로 A의 게이트로 헤더·error 전달, CleverOne·ESLinkageCloudPlatform은 경로 B 헤더·사전검증을 담당.
+>
+> **매트릭스 공유 방식(1차):** 호환성 매트릭스는 런타임에 주고받는 채널이 아니라, **하나의 소스 파일을 양쪽이 각자 빌드에 반영**하는 형태다. 즉 서버는 검증 기준으로, 클라이언트는 내장표로 같은 내용을 박는다. 이때 **두 쪽이 어긋나지 않게 하는 단일 소스(single source of truth) + 자동 생성/검증 절차**가 필요하다(§C.2.1). 2차에서는 이 정적 반영을 well-known 런타임 공시로 대체한다(§5.2).
 
 ### 5.2 2차 — 구조 개선 (경로 B의 EzServer Gateway 흡수 포함)
 
@@ -444,15 +447,19 @@ flowchart TB
 
 ## 7. 다음 액션
 
-| 우선순위 | Action | 담당 후보 |
-|----------|--------|-----------|
-| P0 | Client 식별 헤더 스펙 1p (User-Agent vs `X-Ewoosoft-Client`, 경로 A/B/EPI 전달 규칙) | Thomas / Raymond |
-| P0 | MMI error code ↔ CleverOne/EPI 매핑표 (400116 포함) | Thomas + CleverSpace |
-| P1 | `validate-limits` **호출 주체·시점** 확정 (EPI only vs Direct also) | Jay / CleverSpace |
-| P1 | CleverSpace 호환성 매트릭스 v0.1 — **`API/기능 × 최소 CleverOne/EzServer 버전`** 축 (§1.3 표 확장) | Raymond |
-| P1 | ESLinkageCloudPlatform `CheckUploadCondition` → validate-limits | ESLinkageCloudPlatform |
-| P1 | **경로 B Direct API 목록·인증 흐름 정리** (어떤 CleverSpace/OneID API가 EPI 미중계로 Direct인지) — Gateway 흡수 대상 산정 | Thomas / Nick |
-| P2 | well-known capability / Gateway 로드맵 + **EPI 중계 endpoint·인증 통일 설계** (경로 B 흡수, §1.4·§5.2) | 아키텍처 |
+담당은 **역할·제품 기준**으로 배정한다. 설계·아키텍처 성격은 아키텍처(Raymond), 의사결정·조율은 PM(Jay), 구현·소스 확인·버전 데이터 채우기는 **해당 제품 개발자**가 맡는다.
+
+| 우선순위 | Action | 성격 | 담당(역할·제품) |
+|----------|--------|------|-----------------|
+| P0 | Client 식별 헤더 스펙 1p (User-Agent vs `X-Ewoosoft-Client`, 경로 A/B/EPI 전달 규칙) | 설계 | **아키텍처(Raymond)** 주관 + CleverOne·EzServer 개발 리뷰 |
+| P0 | MMI error code ↔ CleverOne/EPI 매핑표 (400116 포함) | 구현/데이터 | CleverSpace 팀(코드 정의) + CleverOne·EzServer 개발(매핑 반영) |
+| P1 | `validate-limits` **호출 주체·시점** 확정 (EPI only vs Direct also) | 의사결정 | **PM(Jay)** 주관 + CleverSpace 팀 |
+| P1 | CleverSpace 호환성 매트릭스 v0.1 — **`API/기능 × 최소 CleverOne/EzServer 버전`** 축 (§1.3 표 확장) | 데이터 취합 | CleverSpace 팀 취합, 각 제품 개발자가 자기 버전 제공 (PM(Jay) 조율) |
+| P1 | ESLinkageCloudPlatform `CheckUploadCondition` → validate-limits | 구현 | ESLinkageCloudPlatform 개발 |
+| P1 | **경로 B Direct API 목록·인증 흐름 정리** (어떤 CleverSpace/OneID API가 EPI 미중계로 Direct인지) — Gateway 흡수 대상 산정 | 구현/조사 | CleverOne·EzServer 개발(Thomas·Nick) |
+| P2 | well-known capability / Gateway 로드맵 + **EPI 중계 endpoint·인증 통일 설계** (경로 B 흡수, §1.4·§5.2) | 설계 | **아키텍처(Raymond)** 주관 + PM(Jay) |
+
+> 역할: **PM** Jay / **개발** Thomas·Nick(CleverOne·EzServer 클라이언트), CleverSpace·ESLinkageCloudPlatform 각 팀 / **아키텍처·설계** Raymond. 구체 담당자는 각 제품팀에서 확정한다.
 
 ---
 
@@ -536,12 +543,13 @@ CleverSpace와 OneID가 각각 환경별로 보관하는 **서버 디스커버�
 
 **CSV 예시** (`compatibility-matrix.csv`)
 
+**행의 단위는 API/기능이다.** 오류 코드는 호환성 단위가 아니므로 여기 행으로 넣지 않고, 각 기능의 `related_errorcodes`(응답으로 나올 수 있는 코드) **속성**으로만 적는다. 오류 코드의 분류·메시지·fallback은 §C.3 registry가 담당한다.
+
 ```csv
-api_or_feature,cleverspace_introduced,min_cleverone,min_ezserver,path,status,note
-GET /organization-data/upload/limit,v1.1,미상,미상,B,지원,기존
-errorcode:400110-400113,v1.1,지원,relay,A,지원,한도 초과
-POST /tenants/subscriptions/validate-limits,v1.3,미상,미상,A·B,미연동,v1.3 신규(계획 CleverOne 1.5.5 / EzServer 6.5.0)
-errorcode:400116,v1.3,미처리,relay 필요,A,미처리,일일 업로드
+key,cleverspace_introduced,min_cleverone,min_ezserver,path,status,related_errorcodes,note
+GET /organization-data/upload/limit,v1.1,미상,미상,B,지원,,업로드 한도 조회
+POST /tenants/subscriptions/validate-limits,v1.3,미상,미상,A·B,미연동,400110-400113;400116,v1.3 신규(계획 CleverOne 1.5.5 / EzServer 6.5.0)
+POST /ezcloud/cases/upload|share (EPI),v1.0,지원,지원,A,지원,400110-400113;400116,한도 초과 코드를 MQTT relay
 ```
 
 **YAML 예시** (`compatibility-matrix.yaml`) — well-known 자동 생성 소스로 쓰기 좋음
@@ -553,12 +561,46 @@ features:
     path: [A, B]
     min-client: { CleverOne: "1.5.5", EzServer: "6.5.0" }   # 미상: 확정 필요
     status: not-integrated
+    related-errorcodes: [400110, 400111, 400112, 400113, 400116]   # 응답 코드(참고), 단위 아님
   - id: organization-data.upload.limit
     introduced: "1.1"
     path: [B]
     min-client: { CleverOne: "1.0.0", EzServer: "6.0.0" }   # 미상: 확정 필요
     status: supported
 ```
+
+> `related-errorcodes`는 **그 기능이 돌려줄 수 있는 응답 코드**일 뿐, 버전 호환의 판정 단위가 아니다. 코드 인식·메시지·미지원 코드 fallback은 §C.3에서 관리한다.
+
+#### C.2.1 매트릭스를 양쪽에 동일하게 반영하는 방법 (single source of truth)
+
+매트릭스는 **서버(CleverSpace, 검증 기준)**와 **클라이언트(CleverOne·EzServer, 내장표)** 양쪽이 같은 내용을 알아야 의미가 있다. 두 곳에 **사람이 따로 옮겨 적으면 반드시 어긋난다(drift).** 따라서 **소스 1벌을 origin으로 두고, 거기서 양쪽 산출물을 자동 생성**하는 절차가 필요하다.
+
+```mermaid
+flowchart LR
+    SRC["compatibility-matrix.yaml<br/>(single source, 리포지토리)"]
+    subgraph GEN["빌드/릴리즈 시 자동 생성"]
+        S1["서버용:<br/>server-configuration.json<br/>features.min-client"]
+        S2["클라이언트용:<br/>내장표(헤더/리소스 파일)<br/>CleverOne·EzServer"]
+    end
+    CI["CI gate<br/>(소스↔산출물 일치 검증)"]
+
+    SRC --> S1
+    SRC --> S2
+    SRC --> CI
+    S1 -.->|2차: well-known 런타임 공시| SRV["CleverSpace"]
+    S2 -.->|1차: 빌드 내장| CLI["CleverOne / EzServer"]
+```
+
+운영 규칙(권고):
+
+1. **단일 소스:** `compatibility-matrix.yaml` 1개만 손으로 고친다. 위치·소유는 §C.4(PM/아키텍처).
+2. **자동 생성(generated, 직접 편집 금지):**
+   - 서버측 → `server-configuration.json`의 `features`(2차 well-known 공시용).
+   - 클라이언트측 → CleverOne/EzServer가 빌드에 포함하는 **내장표**(예: 생성된 헤더·JSON 리소스). 각 제품 빌드 스크립트가 소스를 받아 변환한다.
+3. **CI gate:** 릴리즈 파이프라인에서 “소스 ↔ 각 산출물”이 일치하는지 검사(EzServer Releases CSV 검증과 동일한 결). 불일치면 빌드 실패 → drift 차단.
+4. **버전 태깅:** 매트릭스에 `schema-version`/갱신 일자를 두고, 클라이언트는 내장표의 출처 버전을 로그·진단에 남겨 “어떤 기준으로 판단했는지” 추적 가능하게 한다.
+
+> 핵심은 **“양쪽에 두 번 적지 않는다”**이다. 1차에는 빌드 시 정적 반영, 2차에는 서버가 well-known으로 공시하고 클라이언트가 런타임 조회 — 어느 단계든 **소스는 이 파일 1벌**이라는 원칙은 동일하다.
 
 ### C.3 오류 코드 registry (CleverOne·EPI 공용 — 신규 관리 파일)
 
