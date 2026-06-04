@@ -1,0 +1,436 @@
+# VatechAPIGateway 구축 및 API 호환성 통합 Roadmap
+
+작성일: 2026-06-04  
+근거: 6월 4일 회의 결정(`0604_회의록_APIGateway통합.md`), API 호환성 분석(`API호환성_방안비교_보고서.md`), Straumann AXS 연동 분석(`Straumann연동/Straumann-Vatech_AXS연동_분석보고서.md`)
+
+> 본 문서는 **이 한 편으로 개발 가이드가 완결**되도록 작성한다. 위 근거 문서는 필요할 때만 참고한다.
+
+---
+
+## Executive Summary
+
+**목적.** 모든 클라우드 연동을 단일 게이트웨이(**VatechAPIGateway**, 이하 GW)로 통합하고, 그 위에서 **API 버전 호환성 문제까지 함께 해결**한다. 대상은 CleverSpace뿐 아니라 Straumann(AXS) 등 **외부 서버 연동 전체**다.
+
+**현재 문제(AS-IS).**
+
+- CleverOne·EzServer가 CleverSpace/OneID로 **여러 경로로 직접 연동**(EzServer 경유 경로 A + 직접 경로 B)되어 인증·정책 통제가 분산된다.
+- 클라이언트가 **제품 버전을 전달하지 않아**, 구버전이 신규 API·오류 코드를 인식하지 못하고 **원인 불명 실패**가 발생한다.
+
+> Straumann(AXS) 연동은 위와 같은 "문제"가 아니라, **GW가 만들어지면 그 위에서 자연히 수용되는 신규 연동 대상**이다. Straumann 쪽 핵심 과제는 **presigned URL 지원**이며(§3.7), 본 Roadmap에서 presigned·GW가 갖춰지는 시점에 착수한다.
+
+**목표(TO-BE).**
+
+- **모든 연동은 `EZ → GW → 대상 서버`** 단일 경로를 따른다. GW가 **인증(OneID 연계)·버전 호환·Region 라우팅의 단일 집행점**이 된다.
+- **정보(메타데이터)는 GW**를 지나고, **대용량 데이터(CT·이미지)는 presigned URL로 EZ가 스토리지에 직접 전송**한다.
+- CleverSpace를 **여러 Region에 두고**, GW가 **ClinicID 기준으로 분배**하며, 사용자는 **Route 53 GeoDNS로 가장 가까운 GW**에 연결된다.
+- EzServer는 **현장의 Edge로 유지**한다(추후 Rust 전면 재개발은 별도 후속 트랙).
+
+**Roadmap(4단계, 기능 응집·의존 순서 기준).** 목표 기한은 6개월이며, 단계는 기능 묶음으로 나눈다. 의존 순서상 **API 호환성(즉시 착수) → presigned 데이터 경로 → GW 일원화 → 멀티 Region** 으로 진행한다.
+
+| 단계 | 한 줄 정의 | 결과 |
+|------|-----------|------|
+| **1단계** | API 버전 호환성 해결(GW 없이 즉시) | 식별 헤더·서버 버전 체크·well-known 공시로 원인불명 실패 제거 |
+| **2단계** | presigned 데이터 경로 | 대용량 데이터 직접 업로드 경로 완성(GW 일원화의 선행 요건) |
+| **3단계** | GW 신설·일원화 | `EZ → GW → 대상` 단일 경유 + 인증 일원화 + 경로 B 흡수 |
+| **4단계** | 멀티 Region·글로벌·운영 | VatechAPIGateway 완성(멀티리전·HA·관리) |
+
+```mermaid
+flowchart TD
+    S1["1단계<br/>API 호환성<br/>(GW 없이 즉시)"]
+    S2["2단계<br/>presigned<br/>데이터 경로"]
+    S3["3단계<br/>GW 신설·일원화"]
+    S4["4단계<br/>멀티 Region·운영<br/>(GW 완성)"]
+    STRA["Straumann(AXS) 연동<br/>병렬 트랙"]
+    RUST["New EzServer<br/>(PHP → Rust 전면 재개발)"]
+
+    S1 --> S2 --> S3 --> S4
+    S3 -.->|"3단계 이후 착수 가능<br/>(presigned+GW+인증+Org-ID)"| STRA
+    STRA -. 병렬 .- S4
+    S4 ==>|"4단계 이후 장기 후속 트랙"| RUST
+
+    classDef stage fill:#eaf2fb,stroke:#2471a3,color:#000;
+    classDef branch fill:#eafaf1,stroke:#1e8449,color:#000;
+    classDef follow fill:#fef9e7,stroke:#b7950b,color:#000;
+    class S1,S2,S3,S4 stage;
+    class STRA branch;
+    class RUST follow;
+```
+
+> 파란 박스 = 핵심 4단계(순차 의존). 초록 = 3단계 이후 병렬로 진행하는 Straumann 트랙. 노랑 = 4단계 완료 후 착수하는 EzServer Rust 재개발 후속 트랙.
+
+- **1단계는 GW 없이 기존 경로에서 바로 착수**할 수 있어, CleverSpace v1.3.0 일정의 호환성 문제에 즉시 대응한다.
+- **presigned(2단계)는 GW 일원화(3단계)의 선행 요건**이다. GW는 대용량 데이터를 직접 나르지 않으므로(정보만 GW 경유), 업로드를 GW 체계 안에서 인가하려면 presigned가 먼저 갖춰져야 한다.
+- **Straumann 연동**은 별도 단계가 아니라 **3단계 이후 착수 가능한 병렬 트랙**이다(선행 요건: presigned + GW + 인증 + Org-ID 매핑).
+- **EzServer 전면 재개발**(PHP → Rust)은 4단계에서 제외하고 **이후 장기 후속 트랙**으로 둔다.
+
+**기대 효과.** 연동 창구·인증 일원화로 보안·운영이 단순해지고, 버전 호환 실패가 사라지며, 멀티 Region으로 글로벌 확장과 외부(Straumann) 연동을 **같은 구조로** 수용한다.
+
+---
+
+## 1. 배경과 목적
+
+세 제품(CleverOne, EzServer, CleverSpace)과 인증(OneID)은 현재 **두 갈래 경로**로 연동된다. EzServer가 중계하는 기능은 경로 A(`CleverOne → EzServer → CleverSpace`), EzServer가 중계하지 않는 기능은 경로 B(`CleverOne → CleverSpace/OneID` 직접)다.
+
+이 구조의 문제는 세 가지다.
+
+1. **연동 창구 분산** — 직접 경로(B)가 존재해 인증과 정책 통제가 두 갈래로 나뉜다.
+2. **버전 호환 실패** — 클라이언트가 제품 버전을 전달하지 않아, 구버전이 신규 API·오류 코드를 처리하지 못하고 사용자에게 원인 불명 실패로 나타난다.
+3. **외부 연동 확장의 어려움** — Straumann(AXS)처럼 보안상 **직접 연결이 불가능한 외부 서버**가 늘면, 중간 게이트웨이 없이는 연동 자체가 막힌다.
+
+따라서 본 과제의 목적은 **VatechAPIGateway라는 단일 게이트웨이를 완성**하여 위 세 문제를 **한 번에** 푸는 것이다. GW는 단순 중계가 아니라 **인증·버전 호환·Region 분배를 집행하는 정책 지점**이다.
+
+### AS-IS 전체 구조
+
+```mermaid
+flowchart LR
+    subgraph CLINIC["클리닉 온프레미스 (버전 혼재)"]
+        CO["CleverOne<br/>버전 미전달"]
+        EZ["EzServer / EPI<br/>Server + Client 이중 역할"]
+    end
+    subgraph CLOUD["CleverSpace Cloud (단일 Region)"]
+        OID["OneID (인증)"]
+        CS["CleverSpace API"]
+    end
+
+    CO -->|"경로A: 업로드/공유"| EZ
+    EZ -->|"HTTP/OAuth (client 버전 미전달)"| CS
+    EZ -.->|"MQTT 결과 (error relay)"| CO
+    CO -->|"경로B Direct: OAuth"| OID
+    CO -->|"경로B Direct: limit/member 조회"| CS
+
+    classDef gap fill:#fdecea,stroke:#c0392b,color:#000;
+    class CO,CS,EZ gap;
+```
+
+> 붉은 노드 = 문제 지점. 직접 경로(B)로 창구가 분산되고, 클라이언트 버전이 전달되지 않으며, 대용량 데이터는 그때그때 직접 전송된다.
+
+---
+
+## 2. 목표 아키텍처 (TO-BE 최종)
+
+### 2.1 핵심 원칙 — 모든 연동은 GW를 통한다
+
+- **명칭: VatechAPIGateway(GW).** 앞으로 모든 GW는 이것을 가리킨다.
+- 모든 연동은 **`EZ → GW → 대상 서버`** 경로를 따른다. 대상은 CleverSpace, Straumann(AXS), 그 외 어떤 서버든 **예외 없이 GW를 경유**한다.
+- GW는 **인증(OneID 연계)·버전 호환·Region 라우팅을 집행하는 단일 지점**이다.
+
+### 2.2 구성요소
+
+| 구성요소 | 역할 |
+|----------|------|
+| **EzServer(EZ)** | 클리닉 현장의 **Edge**. 장비·PMS·대용량 데이터를 현장에서 처리하고, 모든 클라우드 연동을 GW로 보낸다. (Edge로 유지 확정) |
+| **VatechAPIGateway(GW)** | 모든 연동의 단일 경유점. 인증 검증, 버전 호환 판정, Region 분배, 외부 API 중계 |
+| **GW Console** | Admin이 GW를 관리하는 Web client(매핑·클리닉·상태 관리) |
+| **OneID(AuthServer)** | 인증. GW가 토큰 검증 등에서 연계(연계 범위는 설계에서 확장 가능) |
+| **CleverSpace** | 클라우드 API. **여러 Region**에 구축 |
+| **외부 서버(Straumann AXS 등)** | GW를 통해서만 연동 |
+| **비-AWS 변형** | AWS 미지원 국가는 CleverSpace 대신 별도 서버 + **minio**(S3 대체). 구성은 표준과 동일, 스토리지만 교체 |
+
+> CleverOne은 데스크톱 클라이언트로서 EZ를 통해 연동하며, 최초 접속 시 사용할 Region을 선택한다(§2.4).
+
+### 2.3 데이터 경로 — 정보는 GW, 대용량은 presigned 직접
+
+- **정보(메타데이터)**: `EZ → GW → 대상`. GW가 검증·라우팅한다.
+- **대용량 데이터(CT·이미지)**: GW로 보내지 않는다. **presigned URL을 GW를 통해 발급**받고, **EZ가 스토리지(S3 또는 minio)에 직접 업로드**한다.
+- **현재 CleverSpace는 presigned 방식이 아니라 Direct 전송**이므로, presigned 발급을 **신규 개발**해야 하고 **EZ의 전송 로직도 변경**된다(2단계).
+- minio도 S3 호환이라 presigned 방식이 그대로 동작한다.
+
+### 2.4 Region 분배와 글로벌 라우팅
+
+- CleverSpace를 **여러 Region에 구축**하고, GW가 요청의 **ClinicID를 보고 알맞은 Region으로 분배**한다.
+- GW는 **ClinicID ↔ Region 매핑 테이블**을 보유한다. 매핑·등록 데이터는 **이식성 있는 저장소(PostgreSQL 등) + GW 메모리 캐시**로 둔다(DynamoDB는 AWS 전용이라 비-AWS 환경 불가).
+- **글로벌 라우팅은 AWS Route 53로 확정.** latency-based / geolocation routing으로 사용자를 **가장 가까운 GW Region**에 연결한다. GW는 우선 **서울·미주 2개 거점**에 **쿠버네티스로 HA** 구축한다.
+- CleverOne은 **최초 설치·접속 시 사용할 Region을 선택하는 UI**가 필요하다(현재 미구현 → 4단계 개발).
+
+### 2.5 클라이언트 식별 표준 (확정)
+
+요청에 **제품명·버전**(·OS)을 실어 GW·CleverSpace가 버전 호환을 판정한다. **전용 헤더 + User-Agent 표준화 병행**으로 한다(권위 소스는 전용 헤더). 상세는 §5.
+
+### 2.6 최종 아키텍처 다이어그램
+
+```mermaid
+flowchart LR
+    subgraph CLINIC["클리닉 온프레미스"]
+        CO["CleverOne<br/>Region 선택 · Vatech-* 헤더"]
+        EDGE["EzServer (Edge)<br/>Vatech-* 헤더 · presigned 직접 업로드"]
+        CO --> EDGE
+    end
+
+    subgraph GWLAYER["VatechAPIGateway (K8s HA · 서울/미주)"]
+        GW["GW<br/>인증·호환·Region 분배 단일 집행점"]
+        DB[("컨트롤플레인 DB<br/>PostgreSQL + 캐시<br/>ClinicID↔Region · Org-ID 매핑")]
+        CONSOLE["GW Console (Admin)"]
+        GW --- DB
+        GW --- CONSOLE
+    end
+
+    subgraph CLOUD["멀티 Region 백엔드"]
+        OID["OneID"]
+        CS1["CleverSpace Region A"]
+        CS2["CleverSpace Region B"]
+        MINIO["비-AWS: 별도 서버 + minio"]
+    end
+    AXS["외부: Straumann AXS 등"]
+
+    EDGE ==>|"모든 API(정보)<br/>Route 53 GeoDNS로 가까운 GW"| GW
+    GW -->|"인증 검증"| OID
+    GW -->|"ClinicID 기준 분배"| CS1
+    GW -->|"ClinicID 기준 분배"| CS2
+    GW -->|"중계"| AXS
+    GW -->|"비-AWS 라우팅"| MINIO
+    EDGE -.->|"대용량: presigned 직접 업로드"| CS1
+    EDGE -.->|"대용량: presigned 직접 업로드"| MINIO
+
+    classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
+    class GW,DB,CONSOLE,CS2,AXS,MINIO new;
+```
+
+> 굵은 화살표 = 모든 API가 GW 단일 경유. 점선 = 대용량 데이터의 presigned 직접 업로드(GW 비경유). 초록 = 본 과제로 새로 들어오는 요소.
+
+---
+
+## 3. Roadmap (4단계)
+
+단계는 **기능 응집도와 의존 순서**로 나눈다. **API 호환성은 GW 없이 즉시** 해결할 수 있고, **presigned는 GW 일원화의 선행 요건**이므로, 다음 4단계가 가장 효율적이다.
+
+### 3.1 단계 개요
+
+| 단계 | 기능 묶음 | 핵심 산출물 | 완료 의미 |
+|------|-----------|-------------|-----------|
+| **1단계** | API 호환성(즉시) | Vatech-* 식별 헤더(제품·버전·OS)·서버 버전 체크(validate-limits)·well-known 런타임 버전 공시·오류코드 매핑/fallback·호환성 매트릭스 | GW 없이 기존 경로에서 버전 호환 해결, 원인불명 실패 제거 |
+| **2단계** | presigned 데이터 경로 | CleverSpace presigned 발급 신규 개발·EZ 전송 로직 변경(Direct→presigned 직접) | 대용량 데이터 직접 업로드 경로 완성(GW 선행 요건) |
+| **3단계** | GW 신설·일원화 | GW 본체·EZ→GW 전환·OneID 인증 연계·경로 B 흡수·presigned 발급 GW 경유 전환 | `EZ → GW → 대상` 단일 경유 + 인증 일원화(단일 Region) |
+| **4단계** | 멀티리전·운영 | 멀티 Region·Region 분배(Postgres)·Route 53 GeoDNS·CleverOne Region UI·GW HA(K8s)·GW Console·minio | VatechAPIGateway 완성 |
+| (후속) | 별도 트랙 | EzServer 전면 재개발(PHP → Rust) | 4단계 이후 장기 과제 |
+
+> 의존 관계 요약: 1단계(호환성)는 어디에도 의존하지 않아 **즉시 착수**한다. 3단계 GW가 "모든 연동 단일 경유"를 선언하려면 대용량 업로드를 GW 체계 안에서 인가해야 하므로, **2단계 presigned가 반드시 먼저** 와야 한다. 4단계(멀티리전)는 3단계 GW를 전제로 한다.
+
+### 3.2 AS-IS (기준점)
+
+§1의 AS-IS 구조가 출발점이다. GW가 없고, 경로 A/B가 분산되며, 버전 미전달·Direct 데이터 전송 상태다.
+
+### 3.3 1단계 — API 버전 호환성 해결 (GW 없이 즉시)
+
+**목표.** GW를 기다리지 않고 **기존 경로(A·B) 위에서** 버전 호환 문제를 먼저 끝낸다. 클라이언트가 **제품·버전을 헤더로 전달**하고, CleverSpace가 **서버에서 버전을 체크**하며, **well-known으로 API별 지원 버전을 런타임 공시**한다. CleverSpace v1.3.0 일정에 바로 대응한다.
+
+**제품별 개발 항목.**
+
+| 제품 | 개발 항목 |
+|------|-----------|
+| CleverOne | Vatech-* 식별 헤더 부착(제품·버전·OS), well-known 조회 후 미지원 기능 사전 인지·안내, 오류코드 fallback("업데이트 필요") |
+| EzServer(EZ) | 경로 A에서 Vatech-* 헤더 **대리 전달**(또는 EZ 자체 버전 + originating client) |
+| CleverSpace | **서버 버전 체크**(validate-limits 사전검증), **well-known 런타임 버전 공시**(API/기능별 최소 클라이언트 버전), 오류 코드 정의·registry 정리 |
+| 공통 | **호환성 매트릭스**(API/기능 × 최소 클라이언트 버전)를 단일 소스로 운영, 빌드/CI에 반영 |
+
+```mermaid
+flowchart LR
+    subgraph CLINIC["클리닉 온프레미스 (기존 경로 유지)"]
+        CO["CleverOne<br/>+ Vatech-* 헤더 · well-known 조회"]
+        EZ["EzServer (Edge)<br/>+ 헤더 대리 전달"]
+        CO --> EZ
+    end
+    subgraph CLOUD["CleverSpace Cloud (단일 Region)"]
+        OID["OneID"]
+        CS["CleverSpace API<br/>+ 서버 버전 체크 · well-known 공시"]
+    end
+
+    EZ -->|"경로A (+헤더)"| CS
+    CO -->|"경로B Direct (+헤더)"| CS
+    CO -->|"경로B Direct"| OID
+    CS -.->|"well-known: API별 지원버전"| CO
+
+    classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
+    class CS new;
+```
+
+> 직전(AS-IS) 대비 변경: 경로 구조는 그대로 두되, **클라이언트가 버전을 헤더로 전달**하고 **서버가 버전을 체크·공시**한다. GW 없이도 **원인불명 실패가 사라진다.** 경로 B 통합은 3단계(GW)에서 다룬다.
+
+### 3.4 2단계 — presigned 데이터 경로
+
+**목표.** 대용량 데이터를 **presigned URL 직접 업로드**로 전환한다. CleverSpace에 presigned 발급을 신규 개발하고, EZ 전송 로직을 바꾼다. 이 단계는 **3단계 GW 일원화의 선행 요건**이다(GW는 대용량을 직접 나르지 않으므로, 업로드 인가를 위해 presigned가 먼저 필요).
+
+**제품별 개발 항목.**
+
+| 제품 | 개발 항목 |
+|------|-----------|
+| CleverSpace | **presigned URL 발급 API 신규 개발**(현재 Direct 전송 방식 대체) |
+| EzServer(EZ) | **데이터 전송 로직 변경** — 발급 요청 후 스토리지로 **직접 업로드** |
+| CleverOne | (해당 시) 업로드 흐름 연계 확인 |
+
+```mermaid
+flowchart LR
+    subgraph CLINIC["클리닉 온프레미스"]
+        EZ["EzServer (Edge)<br/>presigned 직접 업로드"]
+    end
+    subgraph CLOUD["CleverSpace Cloud"]
+        CS["CleverSpace API<br/>+ presigned 발급(신규)"]
+        S3["스토리지 (S3)"]
+    end
+
+    EZ ==>|"1. presigned 발급 요청(정보)"| CS
+    CS -->|"2. presigned URL"| EZ
+    EZ -.->|"3. 대용량 직접 업로드"| S3
+
+    classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
+    class CS,S3 new;
+```
+
+> 직전(1단계) 대비 변경: **데이터 경로 분리** — 정보(발급 요청)와 대용량(직접 업로드)이 나뉜다. 아직 GW는 없으며, 발급 요청은 CleverSpace로 직접 간다(3단계에서 GW 경유로 전환).
+
+### 3.5 3단계 — GW 신설·일원화
+
+**목표.** **VatechAPIGateway를 세워 모든 연동을 `EZ → GW → 대상`으로 일원화**한다. 인증(OneID 연계)을 GW로 모으고, **경로 B(직접 연동)를 GW로 흡수**하며, 2단계에서 만든 **presigned 발급도 GW 경유로 전환**한다. (단일 Region으로 시작.)
+
+**제품별 개발 항목.**
+
+| 제품 | 개발 항목 |
+|------|-----------|
+| VatechAPIGateway | GW 본체(모든 연동 단일 경유), 라우팅/스로틀링, OneID 인증 검증 연계, 버전 호환 집행(1단계 자산 이관), presigned **발급 중계**, 경로 B 흡수 |
+| OneID | GW 연계 토큰 검증 인터페이스 |
+| EzServer(EZ) | CleverSpace/OneID 연동을 **GW 경유로 전환**, presigned 발급 요청도 GW로 |
+| CleverOne | Direct 호출을 **GW 경유로 전환**(경로 B 흡수) |
+| CleverSpace | GW 경유 호출 수신·검증 정합 |
+
+```mermaid
+flowchart LR
+    subgraph CLINIC["클리닉 온프레미스"]
+        CO["CleverOne<br/>+ Vatech-* 헤더"]
+        EZ["EzServer (Edge)"]
+        CO --> EZ
+    end
+    subgraph GWLAYER["VatechAPIGateway (단일 Region)"]
+        GW["GW<br/>인증·버전 호환·presigned 발급 중계"]
+    end
+    subgraph CLOUD["CleverSpace Cloud (단일 Region)"]
+        OID["OneID"]
+        CS["CleverSpace API<br/>+ presigned 발급"]
+        S3["스토리지 (S3)"]
+    end
+
+    EZ ==>|"모든 연동(정보) GW 경유"| GW
+    GW -->|"인증 검증"| OID
+    GW -->|"검증 후 호출 · presigned 발급 중계"| CS
+    EZ -.->|"대용량: presigned 직접 업로드"| S3
+
+    classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
+    class GW new;
+```
+
+> 직전(2단계) 대비 변경: **경로 B 제거 → GW 단일 경유**. 인증·호환 집행이 GW로 모이고, presigned 발급도 GW가 중계한다. **이 시점부터 Straumann 착수 가능**(§3.7). 대용량 업로드는 여전히 스토리지로 직접(GW 비경유).
+
+### 3.6 4단계 — 멀티 Region·글로벌·운영
+
+**목표.** CleverSpace를 멀티 Region으로 확장하고, GW가 **ClinicID로 Region을 분배**하며, **Route 53 GeoDNS**로 가까운 GW에 연결한다. **HA·GW Console·비-AWS(minio)까지 갖춰 VatechAPIGateway를 완성**한다.
+
+**제품별 개발 항목.**
+
+| 제품 | 개발 항목 |
+|------|-----------|
+| CleverSpace | **멀티 Region 구축** |
+| VatechAPIGateway | **Region 분배**(ClinicID↔Region 매핑), 컨트롤플레인 저장소(PostgreSQL + 캐시), **K8s HA(서울·미주)**, Route 53 GeoDNS 연계 |
+| GW Console | **Admin Web Console**(매핑·클리닉·상태 관리) |
+| CleverOne | **Region 선택 UI**(최초 접속 시), ClinicID 전달 |
+| EzServer(EZ) | 요청에 **ClinicID 포함**, Region 인지 |
+| 인프라 | **Route 53** latency/geolocation 라우팅, 비-AWS 국가 **별도 서버 + minio** |
+
+```mermaid
+flowchart LR
+    USER["사용자"] -->|"Route 53 GeoDNS"| GW
+    subgraph CLINIC["클리닉"]
+        CO["CleverOne<br/>Region 선택 UI"]
+        EZ["EzServer (Edge)<br/>ClinicID 포함"]
+        CO --> EZ
+    end
+    subgraph GWLAYER["VatechAPIGateway (K8s HA · 서울/미주)"]
+        GW["GW + Region 분배<br/>(ClinicID↔Region, Postgres)"]
+        CONSOLE["GW Console"]
+        GW --- CONSOLE
+    end
+    subgraph CLOUD["멀티 Region 백엔드"]
+        CS1["CleverSpace Region A"]
+        CS2["CleverSpace Region B"]
+        MINIO["비-AWS: 별도서버 + minio"]
+    end
+
+    EZ ==> GW
+    GW -->|"ClinicID 분배"| CS1
+    GW -->|"ClinicID 분배"| CS2
+    GW -->|"비-AWS"| MINIO
+
+    classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
+    class GW,CONSOLE,CS1,CS2,MINIO new;
+```
+
+> 직전(3단계) 대비 변경: **단일 Region → 멀티 Region + GeoDNS + HA + Console + minio**. 여기서 VatechAPIGateway가 완성된다.
+
+### 3.7 Straumann(AXS) 연동 — 3단계 이후 병렬 트랙
+
+Straumann은 보안상 **EzServer 직접 연결이 불가**하여 **반드시 GW(중간 계층)를 경유**해야 한다. 선행 요건은 **presigned(2단계) + GW 단일 경유(3단계) + 인증 + Org-ID 매핑**이다. 따라서 **3단계 완료 시점부터 착수 가능**하며, 4단계와 **병렬**로 진행한다.
+
+| 항목 | 내용 |
+|------|------|
+| 선행 요건 | presigned 데이터 경로(2단계), GW 단일 경유·인증(3단계), Org-ID 매핑 테이블 |
+| GW(Lambda 상당 로직) | AXS OAuth 토큰 발급·갱신·캐싱, 환자/문서/케이스 중계, Create Document → presigned 반환 |
+| 매핑 | Vatech ClinicID ↔ Straumann Organization-ID (GW 컨트롤플레인에 보관) |
+| EzServer(EZ) | AXS 연동 FE/BE, presigned 직접 업로드(Straumann S3) |
+| 선결(외부) | Straumann의 API 스펙·OAuth 엔드포인트·샌드박스·자격증명 수령 |
+
+> 데이터(영상)는 GW를 거치지 않고 **Straumann S3로 presigned 직접 업로드**한다(§2.3과 동일 원리). Straumann 분석 보고서의 AWS 서버리스 전제는 본 통합에서 **K8s 기반 GW로 대체**된다.
+
+### 3.8 후속 트랙 — EzServer 전면 재개발 (PHP → Rust)
+
+현재 EzServer는 PHP이며 일부 기능은 이미 Rust로 개발돼 있다. 이를 **Rust로 전면 교체**하는 것은 **4단계 이후의 장기 후속 트랙**이다(위 4단계에서 제외). **기존 API 그대로 포팅 vs API부터 재설계**는 **계속 열려 있는 숙제**다(§6). EzServer가 **Edge로 남는 것은 확정**이며 변하지 않는다.
+
+---
+
+## 4. 제품별 개발 항목 종합 (제품 × 단계)
+
+| 제품 | 1단계(호환성) | 2단계(presigned) | 3단계(GW 일원화) | 4단계(멀티리전) | 후속 |
+|------|------|------|------|------|------|
+| **CleverSpace** | 서버 버전 체크·well-known 공시·오류코드 정리 | **presigned 발급 신규 개발** | GW 경유 수신 정합 | 멀티 Region 구축 | — |
+| **CleverOne** | Vatech-* 헤더·well-known 인지·fallback | 업로드 흐름 연계 | Direct→GW 경유 전환 | **Region 선택 UI**·ClinicID | — |
+| **EzServer(EZ)** | 헤더 대리 전달 | 전송 로직 변경(presigned 직접) | GW 경유 전환 | ClinicID 포함·Region 인지 | **Rust 전면 재개발** |
+| **VatechAPIGateway** | — | — | 본체·라우팅·인증 연계·호환 집행·presigned 발급 중계·경로 B 흡수 | Region 분배·HA(K8s)·Route 53·저장소(Postgres) | — |
+| **GW Console** | — | — | — | Admin Web Console | — |
+| **OneID** | (경로 B 인증 유지) | — | GW 연계 토큰 검증 | (멀티 Region 인증 고려) | — |
+| **Straumann(AXS)** | — | — | (3단계 이후 착수 가능) | 병렬 연동(토큰·중계·매핑) | — |
+| **인프라** | 단일 Region | — | 단일 Region GW | Route 53·K8s·비-AWS minio | — |
+
+---
+
+## 5. 클라이언트 식별 헤더 표준 (확정)
+
+요청에 **제품명·버전**(·OS)을 실어 GW·CleverSpace가 버전 호환을 판정한다.
+
+**구조화 전용 헤더가 권위 소스, User-Agent 표준화는 병행.** 머신 판정(버전 게이트·Region 라우팅·한도 검증)은 전용 헤더로 한다(User-Agent 파싱은 포맷이 제각각이고 중간 경로에서 변형될 수 있어 취약). User-Agent는 로깅·관측·하위호환을 위해 표준 포맷으로 유지한다.
+
+```
+Vatech-Product:   CleverOne          # 제품명
+Vatech-Version:   1.5.5              # 제품 버전(semver)
+Vatech-OS:        Windows/11         # OS명/버전
+Vatech-Clinic-Id: <ClinicID>         # GW Region 라우팅 키
+
+User-Agent: CleverOne/1.5.5 (Windows 11; x64)   # 병행(로그·관측·하위호환)
+```
+
+- 프리픽스는 제품 브랜드 `Vatech-`를 쓴다. `X-` 접두는 RFC 6648에서 비권장이라 붙이지 않는다(`X-Vatech-Product` 아님).
+- **ClinicID를 같은 체계에 포함** → Region 분배(§2.4)와 한 번에 해결.
+- **집행 주체는 단계에 따라 다르다.** 1단계에서는 **CleverSpace(서버)가 직접** 헤더를 읽어 버전·한도를 판정하고, **3단계부터는 GW가 단일 집행점**으로 헤더를 읽어 라우팅·호환·한도 판정 후 다운스트림에 정규화 전달한다. 헤더 자체는 1단계부터 동일하게 쓰므로 추가 변경이 없다.
+- **외부(Straumann 등)로는 내부 헤더를 보내지 않는다.**
+- 적용 지점(기존 소스): CleverOne `CleverOneInitializer.cpp`·`EzCloudController.cpp`, ESLinkageCloudPlatform `EzCloudLinker.cpp`·`OneIdLinker.cpp`(`strAgent` 확장), EzServer(EPI) 대리 전달.
+
+---
+
+## 6. 남은 숙제·결정 항목
+
+| 항목 | 내용 | 단계 |
+|------|------|------|
+| well-known 스펙 | 공시 경로(`.well-known/<env>/server-configuration.json`)·응답 스키마·캐시 정책 | 1단계 상세설계 |
+| presigned 발급 시퀀스 상세 | 2단계(직접)→3단계(GW 경유) 전환 흐름·CleverSpace 개발 범위 | 2~3단계 상세설계 |
+| 매핑 테이블 스키마 | ClinicID↔Region, ClinicID↔Org-ID, 상태 등 필드 확정 | 4단계 / Straumann |
+| Route 53 옵션 | latency vs geolocation, 헬스체크·페일오버 정책 | 4단계 상세설계 |
+| OneID 연계 범위 | 인증 Verify 외 토큰 발급·권한 조회 등 추가 연계 | 설계 중 구체화 |
+| Region 확장 | 서울·미주 외 추가 Region 계획 | 운영 단계 |
+| **EzServer Rust 재개발 방식** | **기존 API 포팅 vs API 재설계 — 계속 열린 장기 숙제** | 후속 트랙 |
+
+> EzServer가 Edge로 남는 것, 글로벌 라우팅을 Route 53로 하는 것, 클라이언트 식별 표준(Vatech-*), 비-AWS는 minio 교체만 다른 것은 **이미 확정**이다.
