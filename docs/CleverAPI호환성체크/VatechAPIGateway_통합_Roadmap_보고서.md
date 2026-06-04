@@ -335,7 +335,6 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    USER["사용자"] -->|"Route 53 GeoDNS"| GW
     subgraph CLINIC["클리닉"]
         CO["CleverOne<br/>Region 선택 UI"]
         EZ["EzServer (Edge)<br/>ClinicID 포함"]
@@ -352,7 +351,7 @@ flowchart LR
         MINIO["비-AWS: 별도서버 + minio"]
     end
 
-    EZ ==> GW
+    EZ ==>|"Route 53 GeoDNS로 가까운 GW"| GW
     GW -->|"ClinicID 분배"| CS1
     GW -->|"ClinicID 분배"| CS2
     GW -->|"비-AWS"| MINIO
@@ -372,10 +371,16 @@ Straumann은 보안상 **EzServer 직접 연결이 불가**하여 **반드시 GW
 | 선행 요건 | presigned 데이터 경로(2단계), GW 단일 경유·인증(3단계), Org-ID 매핑 테이블 |
 | GW(Lambda 상당 로직) | AXS OAuth 토큰 발급·갱신·캐싱, 환자/문서/케이스 중계, Create Document → presigned 반환 |
 | 매핑 | Vatech ClinicID ↔ Straumann Organization-ID (GW 컨트롤플레인에 보관) |
+| 클리닉 온보딩 | 클리닉당 1회 — Customer Number 입력 → Straumann Access 포털 승인 → Organization-ID 발급 → EzServer 설정 + GW 컨트롤플레인 등록 |
+| EZ↔GW 인증 | 2층 — 공유 API Key(출처 확인) + 요청 Org-ID를 GW 등록 목록과 대조(클리닉 식별·미등록 거부) |
+| 고정 egress IP | Straumann IP whitelist 대응 — GW(K8s) outbound 고정 IP(NAT) 확보 |
+| Org-ID 복구 | EzServer 로컬 유실 시 GW 컨트롤플레인에서 조회·재설정(이중 저장) |
 | EzServer(EZ) | AXS 연동 FE/BE, presigned 직접 업로드(Straumann S3) |
 | 선결(외부) | Straumann의 API 스펙·OAuth 엔드포인트·샌드박스·자격증명 수령 |
 
 > 데이터(영상)는 GW를 거치지 않고 **Straumann S3로 presigned 직접 업로드**한다(§2.3과 동일 원리). Straumann 분석 보고서의 AWS 서버리스 전제는 본 통합에서 **K8s 기반 GW로 대체**된다.
+
+> 범위: 현 단계는 **EzServer → AXS 단방향**만 다룬다. 역방향 Webhook(AXS → EzServer)은 방화벽 뒤 EzServer로의 전달 문제 때문에 **Clever Orbit(클라우드 기반 EzServer) 이후로 제외**한다. 상세 설계·협상 항목·일정 추정은 `Straumann연동/Straumann-Vatech_AXS연동_분석보고서.md`를 참조한다.
 
 ### 3.8 후속 트랙 — EzServer 전면 재개발 (PHP → Rust)
 
@@ -393,7 +398,7 @@ Straumann은 보안상 **EzServer 직접 연결이 불가**하여 **반드시 GW
 | **VatechAPIGateway** | — | — | 본체·라우팅·인증 연계·호환 집행·presigned 발급 중계·경로 B 흡수 | Region 분배·HA(K8s)·Route 53·저장소(Postgres) | — |
 | **GW Console** | — | — | — | Admin Web Console | — |
 | **OneID** | (경로 B 인증 유지) | — | GW 연계 토큰 검증 | (멀티 Region 인증 고려) | — |
-| **Straumann(AXS)** | — | — | (3단계 이후 착수 가능) | 병렬 연동(토큰·중계·매핑) | — |
+| **Straumann(AXS)** | — | — | (3단계 이후 착수 가능) | 병렬 연동(토큰·중계·매핑·온보딩·EZ↔GW 인증) | — |
 | **인프라** | 단일 Region | — | 단일 Region GW | Route 53·K8s·비-AWS minio | — |
 
 ---
