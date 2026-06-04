@@ -108,13 +108,15 @@ SRS v6.2(EzServer PMS Integration)는 경로 A의 시퀀스를 정의한다. Ima
 
 2. **호환성 단위 = API/기능 (오류 코드는 단위가 아님):** CleverSpace 1개를 두고도 API마다 도입 시점이 달라 **요구 최소 클라이언트 버전이 제각각**이다. 따라서 호환성 매트릭스는 제품 버전 곱(`CleverSpace × EzServer × CleverOne`)이 아니라 **`API(기능) × 최소 클라이언트 버전`** 형태다. **오류 코드는 호환성 단위가 아니라 특정 기능이 돌려주는 응답**이므로, 매트릭스의 행이 아니라 그 기능의 **속성(관련 오류 코드)**으로 둔다. 아래 표는 **형식(템플릿) 예시**이며, 값은 소스로 확인된 항목만 채우고 나머지는 `미상`으로 둔다.
 
-| API / 기능 | CleverSpace 도입 | CleverOne 현재 지원 | EzServer(EPI) 현재 지원 | 최소 클라이언트 버전 | 경로 | 관련 오류 코드(응답) |
-| --- | --- | --- | --- | --- | --- | --- |
-| `GET /organization-data/upload/limit` (업로드 한도 조회) | v1.1 | 지원 (`CheckUploadCondition`) | — | **미상** | B | (조회 기능) |
-| `POST /tenants/subscriptions/validate-limits` (한도·구독 사전검증) | v1.3(PLAN-1191) | **미연동** | **미연동** | **미상** (계획: CleverOne v1.5.5 / EzServer v6.5.0) | A·B | `400110`~`400113`(기존), `400116`(v1.3 신규) |
-| 업로드·공유 (`POST /ezcloud/cases/upload`·`/share`, EPI) | v1.0 | 지원 | 지원 | **미상** | A | `400110`~`400113`, `400116` 등을 MQTT relay |
+3. **각 기능에 안정적 ID(키)를 부여한다:** 호환성 판정·조회의 기준 키로, **URL과 분리된 논리 식별자**(예: `subscription.validate-limits`)를 둔다. URL을 그대로 키로 쓰지 않는 이유는 (1) `/v1/→/v2/`처럼 **URL이 바뀌어도 키는 유지**되어 매트릭스·well-known·클라이언트 코드가 안 깨지고, (2) **1개 기능이 여러 엔드포인트**(예: `upload`·`share`)로 구성될 때 하나로 묶을 수 있기 때문이다. 명명은 `도메인.동작` 컨벤션을 권장한다. 실제 URL은 별도 `endpoints` 속성으로 매핑한다(§C.2).
 
-> **단위 구분:** 표의 행은 **호출 대상(엔드포인트·기능)**이고, `관련 오류 코드`는 그 기능이 돌려줄 수 있는 **응답 코드**다. “이 버전이 그 기능을 **호출할 수 있는가**”(버전 게이트)와 “그 응답 코드를 **알아듣는가**”(코드 인식)는 별개 문제이며, 후자는 §C.3 오류 코드 registry와 fallback으로 처리한다(모르는 코드는 “업데이트 필요”로 안내).
+| 기능 ID(키) | API / 기능 (실제 엔드포인트) | CleverSpace 도입 | CleverOne 현재 지원 | EzServer(EPI) 현재 지원 | 최소 클라이언트 버전 | 경로 | 관련 오류 코드(응답) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `organization-data.upload.limit` | `GET /organization-data/upload/limit` (업로드 한도 조회) | v1.1 | 지원 (`CheckUploadCondition`) | — | **미상** | B | (조회 기능) |
+| `subscription.validate-limits` | `POST /tenants/subscriptions/validate-limits` (한도·구독 사전검증) | v1.3(PLAN-1191) | **미연동** | **미연동** | **미상** (계획: CleverOne v1.5.5 / EzServer v6.5.0) | A·B | `400110`~`400113`(기존), `400116`(v1.3 신규) |
+| `cases.upload-share` | 업로드·공유 (`POST /ezcloud/cases/upload`·`/share`, EPI) | v1.0 | 지원 | 지원 | **미상** | A | `400110`~`400113`, `400116` 등을 MQTT relay |
+
+> **키·단위 구분:** 행의 기준 키는 **기능 ID**이며, `API / 기능` 칸은 그 ID가 가리키는 **실제 엔드포인트**다(여러 개일 수 있음). `관련 오류 코드`는 그 기능이 돌려줄 수 있는 **응답 코드**다. “이 버전이 그 기능을 **호출할 수 있는가**”(버전 게이트)와 “그 응답 코드를 **알아듣는가**”(코드 인식)는 별개 문제이며, 후자는 §C.3 오류 코드 registry와 fallback으로 처리한다(모르는 코드는 “업데이트 필요”로 안내).
 
 표에서 **확인된 것**은 “현재 CleverOne/EzServer 소스가 그 기능을 지원하는가”(지원/미지원)이고, **미상**은 “그 기능을 처음 지원한 최소 클라이언트 버전 번호”다. 후자는 각 기능의 도입 릴리즈 노트를 추적해야 알 수 있으므로 본 보고서에서는 채우지 않는다(방법 4 적용 단계의 산출물).
 
@@ -262,6 +264,17 @@ EzServer Releases CSV와 유사하되 **축이 다르다.** CleverSpace는 단�
 | **3 + 4 + 1** (2차)      | **최고**           | 높음          | Direct 축소 후 단순                    | 장기        |
 | 1만                      | 낮음               | 높음(신규만)  | 구버전 우회                            | 부족        |
 | 2만                      | 높음               | 낮음          | B는 헤더 필요                          | 부분        |
+
+**1차(`2+4+1`) → 2차(`3+4+1`)는 "방법 교체"가 아니라 "점진 강화"다.** 번호만 보면 4·1은 그대로이고 2가 3으로 바뀐 것처럼 보이지만, 실제로는 **공통 방법(4·1)이 정적에서 런타임으로 강화**되고 **방법 2가 더 강한 형태(3)로 흡수**되는 것이다.
+
+| 방법 | 1차 | 2차 (어떻게 바뀌나) |
+|------|-----|---------------------|
+| **방법 4** 호환성 매트릭스 | 리포지토리 파일을 **빌드 시 양쪽에 정적 반영**(§C.2.1) | 같은 매트릭스가 **well-known 자동 생성 소스**가 되고 **CI gate**로 검증 → 서버가 런타임 공시 (**강화**) |
+| **방법 1** 클라이언트 사전 인지 | **내장표**(빌드에 박힌 정적 표) | **well-known을 런타임 조회**하는 capability discovery로 전환 (**강화**) |
+| **방법 2** 서버 주도 검증 | 서버(EPI)가 요청 시 검증·거부 | **방법 3(EzServer Gateway)**의 단일 Policy Enforcement Point로 **흡수·승격** |
+| **방법 3** Gateway | (1차에는 없음) | 신규 도입 — 인증 일원화 + 경로 B 흡수(§5.2) |
+
+> 한마디로, 1차에서 만든 자산(매트릭스·식별 정보·오류 매핑)을 **버리지 않고 그대로 키워** 2차의 런타임 구조로 올린다. 그래서 1차 투자가 2차에서도 **그대로 회수**된다.
 
 ### 3.2 투자 대비 효과(가성비)
 
@@ -576,30 +589,39 @@ CleverSpace와 OneID가 각각 환경별로 보관하는 **서버 디스커버�
 
 **CSV 예시** (`compatibility-matrix.csv`)
 
-**행의 단위는 API/기능이다.** 오류 코드는 호환성 단위가 아니므로 여기 행으로 넣지 않고, 각 기능의 `related_errorcodes`(응답으로 나올 수 있는 코드) **속성**으로만 적는다. 오류 코드의 분류·메시지·fallback은 §C.3 registry가 담당한다.
+**행의 단위(키)는 기능 ID다.** 실제 URL은 `endpoints` 칼럼에 적고(여러 개면 `;`로 구분), 오류 코드는 호환성 단위가 아니므로 행으로 넣지 않고 각 기능의 `related_errorcodes`(응답으로 나올 수 있는 코드) **속성**으로만 적는다. 오류 코드의 분류·메시지·fallback은 §C.3 registry가 담당한다.
 
 ```csv
-key,cleverspace_introduced,min_cleverone,min_ezserver,path,status,related_errorcodes,note
-GET /organization-data/upload/limit,v1.1,미상,미상,B,지원,,업로드 한도 조회
-POST /tenants/subscriptions/validate-limits,v1.3,미상,미상,A·B,미연동,400110-400113;400116,v1.3 신규(계획 CleverOne 1.5.5 / EzServer 6.5.0)
-POST /ezcloud/cases/upload|share (EPI),v1.0,지원,지원,A,지원,400110-400113;400116,한도 초과 코드를 MQTT relay
+id,endpoints,cleverspace_introduced,min_cleverone,min_ezserver,path,status,related_errorcodes,note
+organization-data.upload.limit,GET /organization-data/upload/limit,v1.1,미상,미상,B,지원,,업로드 한도 조회
+subscription.validate-limits,POST /tenants/subscriptions/validate-limits,v1.3,미상,미상,A·B,미연동,400110-400113;400116,v1.3 신규(계획 CleverOne 1.5.5 / EzServer 6.5.0)
+cases.upload-share,POST /ezcloud/cases/upload;POST /ezcloud/cases/share,v1.0,지원,지원,A,지원,400110-400113;400116,한도 초과 코드를 MQTT relay
 ```
 
 **YAML 예시** (`compatibility-matrix.yaml`) — well-known 자동 생성 소스로 쓰기 좋음
 
 ```yaml
 features:
-  - id: subscription.validate-limits
+  - id: subscription.validate-limits            # 안정적 논리 키 (호환성 단위)
+    endpoints: ["POST /tenants/subscriptions/validate-limits"]   # 실제 URL(여러 개 가능)
     introduced: '1.3.0'
     path: [A, B]
     min-client: { CleverOne: '1.5.5', EzServer: '6.5.0' } # 미상: 확정 필요
     status: not-integrated
     related-errorcodes: [400110, 400111, 400112, 400113, 400116] # 응답 코드(참고), 단위 아님
   - id: organization-data.upload.limit
+    endpoints: ["GET /organization-data/upload/limit"]
     introduced: '1.1'
     path: [B]
     min-client: { CleverOne: '1.0.0', EzServer: '6.0.0' } # 미상: 확정 필요
     status: supported
+  - id: cases.upload-share                      # 한 기능이 여러 엔드포인트로 구성된 예
+    endpoints: ["POST /ezcloud/cases/upload", "POST /ezcloud/cases/share"]
+    introduced: '1.0'
+    path: [A]
+    min-client: { CleverOne: '미상', EzServer: '미상' }
+    status: supported
+    related-errorcodes: [400110, 400111, 400112, 400113, 400116]
 ```
 
 > `related-errorcodes`는 **그 기능이 돌려줄 수 있는 응답 코드**일 뿐, 버전 호환의 판정 단위가 아니다. 코드 인식·메시지·미지원 코드 fallback은 §C.3에서 관리한다.
