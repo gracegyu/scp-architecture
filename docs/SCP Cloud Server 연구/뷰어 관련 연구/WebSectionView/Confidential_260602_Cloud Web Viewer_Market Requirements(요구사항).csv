@@ -1,0 +1,35 @@
+﻿"P1: Cross Section MVP (연내 제공 필요), P2: 데스크탑 제공 Cross Section 기능",,,,,,,
+우선순위,분류 1,분류 2,내용,비고 (기획),개발실 의견,POC,일정 (TBD)
+P2,MPR,Draw Curve,Axial/Sagittal/Coronal view에서 축 조정 후 커브를 입력할 수 있다.,,,X,~27.03
+P1,Section ,Layout,Scout(Axial)/Panorama/Section view로 구성된 Section 레이아웃을 제공한다.,Clever One 수준의 다양한 레이아웃은 제공하지 않는다.,,O,~26.10
+P1,Section ,Draw Curve,Scout view에서 커브를 입력할 수 있다.,Default Curve 기능은 제공하지 않는다.,,O,~26.10
+P2,Section ,Draw Curve,커브를 복수로 입력할 수 있다.,,,X,~27.03
+P1,Scout view,Edit Curve,Scout view에서 Point를 편집(추가/이동/삭제) 할 수 있다.,,,O,~26.10
+P1,Scout view,Sectional Line,Scout view에서 Sectional Line 위치를 조절할 수 있다.,,,O,~26.10
+P2,Scout view,Thickness/Interval,Scout view의 Thickness/Interval을 설정할 수 있다.,,,X,~27.03
+P2,Panorama view,Panorama Height,Panorama view의 Height를 조절할 수 있다.,,,O,~27.03
+P1,Panorama view,Sectional Line,Panorama view에서 Sectional Line 위치를 조절할 수 있다.,,,O,~26.10
+P2,Panorama view,Sectional Line,Panorama view에서 Sectional Line의 축을 조절할 수 있다.,,,X,~27.03
+P2,Panorama view,Horizontal Center Line,Panorama view에서 Section view 이미지의 중앙 위치를 조절할 수 있다.,,,X,~27.03
+P2,Panorama view,Thickness/Interval,Panorama view의 Thickness/Interval을 설정할 수 있다.,,,X,~27.03
+P1,Section view,Section Slice,Section view에서 Slice를 변경할 수 있다.,,,X,~26.10
+P2,Section view,Section Slice,Section view의 단면 개수를 변경할 수 있다.,,,X,~27.03
+P1,Section view,Thickness/Interval,Section  view의 Thickness/Interval을 설정할 수 있다.,,,O,~26.10
+P1,Section,Tool,Section 레이아웃에 Annotation/Measure Tool을 입력할 수 있다.,"MPR 레이아웃과 동일한 툴을 제공한다. 기존 대비 툴을 확장하는 것도 검토한다. (Arrow 등)
+* 현재 Length, Free Draw, Angle 제공 중",,X,~26.10
+P1,Section,Windowing,Section 레이아웃의 모든 view에 Windowing을 조정할 수 있다.,,,O,~26.10
+P2,Section,Image Filter,Section 레이아웃의 모든 view에 Image Filter를 적용할 수 있다.,,,X,~27.03
+Future,Collaboration,Project File,"[CT] 프로젝트 파일을 포함한 CT 데이터를 공유할 수 있다.
+ * Clever Space 스펙","공유/협업 과정에서는 원본 CT 데이터 뿐만 아니라, Clever One에서 생성한 시뮬레이션 결과와 주요 확인 부위에 대한 정보도 함께 전달되어야 한다.",,X,TBD
+Future,Collaboration,Project File,[CT] 프로젝트 파일을 포함한 CT 데이터를 실행할 수 있다.,"공유 받은 사용자는 원본 CT 데이터 뿐만 아니라, 데이터 공유자가 Clever One에서 생성한 진단 및 시뮬레이션  결과를 함께 확인할 수 있어야 한다.
+- Implant 시뮬레이션 결과, Volume Measure, Sinus Graft, ROI 등의 결과를 확인할 수 있어야 한다.
+- CT와 정합된 STL 데이터가 있을 경우, 정합된 상태로 표시되어야 한다.
+- Segment 결과가 있는 경우, 상악동 및 하악신경관이 함께 표시되어야 한다.
+",,X,TBD
+Future,Collaboration,Overlay Navigation,[CT] 오버레이를 입력한 뷰로 자동 전환하는 기능을 제공한다.,공유 받은 사용자는 데이터 공유자가 입력한 오버레이 및 오브젝트 위치를 쉽게 찾아갈 수 있어야 한다.,,X,TBD
+Future,Collaboration,Comment,[2D/CT] 입력한 오버레이에 코멘트를 입력할 수 있다.,"공유/협업 과정에서는 단순히 영상 단위로 의견을 남기는 것보다, 특정 병소나 확인이 필요한 부위와 연결하여 코멘트를 입력할 수 있어야 한다.",,X,TBD
+Future,Collaboration,Seconday Sharing,[CT] 공유 받은 데이터를 캡처한 이미지를 재공유할 수 있다.,"공유 받은 사용자는 CT 데이터를 확인 후, 특이 부위 등 추가 확인이 필요한 영역을 캡처하여 재공유할 수 있어야 한다. (공유 받은 데이터에 대한 추가 협업 workflow)
+공유 받은 데이터를 캡처 이미지로 저장하는 기능이 선행되어야 한다",,X,TBD
+Future,Diagnosis,Save to EzServer,[2D/CT] 공유 받은 데이터를 EzServer로 바로 저장할 수 있다.,"공유 받은 사용자는 Cloud Viewer에서 데이터 확인 후, 필요 시 진단 전문 SW에서 이어서 확인하거나 진단할 수 있어야 한다.
+공유 받은 데이터를 프로젝트 파일을 포함하여 EzServer에 바로 저장하고, 이후 Clever One에서 해당 데이터를 실행할 수 있는 Workflow가 제공되어야 한다.",,X,TBD
+Future,Diagnosis,Implant Simulation,[2D/CT] 임플란트 시뮬레이션을 할 수 있다.,"임플란트 시뮬레이션은 진단 및 치료 계획에서 활용도가 높은 대표 기능이므로, Cloud Web Viewer가 향후 단순 확인용 Viewer를 넘어, 웹 기반 진료 데이터 검토 및 협업 도구로 확장될 경우 기본적인 임플란트 시뮬레이션 기능 제공이 필요할 수 있다. 임플란트 외 부가기능(ROI, Profile 등)에 대한 제공 범위도 추후 함께 검토가 필요하다.",,X,TBD
