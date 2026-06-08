@@ -34,6 +34,8 @@
 | **3단계** | GW 신설·일원화 | `EZ → GW → 대상` 단일 경유 + 인증 일원화 + 경로 B 흡수 |
 | **4단계** | 멀티 Region·글로벌·운영 | VatechAPIGateway 완성(멀티리전·HA·관리) |
 
+**케이스 A — 순차 진행**(기본 Roadmap)
+
 ```mermaid
 flowchart LR
     S1["1단계<br/>API 호환성<br/>(GW 없이 즉시)"]
@@ -56,7 +58,63 @@ flowchart LR
     class RUST follow;
 ```
 
-> 파란 박스 = 핵심 4단계(순차 의존). 초록 = 3단계 이후 병렬로 진행하는 Straumann 트랙. 노랑 = 4단계 완료 후 착수하는 EzServer Rust 재개발 후속 트랙.
+**케이스 B — 1·2단계 병행**(독립 표면이라 동시 착수)
+
+```mermaid
+flowchart LR
+    subgraph PAR["병행 착수"]
+        S1["1단계<br/>API 호환성<br/>(GW 없이 즉시)"]
+        S2["2단계<br/>presigned<br/>데이터 경로"]
+    end
+    S3["3단계<br/>GW 신설·일원화"]
+    S4["4단계<br/>멀티 Region·운영<br/>(GW 완성)"]
+    STRA["Straumann(AXS) 연동<br/>병렬 트랙"]
+    RUST["New EzServer<br/>(PHP → Rust 전면 재개발)"]
+
+    S1 --> S3
+    S2 --> S3
+    S3 --> S4
+    S3 -.->|"이후 착수 가능"| STRA
+    STRA -. 병렬 .- S4
+    S4 ==>|"이후 후속 트랙"| RUST
+
+    classDef stage fill:#eaf2fb,stroke:#2471a3,color:#000;
+    classDef branch fill:#eafaf1,stroke:#1e8449,color:#000;
+    classDef follow fill:#fef9e7,stroke:#b7950b,color:#000;
+    class S1,S2,S3,S4 stage;
+    class STRA branch;
+    class RUST follow;
+```
+
+**케이스 C — 1·2 병행 + 3·4 통합**(GW를 멀티리전-ready로 한 번에)
+
+```mermaid
+flowchart LR
+    subgraph PAR["병행 착수"]
+        S1["1단계<br/>API 호환성<br/>(GW 없이 즉시)"]
+        S2["2단계<br/>presigned<br/>데이터 경로"]
+    end
+    S34["3+4단계 통합<br/>멀티리전-ready GW<br/>(일원화+멀티 Region 한 번에)"]
+    STRA["Straumann(AXS) 연동<br/>병렬 트랙"]
+    RUST["New EzServer<br/>(PHP → Rust 전면 재개발)"]
+
+    S1 --> S34
+    S2 --> S34
+    S34 -.->|"이후 착수 가능"| STRA
+    S34 ==>|"이후 후속 트랙"| RUST
+
+    classDef stage fill:#eaf2fb,stroke:#2471a3,color:#000;
+    classDef merged fill:#e8e0f5,stroke:#6c3483,color:#000;
+    classDef branch fill:#eafaf1,stroke:#1e8449,color:#000;
+    classDef follow fill:#fef9e7,stroke:#b7950b,color:#000;
+    class S1,S2 stage;
+    class S34 merged;
+    class STRA branch;
+    class RUST follow;
+```
+
+> 색상: 파란 = 핵심 단계, 보라 = 3·4 통합 단계, 초록 = Straumann 병렬 트랙, 노랑 = EzServer Rust 후속 트랙.
+> 케이스 B·C 공통: 1·2단계는 독립 표면이라 **동시 착수** 가능하고, GW 본체 **빌드도 병렬로 시작**할 수 있다. 다만 GW로의 **전환**(cutover)은 1·2가 안착한 뒤에 한다. 케이스 C는 단일 Region → 멀티 Region 재작업을 피하려고 **GW를 처음부터 멀티리전-ready로** 구축하는 최속 시나리오다(인력·멀티리전 확정이 전제).
 
 - **1단계는 GW 없이 기존 경로에서 바로 착수**할 수 있어, CleverSpace v1.3.0 일정의 호환성 문제에 즉시 대응한다.
 - **presigned(2단계)는 GW 일원화(3단계)의 선행 요건**이다. GW는 대용량 데이터를 직접 나르지 않으므로(정보만 GW 경유), 업로드를 GW 체계 안에서 인가하려면 presigned가 먼저 갖춰져야 한다.
