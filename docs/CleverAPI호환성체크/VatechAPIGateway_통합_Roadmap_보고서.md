@@ -35,7 +35,7 @@
 | **4단계** | 멀티 Region·글로벌·운영 | VatechAPIGateway 완성(멀티리전·HA·관리) |
 
 ```mermaid
-flowchart TD
+flowchart LR
     S1["1단계<br/>API 호환성<br/>(GW 없이 즉시)"]
     S2["2단계<br/>presigned<br/>데이터 경로"]
     S3["3단계<br/>GW 신설·일원화"]
@@ -134,6 +134,8 @@ flowchart LR
 - **대용량 데이터(CT·이미지)**: GW로 보내지 않는다. **presigned URL을 GW를 통해 발급**받고, **EZ가 스토리지(S3 또는 minio)에 직접 업로드**한다.
 - **현재 CleverSpace는 presigned 방식이 아니라 Direct 전송**이므로, presigned 발급을 **신규 개발**해야 하고 **EZ의 전송 로직도 변경**된다(2단계).
 - minio도 S3 호환이라 presigned 방식이 그대로 동작한다.
+- **업로드 완료 확인**: 직접 업로드는 서버가 관여하지 않으므로, 완료 여부를 별도 신호로 확인한다. **EZ의 완료 콜백**(빠른 반영)과 **스토리지 이벤트**(S3 ObjectCreated / minio bucket notification — 권위 있는 확정·콜백 누락 백업)를 **함께** 쓰고, 서버는 size·ETag(체크섬)로 무결성을 검증한다.
+- 두 신호는 **의도된 이중화**다(중복 정상). 콜백은 UX 즉시성, 이벤트는 정합성 보증·콜백 누락 백업으로 역할이 다르다. 서버는 같은 객체에 신호가 두 번 와도 **멱등**(idempotent)하게 처리해 "처리 중 → 완료"를 한 번만 반영한다(먼저 온 신호로 확정, 이후 신호는 무시).
 
 ### 2.4 Region 분배와 글로벌 라우팅
 
@@ -185,7 +187,7 @@ flowchart LR
     class GW,DB,CONSOLE,CS2,AXS,MINIO new;
 ```
 
-> 굵은 화살표 = 모든 API가 GW 단일 경유. 점선 = 대용량 데이터의 presigned 직접 업로드(GW 비경유). 초록 = 본 과제로 새로 들어오는 요소.
+> 굵은 화살표 = 모든 API가 GW 단일 경유. 점선 = 대용량 데이터의 presigned 직접 업로드(GW 비경유). 초록 = 본 과제로 새로 들어오는 요소. 가독성을 위해 **업로드 완료 확인(EZ 완료 콜백 + 스토리지 이벤트)은 그림에서 생략**했다(§2.3·§3.4 참조).
 
 ---
 
@@ -253,8 +255,9 @@ flowchart LR
 
 | 제품 | 개발 항목 |
 |------|-----------|
-| CleverSpace | **presigned URL 발급 API 신규 개발**(현재 Direct 전송 방식 대체) |
-| EzServer(EZ) | **데이터 전송 로직 변경** — 발급 요청 후 스토리지로 **직접 업로드** |
+| CleverSpace | **presigned URL 발급 API 신규 개발**(현재 Direct 전송 방식 대체), **업로드 완료 처리** — 완료 콜백 API + 스토리지 이벤트 수신, size·ETag 무결성 검증 |
+| EzServer(EZ) | **데이터 전송 로직 변경** — 발급 요청 후 스토리지로 **직접 업로드**, 업로드 성공 시 **완료 콜백 호출** |
+| 스토리지 | S3 ObjectCreated 이벤트(또는 minio bucket notification) → CleverSpace 통지 구성 |
 | CleverOne | (해당 시) 업로드 흐름 연계 확인 |
 
 ```mermaid
@@ -263,19 +266,21 @@ flowchart LR
         EZ["EzServer (Edge)<br/>presigned 직접 업로드"]
     end
     subgraph CLOUD["CleverSpace Cloud"]
-        CS["CleverSpace API<br/>+ presigned 발급(신규)"]
-        S3["스토리지 (S3)"]
+        CS["CleverSpace API<br/>+ presigned 발급(신규)<br/>+ 업로드 완료 처리"]
+        S3["스토리지 (S3/minio)"]
     end
 
     EZ ==>|"1. presigned 발급 요청(정보)"| CS
     CS -->|"2. presigned URL"| EZ
     EZ -.->|"3. 대용량 직접 업로드"| S3
+    EZ ==>|"4. 완료 콜백(key·ETag·size)"| CS
+    S3 -.->|"4'. ObjectCreated 이벤트(권위 확정)"| CS
 
     classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
     class CS,S3 new;
 ```
 
-> 직전(1단계) 대비 변경: **데이터 경로 분리** — 정보(발급 요청)와 대용량(직접 업로드)이 나뉜다. 아직 GW는 없으며, 발급 요청은 CleverSpace로 직접 간다(3단계에서 GW 경유로 전환).
+> 직전(1단계) 대비 변경: **데이터 경로 분리** — 정보(발급 요청)와 대용량(직접 업로드)이 나뉜다. 아직 GW는 없으며, 발급 요청은 CleverSpace로 직접 간다(3단계에서 GW 경유로 전환). **업로드 완료**는 EZ 콜백(4)과 스토리지 이벤트(4')를 함께 써서 확인한다.
 
 ### 3.5 3단계 — GW 신설·일원화
 
@@ -307,16 +312,17 @@ flowchart LR
         S3["스토리지 (S3)"]
     end
 
-    EZ ==>|"모든 연동(정보) GW 경유"| GW
+    EZ ==>|"모든 연동(정보)·완료 콜백 GW 경유"| GW
     GW -->|"인증 검증"| OID
-    GW -->|"검증 후 호출 · presigned 발급 중계"| CS
+    GW -->|"검증 후 호출 · presigned 발급 중계 · 완료 통지"| CS
     EZ -.->|"대용량: presigned 직접 업로드"| S3
+    S3 -.->|"ObjectCreated 이벤트"| CS
 
     classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
     class GW new;
 ```
 
-> 직전(2단계) 대비 변경: **경로 B 제거 → GW 단일 경유**. 인증·호환 집행이 GW로 모이고, presigned 발급도 GW가 중계한다. **이 시점부터 Straumann 착수 가능**(§3.7). 대용량 업로드는 여전히 스토리지로 직접(GW 비경유).
+> 직전(2단계) 대비 변경: **경로 B 제거 → GW 단일 경유**. 인증·호환 집행이 GW로 모이고, presigned 발급·**업로드 완료 콜백도 GW가 중계**한다(스토리지 이벤트는 CleverSpace가 직접 수신). **이 시점부터 Straumann 착수 가능**(§3.7). 대용량 업로드는 여전히 스토리지로 직접(GW 비경유).
 
 ### 3.6 4단계 — 멀티 Region·글로벌·운영
 
@@ -355,12 +361,14 @@ flowchart LR
     GW -->|"ClinicID 분배"| CS1
     GW -->|"ClinicID 분배"| CS2
     GW -->|"비-AWS"| MINIO
+    EZ -.->|"대용량: presigned 직접 업로드<br/>(해당 Region 스토리지)"| CS1
+    EZ -.->|"대용량: presigned 직접 업로드<br/>(비-AWS)"| MINIO
 
     classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
     class GW,CONSOLE,CS1,CS2,MINIO new;
 ```
 
-> 직전(3단계) 대비 변경: **단일 Region → 멀티 Region + GeoDNS + HA + Console + minio**. 여기서 VatechAPIGateway가 완성된다.
+> 직전(3단계) 대비 변경: **단일 Region → 멀티 Region + GeoDNS + HA + Console + minio**. 정보는 GW가 Region을 분배하고, **대용량 업로드도 ClinicID가 가리키는 해당 Region 스토리지로 직접**(점선) 간다. 업로드 완료 확인(콜백 + 스토리지 이벤트)은 §3.4와 동일하며 가독성을 위해 그림에서 생략했다. 여기서 VatechAPIGateway가 완성된다.
 
 ### 3.7 Straumann(AXS) 연동 — 3단계 이후 병렬 트랙
 
@@ -432,6 +440,7 @@ User-Agent: CleverOne/1.5.5 (Windows 11; x64)   # 병행(로그·관측·하위�
 |------|------|------|
 | well-known 스펙 | 공시 경로(`.well-known/<env>/server-configuration.json`)·응답 스키마·캐시 정책 | 1단계 상세설계 |
 | presigned 발급 시퀀스 상세 | 2단계(직접)→3단계(GW 경유) 전환 흐름·CleverSpace 개발 범위 | 2~3단계 상세설계 |
+| 업로드 완료 확인 방식 | 완료 콜백 + 스토리지 이벤트 조합 확정, 재시도·타임아웃·무결성(ETag) 규칙 | 2단계 상세설계 |
 | 매핑 테이블 스키마 | ClinicID↔Region, ClinicID↔Org-ID, 상태 등 필드 확정 | 4단계 / Straumann |
 | Route 53 옵션 | latency vs geolocation, 헬스체크·페일오버 정책 | 4단계 상세설계 |
 | OneID 연계 범위 | 인증 Verify 외 토큰 발급·권한 조회 등 추가 연계 | 설계 중 구체화 |
