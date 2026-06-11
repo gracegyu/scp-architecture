@@ -8,7 +8,7 @@
 
 ## 0. Executive Summary
 
-- **결론**: P1(Cross Section MVP, 목표 ~26.10)은 **구현 가능**하다. 9개 중 **6개는 PoC에서 검증돼 추가 개발이 없고**, 신규/보강 개발은 **2.6 Section Slice(스크롤)·2.7 Thickness 두 개뿐**이다. 2.8 Annotation/Measure는 P1을 **휘발성**으로 구현한다(엔진 보유).
+- **결론**: P1(Cross Section MVP, 목표 ~26.10)은 **구현 가능**하다. 9개 중 **6개는 PoC에서 검증돼 추가 개발이 없고**, 신규/보강 개발은 **2.6 Section Slice(스크롤)·2.7 Thickness**다. 2.8은 P1을 **휘발성**으로 구현하되, 주석(Annotation)은 엔진 보유, **계측(Measure)은 신규 개발**이나 기존 MPR 뷰 계측을 동일 수준으로 옮기는 작업이다.
 - **가장 중요한 리스크는 성능**이다. 단면 9장 생성이 단일 스레드에서 약 **390~420 ms** 걸리는, P1에서 가장 무거운 연산이라는 점이 근본 원인이다.
   - **주 트리거 2.6(Section Slice 스크롤)** 이다. 스크롤로 표시 구간을 옮길 때마다 새 단면들을 **연속 재생성**하므로, 생성 비용이 그대로 화면 지연으로 드러난다.
   - **2.7(Thickness)** 도 가중 요인이다. 슬랩 두께를 키우면 픽셀당 보간량이 늘어 **1장 생성 시간이 증가**한다.
@@ -32,10 +32,10 @@
 | 5 | Panorama | Sectional Line 위치 조절 | 구현됨 | 없음 | PoC 수준(위치 슬라이드)으로 확정 |
 | 6 | Section | Section Slice 변경 | 미구현 | 신규(중간) | **스크롤 시 단면 연속 재생성 → 성능** |
 | 7 | Section | Thickness/Interval 설정 | 일부 | 보강(중간) | **Thickness 두께↑ 시 생성 비용↑** |
-| 8 | Section | Annotation/Measure Tool | 엔진 보유 | 휘발성(낮음) | 영구 저장은 범위 외(별도 과제) |
+| 8 | Section | Annotation/Measure Tool | 주석 엔진 보유·계측 미개발 | 계측 신규(낮음~중간) | **계측 신규(단, MPR 동일 수준)·영구 저장은 범위 외** |
 | 9 | Section | Windowing(모든 view) | 구현됨(공유) | 없음 | 프로젝트 파일 미연동으로 확정 |
 
-종합: **P1은 전반적으로 구현 가능**하며, 9개 중 6개는 PoC 수준으로 **추가 개발 없이** 제공한다. **신규/보강 개발은 2.6(Section Slice)·2.7(Thickness) 두 개뿐**이다. 8번은 P1 휘발성으로 구현하고 영구 저장은 범위 밖이다.
+종합: **P1은 전반적으로 구현 가능**하며, 9개 중 6개는 PoC 수준으로 **추가 개발 없이** 제공한다. **신규/보강 개발은 2.6(Section Slice)·2.7(Thickness)**, 그리고 **2.8의 계측(Measure)**이다. 계측은 신규지만 기존 MPR 뷰 기능을 동일 수준으로 옮기는 작업이다. 2.8 주석(Annotation)은 엔진 보유, P1 전체는 휘발성으로 구현하고 영구 저장은 범위 밖이다.
 
 ---
 
@@ -147,18 +147,25 @@ Scout에서 Catmull-Rom 제어점으로 곡선을 그린다. 기획이 "Default 
 
 기획 비고상 Scout/Panorama의 Thickness/Interval은 P2, **Section view의 Thickness/Interval만 P1**이다. 범위는 Section 한정으로 본다.
 
-### 2.8 Section — Annotation / Measure Tool (P1: 휘발성으로 구현, 엔진 보유)
+### 2.8 Section — Annotation / Measure Tool (P1: 휘발성으로 구현 / 주석 엔진 보유·계측 신규)
 
 > **기능**: Section > Tool > Section 레이아웃에 Annotation/Measure Tool을 입력할 수 있다.
 > **비고(기획)**: MPR 레이아웃과 동일한 툴을 제공한다. 기존 대비 툴 확장도 검토(Arrow 등). 현재 Length, Free Draw, Angle 제공 중. · 일정 ~26.10 · 기획 PoC X
 
-기술 엔진은 리포트 연구(PoC-14 Element 렌더링 엔진)에서 이미 확보했다. Length/Free Draw/Angle 등 측정·주석 기능 자체는 문제 없다.
+기능을 **Annotation**(주석)과 **Measure**(계측) 둘로 나눠 본다.
+
+- **Annotation(주석)**: 리포트 연구(PoC-14 Element 렌더링 엔진)에서 **엔진을 이미 확보**했다. 단면 뷰 위에 얹는 수준이라 부담이 작다.
+- **Measure(계측)**: 우리가 따로 개발해 둔 것은 **없다. 신규 개발이 필요**하다. 다만 기획자에 따르면 계측은 기존 **MPR 뷰에 이미 구현**돼 있어, Cross Section view에도 **동일 UI·요구사항 수준으로 구현 가능**하다(Length·Angle 등).
+
+> 기획자 의견: "계측 기능과 image filter 기능은 기존 MPR 뷰에 이미 구현되어 있는 기능입니다. (Cross Sectional View에도 동일하게 적용 가능하지 않을까 싶습니다)"
+
+image filter는 P2이므로 본 항목에서는 제외한다.
 
 **P1 결정: 휘발성(세션 한정)으로 구현한다.** 영구 저장은 이번 범위에서 제외하며, 도입 시점은 미정이다.
 
-- 화면에만 주석·측정을 올리고, 곡선·간격·폭·Z 등 단면 생성 파라미터가 바뀌면 **자동 소거**한다.
-- 단면 좌표(u,v mm)는 이미 mm 정합(`tileMmMetrics`)이 되어 있어 길이·각도 측정이 가능하다.
-- 난이도 낮음. 기존 리포트 엔진을 단면 뷰 위에 얹는 수준이다.
+- 화면에만 주석·계측을 올리고, 곡선·간격·폭·Z 등 단면 생성 파라미터가 바뀌면 **자동 소거**한다.
+- 단면 좌표(u,v mm)는 이미 mm 정합(`tileMmMetrics`)이 되어 있어 길이·각도 계측이 가능하다.
+- 난이도: Annotation은 낮음(엔진 재사용), Measure는 신규지만 MPR 계측을 동일 수준으로 옮기는 작업이라 낮음~중간.
 
 **CleverOne 동작(참고)**: CleverOne은 주석·측정을 **CT 프로젝트 파일에 저장**하는 것으로 보인다. CT를 다시 불러와 Section view를 열면 과거 주석·측정이 그대로 복원된다. 즉 영구 저장 + 단면 재생성 시 복원을 지원하는 구조다.
 
@@ -188,7 +195,7 @@ WC/WW가 Scout·Panorama·Section에 **공유**되어 한 번 조절하면 모�
 | 2.5 Panorama Sectional Line | 현재 PoC 수준(위치 슬라이드)으로 제공 | 추가 개발 없음 |
 | 2.6 Section Slice | 스크롤로 단면 범위 이동(기획 메모 확정) | 신규 개발(중간) |
 | 2.7 Section Thickness | Interval 구현됨, Thickness UI 보강 | 보강 개발(중간) |
-| 2.8 Annotation/Measure | P1은 휘발성, 영구 저장은 범위 밖 | 휘발성 구현(낮음) |
+| 2.8 Annotation/Measure | P1 휘발성, 영구 저장 범위 밖 | 주석 엔진 재사용·계측 신규(MPR 동일 수준) |
 | 2.9 Windowing | 공유 WC/WW, 프로젝트 파일 미연동 | 추가 개발 없음 |
 
 ---
@@ -197,10 +204,10 @@ WC/WW가 Scout·Panorama·Section에 **공유**되어 한 번 조절하면 모�
 
 - **P1 9개 중 6개**(Layout, Draw Curve, Edit Curve, Scout/Panorama Sectional Line, Windowing)는 **현재 PoC 수준으로 제공**하기로 확정돼, **추가 개발 없이** 제품화 정리 수준이다.
 - **2개**(Section Slice 변경, Section Thickness)만 **신규/보강 개발**이 필요하나 난이도 중간이며 기존 생성 로직을 재사용한다. Section Slice는 스크롤로 단면 범위 이동(기획 메모 확정).
-- **1개**(Annotation/Measure)는 엔진을 이미 보유했고, **P1은 휘발성으로 구현**해 10월 일정 내 가능하다. 영구 저장은 범위 밖이며 도입 시 **CT 프로젝트 파일 포맷 파악**이 선결 과제다(별도 과제, 5장 Future 연계 참고).
+- **2.8 Annotation/Measure**: 주석(Annotation)은 리포트 엔진을 이미 보유했고, 계측(Measure)은 우리가 개발한 바 없어 **신규**지만 기존 **MPR 뷰의 계측을 동일 수준으로 옮기는** 작업이라 부담이 제한적이다. **P1은 휘발성으로 구현**해 10월 일정 내 가능하다. 영구 저장은 범위 밖이며 도입 시 **CT 프로젝트 파일 포맷 파악**이 선결 과제다(별도 과제, 5장 Future 연계 참고).
 - 공통 리스크는 **성능**이다. Thickness·단면 개수·스크롤이 늘면 생성량이 증가한다. 현재 단일 스레드에서 9장 약 390~420 ms 수준이며, 대화형 응답을 위해 스로틀·표시 분리가 적용돼 있다. P1 범위에선 수용 가능하나, P2 확장 시 Worker/SIMD 재평가가 필요하다.
 
-권고: P1은 **실질적으로 신규 개발 부담이 작다**(2.6 Section Slice·2.7 Thickness만 추가 개발). 이 두 항목 기준으로 MMI를 작성하면 된다. 2.8은 P1 휘발성으로 진행하고, 영구 저장·프로젝트 파일 windowing 연동은 프로젝트 파일 포맷 분석 후 별도 일정으로 분리한다.
+권고: P1은 **실질적으로 신규 개발 부담이 작다**(2.6 Section Slice·2.7 Thickness 신규/보강, 2.8 계측은 MPR 기능 이식). 이 항목들 기준으로 MMI를 작성하면 된다. 2.8은 P1 휘발성으로 진행하고, 영구 저장·프로젝트 파일 windowing 연동은 프로젝트 파일 포맷 분석 후 별도 일정으로 분리한다.
 
 ---
 
