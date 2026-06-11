@@ -594,12 +594,13 @@ flowchart LR
 **구조화 전용 헤더가 권위 소스, User-Agent 표준화는 병행.** 머신 판정(버전 게이트·Region 라우팅·한도 검증)은 전용 헤더로 한다(User-Agent 파싱은 포맷이 제각각이고 중간 경로에서 변형될 수 있어 취약). User-Agent는 로깅·관측·하위호환을 위해 표준 포맷으로 유지한다.
 
 ```
-Vatech-Product:   CleverOne          # 제품명
-Vatech-Version:   1.5.5              # 제품 버전(semver)
+Vatech-Product:   CleverOne          # 요청을 시작한 주체(originator)
+Vatech-Version:   1.5.5              # originator 버전(semver)
 Vatech-OS:        Windows/11         # OS명/버전
 Vatech-Clinic-Id: <ClinicID>         # GW Region 라우팅 키
+Vatech-Via:       EzServer/6.5.0     # 경유한 중계 홉(있을 때만)
 
-User-Agent: CleverOne/1.5.5 (Windows 11; x64)   # 병행(로그·관측·하위호환)
+User-Agent: EzServer/6.5.0   # 직전 송신자(로그·관측·하위호환)
 ```
 
 - 프리픽스는 제품 브랜드 `Vatech-`를 쓴다. `X-` 접두는 RFC 6648에서 비권장이라 붙이지 않는다(`X-Vatech-Product` 아님).
@@ -607,6 +608,23 @@ User-Agent: CleverOne/1.5.5 (Windows 11; x64)   # 병행(로그·관측·하위�
 - **집행 주체는 단계에 따라 다르다.** 1단계에서는 **CleverSpace(서버)가 직접** 헤더를 읽어 버전·한도를 판정하고, **3단계부터는 GW가 단일 집행점**으로 헤더를 읽어 라우팅·호환·한도 판정 후 다운스트림에 정규화 전달한다. 헤더 자체는 1단계부터 동일하게 쓰므로 추가 변경이 없다.
 - **외부(Straumann 등)로는 내부 헤더를 보내지 않는다.**
 - 적용 지점(기존 소스): CleverOne `CleverOneInitializer.cpp`·`EzCloudController.cpp`, ESLinkageCloudPlatform `EzCloudLinker.cpp`·`OneIdLinker.cpp`(`strAgent` 확장), EzServer(EPI) 대리 전달.
+
+#### 5.1 중계 경로(CleverOne → EzServer → GW)의 식별 규칙
+
+"누가 보냈나(전송 홉)"와 "누가 시작했나(originator)"를 분리해 담는다. EzServer는 GW로 가는 실제 송신자이면서, 그 요청의 트리거는 CleverOne일 수도 EzServer 자신일 수도 있다.
+
+- **`Vatech-Product`/`Vatech-Version`/`Vatech-OS` = originator(요청을 시작한 주체).** 버전 호환 판정의 권위 소스다.
+- **`Vatech-Via` = 경유한 중계 홉.** EzServer가 자기 자신(`EzServer/6.5.0`)을 덧붙인다. 홉이 여럿이면 콤마로 누적한다.
+- **`User-Agent` = 직전 송신자(여기선 EzServer).** 전송 로그·관측용. 머신 판정은 위 전용 헤더로 한다.
+
+| 트리거 | Vatech-Product / Version | Vatech-Via | User-Agent |
+|--------|--------------------------|------------|------------|
+| CleverOne → EZ → GW | CleverOne / CleverOne버전 | EzServer/6.5.0 | EzServer/6.5.0 |
+| EZ 자체 → GW | EzServer / EzServer버전 | (비움) | EzServer/6.5.0 |
+
+규칙 한 줄: **`Vatech-*`는 항상 시작한 주체, `Vatech-Via`는 거쳐 간 주체.** EzServer가 originator인 경우도 같은 규칙으로 자연히 처리된다.
+
+왜 originator를 권위 소스로 두나: 경로 A는 CleverSpace가 새 API/오류코드를 돌려줄 때 화면에 쓰는 CleverOne과 MQTT로 중계하는 EzServer가 둘 다 충분히 최신이어야 정상 동작한다(§2.3). originator를 `Vatech-*`로, 경유 EzServer를 `Vatech-Via`로 함께 보내면 GW가 두 버전을 모두 보고 **더 낮은 쪽 기준**으로 호환을 게이팅할 수 있다. EzServer가 자기 버전으로 `Vatech-*`를 덮어쓰면 CleverOne이 구버전인지 GW가 알 수 없게 된다.
 
 ---
 
