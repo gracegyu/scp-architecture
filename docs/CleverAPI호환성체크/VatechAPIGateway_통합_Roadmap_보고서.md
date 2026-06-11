@@ -199,7 +199,7 @@ flowchart LR
 | 구성요소 | 역할 |
 |----------|------|
 | **EzServer(EZ)** | 클리닉 현장의 **Edge**. 장비·PMS·대용량 데이터를 현장에서 처리하고, 모든 클라우드 연동을 GW로 보낸다. (Edge로 유지 확정) |
-| **VatechAPIGateway(GW)** | 모든 연동의 단일 경유점. 인증 검증, 버전 호환 판정, Region 분배, 외부 API 중계 |
+| **VatechAPIGateway(GW)** | 모든 연동의 단일 경유점. 인증 검증, 버전 호환 판정, Region 분배, 외부 API 중계, **외부 Webhook 수신·분배**(§2.7) |
 | **GW Console** | Admin이 GW를 관리하는 Web client(매핑·클리닉·상태 관리) |
 | **OneID(AuthServer)** | 인증. GW가 토큰 검증 등에서 연계(연계 범위는 설계에서 확장 가능) |
 | **CleverSpace** | 클라우드 API. **여러 Region**에 구축 |
@@ -241,8 +241,10 @@ flowchart LR
 
     subgraph GWLAYER["VatechAPIGateway (K8s HA · 서울/미주)"]
         GW["GW<br/>인증·호환·Region 분배 단일 집행점"]
+        WH["Webhook Receiver<br/>외부 이벤트 수신·검증·분배"]
         DB[("컨트롤플레인 DB<br/>PostgreSQL + 캐시<br/>ClinicID↔Region · Org-ID 매핑")]
         CONSOLE["GW Console (Admin)"]
+        GW --- WH
         GW --- DB
         GW --- CONSOLE
     end
@@ -270,11 +272,86 @@ flowchart LR
     EDGE -.->|"대용량: presigned 직접 업로드"| AXSS3
     CLAB -.->|"대용량: presigned 직접 업로드"| AXSS3
 
+    AXS -.->|"Webhook(이벤트)"| WH
+    WH -.->|"클라우드: HTTP push"| CLAB
+    WH -.->|"온프레미스: MQTT push"| EDGE
+
     classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
-    class GW,DB,CONSOLE,CS2,CLAB,AXS,AXSS3,MINIO new;
+    class GW,WH,DB,CONSOLE,CS2,CLAB,AXS,AXSS3,MINIO new;
 ```
 
-> 굵은 화살표 = 모든 API가 GW 단일 경유(온프레미스 EZ + 클라우드 CleverLab 모두). 점선 = 대용량 데이터의 presigned 직접 업로드(GW 비경유, AXS는 AXS S3로). 초록 = 본 과제로 새로 들어오는 요소. 가독성을 위해 **업로드 완료 확인(완료 콜백 + 스토리지 이벤트)은 그림에서 생략**했다(§2.3·§3.4 참조).
+> 굵은 화살표 = 모든 API가 GW 단일 경유(온프레미스 EZ + 클라우드 CleverLab 모두). 점선 = 대용량 데이터의 presigned 직접 업로드(GW 비경유, AXS는 AXS S3로)와 **외부 Webhook의 수신·분배**. GW는 외부 서비스의 Webhook을 **Webhook Receiver로 대신 받아** 대상으로 분배한다(클라우드는 HTTP push, 온프레미스 EZ는 MQTT). 초록 = 본 과제로 새로 들어오는 요소. 상세는 §2.7. 가독성을 위해 **업로드 완료 확인(완료 콜백 + 스토리지 이벤트)은 그림에서 생략**했다(§2.3·§3.4 참조).
+
+### 2.7 Webhook 수신·분배 — GW가 외부 이벤트의 단일 수신·분배점
+
+외부 서비스(Straumann AXS 등)는 주문·상태·확정 결과 같은 비동기 이벤트를 **Webhook(HTTPS POST)으로 밀어 보낸다.** 이를 각 내부 서비스가 제각각 받으면 공개 엔드포인트·인증·서명 검증이 분산되고, 무엇보다 **방화벽 뒤의 EzServer는 외부에서 직접 호출할 수 없다.** 따라서 GW가 **모든 외부 Webhook의 단일 수신점**(Webhook Receiver)이 되어 수신·검증한 뒤, 대상에 맞는 방식으로 **분배**한다. 이 구조가 확정되면 AXS가 보내는 이벤트도 GW가 대신 받아 내부(클라우드/온프레미스)로 전달할 수 있다.
+
+#### 2.7.1 상세 흐름
+
+```mermaid
+flowchart LR
+    subgraph EXT["외부 서비스"]
+        AXS["Straumann AXS"]
+        ETC["기타 외부 서비스<br/>(향후 확장)"]
+    end
+
+    subgraph GWLAYER["VatechAPIGateway"]
+        WH["Webhook Receiver<br/>서명/HMAC·IP·timestamp 검증"]
+        ROUTER["이벤트 라우터<br/>대상 판별(ClinicID/Org-ID)<br/>멱등(eventId) 처리"]
+        Q["내부 큐<br/>재시도·백오프·DLQ"]
+        BROKER["MQTT Broker<br/>(다운스트림 EZ 전용)"]
+        WH --> ROUTER
+        ROUTER --> Q
+        ROUTER --> BROKER
+    end
+
+    subgraph CLOUDT["우리 클라우드 대상"]
+        CLAB["CleverLab"]
+        CS["CleverSpace"]
+    end
+
+    subgraph EDGET["온프레미스 대상"]
+        EZ["EzServer (Edge)<br/>방화벽 뒤"]
+    end
+
+    AXS ==>|"Webhook(HTTPS POST)"| WH
+    ETC -.->|"Webhook"| WH
+    Q ==>|"HTTP push(내부망)"| CLAB
+    Q ==>|"HTTP push(내부망)"| CS
+    BROKER ==>|"MQTT(QoS1)<br/>EZ가 outbound 구독"| EZ
+
+    classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
+    class WH,ROUTER,Q,BROKER new;
+```
+
+#### 2.7.2 받는 방법 (수신·검증)
+
+- **단일 공개 엔드포인트**: GW가 `…/webhooks/<provider>` 형태로 외부 Webhook을 받는다. 외부에는 GW 주소만 노출되고, 내부 서비스 주소는 숨는다.
+- **검증**: 제공자 서명(HMAC)·소스 IP allowlist·`timestamp`(replay 방지)로 정당한 호출만 수용한다. 검증 실패는 즉시 거부.
+- **멱등 처리**: 외부가 재전송(at-least-once)해도 **eventId 기준으로 dedup**하여 한 번만 처리한다(§2.3 업로드 완료 처리와 같은 원리).
+- **빠른 ACK + 비동기 처리**: 수신 즉시 2xx로 ACK하고, 실제 분배는 내부 큐로 넘겨 **재시도·백오프·DLQ**로 보장한다(외부가 우리 내부 지연 때문에 재전송 폭주하지 않게).
+
+#### 2.7.3 분배 방법 — 대상에 따라 다르다
+
+| 대상 | 위치 | 분배 방식 | 이유 |
+|------|------|-----------|------|
+| **우리 클라우드(CleverLab·CleverSpace)** | 클라우드(도달 가능) | GW → 내부 큐 → **HTTP push**(내부망 호출) | GW가 직접 호출 가능한 위치. 동기 호출 또는 큐 기반 비동기로 재시도·순서 보장 |
+| **EzServer(Edge)** | 온프레미스, **방화벽 뒤** | GW → **MQTT broker** → EZ가 **outbound 구독**으로 수신 | 외부에서 EZ로 inbound push 불가. EZ가 먼저 바깥으로 맺은 연결로만 전달 가능 |
+
+핵심 차이는 **도달성**이다. 클라우드 대상은 GW가 직접 호출(push)할 수 있어 단순하다. 반면 EzServer는 방화벽/NAT 뒤라 **EZ가 먼저 outbound로 맺은 연결**을 통해서만 받을 수 있다.
+
+#### 2.7.4 GW Webhook → EzServer 전송 방식 권장 — MQTT
+
+CleverOne은 이미 결과 중계에 **MQTT**를 쓰고 있다(§1 AS-IS의 EZ→CleverOne 결과 relay). GW가 EzServer로 이벤트를 내려보내는 채널도 **MQTT를 권장**한다. 근거는 다음과 같다.
+
+- **방화벽 적합**: EZ가 broker로 **outbound 연결**을 유지하고 구독하므로, 외부 inbound 허용 없이 전달된다(역방향 Webhook을 직접 못 받던 제약을 GW가 해소).
+- **기존 자산 재사용**: 이미 MQTT가 스택에 있어 운영·노하우가 누적돼 있다. 별도 채널을 새로 만들 필요가 적다.
+- **전달 보장**: QoS1(at-least-once) + persistent session/retained로 **EZ가 잠시 오프라인이어도 broker가 버퍼**했다가 재접속 시 전달한다.
+- **대안 대비 부담이 적다**: WebSocket/gRPC 상시 스트림은 재연결·세션 관리를 직접 구현해야 하고, long-poll/SSE는 오프라인 버퍼·QoS를 따로 보강해야 한다.
+
+> 보완 규칙: EZ는 같은 eventId를 중복 수신해도 멱등 처리한다(MQTT QoS1은 중복 가능). 클라우드 대상의 HTTP push와 EZ의 MQTT는 **대상만 다를 뿐 같은 이벤트 모델**(eventId·대상 키·payload)을 공유한다. 토픽은 클리닉/EzServer 단위로 분리해 다른 현장 이벤트가 섞이지 않게 한다.
+
+> 적용 메모: 이 Webhook Receiver 구조가 생기면 §3.7.1에서 "방화벽 때문에 제외"했던 **AXS → EzServer 역방향 전달도 `AXS → GW Webhook → MQTT → EZ`로 성립**한다. 다만 5단계 갈래 A의 1차 범위는 단방향(EZ→AXS)이며, 역방향 활성화 시점·대상 이벤트는 5단계 상세설계에서 확정한다.
 
 ---
 
@@ -482,7 +559,7 @@ Straumann은 보안상 **직접 연결이 불가**하여 **반드시 GW(중간 �
 
 > 데이터(영상)는 GW를 거치지 않고 **AXS S3로 presigned 직접 업로드**한다(§2.3과 동일 원리). Straumann 분석 보고서의 AWS 서버리스 전제는 본 통합에서 **K8s 기반 GW로 대체**된다.
 
-> 범위: 갈래 A는 **EzServer → AXS 단방향**만 다룬다. 역방향 Webhook(AXS → EzServer)은 방화벽 뒤 EzServer로의 전달 문제 때문에 **Clever Orbit(클라우드 기반 EzServer) 이후로 제외**한다.
+> 범위: 갈래 A의 1차 범위는 **EzServer → AXS 단방향**이다. 역방향(AXS → EzServer)은 그동안 방화벽 뒤 EzServer로의 직접 전달이 불가해 제외했으나, **GW Webhook Receiver(§2.7)가 생기면 `AXS → GW Webhook → MQTT → EZ`로 성립**한다. 역방향 활성화 시점·대상 이벤트는 5단계 상세설계에서 확정한다.
 
 ```mermaid
 flowchart LR
@@ -637,7 +714,9 @@ User-Agent: EzServer/6.5.0   # 직전 송신자(로그·관측·하위호환)
 | 업로드 완료 확인 방식 | 완료 콜백 + 스토리지 이벤트 조합 확정, 재시도·타임아웃·무결성(ETag) 규칙 | 2단계 상세설계 |
 | 매핑 테이블 스키마 | ClinicID↔Region, ClinicID↔Org-ID, 상태 등 필드 확정 | 4단계 / 5단계 |
 | Route 53 옵션 | latency vs geolocation, 헬스체크·페일오버 정책 | 4단계 상세설계 |
-| CleverLab 인바운드 방식 | AXS → CleverLab(오더·확정 결과) 수신을 Webhook vs 폴링 중 확정 | 5단계 상세설계 |
+| GW Webhook Receiver 스펙 | 수신 검증(서명/HMAC·IP·timestamp)·멱등(eventId)·내부 큐/재시도/DLQ·이벤트 모델 표준화 | 3단계 상세설계 |
+| Webhook 다운스트림 채널 | 클라우드=HTTP push, EzServer=MQTT(QoS1·persistent) 확정, 토픽·오프라인 버퍼 정책 | 3단계 / 5단계 상세설계 |
+| CleverLab 인바운드 방식 | AXS → CleverLab(오더·확정 결과) 수신을 GW Webhook 경유로 확정(Webhook vs 폴링 세부) | 5단계 상세설계 |
 | 경로 B EOS 시점 | 구버전 호환 종료 시점과 연계한 경로 B 서비스 종료 일정 | 3단계 이후 |
 | OneID 연계 범위 | 인증 Verify 외 토큰 발급·권한 조회 등 추가 연계 | 설계 중 구체화 |
 | Region 확장 | 서울·미주 외 추가 Region 계획 | 운영 단계 |
