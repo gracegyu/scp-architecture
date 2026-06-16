@@ -1,4 +1,7 @@
-# VatechAPIGateway 구축 및 API 호환성 통합 Roadmap
+# VT API Gateway — 개발 Roadmap 결정
+
+> **문서 위치·성격.** 본 문서는 **통제 문서가 아닌 배경·의사결정 기록**(non-controlled, free-form)이며, [VT API Gateway — PRD (v2)](<../VT API Gateway — PRD (v2).md>)의 **child(배경 문서)**다. 여기서 내린 결론(케이스 D 확정·5단계 구성 등)은 **PRD §12·ARD §7에 흡수**되어 있으며, 확정 스펙은 PRD/ARD/요구사항 명세를 정본으로 한다. 본 문서는 그 결론에 이르는 **케이스 비교·단계 의존성 분석**을 보존한다.
+> 정본 링크: [PRD (v2)](<../VT API Gateway — PRD (v2).md>) · [ARD (아키텍처)](<../VT API Gateway — ARD (아키텍처).md>)
 
 작성일: 2026-06-04  
 근거: 6월 4일 회의 결정(`0604_회의록_APIGateway통합.md`), API 호환성 분석(`API호환성_방안비교_보고서.md`), Straumann AXS 연동 분석(`Straumann연동/Straumann-Vatech_AXS연동_분석보고서.md`)
@@ -378,6 +381,22 @@ CleverOne은 이미 결과 중계에 **MQTT**를 쓰고 있다(§1 AS-IS의 EZ�
 
 > 의존 관계 요약: 1단계(호환성)는 어디에도 의존하지 않아 **즉시 착수**한다. 3단계 GW가 "모든 연동 단일 경유"를 선언하려면 대용량 업로드를 GW 체계 안에서 인가해야 하므로, **2단계 presigned가 반드시 먼저** 와야 한다. 4단계(멀티리전)는 3단계 GW를 전제로 한다. 5단계(Straumann)는 **3단계(GW)·2단계(presigned)를 전제**로 하며 4단계와 병렬 가능하다.
 
+#### 단계 ↔ GW 제품 버전 매핑 (참고)
+
+본 로드맵의 단계는 **버전이 아니라 진행 단계**다. 제품마다 버전 체계가 달라 제품별 버전을 여기 모두 적지는 않고, **VT API Gateway(GW) 제품 버전 기준으로만** 대응을 병기한다(정본은 PRD/요구사항 명세). 단계와 버전은 1:1이 아니며, 단계는 기능 묶음·착수 순서를, 버전은 GW 산출물의 릴리스를 가리킨다.
+
+본 프로젝트는 **케이스 D로 3·4·5단계를 통합 진행**하므로, 기본 목표는 **이들을 GW v1.0에 함께 담는 것**이다. 아래 버전은 **잠정**이다.
+
+| 로드맵 단계 | GW 제품 버전(잠정) | 근거(요구사항) |
+|------------|--------------------|----------------|
+| 1단계 API 호환성 | gw/1.0 | FR-COMPAT-01~05 |
+| 2단계 presigned 데이터 경로 | gw/1.0 | FR-SES-01~05(Upload Session) |
+| 3단계 GW 일원화 | gw/1.0 | control plane(인증·라우팅·경로 B 흡수) |
+| 4단계 멀티 Region | gw/1.0 목표(후행 시 gw/1.2) | FR-RGN-05(멀티 리전)·FR-SES-06(멀티클라우드 presign) |
+| 5단계 Straumann(AXS) | gw/1.0 b1(pilot) | FR-INT-02(AXS connector). 추가 connector는 gw/1.1 |
+
+> 4단계만 단서가 붙는 이유: 멀티 Region은 5단계 중 **우선순위가 가장 뒤**라 일정상 뒤로 밀릴 수 있고, Scott이 로드맵 논의 **이전에** 정리한 요구사항 명세에서는 이를 **v1.2(FR-RGN-05)** 로 배정해 두었다. 케이스 D로 함께 진행하면 **v1.0에 흡수**될 수도 있으므로, **v1.0 통합 vs v1.2 후행**은 인력·일정에 따라 후속 확정한다.
+
 ### 3.2 AS-IS (기준점)
 
 §1의 AS-IS 구조가 출발점이다. GW가 없고, 경로 A/B가 분산되며, 버전 미전달·Direct 데이터 전송 상태다.
@@ -501,7 +520,7 @@ flowchart LR
 
 ### 3.6 4단계 — 멀티 Region·글로벌·운영
 
-**목표.** CleverSpace를 멀티 Region으로 확장하고, GW가 **ClinicID로 Region을 분배**하며, **Route 53 GeoDNS**로 가까운 GW에 연결한다. **HA·GW Console·비-AWS(minio)까지 갖춰 VatechAPIGateway를 완성**한다.
+**목표.** CleverSpace를 멀티 Region으로 확장하고, GW가 **ClinicID로 Region을 분배**하며, **Route 53 GeoDNS**로 가까운 GW에 연결한다. **HA·GW Console·비-AWS(minio)까지 갖춰 VatechAPIGateway를 완성**한다. (케이스 D로 3·4·5 통합 진행 시 **gw/1.0에 흡수 목표**, 후행 시 **gw/1.2**(FR-RGN-05·FR-SES-06) — 잠정. 매핑은 §3.1 참조.)
 
 **제품별 개발 항목.**
 
