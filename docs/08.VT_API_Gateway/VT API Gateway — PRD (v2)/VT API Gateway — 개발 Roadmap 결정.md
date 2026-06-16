@@ -209,7 +209,7 @@ flowchart LR
 |----------|------|
 | **EzServer(EZ)** | 클리닉 현장의 **Edge**. 장비·PMS·대용량 데이터를 현장에서 처리하고, 모든 클라우드 연동을 GW로 보낸다. (Edge로 유지 확정) |
 | **VatechAPIGateway(GW)** | 모든 연동의 단일 경유점. 인증 검증, 버전 호환 판정, Region 분배, 외부 API 중계, **외부 Webhook 수신·분배**(§2.7) |
-| **GW Console** | Admin이 GW를 관리하는 Web client(매핑·클리닉·상태 관리) |
+| **GW Console** | Admin이 GW를 관리하는 Web client(매핑·클리닉·상태 관리). 스펙: **③-C Sub-SRS** |
 | **OneID(AuthServer)** | 인증. GW가 토큰 검증 등에서 연계(연계 범위는 설계에서 확장 가능) |
 | **CleverSpace** | 클라우드 API. **여러 Region**에 구축 |
 | **CleverLab** | 치과 기공소용 PMS(우리 클라우드 서비스). 외부 AXS와의 연동(기공소 주문·상태·확정)도 **GW를 경유**한다 |
@@ -528,7 +528,7 @@ flowchart LR
 |------|-----------|
 | CleverSpace | **멀티 Region 구축** |
 | VatechAPIGateway | **Region 분배**(ClinicID↔Region 매핑), 컨트롤플레인 저장소(PostgreSQL + 캐시), **K8s HA(서울·미주)**, Route 53 GeoDNS 연계 |
-| GW Console | **Admin Web Console**(매핑·클리닉·상태 관리) |
+| GW Console | **Admin Web Console**(매핑·클리닉·상태 관리) — 스펙: **③-C Sub-SRS** |
 | CleverOne | **Region 선택 UI**(최초 접속 시), ClinicID 전달 |
 | EzServer(EZ) | 요청에 **ClinicID 포함**, Region 인지 |
 | 인프라 | **Route 53** latency/geolocation 라우팅, 비-AWS 국가 **별도 서버 + minio** |
@@ -672,9 +672,10 @@ flowchart LR
 | ① API 호환성 | 1단계 | One Pager | 긴급·독립(v1.3.0 대응), ②와 병행 |
 | ② presigned 데이터 경로 | 2단계 | One Pager | GW 선행 요건, ①과 병행 |
 | ③ VatechAPIGateway 구축 | 3+4단계 | SRS | GW 일원화 + 멀티 Region |
+| ③-C GW Console | 3+4단계(4단계) | Sub-SRS | ③ SRS 하위. Admin Web UI. 별도 레포. ③ 관리 API와 중복 금지 |
 | ④ Straumann(AXS) 연동 | 5단계 | Sub-SRS | ③ SRS 하위. 갈래 A·B 포함, 외부 협의 단위 |
 
-> 스펙 경계 ≠ 실행 경계다. 케이스 D는 ③(3+4)과 ④(5)를 **통합 실행**한다. ①·②는 병행 트랙이라 각각 독립 스펙으로 둔다.
+> 스펙 경계 ≠ 실행 경계다. 케이스 D는 ③(3+4)·③-C·④(5)를 **통합 실행**한다. ①·②는 병행 트랙이라 각각 독립 스펙으로 둔다.
 
 ---
 
@@ -687,7 +688,7 @@ flowchart LR
 | **EzServer(EZ)** | 헤더 대리 전달 | 전송 로직 변경(presigned 직접) | GW 경유 전환 | ClinicID 포함·Region 인지 | AXS 연동 FE/BE(갈래 A)·presigned 직접 업로드 | **Rust 전면 재개발** |
 | **CleverLab** | — | — | — | — | **AXS 오더·상태·확정 연동(갈래 B)**·presigned | — |
 | **VatechAPIGateway** | — | — | 본체·라우팅·인증 연계·호환 집행·presigned 발급 중계·경로 B 흡수 | Region 분배·HA(K8s)·Route 53·저장소(Postgres) | AXS OAuth 중계·Org-ID 매핑·온보딩·인바운드 중계·고정 egress IP | — |
-| **GW Console** | — | — | — | Admin Web Console | 온보딩·Org-ID 관리 화면 | — |
+| **GW Console** | — | — | — | Admin Web Console (**③-C Sub-SRS**) | 온보딩·Org-ID 관리 화면 | — |
 | **OneID** | (경로 B 인증 유지) | — | GW 연계 토큰 검증 | (멀티 Region 인증 고려) | — | — |
 | **인프라** | 단일 Region | — | 단일 Region GW | Route 53·K8s·비-AWS minio | AXS whitelist용 고정 IP·샌드박스 | — |
 | **외부(Straumann AXS)** | — | — | — | — | API 스펙·OAuth·샌드박스·자격증명 제공(선결) | — |

@@ -21,4 +21,8 @@ Straumann AXS 개발자 포털 가이드의 **내부 참고용 스냅샷**이다
 | 4-3 | [Lab order Events](webhooks/laborderevents.md) | 기공 오더 이벤트 |
 | 5 | [Regions of operation](regions_of_operation.md) | 운영 리전 |
 
+## OpenAPI (API Reference)
+
+포털 API Explorer의 **OpenAPI 3.0 전체 스펙** 스냅샷 — [openapi/](openapi/README.md) (5 API · `index.json` + YAML, 취득 2026-06-16).
+
 > 우리 설계 연계: Webhook(4)은 GW Webhook Receiver(개발 Roadmap §2.7·ARD ADR-09), 인증(3)은 AXS OAuth 중계(5단계 갈래 A), `Organization-ID`는 ClinicID↔Org-ID 매핑과 직접 연결된다.

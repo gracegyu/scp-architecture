@@ -1,0 +1,41 @@
+[
+  {
+    "file": "authentication.yml",
+    "url": "/specs/authentication.yml",
+    "title": "Authentication",
+    "description": "The Straumann AXS® Organization APIs.",
+    "tags": []
+  },
+  {
+    "file": "orders.yml",
+    "url": "/specs/orders.yml",
+    "title": "Orders",
+    "description": "Straumann® AXS Lab Orders manages the end-to-end lifecycle of a lab order ensuring faster validation and seamless communication between clinics and labs. \n\nIn addition, with Straumann® AXS Order Integrator service, we have a place where all AXS orders are displayed unified and with a speed up search of all orders generated.",
+    "tags": [
+      {
+        "name": "Order management"
+      }
+    ]
+  },
+  {
+    "file": "organization.yml",
+    "url": "/specs/organization.yml",
+    "title": "Organization",
+    "description": "The Straumann AXS® Organization APIs.",
+    "tags": []
+  },
+  {
+    "file": "patients.yml",
+    "url": "/specs/patients.yml",
+    "title": "Patients",
+    "description": "The Straumann AXS® Patients enables you to create and manage the patient journey.",
+    "tags": []
+  },
+  {
+    "file": "webhook.yml",
+    "url": "/specs/webhook.yml",
+    "title": "Webhook System",
+    "description": "The Straumann AXS® Webhook System enables you to manage subscriptions to AXS-related events and receive notifications via user-defined callback URLs.\n",
+    "tags": []
+  }
+]

@@ -1,0 +1,1885 @@
+openapi: 3.0.3
+info:
+    title: Orders
+    version: v1
+    description: |-
+        Straumann® AXS Lab Orders manages the end-to-end lifecycle of a lab order ensuring faster validation and seamless communication between clinics and labs. 
+        
+        In addition, with Straumann® AXS Order Integrator service, we have a place where all AXS orders are displayed unified and with a speed up search of all orders generated.
+    license:
+        name: Straumann
+        url: https://axs.straumann.com
+servers:
+    - url: https://ppr.api.us.axs.straumann.com
+    - url: https://ppr.api.eu.axs.straumann.com
+    - url: PRODUCTION - https://api.us.axs.straumann.com
+      description: Productive environment usage only. Not for testing
+    - url: PRODUCTION - https://api.eu.axs.straumann.com
+      description: Productive environment usage only. Not for testing
+tags:
+    - name: Order management
+security:
+    - httpBasic: []
+    - bearerAuth: []
+paths:
+    /v1/orders/create-order:
+        post:
+            tags:
+                - Order management
+            summary: Create Lab Order
+            description: Create a lab order without a Straumann® device
+            servers:
+                - url: https://ppr.api.us.axs.straumann.com
+            operationId: createLabOrder
+            parameters:
+                - $ref: '#/components/parameters/AcceptHeader'
+                - $ref: '#/components/parameters/ContentTypeHeader'
+                - $ref: '#/components/parameters/OrganizationIdHeader'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/LabOrderCreationRequestPublicDto"
+            responses:
+                '200':
+                    description: "Request was fulfilled successfully."
+                    content:
+                        "*/*":
+                            schema:
+                                $ref: "#/components/schemas/LabOrderCreationResponseDto"
+                '400':
+                    description: "Bad Request"
+                    content:
+                        "*/*":
+                            schema:
+                                $ref: "#/components/schemas/LabOrderErrorDTO"
+                '403':
+                    description: "Forbidden"
+                    content:
+                        "*/*":
+                            schema:
+                                $ref: "#/components/schemas/LabOrderErrorDTO"
+                '404':
+                    description: "Not Found"
+                    content:
+                        "*/*":
+                            schema:
+                                $ref: "#/components/schemas/LabOrderErrorDTO"
+                '409':
+                    description: "Conflict"
+                    content:
+                        "*/*":
+                            schema:
+                                $ref: "#/components/schemas/LabOrderErrorDTO"
+                '413':
+                    description: "Payload too large"
+                    content:
+                        "*/*":
+                            schema:
+                                $ref: "#/components/schemas/LabOrderErrorDTO"
+                '500':
+                    description: "Internal Server Error"
+                    content:
+                        "*/*":
+                            schema:
+                                $ref: "#/components/schemas/LabOrderErrorDTO"
+    /v1/orders/{orderId}/sending:
+        post:
+            tags:
+                - Order management
+            summary: Send Lab Order
+            description: Send a lab order to another organization, usually a laboratory.
+            servers:
+                - url: https://ppr.api.us.axs.straumann.com
+            operationId: sendLabOrder
+            parameters:
+                - $ref: '#/components/parameters/AcceptHeader'
+                - $ref: '#/components/parameters/ContentTypeHeader'
+                - $ref: '#/components/parameters/OrganizationIdHeader'
+                - name: orderId
+                  in: path
+                  description: Unique identifier of the order.
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/LabOrderSendingRequestDto'
+                required: true
+            responses:
+                '200':
+                    description: Request was fulfilled successfully.
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/LabOrderSendingResponseDto'
+                '400':
+                    description: Bad Request
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '403':
+                    description: Forbidden
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '404':
+                    description: Not Found
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '409':
+                    description: Conflict
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '413':
+                    description: Payload Too Large
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+    /v1/orders/{orderId}:
+        delete:
+            tags:
+                - Order management
+            summary: Delete Lab Order
+            description: Delete a lab order by ID.
+            servers:
+                - url: https://ppr.api.us.axs.straumann.com
+            operationId: deleteLabOrder
+            parameters:
+                - $ref: '#/components/parameters/AcceptHeader'
+                - $ref: '#/components/parameters/ContentTypeHeader'
+                - $ref: '#/components/parameters/OrganizationIdHeader'
+                - name: orderId
+                  in: path
+                  description: Unique identifier of the order.
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            responses:
+                '204':
+                    description: Request was fulfilled successfully.
+                '400':
+                    description: Bad Request
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '403':
+                    description: Forbidden
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '404':
+                    description: Not Found
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '409':
+                    description: Conflict
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '413':
+                    description: Payload Too Large
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+        get:
+            tags:
+                - Order management
+            summary: Get order details
+            description: Get order details by ID.
+            servers:
+                - url: https://ppr.api.us.axs.straumann.com
+            operationId: getLabOrder
+            parameters:
+                - $ref: '#/components/parameters/AcceptHeader'
+                - $ref: '#/components/parameters/ContentTypeHeader'
+                - $ref: '#/components/parameters/OrganizationIdHeader'
+                - name: orderId
+                  in: path
+                  description: Unique identifier of the order.
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+                  example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+            responses:
+                '200':
+                    description: Request was fulfilled successfully.
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/LabOrderDetailPublicDto'
+                '400':
+                    description: Bad Request
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/LabOrderErrorDTO'
+                '403':
+                    description: Forbidden
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/LabOrderErrorDTO'
+                '404':
+                    description: Not Found
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/LabOrderErrorDTO'
+                '409':
+                    description: Conflict
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/LabOrderErrorDTO'
+                '413':
+                    description: Payload Too Large
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/LabOrderErrorDTO'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/LabOrderErrorDTO'
+    /v1/orders/search:
+        get:
+            tags:
+                - Order management
+            summary: Search orders
+            description: Get all orders paginated with the possibility of using filters
+            servers:
+                - url: https://ppr.api.us.axs.straumann.com
+            operationId: searchOrders
+            parameters:
+                - $ref: '#/components/parameters/AcceptHeader'
+                - $ref: '#/components/parameters/ContentTypeHeader'
+                - $ref: '#/components/parameters/OrganizationIdHeader'
+                - name: lastElementPage
+                  in: query
+                  description: Cursor or ID of the last element from the previous page for pagination.
+                  required: false
+                  schema:
+                      type: string
+                - name: searchBoxText
+                  in: query
+                  required: false
+                  schema:
+                      type: string
+                      minLength: 3
+                      description: Text to search across multiple fields. Empty string or at least 3 characters.
+                - name: orderStatus
+                  in: query
+                  description: Filter by order status.
+                  required: false
+                  schema:
+                      type: string
+                      enum:
+                          - CANCELED
+                          - CLOSED
+                          - COMMON STATUS
+                          - DESIGN
+                          - DRAFT
+                          - IN PROGRESS
+                          - IN VALIDATION
+                          - MANUFACTURING
+                          - ORDER VALIDATION
+                          - READY TO SEND
+                          - REJECTED
+                          - SCAN
+                          - SHIPPED
+                          - SHIPPING
+                          - TREATMENT PLAN
+                          - UPLOADING
+                          - UPLOAD UNSUCCESSFUL
+                          - IN_REVIEW
+                          - APPROVED
+                          - PRODUCTION
+                          - DELETED
+                - name: productOrderId
+                  in: query
+                  description: Filter by the order unique identifier.
+                  required: false
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/GetGenericSearchOrdersIntegratorResponseDto'
+                '400':
+                    description: Bad Request
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '403':
+                    description: Forbidden
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '404':
+                    description: Not Found
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '409':
+                    description: Conflict
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '413':
+                    description: Payload Too Large
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '422':
+                    description: Unprocessable Entity
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/error'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+    /v1/orders/{id}/file/search:
+        get:
+            tags:
+                - Order management
+            summary: Search order files
+            description: Get all the files of an order
+            servers:
+                - url: https://ppr.api.us.axs.straumann.com
+            operationId: searchOrderFiles
+            parameters:
+                - $ref: '#/components/parameters/AcceptHeader'
+                - $ref: '#/components/parameters/ContentTypeHeader'
+                - $ref: '#/components/parameters/OrganizationIdHeader'
+                - name: id
+                  in: path
+                  description: Unique identifier of the order.
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/GetOrderFileInfoResponseDTO'
+                '400':
+                    description: Bad Request
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '403':
+                    description: Forbidden
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '404':
+                    description: Not Found
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '409':
+                    description: Conflict
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '413':
+                    description: Payload Too Large
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '422':
+                    description: Unprocessable Entity
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/error'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+    /v1/orders/{id}/file/download:
+        get:
+            tags:
+                - Order management
+            summary: Download order files
+            description: Download all files as a zip from an order
+            servers:
+                - url: https://ppr.api.us.axs.straumann.com
+            operationId: getOrderFiles
+            parameters:
+                - $ref: '#/components/parameters/AcceptHeader'
+                - $ref: '#/components/parameters/ContentTypeHeader'
+                - $ref: '#/components/parameters/OrganizationIdHeader'
+                - name: id
+                  in: path
+                  description: Unique identifier of the order.
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        '*/*':
+                            schema:
+                                type: array
+                                items:
+                                    type: string
+                                    format: byte
+                '400':
+                    description: Bad Request
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '403':
+                    description: Forbidden
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '404':
+                    description: Not Found
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '409':
+                    description: Conflict
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '413':
+                    description: Payload Too Large
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '422':
+                    description: Unprocessable Entity
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/error'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+components:
+    securitySchemes:
+        httpBasic:
+            type: http
+            scheme: basic
+        bearerAuth:
+            type: http
+            scheme: bearer
+            bearerFormat: JWT
+    parameters:
+        AcceptHeader:
+            in: header
+            name: Accept
+            required: true
+            schema:
+                type: string
+                default: "*/*"
+        ContentTypeHeader:
+            in: header
+            name: Content-Type
+            required: true
+            schema:
+                type: string
+                default: "application/json"
+        OrganizationIdHeader:
+            in: header
+            name: Organization-ID
+            required: true
+            schema:
+                type: string
+                format: uuid
+                description: Unique identifier of the organization.
+                example: "a3f1c9d2-4b5e-4e6a-9f2c-1d2f3e4b5c6d"
+    schemas:
+        ErrorDTO:
+            type: object
+            properties:
+                status:
+                    type: integer
+                    format: int32
+                reason:
+                    type: string
+                code:
+                    type: string
+                message:
+                    type: string
+                messageKey:
+                    type: string
+                occurredAt:
+                    type: string
+                    format: date-time
+        LabOrderSendingRequestDto:
+            type: object
+            required:
+                - labOrganizationId
+            properties:
+                labOrganizationId:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the organization you want to send the order to.
+                    example: "a3f1c9d2-4b5e-4e6a-9f2c-1d2f3e4b5c6d"
+        LabOrderSendingResponseDto:
+            type: object
+            properties:
+                orderId:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the order sent.
+                    example: "63ac754a-2c0b-4536-9e9d-9fc00262a846"
+        OrganizationRefDto:
+            type: object
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of an organization.
+                    example: "63ac754a-2c0b-4536-9e9d-9fc00262a846"
+                name:
+                    type: string
+                    description: Name of an organization.
+                    example: "Dental clinic"
+                countryCode:
+                    type: string
+                    description: Country of an organization.
+                    example: "AS"
+                    enum:
+                        - AF
+                        - AL
+                        - DZ
+                        - AS
+                        - AD
+                        - AO
+                        - AI
+                        - AQ
+                        - AG
+                        - AR
+                        - AM
+                        - AW
+                        - AU
+                        - AT
+                        - AZ
+                        - BS
+                        - BH
+                        - BD
+                        - BB
+                        - BY
+                        - BE
+                        - BZ
+                        - BJ
+                        - BM
+                        - BT
+                        - BO
+                        - BA
+                        - BW
+                        - BR
+                        - IO
+                        - VG
+                        - BN
+                        - BG
+                        - BF
+                        - BI
+                        - KH
+                        - CM
+                        - CA
+                        - CV
+                        - KY
+                        - CF
+                        - TD
+                        - CL
+                        - CN
+                        - CX
+                        - CC
+                        - CO
+                        - KM
+                        - CK
+                        - CR
+                        - HR
+                        - CU
+                        - CW
+                        - CY
+                        - CZ
+                        - CD
+                        - DK
+                        - DJ
+                        - DM
+                        - DO
+                        - TL
+                        - EC
+                        - EG
+                        - SV
+                        - GQ
+                        - ER
+                        - EE
+                        - ET
+                        - FK
+                        - FO
+                        - FJ
+                        - FI
+                        - FR
+                        - PF
+                        - GA
+                        - GM
+                        - GE
+                        - DE
+                        - GH
+                        - GI
+                        - GR
+                        - GL
+                        - GD
+                        - GU
+                        - GT
+                        - GG
+                        - GN
+                        - GW
+                        - GY
+                        - HT
+                        - HN
+                        - HK
+                        - HU
+                        - IS
+                        - IN
+                        - ID
+                        - IR
+                        - IQ
+                        - IE
+                        - IM
+                        - IL
+                        - IT
+                        - CI
+                        - JM
+                        - JP
+                        - JE
+                        - JO
+                        - KZ
+                        - KE
+                        - KI
+                        - XK
+                        - KW
+                        - KG
+                        - LA
+                        - LV
+                        - LB
+                        - LS
+                        - LR
+                        - LY
+                        - LI
+                        - LT
+                        - LU
+                        - MO
+                        - MK
+                        - MG
+                        - MW
+                        - MY
+                        - MV
+                        - ML
+                        - MT
+                        - MH
+                        - MR
+                        - MU
+                        - YT
+                        - MX
+                        - FM
+                        - MD
+                        - MC
+                        - MN
+                        - ME
+                        - MS
+                        - MA
+                        - MZ
+                        - MM
+                        - NA
+                        - NR
+                        - NP
+                        - NL
+                        - AN
+                        - NC
+                        - NZ
+                        - NI
+                        - NE
+                        - NG
+                        - NU
+                        - KP
+                        - MP
+                        - 'NO'
+                        - OM
+                        - PK
+                        - PW
+                        - PS
+                        - PA
+                        - PG
+                        - PY
+                        - PE
+                        - PH
+                        - PN
+                        - PL
+                        - PT
+                        - PR
+                        - QA
+                        - CG
+                        - RE
+                        - RO
+                        - RU
+                        - RW
+                        - BL
+                        - SH
+                        - KN
+                        - LC
+                        - MF
+                        - PM
+                        - VC
+                        - WS
+                        - SM
+                        - ST
+                        - SA
+                        - SN
+                        - RS
+                        - SC
+                        - SL
+                        - SG
+                        - SX
+                        - SK
+                        - SI
+                        - SB
+                        - SO
+                        - ZA
+                        - KR
+                        - SS
+                        - ES
+                        - LK
+                        - SD
+                        - SR
+                        - SJ
+                        - SZ
+                        - SE
+                        - CH
+                        - SY
+                        - TW
+                        - TJ
+                        - TZ
+                        - TH
+                        - TG
+                        - TK
+                        - TO
+                        - TT
+                        - TN
+                        - TR
+                        - TM
+                        - TC
+                        - TV
+                        - VI
+                        - UG
+                        - UA
+                        - AE
+                        - GB
+                        - US
+                        - UY
+                        - UZ
+                        - VU
+                        - VA
+                        - VE
+                        - VN
+                        - WF
+                        - EH
+                        - YE
+                        - ZM
+                        - ZW
+        UserRefDto:
+            type: object
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of a user.
+                    example: "63ac754a-2c0b-4536-9e9d-9fc00262a846"
+                title:
+                    type: string
+                    description: Title of the user.
+                    example: "Dr."
+                firstName:
+                    type: string
+                    description: First name of the user.
+                    example: "Stephen"
+                lastName:
+                    type: string
+                    description: Last name of the user.
+                    example: "Jones"
+                organization:
+                    $ref: '#/components/schemas/OrganizationRefDto'
+        CustomAbutmentDto:
+            type: object
+            properties:
+                kit:
+                    type: string
+                    description: Abutment Kit.
+                    example: "STMNZrO-Cro-RC"
+                manufacturer:
+                    type: string
+                    description: Name of the manufacturer.
+                    example: "Straumann/Bone Level"
+        MaterialDto:
+            type: object
+            properties:
+                value:
+                    type: string
+                    description: Value of the material.
+                    example: "ZIRCONIA"
+                    enum:
+                        - ZIRCONIA
+                        - METAL
+                        - GLASS_CERAMIC
+                        - POLYMER
+        ProsthesisToothColorShadeDto:
+            type: object
+            properties:
+                value:
+                    type: string
+                    description: The color shade value selected for the tooth prosthesis.
+                    example: "A2"
+                position:
+                    type: string
+                    description: The position or area of the tooth where the shade is applied.
+                    example: "Cervical"
+        ProsthesisToothColorShadeGuideDto:
+            type: object
+            properties:
+                prosthesisToothColorShades:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/ProsthesisToothColorShadeDto'
+                    description: List of color shades applied to different positions of the tooth.
+                    example:
+                        -   value: "A2"
+                            position: "Cervical"
+                guide:
+                    type: string
+                    description: Name of the shade guide used.
+                    example: "VITA Classical"
+        PatientDto:
+            type: object
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of a patient.
+                    example: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                customPatientId:
+                    type: string
+                    description: Patient ID created manually by the user or by default.
+                    example: "PAT-2025-001"
+                firstName:
+                    type: string
+                    description: Patient's first name.
+                    example: "John"
+                lastName:
+                    type: string
+                    description: Patient's last name.
+                    example: "Doe"
+                visibility:
+                    type: string
+                    description: Defines the visibility status of the patient in the context of the order.
+                    enum:
+                        - VISIBLE
+                        - FORBIDDEN
+                        - NOT_FOUND
+                    example: "VISIBLE"
+        RestorationDto:
+            type: object
+            required:
+                - restorationSites
+                - restorationType
+            properties:
+                restorationType:
+                    type: string
+                    description: Type of restoration.
+                    enum:
+                        - SINGLE
+                        - BRIDGE
+                material:
+                    description: Material for the restoration.
+                    items:
+                        $ref: '#/components/schemas/MaterialDto'
+                restorationSites:
+                    type: array
+                    description: List of tooth positions and indications of the restoration.
+                    items:
+                        $ref: '#/components/schemas/RestorationSiteDto'
+        RestorationSiteDto:
+            type: object
+            required:
+                - indication
+            properties:
+                toothPosition:
+                    $ref: "#/components/schemas/ToothPositionDto"
+                indication:
+                    type: string
+                    enum:
+                        - ADVANCED_PONTIC
+                        - ANATOMICAL_VENEER
+                        - BAR_PILLAR
+                        - BUCCAL_VENEER
+                        - CLINICAL_COPING
+                        - CODIAGNOSTIX_ABUTMENT
+                        - CUSTOM_ABUTMENT
+                        - CUSTOM_ABUTMENT_WITH_WAXING
+                        - DENTURE
+                        - DIAGNOSTIC_CROWN
+                        - DIAGNOSTIC_PONTIC
+                        - FULL_CROWN
+                        - FULL_CROWN_ON_IMPLANT
+                        - FULL_INLAY_CORE
+                        - FULL_PONTIC
+                        - INFIX_CROWN
+                        - INFIX_PONTIC
+                        - INLAY_CORE
+                        - INLAY_ONLAY
+                        - INLAY_SHELL
+                        - LAVA_CUSTOM_ABUTMENT
+                        - ONLAY
+                        - PARTIAL
+                        - PARTIAL_CROWN
+                        - PARTIAL_DENTURE
+                        - PONTIC
+                        - PORCELAIN_CAP
+                        - PORCELAIN_CAP_SUPPORT
+                        - REDUCED_BUCCAL_VENEER
+                        - REDUCED_CROWN
+                        - REDUCED_CROWN_ON_IMPLANT
+                        - REDUCED_INLAY_CORE
+                        - REDUCED_VENEER
+                        - SIMPLE_COPING
+                        - SIMPLE_COPING_WITH_WAXING
+                        - TELESCOP_COPING
+                        - TELESCOPIC_CROWN_ON_IMPLANT
+                        - VENEER
+                        - VENEER_SHELL
+                        - VESTIBULAR_INCRUSTATION
+                        - VESTIBULAR_INCRUSTATION_ON_IMPLANT
+                        - VESTIBULAR_INCRUSTATION_ON_PONTIC
+                        - WAXING_COPY
+                    description: Indication of the restoration site.
+                    example: "PARTIAL_CROWN"
+                customAbutment:
+                    $ref: "#/components/schemas/CustomAbutmentDto"
+                toothColor:
+                    $ref: "#/components/schemas/ToothColorDto"
+                toothShadeGuide:
+                    $ref: "#/components/schemas/ToothShadeGuideDto"
+        ToothColorDto:
+            type: object
+            properties:
+                value:
+                    type: string
+                    description: Value of the Tooth color.
+                    example: "D3"
+        ToothPositionDto:
+            type: object
+            required:
+                - fdi
+            description: Position of the tooth.
+            properties:
+                fdi:
+                    type: string
+                    description: Tooth position based on the FDI World Dental Federation notation.
+                uns:
+                    type: string
+                    description: Tooth position based on the Universal Numbering System.
+        ToothShadeDto:
+            type: object
+            properties:
+                value:
+                    type: string
+                    description: Value of the shade.
+                    example: "A3.5"
+                position:
+                    type: string
+                    description: Position of the tooth.
+                    example: "Cervical"
+        ToothShadeGuideDto:
+            type: object
+            properties:
+                toothShades:
+                    type: array
+                    description: Values of the tooth shades.
+                    items:
+                        $ref: '#/components/schemas/ToothShadeDto'
+                guide:
+                    type: string
+                    description: Guide of the tooth shades.
+                    example: "VITA Classical A1-D4/D3"
+        ImplantSiteDto:
+            type: object
+            required:
+                - toothPosition
+                - labOrderImplantSiteType
+            properties:
+                toothPosition:
+                    $ref: "#/components/schemas/ToothPositionDto"
+                labOrderImplantSiteType:
+                    type: string
+                    enum:
+                        - ADJACENT
+                        - ANTAGONIST_ARCH
+                        - ARCH
+                        - CUSTOM_ABUTMENT_PREPARATION
+                        - MODIFIED_ARCH
+                        - OCCLUSION
+                        - PONTIC
+                        - PROXY
+                        - STUMP
+                        - UNDERCUT_CORRECTED_PREPARATION
+                    description: Type of implant site.
+                    example: "STUMP"
+                implantBrand:
+                    type: string
+                    description: Brand of the implant site.
+                    example: "BrandX"
+                implantSystem:
+                    type: string
+                    description: System used for the implant site.
+                    example: "SystemY"
+        OrganizationDto:
+            type: object
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the organization.
+                    example: "b1a7c9d2-3e4f-4a6b-8f2c-1d2f3e4b5c6d"
+                sapOrganizationId:
+                    type: string
+                    description: Identifier of the organization in the SAP system.
+                    example: "SAP-ORG-001"
+                name:
+                    type: string
+                    description: Name of the organization.
+                    example: "Dental Lab"
+                countryCode:
+                    type: string
+                    enum:
+                        - AF
+                        - AL
+                        - DZ
+                        - AS
+                        - AD
+                        - AO
+                        - AI
+                        - AQ
+                        - AG
+                        - AR
+                        - AM
+                        - AW
+                        - AU
+                        - AT
+                        - AZ
+                        - BS
+                        - BH
+                        - BD
+                        - BB
+                        - BY
+                        - BE
+                        - BZ
+                        - BJ
+                        - BM
+                        - BT
+                        - BO
+                        - BA
+                        - BW
+                        - BR
+                        - IO
+                        - VG
+                        - BN
+                        - BG
+                        - BF
+                        - BI
+                        - KH
+                        - CM
+                        - CA
+                        - CV
+                        - KY
+                        - CF
+                        - TD
+                        - CL
+                        - CN
+                        - CX
+                        - CC
+                        - CO
+                        - KM
+                        - CK
+                        - CR
+                        - HR
+                        - CU
+                        - CW
+                        - CY
+                        - CZ
+                        - CD
+                        - DK
+                        - DJ
+                        - DM
+                        - DO
+                        - TL
+                        - EC
+                        - EG
+                        - SV
+                        - GQ
+                        - ER
+                        - EE
+                        - ET
+                        - FK
+                        - FO
+                        - FJ
+                        - FI
+                        - FR
+                        - PF
+                        - GA
+                        - GM
+                        - GE
+                        - DE
+                        - GH
+                        - GI
+                        - GR
+                        - GL
+                        - GD
+                        - GU
+                        - GT
+                        - GG
+                        - GN
+                        - GW
+                        - GY
+                        - HT
+                        - HN
+                        - HK
+                        - HU
+                        - IS
+                        - IN
+                        - ID
+                        - IR
+                        - IQ
+                        - IE
+                        - IM
+                        - IL
+                        - IT
+                        - CI
+                        - JM
+                        - JP
+                        - JE
+                        - JO
+                        - KZ
+                        - KE
+                        - KI
+                        - XK
+                        - KW
+                        - KG
+                        - LA
+                        - LV
+                        - LB
+                        - LS
+                        - LR
+                        - LY
+                        - LI
+                        - LT
+                        - LU
+                        - MO
+                        - MK
+                        - MG
+                        - MW
+                        - MY
+                        - MV
+                        - ML
+                        - MT
+                        - MH
+                        - MR
+                        - MU
+                        - YT
+                        - MX
+                        - FM
+                        - MD
+                        - MC
+                        - MN
+                        - ME
+                        - MS
+                        - MA
+                        - MZ
+                        - MM
+                        - NA
+                        - NR
+                        - NP
+                        - NL
+                        - AN
+                        - NC
+                        - NZ
+                        - NI
+                        - NE
+                        - NG
+                        - NU
+                        - KP
+                        - MP
+                        - 'NO'
+                        - OM
+                        - PK
+                        - PW
+                        - PS
+                        - PA
+                        - PG
+                        - PY
+                        - PE
+                        - PH
+                        - PN
+                        - PL
+                        - PT
+                        - PR
+                        - QA
+                        - CG
+                        - RE
+                        - RO
+                        - RU
+                        - RW
+                        - BL
+                        - SH
+                        - KN
+                        - LC
+                        - MF
+                        - PM
+                        - VC
+                        - WS
+                        - SM
+                        - ST
+                        - SA
+                        - SN
+                        - RS
+                        - SC
+                        - SL
+                        - SG
+                        - SX
+                        - SK
+                        - SI
+                        - SB
+                        - SO
+                        - ZA
+                        - KR
+                        - SS
+                        - ES
+                        - LK
+                        - SD
+                        - SR
+                        - SJ
+                        - SZ
+                        - SE
+                        - CH
+                        - SY
+                        - TW
+                        - TJ
+                        - TZ
+                        - TH
+                        - TG
+                        - TK
+                        - TO
+                        - TT
+                        - TN
+                        - TR
+                        - TM
+                        - TC
+                        - TV
+                        - VI
+                        - UG
+                        - UA
+                        - AE
+                        - GB
+                        - US
+                        - UY
+                        - UZ
+                        - VU
+                        - VA
+                        - VE
+                        - VN
+                        - WF
+                        - EH
+                        - YE
+                        - ZM
+                        - ZW
+                    description: Country code representing the organization's location.
+                    example: "AS"
+                contactPhone:
+                    type: string
+                    description: Contact phone number of the organization.
+                    example: "+355 42 222 333"
+                contactEmail:
+                    type: string
+                    description: Contact email address of the organization.
+                    example: "info@dentallab.com"
+        LabOrderDetailPublicDto:
+            type: object
+            properties:
+                orderId:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the order.
+                    example: "a3f1c9d2-4b5e-4e6a-9f2c-1d2f3e4b5c6d"
+                customOrderId:
+                    type: string
+                    description: Order ID created manually by the user or by default.
+                    example: "order-2025-01"
+                owner:
+                    $ref: "#/components/schemas/UserRefDto"
+                labOrganization:
+                    $ref: "#/components/schemas/OrganizationPublicDto"
+                dueDate:
+                    type: string
+                    format: date
+                    description: Expected date to have the order completed.
+                    example: "2025-03-19"
+                patient:
+                    $ref: "#/components/schemas/PatientPublicDto"
+                status:
+                    $ref: "#/components/schemas/LabOrderStatusDto"
+                errorCode:
+                    type: string
+                    example: "Error on the Sirios Component"
+                    description: Error and description
+                note:
+                    type: string
+                    description: Additional notes related to the order.
+                    example: "Please prioritize this case due to patient urgency."
+                rejectionComment:
+                    type: string
+                    description: Comment explaining the reason for order rejection.
+                    example: "Missing required documentation."
+                trackingNumber:
+                    type: string
+                    description: Shipment tracking number for the order.
+                    example: "TRK123456789"
+                expectedDeliveryDate:
+                    type: string
+                    format: date
+                    description: Estimated date of delivery.
+                    example: "2025-03-15"
+                deliveryStatus:
+                    type: string
+                    enum:
+                        - PENDING
+                        - INFO_RECEIVED
+                        - IN_TRANSIT
+                        - OUT_FOR_DELIVERY
+                        - ATTEMPT_FAIL
+                        - DELIVERED
+                        - AVAILABLE_FOR_PICKUP
+                        - EXCEPTION
+                        - EXPIRED
+                        - UNKNOWN
+                    description: Current delivery status of the order.
+                    example: "IN_TRANSIT"
+                submittedAt:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the order was submitted.
+                    example: "2025-02-28T14:30:00Z"
+                statusUpdatedAt:
+                    type: string
+                    format: date-time
+                    description: Timestamp of the last status update.
+                    example: "2025-03-01T09:00:00Z"
+                createdAt:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the order was created.
+                    example: "2025-02-27T10:00:00Z"
+                updatedAt:
+                    type: string
+                    format: date-time
+                    description: Timestamp of the last update to the order.
+                    example: "2025-03-01T09:00:00Z"
+                implantSites:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/ImplantSiteDto"
+                restorations:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/RestorationDto"
+        OrderUserInfoDto:
+            type: object
+            properties:
+                userId:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the user who placed or is associated with the order.
+                    example: "c1a2b3d4-e5f6-7890-abcd-1234567890ef"
+                userFirstName:
+                    type: string
+                    description: First name of the user.
+                    example: "Emily"
+                userLastName:
+                    type: string
+                    description: Last name of the user.
+                    example: "Clark"
+                organizationName:
+                    type: string
+                    description: Name of the organization the user belongs to.
+                    example: "Dental Clinic"
+        SiabOrderArchAttributesDto:
+            type: object
+            properties:
+                arch:
+                    type: string
+                caseIndicationType:
+                    type: string
+                isPrimary:
+                    type: boolean
+        SiabOrderTaskAttributesDto:
+            type: object
+            properties:
+                taskId:
+                    type: string
+                    format: uuid
+                taskName:
+                    type: string
+                isCompleted:
+                    type: boolean
+                taskCategory:
+                    type: string
+        CcpsExtraInfoDto:
+            type: object
+            properties:
+                ccpsOrderId:
+                    type: string
+                    format: uuid
+                taskId:
+                    type: string
+                    format: uuid
+                servicePackage:
+                    type: string
+                internalOrderReference:
+                    type: string
+                taskName:
+                    type: string
+                taskCategory:
+                    type: string
+        GenericSearchOrdersIntegratorDto:
+            type: object
+            properties:
+                orderId:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the order in Order Integrator service.
+                    example: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                organizationId:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the organization associated with the order.
+                    example: "a3f1c9d2-4b5e-4e6a-9f2c-1d2f3e4b5c6d"
+                customOrderId:
+                    type: string
+                    description: Custom identifier assigned to the order.
+                    example: "ORD-VAL-2025-001"
+                flowableOrderId:
+                    type: string
+                    description: Identifier of the order in the Flowable system.
+                    example: "FLOW-123456"
+                organizationCountry:
+                    type: string
+                    description: Country where the organization is located.
+                    example: "ES"
+                type:
+                    type: string
+                    description: Type of the order.
+                    example: "LAB_ORDER"
+                status:
+                    type: string
+                    description: Current status of the order.
+                    example: "IN_VALIDATION"
+                step:
+                    type: string
+                    description: Current workflow step of the order.
+                    example: "REVIEW"
+                comment:
+                    type: string
+                    description: Additional comments or notes related to the order.
+                    example: "Urgent delivery requested"
+                preferredLanguage:
+                    type: string
+                    description: Preferred language for communication regarding the order.
+                    example: "en"
+                submittedOrder:
+                    type: string
+                    description: Identifier or reference of the submitted order.
+                    example: "SUB-2025-VAL-001"
+                patientId:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the patient associated with the order.
+                    example: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                submittedAt:
+                    type: string
+                    format: date-time
+                    description: Date and time when the order was submitted.
+                    example: "2025-10-20T14:30:00Z"
+                createdAt:
+                    type: string
+                    format: date-time
+                    description: Date and time when the order was created.
+                    example: "2025-10-19T09:00:00Z"
+                updatedAt:
+                    type: string
+                    format: date-time
+                    description: Date and time when the order was last updated.
+                    example: "2025-10-21T08:45:00Z"
+                customPatientId:
+                    type: string
+                    description: Custom identifier assigned to the patient.
+                    example: "PAT-VAL-2025-001"
+                dueDate:
+                    type: string
+                    format: date-time
+                    description: Expected due date for the order.
+                    example: "2025-10-25T00:00:00Z"
+                orderCatalog:
+                    type: string
+                    description: Catalog or category of the order.
+                    example: "Implant Restoration"
+                ownerInfo:
+                    $ref: '#/components/schemas/OrderUserInfoDto'
+                contributorsInfo:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/OrderUserInfoDto'
+                ccpsExtraInfoDto:
+                    $ref: '#/components/schemas/CcpsExtraInfoDto'
+                siabExtraInfoDto:
+                    $ref: '#/components/schemas/SiabExtraInfoDto'
+                labOrdersExtraInfo:
+                    $ref: '#/components/schemas/LabOrdersExtraInfoDto'
+        GetGenericSearchOrdersIntegratorResponseDto:
+            type: object
+            properties:
+                response:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/GenericSearchOrdersIntegratorDto'
+                limit:
+                    type: integer
+                    format: int32
+        LabOrdersExtraInfoDto:
+            type: object
+            properties:
+                labOrderId:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the lab order.
+                    example: "e1a2b3c4-d5f6-7890-abcd-1234567890ef"
+                labOrganizationName:
+                    type: string
+                    description: Name of the laboratory organization handling the order.
+                    example: "Dental Lab"
+                summary:
+                    type: string
+                    description: Summary or brief description of the lab order.
+                    example: "Implant restoration for upper molar"
+                labOrganizationId:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the lab organization.
+                    example: "a3f1c9d2-4b5e-4e6a-9f2c-1d2f3e4b5c6d"
+        SiabExtraInfoDto:
+            type: object
+            properties:
+                siabOrderId:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the SIAB order.
+                    example: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                expectedDeliveryDate:
+                    type: string
+                    format: date-time
+                    description: Expected delivery date for the SIAB order.
+                    example: "2025-10-30T00:00:00Z"
+                surgeryDate:
+                    type: string
+                    format: date-time
+                    description: Scheduled date for the surgery related to the order.
+                    example: "2025-10-25T08:00:00Z"
+                siabArchAttributes:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/SiabOrderArchAttributesDto'
+                sapOrganizationId:
+                    type: string
+                    description: SAP identifier of the organization handling the SIAB order.
+                    example: "SAP-SIAB-001"
+                siabOrderTaskAttributes:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/SiabOrderTaskAttributesDto'
+        FileInfoPublicDTO:
+            type: object
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the file.
+                    example: "c1a2b3d4-e5f6-7890-abcd-1234567890ef"
+                fileName:
+                    type: string
+                    description: Name of the file.
+                    example: "surgical_plan.pdf"
+                size:
+                    type: integer
+                    format: int64
+                    description: Size of the file in bytes.
+                    example: 1048576
+                downloadUrl:
+                    type: string
+                    format: url
+                    description: URL to download the file.
+                    example: "https://example.com/files/surgical_plan.pdf"
+                createdBy:
+                    type: string
+                    format: uuid
+                    description: Identifier of the user who created the file.
+                    example: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                createdAt:
+                    type: string
+                    format: date-time
+                    description: Date and time when the file was created.
+                    example: "2025-10-20T10:00:00Z"
+                thumbnailUri:
+                    type: string
+                    description: URI of the file thumbnail, if available.
+                    example: "https://example.com/thumbnails/surgical_plan.png"
+                fileReviewLinkIdentifier:
+                    type: integer
+                    format: int64
+                    description: Identifier linking the file to a review process.
+                    example: 123456789
+                fileReviewVersion:
+                    type: string
+                    format: date-time
+                    description: Timestamp representing the version of the file used in review.
+                    example: "2025-10-21T08:00:00Z"
+        GetOrderFileInfoResponseDTO:
+            type: object
+            properties:
+                files:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/FileInfoPublicDTO'
+        LabOrderCreationRequestPublicDto:
+            type: object
+            required:
+                - owner
+                - patient
+                - restorations
+                - implantSites
+            properties:
+                patient:
+                    description: Patient information.
+                    items:
+                        $ref: "#/components/schemas/PatientRequestPublicDto"
+                restorations:
+                    type: array
+                    description: List of requested restorations.
+                    items:
+                        $ref: "#/components/schemas/RestorationDto"
+                implantSites:
+                    type: array
+                    description: List of tooth sites and type of implants the patient has, related to the order.
+                    items:
+                        $ref: "#/components/schemas/ImplantSiteDto"
+                owner:
+                    type: string
+                    description: Owner of the order.
+                    example: "John Doe"
+                expectedDeliveryDate:
+                    type: string
+                    description: Expected date of delivery.
+                    format: date
+                    example: "2025-07-30"
+                notes:
+                    type: string
+                    description: Additional comments for the Lab Order.
+                    example: "This is a note"
+        LabOrderCreationResponseDto:
+            type: object
+            properties:
+                orderId:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the created order.
+                    example: "e5ab4c2a-2c7e-442a-88a3-ccf4365630e6"
+                expectedDeliveryDate:
+                    type: string
+                    format: date
+                    description: Expected date of delivery.
+                    example: "2025-07-30"
+        LabOrderErrorDTO:
+            type: object
+            properties:
+                status:
+                    type: integer
+                    format: int32
+                reason:
+                    type: string
+                code:
+                    type: string
+                message:
+                    type: string
+                messageKey:
+                    type: string
+                occurredAt:
+                    type: string
+                    format: date-time
+                    example: "2025-07-30T00:00:00Z"
+        PatientRequestPublicDto:
+            type: object
+            required:
+                - id
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of a patient.
+                    example: "e2de4b5a-2c7e-497a-88a3-ccf4341630e6"
+                customPatientId:
+                    type: string
+                    description: Custom ID of the Patient.
+                    example: "IO-20250730-06"
+        OrganizationPublicDto:
+            type: object
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the organization.
+                    example: "63ac754a-2c0b-4536-9e9d-9fc00262a846"
+                name:
+                    type: string
+                    description: Name of the organization.
+                    example: "OrganizationName"
+                countryCode:
+                    type: string
+                    description: Country code representing the organization's location.
+                    example: "US"
+                contactPhone:
+                    type: string
+                    description: Contact phone number of the organization.
+                    example: "+35542222333"
+                contactEmail:
+                    type: string
+                    description: Contact email address of the organization.
+                    example: "contact@gmail.com"
+        PatientPublicDto:
+            type: object
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of a patient.
+                    example: "e2de4b5a-2c7e-497a-88a3-ccf4341630e6"
+                customPatientId:
+                    type: string
+                    description: Patient ID created manually by the user or by default.
+                    example: "PAT-2025-001"
+                firstName:
+                    type: string
+                    description: Patient's first name.
+                    example: "John"
+                lastName:
+                    type: string
+                    description: Patient's last name.
+                    example: "Doe"
+        LabOrderStatusDto:
+            type: string
+            enum:
+                - APPROVED
+                - CANCELED
+                - CLOSED
+                - IN_PROGRESS
+                - IN_REVIEW
+                - IN_VALIDATION
+                - READY_TO_SEND
+                - REJECTED
+                - SHIPPED
+                - UPLOADING
+                - UPLOAD_UNSUCCESSFUL
+                - DRAFT
+            description: Order current status.
+            example: "APPROVED"
+        error:
+            type: object
+            properties:
+                status:
+                    type: integer
+                    format: int32
+                message:
+                    type: string
+                errorCode:
+                    type: string
+                path:
+                    type: string
+                timestamp:
+                    type: string
+                    format: date-time

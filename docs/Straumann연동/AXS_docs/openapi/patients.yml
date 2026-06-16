@@ -1,0 +1,1685 @@
+openapi: 3.0.1
+info:
+  title: Patients
+  version: v1
+  description: "The Straumann AXS\xAE Patients enables you to create and manage the\
+    \ patient journey."
+  license:
+    name: Straumann
+    url: https://axs.straumann.com
+servers:
+- url: https://ppr.api.us.axs.straumann.com
+  description: Pre-production - US region
+- url: https://ppr.api.eu.axs.straumann.com
+  description: Pre-production - EU region
+- url: https://api.us.axs.straumann.com
+  description: Production - US region
+- url: https://api.eu.axs.straumann.com
+  description: Production - EU region
+security:
+- bearerAuth: []
+- httpBasic: []
+paths:
+  /v1/patients:
+    post:
+      tags:
+      - Patients
+      summary: Create a new Patient
+      description: This endpoint allows authorized users to create new patient records
+        in AXS.
+      operationId: createPatient
+      parameters:
+      - in: header
+        name: Organization-ID
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: ID of the customer organization for which the data belongs to.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientCreationPublicRequestDTO'
+        required: true
+      responses:
+        '201':
+          description: Patient record created successfully.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PatientPublicDTO'
+              example:
+                id: b3a0ec90-2c6c-11ee-be56-0242ac120002
+                customPatientId: P1744804721
+                firstName: John
+                middleName: Alexander
+                lastName: Doe
+                gender: MALE
+                birthDate: '1990-08-15'
+                issuingAuthority: SIRIOS
+                uniqueHealthIdentifier: 2 39 08 88 154 002 43
+                createdOn: '2025-04-21T10:15:30Z'
+        '400':
+          description: Invalid value passed for one or more fields. Please check the
+            error message for details.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/validation
+                title: Bad Request
+                status: 400
+                detail: 'Invalid value ''NOT KNOWN'' for field ''gender''. Allowed
+                  values are: [MALE, FEMALE, OTHER, UNKNOWN]'
+                instance: /public/v1/patients
+                messageKey: VALIDATION_ERROR
+                occurredAt: '2026-02-17T11:02:45.026Z'
+        '401':
+          description: "Unauthorized \u2013 Invalid or expired authentication token."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                status: 401
+                reason: Unauthorized
+                message: Invalid or expired access token.
+        '403':
+          description: "Forbidden \u2013 Access denied due to insufficient permissions."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/forbidden
+                title: Forbidden
+                status: 403
+                detail: Consent has not been granted for Organization ID:eg473132-106f-4745-9509-839e3539e6c8
+                instance: /public/v1/patients
+                messageKey: FORBIDDEN
+                occurredAt: '2026-02-17T11:02:45.026Z'
+        '500':
+          description: Internal Server Error - Unexpected error occurred. Please try
+            again.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/internal-server-error
+                title: Internal Server Error
+                status: 500
+                detail: An unexpected error occurred while processing your request.
+                  Please try again later or contact support if the problem persists.
+                instance: /public/v1/patients
+                messageKey: INTERNAL_SERVER_ERROR
+                occurredAt: '2026-02-17T11:02:45.026Z'
+  /v1/patients/{id}:
+    get:
+      tags:
+      - Patients
+      summary: Get Patient details by ID
+      description: Fetch detailed information of a patient using their unique ID.
+      operationId: getPatient
+      parameters:
+      - in: header
+        name: Organization-ID
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: ID of the customer organization for which the data belongs to.
+      - name: id
+        in: path
+        description: Unique identifier for the patient.
+        required: true
+        schema:
+          type: string
+          format: uuid
+          example: b3a0ec90-2c6c-11ee-be56-0242ac120002
+      responses:
+        '200':
+          description: Patient details retrieved successfully.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PatientPublicDTO'
+        '400':
+          description: Invalid value passed for one or more fields. Please check the
+            error message for details.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              examples:
+                invalidId:
+                  summary: Invalid UUID format
+                  value:
+                    type: https://docs.straumann.com/errors/validation
+                    title: Bad Request
+                    status: 400
+                    detail: 'Invalid value ''fcb7fd24-0db3-4cef-b1c5-007dcb9d264bsdgiusgh''
+                      for parameter ''id''. Expected type: UUID'
+                    instance: /public/v1/patients/fcb7fd24-0db3-4cef-b1c5-007dcb9d264bsdgiusgh
+                    messageKey: VALIDATION_ERROR
+                    occurredAt: '2026-02-17T12:22:45.329Z'
+        '401':
+          description: "Unauthorized \u2013 Invalid or expired authentication token."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Missing token
+                  value:
+                    status: 401
+                    reason: Unauthorized
+                    message: Authentication token is missing or invalid.
+                expired:
+                  summary: Expired token
+                  value:
+                    status: 401
+                    reason: Unauthorized
+                    message: Authentication token is expired.
+        '403':
+          description: "Forbidden \u2013 Access denied due to insufficient permissions."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/forbidden
+                title: Forbidden
+                status: 403
+                detail: Consent has not been granted for Organization ID:eg473132-106f-4745-9509-839e3539e6c8
+                instance: /public/v1/patients
+                messageKey: FORBIDDEN
+                occurredAt: '2026-02-17T11:02:45.026Z'
+        '404':
+          description: "Not Found \u2013 No patient found with the given ID."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              examples:
+                notFound:
+                  summary: Patient not found
+                  value:
+                    type: https://docs.straumann.com/errors/not-found
+                    title: Not Found
+                    status: 404
+                    detail: PatientId with 'fcb7fd24-0db3-4cef-b1c5-007dcb9d264b'
+                      was not found.
+                    instance: /public/v1/patients/fcb7fd24-0db3-4cef-b1c5-007dcb9d264b
+                    messageKey: RESOURCE_NOT_FOUND
+                    occurredAt: '2026-02-17T12:18:46.685Z'
+        '413':
+          description: "Payload Too Large \u2013 Input size exceeded limit."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              examples:
+                payloadTooLarge:
+                  summary: Oversized request
+                  value:
+                    status: 413
+                    reason: Payload Too Large
+                    message: Request header or path exceeded allowed size limit.
+        '500':
+          description: "Internal Server Error \u2013 Unexpected error occurred. Please\
+            \ try again."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/internal-server-error
+                title: Internal Server Error
+                status: 500
+                detail: An unexpected error occurred while processing your request.
+                  Please try again later or contact support if the problem persists.
+                instance: /public/v1/patients
+                messageKey: INTERNAL_SERVER_ERROR
+                occurredAt: '2025-12-18T10:00:00.000Z'
+    patch:
+      tags:
+      - Patients
+      summary: Update Patient details
+      description: 'Updates the specified Patient object by setting the values of
+        the parameters passed. Any parameters not provided will be left unchanged.
+
+        This API is useful for updating selective fields such as firstName, lastName,
+        or demographic details  without requiring a full update payload.'
+      operationId: patchPatient
+      parameters:
+      - in: header
+        name: Organization-ID
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: ID of the customer organization for which the data belongs to.
+      - name: id
+        in: path
+        description: Unique identifier for the patient to be updated.
+        required: true
+        schema:
+          type: string
+          format: uuid
+          example: b3a0ec90-2c6c-11ee-be56-0242ac120002
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientUpdatePublicRequestDTO'
+      responses:
+        '200':
+          description: Patient details updated successfully.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PatientPublicDTO'
+        '400':
+          description: Invalid value passed for one or more fields. Please check the
+            error message for details.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/validation
+                title: Bad Request
+                status: 400
+                detail: 'Validation failed for field ''firstName'': Invalid string,
+                  must contain: capital letter, lower case letter, number and special
+                  character and has maximum 255 characters'
+                instance: /public/v1/patients/a1bd271c-9454-4e77-a2c9-014d9f457274
+                messageKey: VALIDATION_ERROR
+                occurredAt: '2026-02-17T12:36:06.152Z'
+        '401':
+          description: "Unauthorized \u2013 Invalid or expired authentication token."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Missing token
+                  value:
+                    status: 401
+                    reason: Unauthorized
+                    message: Authentication token is missing or invalid.
+                expired:
+                  summary: Expired token
+                  value:
+                    status: 401
+                    reason: Unauthorized
+                    message: Authentication token is expired.
+        '403':
+          description: "Forbidden \u2013 Access denied due to insufficient permissions."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/forbidden
+                title: Forbidden
+                status: 403
+                detail: Consent has not been granted for Organization ID:eg473132-106f-4745-9509-839e3539e6c8
+                instance: /public/v1/patients
+                messageKey: FORBIDDEN
+                occurredAt: '2026-02-17T11:02:45.026Z'
+        '404':
+          description: "Not Found \u2013 No patient found with the given ID."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/not-found
+                title: Not Found
+                status: 404
+                detail: PatientId with 'fcb7fd24-0db3-4cef-b1c5-007dcb9d264b' was
+                  not found.
+                instance: /public/v1/patients/fcb7fd24-0db3-4cef-b1c5-007dcb9d264b
+                messageKey: RESOURCE_NOT_FOUND
+                occurredAt: '2026-02-17T12:18:46.685Z'
+        '409':
+          description: "Conflict \u2013 Update could not be applied due to version\
+            \ conflict or invalid state transition."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/conflict
+                title: Conflict
+                status: 409
+                detail: Patient record with ID 'b3a0ec90-2c6c-11ee-be56-0242ac120002'
+                  has been modified by another process. Please retrieve the latest
+                  version and try your update again.
+                instance: /public/v1/patients/b3a0ec90-2c6c-11ee-be56-0242ac120002
+                messageKey: CONFLICT
+                occurredAt: '2026-02-17T13:33:45.071Z'
+        '413':
+          description: "Payload Too Large \u2013 Input size exceeded limit."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                status: 413
+                reason: Payload Too Large
+                message: Request header or path exceeded allowed size limit.
+        '500':
+          description: "Internal Server Error \u2013 Unexpected error occurred. Please\
+            \ try again."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/internal-server-error
+                title: Internal Server Error
+                status: 500
+                detail: An unexpected error occurred while processing your request.
+                  Please try again later or contact support if the problem persists.
+                instance: /public/v1/patients
+                messageKey: INTERNAL_SERVER_ERROR
+                occurredAt: '2026-02-17T12:18:46.685Z'
+  /v1/patients/search:
+    post:
+      tags:
+      - Patients
+      summary: Search Patient
+      description: The Patient Search API allows users to search for patient records
+        in AXS based on various criteria such as first name, last name, custom patient
+        ID etc. This API is used to retrieve patient information for further management
+        or treatment.
+      operationId: searchByCriteria
+      parameters:
+      - in: header
+        name: Organization-ID
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: ID of the customer organization for which the data belongs to.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientPublicSearchRequestDTO'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PatientPublicSearchResponseDTO'
+        '400':
+          description: Invalid value passed for one or more fields. Please check the
+            error message for details.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/validation
+                title: Bad Request
+                status: 400
+                detail: 'Invalid value ''NOT KNOWN'' for field ''gender''. Allowed
+                  values are: [MALE, FEMALE, OTHER, UNKNOWN]'
+                instance: /public/v1/patients
+                messageKey: VALIDATION_ERROR
+                occurredAt: '2026-02-17T11:02:45.026Z'
+        '401':
+          description: "Unauthorized \u2013 Invalid or expired authentication token."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Missing token
+                  value:
+                    status: 401
+                    reason: Unauthorized
+                    message: Authentication token is missing or invalid.
+                expired:
+                  summary: Expired token
+                  value:
+                    status: 401
+                    reason: Unauthorized
+                    message: Authentication token is expired.
+        '403':
+          description: Forbidden - Check user permissions and roles.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/forbidden
+                title: Forbidden
+                status: 403
+                detail: Consent has not been granted for Organization ID:eg473132-106f-4745-9509-839e3539e6c8
+                instance: /public/v1/patients
+                messageKey: FORBIDDEN
+                occurredAt: '2026-02-17T11:02:45.026Z'
+        '404':
+          description: Not Found - Resource Not Found.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/not-found
+                title: Not Found
+                status: 404
+                detail: PatientId with 'fcb7fd24-0db3-4cef-b1c5-007dcb9d264b' was
+                  not found.
+                instance: /public/v1/patients/search
+                messageKey: RESOURCE_NOT_FOUND
+                occurredAt: '2026-02-17T12:18:46.685Z'
+        '413':
+          description: "Payload Too Large \u2013 Input size exceeded limit."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                status: 413
+                reason: Payload Too Large
+                message: Request header or path exceeded allowed size limit.
+        '500':
+          description: "Internal Server Error \u2013 Unexpected error occurred. Please\
+            \ try again."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/internal-server-error
+                title: Internal Server Error
+                status: 500
+                detail: An unexpected error occurred while processing your request.
+                  Please try again later or contact support if the problem persists.
+                instance: /public/v1/patients
+                messageKey: INTERNAL_SERVER_ERROR
+                occurredAt: '2026-02-17T13:33:45.071Z'
+  /v1/patients/{patientId}/documents:
+    post:
+      tags:
+      - Patient Documents
+      summary: Create patient's document
+      description: Creates a document place holder for the patient.
+      operationId: uploadDocument
+      parameters:
+      - in: header
+        name: Organization-ID
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: ID of the customer organization for which the data belongs to.
+      - name: patientId
+        in: path
+        description: ID of the patient for which to upload document
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientDocumentPublicUploadRequestDTO'
+        required: true
+      responses:
+        '201':
+          description: Request was fulfilled successfully.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PatientDocumentPublicUploadResponseDTO'
+        '400':
+          description: Invalid value passed for one or more fields. Please check the
+            error message for details.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/validation
+                title: Bad Request
+                status: 400
+                detail: 'Validation failed for field ''fileName'': must not be blank'
+                instance: /public/v1/patients/123e4567-e89b-12d3-a456-426614174000/documents
+                messageKey: VALIDATION_ERROR
+                occurredAt: '2026-02-17T12:36:06.152Z'
+        '403':
+          description: "Forbidden \u2013 Access denied due to insufficient permissions."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/forbidden
+                title: Forbidden
+                status: 403
+                detail: Consent has not been granted for Organization ID:eg473132-106f-4745-9509-839e3539e6c8
+                instance: /public/v1/patients
+                messageKey: FORBIDDEN
+                occurredAt: '2026-02-17T11:02:45.026Z'
+        '404':
+          description: Not Found - Resource Not Found.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/not-found
+                title: Not Found
+                status: 404
+                detail: PatientId with 'fcb7fd24-0db3-4cef-b1c5-007dcb9d264b' was
+                  not found.
+                instance: /public/v1/patients/fcb7fd24-0db3-4cef-b1c5-007dcb9d264b/documents
+                messageKey: RESOURCE_NOT_FOUND
+                occurredAt: '2026-02-17T12:18:46.685Z'
+        '409':
+          description: "Conflict \u2013 The document already exists."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/conflict
+                title: Conflict
+                status: 409
+                detail: A document with the same name already exists for this patient.
+                instance: /public/v1/patients/123e4567-e89b-12d3-a456-426614174000/documents
+                messageKey: DOCUMENT_ALREADY_EXISTS
+                occurredAt: '2026-02-17T14:00:00.000Z'
+        '413':
+          description: "Payload Too Large \u2013 The uploaded file exceeds the allowed\
+            \ size."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/payload-too-large
+                title: Payload Too Large
+                status: 413
+                detail: The uploaded file exceeds the maximum allowed size of 10MB.
+                instance: /public/v1/patients/123e4567-e89b-12d3-a456-426614174000/documents
+                messageKey: PAYLOAD_TOO_LARGE
+                occurredAt: '2026-02-17T14:05:00.000Z'
+        '500':
+          description: "Internal Server Error \u2013 Unexpected error occurred. Please\
+            \ try again."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/internal-server-error
+                title: Internal Server Error
+                status: 500
+                detail: An unexpected error occurred while processing your request.
+                  Please try again later or contact support if the problem persists.
+                instance: /public/v1/patients
+                messageKey: INTERNAL_SERVER_ERROR
+                occurredAt: '2026-02-17T13:33:45.071Z'
+    delete:
+      tags:
+      - Patient Documents
+      summary: Delete Patient documents by ID
+      description: Deletes specific patient documents from the system using the document's
+        unique ID
+      operationId: deleteDocumentsById
+      parameters:
+      - name: patientId
+        in: path
+        description: ID of the patient which to delete document
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+                format: uuid
+        required: true
+      responses:
+        '204':
+          description: Request was fulfilled successfully.
+        '400':
+          description: Invalid value passed for one or more fields. Please check the
+            error message for details.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/validation
+                title: Bad Request
+                status: 400
+                detail: 'Validation failed for field ''fileName'': must not be blank'
+                instance: /public/v1/patients/123e4567-e89b-12d3-a456-426614174000/documents
+                messageKey: VALIDATION_ERROR
+                occurredAt: '2026-02-17T12:36:06.152Z'
+        '403':
+          description: "Forbidden \u2013 Access denied due to insufficient permissions."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/forbidden
+                title: Forbidden
+                status: 403
+                detail: Consent has not been granted for Organization ID:eg473132-106f-4745-9509-839e3539e6c8
+                instance: /public/v1/patients
+                messageKey: FORBIDDEN
+                occurredAt: '2026-02-17T11:02:45.026Z'
+        '404':
+          description: Not Found - Resource Not Found.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/not-found
+                title: Not Found
+                status: 404
+                detail: PatientId with 'fcb7fd24-0db3-4cef-b1c5-007dcb9d264b' was
+                  not found.
+                instance: /public/v1/patients/fcb7fd24-0db3-4cef-b1c5-007dcb9d264b
+                messageKey: RESOURCE_NOT_FOUND
+                occurredAt: '2026-02-17T12:18:46.685Z'
+        '409':
+          description: Conflict
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/conflict
+                title: Conflict
+                status: 409
+                detail: Document with ID '123e4567-e89b-12d3-a456-426614174000' is
+                  currently locked for update by another process. Please try again
+                  later.
+                instance: /public/v1/patients/123e4567-e89b-12d3-a456-426614174000/documents
+                messageKey: CONFLICT
+                occurredAt: '2026-02-17T13:33:45.071Z'
+        '413':
+          description: "Payload Too Large \u2013 Input size exceeded limit."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                status: 413
+                reason: Payload Too Large
+                message: Request header or path exceeded allowed size limit.
+        '500':
+          description: "Internal Server Error \u2013 Unexpected error occurred. Please\
+            \ try again."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/internal-server-error
+                title: Internal Server Error
+                status: 500
+                detail: An unexpected error occurred while processing your request.
+                  Please try again later or contact support if the problem persists.
+                instance: /public/v1/patients
+                messageKey: INTERNAL_SERVER_ERROR
+                occurredAt: '2026-02-17T13:33:45.071Z'
+  /v1/patients/{patientId}/documents/{documentId}/update:
+    patch:
+      tags:
+      - Patient Documents
+      summary: Update an existing patient document by its Id
+      description: Updates an existing patient document identified by its unique ID.
+      operationId: updateDocumentById
+      parameters:
+      - in: header
+        name: Organization-ID
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: ID of the customer organization for which the data belongs to.
+      - name: patientId
+        in: path
+        description: ID of the patient for which to update document
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: documentId
+        in: path
+        description: ID of the document to update document
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientDocumentPublicUpdateRequestDTO'
+        required: true
+      responses:
+        '204':
+          description: Request processed successfully.
+        '400':
+          description: Invalid value passed for one or more fields. Please check the
+            error message for details.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/validation
+                title: Bad Request
+                status: 400
+                detail: 'Validation failed for field ''fileName'': must not be blank'
+                instance: /public/v1/patients/123e4567-e89b-12d3-a456-426614174000/documents/123e4567-e89b-12d3-a456-426614174000/update
+                messageKey: VALIDATION_ERROR
+                occurredAt: '2026-02-17T12:36:06.152Z'
+        '403':
+          description: "Forbidden \u2013 Access denied due to insufficient permissions."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/forbidden
+                title: Forbidden
+                status: 403
+                detail: Consent has not been granted for Organization ID:eg473132-106f-4745-9509-839e3539e6c8
+                instance: /public/v1/patients
+                messageKey: FORBIDDEN
+                occurredAt: '2026-02-17T13:33:45.071Z'
+        '404':
+          description: Not Found - Resource Not Found.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/not-found
+                title: Not Found
+                status: 404
+                detail: Document with ID '123e4567-e89b-12d3-a456-426614174000' was
+                  not found for PatientId '123e4567-e89b-12d3-a456-426614174000'.
+                instance: /public/v1/patients/123e4567-e89b-12d3-a456-426614174000/documents/123e4567-e89b-12d3-a456-426614174000/update
+                messageKey: RESOURCE_NOT_FOUND
+                occurredAt: '2026-02-17T12:18:46.685Z'
+        '409':
+          description: Conflict
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/conflict
+                title: Conflict
+                status: 409
+                detail: Document with ID '123e4567-e89b-12d3-a456-426614174000' is
+                  currently locked for update by another process. Please try again
+                  later.
+                instance: /public/v1/patients/123e4567-e89b-12d3-a456-426614174000/documents/123e4567-e89b-12d3-a456-426614174000/update
+                messageKey: CONFLICT
+                occurredAt: '2026-02-17T13:33:45.071Z'
+        '413':
+          description: "Payload Too Large \u2013 Input size exceeded limit."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                status: 413
+                reason: Payload Too Large
+                message: Request header or path exceeded allowed size limit.
+        '500':
+          description: "Internal Server Error \u2013 Unexpected error occurred. Please\
+            \ try again."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/internal-server-error
+                title: Internal Server Error
+                status: 500
+                detail: An unexpected error occurred while processing your request.
+                  Please try again later or contact support if the problem persists.
+                instance: /public/v1/patients
+                messageKey: INTERNAL_SERVER_ERROR
+                occurredAt: '2026-02-17T13:33:45.071Z'
+  /v1/patients/{patientId}/documents/search:
+    post:
+      tags:
+      - Patient Documents
+      summary: Search patient documents
+      description: Retrieves a list of patient documents that match the specified
+        search criteria, such as filetype, file ids etc...
+      operationId: searchDocumentsByCriteria
+      parameters:
+      - in: header
+        name: Organization-ID
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: ID of the customer organization for which the data belongs to.
+      - name: patientId
+        in: path
+        description: ID of the patient which to search documents
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientDocumentPublicSearchRequestDTO'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PatientDocumentPublicSearchResponseDTO'
+        '400':
+          description: Invalid value passed for one or more fields. Please check the
+            error message for details.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/validation
+                title: Bad Request
+                status: 400
+                detail: 'Validation failed for field ''fileName'': must not be blank'
+                instance: /public/v1/patients/123e4567-e89b-12d3-a456-426614174000/documents/search
+                messageKey: VALIDATION_ERROR
+                occurredAt: '2026-02-17T12:36:06.152Z'
+        '403':
+          description: "Forbidden \u2013 Access denied due to insufficient permissions."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/forbidden
+                title: Forbidden
+                status: 403
+                detail: Consent has not been granted for Organization ID:eg473132-106f-4745-9509-839e3539e6c8
+                instance: /public/v1/patients
+                messageKey: FORBIDDEN
+                occurredAt: '2026-02-17T11:02:45.026Z'
+        '404':
+          description: Not Found - Resource Not Found.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/not-found
+                title: Not Found
+                status: 404
+                detail: PatientId with 'fcb7fd24-0db3-4cef-b1c5-007dcb9d264b' was
+                  not found.
+                instance: /public/v1/patients/fcb7fd24-0db3-4cef-b1c5-007dcb9d264b/documents/search
+                messageKey: RESOURCE_NOT_FOUND
+                occurredAt: '2026-02-17T12:18:46.685Z'
+        '409':
+          description: Conflict
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/conflict
+                title: Conflict
+                status: 409
+                detail: Document with ID '123e4567-e89b-12d3-a456-426614174000' is
+                  currently locked for update by another process. Please try again
+                  later.
+                instance: /public/v1/patients/123e4567-e89b-12d3-a456-426614174000/documents/search
+                messageKey: CONFLICT
+                occurredAt: '2026-02-17T13:33:45.071Z'
+        '413':
+          description: "Payload Too Large \u2013 Input size exceeded limit."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                status: 413
+                reason: Payload Too Large
+                message: Request header or path exceeded allowed size limit.
+        '500':
+          description: "Internal Server Error \u2013 Unexpected error occurred. Please\
+            \ try again."
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PublicApiErrorResponse'
+              example:
+                type: https://docs.straumann.com/errors/internal-server-error
+                title: Internal Server Error
+                status: 500
+                detail: An unexpected error occurred while processing your request.
+                  Please try again later or contact support if the problem persists.
+                instance: /public/v1/patients
+                messageKey: INTERNAL_SERVER_ERROR
+                occurredAt: '2026-02-17T13:33:45.071Z'
+components:
+  securitySchemes:
+    httpBasic:
+      type: http
+      scheme: basic
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    OAuth2:
+      type: object
+    ErrorDTO:
+      type: object
+      description: RFC 7807 compliant error response structure for all API error responses.
+        This standardized format provides detailed information about errors.
+      required:
+      - type
+      - title
+      - status
+      - detail
+      - instance
+      properties:
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type.
+          example: https://docs.straumann.com/errors/validation
+        title:
+          type: string
+          description: A short summary of the problem type.
+          example: Bad Request
+        status:
+          type: integer
+          format: int32
+          description: The HTTP status code generated by the origin server for this
+            occurrence of the problem.
+          example: 400
+        detail:
+          type: string
+          description: An error explanation specific to this occurrence of the problem.
+            This field provides  context-specific information about what went wrong,
+            such as which field failed validation and why.
+          example: 'Validation failed for field ''customPatientId'': special characters
+            and spaces are not allowed and has minimum 2 characters'
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of
+            the problem. This is typically the request URI  that caused the error.
+          example: /public/v1/patients
+        messageKey:
+          type: string
+          description: Error code that can be used for internationalization, logging,
+            or automated error handling.  This key remains consistent for the same
+            error type and can be used to look up localized error messages.
+          example: VALIDATION_ERROR
+        occurredAt:
+          type: string
+          description: Timestamp when the error occurred in ISO 8601 format.
+          example: '2026-02-17T13:33:45.071Z'
+    PatientPublicDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique system-generated identifier for the patient (UUID).
+          example: b3a0ec90-2c6c-11ee-be56-0242ac120002
+        customPatientId:
+          type: string
+          description: Custom Identifier provided or system generated (if not provided)
+            during patient creation.
+          example: P1744804721
+        firstName:
+          type: string
+          description: Patient's first name.
+          example: John
+        middleName:
+          type: string
+          description: Patient's middle name.
+          example: Alexander
+        lastName:
+          type: string
+          description: Patient's last name.
+          example: Doe
+        gender:
+          type: string
+          enum:
+          - MALE
+          - FEMALE
+          - OTHER
+          - UNKNOWN
+          example: MALE
+        birthDate:
+          type: string
+          format: date
+          description: Patient's date of birth in ISO format (YYYY-MM-DD).
+          example: '1990-08-15'
+        issuingAuthority:
+          type: string
+          description: "Authorized entity or organization responsible for issuing\
+            \ or validating the patient\u2019s identifier."
+          example: SIRIOS
+        uniqueHealthIdentifier:
+          type: string
+          description: Unique health identifier assigned by concerned authority. Applicable
+            for FRANCE users.
+          example: 2 39 08 88 154 002 43
+        dataConsent:
+          type: boolean
+          description: Indicates whether the patient has provided consent for storing
+            and using their health data.
+          example: 'true'
+        createdOn:
+          type: string
+          format: date-time
+          description: Date and time when the patient record was created
+          example: '2025-04-21T10:15:30Z'
+    PatientCreationPublicRequestDTO:
+      type: object
+      required:
+      - customPatientId
+      - dataConsent
+      properties:
+        firstName:
+          type: string
+          description: Patient's first name.
+          example: John
+        middleName:
+          type: string
+          description: Patient's middle name.
+          example: Alexander
+        lastName:
+          type: string
+          description: Patient's last name.
+          example: Doe
+        birthDate:
+          type: string
+          format: date
+          description: Patient's date of birth in ISO format (YYYY-MM-DD).
+          example: '1990-08-15'
+        customPatientId:
+          type: string
+          description: Custom Identifier provided or system generated (if not provided)
+            during patient creation.
+          example: P1744804721
+        gender:
+          type: string
+          enum:
+          - MALE
+          - FEMALE
+          - OTHER
+          - UNKNOWN
+        issuingAuthority:
+          type: string
+          description: "Authorized entity or organization responsible for issuing\
+            \ or validating the patient\u2019s identifier."
+          example: SIRIOS
+        uniqueHealthIdentifier:
+          type: string
+          description: Unique health identifier assigned by concerned authority. Applicable
+            for FRANCE users.
+          example: 2 39 08 88 154 002 43
+        dataConsent:
+          type: boolean
+          description: Indicates whether the patient has provided explicit consent
+            for storing, processing, and using their personal health data.
+          example: true
+    PatientUpdatePublicRequestDTO:
+      type: object
+      description: Request body for updating patient information. All fields are optional
+        - only include fields that need to be updated. Fields not included in the
+        request will remain unchanged.
+      properties:
+        firstName:
+          type: string
+          description: Patient's first name.
+          example: John
+        lastName:
+          type: string
+          description: Patient's last name.
+          example: Doe
+        middleName:
+          type: string
+          description: Patient's middle name.
+          example: Alexander
+        birthDate:
+          type: string
+          format: date
+          description: Patient's date of birth in ISO format (YYYY-MM-DD). Must be
+            a valid past date, cannot be a future date.
+          example: '1990-08-15'
+        uniqueHealthIdentifier:
+          type: string
+          description: Unique health identifier assigned by concerned authority. Applicable
+            for FRANCE users.
+          example: 2 39 08 88 154 002 43
+        gender:
+          type: string
+          description: Patient's gender.
+          enum:
+          - MALE
+          - FEMALE
+          - OTHER
+          - UNKNOWN
+          example: MALE
+    PatientPublicSearchRequestDTO:
+      type: object
+      description: Search criteria for finding patient records. All search fields
+        are optional and can be combined for more specific searches. Supports pagination
+        and sorting.
+      properties:
+        offset:
+          type: integer
+          format: int32
+          description: Number of records to skip for pagination. Must be greater than
+            or equal to 0.
+          minimum: 0
+          example: 0
+        limit:
+          type: integer
+          format: int32
+          description: Maximum number of records to return per page. Must be between
+            0 and 30.
+          minimum: 0
+          maximum: 30
+          example: 30
+        sortBy:
+          type: string
+          description: Field name to sort the results by.
+          enum:
+          - CUSTOM_PATIENT_ID
+          - PATIENT_FIRST_NAME
+          - PATIENT_LAST_NAME
+          example: PATIENT_LAST_NAME
+        sortDirection:
+          type: string
+          description: Sort direction for the results.
+          enum:
+          - ASC
+          - DESC
+          example: ASC
+        keyword:
+          type: string
+          description: General keyword search that searches across multiple fields
+            (firstName, lastName, customPatientId). Use this for broad searches when
+            you don't know which specific field contains the value.
+          example: John
+        customPatientId:
+          type: string
+          description: Search by the exact or partial custom patient identifier.
+          example: P1744804721
+        firstName:
+          type: string
+          description: Search by patient's first name. Supports partial matches.
+          example: John
+        lastName:
+          type: string
+          description: Search by patient's last name. Supports partial matches.
+          example: Doe
+        birthDate:
+          type: string
+          format: date
+          description: Search by exact birth date in ISO format (YYYY-MM-DD).
+          example: '1990-08-15'
+    PatientPublicSearchResultDTO:
+      type: object
+      description: Individual patient record returned in search results.
+      required:
+      - customPatientId
+      - lastName
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique system-generated identifier for the patient (UUID).
+          example: b3a0ec90-2c6c-11ee-be56-0242ac120002
+        customPatientId:
+          type: string
+          description: Custom identifier provided or system-generated (if not provided)
+            during patient creation.
+          minLength: 2
+          example: P1744804721
+        firstName:
+          type: string
+          description: Patient's first name.
+          example: John
+        middleName:
+          type: string
+          description: Patient's middle name.
+          example: Alexander
+        lastName:
+          type: string
+          description: Patient's last name.
+          example: Doe
+        birthDate:
+          type: string
+          format: date
+          description: Patient's date of birth in ISO format (YYYY-MM-DD).
+          example: '1990-08-15'
+        dataConsent:
+          type: boolean
+          description: Indicates whether the patient has provided consent for storing
+            and using their health data.
+          example: true
+    PatientPublicSearchResponseDTO:
+      type: object
+      description: Response containing paginated search results for patient records.
+      required:
+      - patients
+      - offset
+      - limit
+      - total
+      properties:
+        patients:
+          type: array
+          description: List of patient records matching the search criteria.
+          items:
+            $ref: '#/components/schemas/PatientPublicSearchResultDTO'
+        offset:
+          type: integer
+          format: int32
+          description: The offset value used in the search request, indicating the
+            number of records skipped.
+          example: 0
+        limit:
+          type: integer
+          format: int32
+          description: The maximum number of records returned per page (up to 30).
+          maximum: 30
+          example: 10
+        total:
+          type: integer
+          format: int32
+          description: Total number of patient records matching the search criteria,
+            regardless of pagination.
+          example: 30
+    PatientDocumentPublicUploadRequestDTO:
+      type: object
+      description: Request body for creating a document placeholder for a patient.
+        This creates a record in the system and returns a storage URL where the actual
+        file can be uploaded.
+      required:
+      - fileName
+      properties:
+        fileName:
+          type: string
+          description: Name of the document file to be uploaded. Must be a valid filename
+            with a proper extension.
+          minLength: 1
+          example: Patient_Xray_2024.ply
+        path:
+          type: string
+          format: string
+          description: File path to save the document within the patient's directory.
+            Use '/' to denote folder levels. Only allowed special characters are '-'
+            and '_'. If not provided, the document will be saved at the root level
+            of the patient's directory.
+          example: /Folder/Subfolder
+    PatientDocumentPublicUploadResponseDTO:
+      type: object
+      description: Response after creating a document placeholder. Contains the document
+        ID and a storage URL where the file content should be uploaded.
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the document record created in the system.
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        storageUrl:
+          type: string
+          description: Pre-signed URL for uploading the actual file content to cloud
+            storage. This URL is time-limited and should be used immediately.
+          format: uri
+          example: https://storage.example.com/upload/patient-documents/3fa85f64-5717-4562-b3fc-2c963f66afa6?signature=xyz
+        path:
+          type: string
+          format: string
+          description: File path where the document is stored within the patient's
+            directory. This reflects the path provided during upload request or default
+            root if not provided.
+          example: /Folder/Subfolder
+    PatientDocumentPublicUpdateRequestDTO:
+      type: object
+      description: Request body for updating document metadata, such as renaming the
+        file.
+      required:
+      - fileName
+      properties:
+        fileName:
+          type: string
+          description: New name for the document file. Must contain a valid file extension
+            preceded by a dot. Allowed characters are letters, numbers, underscore,
+            spaces, apostrophes, parentheses, and hyphens. Maximum length is 140 characters.
+          minLength: 1
+          maxLength: 140
+          pattern: ^[\p{L}\p{M}\p{N}0-9_ '()-]+\\*[.]{1}[a-zA-Z0-9]+$
+          example: Patient_Document_Updated.ply
+    PatientDocumentPublicSearchRequestDTO:
+      type: object
+      description: Search criteria for finding patient documents. All search fields
+        are optional and support pagination, sorting, and filtering.
+      properties:
+        offset:
+          type: integer
+          format: int32
+          description: Number of records to skip for pagination. Must be greater than
+            or equal to 0.
+          minimum: 0
+          example: 0
+        limit:
+          type: integer
+          format: int32
+          description: Maximum number of records to return per page. Must be between
+            0 and 30.
+          minimum: 0
+          maximum: 30
+          example: 10
+        id:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 30
+          description: Filter documents by specific document IDs. Accepts multiple
+            UUIDs to retrieve specific documents in a single request. Maximum of 30
+            document IDs can be provided per request.
+          example:
+          - 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          - 7ba92c81-4821-5673-c4ed-3d074g77bgb7
+        fileName:
+          type: string
+          description: Search by document file name. Supports partial matches for
+            flexible searching.
+          example: Upper_Jaw.stl
+        fileType:
+          type: string
+          description: Filter by specific file type/extension. Use the file type enum
+            values (e.g., PDF, JPG, STL).
+          example: STL
+        hasContent:
+          type: boolean
+          description: Filter documents based on whether they have content uploaded
+            (true) or return all documents under patient if passed false.
+          example: true
+        sortBy:
+          type: string
+          description: Field name to sort the results by (e.g., fileName, lastModifiedAt).
+          example: lastModifiedAt
+        sortDirection:
+          type: string
+          description: Sort direction for the results.
+          enum:
+          - ASC
+          - DESC
+          example: DESC
+        path:
+          type: string
+          format: string
+          description: File path to search within the patient's directory. Use '/'
+            to denote folder levels and ensure it starts with '/'. Only allowed special
+            characters are '-' and '_'.
+          example: /Folder/Subfolder
+    PatientDocumentPublicSearchResponseDTO:
+      type: object
+      description: Response containing paginated search results for patient documents.
+      required:
+      - documents
+      - total
+      properties:
+        documents:
+          type: array
+          description: List of document records matching the search criteria.
+          items:
+            $ref: '#/components/schemas/PatientFolderFilePublicDTO'
+        offset:
+          type: integer
+          format: int32
+          description: The offset value used in the search request, indicating the
+            number of records skipped.
+          example: 0
+        limit:
+          type: integer
+          format: int32
+          description: The maximum number of records returned per page.
+          example: 30
+        total:
+          type: integer
+          format: int32
+          description: Total number of document records matching the search criteria,
+            regardless of pagination.
+          example: 30
+    PatientFolderFilePublicDTO:
+      type: object
+      description: Detailed information about a patient document including metadata,
+        access URLs, and processing status.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the document.
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        storageUrl:
+          type: string
+          description: URL to access the document in storage.
+          format: uri
+          example: https://storage.example.com/documents/3fa85f64-5717-4562-b3fc-2c963f66afa6
+        fileName:
+          type: string
+          description: Name of the document file including the extension.
+          example: Patient_Xray_2024.stl
+        fileType:
+          type: string
+          description: Type/extension of the file, representing the document format.
+          example: STL
+          enum:
+          - ABUTMENTPARAMS
+          - AC
+          - ADAPTPARAMS
+          - APJ
+          - ARTICULATORPARAMS
+          - ASC
+          - BEB
+          - BMP
+          - CATPART
+          - CATPRODUCT
+          - CCF
+          - CDX
+          - CDXARCHIVE
+          - CISLA
+          - CMF
+          - CONNECTORPARAMS
+          - CONSTRUCTIONINFO
+          - COPINGPARAMS
+          - COTS
+          - CSV
+          - DWORDER
+          - DAT
+          - DCM
+          - DENTALCAD
+          - DENTALPROJECT
+          - DICOMDIR
+          - DOC
+          - DOCX
+          - DRC
+          - DSPROJECT
+          - DXD
+          - ENT
+          - ESTL
+          - GENXA
+          - GIF
+          - GPG
+          - H5
+          - HEIC
+          - IGS
+          - INLAYSPARAMS
+          - INV
+          - INVWU
+          - IPFLIB
+          - JAWMOTION
+          - JFIF
+          - JPEG
+          - JPG
+          - JSON
+          - LBT
+          - LGD
+          - LINE
+          - LOG
+          - LUCI
+          - MOV
+          - MP4
+          - MSC
+          - MUI
+          - MWD
+          - NEF
+          - NII
+          - NSI
+          - OBJ
+          - OCDX
+          - OPD
+          - PDF
+          - PLY
+          - PM3N
+          - PNG
+          - POL
+          - PPTX
+          - PT
+          - PTA
+          - RAW
+          - SPH
+          - STL
+          - STMNORDER
+          - STOC
+          - TRIOS3OX
+          - TRIOS3OXZ
+          - TRIOSEXCHANGE
+          - TXT
+          - VTK
+          - WAF
+          - WAV
+          - WAVE
+          - WUDAT
+          - XORDER
+          - XLS
+          - XLSM
+          - XLSX
+          - XML
+          - XYZN
+          - ZBUFFER
+          - ZIP
+          - ZIPDCM
+          - ZRW
+        lastModifiedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the document was last modified. This includes
+            updates to file content or metadata changes.
+          example: '2025-02-11T14:30:00Z'
+        fileSize:
+          type: integer
+          format: int64
+          description: Size of the file in bytes. This helps users understand storage
+            requirements and download times.
+          example: 204800
+        storageDownloadUri:
+          type: string
+          format: uri
+          description: Pre-signed URL for downloading the document file. This URL
+            is time-limited for security purposes.
+          example: https://storage.example.com/download/documents/3fa85f64-5717-4562-b3fc-2c963f66afa6?signature=abc123
+        thumbnailDownloadUri:
+          type: string
+          format: uri
+          description: Pre-signed URL for downloading a thumbnail preview of the document.
+            This provides a smaller, optimized version of the document for quick preview
+            in UI without downloading the full file. This URL is time-limited for
+            security purposes. May be null for file types that don't support thumbnail
+            generation.
+          example: https://storage.example.com/download/thumbnails/3fa85f64-5717-4562-b3fc-2c963f66afa6?signature=def456
+        path:
+          type: string
+          format: string
+          description: File path to search within the patient's directory. Use '/'
+            to denote folder levels and ensure it starts with '/'. Only allowed special
+            characters are '-' and '_'.
+          example: /Folder/Subfolder
+    PublicApiErrorResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type.
+          example: https://docs.straumann.com/errors/validation
+        title:
+          type: string
+          description: A short, summary of the problem type.
+          example: Bad Request
+        status:
+          type: integer
+          format: int32
+          description: The HTTP status code generated by the origin server for this
+            occurrence of the problem.
+          example: 400
+        detail:
+          type: string
+          description: An error explanation specific to this occurrence of the problem.
+            This field provides context-specific information about what went wrong.
+          example: 'Validation failed for field ''customPatientId'': special characters
+            and spaces are not allowed and has minimum 2 characters'
+        instance:
+          type: string
+          format: uri-reference
+          description: A URI reference that identifies the specific occurrence of
+            the problem. This is typically the request URI that caused the error.
+          example: /public/v1/patients
+        messageKey:
+          type: string
+          description: Error code that can be used for internationalization, logging,
+            or automated error handling.
+          example: VALIDATION_ERROR
+        occurredAt:
+          type: string
+          description: Timestamp when the error occurred (Unix timestamp in milliseconds).
+          example: '2026-02-17T13:33:45.071Z'
