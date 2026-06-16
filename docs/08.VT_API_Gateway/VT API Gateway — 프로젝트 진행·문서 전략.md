@@ -44,15 +44,16 @@ README에만 링크한다. VKS 허브에는 두지 않는다.
 
 ---
 
-## 3. SSOT 문서 분할 — Roadmap 4개 스펙 단위
+## 3. SSOT 문서 분할 — Roadmap 스펙 단위
 
-[개발 Roadmap 결정](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>) §3.9와 합의한 경계. **스펙 경계 ≠ 실행 경계** — 케이스 D는 ③+④를 통합 실행한다.
+[개발 Roadmap 결정](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>) §3.9와 합의한 경계. **스펙 경계 ≠ 실행 경계** — 케이스 D는 ③·③-C·④를 통합 실행한다. 팀 공유 표 정본은 [PRD §12.1](<VT API Gateway — PRD (v2).md>).
 
 | # | Roadmap 단계 | 성격 | SSOT 문서 | 근거 |
 |---|--------------|------|-----------|------|
 | ① | 1단계 API 호환성 | 기존 제품 **수정** | **One Pager** | 단일 도메인·즉시 착수·외부 협의 적음 |
 | ② | 2단계 Presigned URL | 기존 경로 **업그레이드** | **One Pager** | ①과 병행, 데이터 경로 확장 |
 | ③ | 3+4단계 GW 일원화 + 멀티 Region | **신규 플랫폼** 구축 | **SRS (메인)** | 신규 아키텍처·다수 연동·프로젝트 기준점 |
+| ③-C | 3+4단계 GW Console | ③ 플랫폼 **Admin Web** | **Sub-SRS** | **4단계** 운영·온보딩 UI. 별도 레포. ③ 관리 API와 중복 금지 |
 | ④ | 5단계 Straumann(AXS) | GW 위 **외부 연동** | **Sub-SRS** | 외부 의존·Webhook·OAuth·리전 — Case C 상세도. ③ SRS의 자식, 중복 금지 |
 
 ### 3.1 ③ SRS에 넣을 것 (메인 SSOT)
@@ -60,11 +61,19 @@ README에만 링크한다. VKS 허브에는 두지 않는다.
 - GW PEP, 라우팅, ClinicID·Region, Path B Deprecated/EOS
 - **Webhook Receiver**(범용) — 수신·검증·멱등·분배(HTTP/MQTT) **프레임**
 - **Presigned** 발급·완료 통지·멱등 **공통 규칙**
-- 멀티 Region·GeoDNS·매핑 테이블(논리)
+- 멀티 Region·GeoDNS·매핑 테이블(논리)·**관리 API**(Console이 호출)
 - 클라이언트 식별(`Vatech-*`, `Vatech-Via`, User-Agent) **규칙**
 - 첫 연동 구현 순서: **Straumann → CleverSpace**(범용 설계, 구현 우선순위만 명시)
 
-### 3.2 ④ Sub-SRS에 넣을 것 (AXS 전용)
+### 3.2 ③-C Sub-SRS에 넣을 것 (GW Console 전용)
+
+- Admin 역할·권한·인증(OneID 연계)
+- 화면·플로우: 클리닉·매핑(ClinicID↔Region·Org-ID)·연동 상태·온보딩
+- ③ 관리 API 호출 계약(본문 중복 금지 — API 상세는 ③ Swagger)
+- 별도 레포(이름 TBD) · 배포·K8s 노출(인프라 담당과 인터페이스만)
+- ③ SRS §1.5 Related Documents로 상위 링크
+
+### 3.3 ④ Sub-SRS에 넣을 것 (AXS 전용)
 
 - AXS OAuth·스코프·Org-ID 매핑·리전 제약
 - AXS Webhook 이벤트·서명·재시도
@@ -73,15 +82,15 @@ README에만 링크한다. VKS 허브에는 두지 않는다.
 - AXS `unstable` 테스트 환경 전제·Assumptions
 - ③ SRS §1.5 Related Documents로 상위 링크
 
-### 3.3 OnePager에 넣을 것 (①② 및 승인용 요약)
+### 3.4 OnePager에 넣을 것 (①② 및 승인용 요약)
 
 - Project Description · Business Justification · Risk · Resource/Schedule
 - Technical Description에 **핵심 결정 + Swagger/ERD 링크**(작성 후)
 - ④ Straumann에 대해 **경영·Straumann 협의용 1장 요약**을 Sub-SRS 앞에 둘 수 있음(SSOT는 Sub-SRS)
 
-### 3.4 아직 작성하지 않은 것
+### 3.5 아직 작성하지 않은 것
 
-- ①~④ SSOT 본문 — 본 전략 확정 후 순서대로 작성
+- ①·②·③·③-C·④ SSOT 본문 — 본 전략 확정 후 순서대로 작성
 - Scott 문서로의 추출본 — 각 SSOT baseline 통과 후
 
 ---
@@ -137,7 +146,8 @@ baseline 또는 주요 갱신 시 SSOT에서 아래로 **발췌·요약**한다.
 | API 명세·데이터 모델 | Swagger·DBML 링크 + 엔터티 요약 |
 | 인증·보안·컴플라이언스 | §6.2 Security, IEC 관련 제약 |
 | 개발계획서(착수 품의) | OnePager Resource/Schedule + IP 마일스톤 |
-| AXS 연동 테스트 환경 | Sub-SRS §3 Environment, Assumptions |
+| AXS 연동 테스트 환경 | Sub-SRS ④ §3 Environment, Assumptions |
+| GW Console (Admin Web) | Sub-SRS ③-C §2 기능·화면·역할 (관리 API는 ③ SRS/Swagger) |
 
 추출본 상단에 반드시 기재:
 
@@ -162,7 +172,7 @@ SSOT 작성 시 적용하는 표준(상세는 사내 `spec-standard.md`, `spec-p
 | 중복 금지 | API 상세 → Swagger, DB → DBML, 본문은 링크 |
 | 외부 인터페이스 | 스펙에 계약 수준(에러·멱등·경계) |
 
-**상세도:** ③·④는 Case B~C(외부 연동·의료 맥락). ①② OnePager는 승인·일정 중심, Technical Description에 계약 링크.
+**상세도:** ③·③-C·④는 Case B~C(플랫폼·Admin UI·외부 연동·의료 맥락). ①② OnePager는 승인·일정 중심, Technical Description에 계약 링크.
 
 ---
 
@@ -170,7 +180,7 @@ SSOT 작성 시 적용하는 표준(상세는 사내 `spec-standard.md`, `spec-p
 
 | 문서 | 통제 | 역할 |
 |------|------|------|
-| **SRS ③ / Sub-SRS ④ / OnePager ①②** | SSOT(작성 후 baseline) | **정본** — 분석·설계·변경 |
+| **SRS ③ / Sub-SRS ③-C·④ / OnePager ①②** | SSOT(작성 후 baseline) | **정본** — 분석·설계·변경 |
 | PRD · ARD · 요구사항 · API명세 · 보안 · 개발계획서 | Controlled | **추출 뷰** — 규제·감사·VKS |
 | [개발 Roadmap 결정](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>) | Non-controlled | 케이스 A~D·의존성 **배경** |
 | **본 문서** | Non-controlled | **진행·문서 전략** |
@@ -182,7 +192,7 @@ SSOT 작성 시 적용하는 표준(상세는 사내 `spec-standard.md`, `spec-p
 
 1. **③ SRS**(3+4) 착수 — §1.2·§2.1·§2.2 사람 초안 후 확장
 2. ①② OnePager — 병행 착수(케이스 D 1·2 트랙)
-3. ③ SRS baseline 후 **④ Sub-SRS**(Straumann)
+3. ③ SRS baseline 후 **③-C Sub-SRS**(GW Console) · **④ Sub-SRS**(Straumann) — 병렬 가능
 4. PHASE 1: DBML → Swagger → TCL → IP
 5. SSOT baseline 시점에 Scott 문서 **추출·동기화** 일괄 수행
 
@@ -192,7 +202,8 @@ SSOT 작성 시 적용하는 표준(상세는 사내 `spec-standard.md`, `spec-p
 
 | 항목 | 비고 |
 |------|------|
-| CleverLab ↔ AXS(5단계 갈래 B) | 이번 포함 vs Will Not Do — Sub-SRS §1.2 |
+| CleverLab ↔ AXS(5단계 갈래 B) | 이번 포함 vs Will Not Do — Sub-SRS ④ §1.2 |
+| GW Console 레포명 | Sub-SRS ③-C · Azure Repos 이름 확정 |
 | 4단계 멀티리전 | gw/1.0 통합 vs v1.2 후행 — ③ SRS §2.7 |
 | MQTT 브로커 운영 주체 | ③ SRS §6 / ARD 추출 |
 | Path B EOS 시점 | ③ SRS §2.8 |
@@ -205,3 +216,4 @@ SSOT 작성 시 적용하는 표준(상세는 사내 `spec-standard.md`, `spec-p
 | 일자 | 변경 |
 |------|------|
 | 2026-06-16 | 최초 작성 — SSOT 전략, ①② OnePager / ③ SRS / ④ Sub-SRS, Scott 추출 원칙, 케이스 D·PHASE 연계 |
+| 2026-06-16 | ③-C GW Console Sub-SRS 추가 — PRD §12.1·§3.2·Roadmap §3.9 정합 |

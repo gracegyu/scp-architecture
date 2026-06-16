@@ -1,0 +1,341 @@
+openapi: 3.0.1
+info:
+    title: Organization
+    version: v1
+    description: The Straumann AXS® Organization APIs.
+servers:
+    - url: https://ppr.api.us.axs.straumann.com
+    - url: https://ppr.api.eu.axs.straumann.com
+    - url: PRODUCTION - https://api.us.axs.straumann.com
+      description: Productive environment usage only. Not for testing
+    - url: PRODUCTION - https://api.eu.axs.straumann.com
+      description: Productive environment usage only. Not for testing
+security:
+    - bearerAuth: []
+    - httpBasic: []
+paths:
+    /v1/organization/integration/link:
+        post:
+            tags:
+                - Organization Management
+            description: Provision an Integrating Entity to an AXS Organization with the Integrating Partner (i.e., Client ID of the App Registration)
+            operationId: connectExternalOrganization
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OrganizationIntegrationRequestDTO'
+                required: true
+            responses:
+                '201':
+                    description: Request was fulfilled successfully.
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/OrganizationIntegrationResponseDTO'
+                '400':
+                    description: Bad Request
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/AxsUserProvisioningErrorDTO'
+                '403':
+                    description: Forbidden
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '404':
+                    description: Not Found
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '409':
+                    description: Conflict
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '413':
+                    description: Payload Too Large
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+    /v1/organization/integration/check:
+        post:
+            tags:
+                - Organization Management
+            description: Check Integrating Entity Integrations for an AXS Organization with the Integrating Partner (i.e., Client ID of the App Registration)
+            operationId: checkOrganizationIntegration
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OrganizationIntegrationCheckRequestDTO'
+                required: true
+            responses:
+                '201':
+                    description: Request was fulfilled successfully.
+                    content:
+                        '*/*':
+                            schema:
+                                type: boolean
+                '400':
+                    description: Bad Request
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/AxsUserProvisioningErrorDTO'
+                '403':
+                    description: Forbidden
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '404':
+                    description: Not Found
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '409':
+                    description: Conflict
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '413':
+                    description: Payload Too Large
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+    /v1/organization/integration/unlink:
+        patch:
+            tags:
+                - Organization Management
+            description: De-Provision an Integrating Entity to an AXS Organization with the Integrating Partner (i.e., Client ID of the App Registration)
+            operationId: disconnectExternalOrganization
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OrganizationIntegrationUnlinkRequestDTO'
+                required: true
+            responses:
+                '201':
+                    description: Request was fulfilled successfully.
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/OrganizationIntegrationResponseDTO'
+                '400':
+                    description: Bad Request
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/AxsUserProvisioningErrorDTO'
+                '403':
+                    description: Forbidden
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '404':
+                    description: Not Found
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '409':
+                    description: Conflict
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '413':
+                    description: Payload Too Large
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+    /v1/organization/integration/{customerNumber}/info:
+        get:
+            tags:
+                - Organization Management
+            description: Return the organization Region and Country Code
+            operationId: getOrganizationRegionInfo
+            parameters:
+                - name: customerNumber
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Request was fulfilled successfully.
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/OrganizationIntegrationInfoDTO'
+                '400':
+                    description: Bad Request
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/AxsUserProvisioningErrorDTO'
+                '403':
+                    description: Forbidden
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '404':
+                    description: Not Found
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '409':
+                    description: Conflict
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '413':
+                    description: Payload Too Large
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        '*/*':
+                            schema:
+                                $ref: '#/components/schemas/ErrorDTO'
+components:
+    schemas:
+        AxsUserProvisioningErrorDTO:
+            type: object
+            properties:
+                version:
+                    type: string
+                status:
+                    type: integer
+                    format: int32
+                code:
+                    type: string
+                requestId:
+                    type: string
+                userMessage:
+                    type: string
+                developerMessage:
+                    type: string
+                moreInfo:
+                    type: string
+        ErrorDTO:
+            type: object
+            properties:
+                status:
+                    type: integer
+                    format: int32
+                reason:
+                    type: string
+                code:
+                    type: string
+                message:
+                    type: string
+                messageKey:
+                    type: string
+                occurredAt:
+                    type: string
+                    format: date-time
+        OrganizationIntegrationRequestDTO:
+            type: object
+            properties:
+                customerNumber:
+                    type: string
+                integratingEntityId:
+                    type: string
+        OrganizationIntegrationResponseDTO:
+            type: object
+            properties:
+                organizationIntegrationId:
+                    type: string
+                    format: uuid
+                organizationId:
+                    type: string
+                    format: uuid
+                integratingEntityId:
+                    type: string
+                createdBy:
+                    type: string
+                    format: uuid
+                consentVersion:
+                    type: string
+                status:
+                    type: string
+                    enum:
+                        - PENDING
+                        - APPROVED
+                        - REJECTED
+                        - REVOKED
+                updatedBy:
+                    type: string
+                    format: uuid
+        OrganizationIntegrationCheckRequestDTO:
+            type: object
+            properties:
+                organizationId:
+                    type: string
+                    format: uuid
+                integratingEntityId:
+                    type: string
+                identifierId:
+                    type: string
+                    format: uuid
+        OrganizationIntegrationUnlinkRequestDTO:
+            type: object
+            properties:
+                customerNumber:
+                    type: string
+                integratingEntityId:
+                    type: string
+                type:
+                    type: string
+        OrganizationIntegrationInfoDTO:
+            type: object
+            properties:
+                region:
+                    type: string
+                countryCode:
+                    type: string
+    securitySchemes:
+        httpBasic:
+            type: http
+            scheme: basic
+        bearerAuth:
+            type: http
+            scheme: bearer
+            bearerFormat: JWT

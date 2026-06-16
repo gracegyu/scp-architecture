@@ -160,13 +160,14 @@ v2 견적 **6,940만 원으로 확정**(2026-06-08). 범위: control/data/integ
 
 ### 12.1 Roadmap 단계별 스펙 문서 유형
 
-Roadmap 5단계를 **4개 스펙 단위**로 나누어 작성한다. 스펙 경계 ≠ 실행 경계 — 케이스 D는 ③·④를 통합 실행한다.
+Roadmap 5단계를 **One Pager 2 + SRS 1 + Sub-SRS 2**로 나누어 작성한다. 스펙 경계 ≠ 실행 경계 — 케이스 D는 ③·③-C·④를 통합 실행한다.
 
 | # | Roadmap 단계 | 성격 | 스펙 문서 | 비고 |
 |---|--------------|------|-----------|------|
 | ① | 1단계 API 호환성 | 기존 제품 수정 | Engineering One Pager | 즉시 착수, ②와 병행 |
 | ② | 2단계 Presigned URL | 기존 경로 업그레이드 | Engineering One Pager | GW 선행 요건, ①과 병행 |
-| ③ | 3+4단계 GW 일원화 + 멀티 Region | 신규 플랫폼 구축 | SRS | 프로젝트 기준 스펙 |
+| ③ | 3+4단계 GW 일원화 + 멀티 Region | 신규 플랫폼 구축 | SRS | 프로젝트 기준 스펙. PEP·라우팅·Webhook 프레임·GeoDNS·매핑 API 등 |
+| ③-C | 3+4단계 GW Console | ③ 플랫폼 **Admin Web** | Sub-SRS (③의 하위) | **4단계** 운영·온보딩 UI(매핑·클리닉·상태). 별도 레포. ③ 관리 API와 중복 금지 |
 | ④ | 5단계 Straumann(AXS) | GW 위 외부 연동 | Sub-SRS (③의 하위) | ③ SRS와 중복 기술 금지. 승인·협의 단위 분리 |
 
 > 배경·의사결정 기록(통제 문서 아님): [VT API Gateway — 개발 Roadmap 결정 (배경 문서)](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>). 케이스 A~D 비교·단계 의존성 분석의 원본이며, 결론은 본 §12·ARD §7로 흡수됨.

@@ -1,0 +1,88 @@
+openapi: 3.0.3
+info:
+  title: Authentication
+  version: v1
+  description: >-
+    The Straumann AXS® Organization APIs.
+  license:
+    name: Straumann
+    url: https://axs.straumann.com
+servers:
+  - url: https://stgoneportalppr.b2clogin.com
+  - url: PRODUCTION - https://stgoneportalprd.b2clogin.com
+    description: Productive environment usage only. Not for testing
+security:
+  - OAuth2: [ ]
+paths:
+  /tfp/stgoneportalppr.onmicrosoft.com/B2C_1A_partner_integration_v1/oauth2/v2.0/token:
+    post:
+      tags:
+        - Token Creation
+      summary: OAuth2 Service token
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                  grant_type:
+                    type: string
+                    enum: [client_credentials]
+                    description: The grant type being used.
+                    example: client_credentials
+                  scope:
+                    type: string
+                    description: >-
+                      The scope of the access request, which defines the level of access being requested. 
+                      Example: "https://stgoneportalppr.onmicrosoft.com/9a942c36-2d72-4e5f-bb86-c1a460b21484/.default"
+                    example: "https://stgoneportalppr.onmicrosoft.com/9a942c36-2d72-4e5f-bb86-c1a460b21484/.default"
+                  client_id:
+                    type: string
+                    description: >-
+                      Client ID of the application registered.
+                    example: ToBeAdded
+                  client_secret:
+                    type: string
+                    description: >-
+                      Secret associated with the client application registered.
+                    example: ToBeAdded
+              required:
+                - grant_type
+                - scope
+                - client_id
+                - client_secret
+      responses:
+        '200':
+          description: Token response successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  expires_in:
+                    type: integer
+                  token_type:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            '*/*':
+              schema:
+                type: string
+                properties:
+                  error_description:
+                    type: string
+                    description: Error message
+        '401':
+          description: Unauthorized
+          content:
+            '*/*':
+              schema:
+                type: string
+                properties:
+                  error_description:
+                    type: string
+                    description: Error
