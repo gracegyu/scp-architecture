@@ -155,3 +155,7 @@ v2 견적 **6,940만 원으로 확정**(2026-06-08). 범위: control/data/integ
 | ④ 라우팅 키 통합 | device→region(08)과 ClinicID→region(서비스 연동)을 device↔clinic↔region 단일 체계로 통합 | ARD ADR-10 · FR-RGN-06 |
 
 본 흡수로 08 GW는 의료 디바이스(fleet)뿐 아니라 사내 클라우드 서비스(CleverOne·EzServer·CleverSpace) 간 연동·버전 호환까지 단일 control plane으로 수용한다.
+
+**진행 방식(Roadmap 결정 반영).** ESMN Roadmap은 진행 시나리오를 **케이스 D로 확정**했다 — 1·2단계(API 호환성·presigned)는 **병행**, 3·4·5단계(GW 일원화·멀티 Region·Straumann)는 **통합 진행**. GW·Webhook은 **범용(다중 서비스) 구조로 설계**하되, GW 위 **첫 연동 구현은 Straumann → 이후 CleverSpace** 순이다. 본 PRD의 제품 버전 로드맵(v1.0→v1.2)과의 단계↔버전 매핑은 후속 정리한다.
+
+> 배경·의사결정 기록(통제 문서 아님): [VT API Gateway — 개발 Roadmap 결정 (배경 문서)](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>). 케이스 A~D 비교·단계 의존성 분석의 원본이며, 결론은 본 §12·ARD §7로 흡수됨.
