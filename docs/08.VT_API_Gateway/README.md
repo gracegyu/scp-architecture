@@ -11,6 +11,12 @@ VT API Gateway 프로젝트를 시작 하기 위한 정리를 했습니다.
 - Repo 입니다.
     - [vt-api-gateway - Repos](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway)
 
+## 프로젝트 진행·문서 전략 (개인 운영용 · VKS 미공유)
+
+분석 아키텍트 개인 관리 문서. 팀 공유용 스펙 단위 표는 [PRD §12.1](<VT API Gateway — PRD (v2).md>).
+
+- [VT API Gateway — 프로젝트 진행·문서 전략](<VT API Gateway — 프로젝트 진행·문서 전략.md>)
+
 ## 관련 레포·참고 자료 (연동 개발 참고)
 
 GW 본체(`vt-api-gateway`) 외에, 외부 연동(Straumann AXS 등)·클라이언트 호환·인증 개발 시 참고하는 레포·문서를 모은다. 새 참고 대상이 생기면 여기에 추가한다. **아직 clone하지 않은 레포는 상태를 `필요`로 적어 두면 받아 놓는다.**
