@@ -1,5 +1,6 @@
 - AXS API
     - https://developer.axs.straumann.com/api
+    - [AXS Developer Portal 문서 스냅샷 (AXS_docs)](./AXS_docs/README.md) — Getting Started·인증·Webhooks·리전 등 (내부 참고용, 취득 2026-06-16)
 - 4/2 바텍 제안
     - [Confidential_Review of Vatech SW Integration with AXS Platform_260402.md](./4%EC%9B%942%EC%9D%BC-%EB%B0%94%ED%85%8D%EC%A0%9C%EC%95%88/Confidential_Review%20of%20Vatech%20SW%20Integration%20with%20AXS%20Platform_260402.md)
 - 4/30 회의
