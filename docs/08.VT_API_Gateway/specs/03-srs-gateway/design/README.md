@@ -18,4 +18,5 @@ dev-chain-design 단계 산출물(OpenAPI·DBML)의 **작성 초안** 공간이�
 ## 범위 메모
 
 - OpenAPI에는 **GW 고유 API(A버킷)** 만 정의한다. Webhook 수신 엔드포인트도 여기 포함(§4.1.3). 외부 payload는 `$ref`/스냅샷 참조, MQTT 분배는 OpenAPI 밖.
+- **`/v1/uploads` = §4.1.4 경로①**(디바이스→리전 S3) 전용. CleverSpace/AXS presign은 B/C bypass — 본 OpenAPI에 재정의하지 않음.
 - 프록시 라우트(B)·외부 연동(C)은 각 백엔드/외부 OpenAPI가 정본 — 본 파일에서 재정의하지 않는다.
