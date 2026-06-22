@@ -540,8 +540,10 @@ GW는 "모든 서버로 통하는 단일 창구"지만, 그렇다고 **백엔드
 
 ### 4.1.2 라우팅·API 설계 규칙
 
-1. **목적지는 GW가 결정한다(서버측 라우트 테이블).** 매칭 조건(host/path 네임스페이스, 예 `/cs/*`·`/oneid/*`)으로 upstream을 정하며, **클라이언트가 목적지 주소를 지정하지 않는다.**
-2. **클라이언트 지정 upstream(원서버 주소를 헤더로) 금지.** SSRF·오픈 프록시·토폴로지 결합·라우트별 정책 적용 불가 때문이다. 라우팅은 **경로/호스트 네임스페이스가 1차**(예 `/cs/*`·`/oneid/*`)다. 경로로 부족해 라우팅 힌트가 필요한 경우에 한해 **`Vatech-Target` 헤더**(원서버 주소가 아니라 *논리 서비스 ID*, 예 `cleverspace`)를 쓰며, GW가 **allowlist로 검증 후 내부 매핑**(id→주소)한다. **선택적·예약 헤더이며 v1.0에선 미사용일 수 있다**(경로 라우팅 우선). 임의 라우팅 헤더(`X-Upstream` 등) 신설 금지 — 힌트는 `Vatech-Target`으로 단일화.
+1. **목적지는 GW가 결정한다(서버측 라우트 테이블).** 매칭 조건(host/path 네임스페이스, 예 `/cs/*`·`/oneid/*`)으로 upstream을 정하며, **클라이언트가 목적지 주소를 지정하지 않는다.** **handle(A버킷 — GW가 직접 처리) vs bypass(B/C버킷 — upstream 그대로 통과) 결정도 경로/호스트 네임스페이스로 정적으로 내려진다**(라우트 테이블 config 시점에 고정 — 요청마다 동적으로 바뀌지 않는다). 따라서 **A의 예약 네임스페이스**(`/v1/<고정 세그먼트>`(`auth`·`enroll`·`devices`·`region`·`uploads`·`webhooks` 등)·`/admin/v1/*`·`/.well-known/*`)는 **B/C 프록시·tenant 경로(`/v1/{tenant}/connectors/*` 포함)가 침범(shadow)할 수 없다** — tenant ID 등 경로 변수는 A 예약 세그먼트와 충돌하는 값을 가질 수 없으며, 매칭은 정확 경로(A)가 패턴 경로(C)보다 우선한다(reserved-segment 규율).
+2. **클라이언트 지정 upstream(원서버 주소를 헤더로) 금지.** SSRF·오픈 프록시·토폴로지 결합·라우트별 정책 적용 불가 때문이다. **라우팅의 SSOT는 경로/호스트 네임스페이스**(예 `/cs/*`·`/oneid/*`)이며, **`Vatech-Target`은 대안 라우터가 아니라 일관성 가드(guard)다.** `Vatech-Target`(원서버 주소가 아니라 *논리 서비스 ID*, 예 `cleverspace`)이 **있으면** GW가 **allowlist로 검증하고 경로에서 파생한 target과 일치하는지 확인**한다(불일치 → `400`). **없어도 라우팅은 경로만으로 성립**한다(선택적·예약 헤더, v1.0 기본 미요구). 경로가 target을 표현하지 못하는 *특정 라우트 클래스*가 생기는 경우에 한해, **그 라우트에 대해서만 per-route로 `Vatech-Target` 필수**를 선언할 수 있다(**전역 의무화 아님** — 의무화는 경로/헤더 이중 진실원·규칙 1의 "GW가 목적지 결정" 원칙과 충돌하고, A 고유 API·외부 Webhook 수신엔 적용 불가하기 때문). 임의 라우팅 헤더(`X-Upstream` 등) 신설 금지 — 힌트는 `Vatech-Target`으로 단일화.
+
+> **`Vatech-Target`(라우팅 보조) ≠ `Vatech-*` 식별 헤더(§7.7.1).** `Vatech-Product`·`Version`·`OS`·`Clinic-Id`·`Via`는 **버전 호환 판정용 필수 식별 헤더**(FR-COMPAT-01)이고, `Vatech-Target`은 **라우팅 보조용 선택 헤더**다. 이름이 비슷하나 역할·필수 여부가 다르다.
 3. **식별·버전·리전 헤더는 `Vatech-*` 표준만 사용**(§7.7.1). "어느 서버로"가 아니라 "누가·어떤 버전·어느 클리닉"을 싣는다. 리전 목적지는 ClinicID→region resolver(§7.3)가 결정한다.
 4. **B 라우트도 정책 체인을 통과한다** — 인증(§7.1)·버전 게이트(§7.7)·egress/allowlist(§7.5.3·§6.5). 통과시킨다고 무검증이 아니다.
 5. **GW 고유 API 컨벤션**: REST/JSON, **경로 버전 프리픽스 `/v1`**(예 `/v1/auth/token`·`/v1/webhooks/{provider}`, 관리 API는 `/admin/v1/*`), camelCase 필드, 시간 Unix ms(§1.3), 표준 오류코드(§7.7.4), idempotency key(§4.5). 단 `/.well-known/*`은 표준 관례상 버전 프리픽스 없이 노출(§7.7.2). 스키마 정본은 Swagger(code-first).
@@ -1249,3 +1251,4 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-22 | §4.1.3-1 Webhook 수신 경로 표기 정합화 — `POST /webhooks/{provider}` → `POST /v1/webhooks/{provider}` (§4.1.2-5·§4.5.1·§7.6.1·OpenAPI와 `/v1` 프리픽스 통일) | (작성자 ID 미지정) |
 | 2026-06-22 | §2.3 Overall Operation 확장 — 동작 개요를 시나리오 7종(2.3.1~2.3.7: 온보딩·인증·리전·업로드 경로①·외부연동 경로③·Webhook·버전호환)으로 재작성, 각 시나리오 설명 + mermaid 시퀀스 다이어그램 추가. 액터를 §2.1·§2.2 컴포넌트와 정합, §4.1.4 경로 구분·`/v1/webhooks` 반영. 상세 시퀀스는 ARD §5 위임 유지 | (작성자 ID 미지정) |
 | 2026-06-22 | 디바이스 토큰 갱신 정책 명시 — §7.1.1 Trigger/Output에 "갱신=client_credentials 재발급, refresh token 미발급"(RFC 6749 §4.4.3) 명문화 + Will Not Do에 `refresh_token` grant 미도입 사유 추가, §2.3.2 다이어그램에 재발급 loop·refresh 미사용 note 반영. 단명+즉시 revocation 모델 보존 | (작성자 ID 미지정) |
+| 2026-06-22 | §4.1.2 라우팅 규칙 보강 — 규칙 1에 handle(A)/bypass(B/C) 정적 결정 + A 예약 네임스페이스 reserved-segment 규율 추가, 규칙 2를 가드형으로 재작성(`Vatech-Target`=대안 라우터 아닌 일관성 가드: 있으면 경로 파생 target과 일치 검증·불일치 400, 없어도 경로로 라우팅 성립, per-route만 필수 가능·전역 의무화 아님) + `Vatech-Target`(라우팅 선택) vs `Vatech-*` 식별 헤더(호환 필수) 구분 명시 | (작성자 ID 미지정) |
