@@ -161,7 +161,7 @@ flowchart LR
 | CleverSpace          | 멀티 Region 백엔드(데이터 경로 대상)                  |
 | OneID                | 사람·클리닉·사내 호출자 인증(OIDC)                    |
 | Straumann AXS        | 외부 연동 대상. Webhook 수신·presigned 연동           |
-| CleverLab            | 우리 클라우드 서비스(클라우드↔AXS 연동도 GW 경유)     |
+| CleverLab            | 우리 클라우드 서비스(B 프록시 대상). **CleverLab↔AXS 직접 연동(갈래 B)은 현 시점 범위 외**(§1.2·④ — 외부 cloud 연동 일반 역량은 유지) |
 | Route 53 GeoDNS      | EzServer를 최근접 GW Region에 연결                    |
 | GW Console           | Admin Web(③-C Sub-SRS) — 관리 API 호출                |
 
@@ -1040,6 +1040,8 @@ FR-INT-01 (adapter 플러그형 등록).
 
 FR-INT-02 (Straumann AXS OAuth2·proxy·**파일/presign API bypass**의 _프레임워크 적용 지점_). AXS presign·파일 요청 body는 **AXS OpenAPI 그대로 통과**(§4.1.4 경로③) — GW가 `/v1/uploads`로 해석·변환하지 않음. E2E 동작 요구만 본 절에 두고, 상세 계약은 ④.
 
+> **AXS = GW의 첫 연동 구현 대상**(CleverSpace보다 **선행** — PRD §12·Roadmap §3.5, 2026-06 회의 재확인). 범용 proxy·Webhook 구조(§4.1.1·§7.6)를 외부 서비스로 먼저 검증한 뒤 CleverSpace 연동을 진행한다. 스펙 작성 순서(③ baseline 후 ④)와 구현 착수 순서(Straumann 먼저)는 별개다.
+
 ### 7.5.3 egress 정책 + endpoint allowlist (P1)
 
 FR-INT-03 (허용 대상만 외부 통신). allowlist 외 egress는 OPA로 차단(§6.5).
@@ -1191,15 +1193,15 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 
 ## Appendix A. Decision Log
 
-| 일시       | 결정 사항          | 채택안                     | 비교 대안                   | 채택 이유                   | 결정자 | 관련   |
-| ---------- | ------------------ | -------------------------- | --------------------------- | --------------------------- | ------ | ------ |
-| 2026-06-08 | 디바이스 인증      | DPoP + HW키                | mTLS                        | 10만대 부담·키추출 위협     | Scott  | ADR-01 |
-| 2026-06-08 | Control plane 상태 | soft-state                 | full stateless              | cache TTL·mapping_version   | Scott  | ADR-02 |
-| 2026-06-15 | 버전 호환          | 헤더+well-known+매트릭스   | 클라이언트 버전 미전달 방치 | 원인불명 실패 제거          | Scott  | ADR-07 |
-| 2026-06-15 | 인증 2면           | 디바이스 머신 + OneID 공존 | 단일 인증면                 | 무인/사람 신원 성질 다름    | Scott  | ADR-08 |
-| 2026-06-15 | Webhook            | 단일 수신·분배(HTTP/MQTT)  | 서비스별 개별 수신          | 검증 분산·Edge inbound 불가 | Scott  | ADR-09 |
-| 2026-06-15 | 라우팅 키          | device↔clinic↔region 통합  | 이원화                      | 동일 리전 귀결              | Scott  | ADR-10 |
-| 2026-06-23 | 라우팅 모델        | target-routed proxy(`Vatech-Target` 유무로 GW-own/proxy 구분, proxy는 verbatim) | 경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream | upstream 무한 확장을 설정(레지스트리 1행) 기반으로 — 코드·경로 변경 0(NFR-SCL), 내부·외부 단일 규칙 | PM/아키텍트(CCB 확인 대기) | ADR-11 |
+| 일시 | 결정 사항 | 채택안 | 비교 대안 | 채택 이유 | 결정자 | 관련 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2026-06-08 | 디바이스 인증 | DPoP + HW키 | mTLS | 10만대 부담·키추출 위협 | Scott | ADR-01 |
+| 2026-06-08 | Control plane 상태 | soft-state | full stateless | cache TTL·mapping_version | Scott | ADR-02 |
+| 2026-06-15 | 버전 호환 | 헤더+well-known+매트릭스 | 클라이언트 버전 미전달 방치 | 원인불명 실패 제거 | Scott | ADR-07 |
+| 2026-06-15 | 인증 2면 | 디바이스 머신 + OneID 공존 | 단일 인증면 | 무인/사람 신원 성질 다름 | Scott | ADR-08 |
+| 2026-06-15 | Webhook | 단일 수신·분배(HTTP/MQTT) | 서비스별 개별 수신 | 검증 분산·Edge inbound 불가 | Scott | ADR-09 |
+| 2026-06-15 | 라우팅 키 | device↔clinic↔region 통합 | 이원화 | 동일 리전 귀결 | Scott | ADR-10 |
+| 2026-06-23 | 라우팅 모델 | target-routed proxy(`Vatech-Target` 유무로 GW-own/proxy 구분, proxy는 verbatim) | 경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream | upstream 무한 확장을 설정(레지스트리 1행) 기반으로 — 코드·경로 변경 0(NFR-SCL), 내부·외부 단일 규칙 | PM/아키텍트(CCB 확인 대기) | ADR-11 |
 
 > 전체 ADR(01~11)·근거는 ARD §2. 본 표는 SRS 차원 핵심 결정 요약. **ADR-11은 ARD에 정식 기재 필요(Appendix B #13).**
 
@@ -1207,37 +1209,42 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 
 > baseline 전 닫아야 할 결정 항목. 본문 각 절의 TBD를 한 곳에 모은 추적표(본문이 정본, 본 표는 인덱스). 설계 단계의 단순 버전·도구 TBD(§3·§4.4)는 묶어 1행으로 둔다.
 
-| #   | 항목                                      | 본문               | 책임자               | 마감                     | 영향                              |
-| --- | ----------------------------------------- | ------------------ | -------------------- | ------------------------ | --------------------------------- |
-| 1   | v1.0 목표 RPS·동시 세션(fleet 규모)       | §5.1·5.2           | 인프라(규모 PL 입력) | 설계 착수 전             | §3.1·§7.1·§7.4                    |
-| 2   | 공개 엔드포인트 DNS 호스트명              | §4.5.1             | 인프라/플랫폼팀      | 배포 구성 착수 전        | §1.7.1·§3.1·§7.3.5·§7.6.1·①②④·③-C |
-| 3   | 경로 B EOS 시점                           | §2.8·§7.6          | PM(제품)             | ① One Pager 확정 시      | §7.6·①                            |
-| 4   | MQTT 브로커 운영 주체                     | §2.6·§7.6          | 운영조직(미정)       | ③-P-EZ 착수 전           | §7.6·ARD                          |
-| 5   | 감사·consent 보존 기간                    | §6.4·§7.9.3·§7.9.5 | 품질/법무            | baseline 전              | §6.5                              |
-| 6   | OpenAPI·DBML (`docs/specs/design/`)       | §1.5·§4.1·§6.4     | GW(본인)             | dev-chain-design 작성 후 | §7 전반                           |
-| 7   | 멀티 Region·멀티클라우드 gw/1.0 흡수 여부 | §2.7               | PM/아키텍트          | 설계 착수 전             | §7.3·§7.4                         |
-| 8   | 호환성 매트릭스 확정본                    | §2.8·§7.7.5        | ① One Pager          | ① 확정 시                | §7.7                              |
-| 9   | RTO/RPO·유지보수 윈도우                   | §6.3.1·§6.8        | 인프라               | 설계 단계                | §6                                |
-| 10  | CCB 명단·승인자                           | §8·§9              | PM                   | baseline 직전            | 변경관리                          |
-| 11  | 인증(IEC 62304/13485) 일정·준비물         | §6.13·§6.14        | 품질/마케팅          | 추후                     | —                                 |
-| 12  | 인프라·런타임 상세 버전(도구·노드)        | §3·§4.4            | 인프라/개발          | 설계 단계                | §3                                |
-| 13  | ADR-11(라우팅 모델: target-routed proxy) ARD 정식 기재 + 클라이언트 `Vatech-Target` 부착 적응 | §4.1.1·§4.1.2·§4.1.4·§7.5·Appendix A | GW/아키텍트(ARD) · PM(CCB 승인) | baseline 전 | §4.1·§7.5·OpenAPI·③-P-CS/CO/EZ(헤더 부착)·① |
+| # | 항목 | 본문 | 책임자 | 마감 | 영향 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | v1.0 목표 RPS·동시 세션(fleet 규모) | §5.1·5.2 | 인프라(규모 PL 입력) | 설계 착수 전 | §3.1·§7.1·§7.4 |
+| 2 | 공개 엔드포인트 DNS 호스트명 | §4.5.1 | 인프라/플랫폼팀 | 배포 구성 착수 전 | §1.7.1·§3.1·§7.3.5·§7.6.1·①②④·③-C |
+| 3 | 경로 B EOS 시점 | §2.8·§7.6 | PM(제품) | ① One Pager 확정 시 | §7.6·① |
+| 4 | MQTT 브로커 운영 주체 | §2.6·§7.6 | 운영조직(미정) | ③-P-EZ 착수 전 | §7.6·ARD |
+| 5 | 감사·consent 보존 기간 | §6.4·§7.9.3·§7.9.5 | 품질/법무 | baseline 전 | §6.5 |
+| 6 | OpenAPI·DBML (`docs/specs/design/`) | §1.5·§4.1·§6.4 | GW(본인) | dev-chain-design 작성 후 | §7 전반 |
+| 7 | 멀티 Region·멀티클라우드 gw/1.0 흡수 여부 | §2.7 | PM/아키텍트 | 설계 착수 전 | §7.3·§7.4 |
+| 8 | 호환성 매트릭스 확정본 | §2.8·§7.7.5 | ① One Pager | ① 확정 시 | §7.7 |
+| 9 | RTO/RPO·유지보수 윈도우 | §6.3.1·§6.8 | 인프라 | 설계 단계 | §6 |
+| 10 | CCB 명단·승인자 | §8·§9 | PM | **확정(2026-06-23)** | 변경관리 — Scott(PM)·Raymond(GW 백엔드 리드) |
+| 11 | 인증(IEC 62304/13485) 일정·준비물 | §6.13·§6.14 | 품질/마케팅 | 추후 | — |
+| 12 | 인프라·런타임 상세 버전(도구·노드) | §3·§4.4 | 인프라/개발 | 설계 단계 | §3 |
+| 13 | ADR-11(라우팅 모델: target-routed proxy) ARD 정식 기재 + 클라이언트 `Vatech-Target` 부착 적응 | §4.1.1·§4.1.2·§4.1.4·§7.5·Appendix A | GW/아키텍트(ARD) · PM(CCB 승인) | baseline 전 | §4.1·§7.5·OpenAPI·③-P-CS/CO/EZ(헤더 부착)·① |
 
 ## 8 Change Management Process
 
 - 변경 분류: Minor(문구) / Major(요구사항·NFR 수치·아키텍처)
-- CCB: PM + GW 백엔드 리드 (핵심 2인). QA 리드·보안·인프라는 사안별 옵저버 (명단 TBD)
-- 절차: PR(영향 평가: §·Swagger·DBML·일정) → Major는 CCB 승인 → Appendix A 1줄 추가 → baseline 시 release tag
+- **CCB(Change Control Board)**
+  - **핵심(승인)**: PM — **Scott** · GW 백엔드 리드 — **Raymond**
+  - **옵저버(사안별)**: QA 리드·보안·인프라 — Major 변경 검토 시 필요에 따라 참여(고정 명단 없음, v1.0)
+  - **확대**: 필요 시 CCB에 인원 추가(PM 합의)
+- 절차: PR(영향 평가: §·Swagger·DBML·일정) → Major는 CCB(핵심 2인) 승인 → Appendix A 1줄 추가 → baseline 시 release tag
 
 ## 9 Document Approvals
 
 본 SRS는 baseline 통과 시 인수자·일시를 본 절에 기록한다. (현재 골격 — 미승인)
 
-| 역할             | 인수자 | 승인 일시 |
-| ---------------- | ------ | --------- |
-| PM               | TBD    | —         |
-| GW 백엔드 리드   | TBD    | —         |
-| QA 리드 (옵저버) | TBD    | —         |
+| 역할                 | 인수자   | 승인 일시 |
+| -------------------- | -------- | --------- |
+| PM (CCB)             | Scott    | —         |
+| GW 백엔드 리드 (CCB) | Raymond  | —         |
+| QA 리드 (옵저버)     | (사안별) | —         |
+| 보안 (옵저버)        | (사안별) | —         |
+| 인프라 (옵저버)      | (사안별) | —         |
 
 ---
 
@@ -1263,4 +1270,5 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-22 | §2.3 Overall Operation 확장 — 동작 개요를 시나리오 7종(2.3.1~2.3.7: 온보딩·인증·리전·업로드 경로①·외부연동 경로③·Webhook·버전호환)으로 재작성, 각 시나리오 설명 + mermaid 시퀀스 다이어그램 추가. 액터를 §2.1·§2.2 컴포넌트와 정합, §4.1.4 경로 구분·`/v1/webhooks` 반영. 상세 시퀀스는 ARD §5 위임 유지 | (작성자 ID 미지정) |
 | 2026-06-22 | 디바이스 토큰 갱신 정책 명시 — §7.1.1 Trigger/Output에 "갱신=client_credentials 재발급, refresh token 미발급"(RFC 6749 §4.4.3) 명문화 + Will Not Do에 `refresh_token` grant 미도입 사유 추가, §2.3.2 다이어그램에 재발급 loop·refresh 미사용 note 반영. 단명+즉시 revocation 모델 보존 | (작성자 ID 미지정) |
 | 2026-06-22 | §4.1.2 라우팅 규칙 보강 — 규칙 1에 handle(A)/bypass(B/C) 정적 결정 + A 예약 네임스페이스 reserved-segment 규율 추가, 규칙 2를 가드형으로 재작성(`Vatech-Target`=대안 라우터 아닌 일관성 가드: 있으면 경로 파생 target과 일치 검증·불일치 400, 없어도 경로로 라우팅 성립, per-route만 필수 가능·전역 의무화 아님) + `Vatech-Target`(라우팅 선택) vs `Vatech-*` 식별 헤더(호환 필수) 구분 명시 | (작성자 ID 미지정) |
+| 2026-06-23 | §8·§9 CCB 명단 확정 — 핵심: Scott(PM)·Raymond(GW 백엔드 리드); QA·보안·인프라는 사안별 옵저버, 필요 시 CCB 확대. Appendix B #10 완료 | (작성자 ID 미지정) |
 | 2026-06-23 | **라우팅 모델 전환(ADR-11) — target-routed proxy 채택.** §4.1.1 3버킷 → 2면(GW 고유 API / 레지스트리 라우팅 프록시, B·C=trust profile) 재구성, §4.1.2 규칙 전면 개정(`Vatech-Target` 유무로 면 구분·v1.0 proxy 필수·논리 ID enum만·SSRF 가드·verbatim 전달·정책은 path 검사·region 직교 조합). §4.1.4 경로②③를 `Vatech-Target` proxy로, §2.3.5 다이어그램·§7.5.1 connector(레지스트리 일반화)·§4.1.3 표현 갱신. Appendix A ADR-11 + Appendix B #13(ARD 기재·클라이언트 헤더 적응). 이전 "경로 네임스페이스 1차 + Vatech-Target 가드"(2026-06-22) 결정을 대체 | (작성자 ID 미지정) |
