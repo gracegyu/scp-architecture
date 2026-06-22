@@ -331,6 +331,29 @@ None
 
 연동 시스템: OneID(OIDC), CleverSpace, Straumann AXS(④), CleverLab, EzServer(MQTT). 상세 계약은 §7 + Swagger.
 
+### 4.1.1 API 정의 전략 — 3버킷
+
+GW는 "모든 서버로 통하는 단일 창구"지만, 그렇다고 **백엔드 API를 GW에서 재정의하지 않는다**(중복 = 드리프트). API 표면을 성격에 따라 세 버킷으로 나눠 정의한다. **B와 C는 방향·신뢰경계가 반대**다 — B는 *우리 안쪽 백엔드로 들여보내는* inbound 프록시(상대가 GW를 신뢰), C는 *바깥 제3자로 나가는* outbound 연동(우리가 상대에 인증).
+
+| 버킷 | 무엇 | 방향 / 신뢰경계 | 정의 방법 | 정본(SSOT) |
+| --- | --- | --- | --- | --- |
+| **A. GW 고유 API** | §7 전부 — 인증·enrollment·디바이스 레지스트리·region resolve·upload session·Webhook 수신·**관리 API(③-C Console이 호출하는 Backoffice/관리 API 포함, §7.9·§7.8)**. UI 자체는 ③-C | GW 자신이 노출 | GW가 직접 OpenAPI 정의(NestJS code-first `@nestjs/swagger`, §1.7.1) | 본 SRS §7 + `vt-api-gateway-docs` Swagger |
+| **B. 프록시 라우트** | **우리 소유** 백엔드(CleverSpace·OneID·CleverLab)로 통과시키는 경로 | inbound·**내부망(trusted)** — 백엔드가 GW 신뢰, 정규화 신원 전달 | **라우트 설정**(매칭→upstream→정책)으로만 정의. 백엔드 OpenAPI는 *참조*만, 재정의 금지 | 각 백엔드 제품의 OpenAPI |
+| **C. Egress 커넥터** | **외부 제3자**(Straumann AXS, 향후 DS Core/3Shape) 연동 | outbound·**경계 밖(untrusted)** — 우리가 외부에 OAuth 인증, 토큰/secret 관리(§7.1.3)·고정 egress IP | 커넥터 프레임워크 + egress allowlist(§7.5) + Webhook 역수신(§7.6) | ④ Sub-SRS + 외부 OpenAPI 스냅샷 |
+
+- **B vs C 한 줄**: B = 내부 안내 데스크(통과), C = 거래처에 출입증 들고 방문(인증·토큰·egress IP). C가 토큰·secret·외부 장애 책임까지 지므로 §7.5 커넥터 프레임워크로 1급 처리하고, B는 라우트+정책 체인 수준의 경량이다.
+- 대부분의 트래픽은 **A(GW 고유 control-plane) + presigned 직결(GW 미경유, §7.4)** 이며, B(투명 프록시)는 소수 라우트다. presigned 직결은 A·B·C 어디도 아닌 **GW 비경유** 경로다.
+
+### 4.1.2 라우팅·API 설계 규칙
+
+1. **목적지는 GW가 결정한다(서버측 라우트 테이블).** 매칭 조건(host/path 네임스페이스, 예 `/cs/*`·`/oneid/*`)으로 upstream을 정하며, **클라이언트가 목적지 주소를 지정하지 않는다.**
+2. **클라이언트 지정 upstream(원서버 주소를 헤더로) 금지.** SSRF·오픈 프록시·토폴로지 결합·라우트별 정책 적용 불가 때문이다. 라우팅은 **경로/호스트 네임스페이스가 1차**(예 `/cs/*`·`/oneid/*`)다. 경로로 부족해 라우팅 힌트가 필요한 경우에 한해 **`Vatech-Target` 헤더**(원서버 주소가 아니라 *논리 서비스 ID*, 예 `cleverspace`)를 쓰며, GW가 **allowlist로 검증 후 내부 매핑**(id→주소)한다. **선택적·예약 헤더이며 v1.0에선 미사용일 수 있다**(경로 라우팅 우선). 임의 라우팅 헤더(`X-Upstream` 등) 신설 금지 — 힌트는 `Vatech-Target`으로 단일화.
+3. **식별·버전·리전 헤더는 `Vatech-*` 표준만 사용**(§7.7.1). "어느 서버로"가 아니라 "누가·어떤 버전·어느 클리닉"을 싣는다. 리전 목적지는 ClinicID→region resolver(§7.3)가 결정한다.
+4. **B 라우트도 정책 체인을 통과한다** — 인증(§7.1)·버전 게이트(§7.7)·egress/allowlist(§7.5.3·§6.5). 통과시킨다고 무검증이 아니다.
+5. **GW 고유 API 컨벤션**: REST/JSON, camelCase 필드, 시간 Unix ms(§1.3), 표준 오류코드(§7.7.4), idempotency key(§4.5). 스키마 정본은 Swagger(code-first).
+
+> 결정 근거·반려 대안(투명 프록시 vs 클라이언트 지정 upstream)은 ARD ADR 참조(해당 ADR 미작성 시 추가). 본 절은 SRS 차원 규칙 요약.
+
 ## 4.2 User Interface (사용자 인터페이스)
 
 GW 본체는 무인 control plane. Admin UI는 **③-C GW Console Sub-SRS**에서 정의(본 SRS는 관리 API §7.9까지). 따라서 본 절은 `N/A(③-C에서 정의)`.
@@ -955,3 +978,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-17 | §8 CCB 구성 조정(PM+GW 백엔드 리드 핵심 2인, QA·보안·인프라 사안별 옵저버), §9 승인자 QA 리드 → 옵저버 | (작성자 ID 미지정) |
 | 2026-06-17 | §5 범위 경계 명시(서버/노드 규모·용량 산정은 인프라 IaC 영역, GW SRS 범위 밖) + §5.1·5.2 책임자 인프라 담당(규모 수치 PL 입력)으로 확정 | (작성자 ID 미지정) |
 | 2026-06-17 | 자체 검증 심화 — FR/NFR 전수 대조(전 FR ID §7 매핑·MIG v2.0 비목표 확인), NFR-SCL 갭 보강(§6.3.5 Scalability 추가), 교차 참조·비목표 버전 정합 확인. Appendix B(TBD 추적표 12항목) 추가 | (작성자 ID 미지정) |
+| 2026-06-22 | §4.1.1 API 정의 전략(3버킷: GW 고유 API/프록시 라우트/Egress 커넥터) + §4.1.2 라우팅·API 설계 규칙(서버측 라우트, 클라이언트 지정 upstream 금지=SSRF, Vatech-* 한정, 정책 체인, 고유 API 컨벤션) 추가 | (작성자 ID 미지정) |
+| 2026-06-22 | §4.1.2 규칙 2 보강 — 경로/호스트 1차 라우팅 명시 + `Vatech-Target`(논리 서비스 ID·allowlist·선택/예약, v1.0 미사용 가능) 헤더 표준화, 임의 라우팅 헤더 신설 금지 | (작성자 ID 미지정) |
+| 2026-06-22 | §4.1.1 표에 "방향/신뢰경계" 열 추가 — B(inbound·내부 trusted 프록시) vs C(outbound·외부 untrusted 연동) 구분 명확화, presigned 비경유 경로 명시 | (작성자 ID 미지정) |
+| 2026-06-22 | §4.1.1 A버킷에 ③-C Console이 호출하는 Backoffice/관리 API 포함(§7.9·§7.8) 명시 — UI=③-C / API=GW 경계 가시화 | (작성자 ID 미지정) |
