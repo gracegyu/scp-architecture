@@ -143,7 +143,8 @@ flowchart LR
     R53["Route 53 GeoDNS"]
     CONSOLE["GW Console (③-C)"]
 
-    CO --> EZ --> GW
+    CO --> EZ
+    EZ <-->|"API(상행) · 이벤트 MQTT(하행)"| GW
     DEV --> GW
     GW --> CS
     GW --> OID
@@ -166,7 +167,78 @@ flowchart LR
 | Route 53 GeoDNS      | EzServer를 최근접 GW Region에 연결                    |
 | GW Console           | Admin Web(③-C Sub-SRS) — 관리 API 호출                |
 
-> 상세 인터페이스는 §4. ❓확인 — 누락된 외부 시스템 여부(예: 결제·알림 등).
+> 상세 인터페이스는 §4. 양방향 화살표(EzServer↔GW·AXS↔GW·CleverLab↔GW)는 *상행 API + 하행 이벤트/분배*를 함께 뜻한다 — **Webhook 수신→원래 받을 서버로 분배(fan-out) 상세는 §2.3.6**(가독성을 위해 본 맥락도에는 분배 경로를 펼치지 않음). ❓확인 — 누락된 외부 시스템 여부(예: 결제·알림 등).
+
+### 2.1.1 배포 토폴로지 — 멀티 서버·멀티 리전 (egress·Webhook)
+
+GW는 두 축으로 다중화된다: **멀티 서버**(한 리전 내 Multi-AZ K8s 복제본 — HA·수평 확장, §6.3.1) 와 **멀티 리전**(서울·미주 등, gw/1.2·§7.3.5). 두 경우 모두 **inbound는 안정 endpoint 하나**(리전별 LB, GeoDNS 뒤)로 수렴하지만 **outbound(egress)는 NAT EIP 다수**로 나간다 — **inbound IP ≠ egress IP**. GW pod는 **무상태(soft-state, ADR-02)** 라 DB·Redis를 pod마다 두지 않는다 — **같은 리전 pod는 동일 저장소를 공유**하고, 라우팅·식별 데이터는 **전역 일관**으로 둔다(데이터 토폴로지는 다이어그램 아래 참조).
+
+```mermaid
+flowchart TB
+    EZ["EzServer / CleverOne / 디바이스"]
+    R53["Route 53 GeoDNS<br/>(최근접 리전 라우팅)"]
+    EZ --> R53
+
+    GLOBAL[("전역 control-plane SSOT (전역 일관)<br/>device·clinic↔region 매핑 · 레지스트리<br/>Org-ID↔ClinicID · 정책 · compat · JWKS")]
+
+    subgraph RA["GW Region A (서울) · Multi-AZ HA = 멀티 서버"]
+        LBA["Ingress LB<br/>안정 endpoint A (inbound 1)"]
+        GA1["GW pod (무상태)"]
+        GA2["GW pod (무상태)"]
+        STA[("Region A 로컬 상태 = pod 공유<br/>upload session·audit·in-flight queue<br/>+ Redis(멱등·전역데이터 캐시)")]
+        NATA["NAT GW<br/>고정 egress EIP set A (outbound 다수)"]
+        LBA --> GA1
+        LBA --> GA2
+        GA1 --- STA
+        GA2 --- STA
+        GA1 --> NATA
+        GA2 --> NATA
+    end
+
+    subgraph RB["GW Region B (미주) · Multi-AZ HA = 멀티 서버"]
+        LBB["Ingress LB<br/>안정 endpoint B (inbound 1)"]
+        GB1["GW pod (무상태)"]
+        GB2["GW pod (무상태)"]
+        STB[("Region B 로컬 상태 = pod 공유<br/>(동일 구성)")]
+        NATB["NAT GW<br/>고정 egress EIP set B (outbound 다수)"]
+        LBB --> GB1
+        LBB --> GB2
+        GB1 --- STB
+        GB2 --- STB
+        GB1 --> NATB
+        GB2 --> NATB
+    end
+
+    R53 --> LBA
+    R53 --> LBB
+
+    STA -.->|"전역 매핑·레지스트리 resolve·동기<br/>(strong-consistency·mapping_version)"| GLOBAL
+    STB -.-> GLOBAL
+
+    AXS["Straumann AXS (외부)"]
+    NATA ==>|"GW→AXS egress (우리가 호출)"| AXS
+    NATB ==>|"GW→AXS egress"| AXS
+    AXS -.->|"egress IP whitelist = EIP set A ∪ B<br/>(고정·열거·증설 시 사전 협의)"| NATA
+    AXS -.-> NATB
+
+    AXS ==>|"Webhook 인바운드: 공개 호스트 1개<br/>→ GeoDNS → 리전 LB → 임의 GW pod"| LBA
+    AXS -.-> LBB
+```
+
+- **AXS egress IP whitelist = 고정 EIP 집합(멀티 IP).** AXS가 화이트리스트하는 것은 GW가 _AXS를 호출_ 할 때의 egress IP다. pod별 임시 IP가 아니라 **AZ/리전별 NAT의 고정 EIP**여야 하고, 멀티 리전이면 **전 리전 집합의 합집합(A ∪ B …)** 이며 유한·열거 가능해야 한다(FR-INT-03·§7.5.3·§2.6).
+- **리스크/제약**: 오토스케일·새 AZ·**리전 증설은 egress IP를 늘리므로**, egress를 **고정 EIP 풀로 핀(pin)** 하고 Straumann과 **whitelist를 협의·갱신(리드타임)** 해야 한다. EIP 풀 provisioning·고정은 인프라(③-I) 책임(§2.6·§7.3.5).
+- **Webhook 수신(멀티 인스턴스/리전).** AXS엔 **공개 호스트 1개**(§4.5.1)만 노출 → GeoDNS → 리전 LB → 임의 GW pod. 따라서 (a) **`eventId` 멱등 dedup은 인스턴스 공유 저장소(Redis)** 로 전역 보장(soft-state, ADR-02·§7.6.4), (b) 대상 클리닉이 수신 리전과 다르면 **Org-ID→ClinicID→리전 매핑(§7.3)으로 분배**(필요 시 교차 리전)한다. AXS→GW 인바운드는 우리가 **AXS source IP allowlist·HMAC·timestamp로 검증**(§7.6.2)하며, 이는 위 egress whitelist와 **방향이 반대**다.
+
+#### 데이터 공유·토폴로지 (멀티 서버·멀티 리전)
+
+- **멀티 서버(리전 내) = 데이터 공유.** GW pod는 **무상태(soft-state, ADR-02)** 이며 **DB·Redis를 pod마다 두지 않는다.** 같은 리전의 모든 pod가 **동일한 리전 DB(PostgreSQL HA)·Redis를 공유**하므로 어느 pod가 처리하든 세션·멱등·캐시가 공유된다. "멀티 서버 = 데이터 분리"가 **아니다**.
+- **멀티 리전 = 데이터 부류를 나눈다.**
+  - **(전역 일관) 라우팅·식별 데이터** — device/clinic↔region 매핑·레지스트리·Org-ID↔ClinicID·정책(OPA)·compat matrix·JWKS. **모든 리전이 같은 답을 내야** 한다(예: B 리전에 떨어진 Webhook이 "클리닉 X는 A 리전 소속"임을 알아야 분배 가능). 따라서 **전역 일관**으로 둔다 — soft-state 캐시 + 변경 시 strong-consistency 경로·`mapping_version`(ADR-02·§7.3.1·§7.3.2).
+  - **(리전 로컬) 운영 데이터** — upload session(리전 storage 결속)·audit log(발생 리전)·in-flight webhook/queue·signer 상태. **리전마다 다르며** 합쳐서 전체다.
+  - **PHI는 어느 store에도 미저장**(§6.4) — 데이터 주권은 "PHI **바이트**를 매핑된 리전 storage로 라우팅"의 문제이지 GW DB 내용 분리가 아니다(§7.3.3).
+- **구현(전역 DB 단일 vs 리전별 복제)** 은 gw/1.2 설계 결정(Appendix B #15)이나, 위 **"전역 일관 / 리전 로컬" 구분 원칙은 버전과 무관하게 고정**이다.
+
+> 배포·NAT·EIP·GeoDNS 구성은 **인프라(③-I)** 소유이며, 본 SRS는 _GW가 전제하는 요구_ 만 기술한다(§3.1·§7.3.5·§2.6).
 
 ## 2.2 Overall System Configuration (전체 시스템 구성)
 
@@ -198,6 +270,8 @@ flowchart TB
         MQTT["MQTT Broker (Edge 분배)"]
     end
 ```
+
+> 본 도는 **컴포넌트 분해(plane별)** 만 보인다. Integration Plane의 **Webhook Receiver → 내부 큐 → MQTT(Edge)/HTTP push(클라우드)** 가 외부 이벤트를 수신해 _원래 받을 서버로 분배_ 하며, **런타임 흐름(수신→검증→멱등→ACK→fan-out)은 §2.3.6**이 정본이다(여기서는 흐름 화살표를 펼치지 않음).
 
 > **🔍 대안 검토 — 디바이스 인증 방식** (ADR-01)
 >
@@ -404,7 +478,7 @@ sequenceDiagram
 ## 2.6 Assumptions and Dependencies (가정과 종속 관계)
 
 - **AXS sandbox 자격증명·OAuth Client** — Straumann 제공 대기. (미수령 시 영향: §7.5 connector E2E·④ Sub-SRS 검증 지연)
-- **GW 인프라(K8s·Route 53 GeoDNS·고정 egress IP·DNS 호스트)** — 인프라 담당 별도. 본 SRS는 계획·요구만 기술. (미확정 시 영향: §3·§4.5·§7.3)
+- **GW 인프라(K8s·Route 53 GeoDNS·고정 egress IP 집합·DNS 호스트)** — 인프라 담당 별도. 본 SRS는 계획·요구만 기술. (미확정 시 영향: §3·§4.5·§7.3). **고정 egress IP는 단일 IP가 아니라 AZ/리전별 NAT의 고정 EIP 집합**(멀티 서버·멀티 리전)이며, AXS는 그 **합집합을 whitelist**한다 — 오토스케일·새 AZ·리전 증설로 *whitelist에 없는* egress IP가 생기지 않게 EIP 풀로 핀(pin)하고 증설 시 Straumann과 협의·갱신(§2.1.1).
 - **MQTT 브로커 운영 주체** — TBD (미결 이유: 운영 조직 미정 / 책임자 ❓ / 마감 ❓ / 영향: §7.6·ARD MQTT Broker)
 - **CleverOne SRS(Nick)** — 클라이언트 식별 헤더 상세. 미확보 시 §7.7 정밀화 제약.
 
@@ -791,6 +865,7 @@ Webhook 전달 보증(QoS1·재시도·DLQ), 업로드 idempotency. MTBF 목표 
 - ERD: [DBML — `vt-api-gateway.dbml`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/dbml/vt-api-gateway.dbml). 신규 테이블의 컬럼·타입·인덱스·relation은 DBML(dev-chain-design)이 SSOT
 - 저장 정보 유형: 디바이스 레지스트리, device/clinic↔region 매핑, 토큰 메타, 정책(OPA 입력), 감사 로그. **PHI 본문은 미저장**(presigned 직결)
 - 캐시: Redis(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS)
+- **데이터 토폴로지(멀티 서버·멀티 리전, §2.1.1)**: 리전 내 pod는 **동일 DB·Redis 공유**(무상태 앱 tier). 멀티 리전에서는 **(전역 일관) 라우팅·식별 데이터**(매핑·레지스트리·Org-ID·정책·compat·JWKS) 와 **(리전 로컬) 운영 데이터**(upload session·audit·in-flight queue·signer)로 나눈다. 전역 데이터는 어느 리전에서도 같은 답을 내야 하며(soft-state 캐시 + strong-consistency 경로·`mapping_version`), 운영 데이터는 리전 로컬이다. **저장소 구현(전역 DB 단일 vs 리전별 복제)은 gw/1.2 TBD(Appendix B #15)**, 구분 원칙은 고정.
 - 무결성:
   - 감사 로그 = **append-only**(UPDATE/DELETE 금지, FR-AUD-01)
   - 매핑 변경 = `mapping_version` 증가·이력 보존(FR-RGN-02)
@@ -1230,6 +1305,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 12 | 인프라·런타임 상세 버전(도구·노드) | §3·§4.4 | 인프라/개발 | 설계 단계 | §3 |
 | 13 | ADR-11(라우팅 모델: target-routed proxy) ARD 정식 기재 + 클라이언트 `Vatech-Target` 부착 적응 | §4.1.1·§4.1.2·§4.1.4·§7.5·Appendix A | GW/아키텍트(ARD) · PM(CCB 승인) | baseline 전 | §4.1·§7.5·OpenAPI·③-P-CS/CO/EZ(헤더 부착)·① |
 | 14 | 로그 포맷(필드·상관키·레벨) 검토 확정 | §6.3.2 | 인프라(취합·분석) + GW(생성) | 설계 단계 | §6.2·§6.3.2·③-I |
+| 15 | 멀티 리전 데이터 저장소 토폴로지(전역 DB 단일 vs 리전별 복제) — "전역 일관/리전 로컬" 구분 원칙은 고정, 구현만 미정 | §2.1.1·§6.4 | PM/아키텍트 + 인프라 | gw/1.2 설계 | §7.3·§6.4·§6.3.1 |
 
 ## 8 Change Management Process
 
@@ -1279,3 +1355,6 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-23 | §8·§9 CCB 명단 확정 — 핵심: Scott(PM)·Raymond(GW 백엔드 리드); QA·보안·인프라는 사안별 옵저버, 필요 시 CCB 확대. Appendix B #10 완료 | (작성자 ID 미지정) |
 | 2026-06-23 | **라우팅 모델 전환(ADR-11) — target-routed proxy 채택.** §4.1.1 3버킷 → 2면(GW 고유 API / 레지스트리 라우팅 프록시, B·C=trust profile) 재구성, §4.1.2 규칙 전면 개정(`Vatech-Target` 유무로 면 구분·v1.0 proxy 필수·논리 ID enum만·SSRF 가드·verbatim 전달·정책은 path 검사·region 직교 조합). §4.1.4 경로②③를 `Vatech-Target` proxy로, §2.3.5 다이어그램·§7.5.1 connector(레지스트리 일반화)·§4.1.3 표현 갱신. Appendix A ADR-11 + Appendix B #13(ARD 기재·클라이언트 헤더 적응). 이전 "경로 네임스페이스 1차 + Vatech-Target 가드"(2026-06-22) 결정을 대체 | (작성자 ID 미지정) |
 | 2026-06-23 | 2026-06 회의 결정 반영 — (1) Straumann 선행 구현 명시(§7.5.2), (2) CleverLab↔AXS 갈래 B 현 시점 제외(§1.2 Will Not Do·§2.1·④ _status·Roadmap §3.7.2 정합) — 외부 cloud 연동 일반 역량은 유지, (3) `Vatech-*`+`User-Agent` 전 제품 강제·공용 라이브러리·originator/Via 누적(§7.7.1), (4) 로그 취합·분석 인프라 소유·로그 포맷 검토 TBD(§6.3.2·Appendix B #14) | (작성자 ID 미지정) |
+| 2026-06-23 | §2.1.1 배포 토폴로지 신설 — 멀티 서버(Multi-AZ HA) + 멀티 리전 다이어그램 추가. inbound 안정 endpoint 1개 vs outbound NAT EIP 다수 구분, AXS egress IP whitelist=고정 EIP 합집합(증설 시 협의), Webhook 멀티 인스턴스 수신(공개 호스트 1·공유 idempotency·매핑 기반 교차 리전 분배) 설명. §2.6 "고정 egress IP" → 고정 EIP 집합으로 명확화 | (작성자 ID 미지정) |
+| 2026-06-23 | 데이터 공유·토폴로지 명시 — §2.1.1에 전역 control-plane SSOT 노드 추가 + "데이터 공유·토폴로지" 절(멀티 서버=리전 내 DB/Redis 공유·무상태 pod / 멀티 리전=전역 일관 라우팅·식별 데이터 vs 리전 로컬 운영 데이터 / PHI 미저장). §6.4 데이터 토폴로지 항목 추가, Appendix B #15(저장소 구현 gw/1.2 TBD·구분 원칙 고정) | (작성자 ID 미지정) |
+| 2026-06-23 | Webhook 분배 표현 단순화 — §2.1 맥락도 `EZ→GW`를 `EZ↔GW`(상행 API·하행 MQTT) 양방향으로 변경 + 양방향 화살표 의미·"분배 상세 §2.3.6" 노트 추가, §2.2 컴포넌트도에 동일 캡션. 수신→분배 fan-out 상세는 §2.3.6 시퀀스를 단일 정본으로 유지(맥락도·컴포넌트도엔 미전개) | (작성자 ID 미지정) |
