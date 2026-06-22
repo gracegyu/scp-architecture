@@ -33,7 +33,7 @@ GW는 (1) 모든 통신이 경유하는 중앙 control plane(인증·디바이�
 - **제품측(CleverSpace·CleverOne·EzServer) 변경 상세** — ① API 호환성 / ② Presigned One Pager에서 다룬다. 본 SRS는 GW 쪽 계약만 정의한다.
 - **Straumann AXS connector 상세** — ④ Sub-SRS([Straumann AXS Sub-SRS](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/04-subsrs-straumann-axs/Sub-SRS.md))에서 다룬다. 본 SRS는 connector 프레임워크(§7.5)까지만.
 - **GW Console(Admin Web) UI 상세** — ③-C Sub-SRS([GW Console Sub-SRS](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/03c-subsrs-gw-console/Sub-SRS.md))에서 다룬다. 본 SRS는 관리 API(§7.9)까지만.
-- **레거시 10만대 마이그레이션** — v2.0(FR-MIG-*). 본 v1.0 범위 밖.
+- **레거시 10만대 마이그레이션** — v2.0(FR-MIG-\*). 본 v1.0 범위 밖.
 
 ## 1.3 Document Conventions (문서규칙)
 
@@ -49,17 +49,17 @@ GW는 (1) 모든 통신이 경유하는 중앙 control plane(인증·디바이�
 
 > 모두가 아는 표준 용어(JWT·TLS·REST·OAuth2 등)는 제외. 본 문서 독자(개발·QA·인프라·PM) 일부가 모르거나 혼동할 만한 것만 선별.
 
-| 용어 | 본 문서에서의 의미 | 비고 |
-| --- | --- | --- |
-| GW (VatechAPIGateway) | 모든 연동이 단일 경유하는 control plane | 본 SRS의 대상 제품 |
-| PEP | Policy Enforcement Point — 요청 시점 인증·정책 집행 지점 | §7.1 |
-| originator | 요청을 *시작한* 주체(`Vatech-*` 헤더의 권위 소스) | §7.7 |
-| `Vatech-Via` | 요청을 *경유한* 중계 홉(예: EzServer) | originator와 분리 |
-| Edge | 클리닉 현장의 EzServer (방화벽 뒤, inbound 불가) | §7.6 |
-| soft-state | 완전 stateless가 아닌, cache TTL·mapping_version 기반 상태 | ADR-02 |
-| Region Signer Agent | 리전 내에서 자격 보관·서명하는 에이전트(주권) | ADR-03 |
-| ClinicID↔Org-ID | 클리닉 식별자와 외부(AXS) 조직 식별자 매핑 | §7.3 / ④ |
-| 경로 B (Path B) | CleverOne → CleverSpace 직접 연동(EzServer 미경유) | Deprecated 대상 |
+| 용어                  | 본 문서에서의 의미                                         | 비고               |
+| --------------------- | ---------------------------------------------------------- | ------------------ |
+| GW (VatechAPIGateway) | 모든 연동이 단일 경유하는 control plane                    | 본 SRS의 대상 제품 |
+| PEP                   | Policy Enforcement Point — 요청 시점 인증·정책 집행 지점   | §7.1               |
+| originator            | 요청을 _시작한_ 주체(`Vatech-*` 헤더의 권위 소스)          | §7.7               |
+| `Vatech-Via`          | 요청을 _경유한_ 중계 홉(예: EzServer)                      | originator와 분리  |
+| Edge                  | 클리닉 현장의 EzServer (방화벽 뒤, inbound 불가)           | §7.6               |
+| soft-state            | 완전 stateless가 아닌, cache TTL·mapping_version 기반 상태 | ADR-02             |
+| Region Signer Agent   | 리전 내에서 자격 보관·서명하는 에이전트(주권)              | ADR-03             |
+| ClinicID↔Org-ID       | 클리닉 식별자와 외부(AXS) 조직 식별자 매핑                 | §7.3 / ④           |
+| 경로 B (Path B)       | CleverOne → CleverSpace 직접 연동(EzServer 미경유)         | Deprecated 대상    |
 
 > ❓확인 — 추가로 등록할 용어(예: PHI, allowlist) 또는 사내 공유 용어집 링크 여부.
 
@@ -90,14 +90,14 @@ GW는 (1) 모든 통신이 경유하는 중앙 control plane(인증·디바이�
 
 ## 1.6 Intended Audience and Reading Suggestions (대상 및 읽는 방법)
 
-| # | 챕터 | PM | 백엔드 | 인프라/DevOps | QA | 보안 | 경영진 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1.2 | Product Scope | 2 | 1 | 1 | 1 | 1 | 2 |
-| 2.x | Overall Description | 2 | 2 | 2 | 2 | 1 | 1 |
-| 3.x | Environment | 1 | 2 | 2 | 2 | 1 | — |
-| 4.x | External Interface | 1 | 2 | 2 | 2 | 2 | — |
-| 5·6 | Perf / NFR | 1 | 2 | 2 | 2 | 2 | — |
-| 7 | Functional Req | 1 | 2 | 1 | 2 | 1 | — |
+| #   | 챕터                | PM  | 백엔드 | 인프라/DevOps | QA  | 보안 | 경영진 |
+| --- | ------------------- | --- | ------ | ------------- | --- | ---- | ------ |
+| 1.2 | Product Scope       | 2   | 1      | 1             | 1   | 1    | 2      |
+| 2.x | Overall Description | 2   | 2      | 2             | 2   | 1    | 1      |
+| 3.x | Environment         | 1   | 2      | 2             | 2   | 1    | —      |
+| 4.x | External Interface  | 1   | 2      | 2             | 2   | 2    | —      |
+| 5·6 | Perf / NFR          | 1   | 2      | 2             | 2   | 2    | —      |
+| 7   | Functional Req      | 1   | 2      | 1             | 2   | 1    | —      |
 
 > 범례: 1=훑어 이해 / 2=자세히 / —=읽지 않아도 됨
 
@@ -155,21 +155,21 @@ flowchart LR
     class GW srsTarget
 ```
 
-| 외부 시스템 | 역할 |
-| --- | --- |
+| 외부 시스템          | 역할                                                  |
+| -------------------- | ----------------------------------------------------- |
 | CleverOne / EzServer | 사내 호출자. EzServer는 Edge(방화벽 뒤, inbound 불가) |
-| CleverSpace | 멀티 Region 백엔드(데이터 경로 대상) |
-| OneID | 사람·클리닉·사내 호출자 인증(OIDC) |
-| Straumann AXS | 외부 연동 대상. Webhook 수신·presigned 연동 |
-| CleverLab | 우리 클라우드 서비스(클라우드↔AXS 연동도 GW 경유) |
-| Route 53 GeoDNS | EzServer를 최근접 GW Region에 연결 |
-| GW Console | Admin Web(③-C Sub-SRS) — 관리 API 호출 |
+| CleverSpace          | 멀티 Region 백엔드(데이터 경로 대상)                  |
+| OneID                | 사람·클리닉·사내 호출자 인증(OIDC)                    |
+| Straumann AXS        | 외부 연동 대상. Webhook 수신·presigned 연동           |
+| CleverLab            | 우리 클라우드 서비스(클라우드↔AXS 연동도 GW 경유)     |
+| Route 53 GeoDNS      | EzServer를 최근접 GW Region에 연결                    |
+| GW Console           | Admin Web(③-C Sub-SRS) — 관리 API 호출                |
 
 > 상세 인터페이스는 §4. ❓확인 — 누락된 외부 시스템 여부(예: 결제·알림 등).
 
 ## 2.2 Overall System Configuration (전체 시스템 구성)
 
-ARD §3·§4의 **3-Plane(Control / Data / Integration)** 구성을 따른다. 컴포넌트 도출 기준 = *plane(책임 영역) + 배포 단위*.
+ARD §3·§4의 **3-Plane(Control / Data / Integration)** 구성을 따른다. 컴포넌트 도출 기준 = _plane(책임 영역) + 배포 단위_.
 
 ```mermaid
 flowchart TB
@@ -199,6 +199,7 @@ flowchart TB
 ```
 
 > **🔍 대안 검토 — 디바이스 인증 방식** (ADR-01)
+>
 > - 채택안: DPoP + 하드웨어 키(SE/TPM)
 > - 대안: mTLS — 10만대 운영 부담·물리 키추출 위협 미해결로 반려
 > - 상세·재검토 조건: ARD ADR-01. (본 SRS는 결정을 참조하며, 핵심 결정 로그는 Appendix A)
@@ -221,7 +222,7 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 
 > **본 절 시나리오 ↔ §7 기능·§4.1.4 경로 매핑**: 온보딩(§7.2)·인증(§7.1)·리전(§7.3)·업로드 경로①(§7.4·§4.1.4①)·외부 연동 경로③(§7.5·§4.1.4③)·Webhook(§7.6·§4.1.3)·버전 호환(§7.7). CleverSpace presign(경로②)은 B bypass로 GW가 해석·변환하지 않으므로(§4.1.4②) 본 동작 개요에 별도 시나리오를 두지 않고 ② One Pager가 정본이다.
 
-### 2.3.1 디바이스 온보딩 (enrollment) — FR-ENR-*
+### 2.3.1 디바이스 온보딩 (enrollment) — FR-ENR-\*
 
 신뢰할 수 없는 디바이스를 부트스트랩 신뢰(공장 토큰/OOB 일회 코드)로 검증해 allowlist에 등록하고 자격을 발급한다. nonce challenge로 replay를 막고, device fingerprint를 바인딩한다. 상세는 §7.2.5·§7.2.6, 흐름은 ARD §5.1.
 
@@ -261,7 +262,7 @@ sequenceDiagram
     Note over D,GW: 갱신 = 동일 client_credentials 재발급 (refresh_token grant 미도입, §7.1.1)
 ```
 
-### 2.3.3 리전 해석·라우팅 — FR-RGN-*
+### 2.3.3 리전 해석·라우팅 — FR-RGN-\*
 
 인증된 호출자가 작업(업로드·연동) 직전 device/clinic→region을 해석해 리전 endpoint와 주권 정책을 받는다. `deviceId`·`clinicId`는 동일 resolver가 같은 리전으로 귀결(ADR-10)한다. PHI는 해석된 리전 밖으로 이동하지 않는다(OPA, §7.3.3). 상세는 §7.3, 흐름은 ARD §5.2.
 
@@ -282,7 +283,7 @@ sequenceDiagram
     Note over C,GW: 매핑 부재 → 거부 · PHI 리전 경계 OPA 집행(§7.3.3)
 ```
 
-### 2.3.4 업로드 세션·Presigned (경로①, 디바이스→우리 리전 storage) — FR-SES-*
+### 2.3.4 업로드 세션·Presigned (경로①, 디바이스→우리 리전 storage) — FR-SES-\*
 
 **§4.1.4 경로① 전용.** 디바이스가 우리 리전 storage로 올리는 PHI 파일을 Upload Session으로 추상화(start→chunk→commit, ADR-04)한다. presigned URL **발급 주체는 Region Signer Agent**이며, GW는 세션·리전·정책·Signer를 orchestration한다. 파일 **바이트**는 presigned로 storage에 **직접** 업로드(GW 미경유). commit은 idempotency key + checksum/ETag로 무결성을 확정한다. 상세는 §7.4, 흐름은 ARD §5.3.
 
@@ -307,9 +308,9 @@ sequenceDiagram
     Note over GW,S3: CleverSpace/AXS presign을 /v1/uploads로 통합·변환하지 않음(§4.1.4)
 ```
 
-### 2.3.5 외부 연동 — AXS presign·파일 bypass (경로③, 갈래 A) — FR-INT-*
+### 2.3.5 외부 연동 — AXS presign·파일 bypass (경로③, 갈래 A) — FR-INT-\*
 
-**§4.1.4 경로③ 전용.** EzServer→AXS 외부 연동(5단계 갈래 A). GW는 connector로 OAuth2 토큰을 관리(§7.1.3)하고 egress allowlist를 집행(§7.5.3)하되, AXS presign·파일 API는 **AXS OpenAPI 그대로 통과(bypass)** 한다 — GW가 `/v1/uploads`로 해석·변환하지 않는다. 대용량은 AXS가 발급한 presigned로 **AXS S3에 직접** 업로드(GW 미경유). 연동 의미·Org-ID 매핑 상세는 **④ Sub-SRS**, 본 SRS는 프레임워크·egress까지만. 상세는 §7.5.
+**§4.1.4 경로③ 전용 (C 프록시).** EzServer→AXS 외부 연동(5단계 갈래 A). 클라이언트는 `Vatech-Target: axs`를 실어 AXS 경로를 **그대로** 호출하고(§4.1.2), GW는 connector로 OAuth2 토큰을 관리(§7.1.3)·egress allowlist를 집행(§7.5.3)하되 요청/응답 body는 **AXS OpenAPI 그대로 통과(verbatim bypass)** 한다 — GW가 `/v1/uploads`로 해석·변환하지 않는다. 대용량은 AXS가 발급한 presigned로 **AXS S3에 직접** 업로드(GW 미경유). 연동 의미·Org-ID 매핑 상세는 **④ Sub-SRS**, 본 SRS는 프레임워크·egress까지만. 상세는 §7.5.
 
 ```mermaid
 sequenceDiagram
@@ -318,16 +319,16 @@ sequenceDiagram
     participant GW as GW (Connector)
     participant AXS as Straumann AXS
     participant AS3 as AXS S3 (외부)
-    EZ->>GW: POST /v1/{tenant}/connectors/axs/... (정보·Create Document)
-    GW->>GW: OAuth2 토큰 확보·갱신(§7.1.3) · egress allowlist 검증(§7.5.3)
-    GW->>AXS: bypass (요청 body 그대로 통과)
+    EZ->>GW: POST {AXS 경로 verbatim} (Vatech-Target: axs · 정보·Create Document)
+    GW->>GW: Vatech-Target allowlist→host 해석 · OAuth2 토큰 확보·갱신(§7.1.3) · egress allowlist 검증(§7.5.3)
+    GW->>AXS: host만 교체해 verbatim 전달 (body 그대로)
     AXS-->>GW: presigned URL (AXS 발급)
     GW-->>EZ: presigned URL 전달 (GW 변환 없음)
     EZ->>AS3: 대용량(영상) 직접 업로드 (GW 미경유)
-    Note over GW,AXS: allowlist 외 egress → 차단(403) · 외부 스키마는 ④/AXS 스냅샷 정본
+    Note over GW,AXS: Vatech-Target 누락 → 400 · 미등록/allowlist 외 → 거부(403/404) · 외부 스키마는 ④/AXS 스냅샷 정본
 ```
 
-### 2.3.6 Webhook 수신·분배 — FR-WH-*
+### 2.3.6 Webhook 수신·분배 — FR-WH-\*
 
 외부(AXS)가 GW 단일 엔드포인트로 이벤트를 push하면, GW가 검증·멱등 후 즉시 ACK하고 대상별로 분배한다(store-and-forward, ADR-09). 클라우드는 HTTP push, 방화벽 뒤 Edge(EzServer)는 MQTT QoS1 역방향. 목적지는 송신 host가 아니라 Org-ID↔ClinicID 매핑(§7.3)으로 결정한다. 수신 계약은 A버킷, payload는 외부 참조(§4.1.3). 상세는 §7.6.
 
@@ -351,7 +352,7 @@ sequenceDiagram
     Note over WH,EZ: 미지원 provider → 404 · 검증 실패 → 401 · 목적지=매핑(§7.3)
 ```
 
-### 2.3.7 버전 호환 게이팅 — FR-COMPAT-*
+### 2.3.7 버전 호환 게이팅 — FR-COMPAT-\*
 
 `Vatech-*` 헤더로 originator(요청 시작 주체)와 경유 홉(`Vatech-Via`)을 분리 판정하고, well-known 공시·호환성 매트릭스와 대조해 **더 낮은 버전 기준**으로 게이팅한다. 미지원이면 표준 오류코드와 "업데이트 필요" fallback을 안내해 원인불명 실패를 제거(ADR-07)한다. 상세는 §7.7.
 
@@ -391,13 +392,13 @@ sequenceDiagram
 
 ## 2.5 User Classes and Characteristics (사용자 계층과 특징)
 
-| 계층 | 사용 빈도 | 주 사용 기능 | 권한 | 중요도 |
-| --- | --- | --- | --- | --- |
-| 의료 디바이스 | 상시 | 인증·업로드 세션·config | 머신(디바이스 scope) | 핵심 |
-| 사내 호출자(EzServer/CleverOne) | 상시 | 인증·라우팅·Webhook 수신 | 서비스(OneID) | 핵심 |
-| 외부 플랫폼(AXS) | 이벤트 시 | Webhook·connector | 외부(OAuth2) | 핵심 |
-| 운영자/Admin | 일/주 | 관리 API·매핑·kill-switch | RBAC | 중요 |
-| 인프라/DevOps | 배포 시 | IaC·관측·로그 | 시스템 | 중요 |
+| 계층                            | 사용 빈도 | 주 사용 기능              | 권한                 | 중요도 |
+| ------------------------------- | --------- | ------------------------- | -------------------- | ------ |
+| 의료 디바이스                   | 상시      | 인증·업로드 세션·config   | 머신(디바이스 scope) | 핵심   |
+| 사내 호출자(EzServer/CleverOne) | 상시      | 인증·라우팅·Webhook 수신  | 서비스(OneID)        | 핵심   |
+| 외부 플랫폼(AXS)                | 이벤트 시 | Webhook·connector         | 외부(OAuth2)         | 핵심   |
+| 운영자/Admin                    | 일/주     | 관리 API·매핑·kill-switch | RBAC                 | 중요   |
+| 인프라/DevOps                   | 배포 시   | IaC·관측·로그             | 시스템               | 중요   |
 
 ## 2.6 Assumptions and Dependencies (가정과 종속 관계)
 
@@ -453,7 +454,7 @@ GW가 동작하는 소프트웨어 스택. 근거·전체 표는 [ARD §4.5 기�
 - **관측성**: OpenTelemetry · 구조화 로그(Pino) — PHI·시크릿 미기록(§6.2)
 - **API 문서**: `@nestjs/swagger` code-first (`/api-docs`, §1.7.1)
 
-> **ORM 추천 — Prisma.** 근거: (1) control plane은 저(低) QPS·CRUD 중심(PRD §10)이라 Prisma의 타입 안전·DX 이점이 크고 복잡 쿼리 한계의 영향이 작다, (2) **DBML → Prisma schema**로 이어지는 설계 산출물 흐름과 마이그레이션 일원화에 부합(`design/dbml/`), (3) 사내 NestJS 표준·ARD §4.5에서 이미 `◎ Prisma`로 채택. 대안: TypeORM(NestJS 친화이나 유지보수 리스크)·Drizzle/Kysely(SQL-first·경량이나 배터리 적음)는 *복잡 쿼리·세밀한 SQL 제어가 핵심이 될 때만* 재검토(결정 변경 시 ADR 추가).
+> **ORM 추천 — Prisma.** 근거: (1) control plane은 저(低) QPS·CRUD 중심(PRD §10)이라 Prisma의 타입 안전·DX 이점이 크고 복잡 쿼리 한계의 영향이 작다, (2) **DBML → Prisma schema**로 이어지는 설계 산출물 흐름과 마이그레이션 일원화에 부합(`design/dbml/`), (3) 사내 NestJS 표준·ARD §4.5에서 이미 `◎ Prisma`로 채택. 대안: TypeORM(NestJS 친화이나 유지보수 리스크)·Drizzle/Kysely(SQL-first·경량이나 배터리 적음)는 _복잡 쿼리·세밀한 SQL 제어가 핵심이 될 때만_ 재검토(결정 변경 시 ADR 추가).
 
 ## 3.2 Product Installation and Configuration (제품 설치 및 설정)
 
@@ -524,35 +525,42 @@ None
 
 연동 시스템: OneID(OIDC), CleverSpace, Straumann AXS(④), CleverLab, EzServer(MQTT). 상세 계약은 §7 + Swagger.
 
-### 4.1.1 API 정의 전략 — 3버킷
+### 4.1.1 API 정의 전략 — GW 고유 API vs 레지스트리 라우팅 프록시 (2면)
 
-GW는 "모든 서버로 통하는 단일 창구"지만, 그렇다고 **백엔드 API를 GW에서 재정의하지 않는다**(중복 = 드리프트). API 표면을 성격에 따라 세 버킷으로 나눠 정의한다. **B와 C는 방향·신뢰경계가 반대**다 — B는 *우리 안쪽 백엔드로 들여보내는* inbound 프록시(상대가 GW를 신뢰), C는 *바깥 제3자로 나가는* outbound 연동(우리가 상대에 인증).
+GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의하지 않는다(중복 = 드리프트).
 
-| 버킷 | 무엇 | 방향 / 신뢰경계 | 정의 방법 | 정본(SSOT) |
+- **A. GW 고유 API** — GW가 직접 정의·처리하는 면(§7 전부).
+- **Proxy. 레지스트리 라우팅 프록시** — 등록된 upstream으로 요청을 **그대로 전달(verbatim bypass)** 하는 면. upstream이 우리 소유(내부)냐 제3자(외부)냐에 따라 **trust profile만 다르며**(라우팅 메커니즘은 동일), 각각 **B(internal)·C(external)** 로 부른다.
+
+**두 면은 요청의 `Vatech-Target` 헤더 유무로 배타적으로 갈린다** — 없으면 A(GW가 처리), 있으면 Proxy(등록 upstream으로 전달). 라우팅 모델·불변식은 §4.1.2, 결정 근거는 ADR-11(target-routed proxy).
+
+| 면 | 무엇 | 라우팅 키 | GW 역할 | 정본(SSOT) |
 | --- | --- | --- | --- | --- |
-| **A. GW 고유 API** | §7 전부 — 인증·enrollment·디바이스 레지스트리·region resolve·**Upload Session(§7.4 — 경로① 전용, AXS/CleverSpace presign 아님)**·Webhook 수신·**관리 API(③-C Console이 호출하는 Backoffice/관리 API 포함, §7.9·§7.8)**. UI 자체는 ③-C | GW 자신이 노출 | GW가 직접 OpenAPI 정의(NestJS code-first `@nestjs/swagger`, §1.7.1) | 본 SRS §7 + [OpenAPI](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/openapi/vt-api-gateway.openapi.yaml) |
-| **B. 프록시 라우트** | **우리 소유** 백엔드(CleverSpace·OneID·CleverLab)로 통과시키는 경로 | inbound·**내부망(trusted)** — 백엔드가 GW 신뢰, 정규화 신원 전달 | **라우트 설정**(매칭→upstream→정책)으로만 정의. 백엔드 OpenAPI는 *참조*만, 재정의 금지 | 각 백엔드 제품의 OpenAPI |
-| **C. Egress 커넥터** | **외부 제3자**(Straumann AXS, 향후 DS Core/3Shape) 연동 | outbound·**경계 밖(untrusted)** — 우리가 외부에 OAuth 인증, 토큰/secret 관리(§7.1.3)·고정 egress IP | 커넥터 프레임워크 + egress allowlist(§7.5) + Webhook 역수신(§7.6) | ④ Sub-SRS + 외부 OpenAPI 스냅샷 |
+| **A. GW 고유 API** | §7 전부 — 인증·enrollment·디바이스 레지스트리·region resolve·**Upload Session(§7.4 — 경로① 전용, AXS/CleverSpace presign 아님)**·Webhook 수신·**관리 API(③-C Console이 호출하는 Backoffice/관리 API 포함, §7.9·§7.8)**. UI 자체는 ③-C | **`Vatech-Target` 없음** (GW-own) | GW가 직접 처리·OpenAPI 정의(NestJS code-first `@nestjs/swagger`, §1.7.1) | 본 SRS §7 + [OpenAPI](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/openapi/vt-api-gateway.openapi.yaml) |
+| **B. 프록시(internal)** | **우리 소유** 백엔드(CleverSpace·OneID·CleverLab) | **`Vatech-Target` = 논리 ID**(예 `cleverspace`) | **verbatim bypass** + 정규화 신원 전달 + 정책 체인. 내부망 trusted — 백엔드가 GW 신뢰 | 각 백엔드 제품의 OpenAPI |
+| **C. 프록시(external)** | **외부 제3자**(Straumann AXS, 향후 DS Core/3Shape) | **`Vatech-Target` = 논리 ID**(예 `axs`) | **verbatim bypass** + OAuth2 인증·토큰/secret 관리(§7.1.3)·고정 egress IP·egress allowlist(§7.5)·Webhook 역수신(§7.6). 경계 밖 untrusted | ④ Sub-SRS + 외부 OpenAPI 스냅샷 |
 
-- **B vs C 한 줄**: B = 내부 안내 데스크(통과), C = 거래처에 출입증 들고 방문(인증·토큰·egress IP). C가 토큰·secret·외부 장애 책임까지 지므로 §7.5 커넥터 프레임워크로 1급 처리하고, B는 라우트+정책 체인 수준의 경량이다.
-- **파일 업로드·presigned는 API 버킷과 데이터 경로를 구분한다**(§4.1.4). `/v1/uploads`는 **경로①(디바이스→우리 리전 storage)** 전용 A버킷 API이며, CleverSpace·AXS·제3자 presign 규약을 GW가 하나로 **해석·변환·중계하지 않는다**. 해당 presign 요청은 **B/C bypass**(upstream OpenAPI 정본 그대로 통과). **파일 바이트**는 어느 경로든 presigned URL로 **storage에 직접 업로드**(GW 미경유).
-- 대부분의 control-plane 트래픽은 **A(GW 고유 API) + presigned 직결(데이터 plane, §7.4·§4.1.4)** 이며, B(투명 프록시)는 소수 라우트다.
+- **handle(A) vs proxy(B/C) 판별 = `Vatech-Target` 유무**(배타). A에 헤더 부착 시 거부, proxy인데 누락 시 fail-closed(`400`). 상세 불변식은 §4.1.2.
+- **B vs C = trust profile 차이일 뿐 라우팅은 동일**: B = 내부 안내 데스크(통과 + 정규화 신원), C = 거래처 방문(OAuth·토큰·secret·고정 egress IP·외부 장애 책임). C가 토큰·secret·외부 장애 책임까지 지므로 §7.5 커넥터 프레임워크로 1급 처리하고, B는 정책 체인 수준의 경량이다.
+- **신규 upstream 추가 = 레지스트리 1행**(논리 ID→host + trust profile + 정책·egress)으로 끝난다 — **코드·경로 네임스페이스 변경 0**(NFR-SCL §6.3.5). §7.5.1 connector 프레임워크를 _내부·외부 전 upstream_ 으로 일반화한 것이며, 내부·외부를 **하나의 라우팅 규칙**으로 다룬다.
+- **파일 업로드·presigned는 API 면과 데이터 경로를 구분한다**(§4.1.4): 경로①=A(`/v1/uploads`, GW 고유), 경로②=B proxy(`Vatech-Target: cleverspace`), 경로③=C proxy(`Vatech-Target: axs`). GW는 CleverSpace·AXS·제3자 presign 규약을 **해석·변환·중계하지 않는다**(verbatim). **파일 바이트**는 어느 경로든 presigned로 **storage 직접 업로드**(GW 미경유).
 
 ### 4.1.2 라우팅·API 설계 규칙
 
-1. **목적지는 GW가 결정한다(서버측 라우트 테이블).** 매칭 조건(host/path 네임스페이스, 예 `/cs/*`·`/oneid/*`)으로 upstream을 정하며, **클라이언트가 목적지 주소를 지정하지 않는다.** **handle(A버킷 — GW가 직접 처리) vs bypass(B/C버킷 — upstream 그대로 통과) 결정도 경로/호스트 네임스페이스로 정적으로 내려진다**(라우트 테이블 config 시점에 고정 — 요청마다 동적으로 바뀌지 않는다). 따라서 **A의 예약 네임스페이스**(`/v1/<고정 세그먼트>`(`auth`·`enroll`·`devices`·`region`·`uploads`·`webhooks` 등)·`/admin/v1/*`·`/.well-known/*`)는 **B/C 프록시·tenant 경로(`/v1/{tenant}/connectors/*` 포함)가 침범(shadow)할 수 없다** — tenant ID 등 경로 변수는 A 예약 세그먼트와 충돌하는 값을 가질 수 없으며, 매칭은 정확 경로(A)가 패턴 경로(C)보다 우선한다(reserved-segment 규율).
-2. **클라이언트 지정 upstream(원서버 주소를 헤더로) 금지.** SSRF·오픈 프록시·토폴로지 결합·라우트별 정책 적용 불가 때문이다. **라우팅의 SSOT는 경로/호스트 네임스페이스**(예 `/cs/*`·`/oneid/*`)이며, **`Vatech-Target`은 대안 라우터가 아니라 일관성 가드(guard)다.** `Vatech-Target`(원서버 주소가 아니라 *논리 서비스 ID*, 예 `cleverspace`)이 **있으면** GW가 **allowlist로 검증하고 경로에서 파생한 target과 일치하는지 확인**한다(불일치 → `400`). **없어도 라우팅은 경로만으로 성립**한다(선택적·예약 헤더, v1.0 기본 미요구). 경로가 target을 표현하지 못하는 *특정 라우트 클래스*가 생기는 경우에 한해, **그 라우트에 대해서만 per-route로 `Vatech-Target` 필수**를 선언할 수 있다(**전역 의무화 아님** — 의무화는 경로/헤더 이중 진실원·규칙 1의 "GW가 목적지 결정" 원칙과 충돌하고, A 고유 API·외부 Webhook 수신엔 적용 불가하기 때문). 임의 라우팅 헤더(`X-Upstream` 등) 신설 금지 — 힌트는 `Vatech-Target`으로 단일화.
+1. **라우팅 모델 — `Vatech-Target` 유무로 면을 가른다.** 요청에 `Vatech-Target`이 **없으면 GW 고유 API(A)** 로 GW가 처리하고, **있으면 Proxy(B/C)** 로 등록 upstream에 전달한다. 두 면은 **배타** — A의 GW-own 경로에 `Vatech-Target` 부착 시 거부, proxy 호출에 누락 시 **fail-closed(`400`)**(추측 라우팅 금지). **v1.0부터 proxy 호출은 `Vatech-Target` 필수**(케이스 D 통합 — GW 전환 시 클라이언트를 어차피 변경하므로 증분 부담).
+2. **목적지는 GW가 결정한다(서버측 레지스트리) — 클라이언트는 host/주소를 지정하지 않는다.** `Vatech-Target`은 **논리 서비스 ID(enum)만** 싣고 **host/URL은 금지**한다. GW가 레지스트리로 id→host를 해석(allowlist 검증)하며 **미등록 id → 거부(`404`/`403`)**. 따라서 클라이언트는 _논리 의도_ 만 표명하고 **주소 결정권은 GW**가 보유한다(SSRF·오픈 프록시·토폴로지 결합 차단). 원서버 주소 헤더·임의 라우팅 헤더(`X-Upstream` 등) 신설 금지 — 라우팅 키는 `Vatech-Target` 단일.
+3. **proxy 전달은 verbatim, 정책은 path를 본다.** 클라이언트는 GW 호스트에 **upstream 경로를 그대로** 호출하고, GW는 **host만 바꿔 요청/응답 body를 그대로 통과**(필드 해석·변환 없음)한다. 단 **인증·버전 게이트·egress allowlist 정책은 (target+method+path)로 검사**한다 — GW는 path를 _라우팅엔_ 쓰지 않되 _정책엔_ 본다. **리전 목적지**는 `Vatech-Target`(어느 서비스) + `Vatech-Clinic-Id`(어느 리전, §7.3 resolver)의 **직교 조합**으로 구체 host를 정한다(멀티 Region).
+4. **proxy(B·C)도 정책 체인을 통과한다** — 인증(§7.1)·버전 게이트(§7.7)·egress/allowlist(§7.5.3·§6.5). 전달이 무검증이 아니다. B/C 차이는 **trust profile**(§4.1.1)뿐 — C는 OAuth·토큰 관리(§7.1.3)·고정 egress IP가 추가된다.
 
-> **`Vatech-Target`(라우팅 보조) ≠ `Vatech-*` 식별 헤더(§7.7.1).** `Vatech-Product`·`Version`·`OS`·`Clinic-Id`·`Via`는 **버전 호환 판정용 필수 식별 헤더**(FR-COMPAT-01)이고, `Vatech-Target`은 **라우팅 보조용 선택 헤더**다. 이름이 비슷하나 역할·필수 여부가 다르다.
-3. **식별·버전·리전 헤더는 `Vatech-*` 표준만 사용**(§7.7.1). "어느 서버로"가 아니라 "누가·어떤 버전·어느 클리닉"을 싣는다. 리전 목적지는 ClinicID→region resolver(§7.3)가 결정한다.
-4. **B 라우트도 정책 체인을 통과한다** — 인증(§7.1)·버전 게이트(§7.7)·egress/allowlist(§7.5.3·§6.5). 통과시킨다고 무검증이 아니다.
+> **`Vatech-Target`(라우팅) ≠ `Vatech-*` 식별 헤더(§7.7.1).** 식별·버전·리전 헤더는 `Vatech-*` 표준(`Product`·`Version`·`OS`·`Clinic-Id`·`Via`)만 쓰며 **버전 호환 판정용 필수**(FR-COMPAT-01)다 — "누가·어떤 버전·어느 클리닉"을 싣는다. `Vatech-Target`은 **라우팅용으로 proxy 호출에 필수**다 — "어느 논리 서비스로"를 싣는다. 이름이 비슷하나 역할이 다르다(식별 vs 라우팅).
+
 5. **GW 고유 API 컨벤션**: REST/JSON, **경로 버전 프리픽스 `/v1`**(예 `/v1/auth/token`·`/v1/webhooks/{provider}`, 관리 API는 `/admin/v1/*`), camelCase 필드, 시간 Unix ms(§1.3), 표준 오류코드(§7.7.4), idempotency key(§4.5). 단 `/.well-known/*`은 표준 관례상 버전 프리픽스 없이 노출(§7.7.2). 스키마 정본은 Swagger(code-first).
 
-> 결정 근거·반려 대안(투명 프록시 vs 클라이언트 지정 upstream)은 ARD ADR 참조(해당 ADR 미작성 시 추가). 본 절은 SRS 차원 규칙 요약.
+> 결정 근거·반려 대안(경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream)은 **ADR-11(라우팅 모델: target-routed proxy)** 참조(ARD에 정식 기재 — Appendix B 추적). 본 절은 SRS 차원 규칙 요약.
 
 ### 4.1.3 Webhook API 정의 방침
 
-Webhook은 3버킷 중 하나로 떨어지지 않는 **하이브리드**다 — *수신 엔드포인트*는 A(GW 고유 API), *이벤트 payload 스키마*는 C(외부 소유·참조만), *분배*는 내부 경로(클라우드 HTTP push·Edge MQTT)다. 단순 host 기반 프록시가 아니라 **수신→검증→멱등→ACK→매핑 기반 분배**의 store-and-forward 모델이다(§7.6). 따라서 API를 "전부 새로 정의"하지 않고, **GW가 소유하는 면만 정의하고 나머지는 참조**한다. 추후 §7.6 상세화 시 아래 4가지를 구분해 작성한다.
+Webhook은 두 면(§4.1.1) 어느 쪽에도 깔끔히 떨어지지 않는 **하이브리드**다 — *수신 엔드포인트*는 A(GW 고유 API — 외부가 `Vatech-Target` 없이 GW로 직접 POST), *이벤트 payload 스키마*는 C(외부 소유·참조만), *분배*는 내부 경로(클라우드 HTTP push·Edge MQTT)다. 단순 host 기반 프록시가 아니라 **수신→검증→멱등→ACK→매핑 기반 분배**의 store-and-forward 모델이다(§7.6). 따라서 API를 "전부 새로 정의"하지 않고, **GW가 소유하는 면만 정의하고 나머지는 참조**한다. 추후 §7.6 상세화 시 아래 4가지를 구분해 작성한다.
 
 1. **수신 엔드포인트 = GW가 OpenAPI로 정의한다 (A버킷).** 정의 대상은 *봉투(envelope)와 수신 계약*이지 외부 이벤트 본문이 아니다.
    - 경로: `POST /v1/webhooks/{provider}` (`provider` = `axs` 등 enum, 미지원 → 404). 호스트는 §4.5.1.
@@ -576,8 +584,8 @@ Webhook은 3버킷 중 하나로 떨어지지 않는 **하이브리드**다 — 
 | # | 대상 | presign·업로드 **요청 API** (control) | presign **발급 주체** | GW 역할 | OpenAPI 정본 |
 | --- | --- | --- | --- | --- | --- |
 | **①** | **의료 디바이스 → 우리 리전 storage**(PHI·주권) | **`POST /v1/uploads`…** (A버킷, §7.4) | **Region Signer Agent** — CleverSpace/AXS **앱 presign API 아님** | 리전 해석(§7.3)·세션·정책·Signer 조율·commit | GW OpenAPI |
-| **②** | **CleverSpace 등 사내 백엔드** presign·파일 API | **B버킷 프록시**(예 `/cs/*` — upstream 경로는 CleverSpace OpenAPI) | **CleverSpace**(또는 해당 백엔드) | **bypass** — 요청/응답 body **그대로 통과**, GW가 필드 해석·변환 **하지 않음** | CleverSpace OpenAPI |
-| **③** | **Straumann AXS** 등 외부 presign·파일 API | **C버킷 connector**(예 `/v1/{tenant}/connectors/axs/*`) | **AXS**(외부) | **bypass** + OAuth2·egress allowlist(§7.5) | ④ Sub-SRS + AXS 스냅샷 |
+| **②** | **CleverSpace 등 사내 백엔드** presign·파일 API | **B 프록시** — `Vatech-Target: cleverspace`, upstream 경로 verbatim(§4.1.2) | **CleverSpace**(또는 해당 백엔드) | **verbatim bypass** — 요청/응답 body **그대로 통과**, GW가 필드 해석·변환 **하지 않음** | CleverSpace OpenAPI |
+| **③** | **Straumann AXS** 등 외부 presign·파일 API | **C 프록시** — `Vatech-Target: axs`, upstream 경로 verbatim(§4.1.2) | **AXS**(외부) | **verbatim bypass** + OAuth2·egress allowlist(§7.5) | ④ Sub-SRS + AXS 스냅샷 |
 
 #### data plane (공통 — 세 경로 모두 동일)
 
@@ -617,16 +625,16 @@ GW 본체는 무인 control plane. Admin UI는 **③-C GW Console Sub-SRS**에�
 
 ## 4.4 Software Interface (소프트웨어 인터페이스)
 
-| 구성요소 | 버전 | 용도 |
-| --- | --- | --- |
-| OneID (OIDC) | TBD | 사람·클리닉·사내 호출자 인증 |
-| Straumann AXS API | OpenAPI 스냅샷(2026-06-16) | 외부 연동(④) |
-| PostgreSQL | 15.x | 레지스트리·매핑·토큰메타·정책·감사 |
-| Redis | TBD | region 캐시·nonce·rate-limit·idempotency·JWKS |
-| 메시지 큐 (RabbitMQ 권장 / SQS) | TBD | Webhook 비동기 분배·재시도·백오프·DLQ(§7.6.3). 선정 기준은 전달 보증·포터빌리티(ARD §4.5) |
-| 오브젝트 스토리지 (S3 / MinIO) | TBD | 업로드 세션 파일 직결(presigned, §7.4). 디바이스→리전 storage 직결로 GW 미경유 |
-| MQTT Broker | TBD | Edge(EzServer) 분배(QoS1) |
-| OPA | TBD | allowlist·region·scope·egress 판단 |
+| 구성요소                        | 버전                       | 용도                                                                                      |
+| ------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------- |
+| OneID (OIDC)                    | TBD                        | 사람·클리닉·사내 호출자 인증                                                              |
+| Straumann AXS API               | OpenAPI 스냅샷(2026-06-16) | 외부 연동(④)                                                                              |
+| PostgreSQL                      | 15.x                       | 레지스트리·매핑·토큰메타·정책·감사                                                        |
+| Redis                           | TBD                        | region 캐시·nonce·rate-limit·idempotency·JWKS                                             |
+| 메시지 큐 (RabbitMQ 권장 / SQS) | TBD                        | Webhook 비동기 분배·재시도·백오프·DLQ(§7.6.3). 선정 기준은 전달 보증·포터빌리티(ARD §4.5) |
+| 오브젝트 스토리지 (S3 / MinIO)  | TBD                        | 업로드 세션 파일 직결(presigned, §7.4). 디바이스→리전 storage 직결로 GW 미경유            |
+| MQTT Broker                     | TBD                        | Edge(EzServer) 분배(QoS1)                                                                 |
+| OPA                             | TBD                        | allowlist·region·scope·egress 판단                                                        |
 
 ## 4.5 Communication Interface (통신 인터페이스)
 
@@ -641,10 +649,10 @@ DNS 호스트는 *클라이언트가 접속하는 외부 계약*이므로 본 SR
 
 | 용도 | 제안 호스트 | 비고 |
 | --- | --- | --- |
-| GW API (GeoDNS apex) | `api-gateway.vatech.com` | 레포 `vt-api-gateway`와 일치. 짧은 대안 `gw.vatech.com`. Route 53 GeoDNS로 최근접 리전 라우팅(§7.3.5) |
-| Webhook 수신 | `https://api-gateway.vatech.com/v1/webhooks/<provider>` | 단일 호스트 경로 기반(§7.6.1). `/v1` 버전 프리픽스(§4.1.2-5) |
+| GW API (GeoDNS apex) | `gw.vatech.com` | 레포 `vt-api-gateway`와 일치. 짧은 대안 `gw.vatech.com`. Route 53 GeoDNS로 최근접 리전 라우팅(§7.3.5) |
+| Webhook 수신 | `https://gw.vatech.com/v1/webhooks/<provider>` | 단일 호스트 경로 기반(§7.6.1). `/v1` 버전 프리픽스(§4.1.2-5) |
 | 리전별 엔드포인트(내부) | `api-gateway-<region>.vatech.com` (예: `-apne2`) | GeoDNS 백엔드. 멀티 리전(gw/1.2)에서 사용 |
-| GW Console | `console.api-gateway.vatech.com` (대안 `gw-console.vatech.com`) | **③-C 영역** — 본 SRS는 참조만. 확정은 ③-C Sub-SRS |
+| GW Console | `console.gw.vatech.com` | **③-C 영역** — 본 SRS는 참조만. 확정은 ③-C Sub-SRS |
 
 - **TBD**: 위 호스트명 확정
   - 미결 이유: DNS·인증서·GeoDNS 구성은 인프라/플랫폼팀 결정 사항
@@ -660,8 +668,7 @@ None
 
 # 5 Performance requirements (성능 요구사항)
 
-> 수치는 §3.1 운영 환경(AWS 단일 리전 v1.0) 기준.
-> **범위 경계**: 본 SRS는 *성능 요구치(목표)* 만 정의한다. **서버/노드 규모·용량 산정은 GW SRS 범위 밖(인프라 IaC 영역, §3.1)** 이며, 디바이스/클리닉 운영 규모 수치는 PL이 제공한다.
+> 수치는 §3.1 운영 환경(AWS 단일 리전 v1.0) 기준. **범위 경계**: 본 SRS는 _성능 요구치(목표)_ 만 정의한다. **서버/노드 규모·용량 산정은 GW SRS 범위 밖(인프라 IaC 영역, §3.1)** 이며, 디바이스/클리닉 운영 규모 수치는 PL이 제공한다.
 
 ## 5.1 Throughput (작업처리량)
 
@@ -691,6 +698,7 @@ None
 인증·프록시 **p95 < 300ms** (파일 전송 제외) — NFR-PERF. 파일 전송은 presigned 직결이라 본 목표에서 제외(§5.4).
 
 > **🔍 대안 검토 — control-plane 응답 시간 목표 (NFR-PERF)**
+>
 > - 채택안: 인증·프록시 **p95 < 300ms**(파일 제외)
 >   - 장점: 디바이스 작업 직전 인증·라우팅 지연 체감 최소. 일반 API 게이트웨이 통념 수준
 >   - 단점: 단일 리전·강한 일관성 경로(revocation·mapping 변경)에서 여유 적음
@@ -718,13 +726,13 @@ None
 
 GW는 의료 데이터(PHI) 경로의 control plane이므로, 데이터 보호·오연동 방지가 안전성의 핵심이다. 도출용 5질문 기준:
 
-| # | 질문 | 본 SRS 대응 |
-| --- | --- | --- |
-| 1 | 비정상 동작이 재산·프라이버시 피해를 주는가 | PHI 유출·오리전 전송이 위험 → §6.1 통제 대상 |
-| 2 | 피해 확률 | 라우팅 오류·매핑 drift 시 발생 가능 → mapping_version·강한 일관성(§7.3)로 완화 |
-| 3 | 비정상 종료·장애 | Webhook 수신 실패·큐 적체 → 빠른 ACK·DLQ(§7.6.3) |
-| 4 | 사용자(운영자) 실수 | 매핑 오재지정 → 재동의·감사 강제(§7.3.4·§7.9) |
-| 5 | 피할 수 없는 피해 | 리전 장애 시 가용성 저하 → Multi-AZ(§6.3.1) |
+| #   | 질문                                        | 본 SRS 대응                                                                    |
+| --- | ------------------------------------------- | ------------------------------------------------------------------------------ |
+| 1   | 비정상 동작이 재산·프라이버시 피해를 주는가 | PHI 유출·오리전 전송이 위험 → §6.1 통제 대상                                   |
+| 2   | 피해 확률                                   | 라우팅 오류·매핑 drift 시 발생 가능 → mapping_version·강한 일관성(§7.3)로 완화 |
+| 3   | 비정상 종료·장애                            | Webhook 수신 실패·큐 적체 → 빠른 ACK·DLQ(§7.6.3)                               |
+| 4   | 사용자(운영자) 실수                         | 매핑 오재지정 → 재동의·감사 강제(§7.3.4·§7.9)                                  |
+| 5   | 피할 수 없는 피해                           | 리전 장애 시 가용성 저하 → Multi-AZ(§6.3.1)                                    |
 
 핵심 안전 규칙:
 
@@ -736,16 +744,16 @@ GW는 의료 데이터(PHI) 경로의 control plane이므로, 데이터 보호·
 
 보안 분석 8항목 점검(상세 정책은 [인증·보안·컴플라이언스 설계](https://vks.vatech.com/pages/viewpage.action?pageId=311608329) 참조):
 
-| # | 항목 | GW 적용 |
-| --- | --- | --- |
-| 1 | Authentication | 디바이스 OAuth2 cc + claim 바인딩(§7.1.1), 사내·사람 OneID OIDC(§7.1.4). DPoP+HW키 v1.1(ADR-01) |
-| 2 | Authorization | 운영자 RBAC(§7.9.2), scope 기반 디바이스 권한 |
-| 3 | Access control | OPA allowlist(미등록 디바이스 차단 §7.2.2), egress endpoint allowlist(§7.5.3) |
-| 4 | Non-repudiation | append-only 감사(operator·timestamp·before/after·IP, §7.9.3) |
-| 5 | Confidentiality | 전 구간 TLS, 시크릿 KMS, 외부 토큰 암호화 저장(§7.1.3), PII/PHI 비저장(NFR-SEC) |
-| 6 | Integrity | 업로드 checksum/ETag(§7.4.5), idempotency(§7.4.4·§7.6.4), Webhook HMAC(§7.6.2) |
-| 7 | Secure coding | OWASP Top 10 점검, 의존성 스캔(CI 게이트) |
-| 8 | Web vulnerabilities | 입력 검증(class-validator), 표준 오류 매핑(§7.7.4) |
+| #   | 항목                | GW 적용                                                                                         |
+| --- | ------------------- | ----------------------------------------------------------------------------------------------- |
+| 1   | Authentication      | 디바이스 OAuth2 cc + claim 바인딩(§7.1.1), 사내·사람 OneID OIDC(§7.1.4). DPoP+HW키 v1.1(ADR-01) |
+| 2   | Authorization       | 운영자 RBAC(§7.9.2), scope 기반 디바이스 권한                                                   |
+| 3   | Access control      | OPA allowlist(미등록 디바이스 차단 §7.2.2), egress endpoint allowlist(§7.5.3)                   |
+| 4   | Non-repudiation     | append-only 감사(operator·timestamp·before/after·IP, §7.9.3)                                    |
+| 5   | Confidentiality     | 전 구간 TLS, 시크릿 KMS, 외부 토큰 암호화 저장(§7.1.3), PII/PHI 비저장(NFR-SEC)                 |
+| 6   | Integrity           | 업로드 checksum/ETag(§7.4.5), idempotency(§7.4.4·§7.6.4), Webhook HMAC(§7.6.2)                  |
+| 7   | Secure coding       | OWASP Top 10 점검, 의존성 스캔(CI 게이트)                                                       |
+| 8   | Web vulnerabilities | 입력 검증(class-validator), 표준 오류 매핑(§7.7.4)                                              |
 
 > 보안과 편리의 트레이드오프: 디바이스는 머신 인증(무인 자동), 운영자 관리 변경에만 RBAC·감사 강화 — 행위별 보안 강도 분리.
 
@@ -1025,11 +1033,12 @@ GW는 외부 시스템 연동을 **플러그형 connector(adapter)** 로 추상�
 FR-INT-01 (adapter 플러그형 등록).
 
 - **Output**: 신규 connector를 설정 기반으로 등록(코드 변경 최소)
+- **라우팅**: §4.1.2 target-routed proxy를 따른다 — connector 등록 = **레지스트리 1행**(논리 ID(예 `axs`)→host + trust profile `external` + egress allowlist). 내부 proxy(B)와 **동일 라우팅 메커니즘**이며 trust profile만 `external`이다. 신규 외부 연동(DS Core/3Shape 등) 확장 시 경로 네임스페이스·GW 코드 변경 없이 레지스트리 등록만으로 추가(NFR-SCL §6.3.5).
 - **Side Effect**: connector 토큰 저장·갱신은 §7.1.3 위임
 
 ### 7.5.2 AXS connector (P1)
 
-FR-INT-02 (Straumann AXS OAuth2·proxy·**파일/presign API bypass**의 *프레임워크 적용 지점*). AXS presign·파일 요청 body는 **AXS OpenAPI 그대로 통과**(§4.1.4 경로③) — GW가 `/v1/uploads`로 해석·변환하지 않음. E2E 동작 요구만 본 절에 두고, 상세 계약은 ④.
+FR-INT-02 (Straumann AXS OAuth2·proxy·**파일/presign API bypass**의 _프레임워크 적용 지점_). AXS presign·파일 요청 body는 **AXS OpenAPI 그대로 통과**(§4.1.4 경로③) — GW가 `/v1/uploads`로 해석·변환하지 않음. E2E 동작 요구만 본 절에 두고, 상세 계약은 ④.
 
 ### 7.5.3 egress 정책 + endpoint allowlist (P1)
 
@@ -1075,7 +1084,7 @@ FR-WH-05 (CleverLab/CleverSpace 등 클라우드 대상에 내부망 HTTP push, 
 
 FR-WH-06 (EzServer로 MQTT QoS1·persistent, 토픽=클리닉 단위). 오프라인 시 버퍼 후 재전달. b1(pilot)에 forward + 역방향 포함(AXS pilot 일정).
 
-**비목표(Will Not Do)**: 본 절은 *수신·분배 프레임*만 정의한다. AXS 이벤트의 *의미·매핑(Org-ID↔ClinicID 등)* 상세는 ④ Sub-SRS. 경로 B(CleverOne→CleverSpace 직결)는 Webhook 분배로 흡수 후 EOS(§2.8).
+**비목표(Will Not Do)**: 본 절은 *수신·분배 프레임*만 정의한다. AXS 이벤트의 _의미·매핑(Org-ID↔ClinicID 등)_ 상세는 ④ Sub-SRS. 경로 B(CleverOne→CleverSpace 직결)는 Webhook 분배로 흡수 후 EOS(§2.8).
 
 ## 7.7 API 버전 호환성 게이트 (P1)
 
@@ -1083,7 +1092,7 @@ FR-WH-06 (EzServer로 MQTT QoS1·persistent, 토픽=클리닉 단위). 오프라
 
 > **경계**: 제품측(CleverOne/EzServer의 헤더 부착, CleverSpace의 well-known 적용) 변경 상세는 **① API 호환성 One Pager**. 본 절은 *GW 게이트의 판정·공시·매트릭스 집행*만 정의한다. 1단계는 GW 신설 전에도 기존 경로(서버 직접 판정)에서 즉시 적용(ADR-07).
 
-### 7.7.1 Vatech-* 식별 헤더 표준 (P1)
+### 7.7.1 Vatech-\* 식별 헤더 표준 (P1)
 
 FR-COMPAT-01 (`Vatech-Product`·`Version`·`OS`·`Clinic-Id`·`Via` 파싱, originator 식별).
 
@@ -1182,35 +1191,37 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 
 ## Appendix A. Decision Log
 
-| 일시 | 결정 사항 | 채택안 | 비교 대안 | 채택 이유 | 결정자 | 관련 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 2026-06-08 | 디바이스 인증 | DPoP + HW키 | mTLS | 10만대 부담·키추출 위협 | Scott | ADR-01 |
-| 2026-06-08 | Control plane 상태 | soft-state | full stateless | cache TTL·mapping_version | Scott | ADR-02 |
-| 2026-06-15 | 버전 호환 | 헤더+well-known+매트릭스 | 클라이언트 버전 미전달 방치 | 원인불명 실패 제거 | Scott | ADR-07 |
-| 2026-06-15 | 인증 2면 | 디바이스 머신 + OneID 공존 | 단일 인증면 | 무인/사람 신원 성질 다름 | Scott | ADR-08 |
-| 2026-06-15 | Webhook | 단일 수신·분배(HTTP/MQTT) | 서비스별 개별 수신 | 검증 분산·Edge inbound 불가 | Scott | ADR-09 |
-| 2026-06-15 | 라우팅 키 | device↔clinic↔region 통합 | 이원화 | 동일 리전 귀결 | Scott | ADR-10 |
+| 일시       | 결정 사항          | 채택안                     | 비교 대안                   | 채택 이유                   | 결정자 | 관련   |
+| ---------- | ------------------ | -------------------------- | --------------------------- | --------------------------- | ------ | ------ |
+| 2026-06-08 | 디바이스 인증      | DPoP + HW키                | mTLS                        | 10만대 부담·키추출 위협     | Scott  | ADR-01 |
+| 2026-06-08 | Control plane 상태 | soft-state                 | full stateless              | cache TTL·mapping_version   | Scott  | ADR-02 |
+| 2026-06-15 | 버전 호환          | 헤더+well-known+매트릭스   | 클라이언트 버전 미전달 방치 | 원인불명 실패 제거          | Scott  | ADR-07 |
+| 2026-06-15 | 인증 2면           | 디바이스 머신 + OneID 공존 | 단일 인증면                 | 무인/사람 신원 성질 다름    | Scott  | ADR-08 |
+| 2026-06-15 | Webhook            | 단일 수신·분배(HTTP/MQTT)  | 서비스별 개별 수신          | 검증 분산·Edge inbound 불가 | Scott  | ADR-09 |
+| 2026-06-15 | 라우팅 키          | device↔clinic↔region 통합  | 이원화                      | 동일 리전 귀결              | Scott  | ADR-10 |
+| 2026-06-23 | 라우팅 모델        | target-routed proxy(`Vatech-Target` 유무로 GW-own/proxy 구분, proxy는 verbatim) | 경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream | upstream 무한 확장을 설정(레지스트리 1행) 기반으로 — 코드·경로 변경 0(NFR-SCL), 내부·외부 단일 규칙 | PM/아키텍트(CCB 확인 대기) | ADR-11 |
 
-> 전체 ADR(01~10)·근거는 ARD §2. 본 표는 SRS 차원 핵심 결정 요약.
+> 전체 ADR(01~11)·근거는 ARD §2. 본 표는 SRS 차원 핵심 결정 요약. **ADR-11은 ARD에 정식 기재 필요(Appendix B #13).**
 
 ## Appendix B. TBD·미결 항목 추적
 
 > baseline 전 닫아야 할 결정 항목. 본문 각 절의 TBD를 한 곳에 모은 추적표(본문이 정본, 본 표는 인덱스). 설계 단계의 단순 버전·도구 TBD(§3·§4.4)는 묶어 1행으로 둔다.
 
-| # | 항목 | 본문 | 책임자 | 마감 | 영향 |
-| --- | --- | --- | --- | --- | --- |
-| 1 | v1.0 목표 RPS·동시 세션(fleet 규모) | §5.1·5.2 | 인프라(규모 PL 입력) | 설계 착수 전 | §3.1·§7.1·§7.4 |
-| 2 | 공개 엔드포인트 DNS 호스트명 | §4.5.1 | 인프라/플랫폼팀 | 배포 구성 착수 전 | §1.7.1·§3.1·§7.3.5·§7.6.1·①②④·③-C |
-| 3 | 경로 B EOS 시점 | §2.8·§7.6 | PM(제품) | ① One Pager 확정 시 | §7.6·① |
-| 4 | MQTT 브로커 운영 주체 | §2.6·§7.6 | 운영조직(미정) | ③-P-EZ 착수 전 | §7.6·ARD |
-| 5 | 감사·consent 보존 기간 | §6.4·§7.9.3·§7.9.5 | 품질/법무 | baseline 전 | §6.5 |
-| 6 | OpenAPI·DBML (`docs/specs/design/`) | §1.5·§4.1·§6.4 | GW(본인) | dev-chain-design 작성 후 | §7 전반 |
-| 7 | 멀티 Region·멀티클라우드 gw/1.0 흡수 여부 | §2.7 | PM/아키텍트 | 설계 착수 전 | §7.3·§7.4 |
-| 8 | 호환성 매트릭스 확정본 | §2.8·§7.7.5 | ① One Pager | ① 확정 시 | §7.7 |
-| 9 | RTO/RPO·유지보수 윈도우 | §6.3.1·§6.8 | 인프라 | 설계 단계 | §6 |
-| 10 | CCB 명단·승인자 | §8·§9 | PM | baseline 직전 | 변경관리 |
-| 11 | 인증(IEC 62304/13485) 일정·준비물 | §6.13·§6.14 | 품질/마케팅 | 추후 | — |
-| 12 | 인프라·런타임 상세 버전(도구·노드) | §3·§4.4 | 인프라/개발 | 설계 단계 | §3 |
+| #   | 항목                                      | 본문               | 책임자               | 마감                     | 영향                              |
+| --- | ----------------------------------------- | ------------------ | -------------------- | ------------------------ | --------------------------------- |
+| 1   | v1.0 목표 RPS·동시 세션(fleet 규모)       | §5.1·5.2           | 인프라(규모 PL 입력) | 설계 착수 전             | §3.1·§7.1·§7.4                    |
+| 2   | 공개 엔드포인트 DNS 호스트명              | §4.5.1             | 인프라/플랫폼팀      | 배포 구성 착수 전        | §1.7.1·§3.1·§7.3.5·§7.6.1·①②④·③-C |
+| 3   | 경로 B EOS 시점                           | §2.8·§7.6          | PM(제품)             | ① One Pager 확정 시      | §7.6·①                            |
+| 4   | MQTT 브로커 운영 주체                     | §2.6·§7.6          | 운영조직(미정)       | ③-P-EZ 착수 전           | §7.6·ARD                          |
+| 5   | 감사·consent 보존 기간                    | §6.4·§7.9.3·§7.9.5 | 품질/법무            | baseline 전              | §6.5                              |
+| 6   | OpenAPI·DBML (`docs/specs/design/`)       | §1.5·§4.1·§6.4     | GW(본인)             | dev-chain-design 작성 후 | §7 전반                           |
+| 7   | 멀티 Region·멀티클라우드 gw/1.0 흡수 여부 | §2.7               | PM/아키텍트          | 설계 착수 전             | §7.3·§7.4                         |
+| 8   | 호환성 매트릭스 확정본                    | §2.8·§7.7.5        | ① One Pager          | ① 확정 시                | §7.7                              |
+| 9   | RTO/RPO·유지보수 윈도우                   | §6.3.1·§6.8        | 인프라               | 설계 단계                | §6                                |
+| 10  | CCB 명단·승인자                           | §8·§9              | PM                   | baseline 직전            | 변경관리                          |
+| 11  | 인증(IEC 62304/13485) 일정·준비물         | §6.13·§6.14        | 품질/마케팅          | 추후                     | —                                 |
+| 12  | 인프라·런타임 상세 버전(도구·노드)        | §3·§4.4            | 인프라/개발          | 설계 단계                | §3                                |
+| 13  | ADR-11(라우팅 모델: target-routed proxy) ARD 정식 기재 + 클라이언트 `Vatech-Target` 부착 적응 | §4.1.1·§4.1.2·§4.1.4·§7.5·Appendix A | GW/아키텍트(ARD) · PM(CCB 승인) | baseline 전 | §4.1·§7.5·OpenAPI·③-P-CS/CO/EZ(헤더 부착)·① |
 
 ## 8 Change Management Process
 
@@ -1222,11 +1233,11 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 
 본 SRS는 baseline 통과 시 인수자·일시를 본 절에 기록한다. (현재 골격 — 미승인)
 
-| 역할 | 인수자 | 승인 일시 |
-| --- | --- | --- |
-| PM | TBD | — |
-| GW 백엔드 리드 | TBD | — |
-| QA 리드 (옵저버) | TBD | — |
+| 역할             | 인수자 | 승인 일시 |
+| ---------------- | ------ | --------- |
+| PM               | TBD    | —         |
+| GW 백엔드 리드   | TBD    | —         |
+| QA 리드 (옵저버) | TBD    | —         |
 
 ---
 
@@ -1243,7 +1254,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-17 | §8 CCB 구성 조정(PM+GW 백엔드 리드 핵심 2인, QA·보안·인프라 사안별 옵저버), §9 승인자 QA 리드 → 옵저버 | (작성자 ID 미지정) |
 | 2026-06-17 | §5 범위 경계 명시(서버/노드 규모·용량 산정은 인프라 IaC 영역, GW SRS 범위 밖) + §5.1·5.2 책임자 인프라 담당(규모 수치 PL 입력)으로 확정 | (작성자 ID 미지정) |
 | 2026-06-17 | 자체 검증 심화 — FR/NFR 전수 대조(전 FR ID §7 매핑·MIG v2.0 비목표 확인), NFR-SCL 갭 보강(§6.3.5 Scalability 추가), 교차 참조·비목표 버전 정합 확인. Appendix B(TBD 추적표 12항목) 추가 | (작성자 ID 미지정) |
-| 2026-06-22 | §4.1.1 API 정의 전략(3버킷: GW 고유 API/프록시 라우트/Egress 커넥터) + §4.1.2 라우팅·API 설계 규칙(서버측 라우트, 클라이언트 지정 upstream 금지=SSRF, Vatech-* 한정, 정책 체인, 고유 API 컨벤션) 추가 | (작성자 ID 미지정) |
+| 2026-06-22 | §4.1.1 API 정의 전략(3버킷: GW 고유 API/프록시 라우트/Egress 커넥터) + §4.1.2 라우팅·API 설계 규칙(서버측 라우트, 클라이언트 지정 upstream 금지=SSRF, Vatech-\* 한정, 정책 체인, 고유 API 컨벤션) 추가 | (작성자 ID 미지정) |
 | 2026-06-22 | §4.1.2 규칙 2 보강 — 경로/호스트 1차 라우팅 명시 + `Vatech-Target`(논리 서비스 ID·allowlist·선택/예약, v1.0 미사용 가능) 헤더 표준화, 임의 라우팅 헤더 신설 금지 | (작성자 ID 미지정) |
 | 2026-06-22 | §4.1.1 표에 "방향/신뢰경계" 열 추가 — B(inbound·내부 trusted 프록시) vs C(outbound·외부 untrusted 연동) 구분 명확화, presigned 비경유 경로 명시 | (작성자 ID 미지정) |
 | 2026-06-22 | §4.1.1 A버킷에 ③-C Console이 호출하는 Backoffice/관리 API 포함(§7.9·§7.8) 명시 — UI=③-C / API=GW 경계 가시화 | (작성자 ID 미지정) |
@@ -1252,3 +1263,4 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-22 | §2.3 Overall Operation 확장 — 동작 개요를 시나리오 7종(2.3.1~2.3.7: 온보딩·인증·리전·업로드 경로①·외부연동 경로③·Webhook·버전호환)으로 재작성, 각 시나리오 설명 + mermaid 시퀀스 다이어그램 추가. 액터를 §2.1·§2.2 컴포넌트와 정합, §4.1.4 경로 구분·`/v1/webhooks` 반영. 상세 시퀀스는 ARD §5 위임 유지 | (작성자 ID 미지정) |
 | 2026-06-22 | 디바이스 토큰 갱신 정책 명시 — §7.1.1 Trigger/Output에 "갱신=client_credentials 재발급, refresh token 미발급"(RFC 6749 §4.4.3) 명문화 + Will Not Do에 `refresh_token` grant 미도입 사유 추가, §2.3.2 다이어그램에 재발급 loop·refresh 미사용 note 반영. 단명+즉시 revocation 모델 보존 | (작성자 ID 미지정) |
 | 2026-06-22 | §4.1.2 라우팅 규칙 보강 — 규칙 1에 handle(A)/bypass(B/C) 정적 결정 + A 예약 네임스페이스 reserved-segment 규율 추가, 규칙 2를 가드형으로 재작성(`Vatech-Target`=대안 라우터 아닌 일관성 가드: 있으면 경로 파생 target과 일치 검증·불일치 400, 없어도 경로로 라우팅 성립, per-route만 필수 가능·전역 의무화 아님) + `Vatech-Target`(라우팅 선택) vs `Vatech-*` 식별 헤더(호환 필수) 구분 명시 | (작성자 ID 미지정) |
+| 2026-06-23 | **라우팅 모델 전환(ADR-11) — target-routed proxy 채택.** §4.1.1 3버킷 → 2면(GW 고유 API / 레지스트리 라우팅 프록시, B·C=trust profile) 재구성, §4.1.2 규칙 전면 개정(`Vatech-Target` 유무로 면 구분·v1.0 proxy 필수·논리 ID enum만·SSRF 가드·verbatim 전달·정책은 path 검사·region 직교 조합). §4.1.4 경로②③를 `Vatech-Target` proxy로, §2.3.5 다이어그램·§7.5.1 connector(레지스트리 일반화)·§4.1.3 표현 갱신. Appendix A ADR-11 + Appendix B #13(ARD 기재·클라이언트 헤더 적응). 이전 "경로 네임스페이스 1차 + Vatech-Target 가드"(2026-06-22) 결정을 대체 | (작성자 ID 미지정) |
