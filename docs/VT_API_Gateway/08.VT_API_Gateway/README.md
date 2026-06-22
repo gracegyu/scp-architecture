@@ -1,3 +1,10 @@
+## Claude Code / AI 에이전트 핸드오프
+
+Claude Code 실행 루트는 **`docs/VT_API_Gateway/`** (본 `08.VT_API_Gateway/`의 상위)다.
+
+- [VT API Gateway — Claude Code 작업 가이드](<../VT API Gateway — Claude Code 작업 가이드.md>) — 워크스페이스·레포·참고·스킬·진행 상태
+- [워크스페이스 README](<../README.md>) — 4영역(08 · references · templates) 인덱스
+
 ## comment by 김성훈/Scott
 
 VT API Gateway 프로젝트를 시작 하기 위한 정리를 했습니다.
@@ -24,7 +31,7 @@ VT API Gateway 프로젝트를 시작 하기 위한 정리를 했습니다.
 
 | 문서 | 로컬 경로 (scp-architecture) | 공식 URL | 근거 / 비고 |
 | --- | --- | --- | --- |
-| 08. VT API Gateway (허브) | `08.VT_API_Gateway.md` | https://vks.vatech.com/spaces/ESDEVELOPER/pages/311608279/08.+VT+API+Gateway | ESDEVELOPER / 04. PDP / 08 |
+| 08. VT API Gateway (허브) | `VT_API_Gateway/08.VT_API_Gateway/08.VT_API_Gateway.md` | https://vks.vatech.com/spaces/ESDEVELOPER/pages/311608279/08.+VT+API+Gateway | ESDEVELOPER / 04. PDP / 08 |
 | PRD (v2) | `VT API Gateway — PRD (v2).md` | https://vks.vatech.com/pages/viewpage.action?pageId=311608280 | ESIP-3 |
 | ARD (아키텍처) | `VT API Gateway — ARD (아키텍처).md` | https://vks.vatech.com/pages/viewpage.action?pageId=311608281 | ESIP-3 |
 | API 명세·데이터 모델·주권 | `VT API Gateway — API 명세·데이터 모델·주권.md` | https://vks.vatech.com/x/CMSSEg | |
@@ -89,11 +96,11 @@ GW 본체(`vt-api-gateway`) 외에, 외부 연동(Straumann AXS 등)·클라이�
 | 자료 | 용도 | 상태 |
 |------|------|------|
 | [Straumann AXS API](https://developer.axs.straumann.com/api) · [Getting Started](https://developer.axs.straumann.com/docs/getting-started) | AXS 공식 포털 | ✅ 온라인 |
-| [AXS_docs 인덱스](<../Straumann연동/AXS_docs/README.md>) | 인증·Webhooks·Integration·Regions 로컬 스냅샷 (2026-06-16) | ✅ 확보 |
-| [docs/Straumann연동](<../Straumann연동/README.md>) | 분석보고서 · 4/2 제안 · 4/30 회의록 | ✅ 확보 |
-| [API 호환성 방안 비교](<../CleverAPI호환성체크/API호환성_방안비교_보고서.md>) 및 `docs/` 하위 CSV·SRS | CleverSpace v1.3 · EzCloud RestApi · OneID · EzServer PMS SRS | ✅ 확보 |
+| [AXS_docs 인덱스](<../references/Straumann연동/AXS_docs/README.md>) | 인증·Webhooks·Integration·Regions 로컬 스냅샷 (2026-06-16) | ✅ 확보 |
+| [Straumann연동](<../references/Straumann연동/README.md>) | 분석보고서 · 4/2 제안 · 4/30 회의록 | ✅ 확보 |
+| [API 호환성 방안 비교](<../references/CleverAPI호환성체크/API호환성_방안비교_보고서.md>) 및 CSV·SRS | CleverSpace v1.3 · EzCloud RestApi · OneID · EzServer PMS SRS | ✅ 확보 |
 | **CleverOne SRS** (작성: Nick) | 클라이언트 식별 헤더·연동 흐름 | 🔴 미확보 |
-| **AXS OpenAPI 전체 스냅샷** | [AXS_docs/openapi](<../Straumann연동/AXS_docs/openapi/README.md>) — 5 API YAML + index.json | ✅ 확보 (2026-06-16) |
+| **AXS OpenAPI 전체 스냅샷** | [AXS_docs/openapi](<../references/Straumann연동/AXS_docs/openapi/README.md>) — 5 API YAML + index.json | ✅ 확보 (2026-06-16) |
 | **AXS sandbox OAuth Client·endpoint** | `unstable` 연동 테스트 | 🔴 미확보 (Straumann 제공 대기) |
 | **고정 egress IP (AXS whitelist)** | GW→AXS 아웃바운드 | 🔴 미확보 (인프라 담당) |
 | **운영 호환성 매트릭스** | API × 최소 클라이언트 버전 확정본 | 🔴 미확보 |
