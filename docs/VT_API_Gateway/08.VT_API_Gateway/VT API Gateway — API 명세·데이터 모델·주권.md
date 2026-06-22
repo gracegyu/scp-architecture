@@ -40,6 +40,8 @@
 
 ※ 모든 클라이언트 요청에 **Vatech-* 식별 헤더**(Product·Version·OS·Clinic-Id·Via)를 부착 — API Compatibility Gate가 버전 호환을 판정(COMPAT-01). originator 권위 소스는 전용 헤더.
 
+※ **라우팅의 SSOT는 경로/호스트 네임스페이스**(서버측 라우트 테이블). **handle**(GW 고유 API, A버킷) **vs bypass**(B 내부 프록시 `/cs/*`·`/oneid/*` 등 · C 외부 커넥터 `/v1/{tenant}/connectors/*`)는 **경로로 정적 결정**되며, A 예약 네임스페이스(`/v1/<고정 세그먼트>`·`/admin/v1/*`·`/.well-known/*`)는 B/C·tenant 경로가 침범할 수 없다(reserved-segment). **`Vatech-Target`(논리 서비스 ID)은 의무 헤더가 아니라 보조 가드** — 보내면 allowlist·경로 파생 target과 일치 검증(불일치 `400`), 없어도 경로만으로 라우팅 성립. (위 ※의 **`Vatech-*` 식별 헤더는 버전 호환용 필수**, **`Vatech-Target`은 라우팅 보조용 선택** — 역할이 다름.) 정본: **SRS §4.1.2**.
+
 ※ 대용량 파일 바이트는 게이트웨이 미경유(디바이스→리전 storage presigned 직결).
 
 ## 2. 데이터 모델 (핵심 엔터티)
