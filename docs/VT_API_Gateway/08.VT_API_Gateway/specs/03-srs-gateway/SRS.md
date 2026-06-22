@@ -207,13 +207,173 @@ flowchart TB
 
 ## 2.3 Overall Operation (전체 동작방식)
 
-주요 흐름(상세 시퀀스는 ARD §5):
+GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. 본 절은 흐름의 골격만 보이며, **상세 시퀀스·예외·재시도 정책은 ARD §5가 정본**이다. 전체 시스템 맥락은 §2.1(제품 조망)·§2.2(3-Plane 구성)을, 단계별 아키텍처 배경은 [개발 Roadmap 결정 §2.6 (배경)](https://vks.vatech.com/x/r9iSEg)을 참조한다.
 
-1. **온보딩** — 디바이스가 부트스트랩 신뢰로 enrollment → nonce challenge → fingerprint 검증 → allowlist 등록·자격 발급. (FR-ENR-*)
-2. **리전 해석** — 인증된 호출자가 작업 직전 device/clinic→region 해석 → 리전 endpoint·주권 정책 반환. (FR-RGN-*)
-3. **업로드 세션** — start→presigned 발급→리전 storage 직결 업로드→commit(idempotency). PHI는 GW 미경유. (FR-SES-*)
-4. **Webhook 수신·분배** — 외부(AXS)가 `…/webhooks/<provider>` 전송 → 검증·멱등 → 즉시 ACK → 클라우드 HTTP push / Edge MQTT 분배. (FR-WH-*)
-5. **버전 호환 게이팅** — `Vatech-*` 헤더 originator 판정 → well-known·매트릭스 대조 → 미지원 시 표준 오류·fallback. (FR-COMPAT-*)
+시퀀스의 참여자(액터)는 §2.1 외부 시스템·§2.2 컴포넌트와 일치한다.
+
+| 액터 | 의미 (출처) |
+| --- | --- |
+| 의료 디바이스 / CleverOne / EzServer(Edge) | 사내·현장 호출자(§2.1·§2.5). EzServer는 방화벽 뒤 Edge |
+| GW | 본 SRS 대상. 내부 컴포넌트(Auth·Region Resolver·Upload Session·Region Signer Agent·Connector·Webhook Receiver·내부 큐/MQTT)는 §2.2 |
+| OneID / CleverSpace / CleverLab | 우리 클라우드 백엔드(§2.1) |
+| Straumann AXS / AXS S3 | 외부 플랫폼·외부 스토리지(§2.1, 경로③·§4.1.4) |
+| 리전 storage(S3/MinIO) | 우리 리전 객체 스토리지(경로①·§7.4) |
+
+> **본 절 시나리오 ↔ §7 기능·§4.1.4 경로 매핑**: 온보딩(§7.2)·인증(§7.1)·리전(§7.3)·업로드 경로①(§7.4·§4.1.4①)·외부 연동 경로③(§7.5·§4.1.4③)·Webhook(§7.6·§4.1.3)·버전 호환(§7.7). CleverSpace presign(경로②)은 B bypass로 GW가 해석·변환하지 않으므로(§4.1.4②) 본 동작 개요에 별도 시나리오를 두지 않고 ② One Pager가 정본이다.
+
+### 2.3.1 디바이스 온보딩 (enrollment) — FR-ENR-*
+
+신뢰할 수 없는 디바이스를 부트스트랩 신뢰(공장 토큰/OOB 일회 코드)로 검증해 allowlist에 등록하고 자격을 발급한다. nonce challenge로 replay를 막고, device fingerprint를 바인딩한다. 상세는 §7.2.5·§7.2.6, 흐름은 ARD §5.1.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as 의료 디바이스
+    participant GW as GW (Enrollment)
+    participant AUD as Audit
+    D->>GW: POST /v1/enroll/start (bootstrap)
+    GW->>GW: 부트스트랩 신뢰 검증 · nonce 발급
+    GW-->>D: nonce challenge
+    D->>D: nonce 서명 · fingerprint 산출
+    D->>GW: POST /v1/enroll/complete (nonceSignature, fingerprint)
+    GW->>GW: 서명·fingerprint 검증 · allowlist 등록 · 자격 발급(KMS secretRef)
+    GW->>AUD: 등록 이력 append-only 기록
+    GW-->>D: Credential (clientId, secretRef)
+    Note over D,GW: 신뢰 검증 실패·만료/재사용 토큰 → 거부(§7.2.5)
+```
+
+### 2.3.2 디바이스 인증·토큰 발급 — FR-AUTH-01/05
+
+등록된 디바이스가 작업 전 단명 access token을 발급받는다. lifecycle·allowlist를 확인하고, claim(`deviceId`·`region`·`aud`·`TTL`)을 강제 바인딩한다. revoked 디바이스는 캐시 TTL과 무관하게 즉시 차단(§7.2.4). **갱신은 refresh token이 아니라 동일 `client_credentials` 재발급**으로 처리한다(§7.1.1 — 단명+즉시 revocation 모델). 상세는 §7.1.1.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as 의료 디바이스
+    participant GW as GW (Auth)
+    loop access token 만료 시 (refresh token 미사용)
+        D->>GW: POST /v1/auth/token (clientId/secret, scope)
+        GW->>GW: allowlist·lifecycle 확인(§7.2) · secret 검증
+        GW->>GW: claim hard binding (deviceId·region·aud·TTL)
+        GW-->>D: access token (단명, Unix ms 만료)
+    end
+    Note over D,GW: 미등록/revoked → 거부 · secret 불일치 → 401 · scope 초과 → 403
+    Note over D,GW: 갱신 = 동일 client_credentials 재발급 (refresh_token grant 미도입, §7.1.1)
+```
+
+### 2.3.3 리전 해석·라우팅 — FR-RGN-*
+
+인증된 호출자가 작업(업로드·연동) 직전 device/clinic→region을 해석해 리전 endpoint와 주권 정책을 받는다. `deviceId`·`clinicId`는 동일 resolver가 같은 리전으로 귀결(ADR-10)한다. PHI는 해석된 리전 밖으로 이동하지 않는다(OPA, §7.3.3). 상세는 §7.3, 흐름은 ARD §5.2.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as 호출자 (Device/EZ)
+    participant GW as GW (Region Resolver)
+    participant R as Redis 캐시
+    C->>GW: GET /v1/region/resolve?deviceId|clinicId
+    GW->>R: 매핑 조회 (TTL)
+    alt 캐시 히트
+        R-->>GW: region · mappingVersion
+    else 캐시 미스
+        GW->>GW: strong-consistency 경로 폴백 · 캐시 갱신
+    end
+    GW-->>C: region endpoint + 주권 정책
+    Note over C,GW: 매핑 부재 → 거부 · PHI 리전 경계 OPA 집행(§7.3.3)
+```
+
+### 2.3.4 업로드 세션·Presigned (경로①, 디바이스→우리 리전 storage) — FR-SES-*
+
+**§4.1.4 경로① 전용.** 디바이스가 우리 리전 storage로 올리는 PHI 파일을 Upload Session으로 추상화(start→chunk→commit, ADR-04)한다. presigned URL **발급 주체는 Region Signer Agent**이며, GW는 세션·리전·정책·Signer를 orchestration한다. 파일 **바이트**는 presigned로 storage에 **직접** 업로드(GW 미경유). commit은 idempotency key + checksum/ETag로 무결성을 확정한다. 상세는 §7.4, 흐름은 ARD §5.3.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as 의료 디바이스
+    participant GW as GW (Upload Session)
+    participant SG as Region Signer Agent
+    participant S3 as 리전 storage (S3/MinIO)
+    D->>GW: POST /v1/uploads (start, objectMeta · PHI 미포함)
+    GW->>GW: region 해석(§7.3) · OPA 정책
+    GW-->>D: sessionId
+    D->>GW: POST /v1/uploads/{id}/chunks
+    GW->>SG: 우리 리전 presigned 발급 요청
+    SG-->>GW: presigned URL (TTL 5~15분)
+    GW-->>D: presigned URL
+    D->>S3: 파일 바이트 직접 업로드 (GW 미경유)
+    D->>GW: POST /v1/uploads/{id}/commit (Idempotency-Key, checksum/ETag)
+    GW->>GW: 무결성 검증 · 멱등 처리(중복 commit 방지)
+    GW-->>D: 확정 결과
+    Note over GW,S3: CleverSpace/AXS presign을 /v1/uploads로 통합·변환하지 않음(§4.1.4)
+```
+
+### 2.3.5 외부 연동 — AXS presign·파일 bypass (경로③, 갈래 A) — FR-INT-*
+
+**§4.1.4 경로③ 전용.** EzServer→AXS 외부 연동(5단계 갈래 A). GW는 connector로 OAuth2 토큰을 관리(§7.1.3)하고 egress allowlist를 집행(§7.5.3)하되, AXS presign·파일 API는 **AXS OpenAPI 그대로 통과(bypass)** 한다 — GW가 `/v1/uploads`로 해석·변환하지 않는다. 대용량은 AXS가 발급한 presigned로 **AXS S3에 직접** 업로드(GW 미경유). 연동 의미·Org-ID 매핑 상세는 **④ Sub-SRS**, 본 SRS는 프레임워크·egress까지만. 상세는 §7.5.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant EZ as EzServer (Edge)
+    participant GW as GW (Connector)
+    participant AXS as Straumann AXS
+    participant AS3 as AXS S3 (외부)
+    EZ->>GW: POST /v1/{tenant}/connectors/axs/... (정보·Create Document)
+    GW->>GW: OAuth2 토큰 확보·갱신(§7.1.3) · egress allowlist 검증(§7.5.3)
+    GW->>AXS: bypass (요청 body 그대로 통과)
+    AXS-->>GW: presigned URL (AXS 발급)
+    GW-->>EZ: presigned URL 전달 (GW 변환 없음)
+    EZ->>AS3: 대용량(영상) 직접 업로드 (GW 미경유)
+    Note over GW,AXS: allowlist 외 egress → 차단(403) · 외부 스키마는 ④/AXS 스냅샷 정본
+```
+
+### 2.3.6 Webhook 수신·분배 — FR-WH-*
+
+외부(AXS)가 GW 단일 엔드포인트로 이벤트를 push하면, GW가 검증·멱등 후 즉시 ACK하고 대상별로 분배한다(store-and-forward, ADR-09). 클라우드는 HTTP push, 방화벽 뒤 Edge(EzServer)는 MQTT QoS1 역방향. 목적지는 송신 host가 아니라 Org-ID↔ClinicID 매핑(§7.3)으로 결정한다. 수신 계약은 A버킷, payload는 외부 참조(§4.1.3). 상세는 §7.6.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant AXS as Straumann AXS
+    participant WH as GW (Webhook Receiver)
+    participant Q as 내부 큐
+    participant CL as CleverLab/CleverSpace (클라우드)
+    participant EZ as EzServer (Edge, 방화벽 뒤)
+    AXS->>WH: POST /v1/webhooks/{provider} (HMAC·timestamp·eventId)
+    WH->>WH: 서명·IP allowlist·timestamp 검증 · eventId 멱등 dedup
+    WH-->>AXS: 2xx ACK (즉시)
+    WH->>Q: 적재 (재시도·백오프·DLQ)
+    par 클라우드 대상
+        Q->>CL: HTTP push (내부망)
+    and Edge 대상
+        Q->>EZ: MQTT QoS1 (EZ outbound 구독)
+    end
+    Note over WH,EZ: 미지원 provider → 404 · 검증 실패 → 401 · 목적지=매핑(§7.3)
+```
+
+### 2.3.7 버전 호환 게이팅 — FR-COMPAT-*
+
+`Vatech-*` 헤더로 originator(요청 시작 주체)와 경유 홉(`Vatech-Via`)을 분리 판정하고, well-known 공시·호환성 매트릭스와 대조해 **더 낮은 버전 기준**으로 게이팅한다. 미지원이면 표준 오류코드와 "업데이트 필요" fallback을 안내해 원인불명 실패를 제거(ADR-07)한다. 상세는 §7.7.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant CO as CleverOne (originator)
+    participant EZ as EzServer (경유 홉)
+    participant GW as GW (Compat Gate)
+    participant CS as CleverSpace
+    CO->>EZ: 요청 (Vatech-Product/Version/OS)
+    EZ->>GW: 전달 (+ Vatech-Via: EzServer)
+    GW->>GW: originator vs Via 분리 판정 · well-known/매트릭스 대조(최저 버전 기준)
+    alt 지원 버전
+        GW->>CS: 정규화 신원으로 통과
+        CS-->>GW: 응답
+        GW-->>CO: 정상 응답
+    else 미지원 버전
+        GW-->>CO: 표준 오류 + "업데이트 필요" fallback
+    end
+    Note over GW: 공시 경로 /.well-known/{env}/server-configuration.json (§7.7.2)
+```
 
 ## 2.4 Product Functions (제품 주요 기능)
 
@@ -393,7 +553,7 @@ GW는 "모든 서버로 통하는 단일 창구"지만, 그렇다고 **백엔드
 Webhook은 3버킷 중 하나로 떨어지지 않는 **하이브리드**다 — *수신 엔드포인트*는 A(GW 고유 API), *이벤트 payload 스키마*는 C(외부 소유·참조만), *분배*는 내부 경로(클라우드 HTTP push·Edge MQTT)다. 단순 host 기반 프록시가 아니라 **수신→검증→멱등→ACK→매핑 기반 분배**의 store-and-forward 모델이다(§7.6). 따라서 API를 "전부 새로 정의"하지 않고, **GW가 소유하는 면만 정의하고 나머지는 참조**한다. 추후 §7.6 상세화 시 아래 4가지를 구분해 작성한다.
 
 1. **수신 엔드포인트 = GW가 OpenAPI로 정의한다 (A버킷).** 정의 대상은 *봉투(envelope)와 수신 계약*이지 외부 이벤트 본문이 아니다.
-   - 경로: `POST /webhooks/{provider}` (`provider` = `axs` 등 enum, 미지원 → 404). 호스트는 §4.5.1.
+   - 경로: `POST /v1/webhooks/{provider}` (`provider` = `axs` 등 enum, 미지원 → 404). 호스트는 §4.5.1.
    - 요청 헤더: 서명(`X-AXS-Signature` 등 provider별 HMAC), `timestamp`(replay 방지), `eventId`(멱등 키). provider별 헤더명은 외부 규격을 따른다(④ 참조).
    - 요청 body: **provider별 외부 스키마**이므로 GW OpenAPI에서는 **공통 envelope + `payload`는 `$ref`(외부 스냅샷) 또는 opaque(`type: object`)** 로 둔다. 본문 필드를 GW가 재정의하지 않는다(드리프트 방지).
    - 응답: 즉시 `2xx` ACK 스키마(§7.6.3, 예 `{ "received": true, "eventId": "..." }`). 에러 `400`(형식)·`401`(서명·IP·timestamp)·`404`(provider).
@@ -698,11 +858,13 @@ GW는 **두 개의 인증면(surface)을 분리·공존**시킨다(ADR-08): 무�
 FR-AUTH-01·05 (OAuth2 `client_credentials`, claim hard binding).
 
 - **Input**: `client_id`/`client_secret`(또는 HW키 바인딩), 요청 scope
-- **Trigger**: 디바이스가 작업 전 토큰 발급/갱신 요청
-- **Output**: 단명 access token. claim에 `device_id`·`region`·`aud`·`TTL`을 **강제 바인딩**
+- **Trigger**: 디바이스가 작업 전 토큰 발급 요청. **토큰 갱신 = refresh token이 아니라 동일 `client_credentials`로 재발급**(만료 시 디바이스가 자기 자격으로 재인증). RFC 6749 §4.4.3(client_credentials는 refresh token 미발급)에 부합하며, 단명 토큰 + 즉시 revocation(§7.2.4) 모델을 유지한다.
+- **Output**: 단명 access token. claim에 `device_id`·`region`·`aud`·`TTL`을 **강제 바인딩**. **refresh token은 발급하지 않는다.**
 - **Side Effect**: 토큰 발급 이력 기록(§7.9 감사), Redis에 JWKS·rate-limit 카운터 갱신
 - **에러**: 미등록/revoked 디바이스 → 거부(§7.2 lifecycle 연계), secret 불일치 → 401, scope 초과 → 403
-- **비목표(Will Not Do)**: DPoP(sender-constrained)·하드웨어 키(SE/TPM) 비추출은 **gw/1.1**(FR-AUTH-06/07). v1.0은 claim 바인딩까지.
+- **비목표(Will Not Do)**:
+  - **refresh token / `refresh_token` grant 미도입** — 디바이스 머신 인증은 client_credentials 재발급으로만 갱신한다. refresh token은 장수명 자격이라 별도 revocation·회전 관리가 필요해 단명+즉시차단 모델과 상충하므로 도입하지 않는다. (사람·조직의 OIDC refresh 수명주기는 §7.1.4 OneID 도메인이며 디바이스 면과 분리, ADR-08.)
+  - DPoP(sender-constrained)·하드웨어 키(SE/TPM) 비추출은 **gw/1.1**(FR-AUTH-06/07). v1.0은 claim 바인딩까지. (secret 재전송 노출 완화는 refresh token이 아니라 이 DPoP+HW키 경로로 해결한다.)
 
 ### 7.1.2 사내 호출자 JWT 발급·검증 (P1)
 
@@ -1084,3 +1246,6 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-22 | §4.1.1 표에 "방향/신뢰경계" 열 추가 — B(inbound·내부 trusted 프록시) vs C(outbound·외부 untrusted 연동) 구분 명확화, presigned 비경유 경로 명시 | (작성자 ID 미지정) |
 | 2026-06-22 | §4.1.1 A버킷에 ③-C Console이 호출하는 Backoffice/관리 API 포함(§7.9·§7.8) 명시 — UI=③-C / API=GW 경계 가시화 | (작성자 ID 미지정) |
 | 2026-06-22 | §4.1.4 업로드·Presigned 경로 구분(① `/v1/uploads`·Region Signer / ② CleverSpace B bypass / ③ AXS C bypass) · §7.4·§7.5.2 경계·비목표 정리 — AXS/CS presign을 GW가 통합 추상화하지 않음 | (작성자 ID 미지정) |
+| 2026-06-22 | §4.1.3-1 Webhook 수신 경로 표기 정합화 — `POST /webhooks/{provider}` → `POST /v1/webhooks/{provider}` (§4.1.2-5·§4.5.1·§7.6.1·OpenAPI와 `/v1` 프리픽스 통일) | (작성자 ID 미지정) |
+| 2026-06-22 | §2.3 Overall Operation 확장 — 동작 개요를 시나리오 7종(2.3.1~2.3.7: 온보딩·인증·리전·업로드 경로①·외부연동 경로③·Webhook·버전호환)으로 재작성, 각 시나리오 설명 + mermaid 시퀀스 다이어그램 추가. 액터를 §2.1·§2.2 컴포넌트와 정합, §4.1.4 경로 구분·`/v1/webhooks` 반영. 상세 시퀀스는 ARD §5 위임 유지 | (작성자 ID 미지정) |
+| 2026-06-22 | 디바이스 토큰 갱신 정책 명시 — §7.1.1 Trigger/Output에 "갱신=client_credentials 재발급, refresh token 미발급"(RFC 6749 §4.4.3) 명문화 + Will Not Do에 `refresh_token` grant 미도입 사유 추가, §2.3.2 다이어그램에 재발급 loop·refresh 미사용 note 반영. 단명+즉시 revocation 모델 보존 | (작성자 ID 미지정) |
