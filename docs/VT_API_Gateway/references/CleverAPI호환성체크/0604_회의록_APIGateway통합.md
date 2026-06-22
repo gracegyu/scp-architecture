@@ -167,9 +167,9 @@ User-Agent: CleverOne/1.5.5 (Windows 11; x64)   # 병행(로그·관측·하위�
 
 ## 4. 새 보고서 입력 자료
 
-- `docs/CleverAPI호환성체크/API호환성_방안비교_보고서.md` — 호환성 방안(기본 아키텍처 동의).
-- `docs/Straumann연동/Straumann-Vatech_AXS연동_분석보고서.md` — AXS 연동/Auth·API Gateway/Pre-signed URL/Org-ID 매핑(기본 아키텍처 동의).
-- `docs/CleverAPI호환성체크/0604-1.png`, `0604-2.png` — 회의 중 화이트보드 아키텍처(판독 어려움, 본 회의록 설명으로 대체).
+- [`API호환성_방안비교_보고서.md`](API호환성_방안비교_보고서.md) — 호환성 방안(기본 아키텍처 동의).
+- [`../Straumann연동/Straumann-Vatech_AXS연동_분석보고서.md`](../Straumann연동/Straumann-Vatech_AXS연동_분석보고서.md) — AXS 연동/Auth·API Gateway/Pre-signed URL/Org-ID 매핑(기본 아키텍처 동의).
+- `0604-1.png`, `0604-2.png` — 회의 중 화이트보드 아키텍처(판독 어려움, 본 회의록 설명으로 대체).
 
 ---
 

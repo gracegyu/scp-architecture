@@ -4,7 +4,7 @@
 > 정본 링크: [PRD (v2)](<../VT API Gateway — PRD (v2).md>) · [ARD (아키텍처)](<../VT API Gateway — ARD (아키텍처).md>)
 
 작성일: 2026-06-04  
-근거: 6월 4일 회의 결정(`0604_회의록_APIGateway통합.md`), API 호환성 분석(`API호환성_방안비교_보고서.md`), Straumann AXS 연동 분석(`Straumann연동/Straumann-Vatech_AXS연동_분석보고서.md`)
+근거: 6월 4일 회의 결정([`0604_회의록_APIGateway통합.md`](../../references/CleverAPI호환성체크/0604_회의록_APIGateway통합.md)), API 호환성 분석([`API호환성_방안비교_보고서.md`](../../references/CleverAPI호환성체크/API호환성_방안비교_보고서.md)), Straumann AXS 연동 분석([`Straumann-Vatech_AXS연동_분석보고서.md`](../../references/Straumann연동/Straumann-Vatech_AXS연동_분석보고서.md))
 
 > 본 문서는 **이 한 편으로 개발 가이드가 완결**되도록 작성한다. 위 근거 문서는 필요할 때만 참고한다.
 
@@ -657,7 +657,7 @@ flowchart LR
     class AXS,SCAN,CONSOLE2,AXSS3 ext;
 ```
 
-> 핵심: 온프레미스(갈래 A)든 클라우드(갈래 B)든 **외부 연동은 모두 GW를 단일 창구로 지나고**, 대용량은 presigned로 스토리지에 직접 보낸다 — 동일 원리다. 상세 설계·협상 항목·일정 추정은 `Straumann연동/Straumann-Vatech_AXS연동_분석보고서.md`와 4/2·4/30 회의 문서를 참조한다.
+> 핵심: 온프레미스(갈래 A)든 클라우드(갈래 B)든 **외부 연동은 모두 GW를 단일 창구로 지나고**, 대용량은 presigned로 스토리지에 직접 보낸다 — 동일 원리다. 상세 설계·협상 항목·일정 추정은 [`Straumann-Vatech_AXS연동_분석보고서.md`](../../references/Straumann연동/Straumann-Vatech_AXS연동_분석보고서.md)와 4/2·4/30 회의 문서를 참조한다.
 
 ### 3.8 후속 트랙 — EzServer 전면 재개발 (PHP → Rust)
 

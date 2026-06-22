@@ -58,7 +58,7 @@ scp-architecture     →     공식 저장소(아래)      →     VKS(Confluenc
 
 > **핵심: 같은 파일을 두 곳에 두지 않는다.** 초안이 완료(baseline 직전)되면 **본체를 공식 저장소(Azure git)로 이동**하고, `scp-architecture` 쪽 자리는 **URL 포인터로 교체**한다. 파일을 복제(또는 심볼릭/하드 링크)하지 않는다 — 복제는 드리프트의 원인이며, git 2개 레포 사이 링크는 clone·CI·Confluence에서 깨진다.
 
-1. **작성 단계**: `scp-architecture/.../specs/`에서 자유롭게 작성·수정한다(개인 초안).
+1. **작성 단계**: `scp-architecture/docs/VT_API_Gateway/08.VT_API_Gateway/specs/`에서 자유롭게 작성·수정한다(개인 초안).
 2. **이관 단계(초안 완료 시)**: 산출물(SRS·Sub-SRS·`design/openapi`·`design/dbml`)을 **공식 저장소로 PR 이관**한다.
    - SRS류·design 산출물 → **vt-api-gateway** `docs/specs/` (Azure git, PR 리뷰·baseline 태그)
    - One Pager(①②) → **VKS(Confluence)** 페이지
