@@ -37,7 +37,7 @@
 | POST | /v1/webhooks/{provider} | 외부 이벤트 수신(HMAC·IP·timestamp·멱등) → 내부 큐 분배 | WH-01~05 |
 | POST | /v1/auth/oneid/verify | OneID(OIDC) 토큰 검증·연계(사람·클리닉·사내 호출자) | AUTH-08 |
 
-※ 모든 클라이언트 요청에 **Vatech-* 식별 헤더**(Product·Version·OS·Clinic-Id·Via)를 부착 — API Compatibility Gate가 버전 호환을 판정(COMPAT-01). originator 권위 소스는 전용 헤더.
+※ 모든 클라이언트 요청에 **Vatech-* 식별 헤더**(Product·Version·OS·Clinic-Id·Via)를 부착 — API Compatibility Gate가 버전 호환을 판정(COMPAT-01). originator 권위 소스는 전용 헤더(`Vatech-Product`/`Version`/`OS`)이고, 경유 중계 홉은 `Vatech-Via`에 누적한다(`User-Agent`는 직전 송신자). **모든 제품의 모든 요청에 `Vatech-*` 식별 헤더 + 표준화 `User-Agent` 부착을 강제**하며 **공용 라이브러리**로 표준화한다(2026-06 회의 — 전 제품 필수). 상세는 SRS §7.7.1·Roadmap §5.1.
 
 ※ **라우팅 모델 = target-routed proxy**(§4.1.1·§4.1.2·ADR-11). GW는 **두 면**만 노출하고 `Vatech-Target` 헤더 유무로 배타적으로 가른다 — **없으면 위 표의 GW 고유 API(A)** 로 GW가 처리, **있으면 Proxy**로 등록 upstream에 전달. Proxy는 **`Vatech-Target`(논리 서비스 ID enum, 예 `cleverspace`/`axs`)을 레지스트리 allowlist→host로 해석**해 클라이언트가 친 **upstream 경로를 host만 바꿔 verbatim 전달**(body 그대로). **proxy 호출엔 `Vatech-Target` 필수**(누락 → `400`, 미등록/allowlist 외 → `404`/`403`). 내부(B)·외부(C) 구분은 trust profile뿐(라우팅 동일) — C는 OAuth·고정 egress IP 추가. 신규 upstream = **레지스트리 1행**(경로/코드 변경 0). 위 표는 A면만 나열하며, 원서버 호출(CleverSpace·AXS 등)은 Proxy면이라 본 표에 없다(upstream OpenAPI 정본). 정본: **SRS §4.1.2**.
 

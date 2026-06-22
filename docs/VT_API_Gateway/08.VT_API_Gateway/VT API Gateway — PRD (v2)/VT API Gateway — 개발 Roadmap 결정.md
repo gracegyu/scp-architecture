@@ -621,6 +621,8 @@ flowchart LR
 
 #### 3.7.2 갈래 B — CleverLab ↔ AXS (클라우드↔클라우드, 기공소 주문)
 
+> **[2026-06 회의 결정 — 현 시점 보류]** CleverLab↔AXS **직접 연동(갈래 B)은 현재 고려하지 않는다.** 우선 범위는 갈래 A(EzServer→AXS)다. 단 *외부 cloud 서비스 연동 일반 역량*은 GW에 유지한다(target-routed proxy C 프로파일 — SRS §4.1.1·ADR-11). 즉 갈래 B는 향후 신규 코드 없이 **레지스트리 등록만으로 활성화** 가능하다. 아래 본문은 갈래 B를 활성화할 경우의 설계 근거로 보존하며, 현 범위는 SRS §1.2 Will Not Do·④ _status가 정본이다.
+
 CleverLab은 **우리 클라우드 기공소 PMS**다. Straumann Scan SW에서 만든 기공 오더가 AXS를 통해 CleverLab로 들어오고, CleverLab의 작업 상태·확정 요청이 AXS로 나간다. **이 클라우드↔클라우드 연동도 우리 GW를 경유**하며, 디자인 파일·스캔 파일 등 대용량은 **presigned**로 처리한다. (4/2 제안서 Integration Scenario 3 기준)
 
 | 시나리오 | 흐름 | 내용 |
