@@ -11,8 +11,10 @@ info:
   title: Vatech API Gateway
   version: 0.0.0
   description: >-
-    설계 초안. 인증·enrollment·디바이스 레지스트리·region resolve·upload session·
-    Webhook 수신·관리 API(§7). 값/스키마는 LLD에서 확정.
+    설계 초안. GW 고유 API(A버킷, §4.1.1)만 정의.
+    Upload: /v1/uploads = 경로①(디바이스→리전 S3) 전용(§4.1.4·§7.4).
+    CleverSpace presign = B bypass(/cs/* 등, CS OpenAPI 정본). AXS presign/파일 = C bypass(connectors/axs/*, ④).
+    B/C 프록시 경로는 upstream OpenAPI 참조 — 본 파일에서 재정의하지 않음.
 servers:
   - url: https://api-gateway.vatech.com
     description: 제안(§4.5.1, DNS 확정 전 TBD)
@@ -27,9 +29,13 @@ tags:
   - name: region
     description: 리전 해석 (SRS §7.3)
   - name: uploads
-    description: 업로드 세션·presigned (SRS §7.4)
+    description: >-
+      Upload Session — §4.1.4 경로① 전용(의료 디바이스→우리 리전 storage).
+      Region Signer presigned. CleverSpace/AXS presign API 아님 — 해당 경로는 B/C bypass.
   - name: connectors
-    description: 외부 연동 프록시 (SRS §7.5, C버킷)
+    description: >-
+      AXS egress connector — §4.1.4 경로③. presign·파일 API bypass(AXS OpenAPI 정본, ④).
+      /v1/uploads로 통합·변환하지 않음.
   - name: webhooks
     description: 외부 이벤트 수신·분배 (SRS §7.6)
   - name: compatibility
@@ -202,11 +208,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/RegionResolveResponse'
 
-  # --- 업로드 세션 (§7.4) ---
+  # --- Upload Session — §4.1.4 경로① ONLY (디바이스→리전 S3, A버킷) ---
+  # NOT: CleverSpace presign (→ B bypass /cs/*, CS OpenAPI) · NOT: AXS presign (→ C connectors/axs/*, ④)
+  # Data plane: Client uploads file bytes directly to storage via presigned URL (GW 미경유)
   /v1/uploads:
     post:
       tags: [uploads]
-      summary: 업로드 세션 start(정책·region 검사) (FR-SES-01)
+      summary: '[경로①] 업로드 세션 start — region·정책 검사 (FR-SES-01)'
+      description: >-
+        의료 디바이스→우리 리전 storage 전용. CleverSpace/AXS presign API를 대체·통합하지 않음(§4.1.4).
+        Region Signer가 후속 chunk presigned 발급.
       requestBody:
         required: true
         content:
@@ -226,7 +237,8 @@ paths:
       - $ref: '#/components/parameters/SessionId'
     post:
       tags: [uploads]
-      summary: chunk presigned URL 발급(짧은 TTL) (FR-SES-02/03)
+      summary: '[경로①] chunk presigned URL 발급 — Region Signer (FR-SES-02/03)'
+      description: Region Signer Agent가 우리 리전 S3 presigned 발급. Client→S3 직접 업로드(GW 미경유).
       responses:
         '200':
           description: presigned URL(디바이스→리전 storage 직결, GW 미경유)
@@ -240,7 +252,7 @@ paths:
       - $ref: '#/components/parameters/SessionId'
     post:
       tags: [uploads]
-      summary: 무결성 확인·확정(idempotency) (FR-SES-04/05)
+      summary: '[경로①] 무결성 확인·확정(idempotency) (FR-SES-04/05)'
       parameters:
         - name: Idempotency-Key
           in: header
@@ -257,7 +269,9 @@ paths:
         '200':
           description: 확정(중복 commit 시 저장된 결과 반환)
 
-  # --- 외부 연동 프록시 (§7.5, C버킷) ---
+  # --- AXS connector — §4.1.4 경로③ (C버킷 bypass) ---
+  # presign·파일 API 포함 — AXS OpenAPI body/response 그대로 통과. GW /v1/uploads 변환 없음.
+  # B버킷 CleverSpace presign(경로②): 본 OpenAPI 미포함 — /cs/* 등 라우트 설정, CS OpenAPI 정본.
   /v1/{tenant}/connectors/axs/{proxyPath}:
     parameters:
       - name: tenant
@@ -273,7 +287,10 @@ paths:
           type: string
     post:
       tags: [connectors]
-      summary: AXS proxy(OAuth2 위임·egress allowlist) (FR-INT-02/03)
+      summary: '[경로③] AXS proxy — presign·파일 API bypass (FR-INT-02/03)'
+      description: >-
+        AXS OpenAPI 경로를 그대로 통과(OAuth2·egress allowlist). presign 요청 스키마는 AXS 정본(④).
+        /v1/uploads로 해석·변환하지 않음(§4.1.4).
       responses:
         '200':
           description: AXS 응답 통과(스키마는 외부 정본)
