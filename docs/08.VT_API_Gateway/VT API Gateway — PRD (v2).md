@@ -1,7 +1,8 @@
 **문서 정보**
 
-| 문서 유형 | 제품 요구사항 정의서 (PRD) |
+| 항목 | 내용 |
 | --- | --- |
+| 문서 유형 | 제품 요구사항 정의서 (PRD) |
 | 버전 | v2.2 (Roadmap 흡수) |
 | 상태 | Draft — 검토·승인 후 상세 설계(ARD/HLD) 진입 |
 | 작성 | 김성훈 / Scott 실장 (ES 개발실) |
@@ -16,8 +17,9 @@
 
 Controlled document. Confluence page history = 변경 원장, 아래 개정 이력 = 통제 요약. '적용 제품 버전'으로 제품 버전(ES 4-seg / Jira fixVersion)과 결속하며, 릴리스 시 baseline을 동결한다. 승인은 위임전결(정규=품의 / 비정규=전결).
 
-| v1.0 | 2026-06 | Scott | 초안 — 시나리오 2+ 외부 연동 프록시 GW | Superseded |
+| 문서 버전 | 일자 | 작성 | 변경 내용 | 상태 |
 | --- | --- | --- | --- | --- |
+| v1.0 | 2026-06 | Scott | 초안 — 시나리오 2+ 외부 연동 프록시 GW | Superseded |
 | v2.0 | 2026-06-08 | Scott | 외부 리뷰 반영 재정립 — 디바이스 통신 중앙화 control plane | Superseded |
 | v2.1 | 2026-06-08 | Scott | v2 견적 6,940만 원 확정 | Draft |
 | v2.2 | 2026-06-15 | Scott | ESMN Roadmap 흡수 — API 버전 호환성·OneID 인증면·Webhook Receiver·라우팅 키 통합 (§12) | Draft |
@@ -47,8 +49,9 @@ Controlled document. Confluence page history = 변경 원장, 아래 개정 이�
 
 ## 3. 이해관계자 (Stakeholders)
 
-| 마케팅전략팀 | 전략 오너, 제휴 정의 (박지웅 팀장) |
+| 구분 | 역할 |
 | --- | --- |
+| 마케팅전략팀 | 전략 오너, 제휴 정의 (박지웅 팀장) |
 | 개발실 (ES) | 설계·개발 (김성훈 / Scott 실장) |
 | 외부 플랫폼사 | Straumann (1차), DS Core / Envista / 3Shape (후속) |
 | 사내 시스템 | Clever One / Clever Lab / CleverSpace / EzServer · 인증 OneID(OIDC) |
@@ -58,8 +61,8 @@ Controlled document. Confluence page history = 변경 원장, 아래 개정 이�
 
 허가·열쇠는 중앙(control)에서 받되, 무거운 영상은 중앙을 거치지 않고 자국 리전 저장소로 직행한다.
 
+| Plane | 역할 | 데이터 |
 | Control (글로벌 HA, **soft-state**) | allowlist 확인 → device→region 해석 → upload session 발급 → config push + fleet 운영 | 메타데이터만 · **PHI 미경유** |
-| --- | --- | --- |
 | Data (리전 한정) | 디바이스 ↔ 리전 storage 직결(presigned/session) | 실제 영상 · **리전 밖 미이동(주권)** |
 | Integration (north-south) | 내부/외부 클라우드 connector + egress 정책 | 안전 링크(presigned) pull |
 

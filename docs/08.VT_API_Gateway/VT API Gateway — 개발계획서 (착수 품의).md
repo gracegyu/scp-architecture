@@ -1,7 +1,8 @@
 **요약**
 
-| 개발 제품 / 버전 | **VT API Gateway v1.0** — 2단계 (core `gw/1.0.0.b1` → full `gw/1.0.0.0`) |
+| 항목        | 내용                                         |
 | --- | --- |
+| 개발 제품 / 버전 | **VT API Gateway v1.0** — 2단계 (core `gw/1.0.0.b1` → full `gw/1.0.0.0`) |
 | 일정 | core(pilot) **~2026-08-15** · full(정식) **~2026-09-26** · 기획 동결 06-27 |
 | 공수 | **≤ 9.5 MM (6,940만 원)**, 목표는 그 이하 |
 | 상태 | **IN REVIEW** 착수 품의 대기 |
@@ -14,15 +15,17 @@ VT-Straumann **공진화 전략**(Straumann AXS 연동)의 실행 기반을 확
 
 ## 2. 개발 범위
 
-| **핵심** 제대로 동작 | 디바이스 인증 · 레지스트리 · 온보딩 · 단일 리전 주권 · 업로드 세션 · AXS 연동 · Fleet 기본(heartbeat·kill-switch) · **API 버전 호환성(Vatech-* 헤더·well-known)** · OneID 연계 · Webhook 수신(forward) |
+| 구분 | 내용 |
 | --- | --- |
+| **핵심** 제대로 동작 | 디바이스 인증 · 레지스트리 · 온보딩 · 단일 리전 주권 · 업로드 세션 · AXS 연동 · Fleet 기본(heartbeat·kill-switch) · **API 버전 호환성(Vatech-* 헤더·well-known)** · OneID 연계 · Webhook 수신(forward) |
 | **경량** MVP 수준 | 감사 로그 · RBAC · 관리자 UI · consent · 데이터 분류 태깅 |
 | **제외** post-MVP | DPoP+HW키 · 멀티클라우드 · 리전 signer 다수 · 레거시 10만대 마이그레이션 · 추가 connector |
 
 ## 3. 일정 (마일스톤)
 
-| 기획·설계 동결 | 06-27 | PRD · ARD · API 명세 · 인증/주권 설계 + 착수 품의 |
+| 단계 | 목표일 | 핵심 산출물 |
 | --- | --- | --- |
+| 기획·설계 동결 | 06-27 | PRD · ARD · API 명세 · 인증/주권 설계 + 착수 품의 |
 | v1.0-core 개발 | ~08-08 | Control Plane · Upload Session · AXS 연동 · Fleet 기본 |
 | **CORE** 출시 (pilot) | 08-15 | gw/1.0.0.b1 — 호주 Straumann pilot 투입 |
 | v1.0-full 개발 | ~09-12 | 관리자/RBAC(경량) · relocation/consent · fleet 지표 |
@@ -35,8 +38,9 @@ VT-Straumann **공진화 전략**(Straumann AXS 연동)의 실행 기반을 확
 
 ## 5. 기술 스택
 
-| Backend | NestJS + DDD + TDD |
+| 영역 | 스택 |
 | --- | --- |
+| Backend | NestJS + DDD + TDD |
 | Frontend (관리 UI) | React + Vite + FSD + shadcn/ui |
 | 데이터 | PostgreSQL · Redis(캐시) · RabbitMQ(큐) · S3/MinIO(스토리지) |
 | 플랫폼 | OPA(정책) · KMS/Vault(시크릿) · OpenTelemetry+Pino(관측·로깅) · Feature Flag(Unleash) |

@@ -277,7 +277,23 @@ GW 본체는 신규 구축이나, **기존 클라이언트(구버전 CleverOne/E
 
 ### 3.1.2 Software Environment
 
-Kubernetes(EKS), PostgreSQL 15.x, Redis, OPA, Node.js(NestJS 런타임). 상세 버전 TBD(설계 단계).
+GW가 동작하는 소프트웨어 스택. 근거·전체 표는 [ARD §4.5 기술 스택](<../../VT API Gateway — ARD (아키텍처).md>). 버전 `TBD`는 설계 단계 확정.
+
+- **언어 / 런타임**: TypeScript · Node.js LTS (버전 TBD)
+- **프레임워크**: NestJS (DDD 모듈 · TDD)
+- **ORM / 마이그레이션**: **Prisma** (권장 — 아래 근거) · 스키마는 DBML(dev-chain-design)에서 파생
+- **관계형 DB**: PostgreSQL 15.x — 레지스트리·매핑·토큰메타·정책·감사
+- **캐시**: Redis — region 매핑 TTL·nonce·rate-limit·idempotency·JWKS
+- **메시지 큐**: RabbitMQ(권장) / SQS — Webhook 비동기 분배·재시도·DLQ(§7.6.3)
+- **MQTT 브로커**: Edge(EzServer) 역방향 분배(QoS1·persistent, §7.6.6)
+- **오브젝트 스토리지**: S3(리전) / MinIO(온프렘) — presigned 업로드 직결(§7.4, GW 미경유)
+- **정책 엔진**: OPA — allowlist·region·scope·egress 판단
+- **시크릿 / 키 관리**: KMS / Secrets Manager (enrollment·PKI는 Vault 검토)
+- **컨테이너 / 오케스트레이션**: Docker · Kubernetes(EKS)
+- **관측성**: OpenTelemetry · 구조화 로그(Pino) — PHI·시크릿 미기록(§6.2)
+- **API 문서**: `@nestjs/swagger` code-first (`/api-docs`, §1.7.1)
+
+> **ORM 추천 — Prisma.** 근거: (1) control plane은 저(低) QPS·CRUD 중심(PRD §10)이라 Prisma의 타입 안전·DX 이점이 크고 복잡 쿼리 한계의 영향이 작다, (2) **DBML → Prisma schema**로 이어지는 설계 산출물 흐름과 마이그레이션 일원화에 부합(`design/dbml/`), (3) 사내 NestJS 표준·ARD §4.5에서 이미 `◎ Prisma`로 채택. 대안: TypeORM(NestJS 친화이나 유지보수 리스크)·Drizzle/Kysely(SQL-first·경량이나 배터리 적음)는 *복잡 쿼리·세밀한 SQL 제어가 핵심이 될 때만* 재검토(결정 변경 시 ADR 추가).
 
 ## 3.2 Product Installation and Configuration (제품 설치 및 설정)
 
@@ -367,7 +383,7 @@ GW는 "모든 서버로 통하는 단일 창구"지만, 그렇다고 **백엔드
 2. **클라이언트 지정 upstream(원서버 주소를 헤더로) 금지.** SSRF·오픈 프록시·토폴로지 결합·라우트별 정책 적용 불가 때문이다. 라우팅은 **경로/호스트 네임스페이스가 1차**(예 `/cs/*`·`/oneid/*`)다. 경로로 부족해 라우팅 힌트가 필요한 경우에 한해 **`Vatech-Target` 헤더**(원서버 주소가 아니라 *논리 서비스 ID*, 예 `cleverspace`)를 쓰며, GW가 **allowlist로 검증 후 내부 매핑**(id→주소)한다. **선택적·예약 헤더이며 v1.0에선 미사용일 수 있다**(경로 라우팅 우선). 임의 라우팅 헤더(`X-Upstream` 등) 신설 금지 — 힌트는 `Vatech-Target`으로 단일화.
 3. **식별·버전·리전 헤더는 `Vatech-*` 표준만 사용**(§7.7.1). "어느 서버로"가 아니라 "누가·어떤 버전·어느 클리닉"을 싣는다. 리전 목적지는 ClinicID→region resolver(§7.3)가 결정한다.
 4. **B 라우트도 정책 체인을 통과한다** — 인증(§7.1)·버전 게이트(§7.7)·egress/allowlist(§7.5.3·§6.5). 통과시킨다고 무검증이 아니다.
-5. **GW 고유 API 컨벤션**: REST/JSON, camelCase 필드, 시간 Unix ms(§1.3), 표준 오류코드(§7.7.4), idempotency key(§4.5). 스키마 정본은 Swagger(code-first).
+5. **GW 고유 API 컨벤션**: REST/JSON, **경로 버전 프리픽스 `/v1`**(예 `/v1/auth/token`·`/v1/webhooks/{provider}`, 관리 API는 `/admin/v1/*`), camelCase 필드, 시간 Unix ms(§1.3), 표준 오류코드(§7.7.4), idempotency key(§4.5). 단 `/.well-known/*`은 표준 관례상 버전 프리픽스 없이 노출(§7.7.2). 스키마 정본은 Swagger(code-first).
 
 > 결정 근거·반려 대안(투명 프록시 vs 클라이언트 지정 upstream)은 ARD ADR 참조(해당 ADR 미작성 시 추가). 본 절은 SRS 차원 규칙 요약.
 
@@ -404,6 +420,8 @@ GW 본체는 무인 control plane. Admin UI는 **③-C GW Console Sub-SRS**에�
 | Straumann AXS API | OpenAPI 스냅샷(2026-06-16) | 외부 연동(④) |
 | PostgreSQL | 15.x | 레지스트리·매핑·토큰메타·정책·감사 |
 | Redis | TBD | region 캐시·nonce·rate-limit·idempotency·JWKS |
+| 메시지 큐 (RabbitMQ 권장 / SQS) | TBD | Webhook 비동기 분배·재시도·백오프·DLQ(§7.6.3). 선정 기준은 전달 보증·포터빌리티(ARD §4.5) |
+| 오브젝트 스토리지 (S3 / MinIO) | TBD | 업로드 세션 파일 직결(presigned, §7.4). 디바이스→리전 storage 직결로 GW 미경유 |
 | MQTT Broker | TBD | Edge(EzServer) 분배(QoS1) |
 | OPA | TBD | allowlist·region·scope·egress 판단 |
 
@@ -421,7 +439,7 @@ DNS 호스트는 *클라이언트가 접속하는 외부 계약*이므로 본 SR
 | 용도 | 제안 호스트 | 비고 |
 | --- | --- | --- |
 | GW API (GeoDNS apex) | `api-gateway.vatech.com` | 레포 `vt-api-gateway`와 일치. 짧은 대안 `gw.vatech.com`. Route 53 GeoDNS로 최근접 리전 라우팅(§7.3.5) |
-| Webhook 수신 | `https://api-gateway.vatech.com/webhooks/<provider>` | 단일 호스트 경로 기반(§7.6.1) |
+| Webhook 수신 | `https://api-gateway.vatech.com/v1/webhooks/<provider>` | 단일 호스트 경로 기반(§7.6.1). `/v1` 버전 프리픽스(§4.1.2-5) |
 | 리전별 엔드포인트(내부) | `api-gateway-<region>.vatech.com` (예: `-apne2`) | GeoDNS 백엔드. 멀티 리전(gw/1.2)에서 사용 |
 | GW Console | `console.api-gateway.vatech.com` (대안 `gw-console.vatech.com`) | **③-C 영역** — 본 SRS는 참조만. 확정은 ③-C Sub-SRS |
 
@@ -815,7 +833,7 @@ GW는 외부 이벤트의 **단일 수신·분배점**이다(ADR-09). 방화벽 
 
 ### 7.6.1 단일 수신 엔드포인트 (P1)
 
-FR-WH-01 (`…/webhooks/<provider>` 단일 진입, 호스트는 §4.5.1).
+FR-WH-01 (`…/v1/webhooks/<provider>` 단일 진입, 호스트는 §4.5.1).
 
 - **Input**: 외부(AXS 등) 이벤트 — HTTPS POST
 - **Output**: 즉시 `2xx` ACK(§7.6.3)
@@ -866,6 +884,9 @@ FR-COMPAT-01 (`Vatech-Product`·`Version`·`OS`·`Clinic-Id`·`Via` 파싱, orig
 ### 7.7.2 well-known 런타임 버전 공시 (P1)
 
 FR-COMPAT-02 (API/기능별 최소 클라이언트 버전을 런타임 공시·캐시).
+
+- **경로**: `/.well-known/<env>/server-configuration.json` (env별 구분). 스키마 상세는 OpenAPI(§4.1)·① One Pager와 동기화
+- **샘플·작성 가이드**: `design/well-known/`(`server-configuration.sample.json` + `README.md`) — 담당 개발자가 호환성 매트릭스에서 값 채움
 
 ### 7.7.3 서버 버전 체크 — validate-limits 사전검증 (P1)
 

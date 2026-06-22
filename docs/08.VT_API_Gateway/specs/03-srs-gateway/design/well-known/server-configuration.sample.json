@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0",
+  "env": "production",
+  "serverVersion": "gw/1.0.0.0",
+  "generatedAt": 1718000000000,
+  "compatibility": {
+    "apis": [
+      {
+        "id": "uploads.commit",
+        "path": "/v1/uploads/{id}/commit",
+        "minClientVersion": {
+          "CleverOne": "1.3.0",
+          "EzServer": "2.1.0"
+        },
+        "errorCode": "COMPAT_CLIENT_TOO_OLD",
+        "fallback": "클라이언트 업데이트가 필요합니다."
+      },
+      {
+        "id": "region.resolve",
+        "path": "/v1/region/resolve",
+        "minClientVersion": {
+          "CleverOne": "1.2.0"
+        },
+        "errorCode": "COMPAT_CLIENT_TOO_OLD",
+        "fallback": "클라이언트 업데이트가 필요합니다."
+      }
+    ],
+    "features": [
+      {
+        "id": "presignedUpload",
+        "minClientVersion": {
+          "CleverOne": "1.3.0",
+          "EzServer": "2.1.0"
+        },
+        "errorCode": "COMPAT_FEATURE_UNSUPPORTED",
+        "fallback": "현재 버전에서 지원하지 않는 기능입니다."
+      }
+    ]
+  }
+}
