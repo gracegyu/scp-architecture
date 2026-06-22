@@ -2,8 +2,9 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 
 **문서 통제**
 
-| 문서 ID        | ESIP-GW-ARD                                         |
+| 항목        | 내용                                         |
 | -------------- | --------------------------------------------------- |
+| 문서 ID        | ESIP-GW-ARD                                         |
 | 문서 버전      | v0.9                                                |
 | 적용 제품 버전 | gw/1.0.0.0                                          |
 | 분류           | 통제 문서 (Controlled · IEC 62304 / ISO 13485 대상) |
@@ -11,8 +12,9 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 
 ## 0. 개정 이력 (Revision History)
 
-| v0.1 | 2026-06-08 | Scott | 스켈레톤 — ADR 6건 등록, 컴포넌트·시퀀스 TBD | Superseded |
+| 문서 번호 | 일자 | 작성 | 변경 내용 | 상태 |
 | --- | --- | --- | --- | --- |
+| v0.1 | 2026-06-08 | Scott | 스켈레톤 — ADR 6건 등록, 컴포넌트·시퀀스 TBD | Superseded |
 | v0.3 | 2026-06-08 | Scott | 핵심 시퀀스 3종(온보딩·리전 해석·업로드 세션) 추가 | Draft |
 | v0.8 | 2026-06-15 | Scott | ESMN Roadmap 흡수 — ADR-07~10(API 버전 호환성·OneID 인증면·Webhook Receiver·라우팅 키 통합), 컴포넌트 4종·시퀀스 2종 추가 | Draft |
 | v0.9 | 2026-06-15 | Scott | Webhook Edge MQTT 역방향(WH-06)을 b1(v1.0)로 당김 — AXS pilot 일정 반영(ESIP-23) | Draft |
@@ -23,8 +25,9 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 
 ## 2. 주요 아키텍처 결정 (ADR)
 
-| ADR-01 | mTLS 미채택, DPoP + 하드웨어 키(SE/TPM) | 10만대 운영 부담 / mTLS는 물리 키추출 위협 미해결 | 채택 |
+| ID | 결정 | 근거 | 상태 |
 | --- | --- | --- | --- |
+| ADR-01 | mTLS 미채택, DPoP + 하드웨어 키(SE/TPM) | 10만대 운영 부담 / mTLS는 물리 키추출 위협 미해결 | 채택(방향) · 적용 gw/1.1 (v1.0은 OAuth2 cc + claim 바인딩, SRS §7.1.1) |
 | ADR-02 | Control plane = soft-state (완전 stateless 아님) | cache TTL·mapping_version·강한 일관성 경로 분리 | 채택 |
 | ADR-03 | 리전 signer agent (설계안 B) | 리전 내 자격증명 보관 → blast radius·주권 / 중앙 서명(반려) | 채택 |
 | ADR-04 | Upload Session 추상화 (start→chunk→commit) | 단발 presigned 한계 / resumable·idempotency | 채택 |
@@ -39,8 +42,9 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 
 ### **3.1 논리 구성 (3-plane)**
 
-| Control (글로벌, soft-state) | Device Registry · Enrollment · Auth(OAuth2/JWT) · Region Resolver · Config · Fleet Ops · Policy(OPA) · Audit | 메타데이터만 · PHI 미경유 |
+| Plane | 컴포넌트 | 비고 |
 | --- | --- | --- |
+| Control (글로벌, soft-state) | Device Registry · Enrollment · Auth(OAuth2/JWT) · Region Resolver · Config · Fleet Ops · Policy(OPA) · Audit | 메타데이터만 · PHI 미경유 |
 | Data (리전 한정) | Presign Broker · Region Signer Agent · Region Storage | PHI 리전 밖 미이동 |
 | Integration (north-south) | Connector Framework · AXS Connector · Egress 정책 | 안전 링크 pull |
 
@@ -55,8 +59,9 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 
 ## 4. 컴포넌트
 
-| Device Registry / Lifecycle | Control | 디바이스 등록·조회·상태기계(pending→active→suspended→revoked) | 핵심 |
+| 컴포넌트 | Plane | 책임 | v1.0 심도 |
 | --- | --- | --- | --- |
+| Device Registry / Lifecycle | Control | 디바이스 등록·조회·상태기계(pending→active→suspended→revoked) | 핵심 |
 | Enrollment Service | Control | 부트스트랩 신뢰·nonce·fingerprint·이상탐지·자격 발급 | 핵심(하드웨어 attestation은 v1.1) |
 | Auth Service | Control | OAuth2 cc·JWT 발급/검증·token store·secret 회전 | 핵심(DPoP/HW키 v1.1) |
 | Region Resolver | Control | device→region 매핑·mapping_version·강한 일관성 경로 | 핵심(단일 리전) |
@@ -78,8 +83,9 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 
 확정(◎) · 권장 보완(○ — 누락분). 단일 리전 v1.0 기준.
 
-| BE | ◎ NestJS + DDD + TDD | bounded context=모듈·도메인 계층 분리·테스트 우선 |
+| 영역 | 채택 | 비고 |
 | --- | --- | --- |
+| BE | ◎ NestJS + DDD + TDD | bounded context=모듈·도메인 계층 분리·테스트 우선 |
 | FE (관리 UI) | ◎ React + Vite + FSD + shadcn/ui | 경량 · 디자인시스템 미도입 |
 | API 문서 | ◎ Swagger (@nestjs/swagger, code-first) | 데코레이터→OpenAPI 자동 · /api-docs |
 | 관계 DB | ◎ PostgreSQL | 레지스트리·매핑·토큰메타·정책·감사 (멀티리전 v1.2 → 분산SQL 검토) |
@@ -148,8 +154,9 @@ PRD: [VT API Gateway — PRD (v2)](<VT API Gateway — PRD (v2).md>) · 작업
 
 본 ARD의 3-Plane control plane을 **골격**으로 유지하고, ESMN *VatechAPIGateway 구축 및 API 호환성 통합 Roadmap*(2026-06-11 SCServer 기술검토 회의)의 4개 요소를 흡수한다. 원칙: **골격=08, 우선순위·현실 메커니즘=Roadmap**.
 
-| API 버전 호환성              | 1단계(즉시·CleverSpace v1.3.0) | API Compatibility Gate · FR-COMPAT-01~05                          | ADR-07 |
+| 흡수 항목                    | Roadmap 출처                   | 08 반영                                                           | ADR    |
 | ---------------------------- | ------------------------------ | ----------------------------------------------------------------- | ------ |
+| API 버전 호환성              | 1단계(즉시·CleverSpace v1.3.0) | API Compatibility Gate · FR-COMPAT-01~05                          | ADR-07 |
 | OneID 인증면                 | OneID 단일 집행                | OneID Integration · FR-AUTH-08/09 (디바이스 머신 인증과 2면 공존) | ADR-08 |
 | Webhook Receiver + Edge MQTT | §2.7                           | Webhook Receiver · MQTT Broker · FR-WH-01~06                      | ADR-09 |
 | 라우팅 키 통합               | ClinicID 라우팅                | Region Resolver 확장 · FR-RGN-06                                  | ADR-10 |

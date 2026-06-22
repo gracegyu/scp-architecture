@@ -1,7 +1,8 @@
 **문서 통제**
 
-| 문서 ID | ESIP-GW-API |
+| 항목        | 내용                                         |
 | --- | --- |
+| 문서 ID | ESIP-GW-API |
 | 문서 버전 | v0.2 (Roadmap 흡수) |
 | 적용 제품 버전 | gw/1.0.0.0 |
 | 분류 | 통제 문서 (Controlled · IEC 62304 / ISO 13485) |
@@ -9,8 +10,9 @@
 
 ## 0. 개정 이력
 
-| v0.1 | 2026-06-08 | Scott | API 표면·데이터 모델·주권 매핑 초안 |
+| 버전 | 일자 | 작성 | 변경 |
 | --- | --- | --- | --- |
+| v0.1 | 2026-06-08 | Scott | API 표면·데이터 모델·주권 매핑 초안 |
 | v0.2 | 2026-06-15 | Scott | Roadmap 흡수 — well-known·Webhook·OneID 엔드포인트, 호환성·이벤트·클리닉매핑 엔터티 추가 |
 
 출처: [PRD](<VT API Gateway — PRD (v2).md>) · [ARD](<VT API Gateway — ARD (아키텍처).md>) · [요구사항 명세](<VT API Gateway — 요구사항 명세 (Requirements).md>). 상세 OpenAPI는 LLD에서 확정.
@@ -19,8 +21,9 @@
 
 **API 문서**: NestJS `@nestjs/swagger` code-first — 데코레이터에서 OpenAPI 자동 생성, `/api-docs` 노출. (상세 스펙은 LLD에서 확정.)
 
-| POST | /v1/auth/token | 디바이스 client_credentials → JWT 발급 | AUTH-01/02 |
+| 메서드 | 경로 | 설명 | FR |
 | --- | --- | --- | --- |
+| POST | /v1/auth/token | 디바이스 client_credentials → JWT 발급 | AUTH-01/02 |
 | POST | /v1/enroll/start | enrollment 시작 → nonce challenge | ENR-01/03 |
 | POST | /v1/enroll/complete | 서명+fingerprint 검증 → 자격 발급(allowlist 등록) | ENR-01/04 |
 | GET | /v1/region/resolve | device→region 해석(mapping_version) | RGN-01/02 |
@@ -41,8 +44,9 @@
 
 ## 2. 데이터 모델 (핵심 엔터티)
 
-| Device | device_id, fingerprint, region, status(lifecycle) | PHI 없음 |
+| 엔터티 | 핵심 필드 | 비고 |
 | --- | --- | --- |
+| Device | device_id, fingerprint, region, status(lifecycle) | PHI 없음 |
 | EnrollmentToken | token_ref, serial, expires_at, used | 1회·짧은 TTL |
 | Credential | device_id, client_id, secret_ref(KMS), hw_key_bound | 시크릿 참조만 |
 | Token | device_id, jwt_claims, expires_at | claim binding |

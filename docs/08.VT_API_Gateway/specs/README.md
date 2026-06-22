@@ -53,3 +53,16 @@ scp-architecture     →     공식 저장소(아래)      →     VKS(Confluenc
 | ④ Sub-SRS | `specs/04-...` | **vt-api-gateway** `docs/specs/` (③ 하위, PR 리뷰) |
 
 > 공통: SRS류 정본은 Azure(git, baseline 태그). **추출본 게시는 하지 않고**, 필요 시 VKS PRD/ARD에서 **git URL 링크로 참조**한다. One Pager는 VKS에서 작성·리뷰하므로 그 자체가 통제 게시.
+
+## 초안 완료 후 이관 규칙 (단일 SSOT · 드리프트 0)
+
+> **핵심: 같은 파일을 두 곳에 두지 않는다.** 초안이 완료(baseline 직전)되면 **본체를 공식 저장소(Azure git)로 이동**하고, `scp-architecture` 쪽 자리는 **URL 포인터로 교체**한다. 파일을 복제(또는 심볼릭/하드 링크)하지 않는다 — 복제는 드리프트의 원인이며, git 2개 레포 사이 링크는 clone·CI·Confluence에서 깨진다.
+
+1. **작성 단계**: `scp-architecture/.../specs/`에서 자유롭게 작성·수정한다(개인 초안).
+2. **이관 단계(초안 완료 시)**: 산출물(SRS·Sub-SRS·`design/openapi`·`design/dbml`)을 **공식 저장소로 PR 이관**한다.
+   - SRS류·design 산출물 → **vt-api-gateway** `docs/specs/` (Azure git, PR 리뷰·baseline 태그)
+   - One Pager(①②) → **VKS(Confluence)** 페이지
+3. **포인터 교체**: 이관 후 `scp-architecture` 쪽 원본 파일은 **삭제하거나, 공식 URL 안내문 1개로 축소**한다. 이후 본문 수정은 **공식 저장소에서만** 한다(§1.5가 이미 이 방식 — 로컬 경로 대신 Azure/VKS URL 링크).
+4. **참조 일관성**: 다른 문서에서 인용할 때는 **파일 경로가 아니라 공식 URL**로 링크한다. baseline 이후 정본은 git 태그가 증적이다.
+
+> 결과: 본문은 **공식 저장소 한 곳에만** 존재하고, `scp-architecture`·VKS·PRD/ARD는 **URL로 참조**만 한다. "동일 파일 2벌"이 생기지 않는다.

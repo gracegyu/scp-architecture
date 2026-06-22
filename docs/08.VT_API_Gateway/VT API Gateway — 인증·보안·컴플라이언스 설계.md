@@ -1,16 +1,18 @@
 **문서 통제**
 
-| 문서 ID | ESIP-GW-SEC |
-| --- | --- |
-| 문서 버전 | v0.2 (Roadmap 흡수) |
-| 적용 제품 버전 | gw/1.0.0.0 |
-| 분류 | 통제 문서 (Controlled · IEC 62304 / ISO 13485) |
-| 상태 | Draft |
+| 항목           | 내용                                           |
+| -------------- | ---------------------------------------------- |
+| 문서 ID        | ESIP-GW-SEC                                    |
+| 문서 버전      | v0.2 (Roadmap 흡수)                            |
+| 적용 제품 버전 | gw/1.0.0.0                                     |
+| 분류           | 통제 문서 (Controlled · IEC 62304 / ISO 13485) |
+| 상태           | Draft                                          |
 
 ## 0. 개정 이력
 
-| v0.1 | 2026-06-08 | Scott | 인증·인가·보안·컴플라이언스 설계 초안 |
-| --- | --- | --- | --- |
+| 버전 | 일자       | 작성  | 변경                                                              |
+| ---- | ---------- | ----- | ----------------------------------------------------------------- |
+| v0.1 | 2026-06-08 | Scott | 인증·인가·보안·컴플라이언스 설계 초안                             |
 | v0.2 | 2026-06-15 | Scott | Roadmap 흡수 — OneID 인증면(2면)·Webhook 검증·버전 호환 위협 추가 |
 
 출처: [ARD](<VT API Gateway — ARD (아키텍처).md>) (ADR·시퀀스) · [요구사항 명세](<VT API Gateway — 요구사항 명세 (Requirements).md>).
@@ -37,13 +39,14 @@ OPA — allowlist · region · scope · connector egress 판단. data classifica
 
 ## 5. 위협 → 대응 (ADR 정합)
 
-| 토큰 탈취 후 remote replay | DPoP(sender-constrained) — 디바이스 키 바인딩 |
-| --- | --- |
-| 물리 접근 키 추출(의료기기) | 하드웨어(SE/TPM) 보관 — mTLS로는 미해결 |
-| 임의 기기 등록 | enrollment token·nonce·fingerprint·이상탐지·allowlist |
-| 국경 데이터 유출 | 주권 라우팅 + consent·classification 게이팅 |
-| 위조된 외부 Webhook 호출 | Webhook Receiver — HMAC 서명·IP allowlist·timestamp·eventId 멱등(ADR-09) |
-| 버전 불일치 원인불명 실패 | API Compatibility Gate — Vatech-* 헤더·well-known·매트릭스(ADR-07) |
+| 위협                        | 대응                                                                     |
+| --------------------------- | ------------------------------------------------------------------------ |
+| 토큰 탈취 후 remote replay  | DPoP(sender-constrained) — 디바이스 키 바인딩                            |
+| 물리 접근 키 추출(의료기기) | 하드웨어(SE/TPM) 보관 — mTLS로는 미해결                                  |
+| 임의 기기 등록              | enrollment token·nonce·fingerprint·이상탐지·allowlist                    |
+| 국경 데이터 유출            | 주권 라우팅 + consent·classification 게이팅                              |
+| 위조된 외부 Webhook 호출    | Webhook Receiver — HMAC 서명·IP allowlist·timestamp·eventId 멱등(ADR-09) |
+| 버전 불일치 원인불명 실패   | API Compatibility Gate — Vatech-\* 헤더·well-known·매트릭스(ADR-07)      |
 
 ## 6. 컴플라이언스 (IEC 62304 / ISO 13485)
 

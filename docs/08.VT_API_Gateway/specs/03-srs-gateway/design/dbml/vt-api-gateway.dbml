@@ -3,15 +3,187 @@
 // 작성: scp-architecture 초안 -> baseline 시 vt-api-gateway/docs/specs/design/로 PR 이관.
 // 구현 착수 후에는 Prisma schema로 이어진다(본 파일이 컬럼·타입·인덱스·relation SSOT).
 //
-// 저장 정보 유형(§6.4): 디바이스 레지스트리, device/clinic<->region 매핑,
-//   토큰 메타, 정책(OPA 입력), 감사 로그. PHI 본문 미저장(presigned 직결).
+// 시드 출처: "VT API Gateway - API 명세·데이터 모델·주권" §2 데이터 모델(13 엔터티).
+// 컬럼은 snake_case(PostgreSQL 관례), API DTO는 camelCase(SRS §1.3)로 매핑.
+// 시간은 Unix Timestamp(ms) bigint. PHI 본문 미저장(presigned 직결, SRS §6.4).
+// 타입·인덱스·정밀 relation은 LLD(dev-chain-design)에서 확정.
 
 Project vt_api_gateway {
   database_type: 'PostgreSQL'
-  Note: '설계 초안(placeholder). dev-chain-design 단계에서 테이블 확정 예정.'
+  Note: '설계 초안. 핵심 엔터티 골격만 — 상세 확정은 LLD.'
 }
 
-// placeholder - baseline DBML 작성 시 제거
-Table _placeholder {
-  id int [pk, note: 'Remove when baseline DBML is written']
+Enum device_status {
+  pending
+  active
+  suspended
+  revoked
+}
+
+Enum webhook_state {
+  received
+  dispatched
+  dead_letter
+}
+
+// 디바이스 레지스트리 (FR-DEV-*)
+Table device {
+  device_id   varchar [pk]
+  fingerprint varchar
+  region      varchar
+  status      device_status [not null, default: 'pending']
+  created_at  bigint
+  updated_at  bigint
+
+  Note: 'PHI 없음. lifecycle 상태기계(§7.2)'
+  Indexes {
+    region
+    status
+  }
+}
+
+// 온보딩 토큰 (FR-ENR-*)
+Table enrollment_token {
+  token_ref  varchar [pk]
+  serial     varchar
+  expires_at bigint
+  used       boolean [not null, default: false]
+
+  Note: '1회·짧은 TTL. 발급 = allowlist 등록'
+  Indexes {
+    serial
+  }
+}
+
+// 디바이스 자격증명 (FR-AUTH-*)
+Table credential {
+  device_id    varchar [pk, ref: - device.device_id]
+  client_id    varchar [unique]
+  secret_ref   varchar
+  hw_key_bound boolean [not null, default: false]
+
+  Note: '시크릿 참조만(KMS). 평문 미저장'
+}
+
+// 발급 토큰 메타 (FR-AUTH-05)
+Table token {
+  id         varchar [pk]
+  device_id  varchar [ref: > device.device_id]
+  jwt_claims jsonb
+  expires_at bigint
+
+  Note: 'claim hard binding(device/region/aud/TTL)'
+  Indexes {
+    device_id
+  }
+}
+
+// device → region 매핑 (FR-RGN-01/02)
+Table region_mapping {
+  device_id       varchar [pk, ref: - device.device_id]
+  region          varchar [not null]
+  mapping_version integer [not null, default: 1]
+
+  Note: 'drift·롤백 추적'
+}
+
+// clinic → region 매핑 (FR-RGN-06, 라우팅 키 통합)
+Table clinic_region_mapping {
+  clinic_id       varchar [pk]
+  region          varchar [not null]
+  mapping_version integer [not null, default: 1]
+
+  Note: 'device↔clinic↔region 단일 체계(ADR-10)'
+}
+
+// 업로드 세션 (FR-SES-*)
+Table upload_session {
+  session_id varchar [pk]
+  device_id  varchar [ref: > device.device_id]
+  region     varchar
+  object_key varchar
+  status     varchar
+
+  Note: 'PHI 미포함 키. presigned 직결, GW 미경유'
+  Indexes {
+    device_id
+  }
+}
+
+// 정책 (OPA 입력, FR-INT-03)
+Table policy {
+  id                varchar [pk]
+  tenant            varchar
+  connector         varchar
+  allowed_endpoints jsonb
+  scopes            jsonb
+  egress            jsonb
+
+  Note: 'OPA allowlist·region·scope·egress 판단 근거'
+  Indexes {
+    (tenant, connector)
+  }
+}
+
+// 외부 connector (FR-INT-01/02)
+Table connector {
+  name             varchar [pk]
+  endpoint         varchar
+  credential_ref   varchar
+  egress_allowlist jsonb
+
+  Note: 'adapter. name 예: axs'
+}
+
+// 감사 로그 (FR-AUD-01)
+Table audit_log {
+  id     bigint [pk, increment]
+  ts     bigint [not null]
+  actor  varchar
+  action varchar
+  result varchar
+
+  Note: 'append-only(UPDATE/DELETE 금지)'
+  Indexes {
+    ts
+    actor
+  }
+}
+
+// fleet 상태 (FR-FLEET-01/03)
+Table fleet_state {
+  device_id      varchar [pk, ref: - device.device_id]
+  last_heartbeat bigint
+  success_rate   decimal
+
+  Note: '관측 지표'
+}
+
+// 호환성 매트릭스 (FR-COMPAT-05, 단일 소스)
+Table compat_matrix {
+  id                 varchar [pk]
+  api_or_feature     varchar [not null]
+  min_client_version varchar
+  error_code         varchar
+  fallback           varchar
+
+  Note: '호환성 단일 소스. well-known 공시 파일의 생성 원본(design/well-known/)'
+  Indexes {
+    api_or_feature
+  }
+}
+
+// 외부 이벤트 (FR-WH-*)
+Table webhook_event {
+  event_id    varchar [pk]
+  provider    varchar [not null]
+  payload_ref varchar
+  state       webhook_state [not null, default: 'received']
+  target      varchar
+
+  Note: '멱등(event_id dedup)·분배 상태. payload 본문은 외부 스키마(④)'
+  Indexes {
+    provider
+    state
+  }
 }
