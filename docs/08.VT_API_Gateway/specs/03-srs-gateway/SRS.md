@@ -1,6 +1,6 @@
 # VatechAPIGateway SRS (③ GW 일원화 + 멀티 Region)
 
-> **골격(skeleton) — v0.1 작성 중.** 고정 항목(1~7장 + Appendix)을 모두 배치했다. 근거가 있는 내용은 PRD/ARD/요구사항 명세에서 가져왔고, 사람이 확정해야 할 곳은 `TBD`(4항목) 또는 `❓확인`으로 표시했다. 본 골격은 [munto-spec-writer SKILL](../README.md) 표준(SRS v3.3)을 따른다.
+> **골격(skeleton) — v0.1 작성 중.** 고정 항목(1~7장 + Appendix)을 모두 배치했다. 근거가 있는 내용은 PRD/ARD/요구사항 명세에서 가져왔고, 사람이 확정해야 할 곳은 `TBD`(4항목) 또는 `❓확인`으로 표시했다. 본 골격은 SRS v3.3 표준을 따른다.
 
 **문서 통제**
 
@@ -9,8 +9,8 @@
 | 문서 버전 | v0.1 (Draft · 골격) |
 | 적용 제품 버전 | gw/1.0.0.0~ |
 | 분류 | 통제 문서 (Controlled · IEC 62304 / ISO 13485 — 요구사항 추적성) |
-| SSOT 여부 | 본 SRS가 GW 플랫폼 요구사항의 SSOT. 기존 [요구사항 명세](<../../VT API Gateway — 요구사항 명세 (Requirements).md>)·PRD·ARD는 추출/배경 뷰 |
-| 공식 등록처 | Azure `vt-api-gateway` `docs/specs/` (PR 리뷰) — [등록 위치](../README.md) |
+| SSOT 여부 | 본 SRS가 GW 플랫폼 요구사항의 SSOT. 기존 [요구사항 명세](https://vks.vatech.com/x/AcSSEg)·[PRD](https://vks.vatech.com/pages/viewpage.action?pageId=311608280)·[ARD](https://vks.vatech.com/pages/viewpage.action?pageId=311608281)는 추출/배경 뷰 |
+| 공식 등록처 | [vt-api-gateway `docs/specs/SRS.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/SRS.md) (PR 리뷰) |
 
 ---
 
@@ -31,8 +31,8 @@ GW는 (1) 모든 통신이 경유하는 중앙 control plane(인증·디바이�
 **Will Not Do (의도적으로 제외):**
 
 - **제품측(CleverSpace·CleverOne·EzServer) 변경 상세** — ① API 호환성 / ② Presigned One Pager에서 다룬다. 본 SRS는 GW 쪽 계약만 정의한다.
-- **Straumann AXS connector 상세** — ④ Sub-SRS([04-subsrs-straumann-axs](../04-subsrs-straumann-axs/_status.md))에서 다룬다. 본 SRS는 connector 프레임워크(§7.5)까지만.
-- **GW Console(Admin Web) UI 상세** — ③-C Sub-SRS([03c-subsrs-gw-console](../03c-subsrs-gw-console/_status.md))에서 다룬다. 본 SRS는 관리 API(§7.9)까지만.
+- **Straumann AXS connector 상세** — ④ Sub-SRS([Straumann AXS Sub-SRS](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/04-subsrs-straumann-axs/Sub-SRS.md))에서 다룬다. 본 SRS는 connector 프레임워크(§7.5)까지만.
+- **GW Console(Admin Web) UI 상세** — ③-C Sub-SRS([GW Console Sub-SRS](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/03c-subsrs-gw-console/Sub-SRS.md))에서 다룬다. 본 SRS는 관리 API(§7.9)까지만.
 - **레거시 10만대 마이그레이션** — v2.0(FR-MIG-*). 본 v1.0 범위 밖.
 
 ## 1.3 Document Conventions (문서규칙)
@@ -65,14 +65,28 @@ GW는 (1) 모든 통신이 경유하는 중앙 control plane(인증·디바이�
 
 ## 1.5 Related Documents (관련문서)
 
-- [PRD (v2)](<../../VT API Gateway — PRD (v2).md>) — 상위 기획. §12.1 스펙 단위 정본
-- [ARD (아키텍처)](<../../VT API Gateway — ARD (아키텍처).md>) — ADR-01~10·컴포넌트·시퀀스
-- [요구사항 명세](<../../VT API Gateway — 요구사항 명세 (Requirements).md>) — FR/NFR 등록부 (본 SRS가 SSOT로 흡수, 해당 문서는 추출 뷰)
-- [인증·보안·컴플라이언스 설계](<../../VT API Gateway — 인증·보안·컴플라이언스 설계.md>) · [API 명세·데이터 모델·주권](<../../VT API Gateway — API 명세·데이터 모델·주권.md>)
-- [개발 Roadmap 결정 (배경)](<../../VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>) — 케이스 D·단계
-- [AXS OpenAPI 스냅샷](<../../../Straumann연동/AXS_docs/openapi/README.md>) — ④ 연동 입력 (취득 2026-06-16)
-- 하위 스펙: [① API 호환성](../01-onepager-api-compatibility/_status.md) · [② Presigned](../02-onepager-presigned-url/_status.md) · [③-C GW Console](../03c-subsrs-gw-console/_status.md) · [④ Straumann AXS](../04-subsrs-straumann-axs/_status.md)
-- Swagger / ERD: `vt-api-gateway-docs` (작성 후 링크 — TBD)
+**VKS (Confluence) — 통제·설계**
+
+- [PRD (v2)](https://vks.vatech.com/pages/viewpage.action?pageId=311608280) — 상위 기획. §12.1 스펙 단위 정본
+- [ARD (아키텍처)](https://vks.vatech.com/pages/viewpage.action?pageId=311608281) — ADR-01~10·컴포넌트·시퀀스
+- [요구사항 명세](https://vks.vatech.com/x/AcSSEg) — FR/NFR 등록부 (본 SRS가 SSOT로 흡수, 해당 문서는 추출 뷰)
+- [인증·보안·컴플라이언스 설계](https://vks.vatech.com/pages/viewpage.action?pageId=311608329) · [API 명세·데이터 모델·주권](https://vks.vatech.com/x/CMSSEg)
+- [개발 Roadmap 결정 (배경)](https://vks.vatech.com/x/r9iSEg) — 케이스 D·단계
+
+**Azure Repos — 스펙·설계 산출물 (`vt-api-gateway`)**
+
+- [OpenAPI (GW 고유 API)](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/openapi/vt-api-gateway.openapi.yaml) — dev-chain-design SSOT
+- [DBML (PostgreSQL)](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/dbml/vt-api-gateway.dbml) — dev-chain-design SSOT
+- 하위 스펙:
+  - ① API 호환성 One Pager (경로TBD) — VKS(Confluence), pageId 미확정
+  - ② Presigned URL One Pager (경로TBD) — VKS(Confluence), pageId 미확정
+  - [③-C GW Console Sub-SRS](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/03c-subsrs-gw-console/Sub-SRS.md)
+  - [④ Straumann AXS Sub-SRS](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/04-subsrs-straumann-axs/Sub-SRS.md)
+
+**외부·참고**
+
+- [AXS OpenAPI (Straumann 정본)](https://developer.axs.straumann.com/api) · 스펙 인덱스 `https://developer.axs.straumann.com/specs/index.json`
+- [AXS OpenAPI 스냅샷 (사내)](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/references/axs-openapi/README.md) — ④ 연동 입력 (취득 2026-06-16, Confidential)
 
 ## 1.6 Intended Audience and Reading Suggestions (대상 및 읽는 방법)
 
@@ -326,8 +340,8 @@ None
 
 ## 4.1 System Interfaces (시스템 인터페이스)
 
-- API: `vt-api-gateway-docs` Swagger (작성 후 링크 — TBD)
-- ERD: `vt-api-gateway-docs` PostgreSQL (작성 후 링크 — TBD)
+- API: [OpenAPI — `vt-api-gateway.openapi.yaml`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/openapi/vt-api-gateway.openapi.yaml)
+- ERD: [DBML — `vt-api-gateway.dbml`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/dbml/vt-api-gateway.dbml)
 
 연동 시스템: OneID(OIDC), CleverSpace, Straumann AXS(④), CleverLab, EzServer(MQTT). 상세 계약은 §7 + Swagger.
 
@@ -337,7 +351,7 @@ GW는 "모든 서버로 통하는 단일 창구"지만, 그렇다고 **백엔드
 
 | 버킷 | 무엇 | 방향 / 신뢰경계 | 정의 방법 | 정본(SSOT) |
 | --- | --- | --- | --- | --- |
-| **A. GW 고유 API** | §7 전부 — 인증·enrollment·디바이스 레지스트리·region resolve·upload session·Webhook 수신·**관리 API(③-C Console이 호출하는 Backoffice/관리 API 포함, §7.9·§7.8)**. UI 자체는 ③-C | GW 자신이 노출 | GW가 직접 OpenAPI 정의(NestJS code-first `@nestjs/swagger`, §1.7.1) | 본 SRS §7 + `vt-api-gateway-docs` Swagger |
+| **A. GW 고유 API** | §7 전부 — 인증·enrollment·디바이스 레지스트리·region resolve·upload session·Webhook 수신·**관리 API(③-C Console이 호출하는 Backoffice/관리 API 포함, §7.9·§7.8)**. UI 자체는 ③-C | GW 자신이 노출 | GW가 직접 OpenAPI 정의(NestJS code-first `@nestjs/swagger`, §1.7.1) | 본 SRS §7 + [OpenAPI](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/openapi/vt-api-gateway.openapi.yaml) |
 | **B. 프록시 라우트** | **우리 소유** 백엔드(CleverSpace·OneID·CleverLab)로 통과시키는 경로 | inbound·**내부망(trusted)** — 백엔드가 GW 신뢰, 정규화 신원 전달 | **라우트 설정**(매칭→upstream→정책)으로만 정의. 백엔드 OpenAPI는 *참조*만, 재정의 금지 | 각 백엔드 제품의 OpenAPI |
 | **C. Egress 커넥터** | **외부 제3자**(Straumann AXS, 향후 DS Core/3Shape) 연동 | outbound·**경계 밖(untrusted)** — 우리가 외부에 OAuth 인증, 토큰/secret 관리(§7.1.3)·고정 egress IP | 커넥터 프레임워크 + egress allowlist(§7.5) + Webhook 역수신(§7.6) | ④ Sub-SRS + 외부 OpenAPI 스냅샷 |
 
@@ -479,7 +493,7 @@ GW는 의료 데이터(PHI) 경로의 control plane이므로, 데이터 보호·
 
 ## 6.2 Security Requirements (보안 요구사항)
 
-보안 분석 8항목 점검(상세 정책은 [인증·보안·컴플라이언스 설계 문서](<../../VT API Gateway — 인증·보안·컴플라이언스 설계.md>) 참조):
+보안 분석 8항목 점검(상세 정책은 [인증·보안·컴플라이언스 설계](https://vks.vatech.com/pages/viewpage.action?pageId=311608329) 참조):
 
 | # | 항목 | GW 적용 |
 | --- | --- | --- |
@@ -522,7 +536,7 @@ Webhook 전달 보증(QoS1·재시도·DLQ), 업로드 idempotency. MTBF 목표 
 
 ## 6.4 Logical Database Requirements (데이터베이스 요구사항)
 
-- ERD: `vt-api-gateway-docs` PostgreSQL (작성 후 링크 — TBD). 신규 테이블의 컬럼·타입·인덱스·relation은 DBML(dev-chain-design)이 SSOT
+- ERD: [DBML — `vt-api-gateway.dbml`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/dbml/vt-api-gateway.dbml). 신규 테이블의 컬럼·타입·인덱스·relation은 DBML(dev-chain-design)이 SSOT
 - 저장 정보 유형: 디바이스 레지스트리, device/clinic↔region 매핑, 토큰 메타, 정책(OPA 입력), 감사 로그. **PHI 본문은 미저장**(presigned 직결)
 - 캐시: Redis(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS)
 - 무결성:
@@ -594,7 +608,7 @@ None
 
 # 7 Functional Requirements (기능요구사항)
 
-> 각 대분류는 요구사항 명세의 FR ID를 SSOT로 흡수한다. 우선순위는 §1.3 기준(M·v1.0=P1). 전체 API 스키마는 Swagger(`vt-api-gateway-docs`), DB 스키마는 DBML이 SSOT이며, 본 장은 기능·동작·에러·경계를 정의한다.
+> 각 대분류는 요구사항 명세의 FR ID를 SSOT로 흡수한다. 우선순위는 §1.3 기준(M·v1.0=P1). 전체 API 스키마는 [OpenAPI](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/openapi/vt-api-gateway.openapi.yaml), DB 스키마는 [DBML](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/dbml/vt-api-gateway.dbml)이 SSOT이며, 본 장은 기능·동작·에러·경계를 정의한다.
 
 ## 7.1 인증·토큰 (P1)
 
@@ -939,7 +953,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 3 | 경로 B EOS 시점 | §2.8·§7.6 | PM(제품) | ① One Pager 확정 시 | §7.6·① |
 | 4 | MQTT 브로커 운영 주체 | §2.6·§7.6 | 운영조직(미정) | ③-P-EZ 착수 전 | §7.6·ARD |
 | 5 | 감사·consent 보존 기간 | §6.4·§7.9.3·§7.9.5 | 품질/법무 | baseline 전 | §6.5 |
-| 6 | Swagger·ERD 링크(`vt-api-gateway-docs`) | §1.5·§4.1·§6.4 | GW(본인) | DBML/Swagger 작성 후 | §7 전반 |
+| 6 | OpenAPI·DBML (`docs/specs/design/`) | §1.5·§4.1·§6.4 | GW(본인) | dev-chain-design 작성 후 | §7 전반 |
 | 7 | 멀티 Region·멀티클라우드 gw/1.0 흡수 여부 | §2.7 | PM/아키텍트 | 설계 착수 전 | §7.3·§7.4 |
 | 8 | 호환성 매트릭스 확정본 | §2.8·§7.7.5 | ① One Pager | ① 확정 시 | §7.7 |
 | 9 | RTO/RPO·유지보수 윈도우 | §6.3.1·§6.8 | 인프라 | 설계 단계 | §6 |
@@ -982,3 +996,4 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-22 | §4.1.2 규칙 2 보강 — 경로/호스트 1차 라우팅 명시 + `Vatech-Target`(논리 서비스 ID·allowlist·선택/예약, v1.0 미사용 가능) 헤더 표준화, 임의 라우팅 헤더 신설 금지 | (작성자 ID 미지정) |
 | 2026-06-22 | §4.1.1 표에 "방향/신뢰경계" 열 추가 — B(inbound·내부 trusted 프록시) vs C(outbound·외부 untrusted 연동) 구분 명확화, presigned 비경유 경로 명시 | (작성자 ID 미지정) |
 | 2026-06-22 | §4.1.1 A버킷에 ③-C Console이 호출하는 Backoffice/관리 API 포함(§7.9·§7.8) 명시 — UI=③-C / API=GW 경계 가시화 | (작성자 ID 미지정) |
+| 2026-06-22 | §1.5 — VKS·Azure·외부 공식 URL로 Related Documents 일괄 갱신(Confluence/Git 복사 전제). ①② One Pager는 경로TBD | (작성자 ID 미지정) |
