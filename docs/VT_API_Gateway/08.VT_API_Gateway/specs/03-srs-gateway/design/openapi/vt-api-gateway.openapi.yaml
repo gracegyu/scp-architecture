@@ -209,13 +209,13 @@ paths:
   #   - 경로③(C): Vatech-Target: axs — AXS OpenAPI 스냅샷 + ④ Sub-SRS 정본 (OAuth2·egress allowlist는 GW 정책)
   # Vatech-Target 없는 호출만 아래 GW 고유 API(A)로 처리된다.
 
-  # --- Webhook 수신 (§7.6 / §4.1.3) ---
+  # --- Webhook 수신 (§7.6 / §4.1.3) — 경로/스키마는 provider별 등록으로 유연(아래는 기본 관례 예시). GW는 발신자 검증·라우팅만, payload 비해석 ---
   /v1/webhooks/{provider}:
     post:
       tags: [ webhooks ]
-      summary: 외부 이벤트 Webhook 수신(단일 진입) (FR-WH-01~05)
+      summary: 외부 이벤트 Webhook 수신 (FR-WH-01~05) — 경로/형식 provider 수용·유연(예시)
       description: >-
-        검증(HMAC·IP·timestamp)·멱등(eventId) 후 즉시 2xx ACK, 분배는 내부 큐 위임(§7.6.3). payload 본문은 provider 외부 스키마(④ + AXS 스냅샷) 참조 - 재정의하지 않음.
+        경로 `/v1/webhooks/{provider}`는 **기본 관례 예시**이며 확정 계약이 아니다 — provider별 등록으로 경로/형식이 유연하다(§4.1.3). GW는 스키마를 강제하지 않고 발신자 검증(HMAC·IP·timestamp)·멱등(eventId)·라우팅만 하며, payload는 소비자가 해석한다(opaque, ④/AXS 스냅샷 참조).
       parameters:
       - name: provider
         in: path

@@ -165,7 +165,7 @@ PRD: [VT API Gateway — PRD (v2)](<VT API Gateway — PRD (v2).md>) · 작업
 
 요구사항: FR-WH-01~06 · 작업: 신규 ESIP(Webhook Receiver)
 
-1. 외부(AXS 등)가 `…/webhooks/<provider>`로 이벤트(HTTPS POST) 전송.
+1. 외부(AXS 등)가 **등록된 webhook 엔드포인트(provider별·유연)** 로 이벤트(HTTPS POST) 전송 — 경로/형식은 provider 규약 수용(GW 비강제·payload 비해석).
 2. Receiver 검증: HMAC 서명 · 소스 IP allowlist · timestamp(replay 방지).
 3. 즉시 2xx ACK 후 내부 큐로 위임(재시도·백오프·DLQ).
 4. `eventId` 기준 멱등 처리(중복 1회만 반영).
