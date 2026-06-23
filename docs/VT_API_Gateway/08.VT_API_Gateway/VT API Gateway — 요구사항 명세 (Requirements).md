@@ -57,7 +57,7 @@
 | FR-RGN-02 | mapping_version(drift·롤백) | M | v1.0 | 버전 추적 |
 | FR-RGN-03 | PHI 리전 밖 미이동 보장 | M | v1.0 | 경계 검증 |
 | FR-RGN-04 | region reassign/override + audit(relocation) | S | v1.0 | 재지정·감사·재동의 |
-| FR-RGN-05 | 멀티 리전 + 리전 signer 다수 | M | v1.2 | 다리전 동작 |
+| FR-RGN-05 | 멀티 리전(active-active) | M | v1.2 | 다리전 동작 (GW Region Signer 철회 — presign=upstream) |
 | FR-RGN-06 | 라우팅 키 통합 — clinic_id↔device↔region (resolver가 device_id·clinic_id 모두 수용) | M | v1.0 | 두 키로 동일 리전 해석 |
 
 ### **업로드 세션 / 데이터 (SES)**
@@ -70,6 +70,8 @@
 | FR-SES-04 | idempotency key | M | v1.0 | 중복 commit 방지 |
 | FR-SES-05 | checksum/ETag 무결성 | M | v1.0 | 무결성 검증 |
 | FR-SES-06 | 멀티클라우드 presign broker(S3/Blob/GCS/MinIO) | M | v1.2 | 이종 스토리지 |
+
+> **[2026-06-23 결정] FR-SES는 GW 직접 구현이 아니다.** presigned **발급 주체 = CleverSpace(②)·AXS(③)**, GW는 발급 요청을 **중계(B/C bypass)** 만 한다. 업로드 세션·resumable·멱등·무결성·완료처리·멀티클라우드 broker는 **발급 주체(② Presigned One Pager·④ Sub-SRS) 소유**다. 본 FR ID는 추적성 위해 유지하되 **소유=발급 주체, GW=중계**로 읽는다(SRS §4.1.4·§7.4 · ARD ADR-03/04 철회).
 
 ### **연동 / Connector (INT)**
 

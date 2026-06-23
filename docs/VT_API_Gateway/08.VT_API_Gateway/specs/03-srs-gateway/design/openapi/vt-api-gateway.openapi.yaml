@@ -13,7 +13,7 @@ info:
   title: Vatech API Gateway
   version: 0.0.0
   description: >-
-    설계 초안. GW 고유 API(A면 — Vatech-Target 없는 호출, §4.1.1·ADR-11)만 정의. Upload: /v1/uploads = 경로①(디바이스→리전 S3) 전용(§4.1.4·§7.4). 프록시(B 내부·C 외부)는 Vatech-Target 헤더로 라우팅되는 verbatim bypass이며 본 파일에 정의하지 않는다 — CleverSpace presign=경로②(Vatech-Target: cleverspace, CS OpenAPI 정본), AXS presign/파일=경로③(Vatech-Target: axs, ④). 라우팅 규칙은 §4.1.2.
+    설계 초안. GW 고유 API(A면 — Vatech-Target 없는 호출, §4.1.1·ADR-11)만 정의. 파일 업로드: GW는 presigned 발급 안 함 — CleverSpace(경로②)·AXS(경로③) 발급, GW 중계(§4.1.4·§7.4). 프록시(B 내부·C 외부)는 Vatech-Target 헤더로 라우팅되는 verbatim bypass이며 본 파일에 정의하지 않는다 — CleverSpace presign=경로②(Vatech-Target: cleverspace, CS OpenAPI 정본), AXS presign/파일=경로③(Vatech-Target: axs, ④). 라우팅 규칙은 §4.1.2.
 servers:
 - url: https://gw.vatech.com
   description: 제안(§4.5.1, DNS 확정 전 TBD)
@@ -27,9 +27,6 @@ tags:
   description: 디바이스 레지스트리·lifecycle (SRS §7.2)
 - name: region
   description: 리전 해석 (SRS §7.3)
-- name: uploads
-  description: >-
-    Upload Session — §4.1.4 경로① 전용(의료 디바이스→우리 리전 storage). Region Signer presigned. CleverSpace/AXS presign API 아님 — 해당 경로는 Vatech-Target proxy(경로②③), 본 파일 정의 대상 아님.
 - name: webhooks
   description: 외부 이벤트 수신·분배 (SRS §7.6)
 - name: compatibility
@@ -202,65 +199,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/RegionResolveResponse'
 
-  # --- Upload Session — §4.1.4 경로① ONLY (디바이스→리전 S3, GW 고유 API/A면) ---
-  # NOT: CleverSpace presign (→ 경로② Vatech-Target: cleverspace, CS OpenAPI) · NOT: AXS presign (→ 경로③ Vatech-Target: axs, ④)
-  # Data plane: Client uploads file bytes directly to storage via presigned URL (GW 미경유)
-  /v1/uploads:
-    post:
-      tags: [ uploads ]
-      summary: '[경로①] 업로드 세션 start — region·정책 검사 (FR-SES-01)'
-      description: >-
-        의료 디바이스→우리 리전 storage 전용. CleverSpace/AXS presign API를 대체·통합하지 않음(§4.1.4). Region Signer가 후속 chunk presigned 발급.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UploadStartRequest'
-      responses:
-        '201':
-          description: 세션 생성
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UploadSession'
-
-  /v1/uploads/{id}/chunks:
-    parameters:
-    - $ref: '#/components/parameters/SessionId'
-    post:
-      tags: [ uploads ]
-      summary: '[경로①] chunk presigned URL 발급 — Region Signer (FR-SES-02/03)'
-      description: Region Signer Agent가 우리 리전 S3 presigned 발급. Client→S3 직접 업로드(GW 미경유).
-      responses:
-        '200':
-          description: presigned URL(디바이스→리전 storage 직결, GW 미경유)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PresignedChunk'
-
-  /v1/uploads/{id}/commit:
-    parameters:
-    - $ref: '#/components/parameters/SessionId'
-    post:
-      tags: [ uploads ]
-      summary: '[경로①] 무결성 확인·확정(idempotency) (FR-SES-04/05)'
-      parameters:
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UploadCommitRequest'
-      responses:
-        '200':
-          description: 확정(중복 commit 시 저장된 결과 반환)
+  # --- 파일 업로드: GW 고유 API 없음 ---
+  # presigned 발급 주체 = CleverSpace(경로②)·AXS(경로③). GW는 발급 요청을 Vatech-Target proxy로 중계(bypass)만 하며 서명·세션·storage를 갖지 않는다(§4.1.4·§7.4 · ADR-03/04 철회).
 
   # --- 프록시(B 내부·C 외부)는 본 OpenAPI에 정의하지 않는다 (§4.1.1·§4.1.2·ADR-11) ---
   # 라우팅 = Vatech-Target 헤더(논리 ID enum, 예 cleverspace/axs) → 레지스트리 allowlist→host 해석.
@@ -348,12 +288,6 @@ paths:
 components:
   parameters:
     DeviceId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-    SessionId:
       name: id
       in: path
       required: true
@@ -469,47 +403,6 @@ components:
           type: integer
         sovereigntyPolicy:
           type: object
-
-    # 업로드
-    UploadStartRequest:
-      type: object
-      required: [ deviceId, objectMeta ]
-      properties:
-        deviceId:
-          type: string
-        objectMeta:
-          type: object
-          description: PHI 미포함 메타
-    UploadSession:
-      type: object
-      properties:
-        sessionId:
-          type: string
-        deviceId:
-          type: string
-        region:
-          type: string
-        objectKey:
-          type: string
-        status:
-          type: string
-    PresignedChunk:
-      type: object
-      properties:
-        url:
-          type: string
-        expiresAt:
-          type: integer
-          format: int64
-          description: 짧은 TTL 5~15분
-    UploadCommitRequest:
-      type: object
-      properties:
-        checksum:
-          type: string
-          description: SHA256
-        etag:
-          type: string
 
     # Webhook
     WebhookEnvelope:

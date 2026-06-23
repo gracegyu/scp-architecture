@@ -27,9 +27,6 @@
 | POST | /v1/enroll/start | enrollment 시작 → nonce challenge | ENR-01/03 |
 | POST | /v1/enroll/complete | 서명+fingerprint 검증 → 자격 발급(allowlist 등록) | ENR-01/04 |
 | GET | /v1/region/resolve | device→region 해석(mapping_version) | RGN-01/02 |
-| POST | /v1/uploads | 업로드 세션 start(정책·region 검사) | SES-01 |
-| POST | /v1/uploads/{id}/chunks | chunk presigned URL 발급(짧은 TTL) | SES-02/03 |
-| POST | /v1/uploads/{id}/commit | 무결성 확인·확정(idempotency) | SES-04/05 |
 | GET/POST | /v1/devices, /v1/devices/{id} | 디바이스 레지스트리·lifecycle | DEV-01/03 |
 | POST | /admin/v1/devices/{id}/kill | kill-switch | FLEET-02 |
 | GET | /admin/v1/... | 관리자·감사 조회(경량) | ADM/AUD |
@@ -43,7 +40,7 @@
 
 > **`Vatech-Target`(라우팅, proxy 필수) ≠ `Vatech-*` 식별 헤더(버전 호환 필수, 위 ※).** 이름이 비슷하나 역할이 다르다.
 
-※ 대용량 파일 바이트는 게이트웨이 미경유(디바이스→리전 storage presigned 직결).
+※ 파일 업로드: **GW는 presigned를 발급하지 않는다.** 발급 주체는 CleverSpace(경로②)·AXS(경로③)이고 GW는 발급 요청을 **중계(B/C bypass)** 만 하며, 파일 바이트는 **발급 주체 storage로 직접** 업로드(GW 미경유). 위 표(A면)에 업로드 API가 없는 이유다. 상세 SRS §4.1.4·§7.4.
 
 ## 2. 데이터 모델 (핵심 엔터티)
 
@@ -54,7 +51,6 @@
 | Credential | device_id, client_id, secret_ref(KMS), hw_key_bound | 시크릿 참조만 |
 | Token | device_id, jwt_claims, expires_at | claim binding |
 | RegionMapping | device_id, region, mapping_version | drift·롤백 |
-| UploadSession | session_id, device_id, region, object_key, status | PHI 미포함 키 |
 | Policy | tenant/connector, allowed_endpoints, scopes, egress | OPA |
 | Connector | name(axs), endpoint, credential_ref, egress_allowlist | adapter |
 | AuditLog | ts, actor, action, result | append-only |
@@ -65,6 +61,6 @@
 
 ## 3. 데이터 주권 매핑
 
-- **PHI(환자 영상)**: 리전 storage에만 저장 · control plane 미경유 · 리전 밖 미이동.
-- control plane은 **메타데이터만**(device_id·region·object_key·token) — 객체 키/메타에 PHI 미포함.
+- **PHI(환자 영상)**: **발급 주체(CleverSpace/AXS) storage**에만 저장 · GW control plane 미경유 · 리전 밖 미이동.
+- GW control plane은 **메타데이터만**(device_id·region·매핑·token) — PHI·업로드 객체 키를 저장하지 않음(세션·object_key는 발급 주체 소유).
 - presigned URL은 **매핑 리전 endpoint**만 지시. cross-border는 consent·classification 게이팅(COMP).
