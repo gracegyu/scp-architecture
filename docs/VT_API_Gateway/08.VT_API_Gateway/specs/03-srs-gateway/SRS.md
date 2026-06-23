@@ -193,7 +193,7 @@ flowchart TB
     EZ --> R53
 
     subgraph GTIER["GW 전역 계층 (리전 비종속 · GW의 일부)"]
-        WHIN["Webhook Receiver — 단일 수신 (Integration Plane)<br/>공개 호스트 1개 · provider = 경로 /v1/webhooks/{provider}<br/>검증·멱등 후 매핑으로 리전 판정"]
+        WHIN["Webhook Receiver — 유연 수신 (Integration Plane)<br/>공개 호스트 1개 · provider별 등록 경로(예: /webhooks/axs)<br/>발신자 검증·멱등 후 매핑으로 리전 판정"]
         GLOBAL[("전역 일관 데이터 SSOT — PostgreSQL 원본<br/>매핑 · 레지스트리 · Org-ID↔ClinicID · 정책 · compat · JWKS<br/>→ 리전으로 복제/sync")]
     end
 
@@ -249,7 +249,7 @@ flowchart TB
 
 - **egress IP whitelist = 고정 EIP 집합(멀티 IP).** 외부 서비스(예: AXS)가 IP whitelist를 요구하면, 화이트리스트 대상은 GW가 _외부를 호출_ 할 때의 egress IP다. pod별 임시 IP가 아니라 **AZ/리전별 NAT의 고정 EIP**여야 하고, 멀티 리전이면 **전 리전 집합의 합집합(A ∪ B …)** 이며 유한·열거 가능해야 한다(FR-INT-03·§7.5.3·§2.6).
 - **리스크/제약**: 오토스케일·새 AZ·**리전 증설은 egress IP를 늘리므로**, egress를 **고정 EIP 풀로 핀(pin)** 하고 외부(예: Straumann)와 **whitelist를 협의·갱신(리드타임)** 해야 한다. EIP 풀 provisioning·고정은 인프라(③-I) 책임(§2.6·§7.3.5).
-- **Webhook 수신은 단일 호스트, region 분배는 우리 몫.** 외부 서비스(AXS 등)는 **region을 모르고**, **provider마다 호스트를 따로 둘 필요도 없다** — **단일 공개 호스트 하나**로 모든 provider를 받고 **provider는 경로 `/v1/webhooks/{provider}`로 구분**한다(§4.5.1·§7.6.1). 수신 ingress(Webhook Receiver, §2.2)는 **전역 매핑(DB/캐시)에 연결**되어 webhook 내용(Org-ID 등)으로 **대상 클리닉의 리전을 판정**하고(§7.3 매핑·전역 일관), **대상 리전(A·B …)으로 재분배**한다(수신 리전 ≠ 대상 리전이면 **교차 리전 전달**). 즉 **region 결정은 외부도 GeoDNS도 아니라 수신 ingress의 매핑 조회**다. `eventId` 멱등 dedup은 인스턴스 공유 저장소(Redis)로 전역 보장(ADR-02·§7.6.4). 인바운드 검증(외부 source IP allowlist·HMAC·timestamp, §7.6.2)은 egress whitelist와 **방향이 반대**다. 수신→분배 흐름 상세는 **§2.3.6·§7.6**.
+- **Webhook 수신은 단일 호스트, region 분배는 우리 몫.** 외부 서비스(AXS 등)는 **region을 모르고**, **provider마다 호스트를 따로 둘 필요도 없다** — **단일 공개 호스트 하나**로 모든 provider를 받되, **경로/형식은 provider별 등록(레지스트리)으로 유연**하다(기본 관례 `…/webhooks/<provider>`는 예시·확정 아님 — GW는 발신자 검증·라우팅만, payload 비해석; §4.1.3·§7.6.1). 수신 ingress(Webhook Receiver, §2.2)는 **전역 매핑(DB/캐시)에 연결**되어 webhook 내용(Org-ID 등)으로 **대상 클리닉의 리전을 판정**하고(§7.3 매핑·전역 일관), **대상 리전(A·B …)으로 재분배**한다(수신 리전 ≠ 대상 리전이면 **교차 리전 전달**). 즉 **region 결정은 외부도 GeoDNS도 아니라 수신 ingress의 매핑 조회**다. `eventId` 멱등 dedup은 인스턴스 공유 저장소(Redis)로 전역 보장(ADR-02·§7.6.4). 인바운드 검증(외부 source IP allowlist·HMAC·timestamp, §7.6.2)은 egress whitelist와 **방향이 반대**다. 수신→분배 흐름 상세는 **§2.3.6·§7.6**.
   - **GeoDNS는 inbound webhook의 대상 리전을 정하지 않는다** — GeoDNS는 _호출자 위치_ 기준이라 외부의 고정 위치에선 늘 한 리전으로 귀결될 뿐이고, _처리 리전은 클리닉 소속(매핑)_ 이 정한다. 단일 호스트가 어느 리전 GW로 해석되든, 그 **수신 GW가 매핑 조회 후 대상 리전으로 재분배**한다.
 
 #### 데이터 공유·토폴로지 (멀티 서버·멀티 리전)
@@ -473,7 +473,7 @@ sequenceDiagram
     participant Q as 내부 큐
     participant CL as 클라우드 대상 (CleverLab·갈래B 보류)
     participant EZ as EzServer (Edge, 방화벽 뒤)
-    AXS->>WH: POST /v1/webhooks/{provider} (HMAC·timestamp·eventId)
+    AXS->>WH: POST {provider 등록 경로} (HMAC·timestamp·eventId)
     WH->>WH: 서명·IP allowlist·timestamp 검증 · eventId 멱등 dedup
     WH-->>AXS: 2xx ACK (즉시)
     WH->>Q: 적재 (재시도·백오프·DLQ)
@@ -715,19 +715,21 @@ GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의
 
 > **`Vatech-Target`(라우팅) ≠ `Vatech-*` 식별 헤더(§7.7.1).** 식별·버전·리전 헤더는 `Vatech-*` 표준(`Product`·`Version`·`OS`·`Clinic-Id`·`Via`)만 쓰며 **버전 호환 판정용 필수**(FR-COMPAT-01)다 — "누가·어떤 버전·어느 클리닉"을 싣는다. `Vatech-Target`은 **라우팅용으로 proxy 호출에 필수**다 — "어느 논리 서비스로"를 싣는다. 이름이 비슷하나 역할이 다르다(식별 vs 라우팅).
 
-5. **GW 고유 API 컨벤션**: REST/JSON, **경로 버전 프리픽스 `/v1`**(예 `/v1/auth/token`·`/v1/webhooks/{provider}`, 관리 API는 `/admin/v1/*`), camelCase 필드, 시간 Unix ms(§1.3), 표준 오류코드(§7.7.4), idempotency key(§4.5). 단 `/.well-known/*`은 표준 관례상 버전 프리픽스 없이 노출(§7.7.2). 스키마 정본은 Swagger(code-first).
+5. **GW 고유 API 컨벤션**: REST/JSON, **경로 버전 프리픽스 `/v1`**(예 `/v1/auth/token`, 관리 API는 `/admin/v1/*`; Webhook 수신 경로는 유연·provider별 등록이라 본 컨벤션 예외 — §4.1.3·§7.6.1), camelCase 필드, 시간 Unix ms(§1.3), 표준 오류코드(§7.7.4), idempotency key(§4.5). 단 `/.well-known/*`은 표준 관례상 버전 프리픽스 없이 노출(§7.7.2). 스키마 정본은 Swagger(code-first).
 
 > 결정 근거·반려 대안(경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream)은 **ADR-11(라우팅 모델: target-routed proxy)** 참조(ARD에 정식 기재 — Appendix B 추적). 본 절은 SRS 차원 규칙 요약.
 
 ### 4.1.3 Webhook API 정의 방침
 
-Webhook은 두 면(§4.1.1) 어느 쪽에도 깔끔히 떨어지지 않는 **하이브리드**다 — *수신 엔드포인트*는 A(GW 고유 API — 외부가 `Vatech-Target` 없이 GW로 직접 POST), *이벤트 payload 스키마*는 C(외부 소유·참조만), *분배*는 내부 경로(클라우드 HTTP push·Edge MQTT)다. 단순 host 기반 프록시가 아니라 **수신→검증→멱등→ACK→매핑 기반 분배**의 store-and-forward 모델이다(§7.6). 따라서 API를 "전부 새로 정의"하지 않고, **GW가 소유하는 면만 정의하고 나머지는 참조**한다. 추후 §7.6 상세화 시 아래 4가지를 구분해 작성한다.
+Webhook은 두 면(§4.1.1) 어느 쪽에도 깔끔히 떨어지지 않는 **하이브리드**다 — *수신 엔드포인트*는 GW 수신면(외부가 `Vatech-Target` 없이 직접 POST — 단 **경로·스키마는 provider 규약 수용·유연**, GW 비강제), *이벤트 payload 스키마*는 C(외부 소유·참조만), *분배*는 내부 경로(클라우드 HTTP push·Edge MQTT)다. 단순 host 기반 프록시가 아니라 **수신→검증→멱등→ACK→매핑 기반 분배**의 store-and-forward 모델이다(§7.6). 따라서 API를 "전부 새로 정의"하지 않고, **GW가 소유하는 면만 정의하고 나머지는 참조**한다. 추후 §7.6 상세화 시 아래 4가지를 구분해 작성한다.
 
-1. **수신 엔드포인트 = GW가 OpenAPI로 정의한다 (A버킷).** 정의 대상은 *봉투(envelope)와 수신 계약*이지 외부 이벤트 본문이 아니다.
-   - 경로: `POST /v1/webhooks/{provider}` (`provider` = `axs` 등 enum, 미지원 → 404). 호스트는 §4.5.1.
-   - 요청 헤더: 서명(`X-AXS-Signature` 등 provider별 HMAC), `timestamp`(replay 방지), `eventId`(멱등 키). provider별 헤더명은 외부 규격을 따른다(④ 참조).
-   - 요청 body: **provider별 외부 스키마**이므로 GW OpenAPI에서는 **공통 envelope + `payload`는 `$ref`(외부 스냅샷) 또는 opaque(`type: object`)** 로 둔다. 본문 필드를 GW가 재정의하지 않는다(드리프트 방지).
-   - 응답: 즉시 `2xx` ACK 스키마(§7.6.3, 예 `{ "received": true, "eventId": "..." }`). 에러 `400`(형식)·`401`(서명·IP·timestamp)·`404`(provider).
+1. **수신 엔드포인트 = 유연·레지스트리 기반 수신기 (GW가 스키마·경로를 강제하지 않음).** GW가 소유·정의하는 것은 _수신 동작(발신자 검증→멱등→ACK→매핑 기반 분배)_ 이지 **제공자의 요청 스키마·경로가 아니다** — provider의 API 규약은 provider가 정하고, GW는 **어떤 형태의 인바운드 요청이든 수용**한다(해석 주체는 GW가 아니라 소비자).
+   - **경로/형식은 provider별 등록(레지스트리)으로 유연**하게 둔다. 기본 관례는 `…/webhooks/<provider>`(예시)이나 **확정 계약이 아니며**, provider가 요구하는 경로/포맷을 등록해 수용한다. 호스트는 §4.5.1.
+   - **provider 식별·검증**: 등록된 라우트 + 서명(provider별 HMAC)·소스 IP allowlist·timestamp로 _누가 보냈는지_ 확인한다. 미등록/검증 실패 → 거부(`401`/`404`).
+   - **payload는 GW가 해석하지 않는다** — 검증·라우팅에 필요한 **최상위 식별자(provider·eventId·org 식별자 등)만** 추출하고 본문은 그대로 통과(opaque). 본문 스키마를 GW가 정의/재정의하지 않는다.
+   - **응답**: 즉시 `2xx` ACK(§7.6.3). 에러 `400`(형식)·`401`(서명·IP·timestamp).
+   - OpenAPI에는 _수신·ACK envelope_ 만 최소 표기하고, 경로는 기본 관례로 **예시**하되 provider별로 가변임을 명시한다(payload는 opaque/`$ref`).
+
 2. **이벤트 payload 스키마 = 정의하지 않고 참조한다 (C버킷).** AXS 등 외부 소유. 정본은 **④ Sub-SRS + AXS OpenAPI 스냅샷**(`references/axs-openapi/`). GW는 검증(HMAC·멱등)에 필요한 **최상위 식별 필드(eventType·eventId·org 식별자 등)만 알면** 되고, 그 외는 분배 시 통과시킨다.
 3. **분배 경로 = REST API로 노출하지 않는다 (내부).**
    - 클라우드 대상(**CleverLab** — 갈래 B 수신처; CleverSpace는 webhook 대상 아님): **받는 쪽 백엔드의 OpenAPI**가 정본(B버킷 성격, 내부망 HTTP push). GW는 그 API를 호출할 뿐 정의하지 않는다.
@@ -797,7 +799,7 @@ DNS 호스트는 *클라이언트가 접속하는 외부 계약*이므로 본 SR
 | 용도 | 제안 호스트 | 비고 |
 | --- | --- | --- |
 | GW API (GeoDNS apex) | `gw.vatech.com` | **클라이언트가 호출하는 유일한 호스트.** Route 53 GeoDNS로 최근접 리전 라우팅(§7.3.5). **v1.0(단일 리전)에서도 apex를 사용** — apex가 단일 리전을 가리키고, 2차에 백엔드만 N개로 늘린다 |
-| Webhook 수신 | `https://gw.vatech.com/v1/webhooks/<provider>` | 단일 호스트 경로 기반(§7.6.1). `/v1` 버전 프리픽스(§4.1.2-5) |
+| Webhook 수신 | `https://gw.vatech.com/webhooks/<provider>` (기본 관례·예시) | 단일 호스트, **경로/형식은 provider별 등록으로 유연**(§7.6.1·§4.1.3) — 확정 계약 아님 |
 | 리전별 엔드포인트(내부) | `gw-<region>.vatech.com` (예: `-apne2`) | GeoDNS 백엔드·내부/운영용. **v1.0부터 네이밍 규칙 예약**(단일 리전 1개만 실재), 2차에 N개로 확장. 클라이언트엔 노출하지 않음 |
 | GW Console | `console.gw.vatech.com` | **③-C 영역** — 본 SRS는 참조만. 확정은 ③-C Sub-SRS |
 
@@ -1175,9 +1177,9 @@ FR-INT-03 (허용 대상만 외부 통신). allowlist 외 egress는 OPA로 차�
 
 GW는 외부 이벤트의 **단일 수신·분배점**이다(ADR-09). 방화벽 뒤 Edge(EzServer)는 inbound가 불가하므로, GW가 대신 수신·검증·멱등 처리 후 대상별로 분배한다. 서비스별 개별 수신을 금지하여 서명·IP·멱등 검증의 분산을 막는다.
 
-### 7.6.1 단일 수신 엔드포인트 (P1)
+### 7.6.1 유연 수신 엔드포인트 (P1)
 
-FR-WH-01 (`…/v1/webhooks/<provider>` 단일 진입, 호스트는 §4.5.1).
+FR-WH-01 (외부 이벤트 단일 수신면, 호스트는 §4.5.1). **경로·형식은 provider 규약을 수용하는 유연·레지스트리 기반**이며 GW가 강제하지 않는다 — 기본 관례 `…/webhooks/<provider>`는 예시일 뿐 확정 계약이 아니다(§4.1.3). GW는 _누가 보냈는지_ 만 검증하고 payload는 소비자가 해석한다.
 
 - **Input**: 외부(AXS 등) 이벤트 — HTTPS POST
 - **Output**: 즉시 `2xx` ACK(§7.6.3)
@@ -1424,3 +1426,4 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-23 | CleverLab 방향 정합(Roadmap §2.6과 일치) — CleverLab을 **GW 프록시 대상(B)에서 제외**하고 **갈래B 클라우드 클라이언트(보류): CleverLab→GW→AXS** + webhook 수신(GW→CleverLab)으로 정정. §2.1·§2.2 다이어그램 엣지 방향 변경, §4.1.1 B목록에서 제외·주석, 외부표·노트 갱신. (이전 'GW→CleverLab 프록시 B'가 Roadmap의 'CleverLab→GW'와 방향 충돌이던 것 해소) | (작성자 ID 미지정) |
 | 2026-06-23 | 다이어그램 차이 정리(선택 2건) — §2.1에 "control plane context, 데이터plane presigned·minio·리전별CS 생략(§2.3.4/§2.3.5/§4.1.4/§2.1.1 참조)" 주석 추가. Roadmap §2.7.1 '이벤트 라우터' → 'Webhook 이벤트 라우터'(SRS Router/PEP와 명칭 충돌 제거) | (작성자 ID 미지정) |
 | 2026-06-23 | **GW presigned 직접 발급 시나리오 폐기** — 결정: 서명 주체=CleverSpace(②)·AXS(③), GW는 **중계만**. §2.3.4를 'CleverSpace presigned 중계'로 교체, §7.4를 '중계·위임(GW 비발급)'으로 재작성, §4.1.4를 2경로(②③)로 축소(경로①·Region Signer·GW Upload Session/Storage 철회·ADR-03/04 폐기). §2.2 Data Plane 컴포넌트(SES·Presign·Signer) 제거, §1.4 용어·§2.3 액터·§2.4·§2.5·§2.7·§4.4·§5.2·§6.3.3 등 산재 참조 정리. FR-SES는 삭제 않고 'GW 비소유·발급주체(②/④) 소유, GW 중계'로 재분류 | (작성자 ID 미지정) |
+| 2026-06-24 | Webhook 수신 엔드포인트를 **유연·레지스트리 기반**으로 재정의 — `/v1/webhooks/{provider}`를 *확정 계약*에서 **기본 관례(예시)** 로 강등. GW는 스키마·경로를 강제하지 않고 provider 규약을 수용(어떤 인바운드든), **발신자 검증·라우팅만** 하며 payload는 소비자가 해석. §4.1.3·§7.6.1·§2.1.1·§2.3.6·§4.5.1·§4.1.2-5 + API명세·OpenAPI·ARD·Roadmap 반영 | (작성자 ID 미지정) |

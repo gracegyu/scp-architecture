@@ -31,7 +31,7 @@
 | POST | /admin/v1/devices/{id}/kill | kill-switch | FLEET-02 |
 | GET | /admin/v1/... | 관리자·감사 조회(경량) | ADM/AUD |
 | GET | /.well-known/<env>/server-configuration.json | 런타임 버전·호환성 공시(API/기능별 최소 클라이언트 버전) | COMPAT-02 |
-| POST | /v1/webhooks/{provider} | 외부 이벤트 수신(HMAC·IP·timestamp·멱등) → 내부 큐 분배 | WH-01~05 |
+| POST | `…/webhooks/<provider>` (provider별 등록·유연) | 외부 이벤트 수신(발신자 검증 HMAC·IP·timestamp·멱등) → 매핑 분배. **경로/형식은 provider 규약 수용, GW 비강제·payload 비해석** | WH-01~05 |
 | POST | /v1/auth/oneid/verify | OneID(OIDC) 토큰 검증·연계(사람·클리닉·사내 호출자) | AUTH-08 |
 
 ※ 모든 클라이언트 요청에 **Vatech-* 식별 헤더**(Product·Version·OS·Clinic-Id·Via)를 부착 — API Compatibility Gate가 버전 호환을 판정(COMPAT-01). originator 권위 소스는 전용 헤더(`Vatech-Product`/`Version`/`OS`)이고, 경유 중계 홉은 `Vatech-Via`에 누적한다(`User-Agent`는 직전 송신자). **모든 제품의 모든 요청에 `Vatech-*` 식별 헤더 + 표준화 `User-Agent` 부착을 강제**하며 **공용 라이브러리**로 표준화한다(2026-06 회의 — 전 제품 필수). 상세는 SRS §7.7.1·Roadmap §5.1.
