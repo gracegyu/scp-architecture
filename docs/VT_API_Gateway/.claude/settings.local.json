@@ -4,7 +4,8 @@
       "Bash(lsattr SRS.md)",
       "Bash(fuser SRS.md)",
       "Bash(/bin/ls -lO SRS.md)",
-      "Bash(/usr/bin/stat -f \"flags=%Sf perm=%Sp owner=%Su\" SRS.md)"
+      "Bash(/usr/bin/stat -f \"flags=%Sf perm=%Sp owner=%Su\" SRS.md)",
+      "Bash(python3 -)"
     ]
   }
 }

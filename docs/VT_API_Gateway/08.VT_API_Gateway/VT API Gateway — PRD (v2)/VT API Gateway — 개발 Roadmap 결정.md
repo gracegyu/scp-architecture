@@ -308,7 +308,7 @@ flowchart LR
 
     subgraph GWLAYER["VatechAPIGateway"]
         WH["Webhook Receiver<br/>서명/HMAC·IP·timestamp 검증"]
-        ROUTER["이벤트 라우터<br/>대상 판별(ClinicID/Org-ID)<br/>멱등(eventId) 처리"]
+        ROUTER["Webhook 이벤트 라우터<br/>대상 판별(ClinicID/Org-ID)·멱등(eventId)<br/>※ SRS의 Router/PEP(프록시)와 다른 컴포넌트"]
         Q["내부 큐<br/>재시도·백오프·DLQ"]
         BROKER["MQTT Broker<br/>(다운스트림 EZ 전용)"]
         WH --> ROUTER
