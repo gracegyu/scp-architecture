@@ -96,19 +96,8 @@ Table clinic_region_mapping {
   Note: 'device↔clinic↔region 단일 체계(ADR-10)'
 }
 
-// 업로드 세션 (FR-SES-*)
-Table upload_session {
-  session_id varchar [pk]
-  device_id  varchar [ref: > device.device_id]
-  region     varchar
-  object_key varchar
-  status     varchar
-
-  Note: 'PHI 미포함 키. presigned 직결, GW 미경유'
-  Indexes {
-    device_id
-  }
-}
+// 업로드 세션 테이블 제거(2026-06-23): GW는 업로드 세션·presigned·storage를 소유하지 않음.
+// 발급 주체=CleverSpace(②)/AXS(③), GW는 중계만(SRS §4.1.4·§7.4 · ADR-03/04 철회).
 
 // 정책 (OPA 입력, FR-INT-03)
 Table policy {

@@ -24,8 +24,7 @@
 
 ## 1.2 Product Scope (범위)
 
-CleverSpace는 유상화·이용 한도 등 새 정책으로 API를 계속 확장하지만, 클리닉·PC마다 버전이 제각각인 구버전 CleverOne·EzServer가 이를 인식하지 못해 **원인불명 실패**가 발생한다. 또한 CleverOne이 EzServer를 거치지 않고 CleverSpace로 직접 연동하는 **경로 B**가 존재해 인증·정책 통제가 두 갈래로 분산된다. 나아가 Straumann AXS처럼 보안상 직접 연결이 불가능한 외부 연동 수요가 늘고 있다. 본 프로젝트는 **모든 클라우드·디바이스 연동을 단일 게이트웨이로 일원화**하여 인증(OneID 연계)·버전 호환·Region 라우팅을 단일 집행점에서 처리하는 것을 목표로
-GW는 (1) 모든 통신이 경유하는 중앙 control plane(인증·디바이스 관리·라우팅·config), (2) 파일은 presigned URL로 디바이스↔리전 직결(GW 무부하), (3) 디바이스–리전 매칭으로 데이터 주권 보장, (4) 외부 이벤트(AXS 등)의 단일 Webhook 수신·분배, (5) 클라이언트 버전 호환 게이팅을 수행한다.
+CleverSpace는 유상화·이용 한도 등 새 정책으로 API를 계속 확장하지만, 클리닉·PC마다 버전이 제각각인 구버전 CleverOne·EzServer가 이를 인식하지 못해 **원인불명 실패**가 발생한다. 또한 CleverOne이 EzServer를 거치지 않고 CleverSpace로 직접 연동하는 **경로 B**가 존재해 인증·정책 통제가 두 갈래로 분산된다. 나아가 Straumann AXS처럼 보안상 직접 연결이 불가능한 외부 연동 수요가 늘고 있다. 본 프로젝트는 **모든 클라우드·디바이스 연동을 단일 게이트웨이로 일원화**하여 인증(OneID 연계)·버전 호환·Region 라우팅을 단일 집행점에서 처리하는 것을 목표로 GW는 (1) 모든 통신이 경유하는 중앙 control plane(인증·디바이스 관리·라우팅·config), (2) 파일은 presigned URL로 디바이스↔리전 직결(GW 무부하), (3) 디바이스–리전 매칭으로 데이터 주권 보장, (4) 외부 이벤트(AXS 등)의 단일 Webhook 수신·분배, (5) 클라이언트 버전 호환 게이팅을 수행한다.
 
 **Will Not Do (의도적으로 제외):**
 
@@ -57,7 +56,7 @@ GW는 (1) 모든 통신이 경유하는 중앙 control plane(인증·디바이�
 | `Vatech-Via`          | 요청을 _경유한_ 중계 홉(예: EzServer)                      | originator와 분리  |
 | Edge                  | 클리닉 현장의 EzServer (방화벽 뒤, inbound 불가)           | §7.6               |
 | soft-state            | 완전 stateless가 아닌, cache TTL·mapping_version 기반 상태 | ADR-02             |
-| Region Signer Agent   | 리전 내에서 자격 보관·서명하는 에이전트(주권)              | ADR-03             |
+| Region Signer Agent | **폐기(2026-06-23)** — GW는 presigned 직접 발급·서명 안 함(발급=upstream CleverSpace/AXS, GW 중계) | §4.1.4·§7.4 |
 | ClinicID↔Org-ID       | 클리닉 식별자와 외부(AXS) 조직 식별자 매핑                 | §7.3 / ④           |
 | 경로 B (Path B)       | CleverOne → CleverSpace 직접 연동(EzServer 미경유)         | Deprecated 대상    |
 
@@ -165,15 +164,15 @@ flowchart TD
     class GW,WHR srsTarget
 ```
 
-| 외부 시스템          | 역할                                                                                                                                  |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| CleverOne / EzServer | 사내 호출자. EzServer는 Edge(방화벽 뒤, inbound 불가)                                                                                 |
-| CleverSpace          | 멀티 Region 백엔드(데이터 경로 대상)                                                                                                  |
-| OneID                | 사람·클리닉·사내 호출자 인증(OIDC)                                                                                                    |
-| Straumann AXS        | 외부 연동 대상. Webhook 수신·presigned 연동                                                                                           |
-| CleverLab            | 우리 클라우드 기공소 PMS. GW의 **프록시 대상이 아니라 갈래 B 클라우드 클라이언트**(CleverLab→GW→AXS) + AXS 이벤트 webhook 수신처. **CleverLab↔AXS 직접 연동(갈래 B)은 현 시점 범위 외/보류**(§1.2·④ — 외부 cloud 연동 일반 역량은 유지) |
-| Route 53 GeoDNS      | EzServer를 최근접 GW Region에 연결                                                                                                    |
-| GW Console           | Admin Web(③-C Sub-SRS) — 관리 API 호출                                                                                                |
+| 외부 시스템 | 역할 |
+| --- | --- |
+| CleverOne / EzServer | 사내 호출자. EzServer는 Edge(방화벽 뒤, inbound 불가) |
+| CleverSpace | 멀티 Region 백엔드(데이터 경로 대상) |
+| OneID | 사람·클리닉·사내 호출자 인증(OIDC) |
+| Straumann AXS | 외부 연동 대상. Webhook 수신·presigned 연동 |
+| CleverLab | 우리 클라우드 기공소 PMS. GW의 **프록시 대상이 아니라 갈래 B 클라우드 클라이언트**(CleverLab→GW→AXS) + AXS 이벤트 webhook 수신처. **CleverLab↔AXS 직접 연동(갈래 B)은 현 시점 범위 외/보류**(§1.2·④ — 외부 cloud 연동 일반 역량은 유지) |
+| Route 53 GeoDNS | EzServer를 최근접 GW Region에 연결 |
+| GW Console | Admin Web(③-C Sub-SRS) — 관리 API 호출 |
 
 > 상세 인터페이스는 §4. **Webhook Receiver는 GW 내부의 별도 sub-tier**(외부 서버 아님 — A면 GW 고유 API, §4.1.1·§7.6.1). **API 호출 경로는 대상에 무관하게 동일하다** — `CleverOne→EzServer→GW→CleverSpace` 든 `…→GW→AXS` 든 모두 **GW를 단일 경유하는 target-routed proxy**(ADR-11, 경로 B 제거). 차이는 **trust profile뿐**: 내부(B=CleverSpace·OneID, 통과+정규화 신원) vs 외부(C=AXS, GW가 OAuth·고정 egress IP 추가). 그래서 다이어그램의 `GW→upstream` 화살표는 같은 종류이고, AXS만 라벨이 `C·외부`다. **CleverLab은 GW가 호출하는 프록시 대상이 아니라**, 클라우드↔클라우드 외부 연동(갈래 B)에서 **GW를 호출하는 클라이언트**다(CleverLab→GW→AXS) — 현 시점 **보류**(§1.2).
 >
@@ -202,7 +201,7 @@ flowchart TB
         LBA["Ingress LB<br/>안정 endpoint A (inbound 1)"]
         GA1["GW pod (무상태)"]
         GA2["GW pod (무상태)"]
-        STA[("Region A 저장소 = pod 공유<br/>PostgreSQL: 전역데이터 복제본 + 리전로컬(세션·audit·queue)<br/>Redis: 빠른 조회 캐시(로컬 PG에서·멱등·nonce)")]
+        STA[("Region A 저장소 = pod 공유<br/>PostgreSQL: 전역데이터 복제본 + 리전로컬(audit·in-flight queue)<br/>Redis: 빠른 조회 캐시(로컬 PG에서·멱등·nonce)")]
         NATA["NAT GW<br/>고정 egress EIP set A (outbound 다수)"]
         LBA --> GA1
         LBA --> GA2
@@ -216,7 +215,7 @@ flowchart TB
         LBB["Ingress LB<br/>안정 endpoint B (inbound 1)"]
         GB1["GW pod (무상태)"]
         GB2["GW pod (무상태)"]
-        STB[("Region B 저장소 = pod 공유<br/>PostgreSQL: 전역데이터 복제본 + 리전로컬(세션·audit·queue)<br/>Redis: 빠른 조회 캐시(로컬 PG에서·멱등·nonce)")]
+        STB[("Region B 저장소 = pod 공유<br/>PostgreSQL: 전역데이터 복제본 + 리전로컬(audit·in-flight queue)<br/>Redis: 빠른 조회 캐시(로컬 PG에서·멱등·nonce)")]
         NATB["NAT GW<br/>고정 egress EIP set B (outbound 다수)"]
         LBB --> GB1
         LBB --> GB2
@@ -258,9 +257,9 @@ flowchart TB
 - **멀티 서버(리전 내) = 데이터 공유.** GW pod는 **무상태(soft-state, ADR-02)** 이며 **DB·Redis를 pod마다 두지 않는다.** 같은 리전의 모든 pod가 **동일한 리전 DB(PostgreSQL HA)·Redis를 공유**하므로 어느 pod가 처리하든 세션·멱등·캐시가 공유된다. "멀티 서버 = 데이터 분리"가 **아니다**.
 - **멀티 리전 = 데이터 부류를 나눈다.**
   - **(전역 일관) 라우팅·식별 데이터** — device/clinic↔region 매핑·레지스트리·Org-ID↔ClinicID·정책(OPA)·compat matrix·JWKS. **모든 리전이 같은 답을 내야** 한다(예: B 리전에 떨어진 Webhook이 "클리닉 X는 A 리전 소속"임을 알아야 분배 가능). 따라서 **전역 일관**으로 둔다 — soft-state 캐시 + 변경 시 strong-consistency 경로·`mapping_version`(ADR-02·§7.3.1·§7.3.2).
-  - **(리전 로컬) 운영 데이터** — upload session(리전 storage 결속)·audit log(발생 리전)·in-flight webhook/queue·signer 상태. **리전마다 다르며** 합쳐서 전체다.
+  - **(리전 로컬) 운영 데이터** — audit log(발생 리전)·in-flight webhook/queue. **리전마다 다르며** 합쳐서 전체다.
   - **PHI는 어느 store에도 미저장**(§6.4) — 데이터 주권은 "PHI **바이트**를 매핑된 리전 storage로 라우팅"의 문제이지 GW DB 내용 분리가 아니다(§7.3.3). 전역 데이터는 PHI 미포함 control-plane 메타라 **리전 간 복제 가능**.
-- **저장소 역할(PostgreSQL / Redis).** **PostgreSQL = 원본(SSOT).** 전역 일관 데이터는 **리전 간 복제/sync**(원본 → 리전 복제본), 리전 로컬 데이터(세션·audit·queue)는 리전 전용. **Redis = 빠른 조회 캐시(리전마다).** Redis끼리 직접 복제하기보다 **각 리전이 로컬 PostgreSQL에서 캐시(cache-aside)** 하고 **TTL·`mapping_version`으로 무효화**해 일관성을 맞춘다(멱등 키·nonce 같은 휘발 상태는 리전 Redis 로컬). 즉 일관성의 근거는 _PostgreSQL 복제 + 캐시 무효화_ 다.
+- **저장소 역할(PostgreSQL / Redis).** **PostgreSQL = 원본(SSOT).** 전역 일관 데이터는 **리전 간 복제/sync**(원본 → 리전 복제본), 리전 로컬 데이터(audit·in-flight queue)는 리전 전용. **Redis = 빠른 조회 캐시(리전마다).** Redis끼리 직접 복제하기보다 **각 리전이 로컬 PostgreSQL에서 캐시(cache-aside)** 하고 **TTL·`mapping_version`으로 무효화**해 일관성을 맞춘다(멱등 키·nonce 같은 휘발 상태는 리전 Redis 로컬). 즉 일관성의 근거는 _PostgreSQL 복제 + 캐시 무효화_ 다.
 - **전역데이터 복제 토폴로지 세부**(원본 primary 위치·단일 vs multi-primary·충돌 처리)는 gw/1.2 설계 결정(Appendix B #15)이나, 위 **"PostgreSQL 원본+리전 복제 / Redis 리전 캐시" 모델과 "전역 일관/리전 로컬" 구분 원칙은 버전과 무관하게 고정**이다.
 
 > 배포·NAT·EIP·GeoDNS 구성은 **인프라(③-I)** 소유이며, 본 SRS는 _GW가 전제하는 요구_ 만 기술한다(§3.1·§7.3.5·§2.6).
@@ -298,10 +297,8 @@ flowchart LR
                 OPA["Policy (OPA)"]
                 AUD["Audit"]
             end
-            subgraph DATA["Data Plane (리전 한정)"]
-                SES["Upload Session"]
-                PRESIGN["Presign Broker"]
-                SIGNER["Region Signer Agent"]
+            subgraph DATA["Data Plane (리전 한정) — GW 비호스팅"]
+                DNOTE["(GW 데이터 plane 컴포넌트 없음)<br/>presigned 발급·storage는 upstream(CleverSpace/AXS), GW는 중계"]
             end
             subgraph INTEG["Integration Plane"]
                 CONN["Connector Framework<br/>(egress·OAuth)"]
@@ -333,7 +330,7 @@ flowchart LR
     WHQ ==>|"HTTP push (갈래B·보류)"| CLAB
 ```
 
-> **그리는 규칙**: §2.2는 §2.1과 같은 그림에서 **GW 쪽만 확대**한 것이다 — **VatechAPIGateway 바깥(외부 시스템·엣지)은 §2.1과 동일**, 안쪽을 **`GW core`(Control/Data/Integration plane) + `Webhook ingress` 두 부분**으로 펼친다. 각 외부는 GW 내부 컴포넌트와 **1개 이상 연결**(가장 깔끔하게 1개), **common 컴포넌트**(Device Registry·Enrollment·Config·Fleet·OPA·Audit·Upload Session·Presign·Signer)는 가독성을 위해 **미연결**. (**예외**: CleverOne은 §2.1처럼 **EzServer를 경유**해 GW에 닿으므로 GW 내부 컴포넌트에 직접 연결하지 않는다 — `CO→EZ→GW`.) **API 호출은 대상 무관 동일 경로**(`ROUTER` = target-routed proxy, ADR-11) — CleverSpace·OneID = B(내부 프록시 대상), AXS = C(외부, `ROUTER`가 `CONN`으로 OAuth·고정 egress IP 추가). **CleverLab은 프록시 대상이 아니라 갈래B 클라우드 클라이언트**(CleverLab→GW→AXS, 보류) — GW를 *호출하는* 쪽이다. **Webhook(이벤트)만 별개** — 현재 AXS만 GW로 발신; 클라우드 수신 대상=**CleverLab만**(갈래B 보류), **CleverSpace는 webhook 대상 아님**(§2.3.6). 수신→분배 런타임은 **§2.3.6**이 정본.
+> **그리는 규칙**: §2.2는 §2.1과 같은 그림에서 **GW 쪽만 확대**한 것이다 — **VatechAPIGateway 바깥(외부 시스템·엣지)은 §2.1과 동일**, 안쪽을 **`GW core`(Control/Data/Integration plane) + `Webhook ingress` 두 부분**으로 펼친다. 각 외부는 GW 내부 컴포넌트와 **1개 이상 연결**(가장 깔끔하게 1개), **common 컴포넌트**(Device Registry·Enrollment·Config·Fleet·OPA·Audit)는 가독성을 위해 **미연결**. (**예외**: CleverOne은 §2.1처럼 **EzServer를 경유**해 GW에 닿으므로 GW 내부 컴포넌트에 직접 연결하지 않는다 — `CO→EZ→GW`.) **API 호출은 대상 무관 동일 경로**(`ROUTER` = target-routed proxy, ADR-11) — CleverSpace·OneID = B(내부 프록시 대상), AXS = C(외부, `ROUTER`가 `CONN`으로 OAuth·고정 egress IP 추가). **CleverLab은 프록시 대상이 아니라 갈래B 클라우드 클라이언트**(CleverLab→GW→AXS, 보류) — GW를 _호출하는_ 쪽이다. **Webhook(이벤트)만 별개** — 현재 AXS만 GW로 발신; 클라우드 수신 대상=**CleverLab만**(갈래B 보류), **CleverSpace는 webhook 대상 아님**(§2.3.6). 수신→분배 런타임은 **§2.3.6**이 정본.
 
 > **🔍 대안 검토 — 디바이스 인증 방식** (ADR-01)
 >
@@ -352,12 +349,12 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 | 액터 | 의미 (출처) |
 | --- | --- |
 | 의료 디바이스 / CleverOne / EzServer(Edge) | 사내·현장 호출자(§2.1·§2.5). EzServer는 방화벽 뒤 Edge |
-| GW | 본 SRS 대상. 내부 컴포넌트(Auth·Region Resolver·Upload Session·Region Signer Agent·Connector·Webhook Receiver·내부 큐/MQTT)는 §2.2 |
+| GW | 본 SRS 대상. 내부 컴포넌트(Auth·Region Resolver·Connector·Webhook Receiver·내부 큐/MQTT)는 §2.2 |
 | OneID / CleverSpace / CleverLab | 우리 클라우드 백엔드(§2.1) |
 | Straumann AXS / AXS S3 | 외부 플랫폼·외부 스토리지(§2.1, 경로③·§4.1.4) |
-| 리전 storage(S3/MinIO) | 우리 리전 객체 스토리지(경로①·§7.4) |
+| upstream storage(S3/MinIO) | CleverSpace·AXS 등 **발급 주체 소유** 객체 스토리지 — presigned 직접 업로드 대상(§4.1.4·§7.4) |
 
-> **본 절 시나리오 ↔ §7 기능·§4.1.4 경로 매핑**: 온보딩(§7.2)·인증(§7.1)·리전(§7.3)·업로드 경로①(§7.4·§4.1.4①)·외부 연동 경로③(§7.5·§4.1.4③)·Webhook(§7.6·§4.1.3)·버전 호환(§7.7).
+> **본 절 시나리오 ↔ §7 기능·§4.1.4 경로 매핑**: 온보딩(§7.2)·인증(§7.1)·리전(§7.3)·파일 업로드 경로②(§7.4·§4.1.4②)·외부 연동 경로③(§7.5·§4.1.4③)·Webhook(§7.6·§4.1.3)·버전 호환(§7.7).
 >
 > **API 호출 경로는 대상 무관 동일**(`…→GW→upstream` target-routed proxy, ADR-11): CleverSpace(B 내부)·AXS(C 외부)는 **같은 경로**이고 trust profile만 다르다(C는 OAuth·egress 추가). 그래서 **§2.3.5(외부 연동)는 CleverSpace에도 그대로 적용되는 일반 proxy 흐름**이며, AXS를 예로 들었을 뿐 GW 동작은 동일하다. CleverSpace presign(경로②)에 **별도 시나리오를 두지 않는 이유는 경로가 달라서가 아니라**, 그 계약이 GW 밖(② One Pager·CleverSpace OpenAPI)에 있고 GW는 verbatim bypass(B)만 하기 때문이다(§4.1.4②).
 
@@ -422,34 +419,29 @@ sequenceDiagram
     Note over C,GW: 매핑 부재 → 거부 · PHI 리전 경계 OPA 집행(§7.3.3)
 ```
 
-### 2.3.4 업로드 세션·Presigned (경로①, 디바이스→우리 리전 storage) — FR-SES-\*
+### 2.3.4 파일 업로드 — presigned 중계 (CleverSpace 경로②) — 발급=CleverSpace
 
-**§4.1.4 경로① 전용.** 디바이스가 우리 리전 storage로 올리는 PHI 파일을 Upload Session으로 추상화(start→chunk→commit, ADR-04)한다. presigned URL **발급 주체는 Region Signer Agent**이며, GW는 세션·리전·정책·Signer를 orchestration한다. 파일 **바이트**는 presigned로 storage에 **직접** 업로드(GW 미경유). commit은 idempotency key + checksum/ETag로 무결성을 확정한다. 상세는 §7.4, 흐름은 ARD §5.3.
+**GW는 presigned를 발급하지 않는다.** 디바이스/EzServer의 대용량 파일(CT·영상)은 **CleverSpace가 발급한 presigned**로 **CleverSpace storage에 직접** 업로드하고, GW는 발급 요청을 **중계(B bypass)** 만 한다(경로②, §4.1.4). 업로드 **세션·resumable·멱등·무결성·완료처리는 CleverSpace 책임**(② Presigned One Pager·CleverSpace OpenAPI 정본) — GW는 소유·서명하지 않는다. AXS 파일은 경로③(§2.3.5). 상세는 §7.4.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant D as 의료 디바이스
-    participant GW as GW (Upload Session)
-    participant SG as Region Signer Agent
-    participant S3 as 리전 storage (S3/MinIO)
-    D->>GW: POST /v1/uploads (start, objectMeta · PHI 미포함)
-    GW->>GW: region 해석(§7.3) · OPA 정책
-    GW-->>D: sessionId
-    D->>GW: POST /v1/uploads/{id}/chunks
-    GW->>SG: 우리 리전 presigned 발급 요청
-    SG-->>GW: presigned URL (TTL 5~15분)
-    GW-->>D: presigned URL
-    D->>S3: 파일 바이트 직접 업로드 (GW 미경유)
-    D->>GW: POST /v1/uploads/{id}/commit (Idempotency-Key, checksum/ETag)
-    GW->>GW: 무결성 검증 · 멱등 처리(중복 commit 방지)
-    GW-->>D: 확정 결과
-    Note over GW,S3: CleverSpace/AXS presign을 /v1/uploads로 통합·변환하지 않음(§4.1.4)
+    participant EZ as EzServer/디바이스
+    participant GW as GW (proxy·중계)
+    participant CS as CleverSpace (presign 발급·storage 소유)
+    participant S3 as CleverSpace storage (S3/MinIO)
+    EZ->>GW: presigned 발급 요청 (Vatech-Target cleverspace · B bypass)
+    GW->>GW: 인증·버전 게이트·정책 (body 변환 없음)
+    GW->>CS: verbatim 중계
+    CS-->>GW: presigned URL (CleverSpace 발급)
+    GW-->>EZ: presigned URL 전달 (GW 변환 없음)
+    EZ->>S3: 파일 바이트 직접 업로드 (GW 미경유)
+    Note over EZ,S3: 세션·완료처리(콜백+ObjectCreated)·무결성은 CleverSpace 책임(② One Pager). GW는 발급 중계만, 서명·세션 없음
 ```
 
 ### 2.3.5 외부 연동 — AXS presign·파일 bypass (경로③, 갈래 A) — FR-INT-\*
 
-**§4.1.4 경로③ 전용 (C 프록시).** EzServer→AXS 외부 연동(5단계 갈래 A). 클라이언트는 `Vatech-Target: axs`를 실어 AXS 경로를 **그대로** 호출하고(§4.1.2), GW는 connector로 OAuth2 토큰을 관리(§7.1.3)·egress allowlist를 집행(§7.5.3)하되 요청/응답 body는 **AXS OpenAPI 그대로 통과(verbatim bypass)** 한다 — GW가 `/v1/uploads`로 해석·변환하지 않는다. 대용량은 AXS가 발급한 presigned로 **AXS S3에 직접** 업로드(GW 미경유). 연동 의미·Org-ID 매핑 상세는 **④ Sub-SRS**, 본 SRS는 프레임워크·egress까지만. 상세는 §7.5.
+**§4.1.4 경로③ 전용 (C 프록시).** EzServer→AXS 외부 연동(5단계 갈래 A). 클라이언트는 `Vatech-Target: axs`를 실어 AXS 경로를 **그대로** 호출하고(§4.1.2), GW는 connector로 OAuth2 토큰을 관리(§7.1.3)·egress allowlist를 집행(§7.5.3)하되 요청/응답 body는 **AXS OpenAPI 그대로 통과(verbatim bypass)** 한다 — GW가 발급하거나 해석·변환하지 않는다. 대용량은 AXS가 발급한 presigned로 **AXS S3에 직접** 업로드(GW 미경유). 연동 의미·Org-ID 매핑 상세는 **④ Sub-SRS**, 본 SRS는 프레임워크·egress까지만. 상세는 §7.5.
 
 > **경로 동일성**: 본 흐름(`EZ→GW→upstream`)은 **CleverSpace(B 내부)도 동일**하다(ADR-11 target-routed proxy). AXS(C 외부)는 GW가 **OAuth·고정 egress IP**를 추가할 뿐 경로·중계 방식은 같다. 즉 본 시나리오는 AXS를 예로 든 *일반 upstream proxy*이며, CleverSpace는 `Vatech-Target: cleverspace`로 같은 경로를 탄다(차이는 trust profile뿐).
 
@@ -500,7 +492,7 @@ Webhook은 **외부 서비스(현재 AXS)가 보낸 이벤트**를 GW가 받아,
 
 | 분배 대상 | 어떤 이벤트를 받나(시나리오) | 메커니즘 | 현 상태 |
 | --- | --- | --- | --- |
-| **EzServer (Edge)** | 클리닉의 AXS 연동(**갈래 A**) **역방향** — 그 클리닉의 환자·파일·오더 상태 등 AXS가 통지하는 결과를 방화벽 뒤 EzServer로 | **MQTT QoS1**(EZ outbound 구독) | **역방향 capability는 b1(v1.0)에 포함**(WH-06·ARD v0.9·§7.6.6). 단 갈래 A의 *데이터* 1차 범위는 EZ→AXS 단방향이며, **TBD — 역방향으로 보낼 대상 이벤트 목록·활성화 세부는 ④ Sub-SRS에서 확정**(Roadmap §3.7.1) |
+| **EzServer (Edge)** | 클리닉의 AXS 연동(**갈래 A**) **역방향** — 그 클리닉의 환자·파일·오더 상태 등 AXS가 통지하는 결과를 방화벽 뒤 EzServer로 | **MQTT QoS1**(EZ outbound 구독) | **역방향 capability는 b1(v1.0)에 포함**(WH-06·ARD v0.9·§7.6.6). 단 갈래 A의 _데이터_ 1차 범위는 EZ→AXS 단방향이며, **TBD — 역방향으로 보낼 대상 이벤트 목록·활성화 세부는 ④ Sub-SRS에서 확정**(Roadmap §3.7.1) |
 | **CleverLab (클라우드)** | 기공소 주문 연동(**갈래 B**) — Straumann Scan SW→AXS로 들어온 **기공 오더 전송·확정 결과**를 CleverLab로 | **HTTP push**(내부망) | **갈래 B — 현 시점 범위 외(보류, §1.2).** **TBD — 갈래 B 활성화 여부·시점 확정 필요**(PM/제품). 활성화 시 받을 이벤트(오더·확정 결과)는 ④ |
 | **CleverSpace (클라우드)** | **해당 없음 — CleverSpace는 Webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드일 뿐, AXS 이벤트 수신처 아님) | — | **N/A (확정).** 클라우드 webhook 수신은 CleverLab만(갈래 B). 결정 2026-06-23 |
 
@@ -537,7 +529,7 @@ sequenceDiagram
 - 7.1 인증·토큰 (디바이스 머신 인증 + OneID 연계)
 - 7.2 디바이스 레지스트리·온보딩
 - 7.3 리전·라우팅·주권 (라우팅 키 통합)
-- 7.4 업로드 세션·Presigned 발급
+- 7.4 파일 업로드 — presigned 중계(GW 비발급)
 - 7.5 외부 연동·Connector 프레임워크
 - 7.6 Webhook 수신·이벤트 분배
 - 7.7 API 버전 호환성 게이트
@@ -548,7 +540,7 @@ sequenceDiagram
 
 | 계층                            | 사용 빈도 | 주 사용 기능              | 권한                 | 중요도 |
 | ------------------------------- | --------- | ------------------------- | -------------------- | ------ |
-| 의료 디바이스                   | 상시      | 인증·업로드 세션·config   | 머신(디바이스 scope) | 핵심   |
+| 의료 디바이스                   | 상시      | 인증·파일 업로드(upstream presign)·config   | 머신(디바이스 scope) | 핵심   |
 | 사내 호출자(EzServer/CleverOne) | 상시      | 인증·라우팅·Webhook 수신  | 서비스(OneID)        | 핵심   |
 | 외부 플랫폼(AXS)                | 이벤트 시 | Webhook·connector         | 외부(OAuth2)         | 핵심   |
 | 운영자/Admin                    | 일/주     | 관리 API·매핑·kill-switch | RBAC                 | 중요   |
@@ -565,14 +557,14 @@ sequenceDiagram
 
 | 버전 | 범위 | Roadmap 단계 |
 | --- | --- | --- |
-| gw/1.0 (MVP) | 인증 코어·레지스트리·enrollment·단일 리전 주권·업로드 세션·AXS connector·fleet 기본·config·감사/RBAC(경량)·Webhook·COMPAT·라우팅 키 통합 | 1·2·3·(4 일부)·5 |
+| gw/1.0 (MVP) | 인증 코어·레지스트리·enrollment·단일 리전 주권·presigned 중계·AXS connector·fleet 기본·config·감사/RBAC(경량)·Webhook·COMPAT·라우팅 키 통합 | 1·2·3·(4 일부)·5 |
 | gw/1.1 | DPoP+HW키·hardware attestation·fleet 확장·2nd connector | 후속 |
 | gw/1.2 | 멀티 리전·멀티클라우드 presign·signer 확장 | 4단계(후행 시) |
 | v2.0 | 레거시 10만대 마이그레이션 | 후속 트랙 |
 
 ### 2.7.1 리전 구축 단계화 — 단일(1차) → 멀티(2차), 단 v1.0부터 멀티리전-ready
 
-**리전 구축은 2단계다 — 1차 단일 리전(gw/1.0) · 2차 멀티 리전(gw/1.2).** v1.0은 **단일 리전만 실제 배포**한다(멀티 리전 동시 운영·active-active·다중 signer는 v1.0 범위 밖, FR-RGN-05). 단, **v1.0부터 "멀티리전-ready"로 설계**하여 2차 확장이 *재설계·데이터 마이그레이션 없이 설정·배포 증분*(리전 수 1→N)으로 가능해야 한다. 이 "단일로 시작하되 멀티로 자라는" 설계는 **v1.0의 요구사항**이다(결정 — Appendix A, 2026-06-23. 기존 "gw/1.0 흡수 여부 TBD"를 대체).
+**리전 구축은 2단계다 — 1차 단일 리전(gw/1.0) · 2차 멀티 리전(gw/1.2).** v1.0은 **단일 리전만 실제 배포**한다(멀티 리전 동시 운영·active-active·다중 signer는 v1.0 범위 밖, FR-RGN-05). 단, **v1.0부터 "멀티리전-ready"로 설계**하여 2차 확장이 _재설계·데이터 마이그레이션 없이 설정·배포 증분_(리전 수 1→N)으로 가능해야 한다. 이 "단일로 시작하되 멀티로 자라는" 설계는 **v1.0의 요구사항**이다(결정 — Appendix A, 2026-06-23. 기존 "gw/1.0 흡수 여부 TBD"를 대체).
 
 **멀티리전-ready 설계 요건 (v1.0 단일 리전에서도 미리 갖춘다):**
 
@@ -580,7 +572,6 @@ sequenceDiagram
 | --- | --- | --- |
 | **데이터 모델** | 전역 일관 vs 리전 로컬 분리(§2.1.1·§6.4), `region`·`mapping_version`·ClinicID↔region 키 보유(값은 단일 리전) | 매핑 행 추가 — 스키마 변경 없음 |
 | **Region Resolver** | device/clinic→region resolver를 v1.0부터 경유(단일 리전으로 해석, ADR-10·§7.3.1) | resolver 매핑만 확장 |
-| **Region Signer Agent** | 리전별 signer 패턴(단일 리전 1개, ADR-03·§7.4.2) | signer 배포 증분 |
 | **DNS** | **GeoDNS apex 호스트를 v1.0부터** 사용(단일 리전을 가리킴), 클라이언트는 apex만 호출 · 리전별 호스트는 예약(§4.5.1) | **클라이언트 변경 없이** GeoDNS 라우팅만 활성화(§7.3.5) |
 | **egress** | NAT EIP **집합** 패턴(§2.1.1) — 단일 리전=1집합 | 집합 합집합 — 외부 whitelist 갱신 |
 | **데이터 주권** | PHI 리전 경계 집행을 v1.0부터(OPA, §7.3.3) | 리전별 경계 그대로 적용 |
@@ -705,14 +696,14 @@ GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의
 
 | 면 | 무엇 | 라우팅 키 | GW 역할 | 정본(SSOT) |
 | --- | --- | --- | --- | --- |
-| **A. GW 고유 API** | §7 전부 — 인증·enrollment·디바이스 레지스트리·region resolve·**Upload Session(§7.4 — 경로① 전용, AXS/CleverSpace presign 아님)**·Webhook 수신·**관리 API(③-C Console이 호출하는 Backoffice/관리 API 포함, §7.9·§7.8)**. UI 자체는 ③-C | **`Vatech-Target` 없음** (GW-own) | GW가 직접 처리·OpenAPI 정의(NestJS code-first `@nestjs/swagger`, §1.7.1) | 본 SRS §7 + [OpenAPI](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/openapi/vt-api-gateway.openapi.yaml) |
+| **A. GW 고유 API** | §7 전부 — 인증·enrollment·디바이스 레지스트리·region resolve·Webhook 수신·**관리 API(③-C Console이 호출하는 Backoffice/관리 API 포함, §7.9·§7.8)**. UI 자체는 ③-C | **`Vatech-Target` 없음** (GW-own) | GW가 직접 처리·OpenAPI 정의(NestJS code-first `@nestjs/swagger`, §1.7.1) | 본 SRS §7 + [OpenAPI](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/openapi/vt-api-gateway.openapi.yaml) |
 | **B. 프록시(internal)** | **우리 소유** 백엔드(CleverSpace·OneID) | **`Vatech-Target` = 논리 ID**(예 `cleverspace`) | **verbatim bypass** + 정규화 신원 전달 + 정책 체인. 내부망 trusted — 백엔드가 GW 신뢰 | 각 백엔드 제품의 OpenAPI |
 | **C. 프록시(external)** | **외부 제3자**(Straumann AXS, 향후 DS Core/3Shape) | **`Vatech-Target` = 논리 ID**(예 `axs`) | **verbatim bypass** + OAuth2 인증·토큰/secret 관리(§7.1.3)·고정 egress IP·egress allowlist(§7.5)·Webhook 역수신(§7.6). 경계 밖 untrusted | ④ Sub-SRS + 외부 OpenAPI 스냅샷 |
 
 - **handle(A) vs proxy(B/C) 판별 = `Vatech-Target` 유무**(배타). A에 헤더 부착 시 거부, proxy인데 누락 시 fail-closed(`400`). 상세 불변식은 §4.1.2.
 - **B vs C = trust profile 차이일 뿐 라우팅은 동일**: B = 내부 안내 데스크(통과 + 정규화 신원), C = 거래처 방문(OAuth·토큰·secret·고정 egress IP·외부 장애 책임). C가 토큰·secret·외부 장애 책임까지 지므로 §7.5 커넥터 프레임워크로 1급 처리하고, B는 정책 체인 수준의 경량이다.
 - **신규 upstream 추가 = 레지스트리 1행**(논리 ID→host + trust profile + 정책·egress)으로 끝난다 — **코드·경로 네임스페이스 변경 0**(NFR-SCL §6.3.5). §7.5.1 connector 프레임워크를 _내부·외부 전 upstream_ 으로 일반화한 것이며, 내부·외부를 **하나의 라우팅 규칙**으로 다룬다.
-- **파일 업로드·presigned는 API 면과 데이터 경로를 구분한다**(§4.1.4): 경로①=A(`/v1/uploads`, GW 고유), 경로②=B proxy(`Vatech-Target: cleverspace`), 경로③=C proxy(`Vatech-Target: axs`). GW는 CleverSpace·AXS·제3자 presign 규약을 **해석·변환·중계하지 않는다**(verbatim). **파일 바이트**는 어느 경로든 presigned로 **storage 직접 업로드**(GW 미경유).
+- **파일 업로드·presigned는 API 면과 데이터 경로를 구분한다**(§4.1.4): 경로②=B proxy(`Vatech-Target: cleverspace`)·경로③=C proxy(`Vatech-Target: axs`) — 둘 다 GW가 발급을 **중계(bypass)** 만 하고 presigned를 **직접 발급하지 않는다**(경로①=GW 직접 발급은 폐기, §4.1.4). **파일 바이트**는 어느 경로든 presigned로 **storage 직접 업로드**(GW 미경유).
 - **CleverLab은 B 프록시 대상이 아니다.** 우리 클라우드 기공소 PMS지만, GW와의 관계는 **갈래 B 클라우드↔클라우드 연동(보류)** — CleverLab이 **C(AXS)를 향해 GW를 호출하는 클라이언트**(CleverLab→GW→AXS, EzServer가 GW를 호출하는 것과 같은 역할)이고, AXS 이벤트는 Webhook으로 수신(GW→CleverLab)한다. 따라서 위 B 행에 넣지 않는다(§2.1·④·§7.6.5).
 
 ### 4.1.2 라우팅·API 설계 규칙
@@ -747,43 +738,29 @@ Webhook은 두 면(§4.1.1) 어느 쪽에도 깔끔히 떨어지지 않는 **하
 
 ### 4.1.4 업로드·Presigned 경로 구분
 
-파일 전송은 **control plane(API 버킷)** 과 **data plane(바이트 경로)** 을 분리해 이해한다. 혼동 방지: **`/v1/uploads`는 CleverSpace·AXS·제3자 presign API를 GW가 하나로 추상화·해석하는 API가 아니다.**
+파일 전송은 **control plane(API 면)** 과 **data plane(바이트 경로)** 을 분리해 이해한다. **GW는 presigned를 발급하지 않는다** — 발급 주체는 upstream(CleverSpace·AXS)이고 GW는 발급 요청을 **중계(bypass)** 만 한다. 파일 **바이트**는 어느 경로든 발급 주체 storage로 **직접** 업로드(GW 미경유).
 
-#### 세 가지 업로드 경로
+> **폐기(2026-06-23 결정)**: 이전 \"경로①(GW Region Signer가 우리 리전 storage용 presigned 직접 발급, `/v1/uploads`)\"는 **철회**되었다. GW는 서명·세션·storage를 소유하지 않는다. 아래 ②③만 유효하며, 번호는 기존 참조 보존을 위해 그대로 둔다.
 
-| # | 대상 | presign·업로드 **요청 API** (control) | presign **발급 주체** | GW 역할 | OpenAPI 정본 |
-| --- | --- | --- | --- | --- | --- |
-| **①** | **의료 디바이스 → 우리 리전 storage**(PHI·주권) | **`POST /v1/uploads`…** (A버킷, §7.4) | **Region Signer Agent** — CleverSpace/AXS **앱 presign API 아님** | 리전 해석(§7.3)·세션·정책·Signer 조율·commit | GW OpenAPI |
-| **②** | **CleverSpace 등 사내 백엔드** presign·파일 API | **B 프록시** — `Vatech-Target: cleverspace`, upstream 경로 verbatim(§4.1.2) | **CleverSpace**(또는 해당 백엔드) | **verbatim bypass** — 요청/응답 body **그대로 통과**, GW가 필드 해석·변환 **하지 않음** | CleverSpace OpenAPI |
-| **③** | **Straumann AXS** 등 외부 presign·파일 API | **C 프록시** — `Vatech-Target: axs`, upstream 경로 verbatim(§4.1.2) | **AXS**(외부) | **verbatim bypass** + OAuth2·egress allowlist(§7.5) | ④ Sub-SRS + AXS 스냅샷 |
+#### 두 가지 업로드 경로 (둘 다 GW 중계·bypass)
 
-#### data plane (공통 — 세 경로 모두 동일)
+| #   | 대상                                  | presign·업로드 **요청 API** (control)                              | presign **발급 주체** | GW 역할                                                       | OpenAPI 정본          |
+| --- | ------------------------------------- | ------------------------------------------------------------------ | --------------------- | ------------------------------------------------------------- | --------------------- |
+| **②** | **CleverSpace 등 사내 백엔드** presign·파일 API | **B 프록시** — `Vatech-Target: cleverspace`, upstream 경로 verbatim(§4.1.2) | **CleverSpace**       | **verbatim bypass** — 요청/응답 body 그대로 통과, GW 해석·변환·서명 **없음** | CleverSpace OpenAPI   |
+| **③** | **Straumann AXS** 등 외부 presign·파일 API   | **C 프록시** — `Vatech-Target: axs`, upstream 경로 verbatim(§4.1.2)     | **AXS**(외부)         | **verbatim bypass** + OAuth2·egress allowlist(§7.5)           | ④ Sub-SRS + AXS 스냅샷 |
 
-presigned URL을 **Client가 받은 뒤**, 파일 **바이트**는 **목적 storage로 직접 업로드**한다. GW는 **파일 본문을 중계하지 않는다**(PHI control plane 미경유, §6.4).
+#### data plane (공통)
+
+presigned URL을 **Client가 받은 뒤**, 파일 **바이트**는 **발급 주체 storage로 직접 업로드**한다(GW 미경유, §6.4).
 
 ```
-[control] Client → GW API (① A / ② B bypass / ③ C bypass) → (필요 시 upstream) → presigned URL 반환
-[data]    Client ═══════════════════════════════════════► storage 직접 업로드 (GW 미경유)
+[control] Client → GW (② B bypass / ③ C bypass · 발급 요청 중계) → upstream presign 발급 → presigned URL 반환
+[data]    Client ═══════════════════════════════════════► 발급 주체 storage 직접 업로드 (GW 미경유)
 ```
 
-#### `/v1/uploads`가 하는 일 · 하지 않는 일
+> **GW가 하지 않는 일**: presigned **직접 발급(서명)**·업로드 **세션 소유**·region **storage 소유** — 모두 폐기. CleverSpace/AXS presign 스키마를 GW가 통합·변환하지도 않는다. GW는 발급 요청을 **중계**하고 정책(인증·버전·egress)만 적용한다.
 
-**하는 일 (경로①만):**
-
-- 업로드 **전** device/clinic→region 해석(§7.3) · OPA 정책
-- Upload Session 수명주기(start→chunk→commit, ADR-04) · idempotency · checksum
-- Region Signer에게 **우리 리전 S3**용 presigned 발급 **요청·Client에 전달**
-
-**하지 않는 일 (Will Not Do):**
-
-- CleverSpace presign API body를 `/v1/uploads` 필드로 **매핑·변환**하지 않음 → **② B bypass**
-- AXS presign·파일 API를 `/v1/uploads`로 **통합·추상화**하지 않음 → **③ C bypass**
-- 제3자마다 다른 presign 스키마를 GW OpenAPI **하나로 재정의**하지 않음
-- presign URL을 "남이 만든 것을 릴레이만" 하는 **수동 중계 API**로 두지 않음 — ①에서는 GW가 **세션·리전·Signer까지 orchestration** (발급 주체는 Signer)
-
-> **②와 ①의 관계**: CleverSpace **앱** presign(②)과 디바이스 **리전 storage** 업로드(①)는 **별개 계약**이다. CleverSpace는 ①으로 올라간 객체를 **object_key 등으로 참조**할 수 있다. CleverSpace presign API 변경은 **② One Pager** · CleverSpace OpenAPI가 정본.
-
-> **③과 ①의 관계**: AXS 파일 연동 presign·전달 규약은 **④ Sub-SRS** · AXS OpenAPI가 정본. unstable smoke(TC-03)도 **③ 경로** 기준.
+> **②·③ 정본**: CleverSpace presign 변경은 **② Presigned One Pager**·CleverSpace OpenAPI. AXS presign·파일은 **④ Sub-SRS**·AXS 스냅샷.
 
 ## 4.2 User Interface (사용자 인터페이스)
 
@@ -802,7 +779,7 @@ GW 본체는 무인 control plane. Admin UI는 **③-C GW Console Sub-SRS**에�
 | PostgreSQL                      | 15.x                       | 레지스트리·매핑·토큰메타·정책·감사                                                        |
 | Redis                           | TBD                        | region 캐시·nonce·rate-limit·idempotency·JWKS                                             |
 | 메시지 큐 (RabbitMQ 권장 / SQS) | TBD                        | Webhook 비동기 분배·재시도·백오프·DLQ(§7.6.3). 선정 기준은 전달 보증·포터빌리티(ARD §4.5) |
-| 오브젝트 스토리지 (S3 / MinIO)  | TBD                        | 업로드 세션 파일 직결(presigned, §7.4). 디바이스→리전 storage 직결로 GW 미경유            |
+| 오브젝트 스토리지 (S3 / MinIO)  | TBD                        | 발급 주체(CleverSpace/AXS) storage — presigned 직접 업로드(GW 미경유, §4.1.4·§7.4)            |
 | MQTT Broker                     | TBD                        | Edge(EzServer) 분배(QoS1)                                                                 |
 | OPA                             | TBD                        | allowlist·region·scope·egress 판단                                                        |
 
@@ -824,7 +801,7 @@ DNS 호스트는 *클라이언트가 접속하는 외부 계약*이므로 본 SR
 | 리전별 엔드포인트(내부) | `gw-<region>.vatech.com` (예: `-apne2`) | GeoDNS 백엔드·내부/운영용. **v1.0부터 네이밍 규칙 예약**(단일 리전 1개만 실재), 2차에 N개로 확장. 클라이언트엔 노출하지 않음 |
 | GW Console | `console.gw.vatech.com` | **③-C 영역** — 본 SRS는 참조만. 확정은 ③-C Sub-SRS |
 
-> **멀티리전-ready DNS (§2.7.1).** v1.0이 단일 리전이라도 **클라이언트는 처음부터 apex(`gw.vatech.com`)만** 사용한다(리전 호스트 직접 노출 금지). 그래야 2차 리전 추가 시 **클라이언트·헤더 변경 없이 GeoDNS 백엔드만 늘려** 멀티 리전이 활성화된다. 즉 v1.0에서 apex→단일 리전 1:1이고, 2차에 apex→GeoDNS→N리전으로 *DNS 구성만* 바뀐다. (apex 없이 단일 리전 호스트를 클라이언트에 박으면 2차에 클라이언트 재배포가 필요 — 금지.)
+> **멀티리전-ready DNS (§2.7.1).** v1.0이 단일 리전이라도 **클라이언트는 처음부터 apex(`gw.vatech.com`)만** 사용한다(리전 호스트 직접 노출 금지). 그래야 2차 리전 추가 시 **클라이언트·헤더 변경 없이 GeoDNS 백엔드만 늘려** 멀티 리전이 활성화된다. 즉 v1.0에서 apex→단일 리전 1:1이고, 2차에 apex→GeoDNS→N리전으로 _DNS 구성만_ 바뀐다. (apex 없이 단일 리전 호스트를 클라이언트에 박으면 2차에 클라이언트 재배포가 필요 — 금지.)
 
 - **TBD**: 위 호스트명 확정
   - 미결 이유: DNS·인증서·GeoDNS 구성은 인프라/플랫폼팀 결정 사항
@@ -855,7 +832,7 @@ None
 
 ## 5.2 Concurrent Session (동시 세션)
 
-세션 정의 = control plane 동시 활성 디바이스(최근 1분 내 요청) + 진행 중 업로드 세션 수.
+세션 정의 = control plane 동시 활성 디바이스(최근 1분 내 요청).
 
 - **TBD**: v1.0 동시 세션 목표
   - 미결 이유: §5.1과 동일(fleet 규모 미확정)
@@ -946,7 +923,7 @@ NestJS 모듈(bounded context) 분리·TDD. 구조화 로그·OpenTelemetry. (NF
 
 ### 6.3.3 Portability (이식성)
 
-멀티클라우드 presign broker(S3/Blob/GCS/MinIO, FR-SES-06, v1.2)·IaC 환경 재현으로 이식 대비.
+IaC 환경 재현으로 이식 대비. (presign broker는 GW가 두지 않음 — 발급 주체별 storage, §7.4)
 
 ### 6.3.4 Reliability (신뢰성)
 
@@ -962,7 +939,7 @@ Webhook 전달 보증(QoS1·재시도·DLQ), 업로드 idempotency. MTBF 목표 
 - ERD: [DBML — `vt-api-gateway.dbml`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/dbml/vt-api-gateway.dbml). 신규 테이블의 컬럼·타입·인덱스·relation은 DBML(dev-chain-design)이 SSOT
 - 저장 정보 유형: 디바이스 레지스트리, device/clinic↔region 매핑, 토큰 메타, 정책(OPA 입력), 감사 로그. **PHI 본문은 미저장**(presigned 직결)
 - 캐시: Redis(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS)
-- **데이터 토폴로지(멀티 서버·멀티 리전, §2.1.1)**: 리전 내 pod는 **동일 DB·Redis 공유**(무상태 앱 tier). 멀티 리전에서는 **(전역 일관) 라우팅·식별 데이터**(매핑·레지스트리·Org-ID·정책·compat·JWKS) 와 **(리전 로컬) 운영 데이터**(upload session·audit·in-flight queue·signer)로 나눈다. 전역 데이터는 어느 리전에서도 같은 답을 내야 하며(soft-state 캐시 + strong-consistency 경로·`mapping_version`), 운영 데이터는 리전 로컬이다. **저장소 구현(전역 DB 단일 vs 리전별 복제)은 gw/1.2 TBD(Appendix B #15)**, 구분 원칙은 고정.
+- **데이터 토폴로지(멀티 서버·멀티 리전, §2.1.1)**: 리전 내 pod는 **동일 DB·Redis 공유**(무상태 앱 tier). 멀티 리전에서는 **(전역 일관) 라우팅·식별 데이터**(매핑·레지스트리·Org-ID·정책·compat·JWKS) 와 **(리전 로컬) 운영 데이터**(audit·in-flight queue)로 나눈다. 전역 데이터는 어느 리전에서도 같은 답을 내야 하며(soft-state 캐시 + strong-consistency 경로·`mapping_version`), 운영 데이터는 리전 로컬이다. **저장소 구현(전역 DB 단일 vs 리전별 복제)은 gw/1.2 TBD(Appendix B #15)**, 구분 원칙은 고정.
 - 무결성:
   - 감사 로그 = **append-only**(UPDATE/DELETE 금지, FR-AUD-01)
   - 매핑 변경 = `mapping_version` 증가·이력 보존(FR-RGN-02)
@@ -1153,51 +1130,20 @@ Route 53 GeoDNS로 Edge(EzServer)를 최근접 GW 리전에 연결한다. 호스
 
 - **단계화(§2.7.1)**: **v1.0(단일 리전)에서도 클라이언트는 apex(`gw.vatech.com`)만** 호출하고, apex가 그 단일 리전을 가리킨다(GeoDNS 백엔드 1개). **2차(gw/1.2)에 백엔드를 N리전으로 늘리면** apex 라우팅이 자동으로 최근접 리전 분배로 동작 — **클라이언트·헤더 변경 없음**. 즉 GeoDNS는 v1.0부터 *구성상 존재*하되 라우팅 대상이 1개일 뿐이다(멀티리전-ready).
 
-**비목표(Will Not Do)**: 멀티 리전 *동시 운영* + 리전 signer 다수(FR-RGN-05)는 **gw/1.2(2차)**. v1.0은 **단일 리전만 배포**한다 — 단 위 단계화대로 멀티리전-ready로 설계한다(§2.7.1).
+**비목표(Will Not Do)**: 멀티 리전 _동시 운영_(FR-RGN-05)는 **gw/1.2(2차)**. v1.0은 **단일 리전만 배포**한다 — 단 위 단계화대로 멀티리전-ready로 설계한다(§2.7.1).
 
-## 7.4 업로드 세션·Presigned 발급 (P1) — **경로① 전용**
+## 7.4 파일 업로드 — presigned 중계 (P1) — **GW 비발급**
 
-본 절은 **§4.1.4 경로①** — **의료 디바이스 → 우리 리전 storage(S3 등)** — 만 정의한다. CleverSpace·AXS·제3자 presign API는 **본 절·`/v1/uploads` 범위 밖**이며 각각 **B/C bypass**(§4.1.4)와 upstream OpenAPI(② One Pager · ④ Sub-SRS)가 정본이다.
+**GW는 presigned URL을 발급하지 않고, 업로드 세션·storage를 소유하지 않는다.** 파일 업로드 presigned **발급 주체는 CleverSpace(경로②)·AXS(경로③)** 이며, GW는 발급 요청을 **중계(B/C bypass, §4.1.4)** 할 뿐이다. 파일 **바이트**는 발급 주체의 storage로 **직접** 업로드한다(GW 미경유, PHI control plane 미경유).
 
-GW는 경로①에서 파일 전송을 **Upload Session으로 추상화**(ADR-04)하여, 단발 presigned의 한계(재개 불가·멱등성 부재)를 해소한다. presigned URL **발급 주체**는 **Region Signer Agent**(Data plane)이며, CleverSpace·AXS **제품 presign API를 호출해 URL을 받아 릴레이하지 않는다**. 파일 **바이트**는 presigned로 **리전 storage에 직접** 업로드(GW 미경유, PHI control plane 미경유). 상세 흐름은 ARD §5.3.
+> **위임 경계**: 업로드 **세션(start→chunk→commit)·resumable/multipart·idempotency·checksum/ETag·완료처리(콜백+스토리지 이벤트)** 는 **발급 주체의 책임**이다 — CleverSpace presign은 **② Presigned One Pager**·CleverSpace OpenAPI, AXS presign·파일은 **④ Sub-SRS**·AXS 스냅샷이 정본. 본 SRS(GW)는 이를 정의하지 않는다.
 
-> **경계**: CleverSpace **앱** presign API(경로②) 변경은 **② Presigned One Pager** + CleverSpace OpenAPI. AXS 파일·presign(경로③)은 **④ Sub-SRS** + AXS 스냅샷. 본 절 OpenAPI는 **`/v1/uploads`…(경로①)** 만 SSOT.
-
-### 7.4.1 Upload Session 수명주기 (P1)
-
-FR-SES-01 (start→chunk→commit).
-
-- **Input**: 업로드 메타(크기·청크 수·대상), 인증된 디바이스
-- **Trigger**: 디바이스가 `start upload` 요청
-- **Output**: 세션 ID + region 해석 결과(§7.3) + 정책 검사(OPA) 통과
-- **Side Effect**: 세션 메타 저장(PostgreSQL), 만료 TTL 설정
-- **에러**: 정책 거부 → 403, region 해석 실패 → 거부
-
-### 7.4.2 Presigned URL — 디바이스 → 리전 직결 (P1)
-
-FR-SES-02 (리전 signer가 presigned 발급, GW 미경유 업로드).
-
-- **Output**: 청크별 단명 presigned URL(짧은 TTL 5~15분, Region Signer Agent 발급)
-- **Side Effect**: PHI·객체 키/메타에 환자정보 미포함
-
-### 7.4.3 resumable / multipart (P1)
-
-FR-SES-03 (중단 재개·멀티파트).
-
-### 7.4.4 idempotency key (P1)
-
-FR-SES-04 (commit 멱등).
-
-- **경계/에러**: 동일 idempotency key 재요청 → 중복 commit 방지(저장 결과 반환)
-
-### 7.4.5 checksum/ETag 무결성 (P1)
-
-FR-SES-05 (청크 SHA256·ETag 검증). 무결성 불일치 → commit 거부·재업로드 유도.
+**FR-SES 매핑(요구사항 명세)**: FR-SES-01~05(세션·presigned·resumable·멱등·무결성)는 **GW 직접 구현이 아니라 발급 주체(CleverSpace ②/AXS ④) 소유**다. GW 책임은 _중계_(§4.1.1 B/C 프록시·§7.5 connector)로 한정한다. FR-SES-06(멀티클라우드 presign broker)도 GW가 broker를 두지 않으므로 해당 없음.
 
 **비목표(Will Not Do)**:
 
-- CleverSpace·AXS·제3자 presign을 `/v1/uploads`로 **통합·스키마 변환** — §4.1.4 경로②③, B/C bypass
-- 멀티클라우드 presign broker(S3/Blob/GCS/MinIO, FR-SES-06) — **gw/1.2**. v1.0은 단일 리전 S3
+- **GW가 presigned를 직접 발급**(Region Signer·GW 소유 region storage·GW Upload Session) — **폐기**(2026-06-23 결정. 기존 경로①·ADR-03/04 철회). GW는 서명·세션·storage를 갖지 않는다.
+- CleverSpace·AXS presign을 GW가 하나의 API로 통합·변환 — §4.1.4, B/C bypass(verbatim).
 
 ## 7.5 외부 연동·Connector 프레임워크 (P1)
 
@@ -1215,7 +1161,7 @@ FR-INT-01 (adapter 플러그형 등록).
 
 ### 7.5.2 AXS connector (P1)
 
-FR-INT-02 (Straumann AXS OAuth2·proxy·**파일/presign API bypass**의 _프레임워크 적용 지점_). AXS presign·파일 요청 body는 **AXS OpenAPI 그대로 통과**(§4.1.4 경로③) — GW가 `/v1/uploads`로 해석·변환하지 않음. E2E 동작 요구만 본 절에 두고, 상세 계약은 ④.
+FR-INT-02 (Straumann AXS OAuth2·proxy·**파일/presign API bypass**의 _프레임워크 적용 지점_). AXS presign·파일 요청 body는 **AXS OpenAPI 그대로 통과**(§4.1.4 경로③) — GW가 발급하거나 해석·변환하지 않음. E2E 동작 요구만 본 절에 두고, 상세 계약은 ④.
 
 > **AXS = GW의 첫 연동 구현 대상**(CleverSpace보다 **선행** — PRD §12·Roadmap §3.5, 2026-06 회의 재확인). 범용 proxy·Webhook 구조(§4.1.1·§7.6)를 외부 서비스로 먼저 검증한 뒤 CleverSpace 연동을 진행한다. 스펙 작성 순서(③ baseline 후 ④)와 구현 착수 순서(Straumann 먼저)는 별개다.
 
@@ -1405,7 +1351,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 10 | CCB 명단·승인자 | §8·§9 | PM | **확정(2026-06-23)** | 변경관리 — Scott(PM)·Raymond(GW 백엔드 리드) |
 | 11 | 인증(IEC 62304/13485) 일정·준비물 | §6.13·§6.14 | 품질/마케팅 | 추후 | — |
 | 12 | 인프라·런타임 상세 버전(도구·노드) | §3·§4.4 | 인프라/개발 | 설계 단계 | §3 |
-| 13 | ADR-11(라우팅 모델: target-routed proxy) — **ARD 기재 완료(v0.10)**; 남은 것은 **CCB 승인** + **클라이언트 `Vatech-Target` 부착 적응**(③-P-*) | §4.1.1·§4.1.2·§4.1.4·§7.5·Appendix A·ARD §2 | PM(CCB 승인) · 제품팀(헤더 부착) | baseline 전 | §4.1·§7.5·OpenAPI·③-P-CS/CO/EZ(헤더 부착)·① |
+| 13 | ADR-11(라우팅 모델: target-routed proxy) — **ARD 기재 완료(v0.10)**; 남은 것은 **CCB 승인** + **클라이언트 `Vatech-Target` 부착 적응**(③-P-\*) | §4.1.1·§4.1.2·§4.1.4·§7.5·Appendix A·ARD §2 | PM(CCB 승인) · 제품팀(헤더 부착) | baseline 전 | §4.1·§7.5·OpenAPI·③-P-CS/CO/EZ(헤더 부착)·① |
 | 14 | 로그 포맷(필드·상관키·레벨) 검토 확정 | §6.3.2 | 인프라(취합·분석) + GW(생성) | 설계 단계 | §6.2·§6.3.2·③-I |
 | 15 | 전역데이터 복제 토폴로지 세부(원본 primary 위치·단일 vs multi-primary·충돌 처리) — "PostgreSQL 원본+리전 복제 / Redis 리전 캐시" 모델·"전역 일관/리전 로컬" 구분 원칙은 고정, 복제 세부만 미정 | §2.1.1·§6.4 | PM/아키텍트 + 인프라 | gw/1.2 설계 | §7.3·§6.4·§6.3.1 |
 | 16 | Webhook 클라우드 분배 — **CleverLab 갈래 B 활성화 여부·시점**(CleverSpace는 대상 아님으로 **확정**). EzServer(갈래 A) 역방향 대상 이벤트 목록 확정 | §2.3.6·§7.6.5·§7.6.6 | PM/제품 + GW(④) | ④ 상세설계 | §7.6·④·§2.1·§2.2 |
@@ -1477,3 +1423,4 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-23 | CleverSpace webhook 혼동 정리 — **클라우드 webhook 수신=CleverLab만(갈래B 보류), CleverSpace는 webhook 대상 아님으로 확정**(TBD 해소). §2.1·§2.2·§2.3.6(표/시퀀스/정리)·§4.1.3·§7.6.5·Appendix B#16에서 "CleverSpace/CleverLab" 묶음·CleverSpace TBD 제거. Roadmap §2.7.1 다이어그램(CS 엣지 제거)·§2.7.3 표도 CleverLab 단일로 정합 | (작성자 ID 미지정) |
 | 2026-06-23 | CleverLab 방향 정합(Roadmap §2.6과 일치) — CleverLab을 **GW 프록시 대상(B)에서 제외**하고 **갈래B 클라우드 클라이언트(보류): CleverLab→GW→AXS** + webhook 수신(GW→CleverLab)으로 정정. §2.1·§2.2 다이어그램 엣지 방향 변경, §4.1.1 B목록에서 제외·주석, 외부표·노트 갱신. (이전 'GW→CleverLab 프록시 B'가 Roadmap의 'CleverLab→GW'와 방향 충돌이던 것 해소) | (작성자 ID 미지정) |
 | 2026-06-23 | 다이어그램 차이 정리(선택 2건) — §2.1에 "control plane context, 데이터plane presigned·minio·리전별CS 생략(§2.3.4/§2.3.5/§4.1.4/§2.1.1 참조)" 주석 추가. Roadmap §2.7.1 '이벤트 라우터' → 'Webhook 이벤트 라우터'(SRS Router/PEP와 명칭 충돌 제거) | (작성자 ID 미지정) |
+| 2026-06-23 | **GW presigned 직접 발급 시나리오 폐기** — 결정: 서명 주체=CleverSpace(②)·AXS(③), GW는 **중계만**. §2.3.4를 'CleverSpace presigned 중계'로 교체, §7.4를 '중계·위임(GW 비발급)'으로 재작성, §4.1.4를 2경로(②③)로 축소(경로①·Region Signer·GW Upload Session/Storage 철회·ADR-03/04 폐기). §2.2 Data Plane 컴포넌트(SES·Presign·Signer) 제거, §1.4 용어·§2.3 액터·§2.4·§2.5·§2.7·§4.4·§5.2·§6.3.3 등 산재 참조 정리. FR-SES는 삭제 않고 'GW 비소유·발급주체(②/④) 소유, GW 중계'로 재분류 | (작성자 ID 미지정) |

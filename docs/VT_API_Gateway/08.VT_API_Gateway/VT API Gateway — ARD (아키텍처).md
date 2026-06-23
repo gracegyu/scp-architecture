@@ -19,6 +19,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.8 | 2026-06-15 | Scott | ESMN Roadmap 흡수 — ADR-07~10(API 버전 호환성·OneID 인증면·Webhook Receiver·라우팅 키 통합), 컴포넌트 4종·시퀀스 2종 추가 | Draft |
 | v0.9 | 2026-06-15 | Scott | Webhook Edge MQTT 역방향(WH-06)을 b1(v1.0)로 당김 — AXS pilot 일정 반영(ESIP-23) | Draft |
 | v0.10 | 2026-06-23 | (SRS 동기화) | **ADR-11(라우팅 모델: target-routed proxy)** 추가 + **Router / PEP** 컴포넌트 등록 — SRS §4.1.1·§4.1.2·§2.2와 동기화(모든 upstream 동일 proxy 경로, 차이는 trust profile). CCB 확인 대기 | Draft |
+| v0.11 | 2026-06-23 | (SRS 동기화) | **ADR-03(리전 signer)·ADR-04(Upload Session) 철회** — GW는 presigned 직접 발급/세션/storage 비소유, 발급=CleverSpace/AXS·GW 중계. §5.3·컴포넌트·Data plane 정리(SRS §4.1.4·§7.4와 동기화) | Draft |
 
 ## 1. 아키텍처 개요
 
@@ -30,8 +31,8 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | --- | --- | --- | --- |
 | ADR-01 | mTLS 미채택, DPoP + 하드웨어 키(SE/TPM) | 10만대 운영 부담 / mTLS는 물리 키추출 위협 미해결 | 채택(방향) · 적용 gw/1.1 (v1.0은 OAuth2 cc + claim 바인딩, SRS §7.1.1) |
 | ADR-02 | Control plane = soft-state (완전 stateless 아님) | cache TTL·mapping_version·강한 일관성 경로 분리 | 채택 |
-| ADR-03 | 리전 signer agent (설계안 B) | 리전 내 자격증명 보관 → blast radius·주권 / 중앙 서명(반려) | 채택 |
-| ADR-04 | Upload Session 추상화 (start→chunk→commit) | 단발 presigned 한계 / resumable·idempotency | 채택 |
+| ADR-03 | ~~리전 signer agent~~ — **철회(2026-06-23)**: GW는 presigned 직접 발급·서명 안 함. 발급=upstream(CleverSpace/AXS), GW 중계 | SRS §4.1.4·§7.4 | 철회 |
+| ADR-04 | ~~Upload Session 추상화~~ — **철회(2026-06-23)**: GW는 업로드 세션 비소유. 세션·resumable·멱등·무결성=발급 주체(CleverSpace ②/AXS ④) | SRS §7.4 | 철회 |
 | ADR-05 | presign broker 멀티클라우드(S3·Blob·GCS·MinIO) | 리전 이종성·온프렘 수용 | 채택 |
 | ADR-06 | Fleet 운영 1급 서브시스템 | 10만대 실질 난이도 1순위 | 채택 |
 | ADR-07 | API 버전 호환성 게이트 — Vatech-\* 식별 헤더 + well-known 런타임 버전 공시 + 호환성 매트릭스 | 구버전 클라이언트 원인불명 실패 제거(CleverSpace v1.3.0 즉시 대응) / 클라이언트 버전 미전달 방치(반려) · ESMN Roadmap 1단계 흡수 | 채택 |
@@ -47,7 +48,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | Plane | 컴포넌트 | 비고 |
 | --- | --- | --- |
 | Control (글로벌, soft-state) | Device Registry · Enrollment · Auth(OAuth2/JWT) · Region Resolver · Config · Fleet Ops · Policy(OPA) · Audit | 메타데이터만 · PHI 미경유 |
-| Data (리전 한정) | Presign Broker · Region Signer Agent · Region Storage | PHI 리전 밖 미이동 |
+| Data (리전 한정) | **GW 비호스팅** — presigned 발급·storage는 upstream(CleverSpace/AXS); GW는 중계만 | PHI 리전 밖 미이동(주권) |
 | Integration (north-south) | Connector Framework · AXS Connector · Egress 정책 | 안전 링크 pull |
 
 ### **3.2 배포 구성 (v1.0 · AWS 단일 리전)**
@@ -56,7 +57,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 - 상태: 메타·매핑·토큰 = 관리형 DB(DynamoDB / 글로벌복제 DB는 v1.2 멀티리전 시). 시크릿 = KMS / Secrets Manager.
 - 파일: 리전 S3(디바이스 직결, presigned). 비동기 = SQS / Step Functions.
 - 정책: OPA(allowlist·region·scope·egress).
-- 온프렘(후속): inbound 불가 → Region Signer Agent **outbound reverse** + MinIO.
+- 온프렘(후속): presign·storage는 제품(CleverSpace) 영역(MinIO 포함). **GW Region Signer는 철회** — GW는 발급하지 않음.
 - 전 구성 IaC 재현(NFR-MNT). 가용성 Multi-AZ(NFR-AVA).
 
 ## 4. 컴포넌트
@@ -68,9 +69,6 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | Auth Service | Control | OAuth2 cc·JWT 발급/검증·token store·secret 회전 | 핵심(DPoP/HW키 v1.1) |
 | Region Resolver | Control | device→region 매핑·mapping_version·강한 일관성 경로 | 핵심(단일 리전) |
 | Router / PEP (target-routed proxy) | Control | `Vatech-Target` 기반 upstream 라우팅(B 내부·C 외부 동일 경로)·정책 체인(인증·버전·egress allowlist)·verbatim bypass. 외부(C)는 Connector Framework로 OAuth·egress 적용 | 핵심(ADR-11) |
-| Upload Session Service | Control/Data | start→chunk→commit·idempotency·무결성 | 핵심 |
-| Presign Broker | Data | 리전 storage presigned 발급 | 핵심(S3; 멀티클라우드 v1.2) |
-| Region Signer Agent | Data | 리전 내 서명·자격 보관(주권) | 핵심(온프렘 reverse 후속) |
 | Config Service | Control | 중앙 config push/pull | 핵심 |
 | Fleet Ops | Control | heartbeat·kill-switch·성공률·rollout | 기본(rollout/카나리 v1.1) |
 | Connector Framework + AXS | Integration | adapter·egress 정책·AXS OAuth2 위임·proxy | 핵심(추가 connector v1.1) |
@@ -94,7 +92,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | 관계 DB | ◎ PostgreSQL | 레지스트리·매핑·토큰메타·정책·감사 (멀티리전 v1.2 → 분산SQL 검토) |
 | 캐시 | ◎ Redis (key-val) | region 매핑 캐시(TTL)·nonce·rate-limit·idempotency·JWKS |
 | 큐 | ○ RabbitMQ (권장) / SQS(AWS-only) / BullMQ(내부 경량 잡) | 외부 전달 durable·DLQ·라우팅·멀티클라우드·온프렘 포터블. 선정 기준은 throughput 아닌 **전달 보증·포터빌리티** |
-| 오브젝트 스토리지 | ○ S3(리전) / MinIO(온프렘) | 업로드 세션 파일 직결 — 스택 누락 보완 |
+| 오브젝트 스토리지 | (제품 영역) S3(리전)/MinIO(온프렘) | **발급 주체(CleverSpace/AXS) 소유** — GW 스택 아님(GW 미경유 직결) |
 | 시크릿/키 | ○ KMS/Secrets Manager (+ Vault: enrollment·PKI) | 시크릿 회전·암호화 — 보안설계 필수 |
 | 정책 엔진 | ○ OPA | allowlist·region·scope·egress (ARD ADR/시퀀스 전제) |
 | 관측성 | ○ OpenTelemetry + 로그/메트릭 | NFR-OBS · fleet 지표·감사 |
@@ -136,18 +134,17 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 
 ![](images/image-2026-6-8_21-41-16.png)
 
-### **5.3 업로드 세션 (Upload Session)**
+### **5.3 파일 업로드 — presigned 중계 (GW 비발급)**
 
-요구사항: FR-SES-01~05 ([요구사항 명세](<VT API Gateway — 요구사항 명세 (Requirements).md>)) · 작업: [ESIP-11](https://vts.vatech.com/browse/ESIP-11) · [ESIP-14](https://vts.vatech.com/browse/ESIP-14)
+요구사항: FR-SES-01~05([요구사항 명세](<VT API Gateway — 요구사항 명세 (Requirements).md>)) — **발급 주체(CleverSpace ②/AXS ④) 소유**, GW는 중계.
 
-1. 디바이스 → Control plane: **start upload**(메타 · region 해석 · 정책 검사) → 세션 생성.
-2. 리전 signer가 chunk별 **presigned URL** 발급(짧은 TTL 5~15분).
-3. 디바이스 → **리전 storage 직결** 업로드(Control plane 미경유), resumable/multipart.
-4. 각 chunk checksum(SHA256)/ETag 무결성.
-5. 디바이스 → **commit**(idempotency key) → 무결성 확인 → 확정.
-6. PHI는 control plane 미경유 · 객체 키/메타데이터에 PHI 미포함.
+1. 클라이언트(EzServer/디바이스) → GW: presigned 발급 **요청**(Vatech-Target로 대상 지정, B/C bypass).
+2. GW: 인증·버전 게이트·정책(egress) 적용 후 **upstream(CleverSpace/AXS)으로 verbatim 중계** — GW는 서명하지 않는다.
+3. upstream이 presigned URL 발급 → GW가 그대로 전달(변환 없음).
+4. 클라이언트 → **발급 주체 storage 직결** 업로드(Control plane 미경유). resumable/multipart·checksum·commit·완료처리는 **upstream 책임**.
+5. PHI는 GW control plane 미경유 · GW는 객체 키·세션을 저장하지 않음.
 
-![](images/image-2026-6-8_21-39-51.png)
+> **철회(2026-06-23)**: 이전 'GW Region Signer가 리전 storage용 presigned 직접 발급 + GW Upload Session'(ADR-03/04)은 폐기. GW는 presigned 발급·세션·storage를 소유하지 않는다(SRS §4.1.4·§7.4).
 
 ## 6. 교차 링크
 
