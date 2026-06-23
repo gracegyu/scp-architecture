@@ -291,7 +291,7 @@ flowchart LR
 
 > 굵은 화살표 = 모든 API가 GW 단일 경유(온프레미스 EZ + 클라우드 CleverLab 모두). 점선 = 대용량 데이터의 presigned 직접 업로드(GW 비경유, AXS는 AXS S3로)와 **외부 Webhook의 수신·분배**. GW는 외부 서비스의 Webhook을 **Webhook Receiver로 대신 받아** 대상으로 분배한다(클라우드는 HTTP push, 온프레미스 EZ는 MQTT). 초록 = 본 과제로 새로 들어오는 요소. 상세는 §2.7. 가독성을 위해 **업로드 완료 확인(완료 콜백 + 스토리지 이벤트)은 그림에서 생략**했다(§2.3·§3.4 참조).
 >
-> **[현 범위 정합 — 2026-06 회의]** 본 다이어그램·§2.7은 *원래 계획(전체 그림)* 을 보존한다. 다만 **CleverLab↔AXS(갈래 B)는 현 시점 미고려(보류)**, **CleverSpace의 Webhook 수신은 미확정(TBD)** 으로 결정되었다. 현 범위의 정본은 **SRS §1.2(Will Not Do)·§2.3.6·④ _status** 다 — 갈래 B·CleverSpace webhook이 활성으로 보이는 부분은 이 결정에 따라 읽는다(상세 §3.7.2 머리).
+> **[현 범위 정합 — 2026-06 회의]** 본 다이어그램·§2.7은 *원래 계획(전체 그림)* 을 보존한다. 다만 **CleverLab↔AXS(갈래 B)는 현 시점 미고려(보류)**, **CleverSpace는 Webhook 수신 대상이 아님(확정)** — 클라우드 webhook 수신은 **CleverLab만**(갈래 B). 현 범위의 정본은 **SRS §1.2(Will Not Do)·§2.3.6·④ _status** 다 — 갈래 B·CleverSpace webhook이 활성으로 보이는 부분은 이 결정에 따라 읽는다(상세 §3.7.2 머리).
 
 ### 2.7 Webhook 수신·분배 — GW가 외부 이벤트의 단일 수신·분배점
 
@@ -316,10 +316,10 @@ flowchart LR
         ROUTER --> BROKER
     end
 
-    subgraph CLOUDT["우리 클라우드 대상"]
+    subgraph CLOUDT["우리 클라우드 대상 (webhook 수신 = CleverLab만)"]
         CLAB["CleverLab"]
-        CS["CleverSpace"]
     end
+    %% CleverSpace는 webhook 수신 대상 아님(B 프록시 백엔드) — 2026-06 결정, SRS §2.3.6
 
     subgraph EDGET["온프레미스 대상"]
         EZ["EzServer (Edge)<br/>방화벽 뒤"]
@@ -328,7 +328,6 @@ flowchart LR
     AXS ==>|"Webhook(HTTPS POST)"| WH
     ETC -.->|"Webhook"| WH
     Q ==>|"HTTP push(내부망)"| CLAB
-    Q ==>|"HTTP push(내부망)"| CS
     BROKER ==>|"MQTT(QoS1)<br/>EZ가 outbound 구독"| EZ
 
     classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
@@ -344,11 +343,11 @@ flowchart LR
 
 #### 2.7.3 분배 방법 — 대상에 따라 다르다
 
-> **[현 범위 — 2026-06 회의]** 아래 "분배 방식"은 *메커니즘*이다. **구체 대상**은: **EzServer(갈래 A 역방향)=b1 포함**, **CleverLab(갈래 B)=보류**, **CleverSpace=Webhook 수신 미확정(TBD)**. 즉 클라우드 HTTP push는 메커니즘으로 두되 현 v1.0의 구체 대상은 EzServer다. 정본·추적은 **SRS §2.3.6·§7.6.5·Appendix B #16**.
+> **[현 범위 — 2026-06 회의]** 아래 "분배 방식"은 *메커니즘*이다. **구체 대상**은: **EzServer(갈래 A 역방향)=b1 포함**, **클라우드 수신=CleverLab만(갈래 B·보류)**. **CleverSpace는 webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드). 정본·추적은 **SRS §2.3.6·§7.6.5·Appendix B #16**.
 
 | 대상 | 위치 | 분배 방식 | 이유 |
 |------|------|-----------|------|
-| **우리 클라우드(CleverLab·CleverSpace)** | 클라우드(도달 가능) | GW → 내부 큐 → **HTTP push**(내부망 호출) | GW가 직접 호출 가능한 위치. 동기 호출 또는 큐 기반 비동기로 재시도·순서 보장 |
+| **우리 클라우드(CleverLab)** | 클라우드(도달 가능) | GW → 내부 큐 → **HTTP push**(내부망 호출) | GW가 직접 호출 가능한 위치. 동기 호출 또는 큐 기반 비동기로 재시도·순서 보장. (CleverSpace는 webhook 대상 아님) |
 | **EzServer(Edge)** | 온프레미스, **방화벽 뒤** | GW → **MQTT broker** → EZ가 **outbound 구독**으로 수신 | 외부에서 EZ로 inbound push 불가. EZ가 먼저 바깥으로 맺은 연결로만 전달 가능 |
 
 핵심 차이는 **도달성**이다. 클라우드 대상은 GW가 직접 호출(push)할 수 있어 단순하다. 반면 EzServer는 방화벽/NAT 뒤라 **EZ가 먼저 outbound로 맺은 연결**을 통해서만 받을 수 있다.

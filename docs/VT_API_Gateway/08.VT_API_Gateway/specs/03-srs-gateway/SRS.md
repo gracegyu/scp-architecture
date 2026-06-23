@@ -153,7 +153,7 @@ flowchart TD
     GW -->|"인증 연계 (B·내부)"| OID
     GW -->|"프록시 (B·내부)"| CLAB
     GW -->|"프록시 (C·외부: OAuth·고정 egress IP)"| AXS
-    %% Webhook(이벤트 인바운드)은 API 호출과 별개 — 현재 AXS만 해당(CleverSpace는 TBD §2.3.6)
+    %% Webhook(이벤트 인바운드)은 API 호출과 별개 — 현재 AXS만 해당. 클라우드 수신=CleverLab만(갈래B 보류), CleverSpace는 webhook 대상 아님(§2.3.6)
     AXS -.->|"Webhook (인바운드·이벤트)"| WHR
     WHR -.->|"MQTT (분배·하행)"| EZ
     WHR -.->|"HTTP push (갈래B·보류)"| CLAB
@@ -176,7 +176,7 @@ flowchart TD
 
 > 상세 인터페이스는 §4. **Webhook Receiver는 GW 내부의 별도 sub-tier**(외부 서버 아님 — A면 GW 고유 API, §4.1.1·§7.6.1). **API 호출 경로는 대상에 무관하게 동일하다** — `CleverOne→EzServer→GW→CleverSpace` 든 `…→GW→AXS` 든 모두 **GW를 단일 경유하는 target-routed proxy**(ADR-11, 경로 B 제거). 차이는 **trust profile뿐**: 내부(B=CleverSpace·OneID·CleverLab, 통과+정규화 신원) vs 외부(C=AXS, GW가 OAuth·고정 egress IP 추가). 그래서 다이어그램의 `GW→upstream` 화살표는 같은 종류이고, AXS만 라벨이 `C·외부`다.
 >
-> **유일하게 다른 건 Webhook(이벤트 인바운드)** — AXS는 결과 이벤트를 GW로 _밀어 보내고_, GW가 **Webhook Receiver**로 받아 방화벽 뒤 **EzServer는 MQTT(하행, 갈래 A 역방향)**·**클라우드는 HTTP push**로 분배한다(대상=Org-ID→Clinic→리전 매핑, §7.3). 클라우드 대상은 **CleverLab(갈래 B·보류)**, **CleverSpace 수신 여부는 미확정(TBD)** — 대상별 시나리오는 §2.3.6. (CleverSpace는 현재 Webhook *발신*이 확인되지 않아 API 호출 대상으로만 그린다.) AXS의 **외부 연동(egress)은 GW core**, **Webhook(인바운드)은 Webhook Receiver**로 들어와 방향이 반대다. 멱등·교차 리전 등 분배 상세는 **§2.3.6·§7.6**. ❓확인 — 누락된 외부 시스템 여부(예: 결제·알림 등).
+> **유일하게 다른 건 Webhook(이벤트 인바운드)** — AXS는 결과 이벤트를 GW로 _밀어 보내고_, GW가 **Webhook Receiver**로 받아 방화벽 뒤 **EzServer는 MQTT(하행, 갈래 A 역방향)**·**클라우드는 HTTP push**로 분배한다(대상=Org-ID→Clinic→리전 매핑, §7.3). 클라우드 수신 대상은 **CleverLab(갈래 B·보류)뿐**이며, **CleverSpace는 webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드일 뿐 — 다이어그램엔 *API 호출 대상*으로만 그린다). 대상별 시나리오는 §2.3.6. AXS의 **외부 연동(egress)은 GW core**, **Webhook(인바운드)은 Webhook Receiver**로 들어와 방향이 반대다. 멱등·교차 리전 등 분배 상세는 **§2.3.6·§7.6**. ❓확인 — 누락된 외부 시스템 여부(예: 결제·알림 등).
 
 ### 2.1.1 배포 토폴로지 — 멀티 서버·멀티 리전 (egress·Webhook)
 
@@ -323,13 +323,13 @@ flowchart LR
     CONSOLE -.-> ADM
     R53 -.-> RGN
 
-    %% Webhook(이벤트 인바운드)은 API 호출과 별개 — 현재 AXS만 (CleverSpace는 TBD §2.3.6)
+    %% Webhook(이벤트 인바운드)은 API 호출과 별개 — 현재 AXS만. 클라우드 수신=CleverLab만(갈래B 보류), CleverSpace는 대상 아님(§2.3.6)
     AXS ==>|"Webhook 인바운드"| WH
     WHQ ==>|"MQTT (하행)"| EZ
     WHQ ==>|"HTTP push (갈래B·보류)"| CLAB
 ```
 
-> **그리는 규칙**: §2.2는 §2.1과 같은 그림에서 **GW 쪽만 확대**한 것이다 — **VatechAPIGateway 바깥(외부 시스템·엣지)은 §2.1과 동일**, 안쪽을 **`GW core`(Control/Data/Integration plane) + `Webhook ingress` 두 부분**으로 펼친다. 각 외부는 GW 내부 컴포넌트와 **1개 이상 연결**(가장 깔끔하게 1개), **common 컴포넌트**(Device Registry·Enrollment·Config·Fleet·OPA·Audit·Upload Session·Presign·Signer)는 가독성을 위해 **미연결**. (**예외**: CleverOne은 §2.1처럼 **EzServer를 경유**해 GW에 닿으므로 GW 내부 컴포넌트에 직접 연결하지 않는다 — `CO→EZ→GW`.) **API 호출은 대상 무관 동일 경로**(`ROUTER` = target-routed proxy, ADR-11) — CleverSpace·CleverLab = B(내부), AXS = C(외부, `ROUTER`가 `CONN`으로 OAuth·고정 egress IP 추가). **Webhook(이벤트)만 별개** — 현재 AXS만 GW로 발신(CleverSpace는 TBD §2.3.6). 수신→분배 런타임은 **§2.3.6**이 정본.
+> **그리는 규칙**: §2.2는 §2.1과 같은 그림에서 **GW 쪽만 확대**한 것이다 — **VatechAPIGateway 바깥(외부 시스템·엣지)은 §2.1과 동일**, 안쪽을 **`GW core`(Control/Data/Integration plane) + `Webhook ingress` 두 부분**으로 펼친다. 각 외부는 GW 내부 컴포넌트와 **1개 이상 연결**(가장 깔끔하게 1개), **common 컴포넌트**(Device Registry·Enrollment·Config·Fleet·OPA·Audit·Upload Session·Presign·Signer)는 가독성을 위해 **미연결**. (**예외**: CleverOne은 §2.1처럼 **EzServer를 경유**해 GW에 닿으므로 GW 내부 컴포넌트에 직접 연결하지 않는다 — `CO→EZ→GW`.) **API 호출은 대상 무관 동일 경로**(`ROUTER` = target-routed proxy, ADR-11) — CleverSpace·CleverLab = B(내부), AXS = C(외부, `ROUTER`가 `CONN`으로 OAuth·고정 egress IP 추가). **Webhook(이벤트)만 별개** — 현재 AXS만 GW로 발신; 클라우드 수신 대상=**CleverLab만**(갈래B 보류), **CleverSpace는 webhook 대상 아님**(§2.3.6). 수신→분배 런타임은 **§2.3.6**이 정본.
 
 > **🔍 대안 검토 — 디바이스 인증 방식** (ADR-01)
 >
@@ -481,13 +481,13 @@ sequenceDiagram
     WH->>WH: 서명·IP allowlist·timestamp 검증 · eventId 멱등 dedup
     WH-->>AXS: 2xx ACK (즉시)
     WH->>Q: 적재 (재시도·백오프·DLQ)
-    par 클라우드 대상 (CleverLab=갈래B 보류 · CleverSpace=TBD)
+    par 클라우드 대상 = CleverLab만 (갈래B 보류)
         Q->>CL: HTTP push (내부망)
     and Edge 대상 (갈래A 역방향, b1)
         Q->>EZ: MQTT QoS1 (EZ outbound 구독)
     end
     Note over WH,EZ: 미지원 provider → 404 · 검증 실패 → 401 · 목적지=매핑(§7.3)
-    Note over Q,CL: 현 v1.0 구체 대상=EzServer(b1). 클라우드 분배 대상은 보류/TBD(아래 표·§7.6.5)
+    Note over Q,CL: 현 v1.0 구체 대상=EzServer(b1). 클라우드 수신=CleverLab만(갈래B 보류) · CleverSpace는 대상 아님(아래 표·§7.6.5)
 ```
 
 #### 분배 대상별 시나리오 (어느 서버가 어떤 Webhook을 받나)
@@ -498,9 +498,9 @@ Webhook은 **외부 서비스(현재 AXS)가 보낸 이벤트**를 GW가 받아,
 | --- | --- | --- | --- |
 | **EzServer (Edge)** | 클리닉의 AXS 연동(**갈래 A**) **역방향** — 그 클리닉의 환자·파일·오더 상태 등 AXS가 통지하는 결과를 방화벽 뒤 EzServer로 | **MQTT QoS1**(EZ outbound 구독) | **역방향 capability는 b1(v1.0)에 포함**(WH-06·ARD v0.9·§7.6.6). 단 갈래 A의 *데이터* 1차 범위는 EZ→AXS 단방향이며, **TBD — 역방향으로 보낼 대상 이벤트 목록·활성화 세부는 ④ Sub-SRS에서 확정**(Roadmap §3.7.1) |
 | **CleverLab (클라우드)** | 기공소 주문 연동(**갈래 B**) — Straumann Scan SW→AXS로 들어온 **기공 오더 전송·확정 결과**를 CleverLab로 | **HTTP push**(내부망) | **갈래 B — 현 시점 범위 외(보류, §1.2).** **TBD — 갈래 B 활성화 여부·시점 확정 필요**(PM/제품). 활성화 시 받을 이벤트(오더·확정 결과)는 ④ |
-| **CleverSpace (클라우드)** | 현 AXS 범위에서 CleverSpace로 가는 구체 이벤트가 **확인되지 않음** | (HTTP push 가정) | **TBD — 현 AXS 범위에 CleverSpace 수신 이벤트가 실제 있는지 조사(제품/CleverSpace 팀 확인). 없으면 분배 대상에서 제외, 있으면 이벤트 종류·트리거를 기재.** |
+| **CleverSpace (클라우드)** | **해당 없음 — CleverSpace는 Webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드일 뿐, AXS 이벤트 수신처 아님) | — | **N/A (확정).** 클라우드 webhook 수신은 CleverLab만(갈래 B). 결정 2026-06-23 |
 
-> 정리: **현 v1.0의 _구체적_ 분배 대상은 EzServer(갈래 A 역방향)** 가 핵심이고, 클라우드 대상은 **CleverLab=갈래 B(보류)**·**CleverSpace=미확정(TBD)** 이다. 즉 "클라우드 HTTP push"는 *메커니즘*이며, 그 메커니즘으로 받을 **구체 클라우드 대상은 갈래 B 활성화·provider 추가 시 확정**된다. AXS 이벤트 종류(patient/file/lab-order)·대상 매핑 상세는 **④ Sub-SRS**. (미결은 Appendix B 추적)
+> 정리: **현 v1.0의 _구체적_ 분배 대상은 EzServer(갈래 A 역방향)** 가 핵심이고, **클라우드 수신 대상은 CleverLab만(갈래 B·보류)** 이다. **CleverSpace는 webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드). 즉 "클라우드 HTTP push"는 *메커니즘*이고 그 수신처는 **CleverLab**이며, 활성화는 갈래 B 결정에 달려 있다. AXS 이벤트 종류(patient/file/lab-order)·대상 매핑 상세는 **④ Sub-SRS**. (갈래 B 활성화 등 미결은 Appendix B 추적)
 
 ### 2.3.7 버전 호환 게이팅 — FR-COMPAT-\*
 
@@ -734,7 +734,7 @@ Webhook은 두 면(§4.1.1) 어느 쪽에도 깔끔히 떨어지지 않는 **하
    - 응답: 즉시 `2xx` ACK 스키마(§7.6.3, 예 `{ "received": true, "eventId": "..." }`). 에러 `400`(형식)·`401`(서명·IP·timestamp)·`404`(provider).
 2. **이벤트 payload 스키마 = 정의하지 않고 참조한다 (C버킷).** AXS 등 외부 소유. 정본은 **④ Sub-SRS + AXS OpenAPI 스냅샷**(`references/axs-openapi/`). GW는 검증(HMAC·멱등)에 필요한 **최상위 식별 필드(eventType·eventId·org 식별자 등)만 알면** 되고, 그 외는 분배 시 통과시킨다.
 3. **분배 경로 = REST API로 노출하지 않는다 (내부).**
-   - 클라우드 대상(CleverSpace/CleverLab): **받는 쪽 백엔드의 OpenAPI**가 정본(B버킷 성격, 내부망 HTTP push). GW는 그 API를 호출할 뿐 정의하지 않는다.
+   - 클라우드 대상(**CleverLab** — 갈래 B 수신처; CleverSpace는 webhook 대상 아님): **받는 쪽 백엔드의 OpenAPI**가 정본(B버킷 성격, 내부망 HTTP push). GW는 그 API를 호출할 뿐 정의하지 않는다.
    - Edge(EzServer): **MQTT QoS1**(§7.6.6) — REST가 아니므로 OpenAPI 대상이 아니다. 토픽 네이밍·payload·QoS·retain 규약은 별도(AsyncAPI 또는 §7.6 표)로 기술한다.
 4. **목적지 결정 = 매핑이다, 송신 host가 아니다.** payload의 식별자(예 AXS Org-ID)를 ClinicID로 매핑(§7.3)해 대상 클리닉/백엔드를 정한다. 매핑 규칙 상세는 ④ Sub-SRS.
 
@@ -1252,9 +1252,9 @@ FR-WH-03 (`eventId` dedup — 중복 수신 1회만 반영).
 
 ### 7.6.5 클라우드 분배 — HTTP push (P1)
 
-FR-WH-05 (클라우드 대상에 내부망 HTTP push, 순서 보존). **구체 대상별 시나리오는 §2.3.6**: **CleverLab = 갈래 B(현 시점 보류, §1.2)**; **CleverSpace = 미확정**.
+FR-WH-05 (클라우드 대상에 내부망 HTTP push, 순서 보존). **클라우드 수신 대상은 CleverLab만**(갈래 B·현 시점 보류, §1.2). **CleverSpace는 webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드 — 대상 아님으로 확정, §2.3.6). 대상별 시나리오는 §2.3.6.
 
-- **TBD — 클라우드 분배의 구체 대상 확정**: (a) CleverSpace로 가는 AXS 이벤트가 실제 있는지 조사(제품/CleverSpace 팀 확인) → 없으면 대상에서 제외, (b) CleverLab 갈래 B 활성화 여부·시점 확정(PM/제품). 본 절은 *HTTP push 메커니즘*만 정의하고, 대상 목록은 위 확정 후 채운다(Appendix B 추적).
+- **TBD — CleverLab 갈래 B 활성화 여부·시점**(PM/제품). 본 절은 *HTTP push 메커니즘*만 정의하고, 활성화 시 받을 이벤트(오더·확정 결과)는 ④에서 확정한다(Appendix B #16). (CleverSpace는 대상 아님 — 조사 불요.)
 
 ### 7.6.6 Edge 분배 — EzServer MQTT 역방향 (P1)
 
@@ -1403,7 +1403,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 13 | ADR-11(라우팅 모델: target-routed proxy) — **ARD 기재 완료(v0.10)**; 남은 것은 **CCB 승인** + **클라이언트 `Vatech-Target` 부착 적응**(③-P-*) | §4.1.1·§4.1.2·§4.1.4·§7.5·Appendix A·ARD §2 | PM(CCB 승인) · 제품팀(헤더 부착) | baseline 전 | §4.1·§7.5·OpenAPI·③-P-CS/CO/EZ(헤더 부착)·① |
 | 14 | 로그 포맷(필드·상관키·레벨) 검토 확정 | §6.3.2 | 인프라(취합·분석) + GW(생성) | 설계 단계 | §6.2·§6.3.2·③-I |
 | 15 | 전역데이터 복제 토폴로지 세부(원본 primary 위치·단일 vs multi-primary·충돌 처리) — "PostgreSQL 원본+리전 복제 / Redis 리전 캐시" 모델·"전역 일관/리전 로컬" 구분 원칙은 고정, 복제 세부만 미정 | §2.1.1·§6.4 | PM/아키텍트 + 인프라 | gw/1.2 설계 | §7.3·§6.4·§6.3.1 |
-| 16 | Webhook 클라우드 분배 대상 확정 — (a) CleverSpace로 가는 AXS 이벤트 실재 여부 조사(없으면 제외), (b) CleverLab 갈래 B 활성화 여부·시점. EzServer(갈래 A)는 역방향 활성화·이벤트 목록 확정 | §2.3.6·§7.6.5·§7.6.6 | PM/제품 + GW(④) | ④ 상세설계 | §7.6·④·§2.1·§2.2 |
+| 16 | Webhook 클라우드 분배 — **CleverLab 갈래 B 활성화 여부·시점**(CleverSpace는 대상 아님으로 **확정**). EzServer(갈래 A) 역방향 대상 이벤트 목록 확정 | §2.3.6·§7.6.5·§7.6.6 | PM/제품 + GW(④) | ④ 상세설계 | §7.6·④·§2.1·§2.2 |
 
 ## 8 Change Management Process
 
@@ -1469,3 +1469,4 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-23 | ARD 동기화 — ARD(v0.10)에 **ADR-11(target-routed proxy)** + **Router/PEP 컴포넌트** 등록(SRS §2.2·§4.1과 일치). SRS Appendix A 주석·Appendix B #13을 "ARD 기재 완료·CCB 확인 대기"로 갱신 | (작성자 ID 미지정) |
 | 2026-06-23 | §2 정합 점검 polish — §2.2 규칙에 CleverOne(EZ 경유) 예외 명시, §2.3.6 시퀀스 클라우드 par 분기에 "CleverLab 보류·CleverSpace TBD" 라벨/노트, §2.3.6 표 EzServer 역방향을 "capability=b1(WH-06)·이벤트 목록만 ④ TBD"로 정리(§7.6.6·ARD v0.9와 정합) | (작성자 ID 미지정) |
 | 2026-06-23 | **리전 구축 단계화 결정** — §2.7.1 신설(1차 단일 리전/2차 멀티 리전, v1.0부터 멀티리전-ready 설계 요건 표). §4.5.1 DNS를 apex-우선(클라이언트는 apex만, 리전 호스트 예약)으로 사전 설계, §7.3.5·§6.3.1·§2.1.1에 단계화 반영. Appendix A 결정 로그 + B#7 종결(흡수 TBD → 단일 우선 결정) | (작성자 ID 미지정) |
+| 2026-06-23 | CleverSpace webhook 혼동 정리 — **클라우드 webhook 수신=CleverLab만(갈래B 보류), CleverSpace는 webhook 대상 아님으로 확정**(TBD 해소). §2.1·§2.2·§2.3.6(표/시퀀스/정리)·§4.1.3·§7.6.5·Appendix B#16에서 "CleverSpace/CleverLab" 묶음·CleverSpace TBD 제거. Roadmap §2.7.1 다이어그램(CS 엣지 제거)·§2.7.3 표도 CleverLab 단일로 정합 | (작성자 ID 미지정) |
