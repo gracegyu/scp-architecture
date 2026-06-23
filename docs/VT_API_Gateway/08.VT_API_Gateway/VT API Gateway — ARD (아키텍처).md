@@ -18,6 +18,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.3 | 2026-06-08 | Scott | 핵심 시퀀스 3종(온보딩·리전 해석·업로드 세션) 추가 | Draft |
 | v0.8 | 2026-06-15 | Scott | ESMN Roadmap 흡수 — ADR-07~10(API 버전 호환성·OneID 인증면·Webhook Receiver·라우팅 키 통합), 컴포넌트 4종·시퀀스 2종 추가 | Draft |
 | v0.9 | 2026-06-15 | Scott | Webhook Edge MQTT 역방향(WH-06)을 b1(v1.0)로 당김 — AXS pilot 일정 반영(ESIP-23) | Draft |
+| v0.10 | 2026-06-23 | (SRS 동기화) | **ADR-11(라우팅 모델: target-routed proxy)** 추가 + **Router / PEP** 컴포넌트 등록 — SRS §4.1.1·§4.1.2·§2.2와 동기화(모든 upstream 동일 proxy 경로, 차이는 trust profile). CCB 확인 대기 | Draft |
 
 ## 1. 아키텍처 개요
 
@@ -37,6 +38,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | ADR-08 | 인증 2면 공존 — 디바이스 머신 인증(OAuth2 cc·enrollment) + OneID(OIDC, 사람·클리닉·사내 호출자) | 무인 디바이스와 사람/서비스 신원은 성질이 달라 단일 인증면으로 묶지 않음 / OneID 단독(무인 디바이스 부적합)·디바이스 단독(사내 서비스 미수용) 반려 | 채택 |
 | ADR-09 | Webhook Receiver — 외부 이벤트 단일 수신·분배(클라우드 HTTP push / Edge(EzServer) MQTT QoS1) | 방화벽 뒤 Edge inbound 불가 + 외부 서명·IP·멱등 검증 분산 방지 / 서비스별 개별 수신(반려) · ESMN Roadmap §2.7 흡수 | 채택 |
 | ADR-10 | 라우팅 키 통합 — device↔clinic↔region (resolver가 device_id·clinic_id 모두 수용) | 디바이스 단위(08)·클리닉 단위(서비스 연동) 라우팅 이원화 제거. 디바이스는 클리닉에 소속되어 동일 리전으로 귀결 | 채택 |
+| ADR-11 | 라우팅 모델 = target-routed proxy — `Vatech-Target` 유무로 GW 고유 API(없음) vs upstream proxy(있음·논리 ID enum) 구분, proxy는 verbatim 전달(host만 교체). 신규 upstream = 레지스트리 1행(코드·경로 변경 0) | 경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream(SSRF) 반려. upstream 무한 확장을 설정 기반으로(NFR-SCL), 내부(B)·외부(C)를 단일 규칙으로 — 차이는 trust profile(C=OAuth·고정 egress IP)뿐 (SRS §4.1.1·§4.1.2) | 채택(2026-06-23) · CCB 확인 대기 |
 
 ## 3. 논리 / 배포 구성
 
@@ -65,6 +67,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | Enrollment Service | Control | 부트스트랩 신뢰·nonce·fingerprint·이상탐지·자격 발급 | 핵심(하드웨어 attestation은 v1.1) |
 | Auth Service | Control | OAuth2 cc·JWT 발급/검증·token store·secret 회전 | 핵심(DPoP/HW키 v1.1) |
 | Region Resolver | Control | device→region 매핑·mapping_version·강한 일관성 경로 | 핵심(단일 리전) |
+| Router / PEP (target-routed proxy) | Control | `Vatech-Target` 기반 upstream 라우팅(B 내부·C 외부 동일 경로)·정책 체인(인증·버전·egress allowlist)·verbatim bypass. 외부(C)는 Connector Framework로 OAuth·egress 적용 | 핵심(ADR-11) |
 | Upload Session Service | Control/Data | start→chunk→commit·idempotency·무결성 | 핵심 |
 | Presign Broker | Data | 리전 storage presigned 발급 | 핵심(S3; 멀티클라우드 v1.2) |
 | Region Signer Agent | Data | 리전 내 서명·자격 보관(주권) | 핵심(온프렘 reverse 후속) |
