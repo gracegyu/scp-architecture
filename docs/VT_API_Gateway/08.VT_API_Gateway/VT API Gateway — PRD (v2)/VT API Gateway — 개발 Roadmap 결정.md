@@ -232,7 +232,7 @@ flowchart LR
 - CleverSpace를 **여러 Region에 구축**하고, GW가 요청의 **ClinicID를 보고 알맞은 Region으로 분배**한다.
 - GW는 **ClinicID ↔ Region 매핑 테이블**을 보유한다. 매핑·등록 데이터는 **이식성 있는 저장소(PostgreSQL 등) + GW 메모리 캐시**로 둔다(DynamoDB는 AWS 전용이라 비-AWS 환경 불가).
 - **글로벌 라우팅은 AWS Route 53로 확정.** latency-based / geolocation routing으로 EzServer를 **가장 가까운 GW Region**에 연결한다. GW는 우선 **서울·미주 2개 거점**에 **쿠버네티스로 HA** 구축한다.
-- CleverOne은 **최초 설치·접속 시 사용할 Region을 선택하는 UI**가 필요하다(현재 미구현 → 4단계 개발).
+- 클리닉 최초 설치 시 **사용할 Region을 선택해 GW에 등록**한다(미구현 → 4단계). **등록 주체는 EzServer Console(잠정)·CleverOne 각 PC(대안) — TBD**(§4 노트·SRS §2.3.1). 클리닉=CleverOne 다수+EzServer 1개라 클리닉당 1회 등록(EzServer)이 자연스럽다.
 
 ### 2.5 클라이언트 식별 표준 (확정)
 
@@ -691,14 +691,16 @@ flowchart LR
 | 제품 | 1단계(호환성) | 2단계(presigned) | 3단계(GW 일원화) | 4단계(멀티리전) | 5단계(Straumann) | 후속 | 스펙 산출물(단위·유형) |
 |------|------|------|------|------|------|------|------|
 | **CleverSpace** | 서버 버전 체크·well-known 공시·오류코드 정리 | **presigned 발급 신규 개발** | GW 경유 수신 정합 | 멀티 Region 구축 | — | — | ① One Pager · ② One Pager · ③-P-CS Sub-SRS(멀티Region 크면)/One Pager |
-| **CleverOne** | Vatech-* 헤더·well-known 인지·fallback | 업로드 흐름 연계 | Direct→GW 경유 전환 | **Region 선택 UI**·ClinicID | — | — | ① One Pager · ② One Pager · ③-P-CO One Pager |
-| **EzServer(EZ)** | 헤더 대리 전달 | 전송 로직 변경(presigned 직접) | GW 경유 전환 | ClinicID 포함·Region 인지 | AXS 연동 FE/BE(갈래 A)·presigned 직접 업로드 | **Rust 전면 재개발** | ① One Pager · ② One Pager · ③-P-EZ One Pager · ④ Sub-SRS(갈래 A) · (Rust=후속 별도) |
+| **CleverOne** | Vatech-* 헤더·well-known 인지·fallback | 업로드 흐름 연계 | Direct→GW 경유 전환 | Region 선택 UI(**대안 주체**)·ClinicID | — | — | ① One Pager · ② One Pager · ③-P-CO One Pager |
+| **EzServer(EZ)** | 헤더 대리 전달 | 전송 로직 변경(presigned 직접) | GW 경유 전환 | ClinicID 포함·Region 인지 · **GW 클리닉 등록(Console: region 선택·Clinic-ID) — 잠정 주체** | AXS 연동 FE/BE(갈래 A)·presigned 직접 업로드 | **Rust 전면 재개발** | ① One Pager · ② One Pager · ③-P-EZ One Pager · ④ Sub-SRS(갈래 A) · (Rust=후속 별도) |
 | **CleverLab** | — | — | — | — | **AXS 오더·상태·확정 연동(갈래 B)**·presigned | — | ④ Sub-SRS(갈래 B) |
 | **VatechAPIGateway** | — | — | 본체·라우팅·인증 연계·호환 집행·presigned 발급 중계·경로 B 흡수 | Region 분배·HA(K8s)·Route 53·저장소(Postgres) | AXS OAuth 중계·Org-ID 매핑·온보딩·인바운드 중계·고정 egress IP | — | ③ SRS (계약 SSOT) · ④는 그 위 connector |
 | **GW Console** | — | — | — | Admin Web Console (**③-C Sub-SRS**) | 온보딩·Org-ID 관리 화면 | — | ③-C Sub-SRS |
 | **OneID** | (경로 B 인증 유지) | — | GW 연계 토큰 검증 | (멀티 Region 인증 고려) | — | — | ③-P-OID 티켓/경량 One Pager |
 | **인프라** | 단일 Region | — | 단일 Region GW | Route 53·K8s·비-AWS minio | AXS whitelist용 고정 IP·샌드박스 | — | ③-I IaC 구축 계획서 |
 | **외부(Straumann AXS)** | — | — | — | — | API 스펙·OAuth·샌드박스·자격증명 제공(선결) | — | ④ Sub-SRS 입력(외부 제공물) |
+
+> **클리닉 GW 등록 주체(TBD)**: 클리닉 = **CleverOne 다수 + EzServer 1개**. 따라서 클리닉당 1회의 GW 등록(region 선택·Clinic-ID, 이후 외부 연동 시 Org-ID)은 **EzServer의 Console에서 하는 것을 잠정안**으로 한다(클리닉당 단일). **각 CleverOne(PC)에서 하는 대안도 가능 — 주체 확정은 ③-P-EZ(잠정)/③-P-CO(대안)** 에서. region 선택 UI도 이 주체에 따른다. 매핑은 온보딩 자가 등록이며 Admin은 교정만(SRS §2.3.1·§7.3·Appendix B #17).
 
 ---
 

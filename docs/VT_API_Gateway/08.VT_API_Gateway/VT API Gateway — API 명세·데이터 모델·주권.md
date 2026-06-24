@@ -27,6 +27,10 @@
 | POST | /v1/enroll/start | enrollment 시작 → nonce challenge | ENR-01/03 |
 | POST | /v1/enroll/complete | 서명+fingerprint 검증 → 자격 발급(allowlist 등록) | ENR-01/04 |
 | GET | /v1/region/resolve | device→region 해석(mapping_version) | RGN-01/02 |
+| POST | /v1/clinics | 클리닉 등록 — region 자가 선택(OneID 운영자 인증) | RGN-* |
+| POST | /v1/clinics/{clinicId}/org-bindings | 외부 provider Org-ID 등록(연동 연결 시·provider별) | INT-* |
+| GET | /v1/regions | GW 운영 리전 목록 조회(클라이언트 region 선택지) | RGN-* |
+| PUT | /v1/clinics/{clinicId}/region | 클리닉 접속 리전 **운영 중 변경**(재동의·감사) | RGN-04 |
 | GET/POST | /v1/devices, /v1/devices/{id} | 디바이스 레지스트리·lifecycle | DEV-01/03 |
 | POST | /admin/v1/devices/{id}/kill | kill-switch | FLEET-02 |
 | GET | /admin/v1/... | 관리자·감사 조회(경량) | ADM/AUD |
@@ -56,8 +60,13 @@
 | AuditLog | ts, actor, action, result | append-only |
 | FleetState | device_id, last_heartbeat, success_rate | 관측 |
 | CompatMatrix | api/feature, min_client_version, error_code, fallback | 호환성 단일 소스 |
-| WebhookEvent | event_id, provider, payload_ref, state(received/dispatched), target | 멱등·분배 |
+| WebhookEvent | event_id, provider, external_org_id, clinic_id, region, payload_ref, state, target | 멱등·분배 상태·해석된 대상(GW payload 비해석) |
 | ClinicRegionMapping | clinic_id, region, mapping_version | 라우팅 키 통합(device↔clinic) |
+| **RegionCatalog** | region_id, display_name, endpoint, status(active/draining/planned), is_default | **GW 운영 리전 목록**(region list API SSOT, §7.3.6) |
+| **OrgMapping** | provider, external_org_id, clinic_id, mapping_version | **webhook 라우팅 키** — (provider·Org-ID)→clinic→region |
+| **WebhookProvider** | provider, inbound_route, sig_scheme, secret_ref, source_ip_allowlist, org_id_path | **유연 수신 config** — 발신자 검증·라우팅 키 추출(GW 비해석) |
+| **UpstreamRegistry** | target_id, host, profile(internal/external), egress_allowlist | **Vatech-Target proxy 라우팅**(ADR-11) |
+| **DeliveryChannel** | clinic_id, channel_type(mqtt_edge/http_cloud), endpoint | webhook 분배 채널(Edge MQTT/Cloud HTTP) |
 
 ## 3. 데이터 주권 매핑
 

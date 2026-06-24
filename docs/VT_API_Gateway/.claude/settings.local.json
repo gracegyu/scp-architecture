@@ -5,7 +5,13 @@
       "Bash(fuser SRS.md)",
       "Bash(/bin/ls -lO SRS.md)",
       "Bash(/usr/bin/stat -f \"flags=%Sf perm=%Sp owner=%Su\" SRS.md)",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "Bash(command -v yq)",
+      "Bash(yq --version)",
+      "Bash(command -v swagger-cli)",
+      "Bash(python3 -c \"import ruamel.yaml; print\\('ruamel ok'\\)\")",
+      "Bash(python3 -m pip install --user pyyaml -q)",
+      "Bash($VENV/bin/python *)"
     ]
   }
 }

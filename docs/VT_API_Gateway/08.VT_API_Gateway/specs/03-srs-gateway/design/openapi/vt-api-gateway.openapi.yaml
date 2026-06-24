@@ -27,6 +27,10 @@ tags:
   description: 디바이스 레지스트리·lifecycle (SRS §7.2)
 - name: region
   description: 리전 해석 (SRS §7.3)
+- name: clinics
+  description: 클리닉/클라이언트 온보딩·리전 등록 (SRS §2.3.1·§7.3)
+- name: regions
+  description: GW 운영 리전 카탈로그·조회 (SRS §7.3.6)
 - name: webhooks
   description: 외부 이벤트 수신·분배 (SRS §7.6)
 - name: compatibility
@@ -199,6 +203,86 @@ paths:
               schema:
                 $ref: '#/components/schemas/RegionResolveResponse'
 
+  # --- 클리닉/클라이언트 온보딩·등록 (§2.3.1) — 매핑 자가 생성, Admin은 교정만 ---
+  /v1/clinics:
+    post:
+      tags: [ clinics ]
+      summary: 클리닉 등록 — region 자가 선택 (OneID 운영자 인증) (FR-RGN-*)
+      description: >-
+        클리닉 최초 설치 시 운영자가 OneID로 인증 후 Clinic-ID + 선택 region 등록. GW가 검증해 clinic_region_mapping·delivery_channel 생성. 수기 일괄설정 아님 — 교정은 §7.3.4(FR-RGN-04).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClinicRegistration'
+      responses:
+        '201':
+          description: 등록됨 (이 클리닉 = 해당 region)
+
+  /v1/clinics/{clinicId}/org-bindings:
+    parameters:
+    - name: clinicId
+      in: path
+      required: true
+      schema:
+        type: string
+    post:
+      tags: [ clinics ]
+      summary: 외부 provider Org-ID 등록 (외부 연동 연결 시, provider별) (FR-INT-*)
+      description: >-
+        클리닉이 외부 연동(예 AXS)을 켤 때 그 provider의 Org-ID 등록 → org_mapping((provider, Org-ID)→clinic). webhook 분배 키. Org-ID는 provider 온보딩에서 발급(§2.3.5·④).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrgBinding'
+      responses:
+        '201':
+          description: 등록됨
+
+  # --- GW 리전 카탈로그·조회 + 운영 중 리전 변경 (§7.3.6·§7.3.4) ---
+  /v1/regions:
+    get:
+      tags: [ regions ]
+      summary: GW 운영 리전 목록 조회 — 클라이언트 region 선택지 (§7.3.6)
+      description: EzServer Console 등이 온보딩·운영 중 region 선택을 위해 조회. v1.0=1개, gw/1.2=N개.
+      responses:
+        '200':
+          description: 운영 리전 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Region'
+
+  /v1/clinics/{clinicId}/region:
+    parameters:
+    - name: clinicId
+      in: path
+      required: true
+      schema:
+        type: string
+    put:
+      tags: [ clinics ]
+      summary: 클리닉 접속 리전 변경 (운영 중 자가 변경, FR-RGN-04)
+      description: >-
+        EzServer Console 등에서 운영 중 접속 GW 리전을 변경. mapping_version++ · 재동의(FR-COMP-02) · 감사 강제. 기존 PHI는 옛 리전 잔류(자동 이관 없음), 전환은 신규부터(§7.3.4).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ region ]
+              properties:
+                region: { type: string }
+      responses:
+        '200':
+          description: 변경됨(재동의·감사 동반)
+
   # --- 파일 업로드: GW 고유 API 없음 ---
   # presigned 발급 주체 = CleverSpace(경로②)·AXS(경로③). GW는 발급 요청을 Vatech-Target proxy로 중계(bypass)만 하며 서명·세션·storage를 갖지 않는다(§4.1.4·§7.4 · ADR-03/04 철회).
 
@@ -284,6 +368,85 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/AuditLog'
+
+  # --- 라우팅·분배 지식 관리 (Console ③-C 호출) — DB가 보관하는 "어디로 분배" 정보 ---
+  /admin/v1/org-mappings:
+    get:
+      tags: [ admin ]
+      summary: Org-ID↔ClinicID 매핑 조회 (webhook 라우팅 키)
+      responses:
+        '200':
+          description: 매핑 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrgMapping'
+    post:
+      tags: [ admin ]
+      summary: Org-ID↔ClinicID 매핑 **교정(override)** — 1차 입력은 클라이언트 온보딩(자가 등록), 본 API는 오설정 수정용 (FR-RGN-04)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrgMapping'
+      responses:
+        '201':
+          description: 등록됨
+
+  /admin/v1/webhook-providers:
+    get:
+      tags: [ admin ]
+      summary: Webhook provider 레지스트리 조회(유연 수신 config) (FR-WH-01/02)
+      responses:
+        '200':
+          description: provider 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WebhookProvider'
+    post:
+      tags: [ admin ]
+      summary: Webhook provider 등록/갱신 — 경로·검증·라우팅 키 config (GW는 payload 비해석)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookProvider'
+      responses:
+        '201':
+          description: 등록됨
+
+  /admin/v1/upstreams:
+    get:
+      tags: [ admin ]
+      summary: Vatech-Target → upstream 레지스트리 조회 (target-routed proxy, ADR-11)
+      responses:
+        '200':
+          description: upstream 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UpstreamRegistry'
+    post:
+      tags: [ admin ]
+      summary: upstream(target_id→host·profile) 등록/갱신 — 신규 연동 = 1행
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpstreamRegistry'
+      responses:
+        '201':
+          description: 등록됨
 
 components:
   parameters:
@@ -442,3 +605,68 @@ components:
           type: string
         result:
           type: string
+
+    # 라우팅·분배 레지스트리 (DB가 보관하는 "어디로 분배" 지식)
+    OrgMapping:
+      type: object
+      required: [ provider, externalOrgId, clinicId ]
+      properties:
+        provider: { type: string, description: '예 axs' }
+        externalOrgId: { type: string, description: 'provider 식별자(예 AXS Organization-ID)' }
+        clinicId: { type: string }
+        mappingVersion: { type: integer }
+      description: 'webhook 라우팅 키 — (provider, externalOrgId) → clinicId → region'
+    WebhookProvider:
+      type: object
+      required: [ provider ]
+      properties:
+        provider: { type: string }
+        inboundRoute: { type: string, description: '등록 수신 경로(유연·예시, 확정 계약 아님)' }
+        sigScheme: { type: string }
+        secretRef: { type: string, description: 'KMS 참조' }
+        sourceIpAllowlist: { type: array, items: { type: string } }
+        orgIdPath: { type: string, description: 'payload에서 externalOrgId 추출 경로' }
+        enabled: { type: boolean }
+      description: '유연 수신 config — GW는 발신자 검증·라우팅 키 추출만, payload 비해석(§4.1.3)'
+    UpstreamRegistry:
+      type: object
+      required: [ targetId, host, profile ]
+      properties:
+        targetId: { type: string, description: 'Vatech-Target 논리 ID(예 cleverspace, axs)' }
+        host: { type: string, description: '내부 매핑 host(클라이언트 비노출)' }
+        profile: { type: string, enum: [ internal, external ] }
+        egressAllowlist: { type: array, items: { type: string } }
+        enabled: { type: boolean }
+      description: 'target-routed proxy 라우팅(ADR-11). 신규 upstream = 1행'
+    DeliveryChannel:
+      type: object
+      required: [ clinicId, channelType ]
+      properties:
+        clinicId: { type: string }
+        channelType: { type: string, enum: [ mqtt_edge, http_cloud ] }
+        endpoint: { type: string }
+      description: 'webhook 분배 채널(Edge MQTT / Cloud HTTP, §7.6.5/6)'
+    ClinicRegistration:
+      type: object
+      required: [ clinicId, region ]
+      properties:
+        clinicId: { type: string }
+        region: { type: string, description: '클라이언트가 선택한 region(GW가 검증)' }
+      description: '클리닉 온보딩 등록 — 운영자 OneID 인증 후. clinic_region_mapping 생성'
+    OrgBinding:
+      type: object
+      required: [ provider, externalOrgId ]
+      properties:
+        provider: { type: string, description: '예 axs' }
+        externalOrgId: { type: string, description: 'provider Org-ID(예 AXS Organization-ID)' }
+      description: '외부 연동 연결 시 provider별 Org-ID 등록 → org_mapping(webhook 라우팅 키)'
+    Region:
+      type: object
+      required: [ regionId, status ]
+      properties:
+        regionId: { type: string, description: '예 apne2(서울), use1(미주)' }
+        displayName: { type: string }
+        endpoint: { type: string }
+        status: { type: string, enum: [ active, draining, planned ] }
+        isDefault: { type: boolean }
+      description: 'GW 운영 리전(GET /v1/regions). region_catalog 테이블 매핑'
