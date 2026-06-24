@@ -42,9 +42,9 @@ VT-Straumann **공진화 전략**(Straumann AXS 연동)의 실행 기반을 확
 | --- | --- |
 | Backend | NestJS + DDD + TDD |
 | Frontend (관리 UI) | React + Vite + FSD + shadcn/ui |
-| 데이터 | PostgreSQL · Redis(캐시) · RabbitMQ(큐) · S3/MinIO(스토리지) |
-| 플랫폼 | OPA(정책) · KMS/Vault(시크릿) · OpenTelemetry+Pino(관측·로깅) · Feature Flag(Unleash) |
-| 인프라 | IaC(Terraform/CDK) · CI(Azure Pipelines) · API 문서(Swagger) |
+| 데이터 | PostgreSQL(RDS/Aurora) · Redis(ElastiCache, 캐시) · **SQS(A·내부 큐)** / MQTT·IoT Core(B·엣지 전달) · S3/MinIO(스토리지) |
+| 플랫폼 | OPA(정책) · KMS/Secrets Manager(시크릿, Vault 검토) · OpenTelemetry(ADOT)+Pino(관측·로깅) · Feature Flag(Unleash) |
+| 인프라 | **AWS EKS(K8s)·ECR·IRSA** · IaC(Terraform/CDK) · CI(Azure Pipelines) · API 문서(Swagger) |
 
 상세·근거: [ARD §4.5 기술 스택](<VT API Gateway — ARD (아키텍처).md>)
 
@@ -74,3 +74,4 @@ VT-Straumann **공진화 전략**(Straumann AXS 연동)의 실행 기반을 확
 | --- | --- | --- | --- |
 | v0.2 | 2026-06-08 | Scott | 기술 스택 반영 + 가독성 재정리 |
 | v0.3 | 2026-06-15 | Scott | ESMN Roadmap 흡수 반영 — API 호환성·OneID·Webhook 범위 추가 |
+| v0.4 | 2026-06-24 | Raymond | §5 기술 스택을 EKS 정합으로 갱신 — 데이터: 큐 `RabbitMQ`→**SQS(A·내부)**·MQTT는 IoT Core(B·엣지)로 분리, PostgreSQL→RDS/Aurora·Redis→ElastiCache 명시; 플랫폼: Secrets Manager·ADOT; 인프라: EKS·ECR·IRSA 추가 (SRS §3.1.2와 정합) |
