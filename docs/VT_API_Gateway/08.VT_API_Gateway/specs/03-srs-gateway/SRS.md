@@ -249,8 +249,8 @@ flowchart TB
 
 - **egress IP whitelist = 고정 EIP 집합(멀티 IP).** 외부 서비스(예: AXS)가 IP whitelist를 요구하면, 화이트리스트 대상은 GW가 _외부를 호출_ 할 때의 egress IP다. pod별 임시 IP가 아니라 **AZ/리전별 NAT의 고정 EIP**여야 하고, 멀티 리전이면 **전 리전 집합의 합집합(A ∪ B …)** 이며 유한·열거 가능해야 한다(FR-INT-03·§7.5.3·§2.6).
 - **리스크/제약**: 오토스케일·새 AZ·**리전 증설은 egress IP를 늘리므로**, egress를 **고정 EIP 풀로 핀(pin)** 하고 외부(예: Straumann)와 **whitelist를 협의·갱신(리드타임)** 해야 한다. EIP 풀 provisioning·고정은 인프라(③-I) 책임(§2.6·§7.3.5).
-- **Webhook 수신은 단일 호스트, region 분배는 우리 몫.** 외부 서비스(AXS 등)는 **region을 모르고**, **provider마다 호스트를 따로 둘 필요도 없다** — **단일 공개 호스트 하나**로 모든 provider를 받되, **경로/형식은 provider별 등록(레지스트리)으로 유연**하다(기본 관례 `…/webhooks/<provider>`는 예시·확정 아님 — GW는 발신자 검증·라우팅만, payload 비해석; §4.1.3·§7.6.1). 수신 ingress(Webhook Receiver, §2.2)는 **전역 매핑(DB/캐시)에 연결**되어 webhook 내용(Org-ID 등)으로 **대상 클리닉의 리전을 판정**하고(§7.3 매핑·전역 일관), **대상 리전(A·B …)으로 재분배**한다(수신 리전 ≠ 대상 리전이면 **교차 리전 전달**). 즉 **region 결정은 외부도 GeoDNS도 아니라 수신 ingress의 매핑 조회**다. `eventId` 멱등 dedup은 인스턴스 공유 저장소(Redis)로 전역 보장(ADR-02·§7.6.4). 인바운드 검증(외부 source IP allowlist·HMAC·timestamp, §7.6.2)은 egress whitelist와 **방향이 반대**다. 수신→분배 흐름 상세는 **§2.3.6·§7.6**.
-  - **GeoDNS는 inbound webhook의 대상 리전을 정하지 않는다** — GeoDNS는 _호출자 위치_ 기준이라 외부의 고정 위치에선 늘 한 리전으로 귀결될 뿐이고, _처리 리전은 클리닉 소속(매핑)_ 이 정한다. 단일 호스트가 어느 리전 GW로 해석되든, 그 **수신 GW가 매핑 조회 후 대상 리전으로 재분배**한다.
+- **Webhook 수신 = provider별 전용 호스트(식별), region 분배는 우리 몫.** 외부 서비스(AXS 등)는 **region을 모른다**. **provider별 전용 수신 호스트**(`{provider}.webhook.gw.vatech.com`)를 발급해 **Host(SNI)로 발신자를 식별**한다(우리가 통제하는 식별 — 상대 source IP에 의존하지 않음). **경로/형식은 provider 규약을 수용해 유연**하다(GW는 발신자 검증·라우팅만, payload 비해석; §4.1.3·§7.6.1·§4.5.1). **단 Host는 식별이지 인증이 아니며**, 신뢰는 HMAC+timestamp로 보장한다(§7.6.2). 수신 ingress(Webhook Receiver, §2.2)는 **전역 매핑(DB/캐시)에 연결**되어 webhook 내용(Org-ID 등)으로 **대상 클리닉의 리전을 판정**하고(§7.3 매핑·전역 일관), **대상 리전(A·B …)으로 재분배**한다(수신 리전 ≠ 대상 리전이면 **교차 리전 전달**). 즉 **region 결정은 외부도 GeoDNS도 아니라 수신 ingress의 매핑 조회**다. `eventId` 멱등 dedup은 인스턴스 공유 저장소(Redis)로 전역 보장(ADR-02·§7.6.4). 인바운드 검증(HMAC·timestamp; source IP allowlist는 옵션·방어심층, §7.6.2)은 egress whitelist와 **방향이 반대**다. 수신→분배 흐름 상세는 **§2.3.6·§7.6**.
+  - **GeoDNS는 inbound webhook의 대상 리전을 정하지 않는다** — GeoDNS는 _호출자 위치_ 기준이라 외부의 고정 위치에선 늘 한 리전으로 귀결될 뿐이고, _처리 리전은 클리닉 소속(매핑)_ 이 정한다. provider 호스트가 어느 리전 GW로 해석되든, 그 **수신 GW가 매핑 조회 후 대상 리전으로 재분배**한다.
 
 #### 데이터 공유·토폴로지 (멀티 서버·멀티 리전)
 
@@ -491,7 +491,7 @@ sequenceDiagram
 
 ### 2.3.6 Webhook 수신·분배 — FR-WH-\*
 
-외부(AXS)가 GW 단일 엔드포인트로 이벤트를 push하면, GW가 검증·멱등 후 즉시 ACK하고 대상별로 분배한다(store-and-forward, ADR-09). 클라우드는 HTTP push, 방화벽 뒤 Edge(EzServer)는 MQTT QoS1 역방향. 목적지는 송신 host가 아니라 Org-ID↔ClinicID 매핑(§7.3)으로 결정한다. 수신 계약은 A면(GW 고유 API), payload는 외부 참조(§4.1.3). 상세는 §7.6.
+외부(AXS)가 **provider별 전용 호스트**(`axs.webhook.gw.vatech.com`)로 이벤트를 push하면, GW가 **Host/SNI로 발신자를 식별**(→그 provider의 시크릿 선택)하고 **HMAC·timestamp 검증·eventId 멱등** 후 즉시 ACK하고 대상별로 분배한다(store-and-forward, ADR-09). 클라우드는 HTTP push, 방화벽 뒤 Edge(EzServer)는 MQTT QoS1 역방향. **발신자 식별은 수신 호스트(우리가 통제)로, 목적지(분배 대상)는 Org-ID↔ClinicID 매핑(§7.3)으로** 결정한다 — 둘 다 송신 source IP에 의존하지 않으며, **Host는 식별이지 인증이 아니다**(인증=HMAC). 수신 계약은 A면(GW 고유 API), payload는 외부 참조(§4.1.3). 상세는 §7.6.
 
 ```mermaid
 sequenceDiagram
@@ -501,8 +501,8 @@ sequenceDiagram
     participant Q as 내부 큐(A·SQS)
     participant CL as 클라우드 대상 (CleverLab·갈래B 보류)
     participant EZ as EzServer (Edge, 방화벽 뒤)
-    AXS->>WH: POST {provider 등록 경로} (HMAC·timestamp·eventId)
-    WH->>WH: 서명·IP allowlist·timestamp 검증 · eventId 멱등 dedup
+    AXS->>WH: POST https://axs.webhook.gw.vatech.com/{provider 규약 경로} (HMAC·timestamp·eventId)
+    WH->>WH: Host/SNI로 provider 식별→시크릿 선택 · HMAC·timestamp 검증(IP 옵션) · eventId 멱등 dedup
     WH-->>AXS: 2xx ACK (즉시)
     WH->>Q: 적재 (재시도·백오프·DLQ)
     par 클라우드 대상 = CleverLab만 (갈래B 보류)
@@ -510,7 +510,7 @@ sequenceDiagram
     and Edge 대상 (갈래A 역방향, b1)
         Q->>EZ: MQTT QoS1 (EZ outbound 구독)
     end
-    Note over WH,EZ: 미지원 provider → 404 · 검증 실패 → 401 · 목적지=매핑(§7.3)
+    Note over WH,EZ: 미등록 Host/provider → 404 · 인증(HMAC) 실패 → 401 · 식별=수신 Host / 목적지=매핑(§7.3)
     Note over Q,CL: 현 v1.0 구체 대상=EzServer(b1). 클라우드 수신=CleverLab만(갈래B 보류) · CleverSpace는 대상 아님(아래 표·§7.6.5)
 ```
 
@@ -645,6 +645,8 @@ GW가 동작하는 소프트웨어 스택. 근거·전체 표는 [ARD §4.5 기�
 - **관측성**: **OpenTelemetry(ADOT — AWS Distro for OpenTelemetry)** · 구조화 로그(Pino) → **CloudWatch / Amazon Managed Prometheus·Grafana**(취합·분석은 인프라 소유, §6.3.2). PHI·시크릿 미기록(§6.2)
 - **API 문서**: `@nestjs/swagger` code-first (`/api-docs`, §1.7.1)
 
+> **DB 선택 근거 — "PostgreSQL을 안 쓰는 게 아니라, PostgreSQL을 관리형/글로벌로 쓴다".** (1) **Aurora PostgreSQL은 PostgreSQL 호환 엔진**이다 — 프로토콜·SQL·드라이버·확장이 PostgreSQL과 동일해 **Prisma·스키마·쿼리를 그대로** 쓴다(오픈소스 PostgreSQL을 버리는 것이 아니라 스토리지 계층만 Aurora). (2) **채택 이유 = 멀티 리전 전역 일관 데이터(§2.1.1)**: 매핑·레지스트리·정책·JWKS 등 전역 SSOT를 **리전 간 저지연 복제**해야 하는데 **Aurora Global Database**가 이를 내장 제공(빠른 failover·스토리지 자동확장·읽기복제 다수)한다 — 자가호스트/단순 RDS의 스트리밍 복제보다 운영 부담이 작다. (3) **단계화**: v1.0(단일 리전)은 RDS for PostgreSQL로도 충분하며, **2차 멀티 리전에서 Aurora 이점이 커진다** — 둘 다 PostgreSQL 호환이라 전환 비용이 작다(최종 선택은 LLD/인프라). (4) **호환성 단서**: Aurora PostgreSQL은 대부분 호환하나 일부 확장·최신 마이너 버전이 지연될 수 있다 — control plane은 저(低) QPS·CRUD 중심이라 영향이 작다. **비AWS·온프렘 리전 포터블 대안 = 자가호스트 PostgreSQL**(엔진 동일).
+>
 > **ORM 추천 — Prisma.** 근거: (1) control plane은 저(低) QPS·CRUD 중심(PRD §10)이라 Prisma의 타입 안전·DX 이점이 크고 복잡 쿼리 한계의 영향이 작다, (2) **DBML → Prisma schema**로 이어지는 설계 산출물 흐름과 마이그레이션 일원화에 부합(`design/dbml/`), (3) 사내 NestJS 표준·ARD §4.5에서 이미 `◎ Prisma`로 채택. 대안: TypeORM(NestJS 친화이나 유지보수 리스크)·Drizzle/Kysely(SQL-first·경량이나 배터리 적음)는 _복잡 쿼리·세밀한 SQL 제어가 핵심이 될 때만_ 재검토(결정 변경 시 ADR 추가).
 
 ## 3.2 Product Installation and Configuration (제품 설치 및 설정)
@@ -755,8 +757,8 @@ GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의
 Webhook은 두 면(§4.1.1) 어느 쪽에도 깔끔히 떨어지지 않는 **하이브리드**다 — *수신 엔드포인트*는 GW 수신면(외부가 `Vatech-Target` 없이 직접 POST — 단 **경로·스키마는 provider 규약 수용·유연**, GW 비강제), *이벤트 payload 스키마*는 C(외부 소유·참조만), *분배*는 내부 경로(클라우드 HTTP push·Edge MQTT)다. 단순 host 기반 프록시가 아니라 **수신→검증→멱등→ACK→매핑 기반 분배**의 store-and-forward 모델이다(§7.6). 따라서 API를 "전부 새로 정의"하지 않고, **GW가 소유하는 면만 정의하고 나머지는 참조**한다. 추후 §7.6 상세화 시 아래 4가지를 구분해 작성한다.
 
 1. **수신 엔드포인트 = 유연·레지스트리 기반 수신기 (GW가 스키마·경로를 강제하지 않음).** GW가 소유·정의하는 것은 _수신 동작(발신자 검증→멱등→ACK→매핑 기반 분배)_ 이지 **제공자의 요청 스키마·경로가 아니다** — provider의 API 규약은 provider가 정하고, GW는 **어떤 형태의 인바운드 요청이든 수용**한다(해석 주체는 GW가 아니라 소비자).
-   - **경로/형식은 provider별 등록(레지스트리)으로 유연**하게 둔다. 기본 관례는 `…/webhooks/<provider>`(예시)이나 **확정 계약이 아니며**, provider가 요구하는 경로/포맷을 등록해 수용한다. 호스트는 §4.5.1.
-   - **provider 식별·검증**: 등록된 라우트 + 서명(provider별 HMAC)·소스 IP allowlist·timestamp로 _누가 보냈는지_ 확인한다. 미등록/검증 실패 → 거부(`401`/`404`).
+   - **provider별 전용 호스트로 식별**(`{provider}.webhook.gw.vatech.com`, §4.5.1) — Host/SNI로 발신자를 판정한다(source IP 비의존). 그 아래 **경로/형식은 provider 규약을 수용해 유연**하게 둔다(GW 비강제). 기본 관례 `…/<provider 규약 경로>`는 예시일 뿐 확정 계약이 아니다.
+   - **식별 vs 인증 분리**: **식별 = Host/SNI**(레지스트리 `inbound_host` 조회) → 그 provider의 검증 시크릿 선택. **인증(신뢰) = HMAC 서명 + timestamp**(replay 방지). **source IP allowlist는 옵션**(방어심층). **Host는 식별이지 인증이 아니다.** 미등록 Host/검증 실패 → 거부(`401`/`404`).
    - **payload는 GW가 해석하지 않는다** — 검증·라우팅에 필요한 **최상위 식별자(provider·eventId·org 식별자 등)만** 추출하고 본문은 그대로 통과(opaque). 본문 스키마를 GW가 정의/재정의하지 않는다.
    - **응답**: 즉시 `2xx` ACK(§7.6.3). 에러 `400`(형식)·`401`(서명·IP·timestamp).
    - OpenAPI에는 _수신·ACK envelope_ 만 최소 표기하고, 경로는 기본 관례로 **예시**하되 provider별로 가변임을 명시한다(payload는 opaque/`$ref`).
@@ -830,7 +832,7 @@ DNS 호스트는 *클라이언트가 접속하는 외부 계약*이므로 본 SR
 | 용도 | 호스트 | 비고 |
 | --- | --- | --- |
 | GW API (GeoDNS apex) | `gw.vatech.com` **(확정)** | **클라이언트가 호출하는 유일한 호스트.** Route 53 GeoDNS로 최근접 리전 라우팅(§7.3.5). **v1.0(단일 리전)에서도 apex를 사용** — apex가 단일 리전을 가리키고, 2차에 백엔드만 N개로 늘린다 |
-| Webhook 수신 | `https://gw.vatech.com/webhooks/<provider>` (기본 관례·예시) | 단일 호스트, **경로/형식은 provider별 등록으로 유연**(§7.6.1·§4.1.3) — 확정 계약 아님 |
+| Webhook 수신 (provider별) | `https://{provider}.webhook.gw.vatech.com` (예: `axs.webhook.gw.vatech.com`) | **provider별 전용 호스트로 발신자 식별**(Host/SNI). **와일드카드 DNS 미사용**(엄격 관리·명시 등록; 추가는 연단위로 드묾), TLS는 `*.webhook.gw.vatech.com` 와일드카드 cert 가능. 경로/형식은 provider 규약 수용(유연, §7.6.1·§4.1.3). **Host=식별, 인증=HMAC**(§7.6.2) |
 | 리전별 엔드포인트(내부) | `gw-<region>.vatech.com` (예: `-apne2`) | GeoDNS 백엔드·내부/운영용. **v1.0부터 네이밍 규칙 예약**(단일 리전 1개만 실재), 2차에 N개로 확장. 클라이언트엔 노출하지 않음 |
 | GW Console | `console.gw.vatech.com` | **③-C 영역** — 본 SRS는 참조만. 확정은 ③-C Sub-SRS |
 
@@ -1220,7 +1222,7 @@ GW는 외부 이벤트의 **단일 수신·분배점**이다(ADR-09). 방화벽 
 
 ### 7.6.1 유연 수신 엔드포인트 (P1)
 
-FR-WH-01 (외부 이벤트 단일 수신면, 호스트는 §4.5.1). **경로·형식은 provider 규약을 수용하는 유연·레지스트리 기반**이며 GW가 강제하지 않는다 — 기본 관례 `…/webhooks/<provider>`는 예시일 뿐 확정 계약이 아니다(§4.1.3). GW는 _누가 보냈는지_ 만 검증하고 payload는 소비자가 해석한다.
+FR-WH-01 (외부 이벤트 수신면 — **provider별 전용 호스트** `{provider}.webhook.gw.vatech.com`, §4.5.1). **발신자 식별은 Host/SNI**(레지스트리 `inbound_host`)로 하며 상대 source IP에 의존하지 않는다. **경로·형식은 provider 규약을 수용하는 유연·레지스트리 기반**이며 GW가 강제하지 않는다(§4.1.3). GW는 _누가 보냈는지_ 만 검증하고 payload는 소비자가 해석한다.
 
 - **Input**: 외부(AXS 등) 이벤트 — HTTPS POST
 - **Output**: 즉시 `2xx` ACK(§7.6.3)
@@ -1228,9 +1230,9 @@ FR-WH-01 (외부 이벤트 단일 수신면, 호스트는 §4.5.1). **경로·�
 
 ### 7.6.2 수신 검증 (P1)
 
-FR-WH-02 (HMAC 서명 · 소스 IP allowlist · timestamp replay 방지).
+FR-WH-02 (**식별** = Host/SNI → 레지스트리 `inbound_host`로 provider·검증 시크릿 선택; **인증** = HMAC 서명 + timestamp replay 방지; source IP allowlist는 **옵션·방어심층**). **호스트명은 식별이지 인증이 아니다** — 신뢰는 HMAC으로 보장한다.
 
-- **에러**: 서명 불일치/IP 미허용/timestamp 만료 → 401·거부(부정 호출 차단)
+- **에러**: 미등록 Host/서명 불일치/timestamp 만료 → 401·거부(부정 호출 차단). IP allowlist 사용 시 미허용 → 거부(옵션)
 
 ### 7.6.3 빠른 ACK + 내부 큐 (A · SQS) (P1)
 
@@ -1383,7 +1385,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | # | 항목 | 본문 | 책임자 | 마감 | 영향 |
 | --- | --- | --- | --- | --- | --- |
 | 1 | v1.0 목표 RPS·동시 세션(fleet 규모) | §5.1·5.2 | 인프라(규모 PL 입력) | 설계 착수 전 | §3.1·§7.1·§7.4 |
-| 2 | 공개 엔드포인트 DNS — **apex `gw.vatech.com` 확정(Scott, 2026-06-24)**. 잔여: 인증서·GeoDNS 구성·리전 내부 호스트 실제 등록(인프라/플랫폼팀) | §4.5.1 | 인프라/플랫폼팀 | 배포 구성 착수 전 | §1.7.1·§3.1·§7.3.5·§7.6.1·①②④·③-C |
+| 2 | 공개 엔드포인트 DNS — **apex `gw.vatech.com` 확정(Scott, 2026-06-24)**. 잔여: 인증서·GeoDNS 구성·리전 내부 호스트 실제 등록 + **Webhook provider별 호스트 `{provider}.webhook.gw.vatech.com` 명시 등록**(와일드카드 DNS 미사용, TLS는 `*.webhook…` 와일드카드 cert 가능)(인프라/플랫폼팀) | §4.5.1·§7.6.1·§7.6.2 | 인프라/플랫폼팀 | 배포 구성 착수 전 | §1.7.1·§3.1·§7.3.5·§7.6.1·①②④·③-C |
 | 3 | 경로 B EOS 시점 | §2.8·§7.6 | PM(제품) | ① One Pager 확정 시 | §7.6·① |
 | 4 | MQTT 브로커 운영 주체 | §2.6·§7.6 | 운영조직(미정) | ③-P-EZ 착수 전 | §7.6·ARD |
 | 5 | 감사·consent 보존 기간 | §6.4·§7.9.3·§7.9.5 | 품질/법무 | baseline 전 | §6.5 |
@@ -1481,3 +1483,6 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-24 | 메시징 2-레그 명확화 — **A. 내부 비동기 큐=Amazon SQS**(GW 내부 버퍼·재시도·DLQ, §7.6.3) / **B. 엣지 전달=MQTT**(방화벽 뒤 EzServer outbound 구독·push, AWS IoT Core 후보, §7.6.6). 둘은 별개 레그임을 §3.1.2·§4.4 표(메시지 큐 'RabbitMQ 권장'→'SQS 기본'·MQTT Broker→IoT Core)·§7.6.3·§7.6.6·§2.2 다이어그램(WHQ)·§2.3 액터표·§2.3.6 시퀀스(Q 라벨)에 일괄 반영. B에 SQS 비사용 사유(inbound 불가·지속 구독·자격배포 부적합) 명시 | (작성자 ID 미지정) |
 | 2026-06-24 | §3.4.2 개발 환경 도구 — 개발 표준을 **Claude Code**로 명시(`Cursor·VS Code` → `Claude Code(개발 표준)·VS Code`) | (작성자 ID 미지정) |
 | 2026-06-24 | §3.6.1 Location of Outputs — 개인 작성 폴더 경로 언급 제거, 문서 위치를 공식 저장소(Azure Repos `vt-api-gateway/docs/specs/`, 설계 산출물 `docs/specs/design/`)로만 표기 | (작성자 ID 미지정) |
+| 2026-06-24 | **Webhook 발신자 식별을 provider별 전용 호스트로 전환** — source IP 기반 식별이 불안정(상대 egress 미통제)하므로 **`{provider}.webhook.gw.vatech.com`(Host/SNI)로 식별**, source IP allowlist는 옵션·방어심층으로 강등. **식별(Host)≠인증(HMAC+timestamp)** 원칙 명문화. **와일드카드 DNS 미사용**(엄격 관리·명시 등록, 추가는 연단위 드묾), TLS는 와일드카드 cert 허용. §2.1.1·§4.1.3·§4.5.1·§7.6.1·§7.6.2·Appendix B#2 + DBML(`webhook_provider.inbound_host` 1차 식별 키)·OpenAPI(WebhookProvider.inboundHost·webhook 설명)·인증보안 위협표 반영 | (작성자 ID 미지정) |
+| 2026-06-25 | §2.3.6 Webhook 시퀀스·설명에 provider별 호스트 식별 적용 — 도입부(provider 호스트 push·발신자 식별=수신 Host vs 목적지=매핑 분리·Host≠인증), 시퀀스 POST 대상을 `axs.webhook.gw.vatech.com`으로·검증 단계를 'Host/SNI 식별→시크릿 선택·HMAC·timestamp(IP 옵션)'로, Note를 '미등록 Host→404·인증 실패→401'로 갱신 | (작성자 ID 미지정) |
+| 2026-06-25 | §3.1.2에 **DB 선택 근거** 노트 추가 — "Aurora PostgreSQL=PostgreSQL 호환(엔진 동일·Prisma 그대로)·채택 이유=멀티 리전 전역 복제(Aurora Global Database, §2.1.1)·v1.0 단일 리전은 RDS도 충분·호환성 단서·포터블 대안=자가호스트 PostgreSQL". "왜 PostgreSQL을 안 쓰냐" 오해 방지 | (작성자 ID 미지정) |
