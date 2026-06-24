@@ -346,6 +346,8 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 
 시퀀스의 참여자(액터)는 §2.1 외부 시스템·§2.2 컴포넌트와 일치한다.
 
+> **(스코프) 운영자/Console 인증 흐름(로그인 화면·세션·토큰 refresh·RBAC UI)은 본 절에 정의하지 않는다** — Console UI는 **③-C GW Console Sub-SRS**, 인증은 **OneID(OIDC) 위임**(§2.3.1·§7.1·ADR-08), GW는 **OneID 토큰 검증 + 관리 API RBAC**(§7.9)만 소유한다(토큰 발급·refresh의 권위는 OneID이지 GW가 아니다).
+
 | 액터 | 의미 (출처) |
 | --- | --- |
 | 의료 디바이스 / CleverOne / EzServer(Edge) | 사내·현장 호출자(§2.1·§2.5). EzServer는 방화벽 뒤 Edge |
@@ -1470,3 +1472,4 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-24 | 운영 중 리전 변경 + 리전 카탈로그 — §7.3.4에 **클리닉 자가 리전 변경(운영 중, EzServer Console)** + 부수효과(기존 PHI 잔류·재동의·in-flight) 명시, §7.3.6 **GW 리전 목록 조회 API**(`GET /v1/regions`) 신설. OpenAPI `GET /v1/regions`·`PUT /v1/clinics/{id}/region` + `Region` 스키마, DBML `region_catalog` 테이블(+region FK), API명세·§6.4·§2.3.1 반영 | (작성자 ID 미지정) |
 | 2026-06-24 | Redis 키스페이스 카탈로그 신설 — `design/redis/redis-keyspace.md`(키 패턴·자료형·TTL·용도·cache/휘발 구분·PG 재구성 출처). **Redis=SSOT 아님(캐시+휘발)** 원칙 명시. §3.1.2·§6.4·design/README에서 참조 | (작성자 ID 미지정) |
 | 2026-06-24 | DNS apex 호스트명 확정 — **`gw.vatech.com`(apex)=확정(Scott)**, §4.5.1 제목 '제안' 제거·표 '확정' 표기·TBD 블록을 확정+잔여(인증서·GeoDNS 구성·리전 내부 호스트 등록=인프라)로 교체. Appendix B #2를 'apex 확정·잔여 인프라 등록'으로 갱신 | (작성자 ID 미지정) |
+| 2026-06-24 | §2.3 도입부에 스코프 노트 추가 — **운영자/Console 인증 흐름(로그인·세션·토큰 refresh·RBAC UI)은 §2.3 비정의**, Console UI=③-C Sub-SRS·인증=OneID(OIDC) 위임(ADR-08)·GW는 OneID 토큰 검증+관리 API RBAC(§7.9)만 소유 명시(기존 §1.2·§7.9·§4.1.1 경계와 정합) | (작성자 ID 미지정) |
