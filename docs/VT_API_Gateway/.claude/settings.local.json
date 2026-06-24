@@ -11,7 +11,10 @@
       "Bash(command -v swagger-cli)",
       "Bash(python3 -c \"import ruamel.yaml; print\\('ruamel ok'\\)\")",
       "Bash(python3 -m pip install --user pyyaml -q)",
-      "Bash($VENV/bin/python *)"
+      "Bash($VENV/bin/python *)",
+      "Bash(awk 'NR>=390 && /CleverLab/ {print NR\": \"$0}' specs/03-srs-gateway/SRS.md)",
+      "Bash(awk 'NR>=390 && /CleverSpace/ && /[Ww]ebhook|이벤트|수신/ {print NR\": \"$0}' specs/03-srs-gateway/SRS.md)",
+      "Bash(awk 'NR>=390 && /CleverOne/ && /온보딩|등록/ {print NR\": \"$0}' specs/03-srs-gateway/SRS.md)"
     ]
   }
 }
