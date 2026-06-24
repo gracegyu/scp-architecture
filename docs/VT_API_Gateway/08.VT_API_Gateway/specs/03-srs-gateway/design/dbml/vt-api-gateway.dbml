@@ -1,6 +1,6 @@
 // Vatech API Gateway - DBML (설계 초안)
 //
-// 작성: scp-architecture 초안 -> baseline 시 vt-api-gateway/docs/specs/design/로 PR 이관.
+// 작성: 초안 단계 산출물 -> baseline 시 vt-api-gateway/docs/specs/design/로 PR 이관.
 // 구현 착수 후에는 Prisma schema로 이어진다(본 파일이 컬럼·타입·인덱스·relation SSOT).
 //
 // 시드 출처: "VT API Gateway - API 명세·데이터 모델·주권" §2 데이터 모델.

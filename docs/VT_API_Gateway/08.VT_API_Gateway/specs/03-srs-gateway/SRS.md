@@ -673,7 +673,7 @@ N/A(기존 개발 PC와 동일)
 
 ### 3.4.2 Software Environment
 
-Node.js / NestJS / Prisma / PostgreSQL(local) / Docker / Cursor·VS Code. 버전 TBD(설계 단계).
+Node.js / NestJS / Prisma / PostgreSQL(local) / Docker / **Claude Code(개발 표준)** · VS Code. 버전 TBD(설계 단계).
 
 ## 3.5 Test Environment (테스트 환경)
 
@@ -690,7 +690,7 @@ AXS `unstable` 테스트 환경 전제(④ Sub-SRS). 단위(Jest)·E2E·부하 �
 ### 3.6.1 Location of Outputs
 
 - 소스코드: Azure Repos `vt-api-gateway` (es-platforms)
-- 문서: 본 SRS는 작성은 `scp-architecture`, 공식 리뷰·baseline은 `vt-api-gateway/docs/specs/`
+- 문서: Azure Repos `vt-api-gateway` (es-platforms) `docs/specs/` — 공식 리뷰·baseline 위치 (설계 산출물은 `docs/specs/design/`)
 
 ### 3.6.2 Build Environment
 
@@ -1479,3 +1479,5 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-24 | §2.3 이후 정합 점검 후속 수정 — (1) §2.1 line 181 스테일 참조 `§2.3.4(경로①)`→`(경로②)`(§2.3.4=CleverSpace presigned 중계와 일치), (2) ADR-11 2면+trust profile 재구성에 따른 잔존 용어 정리 — §2.3.6 `A버킷`→`A면(GW 고유 API)`·§4.1.1 `C버킷`→`C·외부 프로파일`·`B버킷 성격`→`B·내부 프로파일 성격`. 의미 변경 없음(라벨 A/B/C 유지) | (작성자 ID 미지정) |
 | 2026-06-24 | §3.1.2 SW 환경을 **EKS 정합**으로 재정리 — 'EKS 정합 원칙'(관리형 우선·IRSA 정적시크릿 미사용·§2.1.1 데이터 토폴로지 정합·포터블 대안 병기) 추가. DB→RDS/Aurora PostgreSQL(전역=Aurora Global Database), 캐시→ElastiCache(리전별·교차복제 안 함), 큐→SQS(+FIFO)/Amazon MQ, MQTT→IoT Core/Amazon MQ(주체 TBD), 시크릿→KMS·Secrets Manager+CSI/External Secrets, 이미지→ECR, **인그레스 AWS LB Controller(ALB/NLB)·egress NAT 고정EIP·관측 ADOT→CloudWatch/AMP·AMG** 항목 추가. 엔진 동일(포터블 대안 유지) | (작성자 ID 미지정) |
 | 2026-06-24 | 메시징 2-레그 명확화 — **A. 내부 비동기 큐=Amazon SQS**(GW 내부 버퍼·재시도·DLQ, §7.6.3) / **B. 엣지 전달=MQTT**(방화벽 뒤 EzServer outbound 구독·push, AWS IoT Core 후보, §7.6.6). 둘은 별개 레그임을 §3.1.2·§4.4 표(메시지 큐 'RabbitMQ 권장'→'SQS 기본'·MQTT Broker→IoT Core)·§7.6.3·§7.6.6·§2.2 다이어그램(WHQ)·§2.3 액터표·§2.3.6 시퀀스(Q 라벨)에 일괄 반영. B에 SQS 비사용 사유(inbound 불가·지속 구독·자격배포 부적합) 명시 | (작성자 ID 미지정) |
+| 2026-06-24 | §3.4.2 개발 환경 도구 — 개발 표준을 **Claude Code**로 명시(`Cursor·VS Code` → `Claude Code(개발 표준)·VS Code`) | (작성자 ID 미지정) |
+| 2026-06-24 | §3.6.1 Location of Outputs — 개인 작성 폴더 경로 언급 제거, 문서 위치를 공식 저장소(Azure Repos `vt-api-gateway/docs/specs/`, 설계 산출물 `docs/specs/design/`)로만 표기 | (작성자 ID 미지정) |
