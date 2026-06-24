@@ -20,3 +20,4 @@ dev-chain-design 단계 산출물(OpenAPI·DBML)의 **작성 초안** 공간이�
 - OpenAPI에는 **GW 고유 API(A면 — `Vatech-Target` 없는 호출)** 만 정의한다(§4.1.1·ADR-11). Webhook 수신 엔드포인트도 여기 포함(§4.1.3). 외부 payload는 `$ref`/스냅샷 참조, MQTT 분배는 OpenAPI 밖.
 - **파일 업로드: GW는 presigned를 발급하지 않는다**(경로①·Region Signer 철회, §4.1.4·§7.4). 발급=CleverSpace(②)·AXS(③), GW는 `Vatech-Target` proxy로 **중계(bypass)** 만 — 본 OpenAPI에 업로드 API를 정의하지 않는다.
 - 프록시(B 내부·C 외부)는 **`Vatech-Target` 헤더로 라우팅되는 verbatim bypass**(§4.1.2)이며, 각 백엔드/외부 OpenAPI가 정본 — 본 파일에서 재정의하지 않는다. 신규 upstream은 레지스트리 1행으로 추가(경로/코드 변경 0).
+- **Redis**(`redis/redis-keyspace.md`): Redis 키스페이스 카탈로그. **Redis는 SSOT 아님** — 캐시(PG 재구성 가능)+휘발 상태(nonce·멱등·dedup·rate-limit). DBML(PG)과 나란한 설계 산출물.
