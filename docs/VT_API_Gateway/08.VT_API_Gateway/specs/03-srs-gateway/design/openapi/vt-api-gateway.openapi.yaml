@@ -1,6 +1,6 @@
 # Vatech API Gateway - OpenAPI 3.0 (설계 초안)
 #
-# 작성: scp-architecture 초안 -> baseline 시 vt-api-gateway/docs/specs/design/로 PR 이관.
+# 작성: 초안 단계 산출물 -> baseline 시 vt-api-gateway/docs/specs/design/로 PR 이관.
 # 구현 착수 후에는 NestJS code-first(@nestjs/swagger) /api-docs 산출물이 정본이 된다.
 #
 # 시드 출처: "VT API Gateway - API 명세·데이터 모델·주권" §1 엔드포인트.
