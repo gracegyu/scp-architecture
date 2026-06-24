@@ -218,7 +218,7 @@ Table webhook_provider {
   inbound_route       varchar           // 등록된 수신 경로(유연; provider 규약 수용) — 확정 계약 아님
   sig_scheme          varchar           // 서명/HMAC 방식(provider 규약) — **인증(신뢰)** 근거
   secret_ref          varchar           // 검증 시크릿 참조(KMS) — Host로 선택된 provider의 HMAC 시크릿
-  source_ip_allowlist jsonb             // 허용 소스 IP — **옵션·방어심층**(식별 용도 아님, Host가 대체)
+  source_ip_allowlist jsonb             // 허용 소스 **CIDR 목록** — **옵션·방어심층**(식별 용도 아님, Host가 대체). 관리=/admin/v1/webhook-providers(§7.9.1), UI=③-C
   org_id_path         varchar           // payload에서 external_org_id 추출 경로(JSONPath 등)
   enabled             boolean [not null, default: true]
 

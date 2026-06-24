@@ -625,7 +625,7 @@ components:
         inboundRoute: { type: string, description: '등록 수신 경로(유연·예시, 확정 계약 아님)' }
         sigScheme: { type: string, description: 'HMAC 방식 — 인증(신뢰) 근거' }
         secretRef: { type: string, description: 'KMS 참조 — Host로 선택된 provider의 HMAC 시크릿' }
-        sourceIpAllowlist: { type: array, items: { type: string }, description: '옵션·방어심층(식별 용도 아님, Host가 대체)' }
+        sourceIpAllowlist: { type: array, items: { type: string, description: 'CIDR(예 203.0.113.0/24)' }, description: '허용 소스 CIDR 목록 — 옵션·방어심층(식별 용도 아님, Host가 대체). UI=③-C' }
         orgIdPath: { type: string, description: 'payload에서 externalOrgId 추출 경로' }
         enabled: { type: boolean }
       description: '유연 수신 config — 식별=inboundHost(Host/SNI), 인증=HMAC+timestamp(호스트명은 식별이지 인증 아님). GW는 발신자 검증·라우팅 키 추출만, payload 비해석(§4.1.3·§7.6.2)'

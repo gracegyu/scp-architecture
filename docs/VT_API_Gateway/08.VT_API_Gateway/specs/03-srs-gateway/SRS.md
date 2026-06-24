@@ -184,7 +184,7 @@ flowchart TD
 
 GW는 두 축으로 다중화된다: **멀티 서버**(한 리전 내 Multi-AZ K8s 복제본 — HA·수평 확장, §6.3.1) 와 **멀티 리전**(서울·미주 등, gw/1.2·§7.3.5). 두 경우 모두 **inbound는 안정 endpoint 하나**(리전별 LB, GeoDNS 뒤)로 수렴하지만 **outbound(egress)는 NAT EIP 다수**로 나간다 — **inbound IP ≠ egress IP**. GW pod는 **무상태(soft-state, ADR-02)** 라 DB·Redis를 pod마다 두지 않는다 — **같은 리전 pod는 동일 저장소를 공유**하고, 라우팅·식별 데이터는 **전역 일관**으로 둔다(데이터 토폴로지는 다이어그램 아래 참조).
 
-> **v1.0은 단일 리전(예: 서울)만 실제 배포**한다(§2.7.1). 아래 다이어그램의 **멀티 리전(A·B)은 2차(gw/1.2) 목표 토폴로지**이며, v1.0 설계가 이를 *ready*로 갖춘다 — **구조(데이터 토폴로지·Region Resolver·apex DNS·egress 집합)는 동일하고 리전 수만 1→N**이다. v1.0을 보려면 리전 1개(예: RA)만 두고 GeoDNS·apex가 그것을 가리킨다고 읽으면 된다(전역 SSOT는 단일 리전 내 존재, 2차에 복제 추가).
+> **v1.0은 단일 리전(예: 서울)만 실제 배포**한다(§2.7.1). 아래 다이어그램의 **멀티 리전(A·B)은 2차(gw/1.2) 목표 토폴로지**이며, v1.0 설계가 이를 *ready*로 갖춘다 — **구조(데이터 토폴로지·Region Resolver·apex DNS·egress 집합)는 동일하고 리전 수만 1→N**이다. v1.0은 리전 1개(예: RA)만 두고 GeoDNS·apex가 이를 가리킨다 — 전역 SSOT는 단일 리전 내에 존재하고, 2차에 복제를 추가한다.
 
 ```mermaid
 flowchart TB
@@ -194,14 +194,14 @@ flowchart TB
 
     subgraph GTIER["GW 전역 계층 (리전 비종속 · GW의 일부)"]
         WHIN["Webhook Receiver — 유연 수신 (Integration Plane)<br/>공개 호스트 1개 · provider별 등록 경로(예: /webhooks/axs)<br/>발신자 검증·멱등 후 매핑으로 리전 판정"]
-        GLOBAL[("전역 일관 데이터 SSOT — PostgreSQL 원본<br/>매핑 · 레지스트리 · Org-ID↔ClinicID · 정책 · compat · JWKS<br/>→ 리전으로 복제/sync")]
+        GLOBAL[("전역 일관 데이터 SSOT — PostgreSQL 원본 (Aurora 권장·확정 TBD)<br/>매핑 · 레지스트리 · Org-ID↔ClinicID · 정책 · compat · JWKS<br/>→ Aurora Global Database로 리전 복제/sync(권장)")]
     end
 
     subgraph RA["GW Region A (서울) · Multi-AZ HA = 멀티 서버"]
         LBA["Ingress LB<br/>안정 endpoint A (inbound 1)"]
         GA1["GW pod (무상태)"]
         GA2["GW pod (무상태)"]
-        STA[("Region A 저장소 = pod 공유<br/>PostgreSQL: 전역데이터 복제본 + 리전로컬(audit·in-flight queue)<br/>Redis: 빠른 조회 캐시(로컬 PG에서·멱등·nonce)")]
+        STA[("Region A 저장소 = pod 공유<br/>PostgreSQL(Aurora 권장): 전역데이터 복제본(Global DB) + 리전로컬(audit·in-flight queue)<br/>Redis(ElastiCache): 빠른 조회 캐시(로컬 PG에서·멱등·nonce)")]
         NATA["NAT GW<br/>고정 egress EIP set A (outbound 다수)"]
         LBA --> GA1
         LBA --> GA2
@@ -215,7 +215,7 @@ flowchart TB
         LBB["Ingress LB<br/>안정 endpoint B (inbound 1)"]
         GB1["GW pod (무상태)"]
         GB2["GW pod (무상태)"]
-        STB[("Region B 저장소 = pod 공유<br/>PostgreSQL: 전역데이터 복제본 + 리전로컬(audit·in-flight queue)<br/>Redis: 빠른 조회 캐시(로컬 PG에서·멱등·nonce)")]
+        STB[("Region B 저장소 = pod 공유<br/>PostgreSQL(Aurora 권장): 전역데이터 복제본(Global DB) + 리전로컬(audit·in-flight queue)<br/>Redis(ElastiCache): 빠른 조회 캐시(로컬 PG에서·멱등·nonce)")]
         NATB["NAT GW<br/>고정 egress EIP set B (outbound 다수)"]
         LBB --> GB1
         LBB --> GB2
@@ -228,8 +228,8 @@ flowchart TB
     R53 --> LBA
     R53 --> LBB
 
-    STA -.->|"전역데이터 복제/sync<br/>(strong-consistency·mapping_version)"| GLOBAL
-    STB -.->|"전역데이터 복제/sync"| GLOBAL
+    STA -.->|"전역데이터 복제/sync<br/>(Aurora Global DB 권장·mapping_version 일관)"| GLOBAL
+    STB -.->|"전역데이터 복제/sync (Aurora Global DB 권장)"| GLOBAL
 
     EXT["외부 서비스 (예: AXS)<br/>region 비인지"]
     NATA ==>|"GW→외부 egress (우리가 호출)"| EXT
@@ -247,6 +247,7 @@ flowchart TB
 >
 > **B(내부) vs C(외부) 적용 범위**: **API 호출 경로는 내부(CleverSpace 등)·외부(AXS) 동일**(GW target-routed proxy, §2.1·§4.1.2). 본 절의 **고정 egress IP whitelist·Webhook 수신은 외부(C) 한정** 사항이다 — 내부(B) upstream은 같은 GW proxy를 타되 **내부망**이라 egress 고정 IP whitelist가 불필요하고, (현재) GW로 Webhook을 발신하지 않는다. 즉 §2.1.1이 외부(C) 토폴로지를 다루는 것이지, 내부 호출이 다른 경로라는 뜻이 아니다.
 
+- **저장소 제품(§3.1.2 근거·비교표).** 엔진은 **PostgreSQL 확정**, 관리형 제품은 **처음부터 Aurora PostgreSQL 권장**(인프라 비준 TBD, Appendix B #18). 멀티 리전 전환이 Aurora는 **Global Database 활성화(마이그레이션 0)** 인 반면 RDS-first는 **RDS→Aurora 마이그레이션**이라 비대칭적으로 비싸 **단일 리전부터 Aurora 권장**(비용 델타 ~20%·저QPS라 작음). 캐시 = **Amazon ElastiCache for Redis**(리전 로컬·교차복제 안 함·로컬 PG에서 재적재). **다이어그램은 2차 멀티 리전 목표 토폴로지**이며 v1.0은 단일 리전에서 동일 제품으로 시작. 비AWS·온프렘 포터블 대안 = 자가호스트 PostgreSQL.
 - **egress IP whitelist = 고정 EIP 집합(멀티 IP).** 외부 서비스(예: AXS)가 IP whitelist를 요구하면, 화이트리스트 대상은 GW가 _외부를 호출_ 할 때의 egress IP다. pod별 임시 IP가 아니라 **AZ/리전별 NAT의 고정 EIP**여야 하고, 멀티 리전이면 **전 리전 집합의 합집합(A ∪ B …)** 이며 유한·열거 가능해야 한다(FR-INT-03·§7.5.3·§2.6).
 - **리스크/제약**: 오토스케일·새 AZ·**리전 증설은 egress IP를 늘리므로**, egress를 **고정 EIP 풀로 핀(pin)** 하고 외부(예: Straumann)와 **whitelist를 협의·갱신(리드타임)** 해야 한다. EIP 풀 provisioning·고정은 인프라(③-I) 책임(§2.6·§7.3.5).
 - **Webhook 수신 = provider별 전용 호스트(식별), region 분배는 우리 몫.** 외부 서비스(AXS 등)는 **region을 모른다**. **provider별 전용 수신 호스트**(`{provider}.webhook.gw.vatech.com`)를 발급해 **Host(SNI)로 발신자를 식별**한다(우리가 통제하는 식별 — 상대 source IP에 의존하지 않음). **경로/형식은 provider 규약을 수용해 유연**하다(GW는 발신자 검증·라우팅만, payload 비해석; §4.1.3·§7.6.1·§4.5.1). **단 Host는 식별이지 인증이 아니며**, 신뢰는 HMAC+timestamp로 보장한다(§7.6.2). 수신 ingress(Webhook Receiver, §2.2)는 **전역 매핑(DB/캐시)에 연결**되어 webhook 내용(Org-ID 등)으로 **대상 클리닉의 리전을 판정**하고(§7.3 매핑·전역 일관), **대상 리전(A·B …)으로 재분배**한다(수신 리전 ≠ 대상 리전이면 **교차 리전 전달**). 즉 **region 결정은 외부도 GeoDNS도 아니라 수신 ingress의 매핑 조회**다. `eventId` 멱등 dedup은 인스턴스 공유 저장소(Redis)로 전역 보장(ADR-02·§7.6.4). 인바운드 검증(HMAC·timestamp; source IP allowlist는 옵션·방어심층, §7.6.2)은 egress whitelist와 **방향이 반대**다. 수신→분배 흐름 상세는 **§2.3.6·§7.6**.
@@ -633,7 +634,7 @@ GW가 동작하는 소프트웨어 스택. 근거·전체 표는 [ARD §4.5 기�
 - **언어 / 런타임**: TypeScript · Node.js LTS (버전 TBD)
 - **프레임워크**: NestJS (DDD 모듈 · TDD)
 - **ORM / 마이그레이션**: **Prisma** (권장 — 아래 근거) · 스키마는 DBML(dev-chain-design)에서 파생
-- **관계형 DB**: **Amazon RDS / Aurora PostgreSQL 15.x**(관리형) — 레지스트리·매핑·토큰메타·정책·감사. **전역 일관 데이터의 리전 간 복제는 Aurora Global Database 등으로**(§2.1.1 원본+리전 복제). 포터블 대안: 자가호스트 PostgreSQL(비AWS 리전)
+- **관계형 DB**: **PostgreSQL 15.x(엔진 확정)** — 관리형 제품은 **처음부터 Aurora PostgreSQL 권장**(단일 리전부터; RDS-first는 멀티 리전 시 마이그레이션·재검증 비용으로 비권장). **인프라 비준 TBD(Appendix B #18)** — 비교·근거는 아래 표. 레지스트리·매핑·토큰메타·정책·감사 저장. **전역 일관 데이터의 리전 간 복제는 Aurora Global Database**(§2.1.1). 포터블 대안: 자가호스트 PostgreSQL(비AWS 리전)
 - **캐시**: **Amazon ElastiCache for Redis**(리전별·region-local) — region 매핑 TTL·nonce·rate-limit·idempotency·JWKS. **Redis는 SSOT 아님**(캐시+휘발 상태)이며 **리전 간 교차복제 안 함**(§2.1.1 — 각 리전이 로컬 PostgreSQL 복제본에서 재적재). 키스페이스 정본: `design/redis/redis-keyspace.md`
 - **메시지 큐 (A · 내부 비동기 큐)**: **Amazon SQS(+SNS)** 기본(서버리스·IRSA 접근·DLQ 내장, 순서/dedup 필요 시 **SQS FIFO**) / **Amazon MQ for RabbitMQ**(AMQP 라우팅 의미 필요 시) — **GW 내부** Webhook 비동기 분배·재시도·DLQ(§7.6.3). 엣지 전달(B)과 별개. 큐 제품 확정은 설계 단계(Appendix B #12)
 - **MQTT 브로커 (B · 엣지 전달)**: 방화벽 뒤 Edge(EzServer) 역방향 마지막 구간 push(QoS1·persistent, §7.6.6) — **SQS 비사용**(inbound 불가·지속 구독 필요). 관리형 후보 **AWS IoT Core** / **Amazon MQ**. **운영 주체·제품은 TBD**(§2.6·Appendix B #4)
@@ -645,7 +646,22 @@ GW가 동작하는 소프트웨어 스택. 근거·전체 표는 [ARD §4.5 기�
 - **관측성**: **OpenTelemetry(ADOT — AWS Distro for OpenTelemetry)** · 구조화 로그(Pino) → **CloudWatch / Amazon Managed Prometheus·Grafana**(취합·분석은 인프라 소유, §6.3.2). PHI·시크릿 미기록(§6.2)
 - **API 문서**: `@nestjs/swagger` code-first (`/api-docs`, §1.7.1)
 
-> **DB 선택 근거 — "PostgreSQL을 안 쓰는 게 아니라, PostgreSQL을 관리형/글로벌로 쓴다".** (1) **Aurora PostgreSQL은 PostgreSQL 호환 엔진**이다 — 프로토콜·SQL·드라이버·확장이 PostgreSQL과 동일해 **Prisma·스키마·쿼리를 그대로** 쓴다(오픈소스 PostgreSQL을 버리는 것이 아니라 스토리지 계층만 Aurora). (2) **채택 이유 = 멀티 리전 전역 일관 데이터(§2.1.1)**: 매핑·레지스트리·정책·JWKS 등 전역 SSOT를 **리전 간 저지연 복제**해야 하는데 **Aurora Global Database**가 이를 내장 제공(빠른 failover·스토리지 자동확장·읽기복제 다수)한다 — 자가호스트/단순 RDS의 스트리밍 복제보다 운영 부담이 작다. (3) **단계화**: v1.0(단일 리전)은 RDS for PostgreSQL로도 충분하며, **2차 멀티 리전에서 Aurora 이점이 커진다** — 둘 다 PostgreSQL 호환이라 전환 비용이 작다(최종 선택은 LLD/인프라). (4) **호환성 단서**: Aurora PostgreSQL은 대부분 호환하나 일부 확장·최신 마이너 버전이 지연될 수 있다 — control plane은 저(低) QPS·CRUD 중심이라 영향이 작다. **비AWS·온프렘 리전 포터블 대안 = 자가호스트 PostgreSQL**(엔진 동일).
+> **DB 선택 근거.** **엔진=PostgreSQL 확정**, 관리형 제품은 **처음부터 Aurora PostgreSQL 권장**(인프라 비준 TBD, Appendix B #18). (1) **전역 일관 데이터(§2.1.1)**: 매핑·레지스트리·정책·JWKS 등 전역 SSOT의 리전 간 저지연 복제를 **Aurora Global Database**가 내장 제공(빠른 failover·스토리지 자동확장)한다 — RDS 교차 리전 읽기복제(비동기·지연·수동 승격)보다 우수. (2) **전환 비대칭성**: 멀티 리전 전환이 Aurora는 Global Database 활성화(마이그레이션 0)인 반면 RDS-first는 RDS→Aurora 플랫폼 마이그레이션(SSOT 컷오버·재검증·CCB)이라 비대칭적으로 비싸 **단일 리전부터 Aurora**를 쓴다 — 통제 제품(IEC 62304) 재검증·IaC 이중구축 회피. (3) **비용**: Aurora는 동급 인스턴스 기준 RDS 대비 **~20% 내외**(I/O·구성 변동) 높으나 저QPS control plane이라 절대 월 비용 차가 작고, 후속 마이그레이션 비용보다 작다. (4) **호환성**: Aurora PostgreSQL은 PostgreSQL 호환이라 Prisma·스키마·쿼리를 그대로 쓴다(일부 확장·최신 마이너 버전 지연 가능 — 저QPS CRUD라 영향 작음). 비AWS·온프렘 포터블 대안 = 자가호스트 PostgreSQL.
+>
+> **Aurora PostgreSQL vs RDS for PostgreSQL (둘 다 관리형 · 엔진은 PostgreSQL)**
+>
+> | 항목 | RDS for PostgreSQL | Aurora PostgreSQL (권장) |
+> | --- | --- | --- |
+> | 엔진 | 커뮤니티 PostgreSQL **그대로** | PostgreSQL **호환**(스토리지만 Aurora) |
+> | 스토리지 | EBS 단일 볼륨 | 분산 스토리지(3-AZ 6중 복제·자동확장) |
+> | 리전 내 HA | Multi-AZ 동기 스탠바이 + 읽기복제 | 공유 스토리지 기반 읽기복제 최대 15, 더 빠른 failover |
+> | **교차 리전 복제** | 읽기복제(**비동기·지연 큼·수동 승격**) | **Aurora Global Database**(저지연 ~1s·빠른 승격·관리형) |
+> | 호환성 | **100%**(모든 확장·버전 즉시) | 대부분(일부 확장 미지원·마이너 버전 지연) |
+> | 비용·단순성 | 낮음·단순 | 다소 높음(동급 인스턴스 기준 **~20% 내외**, I/O·구성 변동) |
+> | 멀티 리전 전환 | RDS→Aurora **마이그레이션 필요**(재검증·컷오버) | **Global Database 활성화(마이그레이션 0)** |
+> | 적합 | v1.0 단일 리전(비용 우선 시) | **단일→멀티 리전 일관(권장)** |
+>
+> 결론: **엔진=PostgreSQL 확정, 제품=처음부터 Aurora PostgreSQL 권장**(단일 리전부터). RDS-first는 비용이 약간 낮으나(~20% 델타, 저QPS라 절대액 작음) **멀티 리전 시 마이그레이션 비용·재검증이 더 커서 비권장**. 최종 도장은 인프라 비준(Appendix B #18).
 >
 > **ORM 추천 — Prisma.** 근거: (1) control plane은 저(低) QPS·CRUD 중심(PRD §10)이라 Prisma의 타입 안전·DX 이점이 크고 복잡 쿼리 한계의 영향이 작다, (2) **DBML → Prisma schema**로 이어지는 설계 산출물 흐름과 마이그레이션 일원화에 부합(`design/dbml/`), (3) 사내 NestJS 표준·ARD §4.5에서 이미 `◎ Prisma`로 채택. 대안: TypeORM(NestJS 친화이나 유지보수 리스크)·Drizzle/Kysely(SQL-first·경량이나 배터리 적음)는 _복잡 쿼리·세밀한 SQL 제어가 핵심이 될 때만_ 재검토(결정 변경 시 ADR 추가).
 
@@ -1233,6 +1249,7 @@ FR-WH-01 (외부 이벤트 수신면 — **provider별 전용 호스트** `{prov
 FR-WH-02 (**식별** = Host/SNI → 레지스트리 `inbound_host`로 provider·검증 시크릿 선택; **인증** = HMAC 서명 + timestamp replay 방지; source IP allowlist는 **옵션·방어심층**). **호스트명은 식별이지 인증이 아니다** — 신뢰는 HMAC으로 보장한다.
 
 - **에러**: 미등록 Host/서명 불일치/timestamp 만료 → 401·거부(부정 호출 차단). IP allowlist 사용 시 미허용 → 거부(옵션)
+- **검증 config 관리**: provider별 `inbound_host`·`sig_scheme`·`secret_ref`(KMS 참조)·`source_ip_allowlist`(**CIDR 목록**, 옵션)는 **관리 API `/admin/v1/webhook-providers`(§7.9.1)로 등록·갱신**한다. **편리한 입력 UI(CIDR 검증·일괄 입력 등)는 ③-C Console**(GW는 API 계약까지).
 
 ### 7.6.3 빠른 ACK + 내부 큐 (A · SQS) (P1)
 
@@ -1401,6 +1418,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 15 | 전역데이터 복제 토폴로지 세부(원본 primary 위치·단일 vs multi-primary·충돌 처리) — "PostgreSQL 원본+리전 복제 / Redis 리전 캐시" 모델·"전역 일관/리전 로컬" 구분 원칙은 고정, 복제 세부만 미정 | §2.1.1·§6.4 | PM/아키텍트 + 인프라 | gw/1.2 설계 | §7.3·§6.4·§6.3.1 |
 | 16 | Webhook 클라우드 분배 — **CleverLab 갈래 B 활성화 여부·시점**(CleverSpace는 대상 아님으로 **확정**). EzServer(갈래 A) 역방향 대상 이벤트 목록 확정 | §2.3.6·§7.6.5·§7.6.6 | PM/제품 + GW(④) | ④ 상세설계 | §7.6·④·§2.1·§2.2 |
 | 17 | 클리닉 GW 등록 주체 — **EzServer Console(잠정, 클리닉당 1회)** vs CleverOne(각 PC). 클리닉=CleverOne 다수+EzServer 1개 | §2.3.1·§7.3 | PM/제품 | ③-P 착수 전 | §2.3.1·③-P-EZ·③-P-CO·Roadmap §4 |
+| 18 | 관계형 DB **관리형 제품 선택** — **엔진=PostgreSQL 확정**, **제품=처음부터 Aurora PostgreSQL 권장**(단일 리전부터; RDS-first는 멀티 리전 시 RDS→Aurora 마이그레이션·재검증 비대칭 비용으로 비권장. 비용 델타 ~20%·저QPS라 작음). **인프라 비준만 남음.** 비교·근거 §3.1.2 | §3.1.2·§2.1.1 | 인프라/아키텍트 | v1.0 배포 구성 착수 전 | §2.1.1·§6.3·§7.3 |
 
 ## 8 Change Management Process
 
@@ -1485,4 +1503,9 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-24 | §3.6.1 Location of Outputs — 개인 작성 폴더 경로 언급 제거, 문서 위치를 공식 저장소(Azure Repos `vt-api-gateway/docs/specs/`, 설계 산출물 `docs/specs/design/`)로만 표기 | (작성자 ID 미지정) |
 | 2026-06-24 | **Webhook 발신자 식별을 provider별 전용 호스트로 전환** — source IP 기반 식별이 불안정(상대 egress 미통제)하므로 **`{provider}.webhook.gw.vatech.com`(Host/SNI)로 식별**, source IP allowlist는 옵션·방어심층으로 강등. **식별(Host)≠인증(HMAC+timestamp)** 원칙 명문화. **와일드카드 DNS 미사용**(엄격 관리·명시 등록, 추가는 연단위 드묾), TLS는 와일드카드 cert 허용. §2.1.1·§4.1.3·§4.5.1·§7.6.1·§7.6.2·Appendix B#2 + DBML(`webhook_provider.inbound_host` 1차 식별 키)·OpenAPI(WebhookProvider.inboundHost·webhook 설명)·인증보안 위협표 반영 | (작성자 ID 미지정) |
 | 2026-06-25 | §2.3.6 Webhook 시퀀스·설명에 provider별 호스트 식별 적용 — 도입부(provider 호스트 push·발신자 식별=수신 Host vs 목적지=매핑 분리·Host≠인증), 시퀀스 POST 대상을 `axs.webhook.gw.vatech.com`으로·검증 단계를 'Host/SNI 식별→시크릿 선택·HMAC·timestamp(IP 옵션)'로, Note를 '미등록 Host→404·인증 실패→401'로 갱신 | (작성자 ID 미지정) |
-| 2026-06-25 | §3.1.2에 **DB 선택 근거** 노트 추가 — "Aurora PostgreSQL=PostgreSQL 호환(엔진 동일·Prisma 그대로)·채택 이유=멀티 리전 전역 복제(Aurora Global Database, §2.1.1)·v1.0 단일 리전은 RDS도 충분·호환성 단서·포터블 대안=자가호스트 PostgreSQL". "왜 PostgreSQL을 안 쓰냐" 오해 방지 | (작성자 ID 미지정) |
+| 2026-06-25 | §3.1.2에 **DB 선택 근거** 노트 추가 — Aurora PostgreSQL=PostgreSQL 호환, 채택 이유=멀티 리전 전역 복제(Aurora Global Database, §2.1.1), v1.0 단일 리전은 RDS도 충분, 호환성 단서, 포터블 대안=자가호스트 PostgreSQL | (작성자 ID 미지정) |
+| 2026-06-25 | §2.1.1 다이어그램에 DB 제품 명시 — GLOBAL/STA/STB 노드를 `PostgreSQL`→**`Aurora PostgreSQL`**(Global DB primary/복제본)·`Redis`→**`Redis(ElastiCache)`**로, 복제 엣지를 `Aurora Global DB 복제/sync`로 표기. 캡션 bullet 추가(제품·근거 §3.1.2·v1.0은 RDS도 가능·둘 다 PG 호환) | (작성자 ID 미지정) |
+| 2026-06-25 | **DB 제품 = 권장·확정 TBD로 정리(옵션 A)** — 엔진=PostgreSQL 확정, 관리형 제품(Aurora 권장 vs RDS)은 미확정. §3.1.2에 **Aurora PostgreSQL vs RDS for PostgreSQL 비교표** 추가 + 근거 노트를 '권장·확정 TBD'로, §2.1.1 다이어그램 노드를 `PostgreSQL(Aurora 권장·확정 TBD)`로 완화, 캡션·DB bullet에 'Appendix B #18·인프라 확정' 반영, **Appendix B #18 신설**(인프라/아키텍트, 멀티 리전 설계 전). 개발계획서 §5도 동일 표기. (RDS도 교차 리전 복제 가능하나 Aurora Global DB가 저지연·관리형으로 우수) | (작성자 ID 미지정) |
+| 2026-06-25 | DB 권장 **강화 — "처음부터 Aurora PostgreSQL"** — 전환 비대칭성(Aurora 단일→글로벌=마이그레이션 0 vs RDS→Aurora=플랫폼 마이그레이션·재검증) + 비용 델타 **~20%·저QPS라 작음**·통제 제품 재검증/IaC 이중구축 회피를 §3.1.2 근거(3)(4)·비교표(전환·비용 행)·결론·DB bullet·§2.1.1 캡션·Appendix B #18·개발계획서 §5에 반영. RDS-first 비권장 명시(인프라 비준은 유지) | (작성자 ID 미지정) |
+| 2026-06-25 | 문구 정리 — §3.1.2 DB 근거 노트에서 슬로건성 문장("PostgreSQL을 안 쓰는 게 아니라…") 제거하고 결정·권장·근거(1~4)만 유지. §2.1.1 단일 리전 안내 문장의 캐주얼 톤 정리. (불필요 설명 제거, 의미 변경 없음) | (작성자 ID 미지정) |
+| 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |

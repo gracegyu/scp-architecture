@@ -42,7 +42,7 @@ VT-Straumann **공진화 전략**(Straumann AXS 연동)의 실행 기반을 확
 | --- | --- |
 | Backend | NestJS + DDD + TDD |
 | Frontend (관리 UI) | React + Vite + FSD + shadcn/ui |
-| 데이터 | PostgreSQL(RDS/Aurora) · Redis(ElastiCache, 캐시) · **SQS(A·내부 큐)** / MQTT·IoT Core(B·엣지 전달) · S3/MinIO(스토리지) |
+| 데이터 | PostgreSQL(엔진 확정; 관리형 제품 **처음부터 Aurora 권장**, 인프라 비준 TBD) · Redis(ElastiCache, 캐시) · **SQS(A·내부 큐)** / MQTT·IoT Core(B·엣지 전달) · S3/MinIO(스토리지) |
 | 플랫폼 | OPA(정책) · KMS/Secrets Manager(시크릿, Vault 검토) · OpenTelemetry(ADOT)+Pino(관측·로깅) · Feature Flag(Unleash) |
 | 인프라 | **AWS EKS(K8s)·ECR·IRSA** · IaC(Terraform/CDK) · CI(Azure Pipelines) · API 문서(Swagger) |
 
@@ -75,3 +75,5 @@ VT-Straumann **공진화 전략**(Straumann AXS 연동)의 실행 기반을 확
 | v0.2 | 2026-06-08 | Scott | 기술 스택 반영 + 가독성 재정리 |
 | v0.3 | 2026-06-15 | Scott | ESMN Roadmap 흡수 반영 — API 호환성·OneID·Webhook 범위 추가 |
 | v0.4 | 2026-06-24 | Raymond | §5 기술 스택을 EKS 정합으로 갱신 — 데이터: 큐 `RabbitMQ`→**SQS(A·내부)**·MQTT는 IoT Core(B·엣지)로 분리, PostgreSQL→RDS/Aurora·Redis→ElastiCache 명시; 플랫폼: Secrets Manager·ADOT; 인프라: EKS·ECR·IRSA 추가 (SRS §3.1.2와 정합) |
+| v0.5 | 2026-06-25 | Raymond | §5 DB 표기 정리 — 엔진=PostgreSQL 확정, 관리형 제품(Aurora 권장 vs RDS)은 확정 TBD로 명시(SRS §3.1.2 비교표·Appendix B #18과 정합) |
+| v0.6 | 2026-06-25 | Raymond | §5 DB 권장 강화 — **처음부터 Aurora PostgreSQL 권장**(RDS-first는 멀티 리전 마이그레이션 비용으로 비권장), 인프라 비준 TBD(SRS §3.1.2와 정합) |
