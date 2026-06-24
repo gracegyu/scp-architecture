@@ -3,7 +3,9 @@
 // 작성: scp-architecture 초안 -> baseline 시 vt-api-gateway/docs/specs/design/로 PR 이관.
 // 구현 착수 후에는 Prisma schema로 이어진다(본 파일이 컬럼·타입·인덱스·relation SSOT).
 //
-// 시드 출처: "VT API Gateway - API 명세·데이터 모델·주권" §2 데이터 모델(13 엔터티).
+// 시드 출처: "VT API Gateway - API 명세·데이터 모델·주권" §2 데이터 모델.
+// GW의 핵심 역할 = 발신자 식별→올바른 client로 분배(GW는 payload 비해석). 본 DB는 '어디로 분배할지'의 지식을 보관:
+//   라우팅 키(org_mapping)·provider 수신 config(webhook_provider)·target→host(upstream_registry)·분배 채널(delivery_channel).
 // 컬럼은 snake_case(PostgreSQL 관례), API DTO는 camelCase(SRS §1.3)로 매핑.
 // 시간은 Unix Timestamp(ms) bigint. PHI 본문 미저장(presigned 직결, SRS §6.4).
 // 타입·인덱스·정밀 relation은 LLD(dev-chain-design)에서 확정.
@@ -81,7 +83,7 @@ Table token {
 // device → region 매핑 (FR-RGN-01/02)
 Table region_mapping {
   device_id       varchar [pk, ref: - device.device_id]
-  region          varchar [not null]
+  region          varchar [not null, ref: > region_catalog.region_id]
   mapping_version integer [not null, default: 1]
 
   Note: 'drift·롤백 추적'
@@ -90,10 +92,21 @@ Table region_mapping {
 // clinic → region 매핑 (FR-RGN-06, 라우팅 키 통합)
 Table clinic_region_mapping {
   clinic_id       varchar [pk]
-  region          varchar [not null]
+  region          varchar [not null, ref: > region_catalog.region_id]
   mapping_version integer [not null, default: 1]
 
-  Note: 'device↔clinic↔region 단일 체계(ADR-10)'
+  Note: 'device↔clinic↔region 단일 체계(ADR-10). 온보딩 시 클라이언트 자가 등록(region 선택→GW 검증)으로 생성 · Admin은 교정만(FR-RGN-04). 일괄 수기 설정 아님'
+}
+
+// GW 운영 리전 카탈로그 (region list API SSOT) — §7.3.6 / FR-RGN-*
+Table region_catalog {
+  region_id    varchar [pk]            // 예: apne2(서울), use1(미주)
+  display_name varchar
+  endpoint     varchar                 // 리전 내부 endpoint(§4.5.1)
+  status       varchar [not null, default: 'active']  // active | draining | planned
+  is_default   boolean [not null, default: false]
+
+  Note: 'GW가 운영하는 리전 목록(GET /v1/regions). v1.0=1행, gw/1.2=N행(§2.7.1 멀티리전-ready). region_mapping·clinic_region_mapping.region이 참조'
 }
 
 // 업로드 세션 테이블 제거(2026-06-23): GW는 업로드 세션·presigned·storage를 소유하지 않음.
@@ -121,7 +134,7 @@ Table connector {
   credential_ref   varchar
   egress_allowlist jsonb
 
-  Note: 'adapter. name 예: axs'
+  Note: 'external(C) egress 상세 — OAuth credential·egress. 라우팅(target→host)은 upstream_registry, 본 표는 external 자격/엔드포인트. name 예: axs'
 }
 
 // 감사 로그 (FR-AUD-01)
@@ -164,15 +177,69 @@ Table compat_matrix {
 
 // 외부 이벤트 (FR-WH-*)
 Table webhook_event {
-  event_id    varchar [pk]
-  provider    varchar [not null]
-  payload_ref varchar
-  state       webhook_state [not null, default: 'received']
-  target      varchar
+  event_id        varchar [pk]
+  provider        varchar [not null]
+  external_org_id varchar
+  clinic_id       varchar
+  region          varchar
+  payload_ref     varchar
+  state           webhook_state [not null, default: 'received']
+  target          varchar
 
-  Note: '멱등(event_id dedup)·분배 상태. payload 본문은 외부 스키마(④)'
+  Note: '멱등(event_id dedup)·분배 상태·해석된 대상(clinic/region). GW는 payload 비해석 — external_org_id로 org_mapping 조회해 대상 결정. 본문은 외부 스키마(④)'
   Indexes {
     provider
     state
+    clinic_id
   }
+}
+
+
+// ── 분배 지식(라우팅) 레지스트리 — GW가 "누가 보냈는지→어디로" 를 이해하는 정보 ──
+
+// Org-ID ↔ ClinicID 매핑 (webhook/inbound 라우팅 키)
+Table org_mapping {
+  provider        varchar [not null]   // 예: axs
+  external_org_id varchar [not null]   // provider 식별자(예: AXS Organization-ID)
+  clinic_id       varchar [not null, ref: > clinic_region_mapping.clinic_id]
+  mapping_version integer [not null, default: 1]
+
+  Note: '(provider, external_org_id) → clinic_id → region. webhook 분배 1차 키. **외부 연동 연결 시 provider별 자가 등록으로 채워짐**(§2.3.5) · Admin 교정(/admin/v1/org-mappings). ClinicID↔Org-ID 이중 저장(복구)'
+  Indexes {
+    (provider, external_org_id) [pk]
+    clinic_id
+  }
+}
+
+// Webhook provider 레지스트리 (유연 수신·발신자 검증·라우팅 키 추출 config) FR-WH-01/02
+Table webhook_provider {
+  provider            varchar [pk]      // 예: axs
+  inbound_route       varchar           // 등록된 수신 경로(유연; 예 /webhooks/axs) — 확정 계약 아님
+  sig_scheme          varchar           // 서명/HMAC 방식(provider 규약)
+  secret_ref          varchar           // 검증 시크릿 참조(KMS)
+  source_ip_allowlist jsonb             // 허용 소스 IP
+  org_id_path         varchar           // payload에서 external_org_id 추출 경로(JSONPath 등)
+  enabled             boolean [not null, default: true]
+
+  Note: 'GW는 payload를 해석하지 않고 본 config로 발신자 검증 + 라우팅 키만 추출(§4.1.3). 경로/형식은 provider 규약 수용'
+}
+
+// Vatech-Target → upstream host 레지스트리 (target-routed proxy, ADR-11)
+Table upstream_registry {
+  target_id        varchar [pk]         // Vatech-Target 논리 ID(예: cleverspace, axs)
+  host             varchar [not null]   // 내부 매핑 host(클라이언트엔 비노출)
+  profile          varchar [not null]   // internal | external
+  egress_allowlist jsonb                // external(C)일 때 egress 제한
+  enabled          boolean [not null, default: true]
+
+  Note: '프록시 라우팅(§4.1.2). 신규 upstream = 1행. external(C) 자격/egress 상세는 connector 연계'
+}
+
+// 분배 채널 (clinic → 어떤 방식으로 client에 전달) FR-WH-05/06
+Table delivery_channel {
+  clinic_id    varchar [pk, ref: - clinic_region_mapping.clinic_id]
+  channel_type varchar [not null]       // mqtt_edge | http_cloud
+  endpoint     varchar                  // http_cloud endpoint 또는 mqtt 토픽 규약
+
+  Note: '분배 마지막 단계 — Edge=MQTT(클리닉 토픽)/Cloud=HTTP push. §7.6.5/6. 클리닉 온보딩 시 생성'
 }

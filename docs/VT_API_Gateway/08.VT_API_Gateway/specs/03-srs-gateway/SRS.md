@@ -358,9 +358,35 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 >
 > **API 호출 경로는 대상 무관 동일**(`…→GW→upstream` target-routed proxy, ADR-11): CleverSpace(B 내부)·AXS(C 외부)는 **같은 경로**이고 trust profile만 다르다(C는 OAuth·egress 추가). 그래서 **§2.3.5(외부 연동)는 CleverSpace에도 그대로 적용되는 일반 proxy 흐름**이며, AXS를 예로 들었을 뿐 GW 동작은 동일하다. CleverSpace presign(경로②)에 **별도 시나리오를 두지 않는 이유는 경로가 달라서가 아니라**, 그 계약이 GW 밖(② One Pager·CleverSpace OpenAPI)에 있고 GW는 verbatim bypass(B)만 하기 때문이다(§4.1.4②).
 
-### 2.3.1 디바이스 온보딩 (enrollment) — FR-ENR-\*
+### 2.3.1 온보딩 — 클리닉/클라이언트 등록 + 디바이스 enrollment — FR-RGN-\* · FR-ENR-\*
 
-신뢰할 수 없는 디바이스를 부트스트랩 신뢰(공장 토큰/OOB 일회 코드)로 검증해 allowlist에 등록하고 자격을 발급한다. nonce challenge로 replay를 막고, device fingerprint를 바인딩한다. 상세는 §7.2.5·§7.2.6, 흐름은 ARD §5.1.
+온보딩은 두 단계다: (1) **클리닉/클라이언트 등록**(최초 설치 시 region 선택 → GW 등록, 매핑 자가 생성) → (2) 그 클리닉의 **디바이스 enrollment**(머신 신뢰 부트스트랩). 분배 매핑(clinic→region·Org-ID)은 **Admin이 일일이 넣지 않고 온보딩 시 자연히 채워지며**, Admin은 잘못된 것의 **교정(override, FR-RGN-04)** 만 한다.
+
+#### (1) 클리닉/클라이언트 온보딩·리전 등록
+
+클리닉 최초 설치 시 **운영자가 OneID로 인증**하고 **클라이언트 UI에서 region을 선택**해 GW에 클리닉을 등록한다. GW는 자가 선언된 region을 **검증(allowlist·정책)** 후 `clinic_region_mapping`·`delivery_channel`에 저장한다(이 클리닉이 어느 region인지·webhook을 어디로 보낼지 확정). **외부 연동(AXS 등)을 켤 때** 그 provider의 Org-ID(Straumann 온보딩에서 발급, §2.3.5·④)를 등록하면 `org_mapping`에 (provider, Org-ID)→clinic이 채워져 webhook 분배 대상이 자연히 결정된다. **등록 주체는 클리닉당 1개인 EzServer의 Console(잠정안)** — 클리닉은 **CleverOne 다수 + EzServer 1개**라 클리닉당 1회 등록이 자연스럽다. **각 CleverOne(PC)에서 하는 대안도 가능하며 주체는 TBD**(③-P-EZ 잠정 / ③-P-CO 대안, Appendix B #17). UI는 제품, GW는 등록 API·검증·저장을 소유. **region은 운영 중에도 EzServer Console에서 변경 가능**(FR-RGN-04·§7.3.4 재동의·감사) — 선택지는 `GET /v1/regions`(§7.3.6)로 제공.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant OP as 클리닉 운영자 (EzServer Console 잠정 · CleverOne 대안)
+    participant OID as OneID
+    participant GW as GW (Onboarding/Region)
+    participant DB as 전역 매핑 DB
+    OP->>OID: 운영자 인증 (OIDC)
+    OID-->>OP: 신원 토큰
+    OP->>GW: 클리닉 등록 — Clinic-ID + 선택한 region (OneID 인증)
+    GW->>GW: region 검증(allowlist·정책) · Clinic-ID 확정
+    GW->>DB: clinic_region_mapping · delivery_channel 저장
+    GW-->>OP: 등록 완료 (이 클리닉 = 해당 region)
+    Note over OP,DB: 외부 연동(AXS) 연결 시 provider별 Org-ID 등록 → org_mapping (§2.3.5·④)
+    Note over GW,DB: 매핑은 온보딩 자가 등록 · Admin은 교정만(override, FR-RGN-04) — 일괄 수기 설정 아님
+    Note over OP,GW: 등록 주체 TBD — EzServer Console(잠정, 클리닉당 1회) vs CleverOne(각 PC) (Appendix B #17)
+```
+
+#### (2) 디바이스 enrollment
+
+신뢰할 수 없는 디바이스를 부트스트랩 신뢰(공장 토큰/OOB 일회 코드)로 검증해 allowlist에 등록하고 자격을 발급한다. nonce challenge로 replay를 막고, device fingerprint를 바인딩한다(등록된 클리닉 소속). 상세는 §7.2.5·§7.2.6, 흐름은 ARD §5.1.
 
 ```mermaid
 sequenceDiagram
@@ -734,7 +760,7 @@ Webhook은 두 면(§4.1.1) 어느 쪽에도 깔끔히 떨어지지 않는 **하
 3. **분배 경로 = REST API로 노출하지 않는다 (내부).**
    - 클라우드 대상(**CleverLab** — 갈래 B 수신처; CleverSpace는 webhook 대상 아님): **받는 쪽 백엔드의 OpenAPI**가 정본(B버킷 성격, 내부망 HTTP push). GW는 그 API를 호출할 뿐 정의하지 않는다.
    - Edge(EzServer): **MQTT QoS1**(§7.6.6) — REST가 아니므로 OpenAPI 대상이 아니다. 토픽 네이밍·payload·QoS·retain 규약은 별도(AsyncAPI 또는 §7.6 표)로 기술한다.
-4. **목적지 결정 = 매핑이다, 송신 host가 아니다.** payload의 식별자(예 AXS Org-ID)를 ClinicID로 매핑(§7.3)해 대상 클리닉/백엔드를 정한다. 매핑 규칙 상세는 ④ Sub-SRS.
+4. **목적지 결정 = 매핑이다, 송신 host가 아니다.** payload의 식별자(예 AXS Org-ID)를 ClinicID로 매핑(`org_mapping` 테이블, §6.4)하고 ClinicID→region(§7.3)→분배 채널(`delivery_channel`)로 대상 client를 정한다. GW는 본문을 해석하지 않고 이 라우팅 키만 본다. 매핑 규칙 상세는 ④ Sub-SRS.
 
 > **정의 산출물 배치**: 수신 엔드포인트는 GW 단일 OpenAPI(`design/openapi/vt-api-gateway.openapi.yaml`)에 다른 GW 고유 API와 **함께** 둔다(code-first 단일 `/api-docs`와 일관). 외부 payload는 `$ref`로 분리 참조, MQTT 분배는 OpenAPI 밖(AsyncAPI/규약 문서). 별도 `webhook.openapi.yaml`로 쪼개지 않는다 — 같은 서비스가 노출하는 한 면이기 때문.
 
@@ -939,7 +965,7 @@ Webhook 전달 보증(QoS1·재시도·DLQ), 업로드 idempotency. MTBF 목표 
 ## 6.4 Logical Database Requirements (데이터베이스 요구사항)
 
 - ERD: [DBML — `vt-api-gateway.dbml`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/dbml/vt-api-gateway.dbml). 신규 테이블의 컬럼·타입·인덱스·relation은 DBML(dev-chain-design)이 SSOT
-- 저장 정보 유형: 디바이스 레지스트리, device/clinic↔region 매핑, 토큰 메타, 정책(OPA 입력), 감사 로그. **PHI 본문은 미저장**(presigned 직결)
+- 저장 정보 유형: 디바이스 레지스트리, device/clinic↔region 매핑, 토큰 메타, 정책(OPA 입력), 감사 로그, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·Vatech-Target upstream(`upstream_registry`)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 본문은 미저장**(presigned 직결)
 - 캐시: Redis(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS)
 - **데이터 토폴로지(멀티 서버·멀티 리전, §2.1.1)**: 리전 내 pod는 **동일 DB·Redis 공유**(무상태 앱 tier). 멀티 리전에서는 **(전역 일관) 라우팅·식별 데이터**(매핑·레지스트리·Org-ID·정책·compat·JWKS) 와 **(리전 로컬) 운영 데이터**(audit·in-flight queue)로 나눈다. 전역 데이터는 어느 리전에서도 같은 답을 내야 하며(soft-state 캐시 + strong-consistency 경로·`mapping_version`), 운영 데이터는 리전 로컬이다. **저장소 구현(전역 DB 단일 vs 리전별 복제)은 gw/1.2 TBD(Appendix B #15)**, 구분 원칙은 고정.
 - 무결성:
@@ -1101,7 +1127,7 @@ FR-ENR-03·04 (replay 방지 nonce 서명, device fingerprint 바인딩).
 
 ## 7.3 리전·라우팅·주권 (P1)
 
-GW는 모든 데이터 경로를 **단일 리전으로 고정**하여 데이터 주권(PHI 리전 밖 미이동)을 보장한다. 라우팅 키는 **device·clinic 양쪽을 동일 resolver가 수용**한다(ADR-10) — 디바이스는 클리닉에 소속되어 같은 리전으로 귀결된다.
+GW는 모든 데이터 경로를 **단일 리전으로 고정**하여 데이터 주권(PHI 리전 밖 미이동)을 보장한다. 라우팅 키는 **device·clinic 양쪽을 동일 resolver가 수용**한다(ADR-10) — 디바이스는 클리닉에 소속되어 같은 리전으로 귀결된다. **리전 매핑은 클리닉 온보딩 시 자가 등록으로 생성**(운영자 OneID 인증·region 선택 → GW 검증, §2.3.1 — 등록 주체는 EzServer Console 잠정·CleverOne 대안, TBD)되고, Org-ID 매핑은 **외부 연동 연결 시 provider별 등록**(§2.3.5)으로 채워진다 — 운영자 일괄 수기 설정이 아니라 온보딩 산물이며, 오설정은 §7.3.4(FR-RGN-04)로 교정한다.
 
 ### 7.3.1 Region Resolver — device/clinic → region (P1)
 
@@ -1124,7 +1150,10 @@ FR-RGN-03 (PHI 리전 밖 미이동). 해석된 리전 외 storage/엔드포인�
 
 ### 7.3.4 리전 재지정·override + audit (P2)
 
-FR-RGN-04 (relocation, 재동의·감사). 운영자가 매핑을 재지정하면 감사 로그(§7.9)와 재동의(consent, FR-COMP-02)를 강제.
+FR-RGN-04 (relocation, 재동의·감사). 매핑 재지정 시 감사 로그(§7.9)·재동의(consent, FR-COMP-02)를 강제한다.
+
+- **운영 중 변경 주체**: 운영자 override + **클리닉 자가 변경(EzServer Console, 운영 중)** 이 모두 본 경로를 탄다 — 클리닉이 접속할 GW 리전을 **운영 중에도 변경** 가능(§2.3.1·§7.3.6·Roadmap §2.4).
+- **부수효과(설계 시 처리)**: (a) **기존 PHI는 옛 리전 storage에 잔류** — 자동 이관 없음(데이터 이관은 별도·v1.0 범위 밖; 옛 객체는 옛 리전 참조). (b) **국경 간이면 재동의·주권 재평가**(FR-COMP-02). (c) **in-flight 업로드/세션**은 발급 주체(CleverSpace/AXS) 측에서 옛 리전으로 완료, 전환은 신규부터. (d) `mapping_version`++ · strong-consistency 전파(§7.3.1/2)로 즉시 반영. → **라우팅·운영은 무중단**이나 데이터 이관·동의는 별도 처리.
 
 ### 7.3.5 GeoDNS 연계 (P1)
 
@@ -1133,6 +1162,14 @@ Route 53 GeoDNS로 Edge(EzServer)를 최근접 GW 리전에 연결한다. 호스
 - **단계화(§2.7.1)**: **v1.0(단일 리전)에서도 클라이언트는 apex(`gw.vatech.com`)만** 호출하고, apex가 그 단일 리전을 가리킨다(GeoDNS 백엔드 1개). **2차(gw/1.2)에 백엔드를 N리전으로 늘리면** apex 라우팅이 자동으로 최근접 리전 분배로 동작 — **클라이언트·헤더 변경 없음**. 즉 GeoDNS는 v1.0부터 *구성상 존재*하되 라우팅 대상이 1개일 뿐이다(멀티리전-ready).
 
 **비목표(Will Not Do)**: 멀티 리전 _동시 운영_(FR-RGN-05)는 **gw/1.2(2차)**. v1.0은 **단일 리전만 배포**한다 — 단 위 단계화대로 멀티리전-ready로 설계한다(§2.7.1).
+
+### 7.3.6 GW 리전 카탈로그·조회 (P1)
+
+GW가 **운영 중인 리전 목록**을 조회 API로 제공한다 — 클라이언트(EzServer Console 등)가 온보딩·운영 중 region 선택지를 표시·선택하기 위함이다.
+
+- **API**: `GET /v1/regions` — 운영 리전 목록(region_id·표시명·endpoint·status[active/draining/planned]). 호스트 §4.5.1.
+- **DB**: `region_catalog` 테이블(§6.4)이 SSOT — v1.0은 **단일 리전 1행**, 2차(gw/1.2)에 N행으로 확장(§2.7.1 멀티리전-ready). `clinic_region_mapping.region`은 이 카탈로그를 참조한다.
+- **상태 전이**: `draining`(신규 등록 차단·기존 유지)·`planned`(목록 비노출) 등으로 점진 추가/회수 지원.
 
 ## 7.4 파일 업로드 — presigned 중계 (P1) — **GW 비발급**
 
@@ -1293,7 +1330,7 @@ FR-CFG-01 (타겟팅 원격 적용).
 
 ### 7.9.1 테넌트·키·디바이스 관리 API (P1)
 
-FR-ADM-01 (CRUD API, MVP 경량). Console(③-C)이 호출. 전체 스키마는 Swagger.
+FR-ADM-01 (CRUD API, MVP 경량). Console(③-C)이 호출. 테넌트·키·디바이스에 더해 **분배 지식 레지스트리 관리** 포함 — Org-ID↔ClinicID 매핑(`/admin/v1/org-mappings`)·webhook provider(`/admin/v1/webhook-providers`)·Vatech-Target upstream(`/admin/v1/upstreams`). 전체 스키마는 Swagger.
 
 ### 7.9.2 운영자 RBAC (P1)
 
@@ -1357,6 +1394,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 14 | 로그 포맷(필드·상관키·레벨) 검토 확정 | §6.3.2 | 인프라(취합·분석) + GW(생성) | 설계 단계 | §6.2·§6.3.2·③-I |
 | 15 | 전역데이터 복제 토폴로지 세부(원본 primary 위치·단일 vs multi-primary·충돌 처리) — "PostgreSQL 원본+리전 복제 / Redis 리전 캐시" 모델·"전역 일관/리전 로컬" 구분 원칙은 고정, 복제 세부만 미정 | §2.1.1·§6.4 | PM/아키텍트 + 인프라 | gw/1.2 설계 | §7.3·§6.4·§6.3.1 |
 | 16 | Webhook 클라우드 분배 — **CleverLab 갈래 B 활성화 여부·시점**(CleverSpace는 대상 아님으로 **확정**). EzServer(갈래 A) 역방향 대상 이벤트 목록 확정 | §2.3.6·§7.6.5·§7.6.6 | PM/제품 + GW(④) | ④ 상세설계 | §7.6·④·§2.1·§2.2 |
+| 17 | 클리닉 GW 등록 주체 — **EzServer Console(잠정, 클리닉당 1회)** vs CleverOne(각 PC). 클리닉=CleverOne 다수+EzServer 1개 | §2.3.1·§7.3 | PM/제품 | ③-P 착수 전 | §2.3.1·③-P-EZ·③-P-CO·Roadmap §4 |
 
 ## 8 Change Management Process
 
@@ -1427,3 +1465,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-23 | 다이어그램 차이 정리(선택 2건) — §2.1에 "control plane context, 데이터plane presigned·minio·리전별CS 생략(§2.3.4/§2.3.5/§4.1.4/§2.1.1 참조)" 주석 추가. Roadmap §2.7.1 '이벤트 라우터' → 'Webhook 이벤트 라우터'(SRS Router/PEP와 명칭 충돌 제거) | (작성자 ID 미지정) |
 | 2026-06-23 | **GW presigned 직접 발급 시나리오 폐기** — 결정: 서명 주체=CleverSpace(②)·AXS(③), GW는 **중계만**. §2.3.4를 'CleverSpace presigned 중계'로 교체, §7.4를 '중계·위임(GW 비발급)'으로 재작성, §4.1.4를 2경로(②③)로 축소(경로①·Region Signer·GW Upload Session/Storage 철회·ADR-03/04 폐기). §2.2 Data Plane 컴포넌트(SES·Presign·Signer) 제거, §1.4 용어·§2.3 액터·§2.4·§2.5·§2.7·§4.4·§5.2·§6.3.3 등 산재 참조 정리. FR-SES는 삭제 않고 'GW 비소유·발급주체(②/④) 소유, GW 중계'로 재분류 | (작성자 ID 미지정) |
 | 2026-06-24 | Webhook 수신 엔드포인트를 **유연·레지스트리 기반**으로 재정의 — `/v1/webhooks/{provider}`를 *확정 계약*에서 **기본 관례(예시)** 로 강등. GW는 스키마·경로를 강제하지 않고 provider 규약을 수용(어떤 인바운드든), **발신자 검증·라우팅만** 하며 payload는 소비자가 해석. §4.1.3·§7.6.1·§2.1.1·§2.3.6·§4.5.1·§4.1.2-5 + API명세·OpenAPI·ARD·Roadmap 반영 | (작성자 ID 미지정) |
+| 2026-06-24 | DB·API를 '분배 지식' 모델로 보강 — DBML에 `org_mapping`(Org-ID↔ClinicID 라우팅 키)·`webhook_provider`(유연 수신 config)·`upstream_registry`(Vatech-Target proxy)·`delivery_channel`(분배 채널) 추가, `webhook_event`에 external_org_id·clinic_id·region 추가. OpenAPI에 `/admin/v1/{org-mappings,webhook-providers,upstreams}` 관리 API + 스키마 추가. API명세 §2 엔터티·SRS §6.4·§7.9.1·§4.1.3-4 반영. (GW=분배자, DB=어디로 분배할지의 지식) | (작성자 ID 미지정) |
+| 2026-06-24 | 분배 매핑은 **온보딩 자가 등록**으로 채움(Admin 교정만) — §2.3.1을 '온보딩(클리닉/클라이언트 등록 + 디바이스 enrollment)'으로 확장(클리닉 등록·리전 자가선택·OneID 인증 다이어그램 추가). OpenAPI `/v1/clinics`·`/v1/clinics/{id}/org-bindings` 신설, `/admin/v1/org-mappings`를 교정(override)으로 강등. §7.3·DBML(crm/org_mapping/delivery_channel)·API명세 반영. region UI=제품(③-P-CO), GW=등록·검증·저장 | (작성자 ID 미지정) |
+| 2026-06-24 | 클리닉 등록 주체·토폴로지 명시 — 클리닉=CleverOne 다수+EzServer 1개. **등록 주체 EzServer Console(잠정)·CleverOne 대안 TBD**(§2.3.1 텍스트·다이어그램·§7.3·Appendix B #17). Roadmap §4·§2.4 정합 | (작성자 ID 미지정) |
+| 2026-06-24 | 운영 중 리전 변경 + 리전 카탈로그 — §7.3.4에 **클리닉 자가 리전 변경(운영 중, EzServer Console)** + 부수효과(기존 PHI 잔류·재동의·in-flight) 명시, §7.3.6 **GW 리전 목록 조회 API**(`GET /v1/regions`) 신설. OpenAPI `GET /v1/regions`·`PUT /v1/clinics/{id}/region` + `Region` 스키마, DBML `region_catalog` 테이블(+region FK), API명세·§6.4·§2.3.1 반영 | (작성자 ID 미지정) |
