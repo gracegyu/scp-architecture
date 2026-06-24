@@ -14,6 +14,7 @@
 | ---- | ---------- | ----- | ----------------------------------------------------------------- |
 | v0.1 | 2026-06-08 | Scott | 인증·인가·보안·컴플라이언스 설계 초안                             |
 | v0.2 | 2026-06-15 | Scott | Roadmap 흡수 — OneID 인증면(2면)·Webhook 검증·버전 호환 위협 추가 |
+| v0.3 | 2026-06-24 | Raymond | §5 위조 Webhook 대응 갱신 — provider별 호스트(Host/SNI)=식별 / HMAC+timestamp=인증 분리, IP allowlist 옵션화. 호스트명≠인증 명시(SRS §7.6.2와 정합) |
 
 출처: [ARD](<VT API Gateway — ARD (아키텍처).md>) (ADR·시퀀스) · [요구사항 명세](<VT API Gateway — 요구사항 명세 (Requirements).md>).
 
@@ -45,7 +46,7 @@ OPA — allowlist · region · scope · connector egress 판단. data classifica
 | 물리 접근 키 추출(의료기기) | 하드웨어(SE/TPM) 보관 — mTLS로는 미해결                                  |
 | 임의 기기 등록              | enrollment token·nonce·fingerprint·이상탐지·allowlist                    |
 | 국경 데이터 유출            | 주권 라우팅 + consent·classification 게이팅                              |
-| 위조된 외부 Webhook 호출    | Webhook Receiver — HMAC 서명·IP allowlist·timestamp·eventId 멱등(ADR-09) |
+| 위조된 외부 Webhook 호출    | Webhook Receiver — **provider별 호스트(Host/SNI)로 식별** + **HMAC 서명·timestamp(인증)**·eventId 멱등; IP allowlist는 옵션·방어심층(ADR-09). **호스트명은 식별이지 인증이 아니다** |
 | 버전 불일치 원인불명 실패   | API Compatibility Gate — Vatech-\* 헤더·well-known·매트릭스(ADR-07)      |
 
 ## 6. 컴플라이언스 (IEC 62304 / ISO 13485)

@@ -214,14 +214,15 @@ Table org_mapping {
 // Webhook provider 레지스트리 (유연 수신·발신자 검증·라우팅 키 추출 config) FR-WH-01/02
 Table webhook_provider {
   provider            varchar [pk]      // 예: axs
-  inbound_route       varchar           // 등록된 수신 경로(유연; 예 /webhooks/axs) — 확정 계약 아님
-  sig_scheme          varchar           // 서명/HMAC 방식(provider 규약)
-  secret_ref          varchar           // 검증 시크릿 참조(KMS)
-  source_ip_allowlist jsonb             // 허용 소스 IP
+  inbound_host        varchar [unique]  // **1차 식별 키** — provider별 전용 수신 호스트(예 axs.webhook.gw.vatech.com). Host/SNI로 발신자 식별(§7.6.1·§7.6.2)
+  inbound_route       varchar           // 등록된 수신 경로(유연; provider 규약 수용) — 확정 계약 아님
+  sig_scheme          varchar           // 서명/HMAC 방식(provider 규약) — **인증(신뢰)** 근거
+  secret_ref          varchar           // 검증 시크릿 참조(KMS) — Host로 선택된 provider의 HMAC 시크릿
+  source_ip_allowlist jsonb             // 허용 소스 IP — **옵션·방어심층**(식별 용도 아님, Host가 대체)
   org_id_path         varchar           // payload에서 external_org_id 추출 경로(JSONPath 등)
   enabled             boolean [not null, default: true]
 
-  Note: 'GW는 payload를 해석하지 않고 본 config로 발신자 검증 + 라우팅 키만 추출(§4.1.3). 경로/형식은 provider 규약 수용'
+  Note: '식별=inbound_host(Host/SNI)로 provider·시크릿 선택, 인증=HMAC+timestamp(호스트명은 식별이지 인증 아님). source_ip는 옵션. GW는 payload 비해석, 본 config로 발신자 검증 + 라우팅 키만 추출(§4.1.3·§7.6.2). 경로/형식은 provider 규약 수용. 와일드카드 DNS 미사용 — provider별 명시 호스트(연단위 추가)'
 }
 
 // Vatech-Target → upstream host 레지스트리 (target-routed proxy, ADR-11)
