@@ -207,9 +207,9 @@ paths:
   /v1/clinics:
     post:
       tags: [ clinics ]
-      summary: 클리닉 등록 — region 자가 선택 (OneID 운영자 인증) (FR-RGN-*)
+      summary: 클리닉 등록 — EzServer 자동·무조건(LMP Clinic-ID 수신 시) (FR-RGN-*)
       description: >-
-        클리닉 최초 설치 시 운영자가 OneID로 인증 후 Clinic-ID + 선택 region 등록. GW가 검증해 clinic_region_mapping·delivery_channel 생성. 수기 일괄설정 아님 — 교정은 §7.3.4(FR-RGN-04).
+        EzServer가 LMP로부터 Clinic-ID를 받는 순간 자동으로 Clinic-ID(+region)를 등록한다 — **외부 연동 여부와 무관하게 무조건**(2026-06-25 결정). GW가 검증해 clinic_region_mapping·delivery_channel 생성. 수기 일괄설정 아님 — 교정은 §7.3.4(FR-RGN-04), region 변경=EzServer Console(§7.3.6).
       requestBody:
         required: true
         content:

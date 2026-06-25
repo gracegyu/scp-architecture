@@ -37,7 +37,7 @@ Table device {
   created_at  bigint
   updated_at  bigint
 
-  Note: 'PHI 없음. lifecycle 상태기계(§7.2)'
+  Note: 'GW 관점의 디바이스 = EzServer(클리닉당 1개 엣지 머신, §1.4 — 물리 영상장비는 EzServer 뒤·GW 비대상). PHI 없음. lifecycle 상태기계(§7.2). 컬럼명 device_* 리네이밍은 LLD'
   Indexes {
     region
     status
@@ -95,7 +95,7 @@ Table clinic_region_mapping {
   region          varchar [not null, ref: > region_catalog.region_id]
   mapping_version integer [not null, default: 1]
 
-  Note: 'device↔clinic↔region 단일 체계(ADR-10). 온보딩 시 클라이언트 자가 등록(region 선택→GW 검증)으로 생성 · Admin은 교정만(FR-RGN-04). 일괄 수기 설정 아님'
+  Note: 'device↔clinic↔region 단일 체계(ADR-10). EzServer가 LMP Clinic-ID 수신 시 자동·무조건 등록(외부 연동 무관)으로 생성 · Admin은 교정만(FR-RGN-04). 일괄 수기 설정 아님'
 }
 
 // GW 운영 리전 카탈로그 (region list API SSOT) — §7.3.6 / FR-RGN-*
