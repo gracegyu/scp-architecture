@@ -5,8 +5,8 @@
     - 라우팅 모델 전환: 3버킷 → ADR-11 target-routed proxy(`Vatech-Target` 유무로 GW고유 API/프록시 구분, verbatim bypass, 신규 upstream=레지스트리 1행)
     - 업로드 모델 변경: GW presigned 비발급 확정 — `/v1/uploads`·리전 Signer 폐기, 발급 주체=CleverSpace(②)·AXS(③), GW는 중계(bypass)만
     - Webhook 재정의: 유연 수신 + provider별 전용 호스트(`{provider}.webhook.gw.vatech.com`)로 발신자 식별(Host/SNI), 식별≠인증(HMAC); 클라우드 수신=CleverLab만(CleverSpace 대상 아님)
-    - 배포·데이터 토폴로지 신설(§2.1.1): 멀티서버·멀티리전, 전역 일관(PostgreSQL 원본 복제)/리전 로컬(Redis 캐시); 1차 단일→2차 멀티리전, apex DNS `gw.vatech.com` 확정
-    - EKS 정합 스택 재정리: 관리형(DB는 PostgreSQL 확정 / 제품은 Aurora 권장·단일 리전은 RDS 가능, 인프라 확정 예정)·ElastiCache·SQS·IoT Core·IRSA; 메시징 2-레그(A=SQS 내부 큐 / B=MQTT 엣지 전달)
+    - 배포·데이터 토폴로지 신설: AWS 프로파일(§2.1.1, 멀티서버·멀티리전·전역 일관 복제/리전 캐시·1차 단일→2차 멀티·apex DNS `gw.vatech.com` 확정) + **비AWS·포터블 프로파일(§2.1.2, AWS 미지원 국가용·단일 리전+멀티 서버)**
+    - 스택 **포터블 우선(벤더 중립)** 정리: 앱은 이식 인터페이스만 의존(PostgreSQL·Redis·AMQP·MQTT·S3·OIDC·OTel·k8s), AWS↔self-host는 배포 프로파일 교체. **SQS·IoT Core·IRSA 비채택**(→RabbitMQ/AMQP·포터블 MQTT(EMQX 등)·Vault+k8s SA). DB=PostgreSQL 확정(AWS=Aurora 권장). 메시징 2-레그 **브로커 분리 권장**(A=RabbitMQ/AMQP 내부 큐 / B=전용 MQTT 엣지·EMQX 등) — 제품 LLD
     - 분배 지식 DB·관리 API 추가(org_mapping·webhook_provider·upstream_registry·delivery_channel·region_catalog) + 온보딩 자가등록(EzServer Console 잠정)
     - 디바이스 토큰 갱신=client_credentials 재발급(refresh token 미발급) 명문화
     - 문서 정합화: ARD(ADR-11·Router/PEP)·개발계획서(EKS 스택)·인증보안·Roadmap 동기화, Redis 키스페이스 카탈로그 신설, design(OpenAPI·DBML) SRS와 정합
