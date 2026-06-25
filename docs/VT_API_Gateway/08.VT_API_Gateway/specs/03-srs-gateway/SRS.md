@@ -180,7 +180,9 @@ flowchart TD
 >
 > **본 도는 control plane(정보 경로) context다** — **대용량 데이터의 presigned 직접 업로드(EzServer/디바이스→storage, GW 미경유)·비-AWS minio·리전별 CS 노드는 생략**했다(Roadmap §2.6은 데이터 plane까지 함께 그림). 데이터 경로는 §2.3.4(경로②)·§2.3.5(경로③)·§4.1.4, 멀티 리전·minio는 §2.1.1·§3.1.2 참조.
 
-### 2.1.1 배포 토폴로지 — 멀티 서버·멀티 리전 (egress·Webhook)
+### 2.1.1 배포 토폴로지 (AWS 프로파일) — 멀티 서버·멀티 리전 (egress·Webhook)
+
+> **이 절은 AWS 프로파일(글로벌 기본)이다.** AWS 미지원 국가의 **비AWS·private(온프렘) 배포는 §2.1.2**(단일 리전+멀티 서버, 독점 서비스 self-host 치환). 두 프로파일은 **동일 코드·동일 k8s 매니페스트**이며 배포 대상만 다르다(§3.1.2 포터빌리티).
 
 GW는 두 축으로 다중화된다: **멀티 서버**(한 리전 내 Multi-AZ K8s 복제본 — HA·수평 확장, §6.3.1) 와 **멀티 리전**(서울·미주 등, gw/1.2·§7.3.5). 두 경우 모두 **inbound는 안정 endpoint 하나**(리전별 LB, GeoDNS 뒤)로 수렴하지만 **outbound(egress)는 NAT EIP 다수**로 나간다 — **inbound IP ≠ egress IP**. GW pod는 **무상태(soft-state, ADR-02)** 라 DB·Redis를 pod마다 두지 않는다 — **같은 리전 pod는 동일 저장소를 공유**하고, 라우팅·식별 데이터는 **전역 일관**으로 둔다(데이터 토폴로지는 다이어그램 아래 참조).
 
@@ -265,6 +267,53 @@ flowchart TB
 
 > 배포·NAT·EIP·GeoDNS 구성은 **인프라(③-I)** 소유이며, 본 SRS는 _GW가 전제하는 요구_ 만 기술한다(§3.1·§7.3.5·§2.6).
 
+### 2.1.2 배포 토폴로지 (비AWS·포터블 프로파일) — 단일 리전·멀티 서버
+
+**AWS를 지원하지 않는 국가**는 타 클라우드·private(온프렘)로 배포한다. **동일 코드·동일 k8s 매니페스트**를 쓰되, AWS 독점 관리형은 **self-host로 치환**한다(§3.1.2 프로파일 매핑). 배포 형태는 **단일 리전 + 멀티 서버 HA**다 — **멀티 리전은 불요**(전역/리전 데이터 구분이 한 리전 내로 단순화). GeoDNS·Aurora Global DB·SQS·IoT Core·IRSA는 쓰지 않는다.
+
+```mermaid
+flowchart TB
+    CLI["EzServer / CleverOne / 디바이스"]
+    DNS["표준 DNS (단일 리전 · GeoDNS 없음)"]
+    CLI --> DNS
+    subgraph K8S["GW 클러스터 (임의 k8s: OpenShift/Rancher/vanilla · 단일 리전 · 멀티 서버 HA)"]
+        ING["Ingress (ingress-nginx + MetalLB/LB)<br/>안정 inbound endpoint 1"]
+        G1["GW pod (무상태)"]
+        G2["GW pod (무상태)"]
+        WHR["Webhook Receiver<br/>provider 호스트로 식별(Host/SNI)·HMAC 인증"]
+        subgraph STORE["self-host 저장소 (pod 공유)"]
+            PG[("PostgreSQL (HA) — SSOT<br/>매핑·레지스트리·정책·감사")]
+            RDS2[("Redis — 캐시·멱등·nonce")]
+            MQ["RabbitMQ (A · 내부 큐 · AMQP)"]
+            MQTT["MQTT 브로커 (B · EMQX/Mosquitto)"]
+            OBJ[("MinIO (S3 호환)<br/>presigned 직결 · GW 미경유")]
+        end
+        VAULT["Vault + k8s ServiceAccount (시크릿)"]
+        OBS["OTel → Prometheus·Grafana·Loki"]
+        ING --> G1
+        ING --> G2
+        G1 --- PG
+        G2 --- PG
+        G1 --- RDS2
+        WHR --- PG
+        WHR --> MQ
+        MQ --> MQTT
+    end
+    DNS --> ING
+    EXT["외부 서비스 (예: AXS) — 연동 필요 시"]
+    G1 ==>|"egress 고정 IP (외부 연동 시)"| EXT
+    EXT ==>|"Webhook (provider 호스트)"| WHR
+    MQTT ==>|"MQTT QoS1 (하행 · 방화벽 뒤 Edge)"| CLI
+```
+
+- **멀티 서버 HA = k8s 프리미티브.** pod 복제 + 공유 self-host 저장소로 HA·수평 확장 — **AWS(EKS) 프로파일과 동일 패턴**이고 관리형만 self-host로 교체했을 뿐이다. EKS-전용 기능에 의존하지 않으므로 임의 k8s에서 동작한다.
+- **단일 리전.** 멀티 리전·GeoDNS·Aurora Global DB 불요. 모든 데이터가 한 리전 내에 있어 "전역 일관/리전 로컬" 구분이 단순화된다(§2.1.1의 복제 토폴로지 불필요).
+- **독점→포터블 치환**: SQS→**RabbitMQ(AMQP)** · IoT Core→**EMQX/Mosquitto(MQTT)** · ElastiCache→**Redis** · Aurora→**PostgreSQL** · S3→**MinIO** · IRSA→**Vault+k8s SA** · GeoDNS→**표준 DNS** · ALB/NLB→**ingress-nginx**.
+- **동작 동일.** Webhook 식별(provider 호스트)·HMAC 인증·매핑 기반 분배(§2.3.6·§7.6), 라우팅(ADR-11), 인증·온보딩은 프로파일과 무관하게 같다 — 앱이 포터블 인터페이스에만 의존하기 때문(§3.1.2).
+- **외부 연동(AXS 등)** 이 필요한 비AWS 배포도 **고정 egress IP**를 유지한다(§7.5.3) — 클러스터 egress를 고정 IP로 핀.
+
+> 본 프로파일은 **국가/고객 제약으로 AWS 사용이 불가할 때** 적용한다. 제품 선택(self-host PostgreSQL/Redis/RabbitMQ/EMQX/MinIO/Vault 버전)·운영은 인프라(③-I) 소유.
+
 ## 2.2 Overall System Configuration (전체 시스템 구성)
 
 ARD §3·§4의 **3-Plane(Control / Data / Integration)** 구성을 따른다. 컴포넌트 도출 기준 = _plane(책임 영역) + 배포 단위_. **본 도는 §2.1과 같은 그림에서 GW 쪽을 확대한 것**이며(외부 시스템은 §2.1과 동일), GW를 **GW core + Webhook ingress** 두 부분으로 나눈다.
@@ -307,7 +356,7 @@ flowchart LR
         end
         subgraph WHTIER["Webhook ingress (단일 수신·분배)"]
             WH["Webhook Receiver<br/>검증·멱등·매핑 분배"]
-            WHQ["내부 큐(A·SQS) + MQTT(B·IoT Core)"]
+            WHQ["내부 큐(A·RabbitMQ/AMQP) + MQTT(B·EMQX 등)"]
             WH --> WHQ
         end
     end
@@ -352,7 +401,7 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 | 액터 | 의미 (출처) |
 | --- | --- |
 | 의료 디바이스 / CleverOne / EzServer(Edge) | 사내·현장 호출자(§2.1·§2.5). EzServer는 방화벽 뒤 Edge |
-| GW | 본 SRS 대상. 내부 컴포넌트(Auth·Region Resolver·Connector·Webhook Receiver·내부 큐(A·SQS)/MQTT(B))는 §2.2 |
+| GW | 본 SRS 대상. 내부 컴포넌트(Auth·Region Resolver·Connector·Webhook Receiver·내부 큐(A·AMQP)/MQTT(B))는 §2.2 |
 | OneID / CleverSpace / CleverLab | 우리 클라우드 백엔드(§2.1) |
 | Straumann AXS / AXS S3 | 외부 플랫폼·외부 스토리지(§2.1, 경로③·§4.1.4) |
 | upstream storage(S3/MinIO) | CleverSpace·AXS 등 **발급 주체 소유** 객체 스토리지 — presigned 직접 업로드 대상(§4.1.4·§7.4) |
@@ -499,7 +548,7 @@ sequenceDiagram
     autonumber
     participant AXS as Straumann AXS
     participant WH as GW (Webhook Receiver)
-    participant Q as 내부 큐(A·SQS)
+    participant Q as 내부 큐(A·RabbitMQ/AMQP)
     participant CL as 클라우드 대상 (CleverLab·갈래B 보류)
     participant EZ as EzServer (Edge, 방화벽 뒤)
     AXS->>WH: POST https://axs.webhook.gw.vatech.com/{provider 규약 경로} (HMAC·timestamp·eventId)
@@ -623,27 +672,46 @@ GW 본체는 신규 구축이나, **기존 클라이언트(구버전 CleverOne/E
 
 ### 3.1.1 Hardware Environment
 
-서비스(클라우드) — AWS EKS(Kubernetes) 노드. 사양 상세는 인프라 담당 IaC. (TBD: 노드 타입·수)
+서비스 — **Kubernetes 노드**(AWS=EKS / 비AWS=임의 k8s, §3.1.2 포터빌리티). 사양 상세는 인프라 담당 IaC. (TBD: 노드 타입·수)
 
 ### 3.1.2 Software Environment
 
 GW가 동작하는 소프트웨어 스택. 근거·전체 표는 [ARD §4.5 기술 스택](<../../VT API Gateway — ARD (아키텍처).md>). 버전 `TBD`는 설계 단계 확정.
 
-> **EKS 정합 원칙.** GW는 **AWS EKS**에서 동작한다(§3.1.1). (1) 상태 저장소·미들웨어는 **클러스터 내 자가운영 대신 AWS 관리형 서비스**를 기본으로 한다 — HA·백업·패치를 관리형에 위임하고 무상태 pod 원칙(ADR-02·§2.1.1)과 정합. (2) pod→AWS 리소스 접근은 **IRSA(IAM Roles for Service Accounts)** 로 부여한다 — 정적 시크릿을 pod에 심지 않는다. (3) **멀티 리전 데이터 토폴로지(§2.1.1)에 맞춤** — 전역 일관 데이터는 리전 간 복제, 리전 로컬 데이터는 리전별 인스턴스. (4) 아래 AWS 관리형은 *기본값*이고, 비AWS·온프렘 리전을 위한 **포터블 대안**(엔진은 동일)을 병기한다 — 제품·버전 확정은 인프라/설계 단계(③-I·Appendix B #12).
+> **포터빌리티·배포 프로파일 원칙(벤더 중립).** GW는 **AWS의 글로벌 배포가 기본**이지만, **AWS를 지원하지 않는 국가는 타 클라우드·private(온프렘)로 배포**할 수 있어야 한다(§2.1.2). 따라서 **특정 클라우드의 독점 서비스 API에 종속되지 않는다** — 앱은 **이식 가능한 인터페이스에만 의존**(PostgreSQL 와이어·Redis·AMQP·MQTT·S3 API·OIDC·OTel·Kubernetes)하고, **관리형(AWS) ↔ self-host(비AWS)는 배포 프로파일 교체**로 다룬다(코드 1벌). **SQS·IoT Core·IRSA 등 동일 대체재가 없는 독점 API는 baseline에서 제외**(SQS→AMQP, IoT Core→포터블 MQTT 브로커, IRSA→k8s ServiceAccount+Vault). 무상태 pod 원칙(ADR-02)·멀티 서버 HA는 **k8s 프리미티브**에 의존하므로 **임의 k8s에서 동일**(EKS는 AWS 관리형 k8s일 뿐). **멀티 리전은 AWS 프로파일 한정(§2.1.1)**, 비AWS는 **단일 리전+멀티 서버**(§2.1.2).
+>
+> **배포 프로파일 매핑 (앱은 왼쪽 인터페이스에만 의존)**
+>
+> | 계층 | 포터블 인터페이스(앱 의존) | AWS 프로파일 | 비AWS·온프렘 프로파일 |
+> | --- | --- | --- | --- |
+> | 오케스트레이션 | Kubernetes | EKS | 임의 k8s(OpenShift·Rancher·vanilla) |
+> | 관계형 DB | PostgreSQL(와이어·SQL) | Aurora/RDS PostgreSQL | self-host PostgreSQL(또는 타 클라우드 관리형) |
+> | 캐시 | Redis | ElastiCache | self-host Redis |
+> | 내부 큐(A) | **AMQP** | Amazon MQ for RabbitMQ | self-host RabbitMQ(k8s) |
+> | 엣지(B) | **MQTT** | 포터블 MQTT 브로커 / Amazon MQ | EMQX·Mosquitto·RabbitMQ-MQTT(k8s) |
+> | 오브젝트 스토리지 | **S3 API** | S3 | MinIO |
+> | 정책 | OPA | OPA | OPA |
+> | 시크릿 | (추상) Vault/KMS | KMS·Secrets Manager(+IRSA) | HashiCorp Vault + k8s SA |
+> | 인그레스/LB | k8s Ingress | AWS LB Controller(ALB/NLB) | ingress-nginx + MetalLB/클라우드 LB |
+> | DNS | DNS | Route 53(멀티리전=GeoDNS) | 표준 DNS(단일 리전) |
+> | 관측 | **OpenTelemetry** | ADOT→CloudWatch/AMP·AMG | OTel→Prometheus·Grafana·Loki |
+> | 이미지 | OCI 레지스트리 | ECR | Harbor 등 |
+>
+> 아래 항목은 "포터블 인터페이스 — AWS 프로파일 / 비AWS 프로파일" 순으로 읽는다. 제품·버전 확정은 인프라/설계 단계(③-I·Appendix B #12).
 
 - **언어 / 런타임**: TypeScript · Node.js LTS (버전 TBD)
 - **프레임워크**: NestJS (DDD 모듈 · TDD)
 - **ORM / 마이그레이션**: **Prisma** (권장 — 아래 근거) · 스키마는 DBML(dev-chain-design)에서 파생
-- **관계형 DB**: **PostgreSQL 15.x(엔진 확정)** — 관리형 제품은 **처음부터 Aurora PostgreSQL 권장**(단일 리전부터; RDS-first는 멀티 리전 시 마이그레이션·재검증 비용으로 비권장). **인프라 비준 TBD(Appendix B #18)** — 비교·근거는 아래 표. 레지스트리·매핑·토큰메타·정책·감사 저장. **전역 일관 데이터의 리전 간 복제는 Aurora Global Database**(§2.1.1). 포터블 대안: 자가호스트 PostgreSQL(비AWS 리전)
-- **캐시**: **Amazon ElastiCache for Redis**(리전별·region-local) — region 매핑 TTL·nonce·rate-limit·idempotency·JWKS. **Redis는 SSOT 아님**(캐시+휘발 상태)이며 **리전 간 교차복제 안 함**(§2.1.1 — 각 리전이 로컬 PostgreSQL 복제본에서 재적재). 키스페이스 정본: `design/redis/redis-keyspace.md`
-- **메시지 큐 (A · 내부 비동기 큐)**: **Amazon SQS(+SNS)** 기본(서버리스·IRSA 접근·DLQ 내장, 순서/dedup 필요 시 **SQS FIFO**) / **Amazon MQ for RabbitMQ**(AMQP 라우팅 의미 필요 시) — **GW 내부** Webhook 비동기 분배·재시도·DLQ(§7.6.3). 엣지 전달(B)과 별개. 큐 제품 확정은 설계 단계(Appendix B #12)
-- **MQTT 브로커 (B · 엣지 전달)**: 방화벽 뒤 Edge(EzServer) 역방향 마지막 구간 push(QoS1·persistent, §7.6.6) — **SQS 비사용**(inbound 불가·지속 구독 필요). 관리형 후보 **AWS IoT Core** / **Amazon MQ**. **운영 주체·제품은 TBD**(§2.6·Appendix B #4)
-- **오브젝트 스토리지**: **S3**(리전) / MinIO(비AWS·온프렘) — presigned 업로드 직결(§7.4, GW 미경유). **발급 주체=CleverSpace(②)/AXS(③), GW 비발급**
-- **정책 엔진**: OPA — 클러스터 내 sidecar/배포(allowlist·region·scope·egress 판단)
-- **시크릿 / 키 관리**: **AWS KMS · Secrets Manager**(enrollment·PKI는 Vault 검토). pod 주입은 **Secrets Store CSI Driver / External Secrets Operator**(IRSA 연계, 정적 시크릿 미내장)
-- **컨테이너 / 오케스트레이션**: Docker · **EKS(Kubernetes)**. 이미지 레지스트리 **Amazon ECR**
-- **인그레스 / 부하분산**: **AWS Load Balancer Controller(ALB/NLB)** — 리전별 **안정 inbound endpoint 1개**(§2.1.1), **Route 53 GeoDNS** 뒤(§7.3.5·§4.5.1). **egress는 NAT Gateway 고정 EIP 집합**(AXS whitelist=합집합, §2.1.1)
-- **관측성**: **OpenTelemetry(ADOT — AWS Distro for OpenTelemetry)** · 구조화 로그(Pino) → **CloudWatch / Amazon Managed Prometheus·Grafana**(취합·분석은 인프라 소유, §6.3.2). PHI·시크릿 미기록(§6.2)
+- **관계형 DB — PostgreSQL 15.x(엔진 확정·포터블)**: AWS=**Aurora PostgreSQL 권장**(멀티 리전; 단일 리전부터, 인프라 비준 TBD Appendix B #18·아래 비교표) / 비AWS=**self-host PostgreSQL**(단일 리전). 레지스트리·매핑·토큰메타·정책·감사 저장. 전역 일관 데이터의 리전 간 복제(AWS)는 **Aurora Global Database**(§2.1.1)
+- **캐시 — Redis(포터블)**: AWS=**ElastiCache for Redis** / 비AWS=**self-host Redis**. region 매핑 TTL·nonce·rate-limit·idempotency·JWKS. **SSOT 아님**(캐시+휘발)·**리전 간 교차복제 안 함**(§2.1.1 — 로컬 PostgreSQL에서 재적재). 키스페이스 정본: `design/redis/redis-keyspace.md`
+- **메시지 큐 (A · 내부 비동기 큐) — AMQP(포터블)**: AWS=**Amazon MQ for RabbitMQ** / 비AWS=**self-host RabbitMQ**. **GW 내부** Webhook 비동기 분배·재시도·DLQ(§7.6.3). **SQS 비채택**(독점 API·포터빌리티). **A·B 브로커 분리 권장**(엣지 B와 별개 레그·전용 브로커 — 제품·운영 주체 **TBD** Appendix B #4)
+- **MQTT 브로커 (B · 엣지 전달) — MQTT(포터블)**: 방화벽 뒤 Edge(EzServer) 역방향 push(QoS1·persistent, §7.6.6). **A와 분리한 전용 MQTT 브로커 권장** — **EMQX·Mosquitto**(임의 k8s) / AWS=Amazon MQ. **IoT Core 비채택**(독점·디바이스 인증 lock-in). (self-host 단순화 시 RabbitMQ-MQTT 플러그인으로 A와 통합 가능하나, **AWS Amazon MQ는 MQTT 플러그인 미노출**이라 프로파일 비대칭 → 분리 권장.) **제품·운영 주체 TBD**(§2.6·Appendix B #4)
+- **오브젝트 스토리지 — S3 API(포터블)**: AWS=**S3** / 비AWS=**MinIO**(S3 호환). presigned 업로드 직결(§7.4, GW 미경유). **발급 주체=CleverSpace(②)/AXS(③), GW 비발급**
+- **정책 엔진**: **OPA**(포터블 — 클러스터 내 sidecar/배포). allowlist·region·scope·egress 판단
+- **시크릿 / 키 관리 — (추상)**: AWS=**KMS·Secrets Manager**(pod 주입은 Secrets Store CSI/External Secrets, **IRSA**) / 비AWS=**HashiCorp Vault + k8s ServiceAccount**. 공통 원칙=**정적 시크릿을 pod 이미지에 심지 않음**(IRSA는 AWS 한정 메커니즘)
+- **컨테이너 / 오케스트레이션 — Kubernetes(포터블)**: AWS=**EKS** / 비AWS=**임의 k8s**(OpenShift·Rancher·vanilla). 멀티 서버 HA는 k8s 프리미티브라 프로파일 무관. 이미지 레지스트리 AWS=**ECR** / 비AWS=**Harbor 등 OCI 레지스트리**
+- **인그레스 / 부하분산 — k8s Ingress(포터블)**: AWS=**AWS LB Controller(ALB/NLB)** + **Route 53**(멀티리전=GeoDNS, §7.3.5·§4.5.1) / 비AWS=**ingress-nginx + MetalLB/클라우드 LB** + 표준 DNS(단일 리전). 리전별 **안정 inbound endpoint 1개**(§2.1.1). 외부 연동 시 **고정 egress IP 집합**(AWS=NAT EIP 합집합; 비AWS=클러스터 egress 고정 IP, §2.1.1·§7.5.3)
+- **관측성 — OpenTelemetry(포터블·벤더 중립)** · 구조화 로그(Pino): AWS=ADOT→**CloudWatch/AMP·AMG** / 비AWS=OTel→**Prometheus·Grafana·Loki**. 취합·분석은 인프라 소유(§6.3.2). PHI·시크릿 미기록(§6.2)
 - **API 문서**: `@nestjs/swagger` code-first (`/api-docs`, §1.7.1)
 
 > **DB 선택 근거.** **엔진=PostgreSQL 확정**, 관리형 제품은 **처음부터 Aurora PostgreSQL 권장**(인프라 비준 TBD, Appendix B #18). (1) **전역 일관 데이터(§2.1.1)**: 매핑·레지스트리·정책·JWKS 등 전역 SSOT의 리전 간 저지연 복제를 **Aurora Global Database**가 내장 제공(빠른 failover·스토리지 자동확장)한다 — RDS 교차 리전 읽기복제(비동기·지연·수동 승격)보다 우수. (2) **전환 비대칭성**: 멀티 리전 전환이 Aurora는 Global Database 활성화(마이그레이션 0)인 반면 RDS-first는 RDS→Aurora 플랫폼 마이그레이션(SSOT 컷오버·재검증·CCB)이라 비대칭적으로 비싸 **단일 리전부터 Aurora**를 쓴다 — 통제 제품(IEC 62304) 재검증·IaC 이중구축 회피. (3) **비용**: Aurora는 동급 인스턴스 기준 RDS 대비 **~20% 내외**(I/O·구성 변동) 높으나 저QPS control plane이라 절대 월 비용 차가 작고, 후속 마이그레이션 비용보다 작다. (4) **호환성**: Aurora PostgreSQL은 PostgreSQL 호환이라 Prisma·스키마·쿼리를 그대로 쓴다(일부 확장·최신 마이너 버전 지연 가능 — 저QPS CRUD라 영향 작음). 비AWS·온프렘 포터블 대안 = 자가호스트 PostgreSQL.
@@ -667,7 +735,7 @@ GW가 동작하는 소프트웨어 스택. 근거·전체 표는 [ARD §4.5 기�
 
 ## 3.2 Product Installation and Configuration (제품 설치 및 설정)
 
-Helm Chart 기반 배포(인프라 담당). 환경 변수는 KMS/Secrets Manager. 상세 TBD.
+Helm Chart 기반 배포(인프라 담당). 시크릿은 **KMS/Secrets Manager(AWS) 또는 Vault(비AWS)** — §3.1.2. 상세 TBD.
 
 ## 3.3 Distribution Environment (배포 환경)
 
@@ -677,7 +745,7 @@ Docker 이미지(컨테이너). 빌드 산출물·태깅 절차 TBD.
 
 ### 3.3.2 Distribution Method
 
-Azure Pipelines CI/CD → 컨테이너 레지스트리 → EKS 배포.
+Azure Pipelines CI/CD → 컨테이너 레지스트리(ECR/Harbor) → k8s 배포(AWS=EKS / 비AWS=임의 k8s, §3.1.2).
 
 ### 3.3.3 Patch/Update Method
 
@@ -829,9 +897,9 @@ GW 본체는 무인 control plane. Admin UI는 **③-C GW Console Sub-SRS**에�
 | Straumann AXS API               | OpenAPI 스냅샷(2026-06-16) | 외부 연동(④)                                                                              |
 | PostgreSQL                      | 15.x                       | 레지스트리·매핑·토큰메타·정책·감사                                                        |
 | Redis                           | TBD                        | region 캐시·nonce·rate-limit·idempotency·JWKS                                             |
-| 메시지 큐 — **A. 내부 큐: SQS 기본**(FIFO=순서/dedup) / Amazon MQ | TBD | **GW 내부** Webhook 비동기 분배·재시도·백오프·DLQ(§7.6.3). 엣지 전달(B)과 **별개 레그**. 선정 기준 전달 보증·포터빌리티(ARD §4.5) |
+| 메시지 큐 — **A. 내부 큐: RabbitMQ/AMQP**(포터블) | TBD | **GW 내부** Webhook 비동기 분배·재시도·백오프·DLQ(§7.6.3). AWS=Amazon MQ / 비AWS=self-host RabbitMQ. **SQS 비채택**(독점 API·포터빌리티). 엣지 전달(B)과 **별개 레그** |
 | 오브젝트 스토리지 (S3 / MinIO)  | TBD                        | 발급 주체(CleverSpace/AXS) storage — presigned 직접 업로드(GW 미경유, §4.1.4·§7.4)            |
-| MQTT Broker — **B. 엣지 전달**: AWS IoT Core 후보 / Amazon MQ | TBD | 방화벽 뒤 Edge(EzServer) 마지막 구간 push(QoS1·persistent, §7.6.6). 내부 큐(A·SQS)와 **별개 레그**·운영주체 TBD(Appendix B #4) |
+| MQTT Broker — **B. 엣지 전달**: 포터블 브로커(EMQX·Mosquitto·RabbitMQ-MQTT) | TBD | 방화벽 뒤 Edge(EzServer) 마지막 구간 push(QoS1·persistent, §7.6.6). **IoT Core 비채택**(독점·lock-in). 내부 큐(A·AMQP)와 **별개 레그**·운영주체 TBD(Appendix B #4) |
 | OPA                             | TBD                        | allowlist·region·scope·egress 판단                                                        |
 
 ## 4.5 Communication Interface (통신 인터페이스)
@@ -1185,6 +1253,8 @@ Route 53 GeoDNS로 Edge(EzServer)를 최근접 GW 리전에 연결한다. 호스
 
 **비목표(Will Not Do)**: 멀티 리전 _동시 운영_(FR-RGN-05)는 **gw/1.2(2차)**. v1.0은 **단일 리전만 배포**한다 — 단 위 단계화대로 멀티리전-ready로 설계한다(§2.7.1).
 
+> **GeoDNS는 AWS 멀티 리전 프로파일 한정**(§2.1.1). **비AWS 배포(§2.1.2)는 단일 리전이라 GeoDNS 불요 — 표준 DNS**로 그 배포의 안정 endpoint를 가리킨다(클라이언트는 해당 배포의 호스트만 사용).
+
 ### 7.3.6 GW 리전 카탈로그·조회 (P1)
 
 GW가 **운영 중인 리전 목록**을 조회 API로 제공한다 — 클라이언트(EzServer Console 등)가 온보딩·운영 중 region 선택지를 표시·선택하기 위함이다.
@@ -1251,11 +1321,11 @@ FR-WH-02 (**식별** = Host/SNI → 레지스트리 `inbound_host`로 provider·
 - **에러**: 미등록 Host/서명 불일치/timestamp 만료 → 401·거부(부정 호출 차단). IP allowlist 사용 시 미허용 → 거부(옵션)
 - **검증 config 관리**: provider별 `inbound_host`·`sig_scheme`·`secret_ref`(KMS 참조)·`source_ip_allowlist`(**CIDR 목록**, 옵션)는 **관리 API `/admin/v1/webhook-providers`(§7.9.1)로 등록·갱신**한다. **편리한 입력 UI(CIDR 검증·일괄 입력 등)는 ③-C Console**(GW는 API 계약까지).
 
-### 7.6.3 빠른 ACK + 내부 큐 (A · SQS) (P1)
+### 7.6.3 빠른 ACK + 내부 큐 (A · AMQP) (P1)
 
-FR-WH-04 (검증 직후 `2xx` 즉시 응답, 처리는 **내부 비동기 큐(A)** 로 위임 — 재시도·백오프·DLQ). **내부 큐 기본 = Amazon SQS**(서버리스·IRSA·DLQ 내장, 순서/dedup 필요 시 SQS FIFO; 대안 Amazon MQ, §3.1.2). 이 큐는 **GW 내부 버퍼**이며, 클리닉으로의 마지막 구간 전달은 §7.6.6 엣지(B·MQTT)가 담당한다 — **둘은 별개 레그**다.
+FR-WH-04 (검증 직후 `2xx` 즉시 응답, 처리는 **내부 비동기 큐(A)** 로 위임 — 재시도·백오프·DLQ). **내부 큐 = AMQP(RabbitMQ, 포터블)** — AWS=Amazon MQ for RabbitMQ / 비AWS=self-host RabbitMQ(§3.1.2). **SQS 비채택**(독점 API·포터빌리티). 이 큐는 **GW 내부 버퍼**이며, 클리닉으로의 마지막 구간 전달은 §7.6.6 엣지(B·MQTT)가 담당한다 — **둘은 별개 레그**다.
 
-- **Side Effect**: 큐(SQS) 적재. 처리 실패 N회 → DLQ 이동·알람
+- **Side Effect**: 큐(RabbitMQ) 적재. 처리 실패 N회 → DLQ 이동·알람
 
 ### 7.6.4 멱등 처리 (P1)
 
@@ -1271,7 +1341,7 @@ FR-WH-05 (클라우드 대상에 내부망 HTTP push, 순서 보존). **클라�
 
 ### 7.6.6 Edge 분배 — EzServer MQTT 역방향 (B) (P1)
 
-FR-WH-06 (EzServer로 **MQTT QoS1·persistent**, 토픽=클리닉 단위). 오프라인 시 버퍼 후 재전달. b1(pilot)에 forward + 역방향 포함(AXS pilot 일정). **엣지 전달(B)에 SQS를 쓰지 않는다** — EzServer는 방화벽 뒤라 inbound 불가하고 **outbound 지속 구독(subscribe)으로 push받아야** 하므로 MQTT가 필수다(SQS 폴링·클리닉별 AWS 자격 배포는 부적합). **관리형 후보 = AWS IoT Core**(방화벽 뒤 엣지·cert 인증·fleet 규모) / Amazon MQ; 브로커 제품·운영 주체 TBD(§3.1.2·Appendix B #4). 내부 큐(A·SQS, §7.6.3)와 **별개 레그**다.
+FR-WH-06 (EzServer로 **MQTT QoS1·persistent**, 토픽=클리닉 단위). 오프라인 시 버퍼 후 재전달. b1(pilot)에 forward + 역방향 포함(AXS pilot 일정). **엣지 전달(B)에 SQS를 쓰지 않는다** — EzServer는 방화벽 뒤라 inbound 불가하고 **outbound 지속 구독(subscribe)으로 push받아야** 하므로 MQTT가 필수다(SQS 폴링·자격 배포는 부적합). **브로커 = A와 분리한 전용 MQTT(EMQX·Mosquitto, 임의 k8s)** — AWS=Amazon MQ. **IoT Core 비채택**(독점·lock-in). **A·B 분리 권장**(AWS Amazon MQ는 MQTT 플러그인 미노출이라 통합 비대칭 — §3.1.2). 제품·운영 주체 **TBD**(§3.1.2·Appendix B #4). 내부 큐(A·AMQP, §7.6.3)와 **별개 레그**다.
 
 **비목표(Will Not Do)**: 본 절은 *수신·분배 프레임*만 정의한다. AXS 이벤트의 _의미·매핑(Org-ID↔ClinicID 등)_ 상세는 ④ Sub-SRS. 경로 B(CleverOne→CleverSpace 직결)는 Webhook 분배로 흡수 후 EOS(§2.8).
 
@@ -1404,7 +1474,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 1 | v1.0 목표 RPS·동시 세션(fleet 규모) | §5.1·5.2 | 인프라(규모 PL 입력) | 설계 착수 전 | §3.1·§7.1·§7.4 |
 | 2 | 공개 엔드포인트 DNS — **apex `gw.vatech.com` 확정(Scott, 2026-06-24)**. 잔여: 인증서·GeoDNS 구성·리전 내부 호스트 실제 등록 + **Webhook provider별 호스트 `{provider}.webhook.gw.vatech.com` 명시 등록**(와일드카드 DNS 미사용, TLS는 `*.webhook…` 와일드카드 cert 가능)(인프라/플랫폼팀) | §4.5.1·§7.6.1·§7.6.2 | 인프라/플랫폼팀 | 배포 구성 착수 전 | §1.7.1·§3.1·§7.3.5·§7.6.1·①②④·③-C |
 | 3 | 경로 B EOS 시점 | §2.8·§7.6 | PM(제품) | ① One Pager 확정 시 | §7.6·① |
-| 4 | MQTT 브로커 운영 주체 | §2.6·§7.6 | 운영조직(미정) | ③-P-EZ 착수 전 | §7.6·ARD |
+| 4 | 메시징 브로커 — **A(AMQP 내부 큐)·B(MQTT 엣지) 분리 권장**(전용 브로커). 제품·운영 주체 미확정. AWS=Amazon MQ(단 **MQTT 플러그인 미노출→B는 전용 MQTT**) / 비AWS=self-host RabbitMQ + EMQX·Mosquitto | §3.1.2·§7.6 | 운영조직/인프라(미정) | ③-P-EZ 착수 전 | §7.6·§3.1.2·ARD |
 | 5 | 감사·consent 보존 기간 | §6.4·§7.9.3·§7.9.5 | 품질/법무 | baseline 전 | §6.5 |
 | 6 | OpenAPI·DBML (`docs/specs/design/`) | §1.5·§4.1·§6.4 | GW(본인) | dev-chain-design 작성 후 | §7 전반 |
 | 7 | ~~멀티 Region·멀티클라우드 gw/1.0 흡수 여부~~ → **결정(2026-06-23): 1차 단일 리전 / 2차(gw/1.2) 멀티 리전, v1.0은 멀티리전-ready 설계**(§2.7.1·Appendix A). 잔여: 멀티 리전 *구축 시점*만 일정에 따라 | §2.7.1 | PM/아키텍트 | 2차 일정 | §7.3·§7.4·§4.5.1 |
@@ -1509,3 +1579,5 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | DB 권장 **강화 — "처음부터 Aurora PostgreSQL"** — 전환 비대칭성(Aurora 단일→글로벌=마이그레이션 0 vs RDS→Aurora=플랫폼 마이그레이션·재검증) + 비용 델타 **~20%·저QPS라 작음**·통제 제품 재검증/IaC 이중구축 회피를 §3.1.2 근거(3)(4)·비교표(전환·비용 행)·결론·DB bullet·§2.1.1 캡션·Appendix B #18·개발계획서 §5에 반영. RDS-first 비권장 명시(인프라 비준은 유지) | (작성자 ID 미지정) |
 | 2026-06-25 | 문구 정리 — §3.1.2 DB 근거 노트에서 슬로건성 문장("PostgreSQL을 안 쓰는 게 아니라…") 제거하고 결정·권장·근거(1~4)만 유지. §2.1.1 단일 리전 안내 문장의 캐주얼 톤 정리. (불필요 설명 제거, 의미 변경 없음) | (작성자 ID 미지정) |
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
+| 2026-06-25 | 메시징 브로커 **A·B 분리 권장** 명시 — A(AMQP 내부 큐)·B(MQTT 엣지)를 전용 브로커로 분리 권장(AWS Amazon MQ가 MQTT 플러그인 미노출→통합 비대칭). §3.1.2 큐·MQTT 항목·§7.6.6·Appendix B #4(통합)에 반영, 제품·운영 주체 TBD 유지 | (작성자 ID 미지정) |
+| 2026-06-25 | **포터빌리티(벤더 중립) 전면 반영 — AWS 종속 제거** — AWS 미지원 국가의 비AWS·private 배포 요건. §3.1.2 'EKS 정합 원칙'→**'포터빌리티·배포 프로파일 원칙' + 매핑표**(앱은 포터블 인터페이스에만 의존, AWS↔self-host 프로파일 교체). **§2.1.2 비AWS·포터블 배포 다이어그램 신설**(단일 리전+멀티 서버, k8s HA). 독점 API 제외: **SQS→RabbitMQ/AMQP**(§7.6.3·§4.4·§2.2·§2.3·§2.3.6), **IoT Core→포터블 MQTT(EMQX 등)**(§7.6.6·§4.4·§2.2), **IRSA→Vault+k8s SA**(§3.1.2). EKS→임의 k8s, DB/캐시/관측/인그레스/DNS도 프로파일화. §2.1.1=AWS 프로파일 명시·§3.1.1·§3.3·§7.3.5(GeoDNS=AWS 한정)·개발계획서 §5 정합. 비AWS=단일 리전(멀티 리전 불요), 멀티 서버 HA는 k8s라 프로파일 무관 | (작성자 ID 미지정) |
