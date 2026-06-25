@@ -20,10 +20,13 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.9 | 2026-06-15 | Scott | Webhook Edge MQTT 역방향(WH-06)을 b1(v1.0)로 당김 — AXS pilot 일정 반영(ESIP-23) | Draft |
 | v0.10 | 2026-06-23 | (SRS 동기화) | **ADR-11(라우팅 모델: target-routed proxy)** 추가 + **Router / PEP** 컴포넌트 등록 — SRS §4.1.1·§4.1.2·§2.2와 동기화(모든 upstream 동일 proxy 경로, 차이는 trust profile). CCB 확인 대기 | Draft |
 | v0.11 | 2026-06-23 | (SRS 동기화) | **ADR-03(리전 signer)·ADR-04(Upload Session) 철회** — GW는 presigned 직접 발급/세션/storage 비소유, 발급=CleverSpace/AXS·GW 중계. §5.3·컴포넌트·Data plane 정리(SRS §4.1.4·§7.4와 동기화) | Draft |
+| v0.12 | 2026-06-25 | (SRS 동기화) | **디바이스=EzServer 정의 추가(Scott 확정)** — §1 개요에 "GW 관점 디바이스=EzServer(물리 HW는 EzServer 뒤·GW 비대상)" 용어 노트. ARD의 디바이스 머신 인증·enrollment·device→region·§5 시퀀스는 모두 EzServer로 읽음(SRS §1.4와 정합) | Draft |
 
 ## 1. 아키텍처 개요
 
 3-Plane(Control / Data / Integration) — 상세는 PRD §4 참조. 본 문서는 그 위의 아키텍처 결정·컴포넌트·시퀀스를 확정한다.
+
+> **용어(확정 2026-06-25): GW 관점의 "디바이스" = EzServer**(클리닉당 1개 엣지 머신). 본 ARD의 디바이스 머신 인증·enrollment·Device Registry·device→region·시퀀스의 "디바이스"는 모두 **EzServer**를 가리킨다. 물리 영상장비(CT/Xray)는 EzServer 뒤편이며 **GW 비대상**(GW에 직접 연결하지 않음 — §5 시퀀스의 "디바이스→GW"는 "EzServer→GW"로 읽는다). SRS §1.4와 정합.
 
 ## 2. 주요 아키텍처 결정 (ADR)
 
