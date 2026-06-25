@@ -1395,10 +1395,10 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-15 | 인증 2면 | 디바이스 머신 + OneID 공존 | 단일 인증면 | 무인/사람 신원 성질 다름 | Scott | ADR-08 |
 | 2026-06-15 | Webhook | 단일 수신·분배(HTTP/MQTT) | 서비스별 개별 수신 | 검증 분산·Edge inbound 불가 | Scott | ADR-09 |
 | 2026-06-15 | 라우팅 키 | device↔clinic↔region 통합 | 이원화 | 동일 리전 귀결 | Scott | ADR-10 |
-| 2026-06-23 | 라우팅 모델 | target-routed proxy(`Vatech-Target` 유무로 GW-own/proxy 구분, proxy는 verbatim) | 경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream | upstream 무한 확장을 설정(레지스트리 1행) 기반으로 — 코드·경로 변경 0(NFR-SCL), 내부·외부 단일 규칙 | PM/아키텍트(CCB 확인 대기) | ADR-11 |
+| 2026-06-23 | 라우팅 모델 | target-routed proxy(`Vatech-Target` 유무로 GW-own/proxy 구분, proxy는 verbatim) | 경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream | upstream 무한 확장을 설정(레지스트리 1행) 기반으로 — 코드·경로 변경 0(NFR-SCL), 내부·외부 단일 규칙 | PM/아키텍트(**CCB 승인 2026-06-25**) | ADR-11 |
 | 2026-06-23 | 리전 구축 단계화 | **1차 단일 리전(gw/1.0) → 2차 멀티 리전(gw/1.2)**, 단 v1.0부터 멀티리전-ready 설계 | 처음부터 멀티 리전 / 단일 리전 고정(확장 시 재작업) | 리스크·비용 낮추되 2차 확장을 재설계 없이(설정·배포 증분). 기존 "gw/1.0 흡수 여부 TBD"(B#7) 종결 | PM/아키텍트 | §2.7.1·§4.5.1·§7.3.5 |
 
-> 전체 ADR(01~11)·근거는 ARD §2. 본 표는 SRS 차원 핵심 결정 요약. **ADR-11은 ARD §2에 기재 완료(v0.10) · CCB 확인 대기**(Appendix B #13).
+> 전체 ADR(01~11)·근거는 ARD §2. 본 표는 SRS 차원 핵심 결정 요약. **ADR-11은 ARD §2에 기재(v0.10) · CCB 승인 완료(2026-06-25)**(Appendix B #13).
 
 ## Appendix B. TBD·미결 항목 추적
 
@@ -1416,6 +1416,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 21 | GW Console 사용자 역할 | **확정(2026-06-25): Admin + C/S**(C/S=설치 후 클리닉 등록 확인). 화면·세부 권한은 ③-C Console Sub-SRS 위임 | §7.9.2·§2.3.1 |
 | 22 | 업로드·presigned 모델 | **확정(2026-06-23): GW 비발급·중계만**(발급=CleverSpace②/AXS③). `/v1/uploads`·리전 Signer·Upload Session 폐기 | §4.1.4·§7.4·ADR-03/04 |
 | 23 | DNS apex 호스트명 | **확정(Scott, 2026-06-24): `gw.vatech.com`**(클라이언트 유일 호스트, GeoDNS apex) | §4.5.1 |
+| 13 | 라우팅 모델 ADR-11 (target-routed proxy) | **CCB 승인 완료(2026-06-25)** · ARD 기재(v0.10). 잔여(구현)=클라이언트 `Vatech-Target` 부착(③-P-\*, 결정 아님) | §4.1.1·§4.1.2·§7.5·Appendix A·ARD §2 |
 
 ### B-2. 미결 (열린 TBD — baseline 전/설계 단계에 닫을 항목)
 
@@ -1431,7 +1432,6 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 9 | RTO/RPO·유지보수 윈도우 | §6.3.1·§6.8 | 인프라 | 설계 단계 | §6 |
 | 11 | 인증(IEC 62304/13485) 일정·준비물 | §6.13·§6.14 | 품질/마케팅 | 추후 | — |
 | 12 | 인프라·런타임 상세 버전(도구·노드) | §3·§4.4 | 인프라/개발 | 설계 단계 | §3 |
-| 13 | ADR-11 — **ARD 기재 완료(v0.10)**; 잔여 **CCB 승인** + 클라이언트 `Vatech-Target` 부착 적응(③-P-\*) | §4.1.1·§4.1.2·§4.1.4·§7.5·Appendix A·ARD §2 | PM(CCB 승인)·제품팀(헤더) | baseline 전 | §4.1·§7.5·OpenAPI·③-P-CS/CO/EZ·① |
 | 14 | 로그 포맷(필드·상관키·레벨) 검토 확정 | §6.3.2 | 인프라(취합·분석)+GW(생성) | 설계 단계 | §6.2·§6.3.2·③-I |
 | 15 | 전역데이터 복제 토폴로지 세부(primary 위치·단일 vs multi-primary·충돌) — "PostgreSQL 원본+리전 복제 / Redis 캐시" 모델·구분 원칙은 고정, 복제 세부만 미정 | §2.1.1·§6.4 | PM/아키텍트+인프라 | gw/1.2 설계 | §7.3·§6.4·§6.3.1 |
 | 16 | Webhook 클라우드 분배 — **CleverLab 갈래 B 활성화 여부·시점**(CleverSpace=대상 아님 확정). EzServer(갈래 A) 역방향 대상 이벤트 목록 | §2.3.6·§7.6.5·§7.6.6 | PM/제품+GW(④) | ④ 상세설계 | §7.6·④·§2.1·§2.2 |
@@ -1526,6 +1526,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | DB 권장 **강화 — "처음부터 Aurora PostgreSQL"** — 전환 비대칭성(Aurora 단일→글로벌=마이그레이션 0 vs RDS→Aurora=플랫폼 마이그레이션·재검증) + 비용 델타 **~20%·저QPS라 작음**·통제 제품 재검증/IaC 이중구축 회피를 §3.1.2 근거(3)(4)·비교표(전환·비용 행)·결론·DB bullet·§2.1.1 캡션·Appendix B #18·개발계획서 §5에 반영. RDS-first 비권장 명시(인프라 비준은 유지) | (작성자 ID 미지정) |
 | 2026-06-25 | 문구 정리 — §3.1.2 DB 근거 노트에서 슬로건성 문장("PostgreSQL을 안 쓰는 게 아니라…") 제거하고 결정·권장·근거(1~4)만 유지. §2.1.1 단일 리전 안내 문장의 캐주얼 톤 정리. (불필요 설명 제거, 의미 변경 없음) | (작성자 ID 미지정) |
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
+| 2026-06-25 | **ADR-11 CCB 승인 완료(오늘 회의)** — Appendix A 주석·결정 로그 행·Appendix B #13을 'CCB 승인(2026-06-25)'으로 갱신, #13을 B-2(미결)→B-1(완료)로 이동. 잔여=클라이언트 `Vatech-Target` 부착(구현·③-P, 결정 아님). ARD ADR-11 행도 'CCB 승인' | (작성자 ID 미지정) |
 | 2026-06-25 | Appendix B 재구성 — **B-1 완료·확정 / B-2 미결** 2구획 분리(번호 보존). 완료=#7·#10·#17·**#19(디바이스=EzServer)**·**#20(GW AWS 전용)**·**#21(Console Admin+C/S)**·#22(업로드 GW 비발급)·#23(apex DNS) 신설/이동. 미결=#1~#6·#8·#9·#11~#16·#18(11건) | (작성자 ID 미지정) |
 | 2026-06-25 | **디바이스 = EzServer 확정(Scott, Agenda #1 종결)** — "GW 관점의 '디바이스'는 물리 HW가 아니라 EzServer"로 통일. §1.4 용어 정의 추가, §2.3.1(2)/§2.3.2/§7.1.1/§7.2 헤딩·본문·시퀀스 participant(의료 디바이스→EzServer)·§2.1·§2.2 다이어그램(디바이스 직접 연결 `DEV→GW`/`DEV→AUTH` 제거 → `DEV→EZ`, 물리장비=EzServer 뒤·GW 비대상; Device Registry→EzServer Registry)·ADR-08·actor표(§2.3/§2.5/§4) 갱신. DBML `device` 테이블=EzServer 주석(컬럼 리네이밍은 LLD) | (작성자 ID 미지정) |
 | 2026-06-25 | **C/S 등록 확인 + Console 사용자 역할(회의 결정)** — 자동 등록 후 C/S(현장 설치 담당)가 GW Console에서 클리닉 정상 등록을 확인. Console 사용자=**Admin + C/S**(§7.9.2), 확인 UI·역할 세부 권한은 **③-C Console Sub-SRS**. §2.3.1에 C/S 확인 노트 추가 | (작성자 ID 미지정) |
