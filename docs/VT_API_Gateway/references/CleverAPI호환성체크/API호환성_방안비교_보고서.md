@@ -4,6 +4,8 @@
 과제: VKS 요청 — CleverOne·EzServer·CleverSpace API 호환성 검토 (Thomas)  
 근거: VKS(과제 요청·현황·논의사항), 수집 문서(OneID/EzCloud RestApi CSV, CleverSpace v1.3 기능정의서·MMI ErrorCode, EzServer PMS Integration SRS MD), 4개 제품 소스코드, EzServer Releases CSV, PLAN-1191/EZSV-2506 Jira XML
 
+> **수집 문서 위치(2026-06-25 이동)**: 본 보고서의 근거 CSV/MD는 제품별로 이관됨 — CleverSpace(=EzCloud) `../CleverSpace/` · OneID `../OneID/` · EzServer(PMS·Releases) `../EzServer/`. (CleverSpace = EzCloud 개명, 동일 제품)
+
 ---
 
 ## Executive Summary

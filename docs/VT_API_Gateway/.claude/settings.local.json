@@ -16,7 +16,21 @@
       "Bash(awk 'NR>=390 && /CleverSpace/ && /[Ww]ebhook|이벤트|수신/ {print NR\": \"$0}' specs/03-srs-gateway/SRS.md)",
       "Bash(awk 'NR>=390 && /CleverOne/ && /온보딩|등록/ {print NR\": \"$0}' specs/03-srs-gateway/SRS.md)",
       "Bash(grep -v \":0$\")",
-      "Bash(awk '/### 7.9/{f=1} f&&/7\\\\.9\\\\.1|7\\\\.9\\\\.2/{print NR\": \"$0}' specs/03-srs-gateway/SRS.md)"
+      "Bash(awk '/### 7.9/{f=1} f&&/7\\\\.9\\\\.1|7\\\\.9\\\\.2/{print NR\": \"$0}' specs/03-srs-gateway/SRS.md)",
+      "Bash(grep -nE \"^#{1,6} \" \"Confidential_CleverOne_v0.9_srs.md\")",
+      "Bash(awk -F: '$1>2423')",
+      "Bash(awk 'NR<301' \"Confidential_CleverOne_v0.9_srs.md\")",
+      "Bash(grep -cE '^```' \"Confidential_CleverOne_v0.9_srs.md\")",
+      "Bash(ls -1 CleverAPI호환성체크/)",
+      "Bash(ls -1 \"CleverAPI호환성체크/docs/\")",
+      "Bash(ls -1 .)",
+      "Bash(ls -1d CleverSpace)",
+      "Bash(cp \"Confidential_EzCloud_v1.0_SRS.md\" \"Confidential_EzCloud_v1.0_SRS.md.bak\")",
+      "Bash(sed 's#^p=\"Confidential_CleverOne_v0.9_srs.md\"#import sys; p=sys.argv[1]#' /tmp/convert_cleverone.py)",
+      "Bash(python3 /tmp/convert_srs.py \"Confidential_EzCloud_v1.0_SRS.md\")",
+      "Bash(awk '/On-prem Imaging Solution/{s=NR} s&&NR>=s-2 && NR<=s+40' \"Confidential_EzCloud_v1.0_SRS.md.bak\")",
+      "Bash(xargs -n1 basename)",
+      "Read(//Users/gracegyu/Documents/Azure/common/**)"
     ]
   }
 }
