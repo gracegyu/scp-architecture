@@ -1,10 +1,10 @@
 # VT API Gateway — Claude Code 작업 가이드
 
-> **대상**: Claude Code (또는 Cursor 등 AI 코딩 에이전트)가 VT API Gateway 스펙·설계 작업을 **이어서** 수행할 때 읽는 핸드오프 문서.
+> **대상**: Claude Code(개발 표준 AI 에이전트)가 VT API Gateway 스펙·설계 작업을 **이어서** 수행할 때 읽는 핸드오프 문서.
 >
-> **실행 컨텍스트**: Claude Code는 **`scp-architecture/docs/VT_API_Gateway/`** 를 작업 루트로 두고 실행한다.
+> **실행 컨텍스트**: **`scp-architecture/docs/VT_API_Gateway/`** 를 작업 루트로 둔다.
 >
-> **갱신**: 2026-06-22 · 워크스페이스 재구성(08 + references + templates) · ③ SRS §4.1.4 업로드 경로 반영 완료.
+> **갱신**: 2026-06-25 · 참조 경로를 [참조 카탈로그](<참조-카탈로그.md>)로 일원화 · 주요 결정 현행화(ADR-11·GW presigned 비발급·webhook provider 호스트·AWS 전용·디바이스=EzServer). **기술 세부 정본은 항상 SRS** — 본 가이드는 요약·핸드오프.
 
 ---
 
@@ -23,32 +23,13 @@ AI는 **SSOT를 수정**하고, Scott 문서는 **추출·참조**만 한다. �
 
 ---
 
-## 2. Multi-root 워크스페이스 (`scp.code-workspace`)
+## 2. Multi-root 워크스페이스 · 레포
 
-Claude Code / VS Code는 아래 워크스페이스로 여러 레포를 동시에 연다.
-
-**파일**: `~/Documents/Azure/scp.code-workspace`
-
-| 워크스페이스 폴더 | 로컬 절대 경로 | VT GW 작업에서의 역할 |
-| --- | --- | --- |
-| `munto-dev-assistant` | `~/Documents/GitMunto/munto-dev-assistant` | 스펙 작성·리뷰·dev-chain **방법론·스킬** (문토 제품 무관, 프로세스 재사용) |
-| `es-toolkit` | `~/Documents/Azure/es-toolkit` | Vatech **개발 표준** — `/es-*` Claude 명령, Jira·Confluence·PR·TDD |
-| `scp-architecture` | `~/Documents/Azure/scp-architecture` | **스펙 초안 작성** · Scott 통제 문서 · AXS/CleverAPI 참고 자료 |
-| `vt-api-gateway` | `~/Documents/Azure/vt-api-gateway` | GW **구현 레포** · SRS/design **공식 SSOT** (Azure PR) |
-| `vt-api-gateway-console` | `~/Documents/Azure/vt-api-gateway-console` | GW Console (미생성·placeholder) |
-| `vt-api-gateway-infra` | `~/Documents/Azure/vt-api-gateway-infra` | GW IaC (미생성·인프라 담당) |
-| `oneid` | `~/Documents/Azure/oneid` | OIDC 인증 연계 참고 |
-| `ezcloud` | `~/Documents/Azure/ezcloud` | CleverSpace 백엔드 참고 |
-| `cleveronegroup` | `~/Documents/Azure/cleveronegroup` | CleverOne 클라이언트 참고 |
-| `ezserver_pms_integration` | `~/Documents/Azure/ezserver_pms_integration` | EzServer PMS·AXS 연동 참고 |
-| `ESLinkageCloudPlatform` | `~/Documents/Azure/common/ESLinkageCloudPlatform` | ES Linkage 공용 |
-| 기타 | scp-report-poc, ezorthoweb, scp-section-poc 등 | GW 직접 작업과 무관 — 필요 시만 |
-
-> **경로 주의**: 워크스페이스는 `../GitMunto/munto-dev-assistant`처럼 **상대 경로**로 `Azure/` 옆 `GitMunto/`를 참조한다. 로컬 clone 위치가 다르면 폴더를 맞추거나 워크스페이스를 수정한다.
+Claude Code / VS Code는 `~/Documents/Azure/scp.code-workspace`로 여러 레포를 동시에 연다. **워크스페이스 폴더↔로컬 경로·레포 카탈로그(용도·clone 상태)는 [참조 카탈로그 §1·§2](<참조-카탈로그.md>)** 가 단일 정본이다(여기서 중복 표기하지 않는다).
 
 ---
 
-## 3. 현재 진행 상태 (2026-06-22)
+## 3. 현재 진행 상태 (2026-06-25)
 
 ### 3.1 Case D — 통합 실행 범위
 
@@ -56,9 +37,9 @@ PRD §12.1 기준 **케이스 D**: ③ SRS + ③-C Sub-SRS + ④ Sub-SRS + desig
 
 | 스펙 | 로컬 초안 | 상태 | 공식 등록처 |
 | --- | --- | --- | --- |
-| **③ GW SRS** | `08.VT_API_Gateway/specs/03-srs-gateway/SRS.md` | **작성 중** — §1~§7 · §4.1.4 업로드 경로 반영 | `vt-api-gateway/docs/specs/SRS.md` |
-| **design OpenAPI** | `08.VT_API_Gateway/specs/03-srs-gateway/design/openapi/` | 초안 — 경로①·③ 주석 반영 | `vt-api-gateway/docs/specs/design/openapi/` |
-| **design DBML** | `08.VT_API_Gateway/specs/03-srs-gateway/design/dbml/` | 초안(13 엔터티 시드) | `vt-api-gateway/docs/specs/design/dbml/` |
+| **③ GW SRS** | `08.VT_API_Gateway/specs/03-srs-gateway/SRS.md` | **작성 중**(§1~§7·baseline 전) — ADR-11·presigned 중계·webhook·AWS 정합 반영 | `vt-api-gateway/docs/specs/SRS.md` |
+| **design OpenAPI** | `08.VT_API_Gateway/specs/03-srs-gateway/design/openapi/` | 초안 — presigned 중계(②③)·라우팅(ADR-11)·webhook provider 호스트 반영 | `vt-api-gateway/docs/specs/design/openapi/` |
+| **design DBML** | `08.VT_API_Gateway/specs/03-srs-gateway/design/dbml/` | 초안 — 분배 레지스트리·region_catalog 포함 | `vt-api-gateway/docs/specs/design/dbml/` |
 | **design well-known** | `08.VT_API_Gateway/specs/03-srs-gateway/design/well-known/` | sample JSON + README | (③ SRS §7.7.2) |
 | **③-C Console Sub-SRS** | `08.VT_API_Gateway/specs/03c-subsrs-gw-console/` | 미작성 | `vt-api-gateway-console` 또는 gateway `docs/` |
 | **④ AXS Sub-SRS** | `08.VT_API_Gateway/specs/04-subsrs-straumann-axs/` | 미작성 (③ baseline 후) | `vt-api-gateway/docs/specs/04-subsrs-straumann-axs/` |
@@ -70,18 +51,16 @@ PRD §12.1 기준 **케이스 D**: ③ SRS + ③-C Sub-SRS + ④ Sub-SRS + desig
 - `vt-api-gateway`에 placeholder 구조·브랜치 `docs/specs-initial-structure` PR이 **리뷰 대기**일 수 있음.
 - **규칙**: 초안 완료(baseline 직전) → Azure로 **PR 이관** → `scp-architecture` 쪽은 **URL 포인터로 교체**(복제·symlink 금지). 상세: [`08.VT_API_Gateway/specs/README.md`](08.VT_API_Gateway/specs/README.md).
 
-### 3.3 최근 Cursor 세션에서 확정·반영한 내용
+### 3.3 최근 확정 (2026-06, 정본=SRS Appendix A·B·변경이력)
 
-**업로드·Presigned 세 경로** (SRS §4.1.4 — 오해 방지 핵심):
+이번 주 회의·리뷰로 확정된 핵심(상세·근거는 SRS):
 
-| # | 대상 | control API | GW 역할 | OpenAPI 정본 |
-| --- | --- | --- | --- | --- |
-| **①** | 디바이스 → 우리 리전 S3 | `POST /v1/uploads`… (A버킷) | Region Signer orchestration | GW OpenAPI |
-| **②** | CleverSpace presign | B bypass (`/cs/*` 등) | body 그대로 통과 | CleverSpace OpenAPI |
-| **③** | AXS presign/파일 | C bypass (`connectors/axs/*`) | OAuth2 + bypass | ④ Sub-SRS + AXS 스냅샷 |
-
-- **data plane 공통**: presigned URL 수신 후 Client → storage **직접 업로드** (GW 미경유).
-- **`/v1/uploads`는 CleverSpace/AXS presign 통합·변환 API가 아님.**
+- **라우팅 ADR-11(CCB 승인 2026-06-25)** — `Vatech-Target` 유무로 GW 고유 API vs 프록시(verbatim bypass), upstream=레지스트리 1행.
+- **업로드 = GW presigned 비발급·중계만** — 발급=CleverSpace(②)/AXS(③). `/v1/uploads`·리전 Signer·Upload Session 폐기.
+- **Webhook 유연 수신 + provider별 전용 호스트**(`{provider}.webhook.gw.vatech.com`)로 발신자 식별(Host/SNI), 식별≠인증(HMAC). 클라우드 수신=CleverLab만(CleverSpace 대상 아님).
+- **GW = AWS 전용 배포**(AWS 미지원국도 가까운 AWS GW 접속·storage=Provider MinIO 중계). 스택: EKS·Aurora PostgreSQL(권장)·ElastiCache·SQS(A 내부 큐)·MQTT(B 엣지·IoT Core/Amazon MQ).
+- **디바이스 = EzServer**(GW 관점) — 물리 영상장비는 EzServer 뒤·GW 비대상. 클리닉 등록=EzServer가 LMP Clinic-ID 수신 시 자동·무조건.
+- **Console 사용자 = Admin + C/S**(C/S=등록 확인) — 세부는 ③-C Sub-SRS.
 
 ---
 
@@ -109,20 +88,7 @@ docs/VT_API_Gateway/                         ← Claude Code 실행 루트
     └── OnePager_v1.0_template.md
 ```
 
-### 4.1 references
-
-| 경로 | 용도 |
-| --- | --- |
-| [`references/CleverAPI호환성체크/`](references/CleverAPI호환성체크/) | 호환성 보고서 · CleverSpace/EzCloud/OneID CSV |
-| [`references/Straumann연동/`](references/Straumann연동/) | AXS 분석·회의 |
-| [`references/Straumann연동/AXS_docs/openapi/`](references/Straumann연동/AXS_docs/openapi/) | AXS OpenAPI 5종 YAML |
-
-### 4.2 templates
-
-| 경로 | 용도 |
-| --- | --- |
-| [`templates/SRS_v3.3_template.md`](templates/SRS_v3.3_template.md) | ③·Sub-SRS |
-| [`templates/OnePager_v1.0_template.md`](templates/OnePager_v1.0_template.md) | ①② One Pager |
+> `references/`(입력 자료)·`templates/`(작성 틀)의 상세 경로·상태는 [참조 카탈로그 §3](<참조-카탈로그.md>) 참조.
 
 ---
 
@@ -150,60 +116,30 @@ docs/VT_API_Gateway/                         ← Claude Code 실행 루트
 
 ## 6. Repository · 공식 URL
 
-### 6.1 Azure Repos (구현·SSOT)
+- **레포 카탈로그**(Azure/SVN·로컬 경로·clone 상태): [참조 카탈로그 §2](<참조-카탈로그.md>).
+- **통제·공유 문서 정본 URL**(VKS pageId·Azure SRS 경로 — SRS §1.5용): [`08.VT_API_Gateway/README.md`](08.VT_API_Gateway/README.md) 문서 URL 매핑.
 
-| 레포 | URL | 용도 |
-| --- | --- | --- |
-| **vt-api-gateway** | https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway | GW NestJS 구현 · SRS/design **공식 SSOT** |
-| vt-api-gateway-console | https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console | Admin Web (미생성) |
-| vt-api-gateway-infra | https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-infra | IaC (미생성) |
-| oneid | https://dev.azure.com/ewoosoft/scp-sharedservice/_git/oneid | OIDC |
-| ezcloud | https://dev.azure.com/ewoosoft/ezicloud/_git/ezcloud | CleverSpace |
-| ezserver_pms_integration | https://dev.azure.com/ewoosoft/ezserver/_git/ezserver_pms_integration | EzServer PMS |
-
-**vt-api-gateway 레포 내 스펙 경로:**
+**vt-api-gateway 레포 내 스펙 경로(공식 SSOT):**
 
 ```
 vt-api-gateway/
 ├── CLAUDE.md                 # ESIP Jira·브랜치·버전 규칙
 └── docs/specs/
-    ├── README.md
-    ├── SRS.md
-    ├── 03c-subsrs-gw-console/Sub-SRS.md
-    ├── 04-subsrs-straumann-axs/Sub-SRS.md
-    ├── design/openapi/vt-api-gateway.openapi.yaml
-    ├── design/dbml/vt-api-gateway.dbml
+    ├── README.md · SRS.md
+    ├── 03c-subsrs-gw-console/Sub-SRS.md · 04-subsrs-straumann-axs/Sub-SRS.md
+    ├── design/openapi/vt-api-gateway.openapi.yaml · design/dbml/vt-api-gateway.dbml
     └── references/axs-openapi/
 ```
 
-### 6.2 VKS (Confluence) — 통제·One Pager
-
-| 문서 | URL |
-| --- | --- |
-| 08. VT API Gateway 허브 | https://vks.vatech.com/spaces/ESDEVELOPER/pages/311608279/08.+VT+API+Gateway |
-| PRD (v2) | https://vks.vatech.com/pages/viewpage.action?pageId=311608280 |
-| ARD | https://vks.vatech.com/pages/viewpage.action?pageId=311608281 |
-| 인증·보안·컴플라이언스 | https://vks.vatech.com/pages/viewpage.action?pageId=311608329 |
-| PM 진척 (MeetingNotes) | https://vks.vatech.com/spaces/ESMN/pages/311608221/VT+API+Gateway+platform+api-gateway |
-
-전체 매핑: [`README.md`](README.md) §문서 URL 매핑.
-
-### 6.3 Jira (VTS)
+### 6.1 Jira (VTS)
 
 | 항목 | URL |
 | --- | --- |
 | ESIP 보드 | https://vts.vatech.com/secure/RapidBoard.jspa?rapidView=373 |
 | Epic v1.0 | https://vts.vatech.com/browse/ESIP-2 |
-| Project | **ESIP** · Component: **platform/api-gateway** |
-| 버전 형식 | `gw/<Major>.<Minor>.<Patch>.<Build>` |
+| Project | **ESIP** · Component: **platform/api-gateway** · 버전 `gw/<Major>.<Minor>.<Patch>.<Build>` |
 
-Jira 작업: es-toolkit **`/es-ticket`** (브랜치·티켓 자동). vt-api-gateway `CLAUDE.md` 참조.
-
-### 6.4 GitHub (개인)
-
-| 레포 | URL | 용도 |
-| --- | --- | --- |
-| scp-architecture | (개인 GitHub) | 스펙 **초안** · Scott 문서 — **공식 리뷰처 아님** |
+Jira 작업: es-toolkit **`/es-ticket`**(브랜치·티켓 자동). vt-api-gateway `CLAUDE.md` 참조.
 
 ---
 
@@ -259,8 +195,8 @@ Claude Code는 `.claude/skills/*/SKILL.md` 래퍼를 읽으면 **`.agents/` 원�
 
 ### 7.4 SRS 작성 시 VT 프로젝트 특수 규칙
 
-- **§1.5 Related Documents**: 로컬 `../../` 경로 **금지** — [`README.md`](README.md)의 **VKS·Azure URL**만 사용.
-- **API 3버킷** (§4.1.1): A=GW 고유, B=내부 프록시, C=외부 connector — B/C OpenAPI 재정의 금지.
+- **§1.5 Related Documents**: 로컬 `../../` 경로 **금지** — [`08.VT_API_Gateway/README.md`](08.VT_API_Gateway/README.md)의 **VKS·Azure URL**만 사용.
+- **라우팅 ADR-11**(§4.1): `Vatech-Target` 유무로 GW 고유 API / 프록시(B 내부·C 외부) 구분 — verbatim bypass, B/C OpenAPI 재정의 금지.
 - **Parent/Child**: ④·③-C는 ③ SRS **하위** — 본문 중복 금지, §앵커 참조.
 - **Scott 문서**는 SSOT에서 **추출** — Requirements.md에 직접 쓰지 말고 SRS를 수정.
 
@@ -321,17 +257,16 @@ Vatech 전사 개발 표준 배포 meta-repo. **`setup.sh`** 로 `~/.claude/`에
 
 Claude Code가 SRS/OpenAPI를 수정할 때 **반드시 유지**할 경계:
 
-### 10.1 API 3버킷 + 업로드 3경로
+### 10.1 라우팅 = ADR-11 target-routed proxy (2면)
 
-- **A버킷**: GW가 OpenAPI로 정의 (`/v1/auth/*`, `/v1/uploads/*`, `/v1/webhooks/*`, `/admin/v1/*` 등).
-- **B버킷**: CleverSpace 등 **내부** upstream — `/cs/*` 등 **bypass**, CS OpenAPI가 정본.
-- **C버킷**: AXS 등 **외부** — `/v1/{tenant}/connectors/axs/*` **bypass**, ④ Sub-SRS + AXS 스냅샷이 정본.
+- **GW 고유 API**(`Vatech-Target` 없음): GW가 OpenAPI로 정의 — `/v1/auth/*`·`/v1/webhooks/*`·`/v1/clinics/*`·`/admin/v1/*` 등. **`/v1/uploads`는 폐기**(GW는 presigned 비발급).
+- **프록시**(`Vatech-Target` 있음): 논리 ID(예 `cleverspace`·`axs`)로 upstream 결정해 **verbatim bypass**. 차이는 trust profile뿐 — **B(내부: CleverSpace·OneID)** / **C(외부: AXS·OAuth·고정 egress IP)**. upstream 추가=레지스트리 1행. B/C OpenAPI 재정의 금지.
+- **업로드**: GW는 presigned 비발급·**중계만**. 발급=CleverSpace(②)/AXS(③), 바이트는 storage 직결(GW 미경유).
 
-### 10.2 Webhook (§4.1.3)
+### 10.2 Webhook (§4.1.3·§7.6)
 
-- **수신** = A버킷 (GW OpenAPI).
-- **payload 스키마** = C버킷 참조 (AXS OpenAPI `$ref`).
-- **분배** = 내부 (CleverSpace HTTP push, EzServer MQTT) — OpenAPI 밖.
+- **발신자 식별** = provider별 전용 호스트(`{provider}.webhook.gw.vatech.com`, Host/SNI) — 유연 수신(경로/스키마 비강제). **식별≠인증**(인증=HMAC+timestamp).
+- **분배** = 내부 경로(클라우드 HTTP push=CleverLab만·갈래B 보류 / Edge=EzServer MQTT). 클라우드 수신 대상에 **CleverSpace는 아님**.
 
 ### 10.3 OpenAPI vs code-first
 

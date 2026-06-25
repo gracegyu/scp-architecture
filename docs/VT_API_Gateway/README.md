@@ -4,6 +4,12 @@ Claude Code·Cursor 등 AI 에이전트의 **실행 루트**다. Scott 통제 �
 
 > **Claude Code 시작**: [VT API Gateway — Claude Code 작업 가이드](<VT API Gateway — Claude Code 작업 가이드.md>)를 **첫 문서**로 읽는다.
 
+> **무엇을 어디서 관리하나** (중복 방지 — 각 관심사는 1곳)
+> - **참고 소스·레포·외부 경로**(계속 추가) → [참조 카탈로그](<참조-카탈로그.md>) ← 새 경로는 여기에만
+> - **통제문서 정본 URL**(VKS/Azure, SRS §1.5) → [08.VT_API_Gateway/README.md](08.VT_API_Gateway/README.md)
+> - **AI 작업 절차·방법론·규칙** → [작업 가이드](<VT API Gateway — Claude Code 작업 가이드.md>)
+> - **폴더 구조·역할** → 본 문서
+
 ## 폴더 구조
 
 ```

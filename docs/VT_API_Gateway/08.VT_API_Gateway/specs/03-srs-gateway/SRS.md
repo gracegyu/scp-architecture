@@ -51,6 +51,7 @@ CleverSpace는 유상화·이용 한도 등 새 정책으로 API를 계속 확�
 | 용어                  | 본 문서에서의 의미                                         | 비고               |
 | --------------------- | ---------------------------------------------------------- | ------------------ |
 | GW (VatechAPIGateway) | 모든 연동이 단일 경유하는 control plane                    | 본 SRS의 대상 제품 |
+| LMP (LicenseManager) | EzServer **라이선스 관리 플랫폼** — 클리닉의 **Clinic-ID 발급원**. EzServer가 LMP에서 Clinic-ID 수신 시 GW 자동·무조건 등록(§2.3.1) | §2.3.1 |
 | 디바이스(Device, GW 관점) | **= EzServer**(클리닉당 1개의 엣지 머신, 확정 2026-06-25). GW가 인증·레지스트리·enrollment·토큰을 다루는 "디바이스"는 모두 EzServer를 가리킨다. 물리 영상장비(CT/Xray)는 EzServer 뒤편이며 **GW 비대상**(엣지 내부) | §2.3.1·§7.1·§7.2·ADR-08 |
 | PEP                   | Policy Enforcement Point — 요청 시점 인증·정책 집행 지점   | §7.1               |
 | originator            | 요청을 _시작한_ 주체(`Vatech-*` 헤더의 권위 소스)          | §7.7               |
@@ -1542,6 +1543,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | DB 권장 **강화 — "처음부터 Aurora PostgreSQL"** — 전환 비대칭성(Aurora 단일→글로벌=마이그레이션 0 vs RDS→Aurora=플랫폼 마이그레이션·재검증) + 비용 델타 **~20%·저QPS라 작음**·통제 제품 재검증/IaC 이중구축 회피를 §3.1.2 근거(3)(4)·비교표(전환·비용 행)·결론·DB bullet·§2.1.1 캡션·Appendix B #18·개발계획서 §5에 반영. RDS-first 비권장 명시(인프라 비준은 유지) | (작성자 ID 미지정) |
 | 2026-06-25 | 문구 정리 — §3.1.2 DB 근거 노트에서 슬로건성 문장("PostgreSQL을 안 쓰는 게 아니라…") 제거하고 결정·권장·근거(1~4)만 유지. §2.1.1 단일 리전 안내 문장의 캐주얼 톤 정리. (불필요 설명 제거, 의미 변경 없음) | (작성자 ID 미지정) |
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
+| 2026-06-25 | §1.4 용어에 **LMP(LicenseManager) = Clinic-ID 발급원** 정의 추가(§2.3.1 온보딩 자동 등록의 LMP 약어 명시) | (작성자 ID 미지정) |
 | 2026-06-25 | §2.1 다이어그램 그룹핑 개선 — AXS(외부)와 우리 클라우드를 **'연동 서비스(GW upstream)' 한 카테고리로 묶고 내부(B)·외부(C) 하위 그룹**으로 재구성(대칭화·ADR-11 trust profile 가시화). 노드 ID·엣지 불변 | (작성자 ID 미지정) |
 | 2026-06-25 | §2.2 외부 그룹핑을 §2.1과 일치 — 외부 노드를 **CLINIC + 연동 서비스(내부 B/외부 C)** 동일 구조로 묶음("GW 바깥은 §2.1과 완전 동일" 규칙 충족). 내부 컴포넌트(GWBOX)·엣지·노드 ID 불변 | (작성자 ID 미지정) |
 | 2026-06-25 | §2.2 GW core 요청 파이프라인(PEP 체인) 연결 추가 — `COMPAT→ROUTER`(끊김 보완)·`ROUTER⇢RGN`(region)·`ROUTER⇢OPA`(정책). cross-cutting/관리(Registry·Enrollment·Config·Fleet·Audit)는 미연결 유지. '그리는 규칙' 노트 갱신 | (작성자 ID 미지정) |
