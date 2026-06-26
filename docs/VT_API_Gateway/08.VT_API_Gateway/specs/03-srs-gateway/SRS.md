@@ -55,6 +55,8 @@ CleverSpace는 유상화·이용 한도 등 새 정책으로 API를 계속 확�
 | 디바이스(Device, GW 관점) | **= EzServer**(클리닉당 1개의 엣지 머신, 확정 2026-06-25). GW가 인증·레지스트리·enrollment·토큰을 다루는 "디바이스"는 모두 EzServer를 가리킨다. 물리 영상장비(CT/Xray)는 EzServer 뒤편이며 **GW 비대상**(엣지 내부) | §2.3.1·§7.1·§7.2·ADR-08 |
 | Valkey | **캐시 엔진**(Redis 포크·완전 호환 — RESP 프로토콜·클라이언트·명령·키스페이스 동일). AWS 제품 = **ElastiCache for Valkey**. Redis는 2024 초 오픈소스 종료, Valkey가 후속·저비용이라 채택. 본 문서·키스페이스의 "Redis(호환)"는 곧 **Valkey**를 가리킴 | §3.1.2·§6.4·`design/redis/` |
 | PHI | Protected Health Information — **환자 식별 가능 건강정보**(환자 정보·영상 파일 등). **GW는 PHI 본문을 저장·경유하지 않는다**(presigned 직결, 발급=CleverSpace/AXS) — control plane엔 메타·식별자만. 데이터 주권(리전 밖 미이동)·consent 게이팅 대상이며, 개발·테스트는 더미만(운영만 실 PHI) | §6.4·§6.5·§7.3.3·§3.1 |
+| OTel (OpenTelemetry) | 관측성(추적·메트릭·로그) 수집·전송 **벤더 중립 표준/SDK**(CNCF). 요청 상관용 `traceId`/`spanId`를 생성 | §6.3.2·§3.1.2 |
+| ADOT | **AWS Distro for OpenTelemetry** — AWS가 배포하는 OTel 수집기. OTel 계측 → ADOT 수집 → CloudWatch/Prometheus·Grafana | §3.1.2·§6.3.2 |
 | PEP                   | Policy Enforcement Point — 요청 시점 인증·정책 집행 지점   | §7.1               |
 | originator            | 요청을 _시작한_ 주체(`Vatech-*` 헤더의 권위 소스)          | §7.7               |
 | `Vatech-Via`          | 요청을 _경유한_ 중계 홉(예: EzServer)                      | originator와 분리  |
@@ -688,7 +690,7 @@ GW가 동작하는 소프트웨어 스택. 근거·전체 표는 [ARD §4.5 기�
 - **시크릿 / 키 관리**: **AWS KMS · Secrets Manager**(enrollment·PKI는 Vault 검토). pod 주입은 **Secrets Store CSI / External Secrets**(IRSA 연계, 정적 시크릿 미내장)
 - **컨테이너 / 오케스트레이션**: Docker · **EKS(Kubernetes)**. 멀티 서버 HA=k8s pod 복제. 이미지 레지스트리 **Amazon ECR**
 - **인그레스 / 부하분산**: **AWS LB Controller(ALB/NLB)** — 리전별 **안정 inbound endpoint 1개**(§2.1.1) + **Route 53 GeoDNS**(§7.3.5·§4.5.1). **egress=NAT Gateway 고정 EIP 집합**(AXS whitelist=합집합, §2.1.1·§7.5.3)
-- **관측성**: **OpenTelemetry(ADOT)** · 구조화 로그(Pino) → **CloudWatch / Amazon Managed Prometheus·Grafana**(취합·분석은 인프라 소유, §6.3.2). PHI·시크릿 미기록(§6.2)
+- **관측성**: **OpenTelemetry(ADOT)** · 구조화 로그(Pino) → **CloudWatch / Amazon Managed Prometheus·Grafana**. 도구는 여기까지, **로그 구조(필드·상관키·레벨)는 §6.3.2가 정의**(취합·분석은 인프라 소유). PHI·시크릿 미기록(§6.2)
 - **API 문서**: `@nestjs/swagger` code-first (`/api-docs`, §1.7.1)
 
 > **DB 선택 근거.** **엔진=PostgreSQL 확정**, 관리형 제품은 **처음부터 Aurora PostgreSQL 권장**(인프라 비준 TBD, Appendix B #18). (1) **전역 일관 데이터(§2.1.1)**: 매핑·레지스트리·정책·JWKS 등 전역 SSOT의 리전 간 저지연 복제를 **Aurora Global Database**가 내장 제공(빠른 failover·스토리지 자동확장)한다 — RDS 교차 리전 읽기복제(비동기·지연·수동 승격)보다 우수. (2) **전환 비대칭성**: 멀티 리전 전환이 Aurora는 Global Database 활성화(마이그레이션 0)인 반면 RDS-first는 RDS→Aurora 플랫폼 마이그레이션(SSOT 컷오버·재검증·CCB)이라 비대칭적으로 비싸 **단일 리전부터 Aurora**를 쓴다 — 통제 제품(IEC 62304) 재검증·IaC 이중구축 회피. (3) **비용**: Aurora는 동급 인스턴스 기준 RDS 대비 **~20% 내외**(I/O·구성 변동) 높으나 저QPS control plane이라 절대 월 비용 차가 작고, 후속 마이그레이션 비용보다 작다. (4) **호환성**: Aurora PostgreSQL은 PostgreSQL 호환이라 Prisma·스키마·쿼리를 그대로 쓴다(일부 확장·최신 마이너 버전 지연 가능 — 저QPS CRUD라 영향 작음).
@@ -1035,7 +1037,16 @@ GW는 의료 데이터(PHI) 경로의 control plane이므로, 데이터 보호·
 
 ### 6.3.2 Maintainability (유지보수성)
 
-NestJS 모듈(bounded context) 분리·TDD. 구조화 로그·OpenTelemetry. (NFR-MNT/OBS)
+NestJS 모듈(bounded context) 분리·TDD. (NFR-MNT/OBS)
+
+**관측·구조화 로그.** 도구는 §3.1.2(Pino·OpenTelemetry/ADOT). 본 절은 **로그의 구조(요구)** 를 정의하고, 정확한 필드·레벨 확정본은 인프라 취합 포맷과 협의해 확정한다(**Appendix B #14**, 필요 시 `design/`에 로그 스키마 산출물).
+
+- **형식**: 모든 로그는 **기계 파싱 가능한 구조화 JSON 한 줄**.
+- **필수 필드(최소셋)**: `ts`(Unix ms)·`level`·`service`/`version`·**`traceId`/`spanId`(OTel 상관)**·`requestId`·`tenantId`/`clinicId`·`actor`·`action`·`result`·`latencyMs`·실패 시 `errorCode`.
+- **상관키**: OpenTelemetry **`traceId`** 로 요청 전 구간을 상관하고, **`Vatech-*`(originator)·`Vatech-Via`(경유 홉)** 를 함께 남겨 클라이언트·중계 홉까지 추적한다(§7.7).
+- **레벨**: error/warn/info/debug (운영 기본 info 이상).
+- **금지**: **PHI·시크릿·토큰 평문 미기록**(식별자만, §6.2·§6.4·§1.4 PHI).
+- **취합·분석은 인프라 소유**(2026-06 회의·§2.6) → CloudWatch / Amazon Managed Prometheus·Grafana. GW는 위 구조로 **생성**만 책임진다.
 
 - **로그 취합·분석은 인프라 담당 영역**(2026-06 회의) — GW는 구조화 로그(Pino)·trace(OpenTelemetry)를 **생성·노출**하고, 중앙 수집·저장·분석 파이프라인은 인프라가 구성한다(③-I). **로그 포맷(필드·상관관계 키·레벨)은 검토 중(TBD)** — 확정 시 GW·인프라 합의(영향: §6.2 PHI·시크릿 미기록 제약 준수, Appendix B #14).
 
@@ -1593,6 +1604,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | 문구 정리 — §3.1.2 DB 근거 노트에서 슬로건성 문장("PostgreSQL을 안 쓰는 게 아니라…") 제거하고 결정·권장·근거(1~4)만 유지. §2.1.1 단일 리전 안내 문장의 캐주얼 톤 정리. (불필요 설명 제거, 의미 변경 없음) | (작성자 ID 미지정) |
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
 | 2026-06-25 | §1.4 용어에 **LMP(LicenseManager) = Clinic-ID 발급원** 정의 추가(§2.3.1 온보딩 자동 등록의 LMP 약어 명시) | (작성자 ID 미지정) |
+| 2026-06-26 | §1.4 용어에 **OTel(OpenTelemetry)·ADOT** 추가(관측성 표준·AWS 수집기) | (작성자 ID 미지정) |
+| 2026-06-26 | §6.3.2에 **구조화 로그 구조(요구)** 정의 — JSON 한 줄·필수 필드(ts·level·traceId/spanId·requestId·tenant/clinic·actor·action·result·latency·errorCode)·상관키(OTel traceId + Vatech-* originator/Via §7.7)·레벨·PHI/시크릿 금지·인프라 취합 소유. §3.1.2 Pino는 도구만(구조는 §6.3.2)으로 정리. 정확한 필드 확정은 Appendix B #14 | (작성자 ID 미지정) |
 | 2026-06-26 | §1.4 용어에 **PHI** 추가(환자 식별 건강정보·GW 본문 미저장·주권/consent 대상·dev/test 더미만). §1.4 용어 ❓마커 갱신(PHI 해소) | (작성자 ID 미지정) |
 | 2026-06-26 | **환경 구분(개발·테스트·운영) 정리** — §3.1에 **환경 매트릭스**(차원별 dev/test/prod: DB·캐시·큐·AXS·EzServer·CleverSpace·OneID·LMP·PHI·egress) 추가. §3.4에 **개발 의존성 대체(에뮬레이터/스텁) + AXS 우선 개발 경로**(AXS sandbox·EPI 에뮬레이터·CleverSpace presign 스텁·OneID/LMP 스텁·webhook simulator), §3.5에 **staging(운영 유사 축소)·더미 PHI·sandbox EIP·E2E 게이트**. Appendix B #24(환경 구축 책임·일정) 신설. PHI는 운영만 실데이터 | (작성자 ID 미지정) |
 | 2026-06-26 | **캐시 엔진 Redis→Valkey** — Redis 오픈소스 종료(2024 초)·AWS는 **ElastiCache for Valkey**(Redis 호환·저비용) 제공. §1.4 Valkey 용어 추가, §3.1.2 캐시·§2.1.1 다이어그램(Valkey(ElastiCache))·캡션·§6.4·design/redis 키스페이스 상단 노트(엔진=Valkey, 키스페이스·파일명 동일) 갱신. 인라인 'Redis'는 'Redis 호환(=Valkey)'으로 §1.4가 포괄. 개발계획서 §5(v0.9) 정합 | (작성자 ID 미지정) |
