@@ -1,5 +1,6 @@
-# Vatech API Gateway — Redis 키스페이스 카탈로그 (설계 초안)
+# Vatech API Gateway — Redis(=Valkey) 키스페이스 카탈로그 (설계 초안)
 
+> **엔진 = Valkey**(AWS=ElastiCache for Valkey). Valkey는 Redis 포크로 **RESP 프로토콜·클라이언트·명령·키스페이스가 완전 호환**이라 본 카탈로그(키 패턴·TTL·자료형)가 그대로 적용된다. 문서 내 "Redis"는 Redis 호환(=Valkey)을 가리킨다(SRS §1.4). 키 프리픽스(`gw:…`)·파일명은 변경 없음.
 > dev-chain-design 산출물. `design/dbml`(PostgreSQL SSOT)·`design/openapi`와 나란히 둔다.
 > **Redis는 SSOT가 아니다** — PostgreSQL이 SSOT(`design/dbml`). Redis는 **① 캐시**(PG에서 재구성 가능) + **② 휘발 상태**(nonce·멱등·dedup·rate-limit·lock)만 보관한다.
 > 정밀 자료형·TTL 값은 LLD에서 확정. 본 문서는 키 네임스페이스·용도·종류(cache/ephemeral)·재구성 출처를 고정한다.
