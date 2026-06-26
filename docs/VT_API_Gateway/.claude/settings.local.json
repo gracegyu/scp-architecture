@@ -30,7 +30,8 @@
       "Bash(python3 /tmp/convert_srs.py \"Confidential_EzCloud_v1.0_SRS.md\")",
       "Bash(awk '/On-prem Imaging Solution/{s=NR} s&&NR>=s-2 && NR<=s+40' \"Confidential_EzCloud_v1.0_SRS.md.bak\")",
       "Bash(xargs -n1 basename)",
-      "Read(//Users/gracegyu/Documents/Azure/common/**)"
+      "Read(//Users/gracegyu/Documents/Azure/common/**)",
+      "Bash(grep -nE \"^#{1,4} 3| Environment|개발 환경|테스트 환경|운영 환경|## 3\\\\.[0-9]|### 3\\\\.\" SRS.md)"
     ]
   }
 }
