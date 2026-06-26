@@ -42,7 +42,7 @@ VT-Straumann **공진화 전략**(Straumann AXS 연동)의 실행 기반을 확
 | --- | --- |
 | Backend | NestJS + DDD + TDD |
 | Frontend (관리 UI) | React + Vite + FSD + shadcn/ui |
-| 데이터 | PostgreSQL(엔진 확정; **Aurora 권장**) · Redis(ElastiCache) · **SQS(A·내부 큐)** · MQTT 브로커(B·IoT Core/Amazon MQ) · S3(스토리지; **GW 비호스팅·Provider 발급/중계**, AWS 미지원국은 Provider MinIO) |
+| 데이터 | PostgreSQL(엔진 확정; **Aurora 권장**) · **Valkey(ElastiCache for Valkey·Redis 호환)** · **SQS(A·내부 큐)** · MQTT 브로커(B·IoT Core/Amazon MQ) · S3(스토리지; **GW 비호스팅·Provider 발급/중계**, AWS 미지원국은 Provider MinIO) |
 | 플랫폼 | OPA(정책) · KMS·Secrets Manager+IRSA(시크릿) · OpenTelemetry(ADOT)+Pino(관측, CloudWatch/AMP·AMG) · Feature Flag(Unleash) |
 | 인프라 | **AWS EKS(K8s)·ECR·IRSA** · IaC(Terraform/CDK) · CI(Azure Pipelines) · API 문서(Swagger) — **GW는 AWS 전용 배포** |
 
@@ -79,3 +79,4 @@ VT-Straumann **공진화 전략**(Straumann AXS 연동)의 실행 기반을 확
 | v0.6 | 2026-06-25 | Raymond | §5 DB 권장 강화 — **처음부터 Aurora PostgreSQL 권장**(RDS-first는 멀티 리전 마이그레이션 비용으로 비권장), 인프라 비준 TBD(SRS §3.1.2와 정합) |
 | v0.7 | 2026-06-25 | Raymond | §5 **포터빌리티(벤더 중립) 반영** — AWS 미지원 국가는 비AWS·private 배포. 큐 SQS→**RabbitMQ/AMQP**, 엣지 IoT Core→**포터블 MQTT(EMQX 등)**, 시크릿 IRSA→Vault+k8s SA 병기, EKS→임의 k8s, DB/캐시/관측도 AWS↔self-host 프로파일. SQS·IoT Core 비채택 명시(SRS §3.1.2·§2.1.2와 정합) |
 | v0.8 | 2026-06-25 | Raymond | **GW=AWS 전용 확정(회의 결정)** — v0.7 포터빌리티 롤백, AWS-native 복귀(SQS·IoT Core·IRSA·Aurora·EKS). AWS 미지원국도 가까운 AWS GW 접속·storage는 Provider MinIO 중계(GW 비호스팅). SRS §3.1.2·§2.1.1과 정합 |
+| v0.9 | 2026-06-26 | Raymond | §5 캐시 엔진 **Redis→Valkey** — Redis 오픈소스 종료(2024 초)·AWS는 ElastiCache for Valkey(저비용·Redis 호환) 제공. 제품=ElastiCache for Valkey, 엔진=Valkey(Redis 호환)(SRS §1.4·§3.1.2와 정합) |
