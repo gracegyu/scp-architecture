@@ -99,6 +99,20 @@
             - **"30초 후 half-open"** = *언제 회복을 시험할지*: 차단 후 30초간은 즉시 503(AXS 쉬게 둠), 30초 뒤 요청 하나로 살아났는지 떠봄.
             - 흐름: 정상(closed) → 장애 감지 → 차단(open, 30초 즉시 실패) → 30초 후 탐침(half-open) → 살았으면 복귀 / 아니면 다시 차단.
             - **상태 공유(멀티 서버)**: 서킷 런타임 상태(open/closed·카운터)는 **각 GW pod 메모리(공유 안 함)** — DB·Redis·GW간 동기화 미사용. 각 pod가 자기 관측으로 보호하는 게 표준(Resilience4j·Envoy). **공유되는 건 설정값뿐**(임계·타임아웃 = `upstream_registry`/DB, pod별 캐시). 별도 컴포넌트 없이 `ROUTER`/`CONN` in-process(§2.2·§7.5.4).
+    - **R5. IaC 도구 확정 — CDK vs Terraform (결정 필요)** — 문서엔 `IaC = Terraform`(ARD §4.5·SRS §6.6.2)으로 적혀 있으나 팀 실무는 **AWS CDK**. 모순 해소 + 확정 필요. **권장 = CDK** (AWS 전용 전제에서 CDK 우위).
+        - **비교표 (CDK vs Terraform)**:
+
+            | 기준 | AWS CDK **(권장)** | Terraform |
+            | --- | --- | --- |
+            | 멀티클라우드 | △ AWS 전용 | ◎ 멀티클라우드 — **그러나 우리는 AWS 전용(6/25)이라 이점 무의미** |
+            | 작성 언어 | ◎ **TypeScript** = GW(NestJS/TS)와 동일 언어 → 개발자가 인프라 코드도 읽고 기여 | △ HCL(별도 언어 학습) |
+            | AWS 신규 서비스 대응 | ◎ AWS 1st-party·즉시 반영(CloudFormation) | ○ provider 업데이트 대기 가능 |
+            | 드리프트·롤백 | ◎ CloudFormation 네이티브(자동 롤백) | ○ state 기반(별도 관리) |
+            | 조직 실무·역량 | ◎ 기존 사용 | △ 신규 도입 |
+            | 모듈 생태계·멀티계정 | ○ Constructs | ◎ 성숙한 모듈·state·멀티계정 오케스트레이션 |
+
+        - **핵심 논리**: Terraform을 고르는 가장 큰 이유 = 멀티클라우드인데 **AWS 전용이면 그 이유가 사라진다**. 남는 비교에서 CDK가 **언어 일관성(TS)·AWS 네이티브·조직 역량**으로 우위. (Terraform의 모듈·state 강점은 AWS 전용 + TS 스택에선 일관성에 밀림.)
+        - **결정 요청**: ① IaC 도구 = CDK 확정? ② 확정 시 ARD §4.5·SRS §6.6.2 정합(Terraform→CDK) ③ 최종 표준은 인프라(③-I) 소유 확인.
 
 - 이월 논의 사항 (6/25 미결 — 계속)
     | # | 항목 | 타입 | 상태 |
