@@ -8,6 +8,9 @@
 #       프록시(B 내부·C 외부)는 Vatech-Target 헤더로 라우팅되는 verbatim bypass이며 OpenAPI에 정의하지 않는다
 #       (레지스트리 config + upstream OpenAPI 정본). §4.1.2 참조.
 # 필드는 camelCase, 시간은 Unix ms(SRS §1.3). 상세 스키마는 LLD에서 확정.
+# 에러 계약: 공통 Error envelope + 재사용 응답(400/401/403/404/409/429) + 프록시 GW생성 오류(502/503/504=ProxyError, §7.5.4·§7.7.4)
+#   + Vatech-Error-Origin(gateway|upstream)·Retry-After 헤더. 인증=bearerAuth(JWT) 기본, 공개 ep(auth·enroll·webhook·well-known)는 security:[] 재정의.
+#   (example·완전한 code-first 정합은 baseline 후 — Appendix B #6)
 openapi: 3.0.3
 info:
   title: Vatech API Gateway
@@ -38,12 +41,17 @@ tags:
 - name: admin
   description: 관리·감사 API (SRS §7.8·§7.9, ③-C Console이 호출)
 
+# 기본 인증 = bearerAuth(JWT). 공개 엔드포인트(auth·enroll·webhook·well-known)는 op에서 security:[]로 재정의.
+security:
+- bearerAuth: []
+
 paths:
   # --- 인증·토큰 (§7.1) ---
   /v1/auth/token:
     post:
       tags: [ auth ]
       summary: 디바이스 client_credentials → JWT 발급 (FR-AUTH-01/02)
+      security: []
       requestBody:
         required: true
         content:
@@ -57,15 +65,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenResponse'
-        '401':
-          description: secret 불일치 / 미등록·revoked 디바이스
-        '403':
-          description: scope 초과
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /v1/auth/oneid/verify:
     post:
       tags: [ auth ]
       summary: OneID(OIDC) 토큰 검증·연계 — 사람·클리닉·사내 호출자 (FR-AUTH-08)
+      security: []
       requestBody:
         required: true
         content:
@@ -79,14 +88,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OneIdVerifyResponse'
-        '401':
-          description: OneID 검증 실패 / 매핑 부재
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # --- 온보딩 (§7.2) ---
   /v1/enroll/start:
     post:
       tags: [ enrollment ]
       summary: enrollment 시작 → nonce challenge (FR-ENR-01/03)
+      security: []
       requestBody:
         required: true
         content:
@@ -100,13 +111,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EnrollChallenge'
-        '401':
-          description: 부트스트랩 신뢰 검증 실패
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /v1/enroll/complete:
     post:
       tags: [ enrollment ]
       summary: 서명+fingerprint 검증 → 자격 발급(allowlist 등록) (FR-ENR-01/04)
+      security: []
       requestBody:
         required: true
         content:
@@ -120,8 +133,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Credential'
-        '401':
-          description: 서명·fingerprint·이상탐지 거부
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # --- 디바이스 레지스트리 (§7.2) ---
   /v1/devices:
@@ -137,6 +151,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Device'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       tags: [ devices ]
       summary: 디바이스 등록 (FR-DEV-01)
@@ -149,6 +166,11 @@ paths:
       responses:
         '201':
           description: 등록됨
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /v1/devices/{id}:
     parameters:
@@ -163,8 +185,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Device'
-        '404':
-          description: 없음
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     patch:
       tags: [ devices ]
       summary: lifecycle 상태 전이 (FR-DEV-03, pending→active→suspended→revoked)
@@ -180,6 +204,12 @@ paths:
       responses:
         '200':
           description: 갱신됨
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # --- 리전 해석 (§7.3) ---
   /v1/region/resolve:
@@ -202,6 +232,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RegionResolveResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # --- 클리닉/클라이언트 온보딩·등록 (§2.3.1) — 매핑 자가 생성, Admin은 교정만 ---
   /v1/clinics:
@@ -219,6 +253,11 @@ paths:
       responses:
         '201':
           description: 등록됨 (이 클리닉 = 해당 region)
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /v1/clinics/{clinicId}/org-bindings:
     parameters:
@@ -241,6 +280,12 @@ paths:
       responses:
         '201':
           description: 등록됨
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # --- GW 리전 카탈로그·조회 + 운영 중 리전 변경 (§7.3.6·§7.3.4) ---
   /v1/regions:
@@ -257,6 +302,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Region'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /v1/clinics/{clinicId}/region:
     parameters:
@@ -282,6 +329,11 @@ paths:
       responses:
         '200':
           description: 변경됨(재동의·감사 동반)
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # --- 파일 업로드: GW 고유 API 없음 ---
   # presigned 발급 주체 = CleverSpace(경로②)·AXS(경로③). GW는 발급 요청을 Vatech-Target proxy로 중계(bypass)만 하며 서명·세션·storage를 갖지 않는다(§4.1.4·§7.4 · ADR-03/04 철회).
@@ -296,6 +348,7 @@ paths:
   # 프록시 에러·타임아웃 계약 (정본 §7.5.4·§7.7.4 — 경로가 아니라 전 프록시 공통이므로 여기 주석으로 기술):
   #   - 타임아웃: per-upstream(connect/response/total_deadline, UpstreamRegistry). GW 총 deadline < 클라이언트 타임아웃(고아 요청 방지).
   #   - GW 생성 오류 = ProxyError 스키마: 502 연결실패(UPSTREAM_UNREACHABLE) / 504 deadline 초과(UPSTREAM_TIMEOUT) / 503 서킷·일시불가(UPSTREAM_UNAVAILABLE, Retry-After). 헤더 Vatech-Error-Origin: gateway.
+  #     재사용 응답 정의 = components/responses/{UpstreamUnreachable(502), UpstreamUnavailable(503), UpstreamTimeout(504)} (프록시 게이트웨이 핸들러에서 사용).
   #   - upstream 자체 4xx/5xx = 원 코드·body verbatim 통과(GW 미변형). 헤더 Vatech-Error-Origin: upstream.
   #   - 재시도: 멱등(GET/HEAD/OPTIONS/PUT/DELETE) 또는 idempotency key 보유 + 연결/pre-response 타임아웃 한정(상한+백오프+budget). 비멱등 POST 자동 재시도 금지.
   #   - 클라이언트 조기 절단 → GW가 upstream 호출 취소.
@@ -304,6 +357,7 @@ paths:
   /v1/webhooks/{provider}:
     post:
       tags: [ webhooks ]
+      security: []
       summary: 외부 이벤트 Webhook 수신 (FR-WH-01~05) — provider별 전용 호스트로 식별, 경로/형식 유연(예시)
       description: >-
         **발신자 식별 = provider별 전용 호스트**(`{provider}.webhook.gw.vatech.com`, Host/SNI → 레지스트리 inbound_host, §7.6.2) — source IP 비의존. 아래 경로 `/v1/webhooks/{provider}`와 스키마는 **예시**이며 확정 계약이 아니다(provider 규약 수용·유연, §4.1.3). **신뢰(인증) = HMAC + timestamp**(호스트명은 식별이지 인증 아님); source IP allowlist는 옵션. GW는 멱등(eventId)·라우팅만 하며 payload는 소비자가 해석한다(opaque, ④/AXS 스냅샷 참조).
@@ -327,12 +381,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WebhookAck'
-        '400':
-          description: 페이로드 형식 오류
-        '401':
-          description: 서명 불일치 / IP 미허용 / timestamp 만료
-        '404':
-          description: 미지원 provider
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # --- 호환성 공시 (§7.7) ---
   /.well-known/{env}/server-configuration.json:
@@ -346,9 +398,12 @@ paths:
       tags: [ compatibility ]
       summary: 런타임 버전·호환성 공시 (FR-COMPAT-02)
       description: 스키마·샘플은 design/well-known/ 참조. 버전 프리픽스 없이 표준 관례로 노출(§4.1.2-5)
+      security: []
       responses:
         '200':
           description: 서버 구성(호환성 매트릭스 공시)
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # --- 관리·감사 (§7.8·§7.9) ---
   /admin/v1/devices/{id}/kill:
@@ -360,6 +415,10 @@ paths:
       responses:
         '200':
           description: 즉시 정지됨
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/v1/audit:
     get:
@@ -375,6 +434,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/AuditLog'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # --- 라우팅·분배 지식 관리 (Console ③-C 호출) — DB가 보관하는 "어디로 분배" 정보 ---
   /admin/v1/org-mappings:
@@ -390,6 +452,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/OrgMapping'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       tags: [ admin ]
       summary: Org-ID↔ClinicID 매핑 **교정(override)** — 1차 입력은 클라이언트 온보딩(자가 등록), 본 API는 오설정 수정용 (FR-RGN-04)
@@ -402,6 +467,11 @@ paths:
       responses:
         '201':
           description: 등록됨
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/v1/webhook-providers:
     get:
@@ -416,6 +486,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/WebhookProvider'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       tags: [ admin ]
       summary: Webhook provider 등록/갱신 — 경로·검증·라우팅 키 config (GW는 payload 비해석)
@@ -428,6 +501,11 @@ paths:
       responses:
         '201':
           description: 등록됨
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/v1/upstreams:
     get:
@@ -442,6 +520,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/UpstreamRegistry'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       tags: [ admin ]
       summary: upstream(target_id→host·profile) 등록/갱신 — 신규 연동 = 1행
@@ -454,8 +535,89 @@ paths:
       responses:
         '201':
           description: 등록됨
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 디바이스/사람 JWT(FR-AUTH·§7.1). 공개 엔드포인트(auth·enroll·webhook·well-known)는 op별 security 재정의. 프록시 호출은 Vatech-Target 헤더 추가(§4.1.2)
+
+  headers:
+    VatechErrorOrigin:
+      description: 오류 책임 주체 — gateway(GW 생성) | upstream(대상 서버 자체 오류, verbatim 통과). §7.7.4
+      schema: { type: string, enum: [ gateway, upstream ] }
+    RetryAfter:
+      description: 재시도 권고(초). 429·503에서 부여
+      schema: { type: integer }
+    VatechUpstreamLatencyMs:
+      description: 프록시 시 upstream 응답 지연(관측, §7.5.4)
+      schema: { type: integer, format: int64 }
+
+  responses:
+    BadRequest:
+      description: 요청 형식·검증 오류 (400)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: 인증 실패 — 토큰·서명·자격·timestamp (401)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: 권한 부족 — scope·RBAC·정책 거부 (403)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: 리소스 없음 / 미등록 (404)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: 멱등 충돌 / 중복 등록 / 상태 전이 위반 (409)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooManyRequests:
+      description: rate limit 초과 (429)
+      headers:
+        Retry-After: { $ref: '#/components/headers/RetryAfter' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    # --- 프록시(B/C) 전용 — GW 생성 오류. 특정 경로가 아니라 Vatech-Target proxy 공통(§7.5.4·§7.7.4). ---
+    # --- upstream 자체 4xx/5xx는 본 응답을 쓰지 않고 원응답을 verbatim 통과(Vatech-Error-Origin: upstream). ---
+    UpstreamUnreachable:
+      description: upstream 연결 실패(거부·DNS·TLS) — GW 생성 (502)
+      headers:
+        Vatech-Error-Origin: { $ref: '#/components/headers/VatechErrorOrigin' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ProxyError' }
+    UpstreamUnavailable:
+      description: 서킷 개방 / upstream 일시 불가 — GW 생성 (503)
+      headers:
+        Retry-After: { $ref: '#/components/headers/RetryAfter' }
+        Vatech-Error-Origin: { $ref: '#/components/headers/VatechErrorOrigin' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ProxyError' }
+    UpstreamTimeout:
+      description: upstream 응답 지연 — GW deadline 초과·GW 생성 (504)
+      headers:
+        Vatech-Error-Origin: { $ref: '#/components/headers/VatechErrorOrigin' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ProxyError' }
+
   parameters:
     DeviceId:
       name: id
@@ -465,6 +627,16 @@ components:
         type: string
 
   schemas:
+    # 공통 오류 envelope (GW 생성 — §7.7.4). 프록시 upstream 자체 오류는 verbatim이라 미적용.
+    Error:
+      type: object
+      required: [ errorCode ]
+      properties:
+        errorCode: { type: string, description: '표준 오류코드(§7.7.4)' }
+        message: { type: string }
+        requestId: { type: string, description: '상관 추적용 ID(§6.3.2)' }
+        details: { type: object, description: '필드 검증 오류 등 부가 정보' }
+      description: 'GW 표준 오류 응답 본문(§7.7.4)'
     # 인증
     TokenRequest:
       type: object
