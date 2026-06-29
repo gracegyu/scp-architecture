@@ -1547,7 +1547,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | # | 항목 | 결정 | 본문 |
 | --- | --- | --- | --- |
 | 7 | 멀티 Region·멀티클라우드 gw/1.0 흡수 | **1차 단일 / 2차(gw/1.2) 멀티 리전, v1.0 멀티리전-ready**(2026-06-23). 잔여=2차 구축 *시점*만 | §2.7.1 |
-| 10 | CCB 명단·승인자 | **확정(2026-06-23): Scott(PM)·Raymond(GW 백엔드 리드)**; QA·보안·인프라 사안별 옵저버 | §8·§9 |
+| 10 | CCB 명단·승인자 | **승인=Scott(실장·총괄)·Raymond(GW 백엔드 리드) 확정**; QA·보안·인프라 사안별 옵저버. **PM은 미지정(별도 지정 가능) — 'Scott=PM' 아님**(Scott=현재 전체 관리자/실장) | §8·§9 |
 | 17 | 클리닉 GW 등록 주체 | **확정(2026-06-25): EzServer(클리닉당 1개)가 LMP Clinic-ID 수신 시 자동·무조건 GW 등록**(연동 무관). CleverOne 대안 폐기 | §2.3.1·§7.3 |
 | 19 | 디바이스 정의·연결 모델 | **확정(2026-06-25): GW 관점 디바이스=EzServer**(물리 영상장비는 EzServer 뒤·GW 비대상, 직접 연결 없음). Agenda #1 종결 | §1.4·§2.3.2·§7.1·§7.2·ADR-08 |
 | 20 | GW 배포 클라우드 | **확정(2026-06-25): AWS 전용**(비AWS GW 없음·AWS 미지원국은 가까운 AWS GW 접속, 주권 storage=Provider MinIO 중계). 비AWS 포터블 배포(§2.1.2 초안) 폐기 | §2.1.1·§3.1.2 |
@@ -1582,9 +1582,9 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 
 - 변경 분류: Minor(문구) / Major(요구사항·NFR 수치·아키텍처)
 - **CCB(Change Control Board)**
-  - **핵심(승인)**: PM — **Scott** · GW 백엔드 리드 — **Raymond**
+  - **핵심(승인)**: 실장(총괄) — **Scott** · GW 백엔드 리드 — **Raymond**. **PM은 미지정 — 별도 PM 지정 시 CCB에 추가**('Scott=PM'은 미확정, Scott은 현재 전체 관리자/실장)
   - **옵저버(사안별)**: QA 리드·보안·인프라 — Major 변경 검토 시 필요에 따라 참여(고정 명단 없음, v1.0)
-  - **확대**: 필요 시 CCB에 인원 추가(PM 합의)
+  - **확대**: 필요 시 CCB에 인원 추가(실장 합의)
 - 절차: PR(영향 평가: §·Swagger·DBML·일정) → Major는 CCB(핵심 2인) 승인 → Appendix A 1줄 추가 → baseline 시 release tag
 
 ## 9 Document Approvals
@@ -1593,7 +1593,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 
 | 역할                 | 인수자   | 승인 일시 |
 | -------------------- | -------- | --------- |
-| PM (CCB)             | Scott    | —         |
+| 실장·총괄 (CCB 승인)  | Scott    | —         |
+| PM (CCB·미지정)       | (TBD)    | —         |
 | GW 백엔드 리드 (CCB) | Raymond  | —         |
 | QA 리드 (옵저버)     | (사안별) | —         |
 | 보안 (옵저버)        | (사안별) | —         |
@@ -1669,6 +1670,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
 | 2026-06-25 | §1.4 용어에 **LMP(LicenseManager) = Clinic-ID 발급원** 정의 추가(§2.3.1 온보딩 자동 등록의 LMP 약어 명시) | (작성자 ID 미지정) |
 | 2026-06-26 | 잔재 전수 점검·정리 — §2.7 gw/1.2 "멀티클라우드 presign·**signer 확장**" → "멀티 리전 활성화(Aurora Global DB·GeoDNS)", §2.7.1 금지 노트의 "멀티클라우드 presign broker ready" 제거(GW 비소유·FR-SES-06 해당없음·line 1290과 일치), §2.1 노트 "비-AWS minio·디바이스→storage" → "AWS 미지원국 Provider MinIO·EzServer→발급주체 storage". signer/Upload Session/포터블 잔재 0 확인 | (작성자 ID 미지정) |
+| 2026-06-29 | **CCB 역할 교정 — 'Scott=PM' 철회** — Scott은 **실장(전체 관리자/총괄)** 이며 PM은 미확정(별도 지정 가능). §8 핵심 승인을 'PM Scott'→'실장(총괄) Scott + PM 미지정', §9 표에 '실장·총괄'·'PM(미지정·TBD)' 분리, Appendix B #10을 '승인=Scott(실장)·Raymond 확정 / PM 미지정'으로 정정 | (작성자 ID 미지정) |
 | 2026-06-29 | **IaC 도구 = CDK 권장(확정 TBD)** — §6.6.2에서 baseline `Terraform`과 실무 CDK의 불일치 표면화, AWS 전용·TS 스택 정합 근거로 CDK 권장 노트 추가(인프라 ③-I 비준·ARD §4.5 정합 = Appendix B #26, 7/2 R5). §6.6.2 stack 줄에서 IaC 항목 분리 | (작성자 ID 미지정) |
 | 2026-06-29 | **프록시(B/C) 에러·타임아웃·복원력 정책 신설** — §7.5.4(FR-INT-05: 타임아웃 계층 `GW deadline < 클라이언트 타임아웃`·per-upstream 레지스트리 타임아웃·**연결실패 한정 보수적 재시도**(앱 재시도는 클라이언트 소유·타겟당 upstream 1개)·서킷 브레이커·클라 절단 시 upstream 취소)·§7.7.4(업스트림 오류 매핑표: 연결실패 502/타임아웃 504/서킷 503 = GW envelope, upstream 자체 4xx/5xx = verbatim 통과, `Vatech-Error-Origin` 마커)·§4.1.2 규칙6·§5.5·§6.3.4 반영. OpenAPI에 ProxyError·타임아웃 레지스트리 필드. 수치·v1.0 서킷 범위 = Appendix B #25(7/2 R4) | (작성자 ID 미지정) |
 | 2026-06-29 | §4.1.2에 **라우팅 방식 비교·결정 표(ADR-11)** 추가 — 4안(헤더 `Vatech-Target` / 경로 프리픽스 `/axs/…` / 서브도메인 / 클라이언트 지정) × 11기준(관례·verbatim·A↔프록시 구분·경로충돌·클라 비용·SSRF·DNS/TLS·멀티리전·**확장성·유지보수/장애대응**·관측) 비교. 정직 평가: 헤더는 verbatim·배타구분·apex·클라 최소변경에 우수하나 **운영/장애대응·관례는 경로/서브도메인이 우위**(헤더는 커스텀이라 표준 로그·엣지 제어에 추가 설정) → "헤더 전부 우수"는 아님, **트레이드오프로 7/2 회의 재평가 안건(R1)** 상정. Appendix A ADR-11 노트에 비교표 링크 | (작성자 ID 미지정) |
