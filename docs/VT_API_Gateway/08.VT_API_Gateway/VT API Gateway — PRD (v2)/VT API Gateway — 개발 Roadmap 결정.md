@@ -700,7 +700,7 @@ gantt
     title 스펙별 생애주기 — 작성 → PR(리뷰·수정) → baseline (기간 잠정·일정 약속 아님)
     dateFormat YYYY-MM-DD
     axisFormat %m/%d
-    todayMarker off
+    todayMarker stroke-width:3px,stroke:#d33,opacity:0.6
 
     section ③ GW SRS + API/DBML (계약 SSOT · 한 PR)
     SRS 본문 작성            :done, srsw, 2026-06-15, 14d
@@ -709,13 +709,13 @@ gantt
     baseline v1.0 (통합)     :milestone, srsbl, after srspr, 0d
 
     section ① API 호환성 One Pager (③ PR 시 동시 착수)
-    작성                  :op1w, 2026-07-09, 14d
-    PR 리뷰·수정          :active, op1pr, after op1w, 10d
+    작성                  :op1w, 2026-07-09, 7d
+    PR 리뷰·수정          :active, op1pr, after op1w, 7d
     baseline              :milestone, op1bl, after op1pr, 0d
 
     section ② Presigned One Pager (③ PR 시 동시 착수)
-    작성                  :op2w, 2026-07-09, 14d
-    PR 리뷰·수정          :active, op2pr, after op2w, 10d
+    작성                  :op2w, 2026-07-09, 7d
+    PR 리뷰·수정          :active, op2pr, after op2w, 7d
     baseline              :milestone, op2bl, after op2pr, 0d
 
     section ④ AXS Sub-SRS (③ PR 시 ①②와 동시 착수)
