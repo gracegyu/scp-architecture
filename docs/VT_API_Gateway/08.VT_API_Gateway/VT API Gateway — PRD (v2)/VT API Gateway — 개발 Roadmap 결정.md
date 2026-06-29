@@ -684,16 +684,16 @@ flowchart LR
 
 #### 스펙 작성 순서 (권장)
 
-**각 스펙은 `작성 → PR(리뷰·수정) → baseline(동결)` 3단계**를 거친다 — "PR(리뷰·수정)"이 곧 리뷰·반영 단계이고, **baseline은 PR 머지로 동결**된다. ③ GW SRS가 **계약 SSOT**라 가장 먼저 baseline되며, 나머지(③-C·④·③-P·③-I)는 그 계약을 참조하므로 **③ baseline 이후** 착수한다. ①·②는 SRS에 종속되지 않는 **병행 트랙**(②는 오히려 GW 선행 요건)이다.
+**각 스펙은 `작성 → PR(리뷰·수정) → baseline(동결)` 3단계**를 거친다 — "PR(리뷰·수정)"이 곧 리뷰·반영 단계이고, **baseline은 PR 머지로 동결**된다. ③ GW SRS가 **계약 SSOT**라 가장 먼저 작성·PR(7/9~)을 거쳐 baseline된다. ③ GW SRS가 **PR에 진입(작성 완료)하는 7/9 시점에 ①·②(One Pager)와 ④(AXS Sub-SRS)를 동시 착수**(병행 작성)한다 — ④는 ③ baseline을 기다리지 않으며 **전체 Sub-SRS를 2주에 작성**한다(pilot 전 완료). **AXS sandbox 자격(B-2 #6)은 스펙 *작성* 엔 불요**하고 E2E·pilot 직전에 필요하므로 그 시점(확보 시점 TBD)에 둔다. ③-C·③-P·③-I는 ③ 계약을 참조하므로 **③ baseline 이후** — 특히 **③-I는 GW가 1주 초안 → 인프라 담당이 완성**한다.
 
 | 순서 | 스펙 | 현재 단계 | 전제·선결 | 비고 |
 |---|---|---|---|---|
-| 0 | **③ GW SRS + API(OpenAPI) + DBML** | **PR(리뷰·수정)** → baseline v1.0 | — | 계약 SSOT(이것 먼저). **본문·OpenAPI·DBML은 한 PR로 함께 리뷰·baseline**(§7↔OpenAPI, §6.4↔DBML 정합). OpenAPI는 code-first 초안 — 구현 때 코드 생성본으로 수렴. 에러 계약 보강 필요(Appendix B #6) |
-| 1 | **④ Straumann(AXS) Sub-SRS** | 작성 대기 | ③ baseline / AXS sandbox 자격(B-2 #6) | **최우선 후속**, pilot(2026-08-15) 블로커 |
-| 2 | **③-C GW Console Sub-SRS** | 작성 대기 | ③ baseline(관리 API) | ④와 병행 가능, 중복 금지 |
-| 3 | **③-P 제품 적응**(EZ→CS·CO·OID) | GW 초안 → 제품팀 인계 | ③ baseline | **EzServer 먼저**(클라이언트·등록 주체) |
-| 4 | **③-I 인프라 IaC 계획서** | 작성 대기 | ③ baseline | 인프라 소유, IaC 도구(CDK 권장·7/2 R5) 반영 |
-| 병행 | **① 호환성 / ② Presigned** One Pager | 작성/PR(독립) | SRS 비종속 | ②는 GW 선행 요건 |
+| 0 | **③ GW SRS + API(OpenAPI) + DBML** | 작성 마무리(본문·OpenAPI·DBML) → **PR 7/9~** → baseline v1.0 | — | 계약 SSOT(이것 먼저). **작성(본문+API/DBML) 완료 후 한 PR로 함께 리뷰·baseline**(§7↔OpenAPI, §6.4↔DBML 정합). OpenAPI는 code-first 초안 — 구현 때 코드 생성본으로 수렴 |
+| 1 | **① 호환성 / ② Presigned** One Pager | ③ PR 시 동시 착수 | **GW SRS PR 시작(7/9)** | ②는 GW 선행 요건. ③ baseline 비종속(병행) |
+| 2 | **④ Straumann(AXS) Sub-SRS** | ③ PR 시 ①②와 동시 착수 | **GW SRS PR 시작(7/9)** (AXS sandbox 자격 B-2 #6 = E2E·pilot 선결, *작성* 엔 불요) | **최우선 후속**. **전체 Sub-SRS 2주 작성** → pilot(2026-08-15·개발계획서 내부 목표) 전 완료. ③ baseline 대기 없이 병행 |
+| 3 | **③-C GW Console Sub-SRS** | 작성 대기 | ③ baseline(관리 API) | 중복 금지 |
+| 4 | **③-P 제품 적응**(EZ→CS·CO·OID) | GW 초안 → 제품팀 인계 | ③ baseline | **EzServer 먼저**(클라이언트·등록 주체) |
+| 5 | **③-I 인프라 IaC 계획서** | GW 초안 → 인프라 완성 | ③ baseline | **GW 1주 초안 → 인프라 담당 완성·PR·baseline**. IaC 도구(CDK 권장·7/2 R5) 반영 |
 
 ```mermaid
 gantt
@@ -703,46 +703,47 @@ gantt
     todayMarker off
 
     section ③ GW SRS + API/DBML (계약 SSOT · 한 PR)
-    SRS 본문 작성            :done, srsw, 2026-06-22, 7d
-    OpenAPI·DBML 작성·정합   :active, designw, 2026-06-26, 9d
-    PR 리뷰·수정(본문+스키마) :active, srspr, 2026-06-29, 7d
+    SRS 본문 작성            :done, srsw, 2026-06-15, 14d
+    OpenAPI·DBML 작성·정합   :done, designw, 2026-06-19, 20d
+    PR 리뷰·수정(본문+스키마) :active, srspr, 2026-07-09, 14d
     baseline v1.0 (통합)     :milestone, srsbl, after srspr, 0d
 
-    section A. API 호환성 One Pager (병행)
-    작성                  :op1w, 2026-06-29, 7d
-    PR 리뷰·수정          :op1pr, after op1w, 5d
+    section ① API 호환성 One Pager (③ PR 시 동시 착수)
+    작성                  :op1w, 2026-07-09, 14d
+    PR 리뷰·수정          :active, op1pr, after op1w, 10d
     baseline              :milestone, op1bl, after op1pr, 0d
 
-    section B. Presigned One Pager (병행)
-    작성                  :op2w, 2026-06-29, 7d
-    PR 리뷰·수정          :op2pr, after op2w, 5d
+    section ② Presigned One Pager (③ PR 시 동시 착수)
+    작성                  :op2w, 2026-07-09, 14d
+    PR 리뷰·수정          :active, op2pr, after op2w, 10d
     baseline              :milestone, op2bl, after op2pr, 0d
 
-    section 4. AXS Sub-SRS (최우선 후속)
-    sandbox 자격 선결 B2-6 :crit, cred, 2026-06-29, 14d
-    작성                  :axsw, after srsbl cred, 14d
-    PR 리뷰·수정          :axspr, after axsw, 7d
+    section ④ AXS Sub-SRS (③ PR 시 ①②와 동시 착수)
+    작성 (전체 Sub-SRS)    :axsw, 2026-07-09, 14d
+    PR 리뷰·수정          :active, axspr, after axsw, 14d
     baseline              :milestone, axsbl, after axspr, 0d
+    AXS sandbox 자격 확보(E2E·pilot 선결·시점 TBD) :crit, cred, 2026-07-28, 14d
     AXS pilot             :milestone, pilot, 2026-08-15, 0d
 
-    section 3-C GW Console Sub-SRS
-    작성                  :conw, after srsbl, 14d
-    PR 리뷰·수정          :conpr, after conw, 7d
+    section ③-C GW Console Sub-SRS
+    작성                  :conw, after srsbl, 28d
+    PR 리뷰·수정          :active, conpr, after conw, 14d
     baseline              :milestone, conbl, after conpr, 0d
 
-    section 3-P 제품 적응 (GW 초안 후 제품팀 인계)
-    EzServer 초안         :ezw, after srsbl, 10d
-    CleverSpace 초안      :csw, after ezw, 7d
-    CleverOne 초안        :cow, after ezw, 7d
-    OneID 초안            :oidw, after ezw, 5d
+    section ③-P 제품 적응 (GW 초안 후 제품팀 인계)
+    EzServer 초안         :ezw, after srsbl, 20d
+    CleverSpace 초안      :csw, after ezw, 14d
+    CleverOne 초안        :cow, after ezw, 14d
+    OneID 초안            :oidw, after ezw, 10d
 
-    section 3-I 인프라 IaC 계획서
-    작성                  :infw, after srsbl, 14d
-    PR 리뷰·수정          :infpr, after infw, 7d
+    section ③-I 인프라 IaC 계획서
+    GW 담당 초안          :infw1, after srsbl, 7d
+    인프라 담당 완성       :infw2, after infw1, 21d
+    PR 리뷰·수정          :active, infpr, after infw2, 14d
     baseline              :milestone, infbl, after infpr, 0d
 ```
 
-> 각 섹션 = 스펙 1개, 막대 = `작성 / PR 리뷰·수정 / baseline` 생애주기 단계. **날짜·기간은 순서·의존 표현용 잠정값**이며 일정 약속이 아니다(확정 일정은 PM/품의). **③-P·③-I는 GW가 초안만 작성하고 PR·baseline은 제품팀/인프라가 자기 레포에서** 진행한다(그래서 gantt엔 GW 초안 구간만 표기). 핵심은 **③ baseline이 모든 하위 스펙의 선행, ④(AXS)가 최우선 후속, ①·②는 병행**. 스펙 단위·유형 정본은 [PRD §12.1](<../VT API Gateway — PRD (v2).md>).
+> 각 섹션 = **스펙 단위(①·②·③·③-C·④·③-P·③-I)** 1개, 막대 = `작성 / PR(리뷰·수정) / baseline` 생애주기 단계. **막대 색: 작성=기본색 · PR(리뷰·수정)=강조(밝은색) · ◆=baseline/마일스톤 · 회색=완료(done) · 빨강=외부 선결(sandbox 자격)**. **gantt는 스펙 단위 생애주기·순서만** 보이고, 제품×단계별 문서는 **[§4 표](#4-제품별-개발-항목-종합-제품--단계)** 가 정본(gantt 미표기). **날짜·기간은 순서·의존 표현용 잠정값**이며 일정 약속이 아니다 — 특히 **pilot 2026-08-15는 개발계획서(착수 품의·미승인) 내부 목표**이지 외부 확정 요구가 아니다(확정 일정은 PM/품의). **③-P·③-I는 GW가 초안만, PR·baseline은 제품팀/인프라 레포**. 핵심: **③ PR 시작(7/9)에 ①·②·④ 동시 착수(병행)**, ③ baseline이 ③-C·③-P·③-I의 선행, ④(AXS)는 **전체 Sub-SRS를 2주 작성**(pilot 전 완료). **AXS sandbox 자격(B-2 #6)은 스펙 작성엔 불요하고 E2E·pilot 직전에 필요**하므로 그 시점(7월 말~pilot 전)에 배치(확보 시점 TBD). **③-I는 GW가 1주 초안 → 인프라 담당이 완성·PR·baseline**. 단위·유형 정본 [PRD §12.1](<../VT API Gateway — PRD (v2).md>).
 
 ---
 

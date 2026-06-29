@@ -125,4 +125,57 @@
     | 10 | 감사·consent 보존 기간 | [정보] | 법무 확인 대기 |
     | 11 | 호환성 매트릭스 확정본 | [정보] | ① One Pager 의존 |
 
+- 공유 사항 — 스펙 작성 순서 (SRS PR 이후 후속 스펙)
+    - ③ GW SRS(+OpenAPI·DBML)를 한 PR로 baseline. **③ PR 시작(7/9)에 ①·②(One Pager)와 ④(AXS 전체 Sub-SRS, 2주)를 동시 착수**(병행). ③-C·③-P·③-I는 ③ baseline 이후 — **③-I는 GW 1주 초안 → 인프라 담당 완성**. 각 스펙은 **작성 → PR(리뷰·수정) → baseline** 생애주기.
+    - 막대 색: **작성=기본 · PR=강조(밝은색) · ◆=baseline/마일스톤 · 회색=완료 · 빨강=외부 선결**. **pilot 8/15는 개발계획서(착수 품의·미승인) 내부 목표**(외부 확정 요구 아님). **AXS sandbox 자격은 스펙 작성엔 불요·E2E·pilot 직전에 필요**라 그 시점에 배치(확보 TBD).
+    - 어느 제품·단계에 무슨 문서인지는 Roadmap §4 표, 스펙 단위·유형 정본은 PRD §12.1. **본 gantt 정본 = [개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정 시 그쪽을 먼저).
+
+    ```mermaid
+    gantt
+        title 스펙별 생애주기 — 작성 → PR(리뷰·수정) → baseline (기간 잠정·일정 약속 아님)
+        dateFormat YYYY-MM-DD
+        axisFormat %m/%d
+        todayMarker off
+
+        section ③ GW SRS + API/DBML (계약 SSOT · 한 PR)
+        SRS 본문 작성            :done, srsw, 2026-06-15, 14d
+        OpenAPI·DBML 작성·정합   :done, designw, 2026-06-19, 20d
+        PR 리뷰·수정(본문+스키마) :active, srspr, 2026-07-09, 14d
+        baseline v1.0 (통합)     :milestone, srsbl, after srspr, 0d
+
+        section ① API 호환성 One Pager (③ PR 시 동시 착수)
+        작성                  :op1w, 2026-07-09, 14d
+        PR 리뷰·수정          :active, op1pr, after op1w, 10d
+        baseline              :milestone, op1bl, after op1pr, 0d
+
+        section ② Presigned One Pager (③ PR 시 동시 착수)
+        작성                  :op2w, 2026-07-09, 14d
+        PR 리뷰·수정          :active, op2pr, after op2w, 10d
+        baseline              :milestone, op2bl, after op2pr, 0d
+
+        section ④ AXS Sub-SRS (③ PR 시 ①②와 동시 착수)
+        작성 (전체 Sub-SRS)    :axsw, 2026-07-09, 14d
+        PR 리뷰·수정          :active, axspr, after axsw, 14d
+        baseline              :milestone, axsbl, after axspr, 0d
+        AXS sandbox 자격 확보(E2E·pilot 선결·시점 TBD) :crit, cred, 2026-07-28, 14d
+        AXS pilot             :milestone, pilot, 2026-08-15, 0d
+
+        section ③-C GW Console Sub-SRS
+        작성                  :conw, after srsbl, 28d
+        PR 리뷰·수정          :active, conpr, after conw, 14d
+        baseline              :milestone, conbl, after conpr, 0d
+
+        section ③-P 제품 적응 (GW 초안 후 제품팀 인계)
+        EzServer 초안         :ezw, after srsbl, 20d
+        CleverSpace 초안      :csw, after ezw, 14d
+        CleverOne 초안        :cow, after ezw, 14d
+        OneID 초안            :oidw, after ezw, 10d
+
+        section ③-I 인프라 IaC 계획서
+        GW 담당 초안          :infw1, after srsbl, 7d
+        인프라 담당 완성       :infw2, after infw1, 21d
+        PR 리뷰·수정          :active, infpr, after infw2, 14d
+        baseline              :milestone, infbl, after infpr, 0d
+    ```
+
 
