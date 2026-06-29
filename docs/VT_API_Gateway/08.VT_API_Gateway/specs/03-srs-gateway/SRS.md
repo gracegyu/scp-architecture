@@ -188,7 +188,7 @@ flowchart TD
 >
 > **유일하게 다른 건 Webhook(이벤트 인바운드)** — AXS는 결과 이벤트를 GW로 _밀어 보내고_, GW가 **Webhook Receiver**로 받아 방화벽 뒤 **EzServer는 MQTT(하행, 갈래 A 역방향)**·**클라우드는 HTTP push**로 분배한다(대상=Org-ID→Clinic→리전 매핑, §7.3). 클라우드 수신 대상은 **CleverLab(갈래 B·보류)뿐**이며, **CleverSpace는 webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드일 뿐 — 다이어그램엔 *API 호출 대상*으로만 그린다). 대상별 시나리오는 §2.3.6. AXS의 **외부 연동(egress)은 GW core**, **Webhook(인바운드)은 Webhook Receiver**로 들어와 방향이 반대다. 멱등·교차 리전 등 분배 상세는 **§2.3.6·§7.6**.
 >
-> **본 도는 control plane(정보 경로) context다** — **대용량 데이터의 presigned 직접 업로드(EzServer/디바이스→storage, GW 미경유)·비-AWS minio·리전별 CS 노드는 생략**했다(Roadmap §2.6은 데이터 plane까지 함께 그림). 데이터 경로는 §2.3.4(경로②)·§2.3.5(경로③)·§4.1.4, 멀티 리전·minio는 §2.1.1·§3.1.2 참조.
+> **본 도는 control plane(정보 경로) context다** — **대용량 데이터의 presigned 직접 업로드(EzServer→발급주체 storage, GW 미경유)·AWS 미지원국 Provider MinIO·리전별 CS 노드는 생략**했다(Roadmap §2.6은 데이터 plane까지 함께 그림). 데이터 경로는 §2.3.4(경로②)·§2.3.5(경로③)·§4.1.4, 멀티 리전·MinIO는 §2.1.1·§3.1.2 참조.
 
 ### 2.1.1 배포 토폴로지 — 멀티 서버·멀티 리전 (egress·Webhook)
 
@@ -612,7 +612,7 @@ sequenceDiagram
 | --- | --- | --- |
 | gw/1.0 (MVP) | 인증 코어·레지스트리·enrollment·단일 리전 주권·presigned 중계·AXS connector·fleet 기본·config·감사/RBAC(경량)·Webhook·COMPAT·라우팅 키 통합 | 1·2·3·(4 일부)·5 |
 | gw/1.1 | DPoP+HW키·hardware attestation·fleet 확장·2nd connector | 후속 |
-| gw/1.2 | 멀티 리전·멀티클라우드 presign·signer 확장 | 4단계(후행 시) |
+| gw/1.2 | 멀티 리전 활성화(Aurora Global DB·GeoDNS N리전, §2.7.1) | 4단계(후행 시) |
 | v2.0 | 레거시 10만대 마이그레이션 | 후속 트랙 |
 
 ### 2.7.1 리전 구축 단계화 — 단일(1차) → 멀티(2차), 단 v1.0부터 멀티리전-ready
@@ -629,7 +629,7 @@ sequenceDiagram
 | **egress** | NAT EIP **집합** 패턴(§2.1.1) — 단일 리전=1집합 | 집합 합집합 — 외부 whitelist 갱신 |
 | **데이터 주권** | PHI 리전 경계 집행을 v1.0부터(OPA, §7.3.3) | 리전별 경계 그대로 적용 |
 
-> **금지**: 단일 리전을 전제한 하드코딩(리전 고정 endpoint·단일 DB 가정·apex 없이 리전 호스트 직접 노출 등)으로 2차에 재작업이 생기지 않게 한다. 멀티클라우드 presign(FR-SES-06)도 동일 원칙 — v1.0은 단일 클라우드(S3)지만 broker 추상화는 ready(§6.3.3).
+> **금지**: 단일 리전을 전제한 하드코딩(리전 고정 endpoint·단일 DB 가정·apex 없이 리전 호스트 직접 노출 등)으로 2차에 재작업이 생기지 않게 한다. (presign·storage는 GW 비소유·중계만이라 GW엔 presign broker가 없다 — FR-SES-06 해당 없음, §7.4·§7.4 FR-SES 매핑.)
 
 ## 2.8 Backward compatibility (하위 호환성)
 
@@ -1110,7 +1110,13 @@ None
 
 ## 6.9 Site Adaptation Requirements (사이트 적용 요구사항)
 
-리전별 signer·storage 구성(주권). 비-AWS는 MinIO(v1.2). 상세 TBD.
+사이트(국가/클리닉)별 적용은 **데이터 주권**과 **AWS 가용성**으로 결정된다.
+
+- **리전·주권 적용**: 클리닉은 온보딩 시 region을 자가 등록(§2.3.1)하고, GW는 device/clinic→region resolver(§7.3·ADR-10)로 **PHI를 그 리전 밖으로 보내지 않는다**(§7.3.3·OPA). region 목록은 `region_catalog`(§7.3.6). 1차 단일 리전 → 2차 멀티 리전(gw/1.2·§2.7.1).
+- **AWS 미지원 국가**: 별도 GW를 두지 않고 **가장 가까운 AWS 리전 GW에 접속**한다(§2.1.1·§3.1.2). 그 국가의 주권용 storage(예: **MinIO**)는 **GW가 아니라 Provider(CleverSpace/AXS)가 제공**하고 GW는 presigned를 **중계만** 한다(GW는 storage·signer 비소유 — `리전 signer`·Upload Session은 폐기, §7.4·ADR-03/04 철회).
+- **DNS**: 클라이언트는 apex(`gw.vatech.com`)만 사용(§4.5.1), GeoDNS가 최근접 리전으로 라우팅.
+
+상세 수치(리전 집합·국가 매핑)는 배포 구성 단계(인프라)에서 확정(§7.3·Appendix B #2).
 
 ## 6.10 Internationalization Requirements (다국어 지원 요구사항)
 
@@ -1118,7 +1124,7 @@ GW는 무인 control plane으로 UI 문자열 거의 없음. 시간은 Unix ms(U
 
 ## 6.11 Unicode Support (유니코드 지원)
 
-UTF-8(메타데이터·로그). 이모지 처리 대상 아님.
+UTF-8(메타데이터·로그)
 
 ## 6.12 64bit Support (64비트 지원)
 
@@ -1606,6 +1612,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | 문구 정리 — §3.1.2 DB 근거 노트에서 슬로건성 문장("PostgreSQL을 안 쓰는 게 아니라…") 제거하고 결정·권장·근거(1~4)만 유지. §2.1.1 단일 리전 안내 문장의 캐주얼 톤 정리. (불필요 설명 제거, 의미 변경 없음) | (작성자 ID 미지정) |
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
 | 2026-06-25 | §1.4 용어에 **LMP(LicenseManager) = Clinic-ID 발급원** 정의 추가(§2.3.1 온보딩 자동 등록의 LMP 약어 명시) | (작성자 ID 미지정) |
+| 2026-06-26 | 잔재 전수 점검·정리 — §2.7 gw/1.2 "멀티클라우드 presign·**signer 확장**" → "멀티 리전 활성화(Aurora Global DB·GeoDNS)", §2.7.1 금지 노트의 "멀티클라우드 presign broker ready" 제거(GW 비소유·FR-SES-06 해당없음·line 1290과 일치), §2.1 노트 "비-AWS minio·디바이스→storage" → "AWS 미지원국 Provider MinIO·EzServer→발급주체 storage". signer/Upload Session/포터블 잔재 0 확인 | (작성자 ID 미지정) |
+| 2026-06-26 | §6.9 사이트 적용 요구사항 현행화 — 낡은 "리전별 signer·비-AWS MinIO(v1.2)" 제거(signer 폐기·GW AWS 전용 반영). 리전 주권(clinic→region·PHI 미이동)·**AWS 미지원국=가까운 AWS GW 접속+Provider MinIO 중계**·apex DNS·멀티리전 staging으로 재작성 | (작성자 ID 미지정) |
 | 2026-06-26 | §1.4 용어에 **OTel(OpenTelemetry)·ADOT** 추가(관측성 표준·AWS 수집기) | (작성자 ID 미지정) |
 | 2026-06-26 | §6.3.2에 **관측 수집층 권장 패턴(힌트)** — 앱 계약=stdout JSON+OTel 계측(고정), 수집 에이전트=인프라 선택. 권장: **Fluent Bit(로그)+ADOT(trace/metric)**, OTel은 traceId 위해 필수·Fluent Bit와 역할 분리(경쟁 아님). Appendix B #14에 수집 에이전트 선택 포함. 최종 결정=인프라 | (작성자 ID 미지정) |
 | 2026-06-26 | §6.3.2에 **구조화 로그 구조(요구)** 정의 — JSON 한 줄·필수 필드(ts·level·traceId/spanId·requestId·tenant/clinic·actor·action·result·latency·errorCode)·상관키(OTel traceId + Vatech-* originator/Via §7.7)·레벨·PHI/시크릿 금지·인프라 취합 소유. §3.1.2 Pino는 도구만(구조는 §6.3.2)으로 정리. 정확한 필드 확정은 Appendix B #14 | (작성자 ID 미지정) |

@@ -41,7 +41,7 @@ docs/VT_API_Gateway/                    ← Claude Code 실행 루트
 | **통제·SSOT** | `08.VT_API_Gateway/` | PRD·ARD·`specs/` — 작성·baseline 대상 |
 | **입력 참고** | `references/` | CSV·AXS YAML·회의록 — SSOT 작성 시 *읽기만* |
 | **도구** | `templates/` | SRS/One Pager 항목 구조 틀 |
-| **방법론** | `munto-dev-assistant/` (워크스페이스) | dev-chain·spec-standard |
+| **방법론** | `abc-dev-assistant/` (워크스페이스) | dev-chain·spec-standard |
 | **구현 표준** | `es-toolkit/` (워크스페이스) | `/es-ticket` · `/es-pr` 등 |
 | **공식 SSOT (baseline 후)** | `vt-api-gateway/docs/specs/` | Azure git PR |
 

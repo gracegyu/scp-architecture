@@ -143,23 +143,23 @@ Jira 작업: es-toolkit **`/es-ticket`**(브랜치·티켓 자동). vt-api-gatew
 
 ---
 
-## 7. AI 방법론 — `munto-dev-assistant`
+## 7. AI 방법론 — `abc-dev-assistant`
 
-문토 제품용 하네스이지만, **스펙 작성·리뷰·dev-chain 프로세스**는 VT GW에 그대로 적용한다.
+**범용 dev-chain 하네스**(구 munto-dev-assistant에서 일반화)다. **스펙 작성·리뷰·dev-chain 프로세스**를 VT GW에 그대로 적용한다.
 
-**레포**: `~/Documents/GitMunto/munto-dev-assistant`
+**레포**: `~/Documents/Git/abc-dev-assistant`
 
 ### 7.1 먼저 읽을 문서
 
 | 파일 | 내용 |
 | --- | --- |
-| [`AGENTS.md`](../../../../GitMunto/munto-dev-assistant/AGENTS.md) | 하네스 진입점 · dev-chain 순서 · 절대 금지 |
-| [`document/dev-process-guide.md`](../../../../GitMunto/munto-dev-assistant/document/dev-process-guide.md) | PHASE 0~3 실무 교과서 |
-| [`document/spec-standard.md`](../../../../GitMunto/munto-dev-assistant/document/spec-standard.md) | SRS·One Pager **항목 구조 고정** |
-| [`document/spec-writing-tips.md`](../../../../GitMunto/munto-dev-assistant/document/spec-writing-tips.md) | TBD / N/A / Will Not Do |
-| [`document/ip-standard.md`](../../../../GitMunto/munto-dev-assistant/document/ip-standard.md) | 구현계획서(IP) — PHASE 1 이후 |
+| [`AGENTS.md`](../../../../Git/abc-dev-assistant/AGENTS.md) | 하네스 진입점 · dev-chain 순서 · 절대 금지 |
+| [`document/dev-process-guide.md`](../../../../Git/abc-dev-assistant/document/dev-process-guide.md) | PHASE 0~3 실무 교과서 |
+| [`document/spec-standard.md`](../../../../Git/abc-dev-assistant/document/spec-standard.md) | SRS·One Pager **항목 구조 고정** |
+| [`document/spec-writing-tips.md`](../../../../Git/abc-dev-assistant/document/spec-writing-tips.md) | TBD / N/A / Will Not Do |
+| [`document/ip-standard.md`](../../../../Git/abc-dev-assistant/document/ip-standard.md) | 구현계획서(IP) — PHASE 1 이후 |
 
-> **워크스페이스에서 열었을 때**: `munto-dev-assistant/AGENTS.md` 등 **폴더명 기준**으로 접근하면 된다.
+> **워크스페이스에서 열었을 때**: `abc-dev-assistant/AGENTS.md` 등 **폴더명 기준**으로 접근하면 된다.
 
 ### 7.2 dev-chain PHASE (VT GW 적용)
 
@@ -179,9 +179,9 @@ Claude Code는 `.claude/skills/*/SKILL.md` 래퍼를 읽으면 **`.agents/` 원�
 
 | 작업 | 스킬 | 원본 경로 |
 | --- | --- | --- |
-| SRS 작성 | `munto-spec-writer` | `.agents/skills/common/docs/munto-spec-writer/SKILL.md` |
-| SRS 리뷰 | `munto-spec-review` | `.agents/skills/common/docs/munto-spec-review/SKILL.md` |
-| 스펙 변경 | `munto-spec-change` | `.agents/skills/common/docs/munto-spec-change/SKILL.md` |
+| SRS 작성 | `abc-spec-writer` | `.agents/skills/common/docs/abc-spec-writer/SKILL.md` |
+| SRS 리뷰 | `abc-spec-review` | `.agents/skills/common/docs/abc-spec-review/SKILL.md` |
+| 스펙 변경 | `abc-spec-change` | `.agents/skills/common/docs/abc-spec-change/SKILL.md` |
 | DBML·Swagger·TCL | `dev-chain-design` | `.agents/skills/common/docs/dev-chain-design/SKILL.md` |
 | IP 작성 | `dev-chain-implementation-plan` | `.agents/skills/common/docs/dev-chain-implementation-plan/SKILL.md` |
 | NestJS 구현 | `dev-chain-backend` | `.agents/skills/backend/dev-chain-backend/SKILL.md` |
@@ -322,7 +322,7 @@ VT API Gateway 스펙 작업을 이어한다.
 - 08.VT_API_Gateway/specs/03-srs-gateway/SRS.md
 - 08.VT_API_Gateway/specs/03-srs-gateway/_status.md
 
-방법론: munto-dev-assistant dev-chain + es-toolkit /es-*
+방법론: abc-dev-assistant dev-chain + es-toolkit /es-*
 워크스페이스: ~/Documents/Azure/scp.code-workspace
 
 현재: ③ SRS 작성 중. §4.1.4 업로드 3경로 반영 완료.
@@ -343,6 +343,6 @@ VT API Gateway 스펙 작업을 이어한다.
 | AXS 참고 | `docs/VT_API_Gateway/references/Straumann연동/` |
 | SRS 템플릿 | `docs/VT_API_Gateway/templates/SRS_v3.3_template.md` |
 | Azure GW SRS (공식) | https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md |
-| dev-process-guide | `munto-dev-assistant/document/dev-process-guide.md` |
-| spec-standard | `munto-dev-assistant/document/spec-standard.md` |
+| dev-process-guide | `abc-dev-assistant/document/dev-process-guide.md` |
+| spec-standard | `abc-dev-assistant/document/spec-standard.md` |
 | es-toolkit | `es-toolkit/CLAUDE.md` |
