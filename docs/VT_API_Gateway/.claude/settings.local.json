@@ -36,7 +36,9 @@
       "Bash(ls -1 .agents/agents/)",
       "Bash(ls -1 document/)",
       "Bash(ls -1 .agents/skills/common/docs/)",
-      "Bash(bash scripts/check-adapters.sh)"
+      "Bash(bash scripts/check-adapters.sh)",
+      "Bash(grep -niE \"timeout|타임아웃|시간 ?초과|deadline|504|502|503|499|retry|재시도|circuit|회로|업스트림 \\(오류|장애|에러\\)|upstream \\(error|fail|timeout\\)|연결.{0,4}\\(실패|안\\)|gateway timeout|bad gateway\" SRS.md)",
+      "Bash(python3 -c \"import yaml,sys; d=yaml.safe_load\\(open\\('vt-api-gateway.openapi.yaml'\\)\\); print\\('YAML OK · schemas:', len\\(d['components']['schemas']\\), '· ProxyError' , 'ProxyError' in d['components']['schemas']\\)\")"
     ]
   }
 }

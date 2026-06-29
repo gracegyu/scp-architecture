@@ -836,6 +836,8 @@ GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의
 
 5. **GW 고유 API 컨벤션**: REST/JSON, **경로 버전 프리픽스 `/v1`**(예 `/v1/auth/token`, 관리 API는 `/admin/v1/*`; Webhook 수신 경로는 유연·provider별 등록이라 본 컨벤션 예외 — §4.1.3·§7.6.1), camelCase 필드, 시간 Unix ms(§1.3), 표준 오류코드(§7.7.4), idempotency key(§4.5). 단 `/.well-known/*`은 표준 관례상 버전 프리픽스 없이 노출(§7.7.2). 스키마 정본은 Swagger(code-first).
 
+6. **프록시 실패·타임아웃·업스트림 오류 의미론.** GW는 *서버*(downstream=원클라이언트)이자 *upstream의 클라이언트*다 — **GW의 upstream 총 deadline은 downstream 클라이언트 타임아웃보다 짧게** 잡아, 클라이언트가 포기하기 전에 GW가 **결정적 오류(504)** 를 돌려준다(고아 요청·커넥션/워커 점유·재시도 증폭 방지). 타임아웃·재시도·서킷·오류 매핑은 **per-upstream 레지스트리 설정**이며 상세는 §7.5.4, 오류코드 매핑은 §7.7.4. **GW가 생성한 오류**(연결 실패=`502` / deadline 초과=`504` / 서킷·일시불가=`503`)는 **GW 표준 error envelope**로 내고, **upstream 자체 4xx/5xx는 verbatim 통과**(body 미변형)하되 **`Vatech-Error-Origin`(`gateway`|`upstream`)** 마커로 책임을 구분한다. 클라이언트 조기 절단 시 GW는 upstream 호출을 **취소**한다(cancellation 전파).
+
 #### 라우팅 방식 비교·결정 (ADR-11)
 
 API Gateway가 "어느 upstream으로 보낼지"를 정하는 방식은 여럿이다. 아래 4안을 다기준으로 비교한다. 현재 **헤더 기반(`Vatech-Target`)** 으로 결정(ADR-11, CCB 승인 2026-06-25)했으나 **모든 기준에서 우수한 것은 아니며**(특히 운영/장애대응은 경로·서브도메인이 유리) **트레이드오프가 있어 재평가 안건으로 상정**한다(주간회의 7/2 R1). (표기 ◎ 우수 · ○ 양호 · △ 제약 · ✕ 부적합)
@@ -1004,6 +1006,7 @@ None
 
 - Webhook: 수신 후 **즉시 2xx ACK**(처리는 큐 위임, §7.6.3) — ACK 지연 목표 TBD(설계 단계, 영향: §7.6)
 - presigned URL TTL: 5~15분(§7.4.2)
+- **프록시 타임아웃 예산(§7.5.4)**: per-upstream `connect`/`response`/`total_deadline` — `GW 총 deadline < 클라이언트 타임아웃`이 불변식. 구체 값은 upstream SLA·인프라 입력 의존 **TBD**(Appendix B #25)
 
 ---
 
@@ -1076,7 +1079,7 @@ IaC 환경 재현으로 이식 대비. (presign broker는 GW가 두지 않음 �
 
 ### 6.3.4 Reliability (신뢰성)
 
-Webhook 전달 보증(QoS1·재시도·DLQ), 업로드 idempotency. MTBF 목표 TBD.
+Webhook 전달 보증(QoS1·재시도·DLQ), 업로드 idempotency. **동기 프록시(B/C) 복원력**: per-upstream 타임아웃·서킷 브레이커·멱등 한정 재시도로 장애 격리(한 upstream 장애가 GW 전체로 번지지 않게) — `GW deadline < 클라이언트 타임아웃` 불변식(§7.5.4·§4.1.2-6). MTBF 목표 TBD.
 
 ### 6.3.5 Remaining Attributes (나머지 특성)
 
@@ -1338,6 +1341,21 @@ FR-INT-03 (허용 대상만 외부 통신). allowlist 외 egress는 OPA로 차�
 
 **비목표(Will Not Do)**: 추가 connector(DS Core/3Shape, FR-INT-04)는 **gw/1.1**(설정 추가로 확장).
 
+### 7.5.4 프록시 복원력 — 타임아웃·재시도·업스트림 오류 (P1)
+
+FR-INT-05 (target-routed proxy(§4.1.2)의 **동기 전달 구간** 복원력 — 타임아웃·재시도·서킷·오류 매핑). 동기 프록시(B/C)는 Webhook **비동기 큐(A·재시도/DLQ, §7.6.3)와 다른 레그**다 — 응답을 기다리는 호출자가 있으므로 큐잉이 아니라 **deadline·즉시 오류**로 다룬다. 수치(타임아웃·재시도·서킷 임계)는 upstream SLA·인프라 입력 의존 **TBD**(Appendix B #25, 주간회의 7/2 R4).
+
+- **타임아웃 계층(핵심).** GW는 *서버*이자 *클라이언트*다. **`GW upstream 총 deadline < downstream 클라이언트 타임아웃`** 이어야 한다 — 아니면 클라이언트가 먼저 포기해도 GW는 upstream 응답을 계속 기다려 **고아 요청·커넥션/워커 점유·재시도 증폭**이 생긴다. GW는 클라이언트보다 **먼저 504를 반환**해 결정적 오류를 준다.
+  - **per-upstream 레지스트리(`upstream_registry`) 설정**: `connect_timeout_ms`(TCP+TLS 핸드셰이크, 짧게)·`response_timeout_ms`(응답 대기)·`total_deadline_ms`(전체 예산). upstream·작업 유형별로 다르게(값 TBD). 대용량 파일은 **presigned 직결**(GW 미경유, §4.1.4)이라 본 deadline은 control·metadata 중심.
+  - **클라이언트 조기 절단 → upstream 호출 취소**(cancellation 전파)로 자원 회수.
+  - **클라이언트 타임아웃 인지.** HTTP는 클라이언트 타임아웃을 표준 전달하지 않는다 — GW는 연결 close로 *사후*에만 안다. "GW가 먼저 504"를 보장하려면 값을 *사전*에 알아야 하므로, v1.0은 **(A) 계약값 합의**(EzServer↔GW, SRS 명시)를 기본으로 하고, 클라이언트가 **선택적 `Vatech-Timeout-Ms` 헤더(상대값)** 를 보내면 GW가 내부 deadline을 `now + min(헤더, 설정값)`으로 클램프한다(B). 헤더는 **상대 timeout**(클록 동기 불필요 — gRPC `grpc-timeout`·Envoy `x-envoy-expected-rq-timeout-ms` 선례)이며, "deadline"은 GW 내부 절대시각 개념으로 구분한다. 합의 방식·헤더 채택은 TBD(Appendix B #25, 7/2 R4-D10).
+- **재시도 정책(보수적).** GW는 **타겟당 단일 upstream(레지스트리 1행)** 을 중계하는 verbatim relay라 — 로드밸런싱 풀처럼 *다른 인스턴스로* 넘길 대상이 없다 — 재시도를 **최소화**한다. 기본은 **연결 수립 실패(요청 바이트 전송 전)에 한해 1회 재시도**(요청이 upstream에 도달 전이라 POST 포함 전 메서드 안전; HAProxy 기본·nginx 1.9.13+ 비멱등 보호와 같은 보수적 입장). **응답 타임아웃(요청 전송 후)·upstream 5xx는 GW 재시도 안 함** — upstream이 이미 처리했을 수 있어 멱등이라도 위험. **애플리케이션 레벨 재시도는 클라이언트가 소유**한다(idempotency key·업무 의미를 클라이언트가 가장 잘 안다). (옵션: 멱등 GET류의 응답 전 타임아웃 재시도 추가 가능하나 v1.0 비포함 권장.) 재시도 활성 시 지수 백오프+jitter+retry budget으로 폭주를 막는다. 소유·범위 결정은 R4-D5(값 TBD).
+- **서킷 브레이커(per upstream).** 연속 실패 임계 초과 시 회로 개방 → **빠른 실패 `503`(+`Retry-After`)**, 반열림 탐침으로 복구. v1.0 기본 포함(임계·복구 파라미터 TBD; 구현 부담 시 일부 gw/1.1로 이월 — 7/2 R4 결정).
+- **업스트림 오류 → 클라이언트 매핑(상세 표 §7.7.4).** **GW 생성 오류**(`502` 연결 실패 / `504` 타임아웃 / `503` 서킷·일시불가)는 **GW 표준 error envelope**, **upstream 자체 4xx/5xx**는 **verbatim 통과**(body 미변형). **`Vatech-Error-Origin: gateway|upstream`** 마커로 책임을 구분하고, GW 생성 시 `Vatech-Upstream-Latency-Ms` 등 관측 헤더를 부가한다.
+- **관측(§6.3.2 연계).** 로그/메트릭에 `upstreamLatencyMs`·`upstreamStatus`·`retryCount`·`timeout`(bool)·`circuitState`를 남겨 장애 시 원인(어느 upstream·타임아웃·서킷)을 즉시 식별한다.
+
+- **에러**: upstream 연결 불가 → `502`(`Vatech-Error-Origin: gateway`), deadline 초과 → `504`, 서킷 개방/일시 불가 → `503`(+`Retry-After`). upstream 자체 오류 → 원응답 **verbatim 통과**(`Vatech-Error-Origin: upstream`). 비멱등 요청은 재시도 없이 즉시 반환.
+
 ## 7.6 Webhook 수신·이벤트 분배 (P1)
 
 GW는 외부 이벤트의 **단일 수신·분배점**이다(ADR-09). 방화벽 뒤 Edge(EzServer)는 inbound가 불가하므로, GW가 대신 수신·검증·멱등 처리 후 대상별로 분배한다. 서비스별 개별 수신을 금지하여 서명·IP·멱등 검증의 분산을 막는다.
@@ -1413,6 +1431,19 @@ FR-COMPAT-03 (요청 전 버전 게이팅).
 ### 7.7.4 오류코드 매핑·fallback (P1)
 
 FR-COMPAT-04 (미지원 시 표준 오류코드 + "업데이트 필요" fallback 안내).
+
+**프록시(B/C) 업스트림 오류 매핑(§7.5.4 연계).** GW가 *생성*하는 오류와 upstream이 *돌려준* 오류를 구분한다 — 전자는 GW 표준 envelope, 후자는 verbatim 통과. `Vatech-Error-Origin` 헤더로 책임 주체를 표시한다.
+
+| 상황 | HTTP | 본문 | `Vatech-Error-Origin` |
+| --- | --- | --- | --- |
+| upstream 연결 실패(거부·DNS·TLS) | `502` Bad Gateway | GW envelope(`UPSTREAM_UNREACHABLE`) | `gateway` |
+| upstream 응답 지연 — GW deadline 초과 | `504` Gateway Timeout | GW envelope(`UPSTREAM_TIMEOUT`) | `gateway` |
+| 서킷 개방 / upstream 일시 불가 | `503` Service Unavailable(+`Retry-After`) | GW envelope(`UPSTREAM_UNAVAILABLE`) | `gateway` |
+| 라우팅 실패(`Vatech-Target` 누락/미등록/allowlist 외) | `400`/`404`/`403` | GW envelope | `gateway` |
+| upstream이 자체 4xx/5xx 응답 | upstream 원 코드 | **upstream body verbatim**(GW 미변형) | `upstream` |
+| 클라이언트 조기 절단 | (응답 없음) | — GW가 upstream 호출 취소 | — |
+
+> **원칙**: GW 생성 오류만 GW envelope를 쓰고, upstream 응답은 코드·body를 **그대로 통과**(verbatim bypass 일관성, §4.1.2-3). 호출자는 `Vatech-Error-Origin`으로 "GW가 못 갔다(gateway)" vs "대상이 거부했다(upstream)"를 구분한다. 자동 재시도는 멱등 요청·연결/pre-response 타임아웃 한정(§7.5.4).
 
 ### 7.7.5 호환성 매트릭스 단일 소스 (P1)
 
@@ -1539,6 +1570,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 16 | Webhook 클라우드 분배 — **CleverLab 갈래 B 활성화 여부·시점**(CleverSpace=대상 아님 확정). EzServer(갈래 A) 역방향 대상 이벤트 목록 | §2.3.6·§7.6.5·§7.6.6 | PM/제품+GW(④) | ④ 상세설계 | §7.6·④·§2.1·§2.2 |
 | 18 | 관계형 DB 관리형 제품 — **엔진=PostgreSQL 확정·제품=Aurora PostgreSQL 권장**(처음부터; RDS-first 비권장, 비용 델타 ~20%·저QPS라 작음). **인프라 비준만 남음** | §3.1.2·§2.1.1 | 인프라/아키텍트 | v1.0 배포 구성 착수 전 | §2.1.1·§6.3·§7.3 |
 | 24 | **개발·테스트·운영 환경 구축** — dev 에뮬레이터/스텁(EPI·CleverSpace presign·OneID·LMP)·AXS sandbox 자격(↔#6)·staging(운영 유사 축소)·dev/staging AWS 계정·sandbox egress EIP. 책임·일정 | §3.1·§3.4·§3.5 | 인프라/개발 | **dev: AXS 개발 착수 전** · staging: pilot 전 | §3·§7.5·④ |
+| 25 | **프록시 타임아웃·재시도·서킷 수치 + v1.0 서킷 포함 범위** — `connect`/`response`/`total_deadline_ms`(per-upstream, `GW deadline < 클라이언트 타임아웃`)·재시도 상한/백오프/budget·서킷 임계·복구. 정책 골격은 §7.5.4·§7.7.4 확정, **수치·서킷 v1.0 범위가 미결**(upstream SLA·인프라 입력 의존) | §7.5.4·§7.7.4·§5.5·§4.1.2-6 | GW+인프라(+AXS SLA) | 프록시 구현 착수 전 | §7.5·§6.3.4·④ |
 
 ## 8 Change Management Process
 
@@ -1631,6 +1663,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
 | 2026-06-25 | §1.4 용어에 **LMP(LicenseManager) = Clinic-ID 발급원** 정의 추가(§2.3.1 온보딩 자동 등록의 LMP 약어 명시) | (작성자 ID 미지정) |
 | 2026-06-26 | 잔재 전수 점검·정리 — §2.7 gw/1.2 "멀티클라우드 presign·**signer 확장**" → "멀티 리전 활성화(Aurora Global DB·GeoDNS)", §2.7.1 금지 노트의 "멀티클라우드 presign broker ready" 제거(GW 비소유·FR-SES-06 해당없음·line 1290과 일치), §2.1 노트 "비-AWS minio·디바이스→storage" → "AWS 미지원국 Provider MinIO·EzServer→발급주체 storage". signer/Upload Session/포터블 잔재 0 확인 | (작성자 ID 미지정) |
+| 2026-06-29 | **프록시(B/C) 에러·타임아웃·복원력 정책 신설** — §7.5.4(FR-INT-05: 타임아웃 계층 `GW deadline < 클라이언트 타임아웃`·per-upstream 레지스트리 타임아웃·**연결실패 한정 보수적 재시도**(앱 재시도는 클라이언트 소유·타겟당 upstream 1개)·서킷 브레이커·클라 절단 시 upstream 취소)·§7.7.4(업스트림 오류 매핑표: 연결실패 502/타임아웃 504/서킷 503 = GW envelope, upstream 자체 4xx/5xx = verbatim 통과, `Vatech-Error-Origin` 마커)·§4.1.2 규칙6·§5.5·§6.3.4 반영. OpenAPI에 ProxyError·타임아웃 레지스트리 필드. 수치·v1.0 서킷 범위 = Appendix B #25(7/2 R4) | (작성자 ID 미지정) |
 | 2026-06-29 | §4.1.2에 **라우팅 방식 비교·결정 표(ADR-11)** 추가 — 4안(헤더 `Vatech-Target` / 경로 프리픽스 `/axs/…` / 서브도메인 / 클라이언트 지정) × 11기준(관례·verbatim·A↔프록시 구분·경로충돌·클라 비용·SSRF·DNS/TLS·멀티리전·**확장성·유지보수/장애대응**·관측) 비교. 정직 평가: 헤더는 verbatim·배타구분·apex·클라 최소변경에 우수하나 **운영/장애대응·관례는 경로/서브도메인이 우위**(헤더는 커스텀이라 표준 로그·엣지 제어에 추가 설정) → "헤더 전부 우수"는 아님, **트레이드오프로 7/2 회의 재평가 안건(R1)** 상정. Appendix A ADR-11 노트에 비교표 링크 | (작성자 ID 미지정) |
 | 2026-06-29 | **잘못된 N/A(기존과 동일) 교정** — "기존과 동일"은 N/A가 아니라 스펙(정확한 링크/복사, 모르면 TBD; spec-standard 규칙 갱신). §3.4.1 `N/A(기존 개발 PC와 동일)`→"특별 HW 요구 없음·표준 개발 PC", §3.5.1 `N/A(클라우드…)`→"운영 §3.1.1 HW 동일(축소본)" 링크. 정당한 N/A(③-C 정의·기능상 무관·64bit 기본)는 유지 | (작성자 ID 미지정) |
 | 2026-06-26 | §6.9 사이트 적용 요구사항 현행화 — 낡은 "리전별 signer·비-AWS MinIO(v1.2)" 제거(signer 폐기·GW AWS 전용 반영). 리전 주권(clinic→region·PHI 미이동)·**AWS 미지원국=가까운 AWS GW 접속+Provider MinIO 중계**·apex DNS·멀티리전 staging으로 재작성 | (작성자 ID 미지정) |

@@ -292,6 +292,13 @@ paths:
   #   - 경로②(B): Vatech-Target: cleverspace — CleverSpace OpenAPI 정본
   #   - 경로③(C): Vatech-Target: axs — AXS OpenAPI 스냅샷 + ④ Sub-SRS 정본 (OAuth2·egress allowlist는 GW 정책)
   # Vatech-Target 없는 호출만 아래 GW 고유 API(A)로 처리된다.
+  #
+  # 프록시 에러·타임아웃 계약 (정본 §7.5.4·§7.7.4 — 경로가 아니라 전 프록시 공통이므로 여기 주석으로 기술):
+  #   - 타임아웃: per-upstream(connect/response/total_deadline, UpstreamRegistry). GW 총 deadline < 클라이언트 타임아웃(고아 요청 방지).
+  #   - GW 생성 오류 = ProxyError 스키마: 502 연결실패(UPSTREAM_UNREACHABLE) / 504 deadline 초과(UPSTREAM_TIMEOUT) / 503 서킷·일시불가(UPSTREAM_UNAVAILABLE, Retry-After). 헤더 Vatech-Error-Origin: gateway.
+  #   - upstream 자체 4xx/5xx = 원 코드·body verbatim 통과(GW 미변형). 헤더 Vatech-Error-Origin: upstream.
+  #   - 재시도: 멱등(GET/HEAD/OPTIONS/PUT/DELETE) 또는 idempotency key 보유 + 연결/pre-response 타임아웃 한정(상한+백오프+budget). 비멱등 POST 자동 재시도 금지.
+  #   - 클라이언트 조기 절단 → GW가 upstream 호출 취소.
 
   # --- Webhook 수신 (§7.6 / §4.1.3) — provider별 전용 호스트({provider}.webhook.gw.vatech.com)로 식별(Host/SNI). 경로/스키마는 provider 규약 수용·유연(아래는 예시). GW는 발신자 검증·라우팅만, payload 비해석 ---
   /v1/webhooks/{provider}:
@@ -637,8 +644,13 @@ components:
         host: { type: string, description: '내부 매핑 host(클라이언트 비노출)' }
         profile: { type: string, enum: [ internal, external ] }
         egressAllowlist: { type: array, items: { type: string } }
+        connectTimeoutMs: { type: integer, description: 'TCP+TLS 핸드셰이크 타임아웃(짧게). 값 TBD(Appendix B #25, §7.5.4)' }
+        responseTimeoutMs: { type: integer, description: 'upstream 응답 대기 타임아웃. 값 TBD' }
+        totalDeadlineMs: { type: integer, description: '프록시 호출 총 예산 — GW deadline < 클라이언트 타임아웃 불변식. 값 TBD' }
+        retryPolicy: { type: string, description: '재시도 정책 — 멱등 메서드/idempotency key + 연결·pre-response 타임아웃 한정(상한+백오프+budget). 비멱등 POST 금지(§7.5.4)' }
+        circuitBreaker: { type: boolean, description: '서킷 브레이커 활성(연속 실패 시 503+Retry-After 빠른 실패). 임계·v1.0 범위 TBD' }
         enabled: { type: boolean }
-      description: 'target-routed proxy 라우팅(ADR-11). 신규 upstream = 1행'
+      description: 'target-routed proxy 라우팅(ADR-11). 신규 upstream = 1행. 타임아웃·재시도·서킷은 per-upstream 복원력 설정(§7.5.4)'
     DeliveryChannel:
       type: object
       required: [ clinicId, channelType ]
@@ -671,3 +683,19 @@ components:
         status: { type: string, enum: [ active, draining, planned ] }
         isDefault: { type: boolean }
       description: 'GW 운영 리전(GET /v1/regions). region_catalog 테이블 매핑'
+    ProxyError:
+      type: object
+      required: [ errorCode, origin ]
+      properties:
+        errorCode:
+          type: string
+          enum: [ UPSTREAM_UNREACHABLE, UPSTREAM_TIMEOUT, UPSTREAM_UNAVAILABLE ]
+          description: '502 연결 실패 / 504 deadline 초과 / 503 서킷·일시불가(§7.7.4)'
+        origin:
+          type: string
+          enum: [ gateway ]
+          description: 'GW가 생성한 오류임을 표시(헤더 Vatech-Error-Origin: gateway와 동일). upstream 자체 4xx/5xx는 본 스키마를 쓰지 않고 원응답을 verbatim 통과(origin: upstream)'
+        targetId: { type: string, description: '실패한 Vatech-Target 논리 ID' }
+        retryAfter: { type: integer, description: '503 시 재시도 권고(초)' }
+        message: { type: string }
+      description: 'GW 생성 프록시 오류 본문(502/503/504). upstream 응답은 verbatim 통과라 이 스키마 미적용(§7.5.4·§7.7.4)'
