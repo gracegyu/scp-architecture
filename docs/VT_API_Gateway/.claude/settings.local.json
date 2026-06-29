@@ -35,7 +35,8 @@
       "Bash(cd ~/Documents/Git/abc-dev-assistant)",
       "Bash(ls -1 .agents/agents/)",
       "Bash(ls -1 document/)",
-      "Bash(ls -1 .agents/skills/common/docs/)"
+      "Bash(ls -1 .agents/skills/common/docs/)",
+      "Bash(bash scripts/check-adapters.sh)"
     ]
   }
 }
