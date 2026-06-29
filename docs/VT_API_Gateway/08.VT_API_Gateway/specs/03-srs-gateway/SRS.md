@@ -749,7 +749,7 @@ GW는 **클라이언트(EzServer/CleverOne)·upstream(AXS·CleverSpace·OneID)·
 
 ### 3.4.1 Hardware Environment
 
-N/A(기존 개발 PC와 동일)
+특별 HW 요구 없음 — 표준 개발 PC(별도 규정 없음). 빌드·로컬 컨테이너(PostgreSQL·Valkey·큐 등 §3.4) 구동 가능 사양이면 충분.
 
 ### 3.4.2 Software Environment
 
@@ -767,7 +767,7 @@ Node.js / NestJS / Prisma / PostgreSQL(local) / Docker / **Claude Code(개발 �
 
 ### 3.5.1 Hardware Environment
 
-N/A(클라우드 — AWS staging, 운영 유사·축소)
+클라우드 — AWS staging. **운영 §3.1.1 HW 구성과 동일(축소본)** — 동일 스택·소형 인스턴스/노드.
 
 ### 3.5.2 Software Environment
 
@@ -1613,6 +1613,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
 | 2026-06-25 | §1.4 용어에 **LMP(LicenseManager) = Clinic-ID 발급원** 정의 추가(§2.3.1 온보딩 자동 등록의 LMP 약어 명시) | (작성자 ID 미지정) |
 | 2026-06-26 | 잔재 전수 점검·정리 — §2.7 gw/1.2 "멀티클라우드 presign·**signer 확장**" → "멀티 리전 활성화(Aurora Global DB·GeoDNS)", §2.7.1 금지 노트의 "멀티클라우드 presign broker ready" 제거(GW 비소유·FR-SES-06 해당없음·line 1290과 일치), §2.1 노트 "비-AWS minio·디바이스→storage" → "AWS 미지원국 Provider MinIO·EzServer→발급주체 storage". signer/Upload Session/포터블 잔재 0 확인 | (작성자 ID 미지정) |
+| 2026-06-29 | **잘못된 N/A(기존과 동일) 교정** — "기존과 동일"은 N/A가 아니라 스펙(정확한 링크/복사, 모르면 TBD; spec-standard 규칙 갱신). §3.4.1 `N/A(기존 개발 PC와 동일)`→"특별 HW 요구 없음·표준 개발 PC", §3.5.1 `N/A(클라우드…)`→"운영 §3.1.1 HW 동일(축소본)" 링크. 정당한 N/A(③-C 정의·기능상 무관·64bit 기본)는 유지 | (작성자 ID 미지정) |
 | 2026-06-26 | §6.9 사이트 적용 요구사항 현행화 — 낡은 "리전별 signer·비-AWS MinIO(v1.2)" 제거(signer 폐기·GW AWS 전용 반영). 리전 주권(clinic→region·PHI 미이동)·**AWS 미지원국=가까운 AWS GW 접속+Provider MinIO 중계**·apex DNS·멀티리전 staging으로 재작성 | (작성자 ID 미지정) |
 | 2026-06-26 | §1.4 용어에 **OTel(OpenTelemetry)·ADOT** 추가(관측성 표준·AWS 수집기) | (작성자 ID 미지정) |
 | 2026-06-26 | §6.3.2에 **관측 수집층 권장 패턴(힌트)** — 앱 계약=stdout JSON+OTel 계측(고정), 수집 에이전트=인프라 선택. 권장: **Fluent Bit(로그)+ADOT(trace/metric)**, OTel은 traceId 위해 필수·Fluent Bit와 역할 분리(경쟁 아님). Appendix B #14에 수집 에이전트 선택 포함. 최종 결정=인프라 | (작성자 ID 미지정) |
