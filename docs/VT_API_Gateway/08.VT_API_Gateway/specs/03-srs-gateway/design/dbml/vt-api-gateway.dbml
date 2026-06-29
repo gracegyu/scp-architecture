@@ -9,11 +9,19 @@
 // 컬럼은 snake_case(PostgreSQL 관례), API DTO는 camelCase(SRS §1.3)로 매핑.
 // 시간은 Unix Timestamp(ms) bigint. PHI 본문 미저장(presigned 직결, SRS §6.4).
 // 타입·인덱스·정밀 relation은 LLD(dev-chain-design)에서 확정.
+// 2026-06-29 PR 정합 보강: upstream_registry 복원력 컬럼(connect/response/total_deadline·retry_policy·circuit_breaker, OpenAPI 정합),
+//   enum화(upstream_profile·delivery_channel_type·region_status), config/mapping 테이블 created_at/updated_at, webhook_event FK·상태(attempts·received_at) 보강.
 
 Project vt_api_gateway {
   database_type: 'PostgreSQL'
   Note: '설계 초안. 핵심 엔터티 골격만 — 상세 확정은 LLD.'
 }
+
+// ── 리뷰 포인트(설계 검토 필요) ──
+//  1) region_mapping(device→region) vs clinic_region_mapping(clinic→region): device=EzServer=클리닉당 1개이고 등록은 clinic 단위라,
+//     device→region은 clinic_region_mapping에서 파생 가능할 수 있음(ADR-10 단일 체계). 둘 다 유지할지/파생으로 둘지 LLD에서 확정.
+//  2) consent(재동의) 추적: 리전 재지정 시 재동의(FR-COMP-02·§7.9.5)·보존기간(Appendix B #5 TBD)을 위한 전용 테이블은 미정의 — ④/LLD에서 확정(현재는 audit_log + mapping_version으로 이력).
+//  3) 보존기간(audit_log·consent)은 법규 의존 TBD(§6.4·Appendix B #5).
 
 Enum device_status {
   pending
@@ -26,6 +34,22 @@ Enum webhook_state {
   received
   dispatched
   dead_letter
+}
+
+Enum upstream_profile {
+  internal
+  external
+}
+
+Enum delivery_channel_type {
+  mqtt_edge
+  http_cloud
+}
+
+Enum region_status {
+  active
+  draining
+  planned
 }
 
 // 디바이스 레지스트리 (FR-DEV-*)
@@ -85,8 +109,10 @@ Table region_mapping {
   device_id       varchar [pk, ref: - device.device_id]
   region          varchar [not null, ref: > region_catalog.region_id]
   mapping_version integer [not null, default: 1]
+  created_at      bigint
+  updated_at      bigint
 
-  Note: 'drift·롤백 추적'
+  Note: 'drift·롤백 추적. (리뷰 포인트 1: clinic_region_mapping에서 파생 가능성 — LLD 확정)'
 }
 
 // clinic → region 매핑 (FR-RGN-06, 라우팅 키 통합)
@@ -94,6 +120,8 @@ Table clinic_region_mapping {
   clinic_id       varchar [pk]
   region          varchar [not null, ref: > region_catalog.region_id]
   mapping_version integer [not null, default: 1]
+  created_at      bigint
+  updated_at      bigint
 
   Note: 'device↔clinic↔region 단일 체계(ADR-10). EzServer가 LMP Clinic-ID 수신 시 자동·무조건 등록(외부 연동 무관)으로 생성 · Admin은 교정만(FR-RGN-04). 일괄 수기 설정 아님'
 }
@@ -103,8 +131,10 @@ Table region_catalog {
   region_id    varchar [pk]            // 예: apne2(서울), use1(미주)
   display_name varchar
   endpoint     varchar                 // 리전 내부 endpoint(§4.5.1)
-  status       varchar [not null, default: 'active']  // active | draining | planned
+  status       region_status [not null, default: 'active']  // active | draining | planned
   is_default   boolean [not null, default: false]
+  created_at   bigint
+  updated_at   bigint
 
   Note: 'GW가 운영하는 리전 목록(GET /v1/regions). v1.0=1행, gw/1.2=N행(§2.7.1 멀티리전-ready). region_mapping·clinic_region_mapping.region이 참조'
 }
@@ -120,6 +150,8 @@ Table policy {
   allowed_endpoints jsonb
   scopes            jsonb
   egress            jsonb
+  created_at        bigint
+  updated_at        bigint
 
   Note: 'OPA allowlist·region·scope·egress 판단 근거'
   Indexes {
@@ -133,6 +165,8 @@ Table connector {
   endpoint         varchar
   credential_ref   varchar
   egress_allowlist jsonb
+  created_at       bigint
+  updated_at       bigint
 
   Note: 'external(C) egress 상세 — OAuth credential·egress. 라우팅(target→host)은 upstream_registry, 본 표는 external 자격/엔드포인트. name 예: axs'
 }
@@ -178,13 +212,17 @@ Table compat_matrix {
 // 외부 이벤트 (FR-WH-*)
 Table webhook_event {
   event_id        varchar [pk]
-  provider        varchar [not null]
+  provider        varchar [not null, ref: > webhook_provider.provider]
   external_org_id varchar
-  clinic_id       varchar
-  region          varchar
+  clinic_id       varchar [ref: > clinic_region_mapping.clinic_id]
+  region          varchar [ref: > region_catalog.region_id]
   payload_ref     varchar
   state           webhook_state [not null, default: 'received']
   target          varchar
+  attempts        integer [not null, default: 0]   // 분배 시도 횟수(N회 실패 → dead_letter·DLQ, §7.6.3)
+  last_error      varchar                           // 마지막 분배 실패 사유(관측·DLQ 진단)
+  received_at     bigint                            // 수신 시각(Unix ms)
+  dispatched_at   bigint                            // 분배 완료 시각
 
   Note: '멱등(event_id dedup)·분배 상태·해석된 대상(clinic/region). GW는 payload 비해석 — external_org_id로 org_mapping 조회해 대상 결정. 본문은 외부 스키마(④)'
   Indexes {
@@ -203,6 +241,8 @@ Table org_mapping {
   external_org_id varchar [not null]   // provider 식별자(예: AXS Organization-ID)
   clinic_id       varchar [not null, ref: > clinic_region_mapping.clinic_id]
   mapping_version integer [not null, default: 1]
+  created_at      bigint
+  updated_at      bigint
 
   Note: '(provider, external_org_id) → clinic_id → region. webhook 분배 1차 키. **외부 연동 연결 시 provider별 자가 등록으로 채워짐**(§2.3.5) · Admin 교정(/admin/v1/org-mappings). ClinicID↔Org-ID 이중 저장(복구)'
   Indexes {
@@ -221,26 +261,37 @@ Table webhook_provider {
   source_ip_allowlist jsonb             // 허용 소스 **CIDR 목록** — **옵션·방어심층**(식별 용도 아님, Host가 대체). 관리=/admin/v1/webhook-providers(§7.9.1), UI=③-C
   org_id_path         varchar           // payload에서 external_org_id 추출 경로(JSONPath 등)
   enabled             boolean [not null, default: true]
+  created_at          bigint
+  updated_at          bigint
 
   Note: '식별=inbound_host(Host/SNI)로 provider·시크릿 선택, 인증=HMAC+timestamp(호스트명은 식별이지 인증 아님). source_ip는 옵션. GW는 payload 비해석, 본 config로 발신자 검증 + 라우팅 키만 추출(§4.1.3·§7.6.2). 경로/형식은 provider 규약 수용. 와일드카드 DNS 미사용 — provider별 명시 호스트(연단위 추가)'
 }
 
 // Vatech-Target → upstream host 레지스트리 (target-routed proxy, ADR-11)
 Table upstream_registry {
-  target_id        varchar [pk]         // Vatech-Target 논리 ID(예: cleverspace, axs)
-  host             varchar [not null]   // 내부 매핑 host(클라이언트엔 비노출)
-  profile          varchar [not null]   // internal | external
-  egress_allowlist jsonb                // external(C)일 때 egress 제한
-  enabled          boolean [not null, default: true]
+  target_id           varchar [pk]               // Vatech-Target 논리 ID(예: cleverspace, axs)
+  host                varchar [not null]         // 내부 매핑 host(클라이언트엔 비노출)
+  profile             upstream_profile [not null] // internal | external
+  egress_allowlist    jsonb                      // external(C)일 때 egress 제한
+  connect_timeout_ms  bigint                     // TCP+TLS 핸드셰이크 타임아웃(짧게). 값 TBD(§7.5.4·Appendix B #25)
+  response_timeout_ms bigint                     // upstream 응답 대기 타임아웃. 값 TBD
+  total_deadline_ms   bigint                     // 프록시 호출 총 예산 — GW deadline < 클라이언트 타임아웃 불변식. 값 TBD
+  retry_policy        jsonb                      // 재시도 설정 — 연결실패 한정·상한·budget(비멱등 POST 금지, §7.5.4)
+  circuit_breaker     boolean [not null, default: false]  // 서킷 활성(503+Retry-After 빠른 실패). 임계·v1.0 범위 TBD
+  enabled             boolean [not null, default: true]
+  created_at          bigint
+  updated_at          bigint
 
-  Note: '프록시 라우팅(§4.1.2). 신규 upstream = 1행. external(C) 자격/egress 상세는 connector 연계'
+  Note: '프록시 라우팅(§4.1.2). 신규 upstream = 1행. external(C) 자격/egress 상세는 connector 연계. 타임아웃·재시도·서킷은 per-upstream 복원력 **설정**(§7.5.4) — 서킷 **런타임 상태(open/closed·카운터)는 pod-local in-memory로 비저장**, 본 표는 설정만(§2.2)'
 }
 
 // 분배 채널 (clinic → 어떤 방식으로 client에 전달) FR-WH-05/06
 Table delivery_channel {
   clinic_id    varchar [pk, ref: - clinic_region_mapping.clinic_id]
-  channel_type varchar [not null]       // mqtt_edge | http_cloud
+  channel_type delivery_channel_type [not null]   // mqtt_edge | http_cloud
   endpoint     varchar                  // http_cloud endpoint 또는 mqtt 토픽 규약
+  created_at   bigint
+  updated_at   bigint
 
   Note: '분배 마지막 단계 — Edge=MQTT(클리닉 토픽)/Cloud=HTTP push. §7.6.5/6. 클리닉 온보딩 시 생성'
 }
