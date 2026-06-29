@@ -113,6 +113,20 @@
 
         - **핵심 논리**: Terraform을 고르는 가장 큰 이유 = 멀티클라우드인데 **AWS 전용이면 그 이유가 사라진다**. 남는 비교에서 CDK가 **언어 일관성(TS)·AWS 네이티브·조직 역량**으로 우위. (Terraform의 모듈·state 강점은 AWS 전용 + TS 스택에선 일관성에 밀림.)
         - **결정 요청**: ① IaC 도구 = CDK 확정? ② 확정 시 ARD §4.5·SRS §6.6.2 정합(Terraform→CDK) ③ 최종 표준은 인프라(③-I) 소유 확인.
+    - **R6. GW SRS 리뷰어 목록 확정 (회의에서 작성)** — ③ GW SRS(+OpenAPI·DBML) **PR 7/9 시작 전**에 리뷰어를 지정해야 리뷰가 공백 없이 진행된다. SRS가 걸치는 **영역별로 리뷰어를 배정**한다. 아래 표의 이름 칸을 회의에서 채운다(총괄 2인은 CCB 기확정, 나머지는 영역 담당 지명).
+
+        | 영역 | 리뷰 포인트 | 리뷰어 |
+        | --- | --- | --- |
+        | 총괄·승인(CCB) | baseline 승인 | **Scott(PM)·Raymond(GW 리드)** (Appendix B #10 기확정) |
+        | 아키텍처·라우팅 | ADR(특히 ADR-11 R1 재평가)·3-plane·§2 | **Thomas** (외 추가 가능 — 복수 아키텍트) |
+        | 인증·보안 | §7.1·§6.2·§6.5·PHI·데이터 주권 | (보안 담당) — ❓ |
+        | 인프라(③-I) | §3.1·배포·EIP·IaC(R5)·환경 구축 | **Jack** |
+        | DB·데이터 모델 | §6.4·DBML·보존기간(#5) | (DBA/백엔드) — ❓ |
+        | API 계약 | §4·§7·OpenAPI 정합·에러 계약 | (백엔드/API) — ❓ |
+        | 제품 적응(③-P) | EzServer·CleverSpace·CleverOne·OneID 영향 | (각 제품 담당) — ❓ |
+        | QA·검증 | §3.6·테스트·호환성 매트릭스 | **James** |
+
+        - **산출**: 영역×이름 확정 명단 → PR 리뷰어로 지정. 미정(❓) 영역은 담당 지명 요청. (리뷰어는 영역별 1인 이상, 동일인 복수 영역 가능)
 
 - 이월 논의 사항 (6/25 미결 — 계속)
     | # | 항목 | 타입 | 상태 |
@@ -135,7 +149,7 @@
         title 스펙별 생애주기 — 작성 → PR(리뷰·수정) → baseline (기간 잠정·일정 약속 아님)
         dateFormat YYYY-MM-DD
         axisFormat %m/%d
-        todayMarker off
+        todayMarker stroke-width:3px,stroke:#d33,opacity:0.6
 
         section ③ GW SRS + API/DBML (계약 SSOT · 한 PR)
         SRS 본문 작성            :done, srsw, 2026-06-15, 14d
@@ -144,13 +158,13 @@
         baseline v1.0 (통합)     :milestone, srsbl, after srspr, 0d
 
         section ① API 호환성 One Pager (③ PR 시 동시 착수)
-        작성                  :op1w, 2026-07-09, 14d
-        PR 리뷰·수정          :active, op1pr, after op1w, 10d
+        작성                  :op1w, 2026-07-09, 7d
+        PR 리뷰·수정          :active, op1pr, after op1w, 7d
         baseline              :milestone, op1bl, after op1pr, 0d
 
         section ② Presigned One Pager (③ PR 시 동시 착수)
-        작성                  :op2w, 2026-07-09, 14d
-        PR 리뷰·수정          :active, op2pr, after op2w, 10d
+        작성                  :op2w, 2026-07-09, 7d
+        PR 리뷰·수정          :active, op2pr, after op2w, 7d
         baseline              :milestone, op2bl, after op2pr, 0d
 
         section ④ AXS Sub-SRS (③ PR 시 ①②와 동시 착수)
