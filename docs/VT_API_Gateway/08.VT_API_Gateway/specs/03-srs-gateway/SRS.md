@@ -48,23 +48,23 @@ CleverSpace는 유상화·이용 한도 등 새 정책으로 API를 계속 확�
 
 > 모두가 아는 표준 용어(JWT·TLS·REST·OAuth2 등)는 제외. 본 문서 독자(개발·QA·인프라·PM) 일부가 모르거나 혼동할 만한 것만 선별.
 
-| 용어                  | 본 문서에서의 의미                                         | 비고               |
-| --------------------- | ---------------------------------------------------------- | ------------------ |
-| GW (VatechAPIGateway) | 모든 연동이 단일 경유하는 control plane                    | 본 SRS의 대상 제품 |
+| 용어 | 본 문서에서의 의미 | 비고 |
+| --- | --- | --- |
+| GW (VatechAPIGateway) | 모든 연동이 단일 경유하는 control plane | 본 SRS의 대상 제품 |
 | LMP (LicenseManager) | EzServer **라이선스 관리 플랫폼** — 클리닉의 **Clinic-ID 발급원**. EzServer가 LMP에서 Clinic-ID 수신 시 GW 자동·무조건 등록(§2.3.1) | §2.3.1 |
 | 디바이스(Device, GW 관점) | **= EzServer**(클리닉당 1개의 엣지 머신, 확정 2026-06-25). GW가 인증·레지스트리·enrollment·토큰을 다루는 "디바이스"는 모두 EzServer를 가리킨다. 물리 영상장비(CT/Xray)는 EzServer 뒤편이며 **GW 비대상**(엣지 내부) | §2.3.1·§7.1·§7.2·ADR-08 |
 | Valkey | **캐시 엔진**(Redis 포크·완전 호환 — RESP 프로토콜·클라이언트·명령·키스페이스 동일). AWS 제품 = **ElastiCache for Valkey**. Redis는 2024 초 오픈소스 종료, Valkey가 후속·저비용이라 채택. 본 문서·키스페이스의 "Redis(호환)"는 곧 **Valkey**를 가리킴 | §3.1.2·§6.4·`design/redis/` |
 | PHI | Protected Health Information — **환자 식별 가능 건강정보**(환자 정보·영상 파일 등). **GW는 PHI 본문을 저장·경유하지 않는다**(presigned 직결, 발급=CleverSpace/AXS) — control plane엔 메타·식별자만. 데이터 주권(리전 밖 미이동)·consent 게이팅 대상이며, 개발·테스트는 더미만(운영만 실 PHI) | §6.4·§6.5·§7.3.3·§3.1 |
 | OTel (OpenTelemetry) | 관측성(추적·메트릭·로그) 수집·전송 **벤더 중립 표준/SDK**(CNCF). 요청 상관용 `traceId`/`spanId`를 생성 | §6.3.2·§3.1.2 |
 | ADOT | **AWS Distro for OpenTelemetry** — AWS가 배포하는 OTel 수집기. OTel 계측 → ADOT 수집 → CloudWatch/Prometheus·Grafana | §3.1.2·§6.3.2 |
-| PEP                   | Policy Enforcement Point — 요청 시점 인증·정책 집행 지점   | §7.1               |
-| originator            | 요청을 _시작한_ 주체(`Vatech-*` 헤더의 권위 소스)          | §7.7               |
-| `Vatech-Via`          | 요청을 _경유한_ 중계 홉(예: EzServer)                      | originator와 분리  |
-| Edge                  | 클리닉 현장의 EzServer (방화벽 뒤, inbound 불가)           | §7.6               |
-| soft-state            | 완전 stateless가 아닌, cache TTL·mapping_version 기반 상태 | ADR-02             |
+| PEP | Policy Enforcement Point — 요청 시점 인증·정책 집행 지점 | §7.1 |
+| originator | 요청을 _시작한_ 주체(`Vatech-*` 헤더의 권위 소스) | §7.7 |
+| `Vatech-Via` | 요청을 _경유한_ 중계 홉(예: EzServer) | originator와 분리 |
+| Edge | 클리닉 현장의 EzServer (방화벽 뒤, inbound 불가) | §7.6 |
+| soft-state | 완전 stateless가 아닌, cache TTL·mapping_version 기반 상태 | ADR-02 |
 | Region Signer Agent | **폐기(2026-06-23)** — GW는 presigned 직접 발급·서명 안 함(발급=upstream CleverSpace/AXS, GW 중계) | §4.1.4·§7.4 |
-| ClinicID↔Org-ID       | 클리닉 식별자와 외부(AXS) 조직 식별자 매핑                 | §7.3 / ④           |
-| 경로 B (Path B)       | CleverOne → CleverSpace 직접 연동(EzServer 미경유)         | Deprecated 대상    |
+| ClinicID↔Org-ID | 클리닉 식별자와 외부(AXS) 조직 식별자 매핑 | §7.3 / ④ |
+| 경로 B (Path B) | CleverOne → CleverSpace 직접 연동(EzServer 미경유) | Deprecated 대상 |
 
 > (PHI 추가됨.) 추가로 등록할 용어(예: allowlist) 또는 사내 공유 용어집 링크는 필요 시 보강.
 
@@ -139,7 +139,7 @@ flowchart TD
     end
     subgraph GWBOX["VatechAPIGateway (본 SRS 대상)"]
         GW["GW core<br/>인증·라우팅·region·외부 연동"]
-        WHR["Webhook Receiver<br/>단일 수신·분배 (sub-tier)"]
+        WHR["Webhook Ingress<br/>수신·큐·분배 (sub-tier)"]
     end
     subgraph UP["연동 서비스 (GW upstream · target-routed proxy, ADR-11)"]
         subgraph INT["내부 — B 프로파일 (우리 서비스·내부망)"]
@@ -172,7 +172,27 @@ flowchart TD
 
     classDef srsTarget fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1
     class GW,WHR srsTarget
+    %% GW(본 SRS) 범위 박스 = 연두 테두리(§2.1.1·§2.2 동일 색)
+    style GWBOX fill:#e8f5e9,stroke:#66bb6a,stroke-width:3px
 ```
+
+**색 범례** (§2.1·§2.1.1·§2.2 공통):
+
+```mermaid
+flowchart TD
+    A["GW 범위"]:::scope
+    B["GW core / Webhook Ingress"]:::box
+    C["우리가 만드는 컴포넌트"]:::comp
+    D["managed 인프라·데이터"]:::mgd
+    E["외부 (비대상)"]:::ext
+    classDef scope fill:#e8f5e9,stroke:#66bb6a,stroke-width:3px,color:#1b5e20
+    classDef box fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1
+    classDef comp fill:#ffffff,stroke:#1565c0,stroke-width:1.5px,color:#0d47a1
+    classDef mgd fill:#eceff1,stroke:#90a4ae,color:#37474f
+    classDef ext fill:#ffffff,stroke:#bbbbbb,color:#555555
+```
+
+> managed(회색)=우리가 만들지 않는 AWS 자원(SQS·DB·NAT·LB) · 외부=GW 범위 박스 밖. **§2.1(상위) → §2.2(GW core 펼침)** 가 같은 색으로 줌인되어 이어진다.
 
 | 외부 시스템 | 역할 |
 | --- | --- |
@@ -184,9 +204,9 @@ flowchart TD
 | Route 53 GeoDNS | EzServer를 최근접 GW Region에 연결 |
 | GW Console | Admin Web(③-C Sub-SRS) — 관리 API 호출 |
 
-> 상세 인터페이스는 §4. **Webhook Receiver는 GW 내부의 별도 sub-tier**(외부 서버 아님 — A면 GW 고유 API, §4.1.1·§7.6.1). **API 호출 경로는 대상에 무관하게 동일하다** — `CleverOne→EzServer→GW→CleverSpace` 든 `…→GW→AXS` 든 모두 **GW를 단일 경유하는 target-routed proxy**(ADR-11, 경로 B 제거). 차이는 **trust profile뿐**: 내부(B=CleverSpace·OneID, 통과+정규화 신원) vs 외부(C=AXS, GW가 OAuth·고정 egress IP 추가). 그래서 다이어그램의 `GW→upstream` 화살표는 같은 종류이고, AXS만 라벨이 `C·외부`다. **CleverLab은 GW가 호출하는 프록시 대상이 아니라**, 클라우드↔클라우드 외부 연동(갈래 B)에서 **GW를 호출하는 클라이언트**다(CleverLab→GW→AXS) — 현 시점 **보류**(§1.2).
+> 상세 인터페이스는 §4. **Webhook Ingress는 GW 내부의 별도 sub-tier**(외부 서버 아님 — A면 GW 고유 API, §4.1.1·§7.6.1). *(Ingress = 수신(Webhook Receiver)·큐(SQS)·분배(Webhook Dispatcher)를 묶은 서브티어, §2.2·§7.6.7)* **API 호출 경로는 대상에 무관하게 동일하다** — `CleverOne→EzServer→GW→CleverSpace` 든 `…→GW→AXS` 든 모두 **GW를 단일 경유하는 target-routed proxy**(ADR-11, 경로 B 제거). 차이는 **trust profile뿐**: 내부(B=CleverSpace·OneID, 통과+정규화 신원) vs 외부(C=AXS, GW가 OAuth·고정 egress IP 추가). 그래서 다이어그램의 `GW→upstream` 화살표는 같은 종류이고, AXS만 라벨이 `C·외부`다. **CleverLab은 GW가 호출하는 프록시 대상이 아니라**, 클라우드↔클라우드 외부 연동(갈래 B)에서 **GW를 호출하는 클라이언트**다(CleverLab→GW→AXS) — 현 시점 **보류**(§1.2).
 >
-> **유일하게 다른 건 Webhook(이벤트 인바운드)** — AXS는 결과 이벤트를 GW로 _밀어 보내고_, GW가 **Webhook Receiver**로 받아 방화벽 뒤 **EzServer는 MQTT(하행, 갈래 A 역방향)**·**클라우드는 HTTP push**로 분배한다(대상=Org-ID→Clinic→리전 매핑, §7.3). 클라우드 수신 대상은 **CleverLab(갈래 B·보류)뿐**이며, **CleverSpace는 webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드일 뿐 — 다이어그램엔 *API 호출 대상*으로만 그린다). 대상별 시나리오는 §2.3.6. AXS의 **외부 연동(egress)은 GW core**, **Webhook(인바운드)은 Webhook Receiver**로 들어와 방향이 반대다. 멱등·교차 리전 등 분배 상세는 **§2.3.6·§7.6**.
+> **유일하게 다른 건 Webhook(이벤트 인바운드)** — AXS는 결과 이벤트를 GW로 _밀어 보내고_, GW가 **Webhook Ingress**로 받아 방화벽 뒤 **EzServer는 MQTT(하행, 갈래 A 역방향)**·**클라우드는 HTTP push**로 분배한다(대상=Org-ID→Clinic→리전 매핑, §7.3). 클라우드 수신 대상은 **CleverLab(갈래 B·보류)뿐**이며, **CleverSpace는 webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드일 뿐 — 다이어그램엔 *API 호출 대상*으로만 그린다). 대상별 시나리오는 §2.3.6. AXS의 **외부 연동(egress)은 GW core**, **Webhook(인바운드)은 Webhook Ingress**로 들어와 방향이 반대다. 멱등·교차 리전 등 분배 상세는 **§2.3.6·§7.6**.
 >
 > **본 도는 control plane(정보 경로) context다** — **대용량 데이터의 presigned 직접 업로드(EzServer→발급주체 storage, GW 미경유)·AWS 미지원국 Provider MinIO·리전별 CS 노드는 생략**했다(Roadmap §2.6은 데이터 plane까지 함께 그림). 데이터 경로는 §2.3.4(경로②)·§2.3.5(경로③)·§4.1.4, 멀티 리전·MinIO는 §2.1.1·§3.1.2 참조.
 
@@ -196,71 +216,93 @@ GW는 두 축으로 다중화된다: **멀티 서버**(한 리전 내 Multi-AZ K
 
 > **v1.0은 단일 리전(예: 서울)만 실제 배포**한다(§2.7.1). 아래 다이어그램의 **멀티 리전(A·B)은 2차(gw/1.2) 목표 토폴로지**이며, v1.0 설계가 이를 *ready*로 갖춘다 — **구조(데이터 토폴로지·Region Resolver·apex DNS·egress 집합)는 동일하고 리전 수만 1→N**이다. v1.0은 리전 1개(예: RA)만 두고 GeoDNS·apex가 이를 가리킨다 — 전역 SSOT는 단일 리전 내에 존재하고, 2차에 복제를 추가한다.
 
+> **Webhook Ingress 위치 — 컴퓨트는 리전, DNS·데이터만 전역.** Webhook Ingress(Receiver·SQS·Dispatcher, §2.2·§7.6)는 **GW 소프트웨어라 각 리전의 GW pods에서 실행**된다 — 전역 계층의 별도 컴퓨트가 아니다. 전역(리전 비종속)인 것은 **① 공개 호스트 DNS**(`axs.webhook.gw.vatech.com` = Route 53)와 **② 매핑 데이터 SSOT**뿐이다. 즉:
+> - **단일 리전(v1.0)**: `axs.webhook.gw.vatech.com` → (서울) LB → **서울 리전 Webhook Ingress**가 수신·처리.
+> - **멀티 리전(gw/1.2)**: 같은 호스트가 **GeoDNS(전역)** 로 **최근접 리전**에 붙고, 그 리전 Webhook Ingress가 수신 → **전역 매핑으로 대상 리전 판정** → 분배(대상이 다른 리전이면 **교차 리전**).
+> - **전환 시 바뀌는 것은 DNS(단일 지정 → GeoDNS 전역 라우팅)와 데이터(단일 → 복제)뿐**이며, **Webhook Ingress 컴포넌트는 전역으로 옮기지 않는다**(항상 리전에서 실행). ← 질문의 "1안"(리전에서 실행, 전역 데이터 참조)이 맞다.
+
 ```mermaid
 flowchart TB
-    EZ["EzServer(=GW '디바이스') / CleverOne"]
-    R53["Route 53 GeoDNS<br/>(최근접 리전 라우팅)"]
-    EZ --> R53
+    EZ["EzServer / CleverOne"]
+    EXT["외부 (예: AXS) · region 비인지"]
 
-    subgraph GTIER["GW 전역 계층 (리전 비종속 · GW의 일부)"]
-        WHIN["Webhook Receiver — 유연 수신 (Integration Plane)<br/>공개 호스트 1개 · provider별 등록 경로(예: /webhooks/axs)<br/>발신자 검증·멱등 후 매핑으로 리전 판정"]
-        GLOBAL[("전역 일관 데이터 SSOT — PostgreSQL 원본 (Aurora 권장·확정 TBD)<br/>매핑 · 레지스트리 · Org-ID↔ClinicID · 정책 · compat · JWKS<br/>→ Aurora Global Database로 리전 복제/sync(권장)")]
+    subgraph RA["GW Region A (서울)"]
+        LBA["Ingress LB (inbound 1)"]
+        GA["GW pods<br/>API + Webhook Ingress"]
+        STA[("저장소 PG·SQS·Valkey")]
+        NATA["NAT · egress EIP set A"]
+        LBA --> GA
+        GA --- STA
+        GA --> NATA
     end
 
-    subgraph RA["GW Region A (서울) · Multi-AZ HA = 멀티 서버"]
-        LBA["Ingress LB<br/>안정 endpoint A (inbound 1)"]
-        GA1["GW pod (무상태)"]
-        GA2["GW pod (무상태)"]
-        STA[("Region A 저장소 = pod 공유<br/>PostgreSQL(Aurora 권장): 전역데이터 복제본(Global DB) + 리전로컬(audit·in-flight queue)<br/>Valkey(ElastiCache): 빠른 조회 캐시(로컬 PG에서·멱등·nonce)")]
-        NATA["NAT GW<br/>고정 egress EIP set A (outbound 다수)"]
-        LBA --> GA1
-        LBA --> GA2
-        GA1 --- STA
-        GA2 --- STA
-        GA1 --> NATA
-        GA2 --> NATA
+    subgraph GTIER["전역 계층 (리전 비종속 · GW 컴퓨트 없음 · AWS managed)"]
+        DNS["Route 53 GeoDNS<br/>apex · axs.webhook.gw.vatech.com<br/>(리전 분기만, 처리 없음)"]
+        GLOBAL[("전역 데이터 SSOT<br/>매핑·레지스트리·정책·JWKS")]
     end
 
-    subgraph RB["GW Region B (미주) · Multi-AZ HA = 멀티 서버"]
-        LBB["Ingress LB<br/>안정 endpoint B (inbound 1)"]
-        GB1["GW pod (무상태)"]
-        GB2["GW pod (무상태)"]
-        STB[("Region B 저장소 = pod 공유<br/>PostgreSQL(Aurora 권장): 전역데이터 복제본(Global DB) + 리전로컬(audit·in-flight queue)<br/>Valkey(ElastiCache): 빠른 조회 캐시(로컬 PG에서·멱등·nonce)")]
-        NATB["NAT GW<br/>고정 egress EIP set B (outbound 다수)"]
-        LBB --> GB1
-        LBB --> GB2
-        GB1 --- STB
-        GB2 --- STB
-        GB1 --> NATB
-        GB2 --> NATB
+    subgraph RB["GW Region B (미주) · gw/1.2"]
+        LBB["Ingress LB (inbound 1)"]
+        GB["GW pods<br/>API + Webhook Ingress"]
+        STB[("저장소 PG·SQS·Valkey")]
+        NATB["NAT · egress EIP set B"]
+        LBB --> GB
+        GB --- STB
+        GB --> NATB
     end
 
-    R53 --> LBA
-    R53 --> LBB
+    EZ --> DNS
+    EXT ==>|"Webhook (공개 호스트)"| DNS
+    DNS --> LBA
+    DNS --> LBB
 
-    STA -.->|"전역데이터 복제/sync<br/>(Aurora Global DB 권장·mapping_version 일관)"| GLOBAL
-    STB -.->|"전역데이터 복제/sync (Aurora Global DB 권장)"| GLOBAL
+    STA -.->|"복제/sync"| GLOBAL
+    STB -.->|"복제/sync"| GLOBAL
+    GA -.->|"매핑 조회"| GLOBAL
+    GB -.->|"매핑 조회"| GLOBAL
 
-    EXT["외부 서비스 (예: AXS)<br/>region 비인지"]
-    NATA ==>|"GW→외부 egress (우리가 호출)"| EXT
-    NATB ==>|"GW→외부 egress"| EXT
-    EXT -.->|"IP whitelist 요구 시 = EIP set A ∪ B<br/>(고정·열거·증설 시 협의)"| NATA
+    NATA ==>|"egress (우리가 호출)"| EXT
+    NATB ==>|"egress"| EXT
+    EXT -.->|"IP whitelist = EIP A ∪ B"| NATA
     EXT -.-> NATB
 
-    EXT ==>|"Webhook (region 미지정)"| WHIN
-    WHIN -.->|"Org-ID→Clinic→리전 매핑 조회"| GLOBAL
-    WHIN ==>|"대상 = 리전 A"| RA
-    WHIN ==>|"대상 = 리전 B (교차 리전)"| RB
+    GA ==>|"분배(동일 리전) MQTT/HTTP"| EZ
+    GA ==>|"대상=타 리전 → 교차 분배"| RB
+
+    %% GW(본 SRS) 범위=전역 계층+각 리전(연두). GW 소프트웨어(pods)=연파랑, managed AWS(DNS·DB·LB·NAT)=회색
+    style GTIER fill:#e8f5e9,stroke:#66bb6a,stroke-width:3px
+    style RA fill:#e8f5e9,stroke:#66bb6a,stroke-width:3px
+    style RB fill:#e8f5e9,stroke:#66bb6a,stroke-width:3px
+    classDef srsTarget fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1
+    classDef mgd fill:#eceff1,stroke:#90a4ae,color:#37474f
+    class GA,GB srsTarget
+    class DNS,GLOBAL,STA,STB,NATA,NATB,LBA,LBB mgd
 ```
 
-> **일반화**: 아래는 **외부 서비스(C 프로파일) 공통** 규칙이며, **AXS는 한 예**다(향후 DS Core/3Shape 등 동일). egress IP whitelist·단일 webhook ingress·리전 분배는 provider에 무관하게 같은 방식으로 적용된다(ADR-11 레지스트리 모델과 일관).
+**색 범례** (§2.1과 동일):
+
+```mermaid
+flowchart TD
+    A["GW 범위"]:::scope
+    B["GW core / Webhook Ingress"]:::box
+    C["우리가 만드는 컴포넌트"]:::comp
+    D["managed 인프라·데이터"]:::mgd
+    E["외부 (비대상)"]:::ext
+    classDef scope fill:#e8f5e9,stroke:#66bb6a,stroke-width:3px,color:#1b5e20
+    classDef box fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1
+    classDef comp fill:#ffffff,stroke:#1565c0,stroke-width:1.5px,color:#0d47a1
+    classDef mgd fill:#eceff1,stroke:#90a4ae,color:#37474f
+    classDef ext fill:#ffffff,stroke:#bbbbbb,color:#555555
+```
+
+> **일반화**: 아래는 **외부 서비스(C 프로파일) 공통** 규칙이며, **AXS는 한 예**다(향후 DS Core/3Shape 등 동일). egress IP whitelist·**provider별 전용 호스트(DNS) 수신**(각 리전 Webhook Ingress)·리전 분배는 provider에 무관하게 같은 방식으로 적용된다(ADR-11 레지스트리 모델과 일관).
 >
 > **B(내부) vs C(외부) 적용 범위**: **API 호출 경로는 내부(CleverSpace 등)·외부(AXS) 동일**(GW target-routed proxy, §2.1·§4.1.2). 본 절의 **고정 egress IP whitelist·Webhook 수신은 외부(C) 한정** 사항이다 — 내부(B) upstream은 같은 GW proxy를 타되 **내부망**이라 egress 고정 IP whitelist가 불필요하고, (현재) GW로 Webhook을 발신하지 않는다. 즉 §2.1.1이 외부(C) 토폴로지를 다루는 것이지, 내부 호출이 다른 경로라는 뜻이 아니다.
 
 - **저장소 제품(§3.1.2 근거·비교표).** 엔진은 **PostgreSQL 확정**, 관리형 제품은 **처음부터 Aurora PostgreSQL 권장**(인프라 비준 TBD, Appendix B #18). 멀티 리전 전환이 Aurora는 **Global Database 활성화(마이그레이션 0)** 인 반면 RDS-first는 **RDS→Aurora 마이그레이션**이라 비대칭적으로 비싸 **단일 리전부터 Aurora 권장**(비용 델타 ~20%·저QPS라 작음). 캐시 = **Amazon ElastiCache for Valkey**(Redis 호환·리전 로컬·교차복제 안 함·로컬 PG에서 재적재). **다이어그램은 2차 멀티 리전 목표 토폴로지**이며 v1.0은 단일 리전에서 동일 제품으로 시작.
 - **egress IP whitelist = 고정 EIP 집합(멀티 IP).** 외부 서비스(예: AXS)가 IP whitelist를 요구하면, 화이트리스트 대상은 GW가 _외부를 호출_ 할 때의 egress IP다. pod별 임시 IP가 아니라 **AZ/리전별 NAT의 고정 EIP**여야 하고, 멀티 리전이면 **전 리전 집합의 합집합(A ∪ B …)** 이며 유한·열거 가능해야 한다(FR-INT-03·§7.5.3·§2.6).
 - **리스크/제약**: 오토스케일·새 AZ·**리전 증설은 egress IP를 늘리므로**, egress를 **고정 EIP 풀로 핀(pin)** 하고 외부(예: Straumann)와 **whitelist를 협의·갱신(리드타임)** 해야 한다. EIP 풀 provisioning·고정은 인프라(③-I) 책임(§2.6·§7.3.5).
-- **Webhook 수신 = provider별 전용 호스트(식별), region 분배는 우리 몫.** 외부 서비스(AXS 등)는 **region을 모른다**. **provider별 전용 수신 호스트**(`{provider}.webhook.gw.vatech.com`)를 발급해 **Host(SNI)로 발신자를 식별**한다(우리가 통제하는 식별 — 상대 source IP에 의존하지 않음). **경로/형식은 provider 규약을 수용해 유연**하다(GW는 발신자 검증·라우팅만, payload 비해석; §4.1.3·§7.6.1·§4.5.1). **단 Host는 식별이지 인증이 아니며**, 신뢰는 HMAC+timestamp로 보장한다(§7.6.2). 수신 ingress(Webhook Receiver, §2.2)는 **전역 매핑(DB/캐시)에 연결**되어 webhook 내용(Org-ID 등)으로 **대상 클리닉의 리전을 판정**하고(§7.3 매핑·전역 일관), **대상 리전(A·B …)으로 재분배**한다(수신 리전 ≠ 대상 리전이면 **교차 리전 전달**). 즉 **region 결정은 외부도 GeoDNS도 아니라 수신 ingress의 매핑 조회**다. `eventId` 멱등 dedup은 인스턴스 공유 저장소(Redis)로 전역 보장(ADR-02·§7.6.4). 인바운드 검증(HMAC·timestamp; source IP allowlist는 옵션·방어심층, §7.6.2)은 egress whitelist와 **방향이 반대**다. 수신→분배 흐름 상세는 **§2.3.6·§7.6**.
+- **Webhook 수신 = provider별 전용 호스트(식별), region 분배는 우리 몫.** 외부 서비스(AXS 등)는 **region을 모른다**. **provider별 전용 수신 호스트**(`{provider}.webhook.gw.vatech.com`)를 발급해 **Host(SNI)로 발신자를 식별**한다(우리가 통제하는 식별 — 상대 source IP에 의존하지 않음). **경로/형식은 provider 규약을 수용해 유연**하다(GW는 발신자 검증·라우팅만, payload 비해석; §4.1.3·§7.6.1·§4.5.1). **단 Host는 식별이지 인증이 아니며**, 신뢰는 HMAC+timestamp로 보장한다(§7.6.2). 수신 ingress(Webhook Ingress, §2.2)는 **전역 매핑(DB/캐시)에 연결**되어 webhook 내용(Org-ID 등)으로 **대상 클리닉의 리전을 판정**하고(§7.3 매핑·전역 일관), **대상 리전(A·B …)으로 재분배**한다(수신 리전 ≠ 대상 리전이면 **교차 리전 전달**). 즉 **region 결정은 외부도 GeoDNS도 아니라 수신 ingress의 매핑 조회**다. `eventId` 멱등 dedup은 인스턴스 공유 저장소(Redis)로 전역 보장(ADR-02·§7.6.4). 인바운드 검증(HMAC·timestamp; source IP allowlist는 옵션·방어심층, §7.6.2)은 egress whitelist와 **방향이 반대**다. 수신→분배 흐름 상세는 **§2.3.6·§7.6**.
   - **GeoDNS는 inbound webhook의 대상 리전을 정하지 않는다** — GeoDNS는 _호출자 위치_ 기준이라 외부의 고정 위치에선 늘 한 리전으로 귀결될 뿐이고, _처리 리전은 클리닉 소속(매핑)_ 이 정한다. provider 호스트가 어느 리전 GW로 해석되든, 그 **수신 GW가 매핑 조회 후 대상 리전으로 재분배**한다.
 
 #### 데이터 공유·토폴로지 (멀티 서버·멀티 리전)
@@ -277,7 +319,7 @@ flowchart TB
 
 ## 2.2 Overall System Configuration (전체 시스템 구성)
 
-ARD §3·§4의 **3-Plane(Control / Data / Integration)** 구성을 따른다. 컴포넌트 도출 기준 = _plane(책임 영역) + 배포 단위_. **본 도는 §2.1과 같은 그림에서 GW 쪽을 확대한 것**이며(외부 시스템은 §2.1과 동일), GW를 **GW core + Webhook ingress** 두 부분으로 나눈다.
+ARD §3·§4의 **3-Plane(Control / Data / Integration)** 구성을 따른다. 컴포넌트 도출 기준 = _plane(책임 영역) + 배포 단위_. **본 도는 §2.1과 같은 그림에서 GW 쪽을 확대한 것**이며(외부 시스템은 §2.1과 동일), GW를 **GW core + Webhook Ingress** 두 부분으로 나눈다.
 
 ```mermaid
 flowchart LR
@@ -323,10 +365,12 @@ flowchart LR
                 CONN["Connector Framework<br/>(egress·OAuth)"]
             end
         end
-        subgraph WHTIER["Webhook ingress (단일 수신·분배)"]
-            WH["Webhook Receiver<br/>검증·멱등·매핑 분배"]
-            WHQ["내부 큐(A·SQS) + MQTT(B·IoT Core 등)"]
-            WH --> WHQ
+        subgraph WHTIER["Webhook Ingress (Webhook Receiver → SQS → Webhook Dispatcher)"]
+            WH["Webhook Receiver<br/>검증·멱등·ACK·적재"]
+            SQSQ["내부 큐 A·SQS<br/>(재시도·DLQ)"]
+            DISP["Webhook Dispatcher<br/>SQS consumer·별도 Deployment<br/>대상 해석·publish (ADR-12)"]
+            WH --> SQSQ
+            SQSQ --> DISP
         end
     end
 
@@ -350,13 +394,41 @@ flowchart LR
 
     %% Webhook(이벤트 인바운드)은 API 호출과 별개 — 현재 AXS만. 클라우드 수신=CleverLab만(갈래B 보류), CleverSpace는 대상 아님(§2.3.6)
     AXS ==>|"Webhook 인바운드"| WH
-    WHQ ==>|"MQTT (하행)"| EZ
-    WHQ ==>|"HTTP push (갈래B·보류)"| CLAB
+    DISP ==>|"MQTT (하행·IoT Core)"| EZ
+    DISP ==>|"HTTP push (갈래B·보류)"| CLAB
+
+    %% 색 위계: 연두(GW 범위) > 연파랑(GW core·Webhook Ingress) > 흰카드+파란테두리(우리 컴포넌트) · 회색(managed: SQS·DB)
+    style GWBOX fill:#e8f5e9,stroke:#66bb6a,stroke-width:3px
+    style CORE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style WHTIER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style CTRL fill:transparent,stroke:#90caf9
+    style DATA fill:transparent,stroke:#90caf9
+    style INTEG fill:transparent,stroke:#90caf9
+    classDef comp fill:#ffffff,stroke:#1565c0,stroke-width:1.5px,color:#0d47a1
+    classDef mgd fill:#eceff1,stroke:#90a4ae,color:#37474f
+    class AUTH,OIDI,ROUTER,RGN,COMPAT,ADM,DREG,ENR,CFG,FLEET,OPA,AUD,CONN,WH,DISP comp
+    class SQSQ,DNOTE mgd
 ```
 
-> **프록시 복원력(타임아웃·재시도·서킷 브레이커)의 위치**: 별도 공유 컴포넌트가 아니라 **`ROUTER`(외부 C는 `CONN`)의 데이터 경로 안 in-process 행위**다(§7.5.4) — 다이어그램에 새 박스를 두지 않는다. **런타임 상태(서킷 open/closed·실패 카운터)는 pod-local 메모리이며 GW pod 간 공유하지 않는다**(DB·Redis 미사용). 각 pod가 *자기가 관측한* 실패로 자신을 보호하는 것이 표준(Resilience4j·Envoy outlier detection)이고, 매 요청 hot-path에 원격 상태 왕복을 두면 "빠른 실패" 목적과 모순된다. **공유 대상은 설정뿐**(임계·타임아웃 = `upstream_registry`(DB), pod별 캐시). upstream이 실제 죽으면 각 pod가 독립적으로 곧 트립하므로 상태 공유가 불필요하다.
+**색 범례** (§2.1과 동일):
 
-> **그리는 규칙**: §2.2는 §2.1과 같은 그림에서 **GW 쪽만 확대**한 것이다 — **VatechAPIGateway 바깥(외부 시스템·엣지)은 §2.1과 동일**, 안쪽을 **`GW core`(Control/Data/Integration plane) + `Webhook ingress` 두 부분**으로 펼친다. 각 외부는 GW 내부 컴포넌트와 **1개 이상 연결**(가장 깔끔하게 1개), **요청 처리 파이프라인(PEP 체인)은 연결**한다 — `COMPAT→ROUTER`(호환성 게이트 통과→라우팅), `ROUTER⇢RGN`(region 참조)·`ROUTER⇢OPA`(정책 판정)·`ROUTER⇢CONN`(외부 C). 반면 순수 **cross-cutting/관리 컴포넌트**(EzServer Registry·Enrollment·Config·Fleet·Audit)는 거의 모든 흐름이 닿아 가독성을 위해 **미연결**(외부와의 특정 연결만 표기: CONSOLE→ADM·R53→RGN). (**예외**: CleverOne은 §2.1처럼 **EzServer를 경유**해 GW에 닿으므로 GW 내부 컴포넌트에 직접 연결하지 않는다 — `CO→EZ→GW`.) **API 호출은 대상 무관 동일 경로**(`ROUTER` = target-routed proxy, ADR-11) — CleverSpace·OneID = B(내부 프록시 대상), AXS = C(외부, `ROUTER`가 `CONN`으로 OAuth·고정 egress IP 추가). **CleverLab은 프록시 대상이 아니라 갈래B 클라우드 클라이언트**(CleverLab→GW→AXS, 보류) — GW를 _호출하는_ 쪽이다. **Webhook(이벤트)만 별개** — 현재 AXS만 GW로 발신; 클라우드 수신 대상=**CleverLab만**(갈래B 보류), **CleverSpace는 webhook 대상 아님**(§2.3.6). 수신→분배 런타임은 **§2.3.6**이 정본.
+```mermaid
+flowchart TD
+    A["GW 범위"]:::scope
+    B["GW core / Webhook Ingress"]:::box
+    C["우리가 만드는 컴포넌트"]:::comp
+    D["managed 인프라·데이터"]:::mgd
+    E["외부 (비대상)"]:::ext
+    classDef scope fill:#e8f5e9,stroke:#66bb6a,stroke-width:3px,color:#1b5e20
+    classDef box fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1
+    classDef comp fill:#ffffff,stroke:#1565c0,stroke-width:1.5px,color:#0d47a1
+    classDef mgd fill:#eceff1,stroke:#90a4ae,color:#37474f
+    classDef ext fill:#ffffff,stroke:#bbbbbb,color:#555555
+```
+
+> **프록시 복원력(타임아웃·재시도·서킷 브레이커)의 위치**: 별도 공유 컴포넌트가 아니라 **`ROUTER`(외부 C는 `CONN`)의 데이터 경로 안 in-process 행위**다(§7.5.4) — 다이어그램에 새 박스를 두지 않는다. **런타임 상태(서킷 open/closed·실패 카운터)는 pod-local 메모리이며 GW pod 간 공유하지 않는다**(DB·Redis 미사용). 각 pod가 _자기가 관측한_ 실패로 자신을 보호하는 것이 표준(Resilience4j·Envoy outlier detection)이고, 매 요청 hot-path에 원격 상태 왕복을 두면 "빠른 실패" 목적과 모순된다. **공유 대상은 설정뿐**(임계·타임아웃 = `upstream_registry`(DB), pod별 캐시). upstream이 실제 죽으면 각 pod가 독립적으로 곧 트립하므로 상태 공유가 불필요하다.
+
+> **그리는 규칙**: §2.2는 §2.1과 같은 그림에서 **GW 쪽만 확대**한 것이다 — **VatechAPIGateway 바깥(외부 시스템·엣지)은 §2.1과 동일**, 안쪽을 **`GW core`(Control/Data/Integration plane) + `Webhook Ingress` 두 부분**으로 펼친다. 각 외부는 GW 내부 컴포넌트와 **1개 이상 연결**(가장 깔끔하게 1개), **요청 처리 파이프라인(PEP 체인)은 연결**한다 — `COMPAT→ROUTER`(호환성 게이트 통과→라우팅), `ROUTER⇢RGN`(region 참조)·`ROUTER⇢OPA`(정책 판정)·`ROUTER⇢CONN`(외부 C). 반면 순수 **cross-cutting/관리 컴포넌트**(EzServer Registry·Enrollment·Config·Fleet·Audit)는 거의 모든 흐름이 닿아 가독성을 위해 **미연결**(외부와의 특정 연결만 표기: CONSOLE→ADM·R53→RGN). (**예외**: CleverOne은 §2.1처럼 **EzServer를 경유**해 GW에 닿으므로 GW 내부 컴포넌트에 직접 연결하지 않는다 — `CO→EZ→GW`.) **API 호출은 대상 무관 동일 경로**(`ROUTER` = target-routed proxy, ADR-11) — CleverSpace·OneID = B(내부 프록시 대상), AXS = C(외부, `ROUTER`가 `CONN`으로 OAuth·고정 egress IP 추가). **CleverLab은 프록시 대상이 아니라 갈래B 클라우드 클라이언트**(CleverLab→GW→AXS, 보류) — GW를 _호출하는_ 쪽이다. **Webhook(이벤트)만 별개** — 현재 AXS만 GW로 발신; 클라우드 수신 대상=**CleverLab만**(갈래B 보류), **CleverSpace는 webhook 대상 아님**(§2.3.6). 수신→분배 런타임은 **§2.3.6**이 정본.
 
 > **🔍 대안 검토 — 디바이스 인증 방식** (ADR-01)
 >
@@ -377,7 +449,7 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 | 액터 | 의미 (출처) |
 | --- | --- |
 | EzServer(Edge=GW '디바이스') / CleverOne | 사내·현장 호출자(§2.1·§2.5). EzServer는 방화벽 뒤 Edge·GW 관점의 '디바이스'(§1.4); CleverOne은 EZ 경유. 물리 영상장비는 EzServer 뒤(GW 비대상) |
-| GW | 본 SRS 대상. 내부 컴포넌트(Auth·Region Resolver·Connector·Webhook Receiver·내부 큐(A·SQS)/MQTT(B))는 §2.2 |
+| GW | 본 SRS 대상. 내부 컴포넌트(Auth·Region Resolver·Connector·Webhook Receiver·내부 큐(A·SQS)·Webhook Dispatcher(§7.6.7)/MQTT(B))는 §2.2 |
 | OneID / CleverSpace / CleverLab | 우리 클라우드 백엔드(§2.1) |
 | Straumann AXS / AXS S3 | 외부 플랫폼·외부 스토리지(§2.1, 경로③·§4.1.4) |
 | upstream storage(S3/MinIO) | CleverSpace·AXS 등 **발급 주체 소유** 객체 스토리지 — presigned 직접 업로드 대상(§4.1.4·§7.4) |
@@ -526,16 +598,19 @@ sequenceDiagram
     participant AXS as Straumann AXS
     participant WH as GW (Webhook Receiver)
     participant Q as 내부 큐(A·SQS)
+    participant DISP as Webhook Dispatcher (SQS consumer·ADR-12)
     participant CL as 클라우드 대상 (CleverLab·갈래B 보류)
     participant EZ as EzServer (Edge, 방화벽 뒤)
     AXS->>WH: POST https://axs.webhook.gw.vatech.com/{provider 규약 경로} (HMAC·timestamp·eventId)
     WH->>WH: Host/SNI로 provider 식별→시크릿 선택 · HMAC·timestamp 검증(IP 옵션) · eventId 멱등 dedup
     WH-->>AXS: 2xx ACK (즉시)
     WH->>Q: 적재 (재시도·백오프·DLQ)
+    DISP->>Q: pull (consume)
+    DISP->>DISP: 대상 해석(org_mapping→clinic→region→delivery_channel, §7.3)
     par 클라우드 대상 = CleverLab만 (갈래B 보류)
-        Q->>CL: HTTP push (내부망)
+        DISP->>CL: HTTP push (내부망)
     and Edge 대상 (갈래A 역방향, b1)
-        Q->>EZ: MQTT QoS1 (EZ outbound 구독)
+        DISP->>EZ: MQTT QoS1 publish (IoT Core · EZ outbound 구독)
     end
     Note over WH,EZ: 미등록 Host/provider → 404 · 인증(HMAC) 실패 → 401 · 식별=수신 Host / 목적지=매핑(§7.3)
     Note over Q,CL: 현 v1.0 구체 대상=EzServer(b1). 클라우드 수신=CleverLab만(갈래B 보류) · CleverSpace는 대상 아님(아래 표·§7.6.5)
@@ -593,13 +668,13 @@ sequenceDiagram
 
 ## 2.5 User Classes and Characteristics (사용자 계층과 특징)
 
-| 계층                            | 사용 빈도 | 주 사용 기능              | 권한                 | 중요도 |
-| ------------------------------- | --------- | ------------------------- | -------------------- | ------ |
-| EzServer(디바이스, §1.4)        | 상시      | 인증·파일 업로드(upstream presign)·config   | 머신(디바이스 scope) | 핵심   |
-| 사내 호출자(EzServer/CleverOne) | 상시      | 인증·라우팅·Webhook 수신  | 서비스(OneID)        | 핵심   |
-| 외부 플랫폼(AXS)                | 이벤트 시 | Webhook·connector         | 외부(OAuth2)         | 핵심   |
-| 운영자/Admin                    | 일/주     | 관리 API·매핑·kill-switch | RBAC                 | 중요   |
-| 인프라/DevOps                   | 배포 시   | IaC·관측·로그             | 시스템               | 중요   |
+| 계층                            | 사용 빈도 | 주 사용 기능                              | 권한                 | 중요도 |
+| ------------------------------- | --------- | ----------------------------------------- | -------------------- | ------ |
+| EzServer(디바이스, §1.4)        | 상시      | 인증·파일 업로드(upstream presign)·config | 머신(디바이스 scope) | 핵심   |
+| 사내 호출자(EzServer/CleverOne) | 상시      | 인증·라우팅·Webhook 수신                  | 서비스(OneID)        | 핵심   |
+| 외부 플랫폼(AXS)                | 이벤트 시 | Webhook·connector                         | 외부(OAuth2)         | 핵심   |
+| 운영자/Admin                    | 일/주     | 관리 API·매핑·kill-switch                 | RBAC                 | 중요   |
+| 인프라/DevOps                   | 배포 시   | IaC·관측·로그                             | 시스템               | 중요   |
 
 ## 2.6 Assumptions and Dependencies (가정과 종속 관계)
 
@@ -699,16 +774,16 @@ GW가 동작하는 소프트웨어 스택. 근거·전체 표는 [ARD §4.5 기�
 >
 > **Aurora PostgreSQL vs RDS for PostgreSQL (둘 다 관리형 · 엔진은 PostgreSQL)**
 >
-> | 항목 | RDS for PostgreSQL | Aurora PostgreSQL (권장) |
-> | --- | --- | --- |
-> | 엔진 | 커뮤니티 PostgreSQL **그대로** | PostgreSQL **호환**(스토리지만 Aurora) |
-> | 스토리지 | EBS 단일 볼륨 | 분산 스토리지(3-AZ 6중 복제·자동확장) |
-> | 리전 내 HA | Multi-AZ 동기 스탠바이 + 읽기복제 | 공유 스토리지 기반 읽기복제 최대 15, 더 빠른 failover |
-> | **교차 리전 복제** | 읽기복제(**비동기·지연 큼·수동 승격**) | **Aurora Global Database**(저지연 ~1s·빠른 승격·관리형) |
-> | 호환성 | **100%**(모든 확장·버전 즉시) | 대부분(일부 확장 미지원·마이너 버전 지연) |
-> | 비용·단순성 | 낮음·단순 | 다소 높음(동급 인스턴스 기준 **~20% 내외**, I/O·구성 변동) |
-> | 멀티 리전 전환 | RDS→Aurora **마이그레이션 필요**(재검증·컷오버) | **Global Database 활성화(마이그레이션 0)** |
-> | 적합 | v1.0 단일 리전(비용 우선 시) | **단일→멀티 리전 일관(권장)** |
+> | 항목               | RDS for PostgreSQL                              | Aurora PostgreSQL (권장)                                   |
+> | ------------------ | ----------------------------------------------- | ---------------------------------------------------------- |
+> | 엔진               | 커뮤니티 PostgreSQL **그대로**                  | PostgreSQL **호환**(스토리지만 Aurora)                     |
+> | 스토리지           | EBS 단일 볼륨                                   | 분산 스토리지(3-AZ 6중 복제·자동확장)                      |
+> | 리전 내 HA         | Multi-AZ 동기 스탠바이 + 읽기복제               | 공유 스토리지 기반 읽기복제 최대 15, 더 빠른 failover      |
+> | **교차 리전 복제** | 읽기복제(**비동기·지연 큼·수동 승격**)          | **Aurora Global Database**(저지연 ~1s·빠른 승격·관리형)    |
+> | 호환성             | **100%**(모든 확장·버전 즉시)                   | 대부분(일부 확장 미지원·마이너 버전 지연)                  |
+> | 비용·단순성        | 낮음·단순                                       | 다소 높음(동급 인스턴스 기준 **~20% 내외**, I/O·구성 변동) |
+> | 멀티 리전 전환     | RDS→Aurora **마이그레이션 필요**(재검증·컷오버) | **Global Database 활성화(마이그레이션 0)**                 |
+> | 적합               | v1.0 단일 리전(비용 우선 시)                    | **단일→멀티 리전 일관(권장)**                              |
 >
 > 결론: **엔진=PostgreSQL 확정, 제품=처음부터 Aurora PostgreSQL 권장**(단일 리전부터). RDS-first는 비용이 약간 낮으나(~20% 델타, 저QPS라 절대액 작음) **멀티 리전 시 마이그레이션 비용·재검증이 더 커서 비권장**. 최종 도장은 인프라 비준(Appendix B #18).
 >
@@ -838,7 +913,7 @@ GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의
 
 5. **GW 고유 API 컨벤션**: REST/JSON, **경로 버전 프리픽스 `/v1`**(예 `/v1/auth/token`, 관리 API는 `/admin/v1/*`; Webhook 수신 경로는 유연·provider별 등록이라 본 컨벤션 예외 — §4.1.3·§7.6.1), camelCase 필드, 시간 Unix ms(§1.3), 표준 오류코드(§7.7.4), idempotency key(§4.5). 단 `/.well-known/*`은 표준 관례상 버전 프리픽스 없이 노출(§7.7.2). 스키마 정본은 Swagger(code-first).
 
-6. **프록시 실패·타임아웃·업스트림 오류 의미론.** GW는 *서버*(downstream=원클라이언트)이자 *upstream의 클라이언트*다 — **GW의 upstream 총 deadline은 downstream 클라이언트 타임아웃보다 짧게** 잡아, 클라이언트가 포기하기 전에 GW가 **결정적 오류(504)** 를 돌려준다(고아 요청·커넥션/워커 점유·재시도 증폭 방지). 타임아웃·재시도·서킷·오류 매핑은 **per-upstream 레지스트리 설정**이며 상세는 §7.5.4, 오류코드 매핑은 §7.7.4. **GW가 생성한 오류**(연결 실패=`502` / deadline 초과=`504` / 서킷·일시불가=`503`)는 **GW 표준 error envelope**로 내고, **upstream 자체 4xx/5xx는 verbatim 통과**(body 미변형)하되 **`Vatech-Error-Origin`(`gateway`|`upstream`)** 마커로 책임을 구분한다. 클라이언트 조기 절단 시 GW는 upstream 호출을 **취소**한다(cancellation 전파).
+6. **프록시 실패·타임아웃·업스트림 오류 의미론.** GW는 _서버_(downstream=원클라이언트)이자 *upstream의 클라이언트*다 — **GW의 upstream 총 deadline은 downstream 클라이언트 타임아웃보다 짧게** 잡아, 클라이언트가 포기하기 전에 GW가 **결정적 오류(504)** 를 돌려준다(고아 요청·커넥션/워커 점유·재시도 증폭 방지). 타임아웃·재시도·서킷·오류 매핑은 **per-upstream 레지스트리 설정**이며 상세는 §7.5.4, 오류코드 매핑은 §7.7.4. **GW가 생성한 오류**(연결 실패=`502` / deadline 초과=`504` / 서킷·일시불가=`503`)는 **GW 표준 error envelope**로 내고, **upstream 자체 4xx/5xx는 verbatim 통과**(body 미변형)하되 **`Vatech-Error-Origin`(`gateway`|`upstream`)** 마커로 책임을 구분한다. 클라이언트 조기 절단 시 GW는 upstream 호출을 **취소**한다(cancellation 전파).
 
 #### 라우팅 방식 비교·결정 (ADR-11)
 
@@ -887,10 +962,10 @@ Webhook은 두 면(§4.1.1) 어느 쪽에도 깔끔히 떨어지지 않는 **하
 
 #### 두 가지 업로드 경로 (둘 다 GW 중계·bypass)
 
-| #   | 대상                                  | presign·업로드 **요청 API** (control)                              | presign **발급 주체** | GW 역할                                                       | OpenAPI 정본          |
-| --- | ------------------------------------- | ------------------------------------------------------------------ | --------------------- | ------------------------------------------------------------- | --------------------- |
-| **②** | **CleverSpace 등 사내 백엔드** presign·파일 API | **B 프록시** — `Vatech-Target: cleverspace`, upstream 경로 verbatim(§4.1.2) | **CleverSpace**       | **verbatim bypass** — 요청/응답 body 그대로 통과, GW 해석·변환·서명 **없음** | CleverSpace OpenAPI   |
-| **③** | **Straumann AXS** 등 외부 presign·파일 API   | **C 프록시** — `Vatech-Target: axs`, upstream 경로 verbatim(§4.1.2)     | **AXS**(외부)         | **verbatim bypass** + OAuth2·egress allowlist(§7.5)           | ④ Sub-SRS + AXS 스냅샷 |
+| # | 대상 | presign·업로드 **요청 API** (control) | presign **발급 주체** | GW 역할 | OpenAPI 정본 |
+| --- | --- | --- | --- | --- | --- |
+| **②** | **CleverSpace 등 사내 백엔드** presign·파일 API | **B 프록시** — `Vatech-Target: cleverspace`, upstream 경로 verbatim(§4.1.2) | **CleverSpace** | **verbatim bypass** — 요청/응답 body 그대로 통과, GW 해석·변환·서명 **없음** | CleverSpace OpenAPI |
+| **③** | **Straumann AXS** 등 외부 presign·파일 API | **C 프록시** — `Vatech-Target: axs`, upstream 경로 verbatim(§4.1.2) | **AXS**(외부) | **verbatim bypass** + OAuth2·egress allowlist(§7.5) | ④ Sub-SRS + AXS 스냅샷 |
 
 #### data plane (공통)
 
@@ -915,16 +990,16 @@ EzServer(디바이스, §1.4)와는 네트워크(REST/TLS) 인터페이스만. �
 
 ## 4.4 Software Interface (소프트웨어 인터페이스)
 
-| 구성요소                        | 버전                       | 용도                                                                                      |
-| ------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------- |
-| OneID (OIDC)                    | TBD                        | 사람·클리닉·사내 호출자 인증                                                              |
-| Straumann AXS API               | OpenAPI 스냅샷(2026-06-16) | 외부 연동(④)                                                                              |
-| PostgreSQL                      | 15.x                       | 레지스트리·매핑·토큰메타·정책·감사                                                        |
-| Redis                           | TBD                        | region 캐시·nonce·rate-limit·idempotency·JWKS                                             |
+| 구성요소 | 버전 | 용도 |
+| --- | --- | --- |
+| OneID (OIDC) | TBD | 사람·클리닉·사내 호출자 인증 |
+| Straumann AXS API | OpenAPI 스냅샷(2026-06-16) | 외부 연동(④) |
+| PostgreSQL | 15.x | 레지스트리·매핑·토큰메타·정책·감사 |
+| Redis | TBD | region 캐시·nonce·rate-limit·idempotency·JWKS |
 | 메시지 큐 — **A. 내부 큐: Amazon SQS**(FIFO=순서/dedup) / Amazon MQ | TBD | **GW 내부** Webhook 비동기 분배·재시도·백오프·DLQ(§7.6.3). 엣지 전달(B)과 **별개 레그** |
-| 오브젝트 스토리지 (S3 / MinIO)  | TBD                        | 발급 주체(CleverSpace/AXS) storage — presigned 직접 업로드(GW 미경유, §4.1.4·§7.4)            |
+| 오브젝트 스토리지 (S3 / MinIO) | TBD | 발급 주체(CleverSpace/AXS) storage — presigned 직접 업로드(GW 미경유, §4.1.4·§7.4) |
 | MQTT Broker — **B. 엣지 전달**: AWS IoT Core / Amazon MQ | TBD | 방화벽 뒤 Edge(EzServer) 마지막 구간 push(QoS1·persistent, §7.6.6). 내부 큐(A·SQS)와 **별개 레그**·제품·운영주체 TBD(Appendix B #4) |
-| OPA                             | TBD                        | allowlist·region·scope·egress 판단                                                        |
+| OPA | TBD | allowlist·region·scope·egress 판단 |
 
 ## 4.5 Communication Interface (통신 인터페이스)
 
@@ -1298,6 +1373,7 @@ Route 53 GeoDNS로 Edge(EzServer)를 최근접 GW 리전에 연결한다. 호스
 - **단계화(§2.7.1)**: **v1.0(단일 리전)에서도 클라이언트는 apex(`gw.vatech.com`)만** 호출하고, apex가 그 단일 리전을 가리킨다(GeoDNS 백엔드 1개). **2차(gw/1.2)에 백엔드를 N리전으로 늘리면** apex 라우팅이 자동으로 최근접 리전 분배로 동작 — **클라이언트·헤더 변경 없음**. 즉 GeoDNS는 v1.0부터 *구성상 존재*하되 라우팅 대상이 1개일 뿐이다(멀티리전-ready).
 
 **비목표(Will Not Do)**: 멀티 리전 _동시 운영_(FR-RGN-05)는 **gw/1.2(2차)**. v1.0은 **단일 리전만 배포**한다 — 단 위 단계화대로 멀티리전-ready로 설계한다(§2.7.1).
+
 ### 7.3.6 GW 리전 카탈로그·조회 (P1)
 
 GW가 **운영 중인 리전 목록**을 조회 API로 제공한다 — 클라이언트(EzServer Console 등)가 온보딩·운영 중 region 선택지를 표시·선택하기 위함이다.
@@ -1353,7 +1429,7 @@ FR-INT-05 (target-routed proxy(§4.1.2)의 **동기 전달 구간** 복원력 �
   - **per-upstream 레지스트리(`upstream_registry`) 설정**: `connect_timeout_ms`(TCP+TLS 핸드셰이크, 짧게)·`response_timeout_ms`(응답 대기)·`total_deadline_ms`(전체 예산). upstream·작업 유형별로 다르게(값 TBD). 대용량 파일은 **presigned 직결**(GW 미경유, §4.1.4)이라 본 deadline은 control·metadata 중심.
   - **클라이언트 조기 절단 → upstream 호출 취소**(cancellation 전파)로 자원 회수.
   - **클라이언트 타임아웃 인지.** HTTP는 클라이언트 타임아웃을 표준 전달하지 않는다 — GW는 연결 close로 *사후*에만 안다. "GW가 먼저 504"를 보장하려면 값을 *사전*에 알아야 하므로, v1.0은 **(A) 계약값 합의**(EzServer↔GW, SRS 명시)를 기본으로 하고, 클라이언트가 **선택적 `Vatech-Timeout-Ms` 헤더(상대값)** 를 보내면 GW가 내부 deadline을 `now + min(헤더, 설정값)`으로 클램프한다(B). 헤더는 **상대 timeout**(클록 동기 불필요 — gRPC `grpc-timeout`·Envoy `x-envoy-expected-rq-timeout-ms` 선례)이며, "deadline"은 GW 내부 절대시각 개념으로 구분한다. 합의 방식·헤더 채택은 TBD(Appendix B #25, 7/2 R4-D10).
-- **재시도 정책(보수적).** GW는 **타겟당 단일 upstream(레지스트리 1행)** 을 중계하는 verbatim relay라 — 로드밸런싱 풀처럼 *다른 인스턴스로* 넘길 대상이 없다 — 재시도를 **최소화**한다. 기본은 **연결 수립 실패(요청 바이트 전송 전)에 한해 1회 재시도**(요청이 upstream에 도달 전이라 POST 포함 전 메서드 안전; HAProxy 기본·nginx 1.9.13+ 비멱등 보호와 같은 보수적 입장). **응답 타임아웃(요청 전송 후)·upstream 5xx는 GW 재시도 안 함** — upstream이 이미 처리했을 수 있어 멱등이라도 위험. **애플리케이션 레벨 재시도는 클라이언트가 소유**한다(idempotency key·업무 의미를 클라이언트가 가장 잘 안다). (옵션: 멱등 GET류의 응답 전 타임아웃 재시도 추가 가능하나 v1.0 비포함 권장.) 재시도 활성 시 지수 백오프+jitter+retry budget으로 폭주를 막는다. 소유·범위 결정은 R4-D5(값 TBD).
+- **재시도 정책(보수적).** GW는 **타겟당 단일 upstream(레지스트리 1행)** 을 중계하는 verbatim relay라 — 로드밸런싱 풀처럼 _다른 인스턴스로_ 넘길 대상이 없다 — 재시도를 **최소화**한다. 기본은 **연결 수립 실패(요청 바이트 전송 전)에 한해 1회 재시도**(요청이 upstream에 도달 전이라 POST 포함 전 메서드 안전; HAProxy 기본·nginx 1.9.13+ 비멱등 보호와 같은 보수적 입장). **응답 타임아웃(요청 전송 후)·upstream 5xx는 GW 재시도 안 함** — upstream이 이미 처리했을 수 있어 멱등이라도 위험. **애플리케이션 레벨 재시도는 클라이언트가 소유**한다(idempotency key·업무 의미를 클라이언트가 가장 잘 안다). (옵션: 멱등 GET류의 응답 전 타임아웃 재시도 추가 가능하나 v1.0 비포함 권장.) 재시도 활성 시 지수 백오프+jitter+retry budget으로 폭주를 막는다. 소유·범위 결정은 R4-D5(값 TBD).
 - **서킷 브레이커(per upstream).** 연속 실패 임계 초과 시 회로 개방 → **빠른 실패 `503`(+`Retry-After`)**, 반열림 탐침으로 복구. v1.0 기본 포함(임계·복구 파라미터 TBD; 구현 부담 시 일부 gw/1.1로 이월 — 7/2 R4 결정).
 - **상태 지역성(멀티 서버).** 서킷·재시도·타임아웃의 **런타임 상태(open/closed·실패 카운터)는 pod-local in-memory**이며 **GW pod 간 공유하지 않는다**(DB·Redis·GW간 동기화 미사용) — 각 pod가 자기 관측 기반으로 보호하는 것이 표준(Resilience4j·Envoy per-instance)이고, hot-path에 원격 상태 의존을 두면 빠른 실패 목적과 모순된다. **공유 대상은 설정값뿐**(`upstream_registry`의 임계·타임아웃·on/off, pod별 읽어 캐시). 별도 복원력 컴포넌트를 두지 않고 `ROUTER`/`CONN` 데이터 경로의 in-process 행위로 구현한다(§2.2).
 - **업스트림 오류 → 클라이언트 매핑(상세 표 §7.7.4).** **GW 생성 오류**(`502` 연결 실패 / `504` 타임아웃 / `503` 서킷·일시불가)는 **GW 표준 error envelope**, **upstream 자체 4xx/5xx**는 **verbatim 통과**(body 미변형). **`Vatech-Error-Origin: gateway|upstream`** 마커로 책임을 구분하고, GW 생성 시 `Vatech-Upstream-Latency-Ms` 등 관측 헤더를 부가한다.
@@ -1382,7 +1458,7 @@ FR-WH-02 (**식별** = Host/SNI → 레지스트리 `inbound_host`로 provider·
 
 ### 7.6.3 빠른 ACK + 내부 큐 (A · SQS) (P1)
 
-FR-WH-04 (검증 직후 `2xx` 즉시 응답, 처리는 **내부 비동기 큐(A)** 로 위임 — 재시도·백오프·DLQ). **내부 큐 기본 = Amazon SQS**(서버리스·IRSA·DLQ 내장, 순서/dedup 필요 시 SQS FIFO; 대안 Amazon MQ, §3.1.2). 이 큐는 **GW 내부 버퍼**이며, 클리닉으로의 마지막 구간 전달은 §7.6.6 엣지(B·MQTT)가 담당한다 — **둘은 별개 레그**다.
+FR-WH-04 (검증 직후 `2xx` 즉시 응답, 처리는 **내부 비동기 큐(A)** 로 위임 — 재시도·백오프·DLQ). **내부 큐 기본 = Amazon SQS**(서버리스·IRSA·DLQ 내장, 순서/dedup 필요 시 SQS FIFO; 대안 Amazon MQ, §3.1.2). 이 큐는 **GW 내부 버퍼**이며, 클리닉으로의 마지막 구간 전달은 §7.6.6 엣지(B·MQTT)가 담당한다 — **둘은 별개 레그**다. **큐에서 꺼내(consume) 대상으로 발행하는 주체는 Webhook Dispatcher(§7.6.7)** 다 — 큐는 스스로 push하지 않는다.
 
 - **Side Effect**: 큐(SQS) 적재. 처리 실패 N회 → DLQ 이동·알람
 
@@ -1400,7 +1476,16 @@ FR-WH-05 (클라우드 대상에 내부망 HTTP push, 순서 보존). **클라�
 
 ### 7.6.6 Edge 분배 — EzServer MQTT 역방향 (B) (P1)
 
-FR-WH-06 (EzServer로 **MQTT QoS1·persistent**, 토픽=클리닉 단위). 오프라인 시 버퍼 후 재전달. b1(pilot)에 forward + 역방향 포함(AXS pilot 일정). **엣지 전달(B)에 SQS를 쓰지 않는다** — EzServer는 방화벽 뒤라 inbound 불가하고 **outbound 지속 구독(subscribe)으로 push받아야** 하므로 MQTT가 필수다(SQS 폴링·자격 배포는 부적합). **브로커 후보 = AWS IoT Core / Amazon MQ**(방화벽 뒤 엣지·cert 인증·fleet 규모). 제품·운영 주체 **TBD**(§3.1.2·Appendix B #4). 내부 큐(A·SQS, §7.6.3)와 **별개 레그**다(A=SQS pull 버퍼, B=MQTT push — 역할·서비스 분리).
+FR-WH-06 (EzServer로 **MQTT QoS1·persistent**, 토픽=클리닉 단위). 오프라인 시 버퍼 후 재전달. b1(pilot)에 forward + 역방향 포함(AXS pilot 일정). **엣지 전달(B)에 SQS를 쓰지 않는다** — EzServer는 방화벽 뒤라 inbound 불가하고 **outbound 지속 구독(subscribe)으로 push받아야** 하므로 MQTT가 필수다(SQS 폴링·자격 배포는 부적합). 발행 주체는 **Webhook Dispatcher(§7.6.7)** 이며, EzServer가 브로커에 구독해 push받는다. **브로커 후보 = AWS IoT Core / Amazon MQ**(방화벽 뒤 엣지·cert 인증·fleet 규모). 제품·운영 주체 **TBD**(§3.1.2·Appendix B #4). 내부 큐(A·SQS, §7.6.3)와 **별개 레그**다(A=SQS pull 버퍼, B=MQTT push — 역할·서비스 분리).
+
+### 7.6.7 Webhook Dispatcher — 분배 워커(SQS consumer) (P1)
+
+FR-WH-07 (수신과 분배를 잇는 **Webhook Dispatcher**). §7.6.3 큐(A·SQS)에 적재된 이벤트를 **소비(consume)** 해 대상별로 발행하는 GW 컴포넌트다 — 큐는 스스로 push하지 못하므로, Webhook Dispatcher가 §7.6.5(HTTP push)·§7.6.6(MQTT) 전달을 수행한다.
+
+- **구현 = GW와 동일 코드베이스의 별도 worker Deployment(ADR-12)** — HTTP 서버 없이 SQS consumer만 실행. API tier와 **독립 스케일(SQS 큐depth, KEDA)·장애 격리**하되 코드·도메인 모델·커넥터·시크릿을 공유(드리프트 0, 단일 검증 스택). v1.0은 고정 replica로 시작, 볼륨 증가 시 오토스케일. (서버리스 Lambda 대안은 로직·DB·시크릿·egress 중복과 2nd 런타임 검증 부담으로 반려 — ADR-12.)
+- **동작**: SQS pull → **대상 해석**(`org_mapping` Org-ID→Clinic → `clinic_region_mapping`→region → `delivery_channel`→채널·엔드포인트, §6.4·§7.3) → Edge면 **MQTT publish(IoT Core, §7.6.6)** / 클라우드면 **HTTP push(§7.6.5)** → 발행 성공 시 메시지 삭제. **교차 리전**(수신 리전 ≠ 대상 리전) 전달 포함.
+- **멱등·신뢰성**: `eventId` dedup(§7.6.4)으로 중복 발행 방지. 발행 실패 → **재시도·백오프, N회 초과 → DLQ·알람**(§7.6.3). 처리 단위 멱등이라 at-least-once 소비에도 중복 부작용 0.
+- **에러**: 대상 미해석(매핑 부재) → DLQ·알람. MQTT/HTTP 발행 실패 → 재시도 후 DLQ.
 
 **비목표(Will Not Do)**: 본 절은 *수신·분배 프레임*만 정의한다. AXS 이벤트의 _의미·매핑(Org-ID↔ClinicID 등)_ 상세는 ④ Sub-SRS. 경로 B(CleverOne→CleverSpace 직결)는 Webhook 분배로 흡수 후 EOS(§2.8).
 
@@ -1437,7 +1522,7 @@ FR-COMPAT-03 (요청 전 버전 게이팅).
 
 FR-COMPAT-04 (미지원 시 표준 오류코드 + "업데이트 필요" fallback 안내).
 
-**프록시(B/C) 업스트림 오류 매핑(§7.5.4 연계).** GW가 *생성*하는 오류와 upstream이 *돌려준* 오류를 구분한다 — 전자는 GW 표준 envelope, 후자는 verbatim 통과. `Vatech-Error-Origin` 헤더로 책임 주체를 표시한다.
+**프록시(B/C) 업스트림 오류 매핑(§7.5.4 연계).** GW가 *생성*하는 오류와 upstream이 _돌려준_ 오류를 구분한다 — 전자는 GW 표준 envelope, 후자는 verbatim 통과. `Vatech-Error-Origin` 헤더로 책임 주체를 표시한다.
 
 | 상황 | HTTP | 본문 | `Vatech-Error-Origin` |
 | --- | --- | --- | --- |
@@ -1535,6 +1620,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-15 | 라우팅 키 | device↔clinic↔region 통합 | 이원화 | 동일 리전 귀결 | Scott | ADR-10 |
 | 2026-06-23 | 라우팅 모델 | target-routed proxy(`Vatech-Target` 유무로 GW-own/proxy 구분, proxy는 verbatim) | 경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream | upstream 무한 확장을 설정(레지스트리 1행) 기반으로 — 코드·경로 변경 0(NFR-SCL), 내부·외부 단일 규칙 | PM/아키텍트(**CCB 승인 2026-06-25**) | ADR-11 |
 | 2026-06-23 | 리전 구축 단계화 | **1차 단일 리전(gw/1.0) → 2차 멀티 리전(gw/1.2)**, 단 v1.0부터 멀티리전-ready 설계 | 처음부터 멀티 리전 / 단일 리전 고정(확장 시 재작업) | 리스크·비용 낮추되 2차 확장을 재설계 없이(설정·배포 증분). 기존 "gw/1.0 흡수 여부 TBD"(B#7) 종결 | PM/아키텍트 | §2.7.1·§4.5.1·§7.3.5 |
+| 2026-06-30 | Webhook Dispatcher(분배 워커) | **별도 worker Deployment**(GW와 동일 코드베이스·HTTP 없이 SQS consumer만, 독립 스케일 KEDA·장애 격리) | 기존 GW 모듈 in-process(부하·스케일 결합) / 서버리스 Lambda(로직·DB·시크릿·egress 중복, 2nd 런타임 검증 부담) | 코드·도메인·커넥터·시크릿 공유(드리프트 0·단일 검증 스택) + API와 독립 스케일·격리. webhook은 버스트성이라 분배만 큐depth로 확장 | 아키텍트/GW 리드 | ADR-12 · §2.2·§2.3.6·§7.6.7 |
 
 > 전체 ADR(01~11)·근거는 ARD §2. 본 표는 SRS 차원 핵심 결정 요약. **ADR-11은 ARD §2에 기재(v0.10) · CCB 승인 완료(2026-06-25)**(Appendix B #13). **라우팅 방식 4안 다기준 비교·결정 표는 §4.1.2**(헤더 vs 경로 vs 서브도메인 vs 클라이언트 지정).
 
@@ -1593,8 +1679,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 
 | 역할                 | 인수자   | 승인 일시 |
 | -------------------- | -------- | --------- |
-| 실장·총괄 (CCB 승인)  | Scott    | —         |
-| PM (CCB·미지정)       | (TBD)    | —         |
+| 실장·총괄 (CCB 승인) | Scott    | —         |
+| PM (CCB·미지정)      | (TBD)    | —         |
 | GW 백엔드 리드 (CCB) | Raymond  | —         |
 | QA 리드 (옵저버)     | (사안별) | —         |
 | 보안 (옵저버)        | (사안별) | —         |
@@ -1670,6 +1756,10 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
 | 2026-06-25 | §1.4 용어에 **LMP(LicenseManager) = Clinic-ID 발급원** 정의 추가(§2.3.1 온보딩 자동 등록의 LMP 약어 명시) | (작성자 ID 미지정) |
 | 2026-06-26 | 잔재 전수 점검·정리 — §2.7 gw/1.2 "멀티클라우드 presign·**signer 확장**" → "멀티 리전 활성화(Aurora Global DB·GeoDNS)", §2.7.1 금지 노트의 "멀티클라우드 presign broker ready" 제거(GW 비소유·FR-SES-06 해당없음·line 1290과 일치), §2.1 노트 "비-AWS minio·디바이스→storage" → "AWS 미지원국 Provider MinIO·EzServer→발급주체 storage". signer/Upload Session/포터블 잔재 0 확인 | (작성자 ID 미지정) |
+| 2026-06-30 | **§2.1.1 Webhook Ingress 위치 정정 + path 잔재 제거** — Webhook Ingress 컴퓨트를 전역 계층(GTIER)에서 **각 리전 GW pods**로 옮겨 그림(컴퓨트=리전, 전역=DNS 호스트+매핑 데이터만). 다이어그램 재작성(전역=Route53 DNS+SSOT / 리전=LB·pods(API+Webhook Ingress)·저장소·NAT, webhook=DNS→리전→매핑→분배(교차 가능)), 노드 라벨 간소화. **단일↔멀티 리전 전환 명문화**(DNS 단일 지정→GeoDNS 전역·데이터 단일→복제, Ingress는 항상 리전). path 기반 잔재(`공개 호스트 1개·provider별 등록 경로 /webhooks/axs`·`단일 webhook ingress`) 제거 → **provider별 전용 호스트(DNS)** 로 통일 | (작성자 ID 미지정) |
+| 2026-06-30 | **GW 다이어그램 색 위계 정립(§2.1·§2.1.1·§2.2)** — 4단 일관 체계: **연두 박스=GW 범위** · **연파랑 박스=GW core·Webhook Ingress**(§2.2 CORE/WHTIER, §2.1.1 WHIN) · **흰 카드+파란 테두리=우리가 만드는 세부 컴포넌트**(서비스·GW pod) · **회색=managed 인프라/데이터**(SQS·DB·NAT·LB) · 외부=기본. plane 그룹(Control/Data/Integration)은 투명 처리(노랑 제거). §2.1→§2.2 줌인 관계를 색으로 연결. **범례를 mermaid 다이어그램으로 만들어 3개 다이어그램 각각 아래 배치**(글 색-나열은 다이어그램과 중복·drift라 통합 제거, 뉘앙스 1줄만 §2.1에 유지) | (작성자 ID 미지정) |
+| 2026-06-30 | **Webhook 명칭 통일** — tier 명칭이 §2.1='Webhook Receiver' vs §2.2='Webhook ingress'로 불일치(내부 컴포넌트와도 충돌)하던 것을 **tier='Webhook Ingress'** 로 통일(§2.1·§2.1.1·§2.2 다이어그램·본문), 내부 컴포넌트는 **'Webhook Receiver'(수신·검증·ACK·적재) + 'Webhook Dispatcher'(분배 워커)** 로 분리 정의. §2.1 노트에 'Ingress=Receiver+SQS+Dispatcher' 정의 추가 | (작성자 ID 미지정) |
+| 2026-06-30 | **Webhook 분배 워커 명시(ADR-12)** — SQS를 소비해 MQTT/HTTP로 발행하는 주체가 불명확하던 것을 **별도 worker Deployment**(동일 코드베이스·SQS consumer·독립 스케일/격리)로 확정. §7.6.7 신설(FR-WH-07: consume·대상 해석·publish·재시도/DLQ), §7.6.3 포인터, §2.2 다이어그램(WHQ→SQS+분배워커 DISP), §2.3.6 시퀀스(DISP consumer), §2.2 액터표, Appendix A ADR-12. 대안(in-process·Lambda) 반려 사유 기록. OpenAPI/DBML 영향 없음(런타임 컴포넌트) | (작성자 ID 미지정) |
 | 2026-06-29 | **CCB 역할 교정 — 'Scott=PM' 철회** — Scott은 **실장(전체 관리자/총괄)** 이며 PM은 미확정(별도 지정 가능). §8 핵심 승인을 'PM Scott'→'실장(총괄) Scott + PM 미지정', §9 표에 '실장·총괄'·'PM(미지정·TBD)' 분리, Appendix B #10을 '승인=Scott(실장)·Raymond 확정 / PM 미지정'으로 정정 | (작성자 ID 미지정) |
 | 2026-06-29 | **IaC 도구 = CDK 권장(확정 TBD)** — §6.6.2에서 baseline `Terraform`과 실무 CDK의 불일치 표면화, AWS 전용·TS 스택 정합 근거로 CDK 권장 노트 추가(인프라 ③-I 비준·ARD §4.5 정합 = Appendix B #26, 7/2 R5). §6.6.2 stack 줄에서 IaC 항목 분리 | (작성자 ID 미지정) |
 | 2026-06-29 | **프록시(B/C) 에러·타임아웃·복원력 정책 신설** — §7.5.4(FR-INT-05: 타임아웃 계층 `GW deadline < 클라이언트 타임아웃`·per-upstream 레지스트리 타임아웃·**연결실패 한정 보수적 재시도**(앱 재시도는 클라이언트 소유·타겟당 upstream 1개)·서킷 브레이커·클라 절단 시 upstream 취소)·§7.7.4(업스트림 오류 매핑표: 연결실패 502/타임아웃 504/서킷 503 = GW envelope, upstream 자체 4xx/5xx = verbatim 통과, `Vatech-Error-Origin` 마커)·§4.1.2 규칙6·§5.5·§6.3.4 반영. OpenAPI에 ProxyError·타임아웃 레지스트리 필드. 수치·v1.0 서킷 범위 = Appendix B #25(7/2 R4) | (작성자 ID 미지정) |
@@ -1678,7 +1768,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-26 | §6.9 사이트 적용 요구사항 현행화 — 낡은 "리전별 signer·비-AWS MinIO(v1.2)" 제거(signer 폐기·GW AWS 전용 반영). 리전 주권(clinic→region·PHI 미이동)·**AWS 미지원국=가까운 AWS GW 접속+Provider MinIO 중계**·apex DNS·멀티리전 staging으로 재작성 | (작성자 ID 미지정) |
 | 2026-06-26 | §1.4 용어에 **OTel(OpenTelemetry)·ADOT** 추가(관측성 표준·AWS 수집기) | (작성자 ID 미지정) |
 | 2026-06-26 | §6.3.2에 **관측 수집층 권장 패턴(힌트)** — 앱 계약=stdout JSON+OTel 계측(고정), 수집 에이전트=인프라 선택. 권장: **Fluent Bit(로그)+ADOT(trace/metric)**, OTel은 traceId 위해 필수·Fluent Bit와 역할 분리(경쟁 아님). Appendix B #14에 수집 에이전트 선택 포함. 최종 결정=인프라 | (작성자 ID 미지정) |
-| 2026-06-26 | §6.3.2에 **구조화 로그 구조(요구)** 정의 — JSON 한 줄·필수 필드(ts·level·traceId/spanId·requestId·tenant/clinic·actor·action·result·latency·errorCode)·상관키(OTel traceId + Vatech-* originator/Via §7.7)·레벨·PHI/시크릿 금지·인프라 취합 소유. §3.1.2 Pino는 도구만(구조는 §6.3.2)으로 정리. 정확한 필드 확정은 Appendix B #14 | (작성자 ID 미지정) |
+| 2026-06-26 | §6.3.2에 **구조화 로그 구조(요구)** 정의 — JSON 한 줄·필수 필드(ts·level·traceId/spanId·requestId·tenant/clinic·actor·action·result·latency·errorCode)·상관키(OTel traceId + Vatech-\* originator/Via §7.7)·레벨·PHI/시크릿 금지·인프라 취합 소유. §3.1.2 Pino는 도구만(구조는 §6.3.2)으로 정리. 정확한 필드 확정은 Appendix B #14 | (작성자 ID 미지정) |
 | 2026-06-26 | §1.4 용어에 **PHI** 추가(환자 식별 건강정보·GW 본문 미저장·주권/consent 대상·dev/test 더미만). §1.4 용어 ❓마커 갱신(PHI 해소) | (작성자 ID 미지정) |
 | 2026-06-26 | **환경 구분(개발·테스트·운영) 정리** — §3.1에 **환경 매트릭스**(차원별 dev/test/prod: DB·캐시·큐·AXS·EzServer·CleverSpace·OneID·LMP·PHI·egress) 추가. §3.4에 **개발 의존성 대체(에뮬레이터/스텁) + AXS 우선 개발 경로**(AXS sandbox·EPI 에뮬레이터·CleverSpace presign 스텁·OneID/LMP 스텁·webhook simulator), §3.5에 **staging(운영 유사 축소)·더미 PHI·sandbox EIP·E2E 게이트**. Appendix B #24(환경 구축 책임·일정) 신설. PHI는 운영만 실데이터 | (작성자 ID 미지정) |
 | 2026-06-26 | **캐시 엔진 Redis→Valkey** — Redis 오픈소스 종료(2024 초)·AWS는 **ElastiCache for Valkey**(Redis 호환·저비용) 제공. §1.4 Valkey 용어 추가, §3.1.2 캐시·§2.1.1 다이어그램(Valkey(ElastiCache))·캡션·§6.4·design/redis 키스페이스 상단 노트(엔진=Valkey, 키스페이스·파일명 동일) 갱신. 인라인 'Redis'는 'Redis 호환(=Valkey)'으로 §1.4가 포괄. 개발계획서 §5(v0.9) 정합 | (작성자 ID 미지정) |
