@@ -22,6 +22,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.11 | 2026-06-23 | (SRS 동기화) | **ADR-03(리전 signer)·ADR-04(Upload Session) 철회** — GW는 presigned 직접 발급/세션/storage 비소유, 발급=CleverSpace/AXS·GW 중계. §5.3·컴포넌트·Data plane 정리(SRS §4.1.4·§7.4와 동기화) | Draft |
 | v0.12 | 2026-06-25 | (SRS 동기화) | **디바이스=EzServer 정의 추가(Scott 확정)** — §1 개요에 "GW 관점 디바이스=EzServer(물리 HW는 EzServer 뒤·GW 비대상)" 용어 노트. ARD의 디바이스 머신 인증·enrollment·device→region·§5 시퀀스는 모두 EzServer로 읽음(SRS §1.4와 정합) | Draft |
 | v0.13 | 2026-06-25 | (SRS 동기화) | **ADR-11 CCB 승인(오늘 회의)** — ADR-11 상태 '채택·CCB 확인 대기' → '채택·CCB 승인(2026-06-25)'. SRS Appendix A·B #13과 정합 | Draft |
+| v0.14 | 2026-06-30 | (SRS 동기화) | **ADR-12(Webhook 분배 워커 = 별도 worker Deployment)** 추가 + **Webhook Dispatcher** 컴포넌트 등록 — SQS consumer가 큐 소비→대상 해석→MQTT/HTTP 발행. Webhook Receiver는 수신·ACK·적재까지로 분리. SRS §2.2·§2.3.6·§7.6.7과 동기화. in-process·Lambda 반려 | Draft |
 
 ## 1. 아키텍처 개요
 
@@ -44,6 +45,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | ADR-09 | Webhook Receiver — 외부 이벤트 단일 수신·분배(클라우드 HTTP push / Edge(EzServer) MQTT QoS1) | 방화벽 뒤 Edge inbound 불가 + 외부 서명·IP·멱등 검증 분산 방지 / 서비스별 개별 수신(반려) · ESMN Roadmap §2.7 흡수 | 채택 |
 | ADR-10 | 라우팅 키 통합 — device↔clinic↔region (resolver가 device_id·clinic_id 모두 수용) | 디바이스 단위(08)·클리닉 단위(서비스 연동) 라우팅 이원화 제거. 디바이스는 클리닉에 소속되어 동일 리전으로 귀결 | 채택 |
 | ADR-11 | 라우팅 모델 = target-routed proxy — `Vatech-Target` 유무로 GW 고유 API(없음) vs upstream proxy(있음·논리 ID enum) 구분, proxy는 verbatim 전달(host만 교체). 신규 upstream = 레지스트리 1행(코드·경로 변경 0) | 경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream(SSRF) 반려. upstream 무한 확장을 설정 기반으로(NFR-SCL), 내부(B)·외부(C)를 단일 규칙으로 — 차이는 trust profile(C=OAuth·고정 egress IP)뿐 (SRS §4.1.1·§4.1.2) | 채택(2026-06-23) · **CCB 승인(2026-06-25)** |
+| ADR-12 | Webhook Dispatcher(분배 워커) = **별도 worker Deployment** — SQS(A)를 소비(consume)해 대상 해석 후 MQTT(Edge)/HTTP(클라우드)로 발행하는 주체. GW와 동일 코드베이스·HTTP 없이 consumer만, API tier와 독립 스케일(KEDA·SQS 큐depth)·장애 격리 | 기존 GW 모듈 in-process(부하·스케일 결합) / 서버리스 Lambda(로직·DB·시크릿·egress 중복·2nd 런타임 검증 부담) 반려. 코드·도메인·커넥터·시크릿 공유로 드리프트 0·단일 검증 스택 유지 + webhook 버스트를 분배만 독립 확장 (SRS §2.2·§2.3.6·§7.6.7) | 채택(2026-06-30) |
 
 ## 3. 논리 / 배포 구성
 
@@ -81,8 +83,9 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | Admin UI / RBAC | Control | 운영자 관리·권한 | 경량(MVP) |
 | API Compatibility Gate | Control | Vatech-\* 헤더 판정 · well-known 버전 공시 · 오류코드 매핑/fallback · 호환성 매트릭스 집행 | 핵심(즉시 · Roadmap 1단계) |
 | OneID Integration | Control | OIDC 연계 — 사람·클리닉·사내 호출자(EzServer/CleverOne) 인증. 디바이스 머신 인증과 분리 surface | 핵심 |
-| Webhook Receiver | Integration | 외부 Webhook 수신(HMAC·IP·timestamp·멱등) + 내부 큐 분배(클라우드 HTTP push / Edge MQTT) | 핵심(b1 · forward+역방향) |
-| MQTT Broker (Edge 분배) | Integration / Data | Edge(EzServer)로의 이벤트 전달 채널(QoS1·persistent·토픽 클리닉 단위) | 핵심(b1 · 역방향 포함) |
+| Webhook Receiver | Integration | 외부 Webhook 수신(HMAC·IP·timestamp·멱등)·즉시 ACK·내부 큐(SQS) 적재 | 핵심(b1 · forward+역방향) |
+| Webhook Dispatcher (분배 워커) | Integration | **SQS consumer — 별도 worker Deployment(ADR-12)**. 큐 소비→대상 해석(Org-ID→Clinic→region→채널)→MQTT(Edge)/HTTP(클라우드) 발행·재시도/DLQ. API tier와 독립 스케일·격리 | 핵심(b1) |
+| MQTT Broker (Edge 분배) | Integration / Data | Edge(EzServer)로의 이벤트 전달 채널(QoS1·persistent·토픽 클리닉 단위). Webhook Dispatcher가 publish | 핵심(b1 · 역방향 포함) |
 
 ## 4.5 기술 스택 (Tech Stack)
 
