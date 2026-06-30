@@ -141,14 +141,14 @@
             | IEC 62304 추적 | 스펙·구현 동시 → 추적 부담 | baseline 후 구현 → 깔끔 |
             | 전체 납기 | 빠름 | 느림 |
 
-        - **공통 전제**: 어느 안이든 **구현 시작점 = ④ AXS baseline**(둘의 차이는 ③-C/③-P/③-I 스펙을 병행하느냐 선완료하느냐). **구현 기간은 미정 — SRS 확정 후 재산정**(gantt 첫 줄에 *기간 미정* 막대로 표기).
+        - **공통 전제**: 어느 안이든 **구현 시작점 = ④ AXS baseline**(둘의 차이는 ③-C/③-P/③-I 스펙을 병행하느냐 선완료하느냐). **구현 기간은 미정 — SRS 확정 후 재산정**(gantt의 `③ GW SRS + 구현` 섹션에 *기간 미정* 막대로 표기).
         - **pilot 8/15 영향**: 구현이 ④ baseline(현 gantt ~8월 초) 이후라 **pilot 8/15는 어느 안이든 매우 빠듯**(2안은 사실상 불가). → pilot 일정 자체를 R7과 함께 재검토 필요(개발계획서 정합).
         - **검토 의견**: AXS 의존이 고정이므로 **1안(④ 후 구현 착수, 나머지 스펙 병행)** 이 현실적. 2안은 납기 지연을 감수. 단 **구현 기간·pilot은 SRS 확정 후 재산정**.
 
 - 공유 사항 — 스펙 작성 순서 (SRS PR 이후 후속 스펙)
     - ③ GW SRS(+OpenAPI·DBML)를 한 PR로 baseline. **③ PR 시작(7/6)에 ①·②(One Pager)와 ④(AXS 전체 Sub-SRS, 2주)를 동시 착수**(병행). ③-C·③-P·③-I는 ③ baseline 이후 — **③-I는 GW 1주 초안 → 인프라 담당 완성**. 각 스펙은 **작성 → PR(리뷰·수정) → baseline** 생애주기.
     - 막대 색: **작성=기본 · PR=강조(밝은색) · ◆=baseline/마일스톤 · 회색=완료 · 빨강=외부 선결**. **pilot 8/15는 개발계획서(착수 품의·미승인) 내부 목표**(외부 확정 요구 아님). **AXS sandbox 자격은 스펙 작성엔 불요·E2E·pilot 직전에 필요**라 그 시점에 배치(확보 TBD).
-    - **맨 위 `GW 구현` 막대 = ④ AXS Sub-SRS baseline 이후 착수**(AXS=첫 연동, 통합·테스트 필수)·**기간 미정**(SRS 확정 후 재산정). 병행 vs 선완료 전략은 **R7**.
+    - **`③ GW SRS + 구현` 섹션에 `GW 구현 1안·2안` 막대를 둘 다 표기 → R7에서 택일.** 1안=④ AXS baseline 후 즉시(스펙 병행) / 2안=전 스펙 완료 후. 둘 다 ④ AXS 연동(첫 연동·테스트 필수) 이후·**기간 미정**(SRS 확정 후 재산정).
     - 어느 제품·단계에 무슨 문서인지는 Roadmap §4 표, 스펙 단위·유형 정본은 PRD §12.1. **본 gantt 정본 = [개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정 시 그쪽을 먼저).
 
     ```mermaid
@@ -163,8 +163,8 @@
         OpenAPI·DBML 작성·정합   :done, designw, 2026-06-19, 17d
         PR 리뷰·수정(본문+스키마) :active, srspr, 2026-07-06, 14d
         baseline v1.0 (통합)     :milestone, srsbl, after srspr, 0d
-        ④ AXS baseline 후 구현 착수 :milestone, impl0, after axsbl, 0d
-        GW 구현 (기간 미정 · SRS 확정 후 재산정) :active, impl, after axsbl, 45d
+        GW 구현 1안 — ④ AXS baseline 후(스펙 병행) :active, impl1, after axsbl, 45d
+        GW 구현 2안 — 전 스펙 완료 후 :active, impl2, after conbl infbl oidw, 45d
 
         section ① API 호환성 One Pager (③ PR 시 동시 착수)
         작성                  :op1w, 2026-07-06, 7d

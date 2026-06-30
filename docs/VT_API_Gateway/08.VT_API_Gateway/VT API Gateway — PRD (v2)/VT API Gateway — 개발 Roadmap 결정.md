@@ -707,8 +707,8 @@ gantt
     OpenAPI·DBML 작성·정합   :done, designw, 2026-06-19, 17d
     PR 리뷰·수정(본문+스키마) :active, srspr, 2026-07-06, 14d
     baseline v1.0 (통합)     :milestone, srsbl, after srspr, 0d
-    ④ AXS baseline 후 구현 착수 :milestone, impl0, after axsbl, 0d
-    GW 구현 (기간 미정 · SRS 확정 후 재산정) :active, impl, after axsbl, 45d
+    GW 구현 1안 — ④ AXS baseline 후(스펙 병행) :active, impl1, after axsbl, 45d
+    GW 구현 2안 — 전 스펙 완료 후 :active, impl2, after conbl infbl oidw, 45d
 
     section ① API 호환성 One Pager (③ PR 시 동시 착수)
     작성                  :op1w, 2026-07-06, 7d
@@ -745,7 +745,7 @@ gantt
     baseline              :milestone, infbl, after infpr, 0d
 ```
 
-> 각 섹션 = **스펙 단위(①·②·③·③-C·④·③-P·③-I)** 1개, 막대 = `작성 / PR(리뷰·수정) / baseline` 생애주기 단계. **막대 색: 작성=기본색 · PR(리뷰·수정)=강조(밝은색) · ◆=baseline/마일스톤 · 회색=완료(done) · 빨강=외부 선결(sandbox 자격)**. **gantt는 스펙 단위 생애주기·순서만** 보이고, 제품×단계별 문서는 **[§4 표](#4-제품별-개발-항목-종합-제품--단계)** 가 정본(gantt 미표기). **날짜·기간은 순서·의존 표현용 잠정값**이며 일정 약속이 아니다 — 특히 **pilot 2026-08-15는 개발계획서(착수 품의·미승인) 내부 목표**이지 외부 확정 요구가 아니다(확정 일정은 PM/품의). **③-P·③-I는 GW가 초안만, PR·baseline은 제품팀/인프라 레포**. 핵심: **③ PR 시작(7/6)에 ①·②·④ 동시 착수(병행)**, ③ baseline이 ③-C·③-P·③-I의 선행, ④(AXS)는 **전체 Sub-SRS를 2주 작성**. **맨 위 `GW 구현` 막대 = ④ AXS Sub-SRS baseline 이후 착수**(AXS=첫 연동, 통합·테스트 필수) · **기간 미정(SRS 확정 후 재산정)** — 진행 전략(병행 vs 선완료)은 주간회의 R7. **AXS sandbox 자격(B-2 #6)은 스펙 작성엔 불요하고 E2E·pilot 직전에 필요**하므로 그 시점(7월 말~pilot 전)에 배치(확보 시점 TBD). **③-I는 GW가 1주 초안 → 인프라 담당이 완성·PR·baseline**. 단위·유형 정본 [PRD §12.1](<../VT API Gateway — PRD (v2).md>).
+> 각 섹션 = **스펙 단위(①·②·③·③-C·④·③-P·③-I)** 1개, 막대 = `작성 / PR(리뷰·수정) / baseline` 생애주기 단계. **막대 색: 작성=기본색 · PR(리뷰·수정)=강조(밝은색) · ◆=baseline/마일스톤 · 회색=완료(done) · 빨강=외부 선결(sandbox 자격)**. **gantt는 스펙 단위 생애주기·순서만** 보이고, 제품×단계별 문서는 **[§4 표](#4-제품별-개발-항목-종합-제품--단계)** 가 정본(gantt 미표기). **날짜·기간은 순서·의존 표현용 잠정값**이며 일정 약속이 아니다 — 특히 **pilot 2026-08-15는 개발계획서(착수 품의·미승인) 내부 목표**이지 외부 확정 요구가 아니다(확정 일정은 PM/품의). **③-P·③-I는 GW가 초안만, PR·baseline은 제품팀/인프라 레포**. 핵심: **③ PR 시작(7/6)에 ①·②·④ 동시 착수(병행)**, ③ baseline이 ③-C·③-P·③-I의 선행, ④(AXS)는 **전체 Sub-SRS를 2주 작성**. **`③ GW SRS + 구현` 섹션의 `GW 구현 1안·2안` 막대 = R7 선택지(택일)** — **1안**=④ AXS baseline 후 즉시(스펙 병행) / **2안**=전 스펙 완료 후. 둘 다 **기간 미정(SRS 확정 후 재산정)**. 구현은 어느 안이든 ④ AXS 연동(첫 연동·테스트 필수) 이후. **AXS sandbox 자격(B-2 #6)은 스펙 작성엔 불요하고 E2E·pilot 직전에 필요**하므로 그 시점(7월 말~pilot 전)에 배치(확보 시점 TBD). **③-I는 GW가 1주 초안 → 인프라 담당이 완성·PR·baseline**. 단위·유형 정본 [PRD §12.1](<../VT API Gateway — PRD (v2).md>).
 
 ---
 
