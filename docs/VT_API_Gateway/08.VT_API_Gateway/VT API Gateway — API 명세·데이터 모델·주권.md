@@ -51,14 +51,13 @@
 | 엔터티 | 핵심 필드 | 비고 |
 | --- | --- | --- |
 | Device | device_id, client_id(nullable), client_public_key, clinic_id, status(lifecycle) | PHI 없음 · region은 clinic 파생(A안) · **인증 자격 통합**(별도 Credential 테이블 없음): private_key_jwt(client_id+공개키(client_public_key), 공유 secret 없음) |
-| RegionMapping | device_id, region, mapping_version | drift·롤백 |
 | Policy | tenant/connector, allowed_endpoints, scopes, egress | OPA |
 | Connector | name(axs), endpoint, credential_ref, egress_allowlist | adapter |
 | AuditLog | ts, actor, action, result | append-only |
 | FleetState | device_id, last_heartbeat, success_rate | 관측 |
 | CompatMatrix | api/feature, min_client_version, error_code, fallback | 호환성 단일 소스 |
 | WebhookEvent | event_id, provider, external_org_id, clinic_id, region, payload_ref, state, target | 멱등·분배 상태·해석된 대상(GW payload 비해석) |
-| ClinicRegionMapping | clinic_id, region, mapping_version | 라우팅 키 통합(device↔clinic) |
+| Clinic | clinic_id, region, mapping_version | 라우팅 키 통합(device↔clinic) |
 | **RegionCatalog** | region_id, display_name, endpoint, status(active/draining/planned), is_default | **GW 운영 리전 목록**(region list API SSOT, §7.3.6) |
 | **OrgMapping** | provider, external_org_id, clinic_id, mapping_version | **webhook 라우팅 키** — (provider·Org-ID)→clinic→region |
 | **WebhookProvider** | provider, inbound_route, sig_scheme, secret_ref, source_ip_allowlist, org_id_path | **유연 수신 config** — 발신자 검증·라우팅 키 추출(GW 비해석) |

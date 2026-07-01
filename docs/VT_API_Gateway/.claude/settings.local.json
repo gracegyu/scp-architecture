@@ -52,7 +52,8 @@
       "Bash(grep -cE '^```$' SRS.md)",
       "Bash(grep -cE '^```' SRS.md)",
       "Bash(python3 *)",
-      "Bash(osascript -e 'if application \"Visual Studio Code\" is running then tell application \"Visual Studio Code\" to activate' -e 'if application \"Cursor\" is running then tell application \"Cursor\" to activate')"
+      "Bash(osascript -e 'if application \"Visual Studio Code\" is running then tell application \"Visual Studio Code\" to activate' -e 'if application \"Cursor\" is running then tell application \"Cursor\" to activate')",
+      "Bash(npx --yes @apidevtools/swagger-cli@4 validate specs/03-srs-gateway/design/openapi/vt-api-gateway.openapi.yaml)"
     ]
   }
 }

@@ -173,7 +173,8 @@
         - **확정 사항(A안)**: ① **기본=Clinic·Device / 확장=외부 Org-ID**(연동 시만) ② **Clinic↔Device 1:N**(현 1:1=EzServer), `device.clinic_id` nullable ③ **region SSOT=Clinic, device는 clinic 파생**(device.region·region_mapping 제거) ④ 외부 Org-ID=(provider, org_id)→clinic, AXS 송신·webhook 분배에 사용 ⑤ 신규 provider=org_mapping 확장 or 신규 테이블+추가 개발(기본 불변).
         - **DBML·OpenAPI 반영 완료** — 회의에서 관계·카디널리티 **확인/승인** 요청.
         - **org_mapping 경계(확인)**: org_mapping = **얇은 식별자 매핑**(공통 조각)일 뿐, provider별 인증·webhook·payload는 이미 분리(connector·webhook_provider·④). **구조 다른 provider = 전용 테이블+로직(설계된 분기)** — "만능 표" 아님.
-        - **미결(확인 요청)**: ① EzServer=클리닉당 1개 확정?(Device 1:N 유지 vs 1:1 UNIQUE 강제) · ② 전용 `clinic` 테이블 분리 여부 · ③ clinic-less device(미래) region 처리 · ④ **`provider` 관리** — 정규 토큰 규약 + **provider 레지스트리(SSOT) FK 도입 여부** + `provider`↔`upstream_registry.target_id` 통합 여부(enum은 부적합).
+        - **미결(확인 요청)**: ① EzServer=클리닉당 1개 확정?(Device 1:N 유지 vs 1:1 UNIQUE 강제) · ③ clinic-less device(미래) region 처리 · ⑤ **policy.tenant 범위**(clinic 단위+전역기본 NULL·device 배제 확인).
+        - **해결됨(보고)**: ② 전용 `clinic` 테이블 = **`clinic_region_mapping`을 `clinic`으로 승격 확정**(C안, 2026-07-01) · ④ **`connector`(아웃바운드)/`provider`(인바운드) 분리 유지 확정**(통합 안 함); `provider` 표기는 정규 토큰·enum 금지(레지스트리 FK는 선택).
 
     - **R9. Enroll 승인 주체 = C/S 확인 (확인만 · 결정 이미 반영)** — Scott 방향대로 **디바이스 enrollment 승인을 C/S 본인이 한다**로 구체화해 문서에 반영했다. 회의에서는 **"이렇게 하면 되냐" 확인만** 요청(변경 없으면 그대로 확정).
         - **배경**: GW 관리자(Admin)가 승인을 기다릴 수 없음 → **현장 설치를 담당한 C/S가 설치 + GW Console 승인까지 본인이 수행**(설치자가 곧 승인자). 이 사람 승인이 부트스트랩 신뢰 앵커라, LM 라이선스·Clinic-ID만으로 부족한 위·변조 가짜 등록을 현장 검증으로 차단한다(별도 공장 토큰/OOB 불요).

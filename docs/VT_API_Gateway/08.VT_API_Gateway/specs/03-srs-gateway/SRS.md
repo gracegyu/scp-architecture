@@ -465,7 +465,7 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 
 #### (1) 클리닉/클라이언트 온보딩·리전 등록
 
-클리닉 등록은 **자동·무조건**이다(2026-06-25 결정). **EzServer 설치 후 LMP로부터 Clinic-ID를 받는 순간 EzServer가 그 Clinic-ID를 GW로 전송해 자동 등록**한다 — **외부 연동(AXS 등) 여부와 무관하게 모든 클리닉이 GW에 등록**된다(연동 안 해도 무조건). GW는 Clinic-ID·region을 **검증(allowlist·정책)** 후 `clinic_region_mapping`·`delivery_channel`에 저장한다(이 클리닉이 어느 region인지·webhook을 어디로 보낼지 확정). **등록 주체 = 클리닉당 1개인 EzServer로 확정** — 클리닉은 **CleverOne 다수 + EzServer 1개**라 EzServer 자동 등록이 자연스럽다(기존 CleverOne 대안 TBD 종결, Appendix B #17). **외부 연동을 켤 때만** 그 provider의 Org-ID(Straumann 온보딩에서 발급, §2.3.5·④)를 등록하면 `org_mapping`에 (provider, Org-ID)→clinic이 채워져 webhook 분배 대상이 결정된다. **region은 운영 중에도 EzServer Console에서 변경 가능**(FR-RGN-04·§7.3.4 재동의·감사) — 선택지는 `GET /v1/regions`(§7.3.6)로 제공. Admin은 잘못된 등록의 **교정(override)** 만.
+클리닉 등록은 **자동·무조건**이다(2026-06-25 결정). **EzServer 설치 후 LMP로부터 Clinic-ID를 받는 순간 EzServer가 그 Clinic-ID를 GW로 전송해 자동 등록**한다 — **외부 연동(AXS 등) 여부와 무관하게 모든 클리닉이 GW에 등록**된다(연동 안 해도 무조건). GW는 Clinic-ID·region을 **검증(allowlist·정책)** 후 `clinic`·`delivery_channel`에 저장한다(이 클리닉이 어느 region인지·webhook을 어디로 보낼지 확정). **등록 주체 = 클리닉당 1개인 EzServer로 확정** — 클리닉은 **CleverOne 다수 + EzServer 1개**라 EzServer 자동 등록이 자연스럽다(기존 CleverOne 대안 TBD 종결, Appendix B #17). **외부 연동을 켤 때만** 그 provider의 Org-ID(Straumann 온보딩에서 발급, §2.3.5·④)를 등록하면 `org_mapping`에 (provider, Org-ID)→clinic이 채워져 webhook 분배 대상이 결정된다. **region은 운영 중에도 EzServer Console에서 변경 가능**(FR-RGN-04·§7.3.4 재동의·감사) — 선택지는 `GET /v1/regions`(§7.3.6)로 제공. Admin은 잘못된 등록의 **교정(override)** 만.
 
 > **C/S enrollment 승인(활성화 게이트).** 클리닉 등록은 EzServer가 자동으로 하지만, **디바이스 enrollment의 최종 활성화(`pending → active`)는 현장 설치를 담당한 C/S가 GW Console에서 승인**해야 한다(§2.3.1(2)·§7.2.3·§7.2.5). 이 사람 승인이 부트스트랩 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 현장 검증으로 차단한다(별도 공장 토큰/OOB 불필요). 따라서 **GW Console 사용자는 Admin + C/S 역할**을 갖고 **C/S는 enrollment 승인 권한**을 보유한다(§7.9.2) — **승인 UI·역할 세부 권한은 ③-C GW Console Sub-SRS**에서 정의(본 SRS는 승인 관리 API·역할·게이트 존재까지).
 
@@ -479,7 +479,7 @@ sequenceDiagram
     LMP-->>EZ: Clinic-ID 발급/전달
     EZ->>GW: Clinic-ID 자동 등록 (무조건 · 외부 연동 무관)
     GW->>GW: Clinic-ID·region 검증(allowlist·정책)
-    GW->>DB: clinic_region_mapping · delivery_channel 저장
+    GW->>DB: clinic · delivery_channel 저장
     GW-->>EZ: 등록 완료 (이 클리닉 = 해당 region)
     Note over EZ,DB: 외부 연동(AXS) 연결 시에만 provider Org-ID 등록 → org_mapping (§2.3.5·④)
     Note over GW,DB: 자동·무조건 등록(2026-06-25). Admin은 교정만(override, FR-RGN-04)
@@ -1235,12 +1235,12 @@ flowchart LR
 > - **가드레일(분리 신호)**: org_mapping에 **provider 조건 분기·provider 전용 컬럼**을 넣고 싶어지는 순간 = 그 provider를 **전용 테이블로 빼라는 신호**. org_mapping은 "순수 식별자 매핑"으로만 유지.
 > - **한 줄**: org_mapping은 "모든 provider가 맞춰야 하는 틀"이 아니라 **"같은 모양 provider를 위한 편의"**. 2번째 provider가 달라도 org_mapping이 아니라 **그 provider 전용 테이블**이 추가될 뿐 기존은 안 깨진다.
 - **`connector`(아웃바운드) ↔ `provider`(인바운드) 분리 = 유지 확정(2026-07-01)**: 아웃바운드 축(`connector`/`upstream_registry.target_id` — GW→외부 호출)과 인바운드 축(`provider` — `webhook_provider`/`org_mapping`, 외부→GW webhook)은 **서로 다른 관심사라 분리 상태를 유지**한다(하나로 통합하지 않음). AXS처럼 같은 party가 양쪽에 `axs` 토큰으로 나타나도 역할이 달라 자연스러운 분리다. **표기만 정규 토큰**(소문자 `^[a-z0-9_]+$`)으로 통일하고 **enum 금지**(런타임 추가). *잔여(선택)*: `provider` 값에 canonical 레지스트리 FK를 걸지 여부는 필요 시 검토(현재는 미강제).
-- **`policy`의 tenant·connector 연결 (확정 권장)**: **`policy.tenant` = `clinic_id`**(FK → `clinic_region_mapping`) — 테넌트 단위는 **클리닉**이다(device 단위 아님, 10만대 granularity 회피). **`tenant = NULL` = 그 connector 전역 기본 정책**, 클리닉별은 override 행. 평가는 `(clinic, connector)` 우선 → `(NULL, connector)` fallback → 없으면 deny. **`policy.connector` = 아웃바운드 대상 토큰**(= `connector.name` = `upstream_registry.target_id`, 예 `axs`) — 인바운드 `provider`와 동일 party이나 통합은 R8(위 항목). 정책은 대상마다 달라 **관리 API(§7.9)+Console UI(③-C)** 필요(Appendix B #32). jsonb 형식=`design/db-jsonb-fields.md#policy`. tenant 범위 최종 확인=R8.
-- **region (A안 확정)**: **region SSOT = Clinic**(`clinic_region_mapping`, 1:1). **device의 region은 `device.clinic_id → clinic_region_mapping.region` 파생** — **device.region 컬럼·device-level `region_mapping` 테이블은 제거**(중복·drift 제거, relocation은 clinic 1곳만 변경). region 버전 마커는 `clinic_region_mapping.mapping_version`(캐시 무효화·drift 감지·CAS, §7.3.2), 값 이력·롤백은 `audit_log`(FR-RGN-02). §7.3 resolver는 deviceId를 받아도 device→clinic→region으로 해석.
+- **`policy`의 tenant·connector 연결 (확정 권장)**: **`policy.tenant` = `clinic_id`**(FK → `clinic`) — 테넌트 단위는 **클리닉**이다(device 단위 아님, 10만대 granularity 회피). **`tenant = NULL` = 그 connector 전역 기본 정책**, 클리닉별은 override 행. 평가는 `(clinic, connector)` 우선 → `(NULL, connector)` fallback → 없으면 deny. **`policy.connector` = 아웃바운드 대상 토큰**(= `connector.name` = `upstream_registry.target_id`, 예 `axs`) — 인바운드 `provider`와 동일 party이나 통합은 R8(위 항목). 정책은 대상마다 달라 **관리 API(§7.9)+Console UI(③-C)** 필요(Appendix B #32). jsonb 형식=`design/db-jsonb-fields.md#policy`. tenant 범위 최종 확인=R8.
+- **region (A안 확정)**: **region SSOT = Clinic**(`clinic`, 1:1). **device의 region은 `device.clinic_id → clinic.region` 파생** — **device.region 컬럼·device-level `region_mapping` 테이블은 제거**(중복·drift 제거, relocation은 clinic 1곳만 변경). region 버전 마커는 `clinic.mapping_version`(캐시 무효화·drift 감지·CAS, §7.3.2), 값 이력·롤백은 `audit_log`(FR-RGN-02). §7.3 resolver는 deviceId를 받아도 device→clinic→region으로 해석.
   - **미래(C안 여지)**: clinic 비소속(비-EzServer) device는 파생할 clinic이 없어 device-level region이 필요할 수 있음 → 실제 등장 시 추가(현재 미정의).
-- **(미결·논의)** 현재 "clinic" 엔터티는 별도 테이블 없이 `clinic_region_mapping`(클리닉 레지스트리 겸 region 배정)이 대신한다 — **전용 `clinic` 테이블 분리 여부**는 별도 결정(본 A안 범위 밖).
+- **(해결·2026-07-01 C안)** **전용 `clinic` 테이블 확정** — 구 `clinic_region_mapping`을 **`clinic`으로 승격**(canonical 클리닉 엔터티). clinic_id를 참조하는 5개 테이블(device·org_mapping·webhook_event·delivery_channel·policy.tenant)의 원본이며 region SSOT. region·mapping_version은 clinic 컬럼으로 유지(1:1 인라인, 조인 없음). 클리닉 속성은 필요 시 이 표에 추가. `clinic_id`는 LMP 발급 Clinic-ID(GW 생성 아님).
 
-> **DBML·OpenAPI 반영(A안·완료)**: ① `device.clinic_id`(FK→clinic_region_mapping, **nullable**)+인덱스 추가 · ② `device.region` 컬럼·`region_mapping` 테이블 **제거**(clinic 파생) · ③ OpenAPI `Device`에서 `region` 제거·`clinicId` 추가 · ④ `org_mapping`은 (provider, external_org_id) PK라 provider 확장 가능(변경 없음). **미결(별도)**: 전용 `clinic` 테이블 분리 · clinic-less device region(미래).
+> **DBML·OpenAPI 반영(A안·완료)**: ① `device.clinic_id`(FK→clinic, **nullable**)+인덱스 추가 · ② `device.region` 컬럼·`region_mapping` 테이블 **제거**(clinic 파생) · ③ OpenAPI `Device`에서 `region` 제거·`clinicId` 추가 · ④ `org_mapping`은 (provider, external_org_id) PK라 provider 확장 가능(변경 없음). **전용 `clinic` 테이블 = 승격 확정(C안·2026-07-01)**. **미결(별도)**: clinic-less device region(미래).
 
 #### 6.4.2 테이블 조감도 (그룹 수준)
 
@@ -1250,7 +1250,7 @@ flowchart LR
 flowchart TB
     subgraph ID["식별·테넌트 (§6.4.1 상세)"]
         DEV["device<br/>(+ client_id·client_public_key = 인증 자격)"]
-        CLI["clinic_region_mapping<br/>(= clinic · region 배정)"]
+        CLI["clinic<br/>(canonical + region 배정)"]
         ORG["org_mapping<br/>(외부 org id · 확장)"]
     end
     subgraph RGN["리전"]
@@ -1502,7 +1502,7 @@ FR-RGN-01·06 (단일 리전 resolver, resolver가 `device_id`·`clinic_id` 모�
 
 ### 7.3.2 mapping_version (버전 마커 · drift 감지) (P1)
 
-FR-RGN-02 (매핑 버전 추적). 매핑 변경 시 `mapping_version`을 **단조 증가(+1)** 시킨다. 용도: ① **캐시 무효화**(soft-state·다중 리전 — 각 리전 캐시가 버전 불일치를 보고 재적재, ADR-02·§2.1.1) · ② **낙관적 동시성 제어**(CAS — `UPDATE … WHERE mapping_version = N`으로 동시 수정 lost-update 방지) · ③ **drift 감지**(리전 간 버전 차이). **값 이력·롤백은 이 정수가 아니라 `audit_log`(before/after)가 담당** — mapping_version은 "몇 번째 버전인지" 표시일 뿐 과거 값을 담지 않는다. `clinic_region_mapping`·`org_mapping` 등 전역 일관 매핑에 **동일 의미**로 적용.
+FR-RGN-02 (매핑 버전 추적). 매핑 변경 시 `mapping_version`을 **단조 증가(+1)** 시킨다. 용도: ① **캐시 무효화**(soft-state·다중 리전 — 각 리전 캐시가 버전 불일치를 보고 재적재, ADR-02·§2.1.1) · ② **낙관적 동시성 제어**(CAS — `UPDATE … WHERE mapping_version = N`으로 동시 수정 lost-update 방지) · ③ **drift 감지**(리전 간 버전 차이). **값 이력·롤백은 이 정수가 아니라 `audit_log`(before/after)가 담당** — mapping_version은 "몇 번째 버전인지" 표시일 뿐 과거 값을 담지 않는다. `clinic`·`org_mapping` 등 전역 일관 매핑에 **동일 의미**로 적용.
 
 ### 7.3.3 PHI 리전 경계 보장 (P1)
 
@@ -1528,7 +1528,7 @@ Route 53 GeoDNS로 Edge(EzServer)를 최근접 GW 리전에 연결한다. 호스
 GW가 **운영 중인 리전 목록**을 조회 API로 제공한다 — 클라이언트(EzServer Console 등)가 온보딩·운영 중 region 선택지를 표시·선택하기 위함이다.
 
 - **API**: `GET /v1/regions` — 운영 리전 목록(region_id·표시명·endpoint·status[active/draining/planned]). 호스트 §4.5.1.
-- **DB**: `region_catalog` 테이블(§6.4)이 SSOT — v1.0은 **단일 리전 1행**, 2차(gw/1.2)에 N행으로 확장(§2.7.1 멀티리전-ready). `clinic_region_mapping.region`은 이 카탈로그를 참조한다.
+- **DB**: `region_catalog` 테이블(§6.4)이 SSOT — v1.0은 **단일 리전 1행**, 2차(gw/1.2)에 N행으로 확장(§2.7.1 멀티리전-ready). `clinic.region`은 이 카탈로그를 참조한다.
 - **상태 전이**: `draining`(신규 등록 차단·기존 유지)·`planned`(목록 비노출) 등으로 점진 추가/회수 지원.
 - **관리(쓰기) API·Console UI는 미정의** — 본 절은 조회(`GET`)만 확정. 리전 개통·상태 전이·회수의 **운영자 관리 API(§7.9)** 와 **Console region 관리 UI(③-C)** 는 **Appendix B #30**으로 추적(v1.0=단일 리전이라 시급도 낮음, gw/1.2 전 필요).
 
@@ -1633,7 +1633,7 @@ FR-WH-06 (EzServer로 **MQTT QoS1·persistent**, 토픽=클리닉 단위). 오�
 FR-WH-07 (수신과 분배를 잇는 **Webhook Dispatcher**). §7.6.3 큐(A·SQS)에 적재된 이벤트를 **소비(consume)** 해 대상별로 발행하는 GW 컴포넌트다 — 큐는 스스로 push하지 못하므로, Webhook Dispatcher가 §7.6.5(HTTP push)·§7.6.6(MQTT) 전달을 수행한다.
 
 - **구현 = GW와 동일 코드베이스의 별도 worker Deployment(ADR-12)** — HTTP 서버 없이 SQS consumer만 실행. API tier와 **독립 스케일(SQS 큐depth, KEDA)·장애 격리**하되 코드·도메인 모델·커넥터·시크릿을 공유(드리프트 0, 단일 검증 스택). v1.0은 고정 replica로 시작, 볼륨 증가 시 오토스케일. (서버리스 Lambda 대안은 로직·DB·시크릿·egress 중복과 2nd 런타임 검증 부담으로 반려 — ADR-12.)
-- **동작**: SQS pull → **대상 해석**(`org_mapping` Org-ID→Clinic → `clinic_region_mapping`→region → `delivery_channel`→채널·엔드포인트, §6.4·§7.3) → Edge면 **MQTT publish(IoT Core, §7.6.6)** / 클라우드면 **HTTP push(§7.6.5)** → 발행 성공 시 메시지 삭제. **교차 리전**(수신 리전 ≠ 대상 리전) 전달 포함.
+- **동작**: SQS pull → **대상 해석**(`org_mapping` Org-ID→Clinic → `clinic`→region → `delivery_channel`→채널·엔드포인트, §6.4·§7.3) → Edge면 **MQTT publish(IoT Core, §7.6.6)** / 클라우드면 **HTTP push(§7.6.5)** → 발행 성공 시 메시지 삭제. **교차 리전**(수신 리전 ≠ 대상 리전) 전달 포함.
 - **멱등·신뢰성**: `eventId` dedup(§7.6.4)으로 중복 발행 방지. 발행 실패 → **재시도·백오프, N회 초과 → DLQ·알람**(§7.6.3). 처리 단위 멱등이라 at-least-once 소비에도 중복 부작용 0.
 - **에러**: 대상 미해석(매핑 부재) → DLQ·알람. MQTT/HTTP 발행 실패 → 재시도 후 DLQ.
 
@@ -1916,6 +1916,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
 | 2026-06-25 | §1.4 용어에 **LMP(LicenseManager) = Clinic-ID 발급원** 정의 추가(§2.3.1 온보딩 자동 등록의 LMP 약어 명시) | (작성자 ID 미지정) |
 | 2026-06-26 | 잔재 전수 점검·정리 — §2.7 gw/1.2 "멀티클라우드 presign·**signer 확장**" → "멀티 리전 활성화(Aurora Global DB·GeoDNS)", §2.7.1 금지 노트의 "멀티클라우드 presign broker ready" 제거(GW 비소유·FR-SES-06 해당없음·line 1290과 일치), §2.1 노트 "비-AWS minio·디바이스→storage" → "AWS 미지원국 Provider MinIO·EzServer→발급주체 storage". signer/Upload Session/포터블 잔재 0 확인 | (작성자 ID 미지정) |
+| 2026-07-01 | **clinic 참조 정합성 감사 — 잔재 2건 정리** — 전 문서 clinic 참조 재점검 중 발견: (1) `design/redis/redis-keyspace.md`가 clinic 리네이밍·region A안 미반영 → `clinic-region` 캐시 출처 `clinic_region_mapping`→`clinic`, `device-region` 출처 `region_mapping`(폐기)→`device.clinic_id→clinic.region`(파생) 정정 · (2) 08 데이터모델의 폐기 엔터티 `RegionMapping` 행 제거(A안에서 device-level region_mapping 삭제됨). ERD·조감도·FK(5곳)·OpenAPI는 이미 정합 확인 | (작성자 ID 미지정) |
+| 2026-07-01 | **`clinic_region_mapping` → `clinic` 승격(C안) + connector/provider 분리 유지 확정** — clinic_id를 5개 테이블(device·org_mapping·webhook_event·delivery_channel·policy.tenant)이 참조하는 **canonical 엔터티**라 `clinic_region_mapping`을 **`clinic`으로 정명(正名)**. region·mapping_version은 clinic 컬럼으로 유지(1:1 인라인, 핫패스 조인 회피), 클리닉 속성의 홈. clinic_id=LMP 발급(GW 생성 아님). 전 문서 리네이밍(DBML 테이블·5 FK·Notes / SRS §6.4.1·§6.4.2·§7.3 / OpenAPI / ARD / 08 데이터모델 ClinicRegionMapping→Clinic), 과거 로그 행 보존. **connector(아웃바운드)/provider(인바운드) 분리 = 유지 확정**(통합 안 함). **R8 "전용 clinic 테이블 분리"·"connector/provider 통합" 해소**; Agenda R8 갱신 | (작성자 ID 미지정) |
 | 2026-07-01 | **`policy` tenant·connector 연결 확실화 + 정책 관리 UI 발견** — 막연했던 `policy.tenant`("클리닉 등")를 **`tenant = clinic_id`(FK → clinic_region_mapping)** 로 확정(테넌트=클리닉 단위·device 아님, `NULL`=connector 전역 기본, 평가 clinic→NULL fallback). `policy.connector`는 아웃바운드 토큰(=connector.name=upstream_registry.target_id)이며 인바운드 provider와의 통합은 R8임을 명시. 정책이 대상(클리닉)마다 달라 **관리 API+Console UI 필요 → Appendix B #32**. DBML(tenant FK·주석)·§6.4.1·db-jsonb-fields.md#policy 정합 | (작성자 ID 미지정) |
 | 2026-07-01 | **DB `jsonb` 컬럼 형식·예시 계약 신설(`design/db-jsonb-fields.md`)** — 구현 가능성 위해 `policy.allowed_endpoints`(허용 method/path glob)·`policy.scopes`·`policy.egress`·`connector`/`upstream_registry.egress_allowlist`·`upstream_registry.retry_policy`·`webhook_provider.source_ip_allowlist`의 **JSON 형식·예시·검증·기본값(fail-closed)** 정의. DBML 각 jsonb 주석에 shape 요약+포인터, §7 도입부·헤더 참조. **egress가 3곳 중복** 발견 → **Appendix B #31**(SSOT 일원화). (구조화 포맷은 redis-keyspace.md·well-known 패턴처럼 design 아티팩트에 두고 DBML 주석은 요약만) | (작성자 ID 미지정) |
 | 2026-07-01 | **region 관리 API·Console UI 미비 발견 → Appendix B #30 등록** — `region_catalog`가 읽기(`GET /v1/regions`)만 있고 운영자 관리(생성·상태 전이)·Console UI가 없음을 검토 중 발견. §7.3.6에 "관리 API·UI 미정의(Appendix B #30 추적)" 명시. (발견 사항 기록 원칙 = Appendix B 정본 · UI=③-C · 논의=Agenda · 실행=Jira, DBML TODO 주석 비권장) | (작성자 ID 미지정) |
