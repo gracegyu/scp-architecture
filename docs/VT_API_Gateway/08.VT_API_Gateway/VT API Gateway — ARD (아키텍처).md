@@ -28,6 +28,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.17 | 2026-07-01 | (SRS 동기화) | **디바이스 인증 = 비대칭 private_key_jwt(ADR-13)** — 공유 client_secret 폐지, enrollment 키페어(개인키 서명 → fingerprint 공개키 검증) 재사용. §5.1 스텝5·ADR-13 추가. **DBML `credential.secret_ref` 제거**, OpenAPI(TokenRequest=clientAssertion·Credential=secretRef 제거·enroll/complete=client_id 반환), 요구사항 FR-AUTH-01 정합 | Draft |
 | v0.19 | 2026-07-01 | (SRS 동기화) | **token 테이블 삭제** — 발급 access token은 무상태 JWT(서명 검증·미저장), 폐기=device 단위(§7.2.4)라 저장 불필요(이력=audit_log). §5.1 온보딩 다이어그램을 **구 이미지 → mermaid 시퀀스로 교체**(enroll→C/S 승인→private_key_jwt 인증→API 3단계). Auth Service 컴포넌트에서 "token store·secret 회전" 제거(무상태·private_key_jwt 반영). DBML 13→12 테이블·SRS §6.4.2·08 데이터모델 정합 | Draft |
 | v0.18 | 2026-07-01 | (SRS 동기화) | **credential 테이블 삭제 → device 통합** — private_key_jwt 전환 후 남은 client_id를 `device.client_id`(nullable·unique, "client_id 없는 device" 표현 유지)로 이관, secret_ref 폐기, `hw_key_bound`는 v1.0 검증 불가라 gw/1.1 attestation(FR-ENR-06·FR-AUTH-07)으로 이관. DBML 13 테이블·§6.4.2 조감도 노드 제거·OpenAPI(Device에 clientId·Credential 스키마 제거) 정합 | Draft |
+| v0.20 | 2026-07-01 | (SRS 동기화) | **§5.2 리전 해석 다이어그램·본문을 region A안으로 갱신** — 구 `device→region` 직접 매핑 이미지(image-2026-6-8_21-41-16)를 **mermaid 시퀀스로 교체**하고 본문 step을 **`deviceId→device.clinic_id→clinic_region_mapping.region` 파생**(region SSOT=clinic, device엔 region 컬럼 없음, §6.4.1·ADR-10)으로 정정. 캐시(mapping_version·TTL)·strong-consistency·PHI 주권(OPA) 흐름 명시. SRS §2.3.3·§6.4.1 A안과 정합 | Draft |
 
 ## 1. 아키텍처 개요
 
@@ -166,13 +167,28 @@ sequenceDiagram
 
 요구사항: FR-RGN-01~03 ([요구사항 명세](<VT API Gateway — 요구사항 명세 (Requirements).md>)) · 작업: [ESIP-4](https://vts.vatech.com/browse/ESIP-4)
 
-1. 인증된 디바이스(JWT)가 작업 직전 region 해석 요청.
-2. region resolver: device→region 매핑 조회(`mapping_version` · cache TTL 초 단위).
-3. assignment 변경 등 강한 일관성 필요 연산은 strong-consistency 경로.
-4. 매핑 리전 endpoint + 주권 정책(PHI 리전 밖 금지) 반환.
+1. 인증된 호출자(JWT)가 작업 직전 region 해석 요청(`deviceId` 또는 `clinicId`).
+2. region resolver: **`deviceId → device.clinic_id → clinic_region_mapping.region` 파생**(region A안 — region SSOT=clinic, device엔 region 컬럼 없음, §6.4.1·ADR-10). `deviceId`·`clinicId`는 동일 resolver가 같은 리전으로 귀결. 캐시(`mapping_version`·TTL) 우선 조회.
+3. 캐시 miss·assignment 변경 등 강한 일관성 필요 연산은 strong-consistency 경로(§7.3.1/2).
+4. 매핑 리전 endpoint(`region_catalog`) + 주권 정책(PHI 리전 밖 금지, OPA §7.3.3) 반환.
 5. 이후 모든 데이터 경로는 해당 리전으로 고정.
 
-![](images/image-2026-6-8_21-41-16.png)
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as 호출자 (EzServer/CleverOne, JWT)
+    participant GW as GW (Region Resolver)
+    participant DB as clinic_region_mapping · region_catalog
+    D->>GW: region 해석 요청 (deviceId 또는 clinicId · 작업 직전)
+    GW->>GW: deviceId → device.clinic_id → clinic 파생 (A안·ADR-10, device엔 region 없음)
+    GW->>GW: 캐시 조회 (mapping_version · TTL) — hit 시 즉시 반환
+    GW->>DB: (miss·변경 시) clinic_region_mapping.region + region_catalog.endpoint 조회 (strong-consistency)
+    DB-->>GW: region · endpoint
+    GW->>GW: 주권 정책 적용 (PHI 리전 밖 금지 · OPA §7.3.3)
+    GW-->>D: 리전 endpoint + 주권 정책
+    Note over D,GW: region SSOT=clinic(A안) — device는 clinic에서 region 파생. 이후 모든 데이터 경로 해당 리전 고정
+    Note over D,GW: mapping_version = 캐시 무효화·CAS·drift 감지(값 이력=audit_log). deviceId·clinicId 동일 resolver→같은 리전(ADR-10)
+```
 
 ### **5.3 파일 업로드 — presigned 중계 (GW 비발급)**
 
