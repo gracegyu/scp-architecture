@@ -176,11 +176,14 @@
         - **미결(확인 요청)**: ① EzServer=클리닉당 1개 확정?(Device 1:N 유지 vs 1:1 UNIQUE 강제) · ③ clinic-less device(미래) region 처리 · ⑤ **policy.tenant 범위**(clinic 단위+전역기본 NULL·device 배제 확인).
         - **해결됨(보고)**: ② 전용 `clinic` 테이블 = **`clinic_region_mapping`을 `clinic`으로 승격 확정**(C안, 2026-07-01) · ④ **`connector`(아웃바운드)/`provider`(인바운드) 분리 유지 확정**(통합 안 함); `provider` 표기는 정규 토큰·enum 금지(레지스트리 FK는 선택).
 
-    - **R9. Enroll 승인 주체 = C/S 확인 (확인만 · 결정 이미 반영)** — Scott 방향대로 **디바이스 enrollment 승인을 C/S 본인이 한다**로 구체화해 문서에 반영했다. 회의에서는 **"이렇게 하면 되냐" 확인만** 요청(변경 없으면 그대로 확정).
-        - **배경**: GW 관리자(Admin)가 승인을 기다릴 수 없음 → **현장 설치를 담당한 C/S가 설치 + GW Console 승인까지 본인이 수행**(설치자가 곧 승인자). 이 사람 승인이 부트스트랩 신뢰 앵커라, LM 라이선스·Clinic-ID만으로 부족한 위·변조 가짜 등록을 현장 검증으로 차단한다(별도 공장 토큰/OOB 불요).
-        - **흐름(반영됨)**: enroll(LM 라이선스·Clinic-ID 검증 + nonce·fingerprint 바인딩) → `device.status=pending`(인증 불가) → **C/S가 GW Console에서 승인** → `active`. 재설치·키 회전 시에도 동일 C/S 승인.
-        - **문서 반영 위치**: SRS §2.3.1(2)·§7.2.3·§7.2.5·§7.9.2 · ARD §5.1 · OpenAPI(`enroll/complete`=202 pending, `PATCH /v1/devices/{id}`=승인 전이) · DBML(`device.pending`, `enrollment_token` 폐기) · 요구사항명세 FR-ENR-01·02.
-        - **확인 포인트**: ① 승인 주체 = **C/S 본인**(Admin 아님) 맞나? · ② C/S에게 **GW Console 승인 권한(write)** 부여 맞나? · ③ **재설치 회전도 C/S 승인** 통과로 충분한가?
+    - **R9. 온보딩/enrollment 모델 확인 (대부분 "확인만" · ⑤ 인증방식만 CCB/보안 sign-off 권장)** — 이번 주 SRS 정합화에서 온보딩·enrollment을 아래로 구체화·통합했다. 회의에서는 **"이렇게 하면 되냐" 확인**(변경 없으면 확정). ⑤ private_key_jwt는 인증 아키텍처 결정이라 보안/CCB 승인이 좋다.
+        - **① 온보딩 = enrollment 단일 흐름 (2분할 폐기)** — 기존 "(1) 클리닉 등록 + (2) enrollment"를 없애고 **EzServer enroll이 clinic·초기 region까지 흡수**(별도 클리닉 등록 API·흐름 없음). enrollment=최초 1회(재설치 시 재-enroll 회전), **region *변경*은 별개**(§7.3.4).
+        - **② region 기본 = GeoDNS 최근접(v1.0=서울) + C/S override** — enroll 요청이 GeoDNS로 도달한 리전이 기본 region이고, **현장 C/S가 다른 region을 선택**할 수 있다.
+        - **③ 활성화 = C/S 승인 게이트** — enroll 완료 디바이스=`pending`(인증 불가) → **현장 설치 담당 C/S가 GW Console 승인**(설치 확인+region 확정) → `active`. **승인 주체=C/S 본인**(Admin 아님), C/S에 승인 write 권한(③-C).
+        - **④ 부트스트랩 = LM 라이선스·Clinic-ID** — 공장 토큰/OOB 미도입. 사람(C/S) 승인이 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 현장 검증으로 차단.
+        - **⑤ 디바이스 인증 = 비대칭 `private_key_jwt`(ADR-13 · 공유 secret 폐지)** — enroll 키페어(개인키=디바이스 보유)로 서명, GW가 공개키(`device.client_public_key`)로 검증. **공유 client_secret 발급·배포·회전 없음**. 이미 만드는 키페어를 인증에 재사용(자격 일원화). **← 인증 아키텍처 결정이라 보안/CCB 확인 권장.**
+        - **확인 포인트**: ①~④ 이대로 확정? · ⑤ private_key_jwt(공유 secret 폐지) 보안 승인? · **재설치 회전도 C/S 승인**으로 충분?
+        - **문서 반영 위치**: SRS §2.3.1(단일 흐름)·§7.1.1·§7.2·§7.3·§7.9.2 · ARD §5.1·ADR-13 · OpenAPI(`enroll/complete`=pending+clinic·region 확립 / `PATCH devices`=승인 / `TokenRequest`=private_key_jwt) · DBML(device 통합·`client_public_key`) · 요구사항 FR-ENR-*·FR-AUTH-01.
 
 - 공유 사항 — 스펙 작성 순서 (SRS PR 이후 후속 스펙)
     - ③ GW SRS(+OpenAPI·DBML)를 한 PR로 baseline. **③ PR 시작(7/9)에 ①·②(One Pager)와 ④(AXS 전체 Sub-SRS, 2주)를 동시 착수**(병행). ③-C·③-P·③-I는 ③ baseline 이후 — **③-I는 GW 1주 초안 → 인프라 담당 완성**. 각 스펙은 **작성 → PR(리뷰·수정) → baseline** 생애주기.

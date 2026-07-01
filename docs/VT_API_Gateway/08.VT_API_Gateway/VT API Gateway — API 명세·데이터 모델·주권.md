@@ -25,9 +25,9 @@
 | --- | --- | --- | --- |
 | POST | /v1/auth/token | 디바이스 client_credentials → JWT 발급 | AUTH-01/02 |
 | POST | /v1/enroll/start | enrollment 시작 → nonce challenge | ENR-01/03 |
-| POST | /v1/enroll/complete | 서명+공개키(clientPublicKey) 검증 → 자격 발급(allowlist 등록) | ENR-01/04 |
+| POST | /v1/enroll/complete | 서명+공개키(clientPublicKey) 검증 → device 등록(pending) + **clinic·region 확립**(Clinic-ID로 upsert, region 기본=GeoDNS 최근접·C/S override) | ENR-01/04·RGN-* |
 | GET | /v1/region/resolve | device→region 해석(mapping_version) | RGN-01/02 |
-| POST | /v1/clinics | 클리닉 등록 — region 자가 선택(OneID 운영자 인증) | RGN-* |
+| POST | /v1/clinics | 클리닉 관리 — 운영자(OneID) 교정·예외적 수동 등록 (**주 생성 경로는 enroll**) | RGN-* |
 | POST | /v1/clinics/{clinicId}/org-bindings | 외부 provider Org-ID 등록(연동 연결 시·provider별) | INT-* |
 | GET | /v1/regions | GW 운영 리전 목록 조회(클라이언트 region 선택지) | RGN-* |
 | PUT | /v1/clinics/{clinicId}/region | 클리닉 접속 리전 **운영 중 변경**(재동의·감사) | RGN-04 |
@@ -64,7 +64,7 @@
 | **UpstreamRegistry** | target_id, host, profile(internal/external), egress_allowlist | **Vatech-Target proxy 라우팅**(ADR-11) |
 | **DeliveryChannel** | clinic_id, channel_type(mqtt_edge/http_cloud), endpoint | webhook 분배 채널(Edge MQTT/Cloud HTTP) |
 
-> **Enrollment 모델(2026-07-01 확정)**: 부트스트랩 신뢰 = **LM 라이선스·Clinic-ID**(EzServer가 설치 시 LMP에서 수신)이며, **공장 토큰/OOB 코드·사전 발급 토큰은 미도입**(과거 `EnrollmentToken`/`token_ref` 폐기). 흐름: enroll(라이선스·Clinic-ID 검증 + nonce·공개키(client_public_key) 바인딩) → `device.status=pending` → **C/S(현장 설치 담당)의 GW Console 승인** → `active`(인증 허용). 사람 승인이 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 차단한다. 승인 대기 상태는 별도 테이블 없이 `device.pending`, 이력은 `AuditLog`. **이후 디바이스 인증 = 비대칭 `private_key_jwt`**(enroll 키페어 개인키 서명 → `client_public_key` 공개키 검증, 공유 secret 없음, ADR-13·§7.1.1). 정본: SRS §2.3.1(2)·§7.1.1·§7.2.5·§7.9.2 · ARD §5.1.
+> **Enrollment 모델(2026-07-01 확정)**: 부트스트랩 신뢰 = **LM 라이선스·Clinic-ID**(EzServer가 설치 시 LMP에서 수신)이며, **공장 토큰/OOB 코드·사전 발급 토큰은 미도입**(과거 `EnrollmentToken`/`token_ref` 폐기). 흐름: enroll(라이선스·Clinic-ID 검증 + nonce·공개키(client_public_key) 바인딩) → `device.status=pending` → **C/S(현장 설치 담당)의 GW Console 승인** → `active`(인증 허용). 사람 승인이 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 차단한다. 승인 대기 상태는 별도 테이블 없이 `device.pending`, 이력은 `AuditLog`. **이후 디바이스 인증 = 비대칭 `private_key_jwt`**(enroll 키페어 개인키 서명 → `client_public_key` 공개키 검증, 공유 secret 없음, ADR-13·§7.1.1). 정본: SRS §2.3.1·§7.1.1·§7.2.5·§7.9.2 · ARD §5.1.
 
 ## 3. 데이터 주권 매핑
 
