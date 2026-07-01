@@ -31,7 +31,7 @@ tags:
 - name: region
   description: 리전 해석 (SRS §7.3)
 - name: clinics
-  description: 클리닉/클라이언트 온보딩·리전 등록 (SRS §2.3.1·§7.3)
+  description: 클리닉 관리·리전 등록/변경 (클리닉 생성·초기 region은 enroll이 흡수 §2.3.1) (SRS §7.3)
 - name: regions
   description: GW 운영 리전 카탈로그·조회 (SRS §7.3.6)
 - name: webhooks
@@ -118,11 +118,12 @@ paths:
   /v1/enroll/complete:
     post:
       tags: [ enrollment ]
-      summary: 서명+공개키(clientPublicKey) 검증 → 디바이스 등록(status=pending, C/S 승인 대기) (FR-ENR-01/04)
+      summary: 서명+공개키 검증 → 디바이스 등록(pending) + 클리닉·region 확립 (FR-ENR-01/04·FR-RGN-*)
       description: >-
         nonce 서명·공개키(clientPublicKey)를 검증하고 디바이스를 status=pending으로 등록한다.
-        active 활성화(=인증 허용)는 C/S가 GW Console에서 승인해야 하며,
-        승인은 PATCH /v1/devices/{id} (status: active)로 수행된다(§2.3.1(2)·§7.2.3·§7.2.5·§7.9.2).
+        **enroll 요청의 Clinic-ID로 clinic을 upsert(없으면 생성)하며, region 기본값은 요청이 GeoDNS로 도달한 최근접 리전**(v1.0=서울, §2.3.1·§2.7.1) — 별도 클리닉 등록 API 불요.
+        active 활성화(=인증 허용)는 C/S가 GW Console에서 승인(설치 확인 + region 확정/다른 리전 override)해야 하며,
+        승인은 PATCH /v1/devices/{id}(status: active) [+ region override 시 PUT /v1/clinics/{clinicId}/region]로 수행된다(§2.3.1·§7.2.3·§7.2.5·§7.9.2).
       security: []
       requestBody:
         required: true
@@ -204,7 +205,7 @@ paths:
       summary: lifecycle 상태 전이 (FR-DEV-03, pending→active→suspended→revoked)
       description: >-
         디바이스 lifecycle 전이. **pending→active는 C/S enrollment 승인 게이트**
-        (현장 설치 담당 C/S만 승인 = 부트스트랩 신뢰 앵커, §2.3.1(2)·§7.2.5·§7.9.2).
+        (현장 설치 담당 C/S만 승인 = 부트스트랩 신뢰 앵커, §2.3.1·§7.2.5·§7.9.2).
         모든 전이는 승인자·시각 감사(§7.9.3).
       requestBody:
         required: true
@@ -255,9 +256,9 @@ paths:
   /v1/clinics:
     post:
       tags: [ clinics ]
-      summary: 클리닉 등록 — EzServer 자동·무조건(LMP Clinic-ID 수신 시) (FR-RGN-*)
+      summary: 클리닉 관리 — 운영자 교정·예외적 수동 등록 (주 생성 경로는 enroll) (FR-RGN-*)
       description: >-
-        EzServer가 LMP로부터 Clinic-ID를 받는 순간 자동으로 Clinic-ID(+region)를 등록한다 — **외부 연동 여부와 무관하게 무조건**(2026-06-25 결정). GW가 검증해 clinic·delivery_channel 생성. 수기 일괄설정 아님 — 교정은 §7.3.4(FR-RGN-04), region 변경=EzServer Console(§7.3.6).
+        **클리닉 존재·초기 region은 EzServer enroll이 자동 확립한다**(§2.3.1 — enroll이 Clinic-ID로 clinic upsert, region 기본=GeoDNS 최근접·C/S가 override). 본 엔드포인트는 **운영자(Admin/C-S, OneID 인증)의 예외적 수동 등록·교정용**이며 일상 경로가 아니다. region 변경은 `PUT /v1/clinics/{clinicId}/region`(§7.3.4·FR-RGN-04).
       requestBody:
         required: true
         content:
@@ -707,7 +708,7 @@ components:
           type: string
           description: >-
             부트스트랩 신뢰 = LM 라이선스·Clinic-ID(EzServer가 설치 시 LMP에서 수신).
-            공장 토큰/OOB 코드는 미도입(GW 사전 발급 토큰 없음). 최종 활성화는 C/S Console 승인(§2.3.1(2)·§7.2.5)
+            공장 토큰/OOB 코드는 미도입(GW 사전 발급 토큰 없음). 최종 활성화는 C/S Console 승인(§2.3.1·§7.2.5)
         serial:
           type: string
           description: 대상 디바이스 시리얼(부트스트랩 식별)
@@ -857,8 +858,8 @@ components:
       required: [ clinicId, region ]
       properties:
         clinicId: { type: string }
-        region: { type: string, description: '클라이언트가 선택한 region(GW가 검증)' }
-      description: '클리닉 온보딩 등록 — 운영자 OneID 인증 후. clinic 생성'
+        region: { type: string, description: 'region(GW가 검증). 초기 region은 보통 enroll이 확립(GeoDNS 기본·C/S override); 본 입력은 운영자 교정 시 사용' }
+      description: '운영자(OneID) 클리닉 교정·예외적 수동 등록 입력 — 주 생성 경로는 enroll(§2.3.1)'
     OrgBinding:
       type: object
       required: [ provider, externalOrgId ]

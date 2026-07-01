@@ -12,7 +12,7 @@
 // jsonb 컬럼(policy.*·egress_allowlist·retry_policy·source_ip_allowlist)의 형식·예시·검증 = design/db-jsonb-fields.md(구현 계약 SSOT). 컬럼 주석엔 shape 요약만.
 // 2026-06-29 PR 정합 보강: upstream_registry 복원력 컬럼·enum화·created_at/updated_at·webhook_event 보강.
 // 2026-07-01: region A안(device.region·region_mapping 제거·device.clinic_id 추가) · compat_matrix 제거 · 전 필드 주석.
-// 2026-07-01: enrollment_token 제거 — 부트스트랩=LM 라이선스·Clinic-ID + C/S 사람 승인(사전 발급 토큰 없음). 승인 대기=device.pending(§2.3.1(2)·§7.2.5).
+// 2026-07-01: enrollment_token 제거 — 부트스트랩=LM 라이선스·Clinic-ID + C/S 사람 승인(사전 발급 토큰 없음). 승인 대기=device.pending(§2.3.1·§7.2.5).
 // 2026-07-01: 디바이스 인증=비대칭 private_key_jwt(개인키 서명→device.fingerprint 공개키 검증), 공유 secret 폐지(ADR-13·§7.1.1).
 // 2026-07-01: credential 테이블 삭제 → device로 통합(client_id를 device.client_id nullable로 이관, secret_ref 폐기, hw_key_bound는 gw/1.1 attestation으로 이관). 13 테이블.
 // 2026-07-01: token 테이블 삭제 — 무상태 JWT(서명 검증)·디바이스 단위 폐기라 발급 토큰 저장 불필요, 이력은 audit_log. 12 테이블.
@@ -82,7 +82,7 @@ Table device {
 }
 
 // (제거·2026-07-01) enrollment_token 테이블 삭제 —
-//   부트스트랩 신뢰가 GW 사전 발급 토큰(공장 토큰/OOB)이 아니라 **LM 라이선스·Clinic-ID + C/S 사람 승인**으로 확정됨(§2.3.1(2)·§7.2.5).
+//   부트스트랩 신뢰가 GW 사전 발급 토큰(공장 토큰/OOB)이 아니라 **LM 라이선스·Clinic-ID + C/S 사람 승인**으로 확정됨(§2.3.1·§7.2.5).
 //   따라서 저장할 사전 발급 토큰이 없음. 승인 대기 상태 = device.status='pending'(C/S 승인 시 active),
 //   nonce challenge = Redis 휘발 상태, enroll/승인 이력 = audit_log. 별도 테이블 불필요.
 
@@ -108,7 +108,7 @@ Table clinic {
   created_at      bigint                                          // 생성(클리닉 등록) 시각(Unix ms)
   updated_at      bigint                                          // 수정 시각(Unix ms)
 
-  Note: '**클리닉 canonical 엔터티 + region 배정**(FR-RGN-06·ADR-10) — 구 `clinic_region_mapping`을 `clinic`으로 승격(2026-07-01, C안). 모든 `clinic_id` FK(device·org_mapping·webhook_event·delivery_channel·policy.tenant)의 **원본**이자 region SSOT. **생성 = EzServer가 LMP에서 Clinic-ID 수신 시 자동·무조건 등록**(외부 연동 여부 무관, §2.3.1(1)) · Admin은 교정(override)만(FR-RGN-04) — 일괄 수기 설정 아님. region은 1:1이라 컬럼으로 인라인(핫패스 조인 회피); relocation은 mapping_version +1(값 이력=audit_log). **클리닉 속성(이름·상태·C/S 담당자·LM 라이선스 참조·온보딩 시각 등)은 필요 시 이 표에 추가**(현재 컬럼만 정의, 미래는 ERD 점선)'
+  Note: '**클리닉 canonical 엔터티 + region 배정**(FR-RGN-06·ADR-10) — 구 `clinic_region_mapping`을 `clinic`으로 승격(2026-07-01, C안). 모든 `clinic_id` FK(device·org_mapping·webhook_event·delivery_channel·policy.tenant)의 **원본**이자 region SSOT. **생성 = EzServer enroll 시 Clinic-ID로 upsert**(별도 클리닉 등록 흐름 없음 — enroll이 흡수, §2.3.1; region 기본=GeoDNS 최근접·C/S override) · Admin은 교정(override)만(FR-RGN-04) — 일괄 수기 설정 아님. region은 1:1이라 컬럼으로 인라인(핫패스 조인 회피); relocation은 mapping_version +1(값 이력=audit_log). **클리닉 속성(이름·상태·C/S 담당자·LM 라이선스 참조·온보딩 시각 등)은 필요 시 이 표에 추가**(현재 컬럼만 정의, 미래는 ERD 점선)'
 }
 
 // GW 운영 리전 카탈로그 (region list API SSOT) — §7.3.6 / FR-RGN-*

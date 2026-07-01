@@ -30,6 +30,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.19 | 2026-07-01 | (SRS 동기화) | **token 테이블 삭제** — 발급 access token은 무상태 JWT(서명 검증·미저장), 폐기=device 단위(§7.2.4)라 저장 불필요(이력=audit_log). §5.1 온보딩 다이어그램을 **구 이미지 → mermaid 시퀀스로 교체**(enroll→C/S 승인→private_key_jwt 인증→API 3단계). Auth Service 컴포넌트에서 "token store·secret 회전" 제거(무상태·private_key_jwt 반영). DBML 13→12 테이블·SRS §6.4.2·08 데이터모델 정합 | Draft |
 | v0.20 | 2026-07-01 | (SRS 동기화) | **§5.2 리전 해석 다이어그램·본문을 region A안으로 갱신** — 구 `device→region` 직접 매핑 이미지(image-2026-6-8_21-41-16)를 **mermaid 시퀀스로 교체**하고 본문 step을 **`deviceId→device.clinic_id→clinic_region_mapping.region` 파생**(region SSOT=clinic, device엔 region 컬럼 없음, §6.4.1·ADR-10)으로 정정. 캐시(mapping_version·TTL)·strong-consistency·PHI 주권(OPA) 흐름 명시. SRS §2.3.3·§6.4.1 A안과 정합 | Draft |
 | v0.21 | 2026-07-01 | (SRS 동기화) | **`clinic_region_mapping` → `clinic` 승격(C안)** — clinic_id를 5개 테이블이 참조하는 canonical 엔터티라 정명. region·mapping_version은 clinic 컬럼 유지(1:1). connector(아웃바운드)/provider(인바운드) 분리 유지 확정. §5.2 등 clinic 참조 갱신·DBML·SRS §6.4·Agenda R8 정합 | Draft |
+| v0.22 | 2026-07-02 | (SRS 동기화) | **온보딩=enrollment 한 흐름 통합** — 클리닉/region 등록을 enroll에 흡수(별도 흐름·API 제거). enroll이 Clinic-ID로 clinic upsert + 초기 region 확립(기본=GeoDNS 최근접·v1.0 서울, C/S override). §5.1 스텝4/5·mermaid에 clinic upsert·region 반영. SRS §2.3.1·§7.3·OpenAPI 정합 | Draft |
 
 
 ## 1. 아키텍처 개요
@@ -54,7 +55,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | ADR-10 | 라우팅 키 통합 — device↔clinic↔region (resolver가 device_id·clinic_id 모두 수용) | 디바이스 단위(08)·클리닉 단위(서비스 연동) 라우팅 이원화 제거. 디바이스는 클리닉에 소속되어 동일 리전으로 귀결 | 채택 |
 | ADR-11 | 라우팅 모델 = target-routed proxy — `Vatech-Target` 유무로 GW 고유 API(없음) vs upstream proxy(있음·논리 ID enum) 구분, proxy는 verbatim 전달(host만 교체). 신규 upstream = 레지스트리 1행(코드·경로 변경 0) | 경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream(SSRF) 반려. upstream 무한 확장을 설정 기반으로(NFR-SCL), 내부(B)·외부(C)를 단일 규칙으로 — 차이는 trust profile(C=OAuth·고정 egress IP)뿐 (SRS §4.1.1·§4.1.2) | 채택(2026-06-23) · **CCB 승인(2026-06-25)** |
 | ADR-12 | Webhook Dispatcher(분배 워커) = **별도 worker Deployment** — SQS(A)를 소비(consume)해 대상 해석 후 MQTT(Edge)/HTTP(클라우드)로 발행하는 주체. GW와 동일 코드베이스·HTTP 없이 consumer만, API tier와 독립 스케일(KEDA·SQS 큐depth)·장애 격리 | 기존 GW 모듈 in-process(부하·스케일 결합) / 서버리스 Lambda(로직·DB·시크릿·egress 중복·2nd 런타임 검증 부담) 반려. 코드·도메인·커넥터·시크릿 공유로 드리프트 0·단일 검증 스택 유지 + webhook 버스트를 분배만 독립 확장 (SRS §2.2·§2.3.6·§7.6.7) | 채택(2026-06-30) |
-| ADR-13 | 디바이스 머신 인증 = **비대칭 `private_key_jwt`**(OAuth2 client_credentials + RFC 7523) — enrollment 키페어의 개인키로 JWT assertion 서명, GW가 `device.client_public_key`(공개키)로 검증. **공유 `client_secret` 폐지**(하향 전달·보관·회전 노출면 제거·enroll 자동 완결) | 대칭 client_secret 반려(secret 배포·회전 부담·키페어와 중복). 이미 생성하는 키페어를 인증에 재사용 → 자격 일원화·비추출(gw/1.1 TPM/SE) 자연 승급 (SRS §7.1.1·§7.2.5·§2.3.1(2)) | 채택(2026-07-01) |
+| ADR-13 | 디바이스 머신 인증 = **비대칭 `private_key_jwt`**(OAuth2 client_credentials + RFC 7523) — enrollment 키페어의 개인키로 JWT assertion 서명, GW가 `device.client_public_key`(공개키)로 검증. **공유 `client_secret` 폐지**(하향 전달·보관·회전 노출면 제거·enroll 자동 완결) | 대칭 client_secret 반려(secret 배포·회전 부담·키페어와 중복). 이미 생성하는 키페어를 인증에 재사용 → 자격 일원화·비추출(gw/1.1 TPM/SE) 자연 승급 (SRS §7.1.1·§7.2.5·§2.3.1) | 채택(2026-07-01) |
 
 ## 3. 논리 / 배포 구성
 
@@ -132,8 +133,8 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 1. 디바이스가 부트스트랩 신뢰(**LM 라이선스·Clinic-ID** — EzServer가 설치 시 LMP에서 수신)로 enrollment 요청. (공장 토큰/OOB 미도입.)
 2. Control plane이 **nonce challenge** 발급.
 3. 디바이스가 **키페어 생성** → nonce **개인키 서명**(소지 증명) + **공개키(= client_public_key)** 동봉 응답. (**client_public_key = 생성 키페어의 공개키/key-id**, 하드웨어 지문 아님 · LM Cryptlex machine fingerprint와 별개.)
-4. Control plane: 신뢰 검증(LM 라이선스·Clinic-ID) + 서명·공개키 검증 → 디바이스 **status=pending 등록**(아직 인증 불가).
-5. **C/S(현장 설치 담당) 승인**: GW Console에서 enrollment 승인 → **status pending → active**(활성화 게이트, 사람 승인 = 부트스트랩 신뢰 앵커). 승인 후 자격(**client_id + 공개키(client_public_key) 바인딩**) 활성. **인증=비대칭 private_key_jwt(공유 secret 없음, ADR-13)** — 디바이스가 개인키로 서명, GW가 client_public_key(공개키)로 검증. **v1.0=SW 보관 개인키, gw/1.1=TPM/SE 비추출+attestation**(ADR-01). 자격은 별도 테이블 없이 device(client_id nullable·client_public_key)에 통합.
+4. Control plane: 신뢰 검증(LM 라이선스·Clinic-ID) + 서명·공개키 검증 → **그 Clinic-ID의 clinic upsert**(없으면 생성 · region 기본=enroll이 GeoDNS로 도달한 최근접 리전, v1.0=서울) + 디바이스 **status=pending 등록**(아직 인증 불가). 별도 클리닉 등록 흐름 없음(enroll이 흡수).
+5. **C/S(현장 설치 담당) 승인**: GW Console에서 enrollment 승인(설치 확인 + **region 확정/다른 리전 override**) → **status pending → active**(활성화 게이트, 사람 승인 = 부트스트랩 신뢰 앵커). 승인 후 자격(**client_id + 공개키(client_public_key) 바인딩**) 활성. **인증=비대칭 private_key_jwt(공유 secret 없음, ADR-13)** — 디바이스가 개인키로 서명, GW가 client_public_key(공개키)로 검증. **v1.0=SW 보관 개인키, gw/1.1=TPM/SE 비추출+attestation**(ADR-01). 자격은 별도 테이블 없이 device(client_id nullable·client_public_key)에 통합.
 6. lifecycle: pending → (C/S 승인) → active (강한 일관성 경로). active 디바이스만 인증(§7.1) 허용.
 7. **재설치·키 변경(공개키 회전)**: 부트스트랩 신뢰(라이선스·Clinic-ID) 재검증 + **C/S 승인** + **기존 공개키(client_public_key)/client_id revoke → 새 공개키 회전**(횟수·속도 제한·감사, 개인키 백업 미도입). 상세 SRS §7.2.7.
 
@@ -150,9 +151,9 @@ sequenceDiagram
     GW-->>D: nonce challenge
     D->>D: 키페어 생성 · nonce 개인키 서명 · 공개키=client_public_key
     D->>GW: enroll/complete (nonce 서명, clientPublicKey=공개키)
-    GW->>GW: 검증 · device 등록(status=pending) · client_id 발급·공개키 바인딩
+    GW->>GW: 검증 · clinic upsert(region 기본=GeoDNS 최근접) · device 등록(status=pending) · client_id 발급·공개키 바인딩
     GW-->>D: client_id · status=pending (승인 대기)
-    CS->>GW: GW Console 승인(현장 설치 확인) → status pending→active
+    CS->>GW: GW Console 승인(현장 설치 확인 · region 확정/override) → status pending→active
     end
     rect rgb(240,248,240)
     Note over D,GW: [2] 인증(만료마다) — 개인키 서명으로 토큰 발급
