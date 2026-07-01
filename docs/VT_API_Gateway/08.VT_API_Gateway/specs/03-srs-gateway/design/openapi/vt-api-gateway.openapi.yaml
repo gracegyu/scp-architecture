@@ -701,8 +701,10 @@ components:
       properties:
         nonceSignature:
           type: string
+          description: EzServer 개인키로 nonce 서명(소지 증명, §7.2.6)
         fingerprint:
           type: string
+          description: EzServer 생성 키페어의 공개키(또는 key-id) = device fingerprint. 물리 머신 지문 아님. 재설치 시 새 키→재-enroll로 회전(§7.2.6·7.2.7)
 
     # 디바이스
     DeviceStatus:

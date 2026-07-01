@@ -61,7 +61,7 @@ Enum region_status {
 Table device {
   device_id   varchar [pk]                                       // GW 디바이스 식별자(= EzServer 인스턴스, §1.4)
   clinic_id   varchar [ref: > clinic_region_mapping.clinic_id]   // 소속 클리닉(FK). nullable(미래 클리닉 비소속 device). 등록 시 포함
-  fingerprint varchar                                            // 디바이스 HW/식별 지문 — enrollment 시 등록, 재인증 시 대조(위장·복제 방지, §7.2)
+  fingerprint varchar                                            // EzServer가 enrollment 시 생성한 키페어의 공개키/key-id(신원 바인딩). 물리 머신 지문 아님(LM Cryptlex와 별개). 재설치=새 키→재-enroll로 회전(§7.2.6·7.2.7). v1.0 SW키(credential.hw_key_bound=false), gw/1.1 TPM/SE
   status      device_status [not null, default: 'pending']       // lifecycle 상태(pending→active→suspended→revoked)
   created_at  bigint                                             // 생성(등록) 시각(Unix ms)
   updated_at  bigint                                             // 수정 시각(Unix ms)
