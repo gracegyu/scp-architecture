@@ -50,9 +50,8 @@
 
 | 엔터티 | 핵심 필드 | 비고 |
 | --- | --- | --- |
-| Device | device_id, fingerprint, region, status(lifecycle) | PHI 없음 |
-| EnrollmentToken | token_ref, serial, expires_at, used | 1회·짧은 TTL |
-| Credential | device_id, client_id, secret_ref(KMS), hw_key_bound | 시크릿 참조만 |
+| Device | device_id, fingerprint, clinic_id, status(lifecycle) | PHI 없음 · region은 clinic 파생(A안) |
+| Credential | device_id, client_id, secret_ref(KMS), hw_key_bound | 시크릿 참조만 · enroll·C/S 승인 후 발급 |
 | Token | device_id, jwt_claims, expires_at | claim binding |
 | RegionMapping | device_id, region, mapping_version | drift·롤백 |
 | Policy | tenant/connector, allowed_endpoints, scopes, egress | OPA |
@@ -67,6 +66,8 @@
 | **WebhookProvider** | provider, inbound_route, sig_scheme, secret_ref, source_ip_allowlist, org_id_path | **유연 수신 config** — 발신자 검증·라우팅 키 추출(GW 비해석) |
 | **UpstreamRegistry** | target_id, host, profile(internal/external), egress_allowlist | **Vatech-Target proxy 라우팅**(ADR-11) |
 | **DeliveryChannel** | clinic_id, channel_type(mqtt_edge/http_cloud), endpoint | webhook 분배 채널(Edge MQTT/Cloud HTTP) |
+
+> **Enrollment 모델(2026-07-01 확정)**: 부트스트랩 신뢰 = **LM 라이선스·Clinic-ID**(EzServer가 설치 시 LMP에서 수신)이며, **공장 토큰/OOB 코드·사전 발급 토큰은 미도입**(과거 `EnrollmentToken`/`token_ref` 폐기). 흐름: enroll(라이선스·Clinic-ID 검증 + nonce·fingerprint 바인딩) → `device.status=pending` → **C/S(현장 설치 담당)의 GW Console 승인** → `active`(인증 허용). 사람 승인이 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 차단한다. 승인 대기 상태는 별도 테이블 없이 `device.pending`, 이력은 `AuditLog`. 정본: SRS §2.3.1(2)·§7.2.5·§7.9.2 · ARD §5.1.
 
 ## 3. 데이터 주권 매핑
 

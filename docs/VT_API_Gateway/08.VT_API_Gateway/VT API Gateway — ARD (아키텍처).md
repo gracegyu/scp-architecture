@@ -24,6 +24,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.13 | 2026-06-25 | (SRS 동기화) | **ADR-11 CCB 승인(오늘 회의)** — ADR-11 상태 '채택·CCB 확인 대기' → '채택·CCB 승인(2026-06-25)'. SRS Appendix A·B #13과 정합 | Draft |
 | v0.14 | 2026-06-30 | (SRS 동기화) | **ADR-12(Webhook 분배 워커 = 별도 worker Deployment)** 추가 + **Webhook Dispatcher** 컴포넌트 등록 — SQS consumer가 큐 소비→대상 해석→MQTT/HTTP 발행. Webhook Receiver는 수신·ACK·적재까지로 분리. SRS §2.2·§2.3.6·§7.6.7과 동기화. in-process·Lambda 반려 | Draft |
 | v0.15 | 2026-07-01 | (SRS 동기화) | **fingerprint = EzServer 생성 키페어 공개키**(물리·LM Cryptlex 하드웨어 지문 아님) 명확화 + **재설치 fingerprint 회전**(라이선스/Clinic-ID 재검증·기존 revoke·횟수제한·감사, 개인키 백업 미도입) — §5.1·Enrollment Service·SRS §7.2.6/§7.2.7·DBML·OpenAPI 정합 | Draft |
+| v0.16 | 2026-07-01 | (SRS 동기화) | **enrollment 부트스트랩 = LM 라이선스·Clinic-ID + C/S 사람 승인 게이트**(공장 토큰/OOB 미도입). enroll 완료=status pending → C/S가 GW Console 승인 → active(§7.2.3 lifecycle 게이트·§7.9.2 C/S 승인 권한). 재설치 회전도 C/S 승인 통과. **DBML `enrollment_token` 테이블 제거**(사전 발급 토큰 없음, 승인 대기=device.pending), OpenAPI enroll/complete=202 pending·PATCH devices=승인 전이. §5.1 스텝1/4/5/6/7·Enrollment Service 동기화 | Draft |
 
 ## 1. 아키텍처 개요
 
@@ -72,7 +73,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | 컴포넌트 | Plane | 책임 | v1.0 심도 |
 | --- | --- | --- | --- |
 | Device Registry / Lifecycle | Control | 디바이스 등록·조회·상태기계(pending→active→suspended→revoked) | 핵심 |
-| Enrollment Service | Control | 부트스트랩 신뢰(라이선스/Clinic-ID)·nonce·**fingerprint(키페어 공개키) 바인딩**·재설치 회전·자격 발급 | 핵심(HW attestation·개인키 비추출은 v1.1) |
+| Enrollment Service | Control | 부트스트랩 신뢰(**LM 라이선스·Clinic-ID**)·nonce·**fingerprint(키페어 공개키) 바인딩**·**C/S 승인 게이트(pending→active)**·재설치 회전·자격 발급 | 핵심(HW attestation·개인키 비추출은 v1.1) |
 | Auth Service | Control | OAuth2 cc·JWT 발급/검증·token store·secret 회전 | 핵심(DPoP/HW키 v1.1) |
 | Region Resolver | Control | device→region 매핑·mapping_version·강한 일관성 경로 | 핵심(단일 리전) |
 | Router / PEP (target-routed proxy) | Control | `Vatech-Target` 기반 upstream 라우팅(B 내부·C 외부 동일 경로)·정책 체인(인증·버전·egress allowlist)·verbatim bypass. 외부(C)는 Connector Framework로 OAuth·egress 적용 | 핵심(ADR-11) |
@@ -121,13 +122,13 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 
 요구사항: FR-ENR-01~04 ([요구사항 명세](<VT API Gateway — 요구사항 명세 (Requirements).md>)) · 작업: [ESIP-9](https://vts.vatech.com/browse/ESIP-9)
 
-1. 디바이스가 부트스트랩 신뢰(공장 주입 토큰 / OOB 일회 코드)로 enrollment 요청.
+1. 디바이스가 부트스트랩 신뢰(**LM 라이선스·Clinic-ID** — EzServer가 설치 시 LMP에서 수신)로 enrollment 요청. (공장 토큰/OOB 미도입.)
 2. Control plane이 **nonce challenge** 발급.
 3. 디바이스가 **키페어 생성** → nonce **개인키 서명**(소지 증명) + **공개키(= device fingerprint)** 동봉 응답. (**fingerprint = 생성 키페어의 공개키/key-id**, 물리 머신 지문 아님 · LM Cryptlex 하드웨어 지문과 별개.)
-4. Control plane: 신뢰 검증 + **geo/velocity 이상탐지** → allowlist 등록(=자격 발급).
-5. 디바이스 자격증명(client_id/secret, **공개키 바인딩**) 발급·저장. **v1.0=SW 보관 키(hw_key_bound=false), gw/1.1=TPM/SE 비추출**(ADR-01).
-6. lifecycle: pending → active (강한 일관성 경로).
-7. **재설치·키 변경(fingerprint 회전)**: 부트스트랩 신뢰(라이선스·Clinic-ID) 재검증 + **기존 fingerprint/credential revoke → 새 공개키 회전**(횟수·속도 제한·감사, 개인키 백업 미도입). 상세 SRS §7.2.7.
+4. Control plane: 신뢰 검증(LM 라이선스·Clinic-ID) + 서명·fingerprint 검증 → 디바이스 **status=pending 등록**(아직 인증 불가).
+5. **C/S(현장 설치 담당) 승인**: GW Console에서 enrollment 승인 → **status pending → active**(활성화 게이트, 사람 승인 = 부트스트랩 신뢰 앵커). 승인 후 자격증명(client_id/secret, **공개키 바인딩**) 활성. **v1.0=SW 보관 키(hw_key_bound=false), gw/1.1=TPM/SE 비추출**(ADR-01).
+6. lifecycle: pending → (C/S 승인) → active (강한 일관성 경로). active 디바이스만 인증(§7.1) 허용.
+7. **재설치·키 변경(fingerprint 회전)**: 부트스트랩 신뢰(라이선스·Clinic-ID) 재검증 + **C/S 승인** + **기존 fingerprint/credential revoke → 새 공개키 회전**(횟수·속도 제한·감사, 개인키 백업 미도입). 상세 SRS §7.2.7.
 
 ![](images/image-2026-6-8_21-40-44.png)
 
