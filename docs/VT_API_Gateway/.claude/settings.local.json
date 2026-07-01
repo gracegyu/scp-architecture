@@ -50,7 +50,9 @@
       "Bash(npx --yes @apidevtools/swagger-cli@4 validate openapi/vt-api-gateway.openapi.yaml)",
       "Bash(grep -cE '^```mermaid' SRS.md)",
       "Bash(grep -cE '^```$' SRS.md)",
-      "Bash(grep -cE '^```' SRS.md)"
+      "Bash(grep -cE '^```' SRS.md)",
+      "Bash(python3 *)",
+      "Bash(osascript -e 'if application \"Visual Studio Code\" is running then tell application \"Visual Studio Code\" to activate' -e 'if application \"Cursor\" is running then tell application \"Cursor\" to activate')"
     ]
   }
 }
