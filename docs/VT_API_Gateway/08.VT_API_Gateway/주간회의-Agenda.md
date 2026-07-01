@@ -144,6 +144,36 @@
         - **공통 전제**: 어느 안이든 **구현 시작점 = ④ AXS baseline**(둘의 차이는 ③-C/③-P/③-I 스펙을 병행하느냐 선완료하느냐). **구현 기간은 미정 — SRS 확정 후 재산정**(gantt의 `③ GW SRS + 구현` 섹션에 *기간 미정* 막대로 표기).
         - **pilot 8/15 영향**: 구현이 ④ baseline(현 gantt ~8월 초) 이후라 **pilot 8/15는 어느 안이든 매우 빠듯**(2안은 사실상 불가). → pilot 일정 자체를 R7과 함께 재검토 필요(개발계획서 정합).
         - **검토 의견**: AXS 의존이 고정이므로 **1안(④ 후 구현 착수, 나머지 스펙 병행)** 이 현실적. 2안은 납기 지연을 감수. 단 **구현 기간·pilot은 SRS 확정 후 재산정**.
+    - **R8. 데이터 모델 관계(ERD) 확인 (SRS §6.4.1)** — Clinic·Device·외부 Org 관계를 ERD로 정리(SRS §6.4.1). 회의에서 확인 요청.
+
+        ```mermaid
+        erDiagram
+            CLINIC ||--o{ DEVICE : "보유(현 1:1=EzServer · 모델 1:N)"
+            CLINIC ||--|| REGION : "배정(1:1)"
+            CLINIC ||--o{ EXTERNAL_ORG : "확장: 연동 provider별 1 (AXS=현재)"
+            CLINIC {
+                string clinic_id PK
+                string region FK
+            }
+            DEVICE {
+                string device_id PK
+                string clinic_id FK "nullable · region은 clinic 파생"
+                string status
+            }
+            EXTERNAL_ORG {
+                string provider PK "예 axs"
+                string external_org_id PK "예 AXS Org-ID"
+                string clinic_id FK
+            }
+            REGION {
+                string region_id PK
+            }
+        ```
+
+        - **확정 사항(A안)**: ① **기본=Clinic·Device / 확장=외부 Org-ID**(연동 시만) ② **Clinic↔Device 1:N**(현 1:1=EzServer), `device.clinic_id` nullable ③ **region SSOT=Clinic, device는 clinic 파생**(device.region·region_mapping 제거) ④ 외부 Org-ID=(provider, org_id)→clinic, AXS 송신·webhook 분배에 사용 ⑤ 신규 provider=org_mapping 확장 or 신규 테이블+추가 개발(기본 불변).
+        - **DBML·OpenAPI 반영 완료** — 회의에서 관계·카디널리티 **확인/승인** 요청.
+        - **org_mapping 경계(확인)**: org_mapping = **얇은 식별자 매핑**(공통 조각)일 뿐, provider별 인증·webhook·payload는 이미 분리(connector·webhook_provider·④). **구조 다른 provider = 전용 테이블+로직(설계된 분기)** — "만능 표" 아님.
+        - **미결(확인 요청)**: ① EzServer=클리닉당 1개 확정?(Device 1:N 유지 vs 1:1 UNIQUE 강제) · ② 전용 `clinic` 테이블 분리 여부 · ③ clinic-less device(미래) region 처리 · ④ **`provider` 관리** — 정규 토큰 규약 + **provider 레지스트리(SSOT) FK 도입 여부** + `provider`↔`upstream_registry.target_id` 통합 여부(enum은 부적합).
 
 - 공유 사항 — 스펙 작성 순서 (SRS PR 이후 후속 스펙)
     - ③ GW SRS(+OpenAPI·DBML)를 한 PR로 baseline. **③ PR 시작(7/6)에 ①·②(One Pager)와 ④(AXS 전체 Sub-SRS, 2주)를 동시 착수**(병행). ③-C·③-P·③-I는 ③ baseline 이후 — **③-I는 GW 1주 초안 → 인프라 담당 완성**. 각 스펙은 **작성 → PR(리뷰·수정) → baseline** 생애주기.

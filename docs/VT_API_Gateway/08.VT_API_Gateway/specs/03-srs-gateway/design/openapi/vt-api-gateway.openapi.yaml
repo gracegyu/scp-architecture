@@ -713,9 +713,10 @@ components:
       properties:
         deviceId:
           type: string
-        fingerprint:
+        clinicId:
           type: string
-        region:
+          description: 소속 클리닉(등록 시 포함). nullable — 미래 클리닉 비소속(비-EzServer) 디바이스. region은 clinic에서 파생(§6.4.1 A안, region 컬럼 없음)
+        fingerprint:
           type: string
         status:
           $ref: '#/components/schemas/DeviceStatus'
