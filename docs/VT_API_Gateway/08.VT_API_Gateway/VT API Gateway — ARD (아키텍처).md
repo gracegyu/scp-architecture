@@ -26,9 +26,11 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.15 | 2026-07-01 | (SRS 동기화) | **fingerprint = EzServer 생성 키페어 공개키**(물리·LM Cryptlex 하드웨어 지문 아님) 명확화 + **재설치 fingerprint 회전**(라이선스/Clinic-ID 재검증·기존 revoke·횟수제한·감사, 개인키 백업 미도입) — §5.1·Enrollment Service·SRS §7.2.6/§7.2.7·DBML·OpenAPI 정합 | Draft |
 | v0.16 | 2026-07-01 | (SRS 동기화) | **enrollment 부트스트랩 = LM 라이선스·Clinic-ID + C/S 사람 승인 게이트**(공장 토큰/OOB 미도입). enroll 완료=status pending → C/S가 GW Console 승인 → active(§7.2.3 lifecycle 게이트·§7.9.2 C/S 승인 권한). 재설치 회전도 C/S 승인 통과. **DBML `enrollment_token` 테이블 제거**(사전 발급 토큰 없음, 승인 대기=device.pending), OpenAPI enroll/complete=202 pending·PATCH devices=승인 전이. §5.1 스텝1/4/5/6/7·Enrollment Service 동기화 | Draft |
 | v0.17 | 2026-07-01 | (SRS 동기화) | **디바이스 인증 = 비대칭 private_key_jwt(ADR-13)** — 공유 client_secret 폐지, enrollment 키페어(개인키 서명 → fingerprint 공개키 검증) 재사용. §5.1 스텝5·ADR-13 추가. **DBML `credential.secret_ref` 제거**, OpenAPI(TokenRequest=clientAssertion·Credential=secretRef 제거·enroll/complete=client_id 반환), 요구사항 FR-AUTH-01 정합 | Draft |
-| v0.19 | 2026-07-01 | (SRS 동기화) | **token 테이블 삭제** — 발급 access token은 무상태 JWT(서명 검증·미저장), 폐기=device 단위(§7.2.4)라 저장 불필요(이력=audit_log). §5.1 온보딩 다이어그램을 **구 이미지 → mermaid 시퀀스로 교체**(enroll→C/S 승인→private_key_jwt 인증→API 3단계). Auth Service 컴포넌트에서 "token store·secret 회전" 제거(무상태·private_key_jwt 반영). DBML 13→12 테이블·SRS §6.4.2·08 데이터모델 정합 | Draft |
 | v0.18 | 2026-07-01 | (SRS 동기화) | **credential 테이블 삭제 → device 통합** — private_key_jwt 전환 후 남은 client_id를 `device.client_id`(nullable·unique, "client_id 없는 device" 표현 유지)로 이관, secret_ref 폐기, `hw_key_bound`는 v1.0 검증 불가라 gw/1.1 attestation(FR-ENR-06·FR-AUTH-07)으로 이관. DBML 13 테이블·§6.4.2 조감도 노드 제거·OpenAPI(Device에 clientId·Credential 스키마 제거) 정합 | Draft |
+| v0.19 | 2026-07-01 | (SRS 동기화) | **token 테이블 삭제** — 발급 access token은 무상태 JWT(서명 검증·미저장), 폐기=device 단위(§7.2.4)라 저장 불필요(이력=audit_log). §5.1 온보딩 다이어그램을 **구 이미지 → mermaid 시퀀스로 교체**(enroll→C/S 승인→private_key_jwt 인증→API 3단계). Auth Service 컴포넌트에서 "token store·secret 회전" 제거(무상태·private_key_jwt 반영). DBML 13→12 테이블·SRS §6.4.2·08 데이터모델 정합 | Draft |
 | v0.20 | 2026-07-01 | (SRS 동기화) | **§5.2 리전 해석 다이어그램·본문을 region A안으로 갱신** — 구 `device→region` 직접 매핑 이미지(image-2026-6-8_21-41-16)를 **mermaid 시퀀스로 교체**하고 본문 step을 **`deviceId→device.clinic_id→clinic_region_mapping.region` 파생**(region SSOT=clinic, device엔 region 컬럼 없음, §6.4.1·ADR-10)으로 정정. 캐시(mapping_version·TTL)·strong-consistency·PHI 주권(OPA) 흐름 명시. SRS §2.3.3·§6.4.1 A안과 정합 | Draft |
+| v0.21 | 2026-07-01 | (SRS 동기화) | **`clinic_region_mapping` → `clinic` 승격(C안)** — clinic_id를 5개 테이블이 참조하는 canonical 엔터티라 정명. region·mapping_version은 clinic 컬럼 유지(1:1). connector(아웃바운드)/provider(인바운드) 분리 유지 확정. §5.2 등 clinic 참조 갱신·DBML·SRS §6.4·Agenda R8 정합 | Draft |
+
 
 ## 1. 아키텍처 개요
 
@@ -168,7 +170,7 @@ sequenceDiagram
 요구사항: FR-RGN-01~03 ([요구사항 명세](<VT API Gateway — 요구사항 명세 (Requirements).md>)) · 작업: [ESIP-4](https://vts.vatech.com/browse/ESIP-4)
 
 1. 인증된 호출자(JWT)가 작업 직전 region 해석 요청(`deviceId` 또는 `clinicId`).
-2. region resolver: **`deviceId → device.clinic_id → clinic_region_mapping.region` 파생**(region A안 — region SSOT=clinic, device엔 region 컬럼 없음, §6.4.1·ADR-10). `deviceId`·`clinicId`는 동일 resolver가 같은 리전으로 귀결. 캐시(`mapping_version`·TTL) 우선 조회.
+2. region resolver: **`deviceId → device.clinic_id → clinic.region` 파생**(region A안 — region SSOT=clinic, device엔 region 컬럼 없음, §6.4.1·ADR-10). `deviceId`·`clinicId`는 동일 resolver가 같은 리전으로 귀결. 캐시(`mapping_version`·TTL) 우선 조회.
 3. 캐시 miss·assignment 변경 등 강한 일관성 필요 연산은 strong-consistency 경로(§7.3.1/2).
 4. 매핑 리전 endpoint(`region_catalog`) + 주권 정책(PHI 리전 밖 금지, OPA §7.3.3) 반환.
 5. 이후 모든 데이터 경로는 해당 리전으로 고정.
@@ -178,11 +180,11 @@ sequenceDiagram
     autonumber
     participant D as 호출자 (EzServer/CleverOne, JWT)
     participant GW as GW (Region Resolver)
-    participant DB as clinic_region_mapping · region_catalog
+    participant DB as clinic · region_catalog
     D->>GW: region 해석 요청 (deviceId 또는 clinicId · 작업 직전)
     GW->>GW: deviceId → device.clinic_id → clinic 파생 (A안·ADR-10, device엔 region 없음)
     GW->>GW: 캐시 조회 (mapping_version · TTL) — hit 시 즉시 반환
-    GW->>DB: (miss·변경 시) clinic_region_mapping.region + region_catalog.endpoint 조회 (strong-consistency)
+    GW->>DB: (miss·변경 시) clinic.region + region_catalog.endpoint 조회 (strong-consistency)
     DB-->>GW: region · endpoint
     GW->>GW: 주권 정책 적용 (PHI 리전 밖 금지 · OPA §7.3.3)
     GW-->>D: 리전 endpoint + 주권 정책

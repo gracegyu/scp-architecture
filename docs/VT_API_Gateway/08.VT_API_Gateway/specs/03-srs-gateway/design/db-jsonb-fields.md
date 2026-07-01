@@ -12,7 +12,7 @@ DBML(`vt-api-gateway.dbml`)의 `jsonb` 컬럼은 구조가 코드로 강제되�
 
 `(tenant, connector)` 1행이 그 테넌트가 해당 connector로 호출할 때의 **허용 규칙**을 담는다. 요청 시 OPA가 `(target, method, path, scope, 목적지)`를 이 행과 대조해 allow/deny.
 
-- **`tenant` = `clinic_id`**(FK → `clinic_region_mapping`). 테넌트 단위는 **클리닉**이다(device 단위 아님 — 10만대 granularity 회피). **`tenant = NULL`** 은 그 connector의 **전역 기본 정책**이다.
+- **`tenant` = `clinic_id`**(FK → `clinic`). 테넌트 단위는 **클리닉**이다(device 단위 아님 — 10만대 granularity 회피). **`tenant = NULL`** 은 그 connector의 **전역 기본 정책**이다.
 - **`connector`** = 아웃바운드 대상 토큰(= `connector.name` = `upstream_registry.target_id`, 예 `axs`). 인바운드 webhook의 `provider`와 동일 party이나 축이 다르며 통합 여부는 R8(§6.4.1).
 - **평가 순서**: `(clinic_id, connector)` 매칭 우선 → 없으면 `(NULL, connector)` 전역 기본. 둘 다 없으면 **deny(fail-closed)**.
 - 적용대상(클리닉)마다 다를 수 있어 **관리 UI(③-C)+관리 API(§7.9)** 필요 — Appendix B #32.
