@@ -533,9 +533,12 @@ sequenceDiagram
     Note over C,GW: 매핑 부재 → 거부 · PHI 리전 경계 OPA 집행(§7.3.3)
 ```
 
-### 2.3.4 파일 업로드 — presigned 중계 (CleverSpace 경로②) — 발급=CleverSpace
+### 2.3.4 파일 업로드 — presigned 중계 (provider-무관 · 발급=Provider)
 
-**GW는 presigned를 발급하지 않는다.** 디바이스/EzServer의 대용량 파일(CT·영상)은 **CleverSpace가 발급한 presigned**로 **CleverSpace storage에 직접** 업로드하고, GW는 발급 요청을 **중계(B bypass)** 만 한다(경로②, §4.1.4). 업로드 **세션·resumable·멱등·무결성·완료처리는 CleverSpace 책임**(② Presigned One Pager·CleverSpace OpenAPI 정본) — GW는 소유·서명하지 않는다. AXS 파일은 경로③(§2.3.5). 상세는 §7.4.
+**GW는 presigned를 발급하지 않으며, presigned 중계는 특정 provider에 묶이지 않는다(provider-무관).** 대용량 파일(CT·영상)은 **발급 provider가 발급한 presigned로 그 provider storage에 직접** 업로드하고, GW는 발급 요청을 **`Vatech-Target`으로 해당 provider에 verbatim 중계**(target-routed proxy, ADR-11)만 한다 — body를 해석·변환·서명하지 않는다. 업로드 **세션·resumable·멱등·무결성·완료처리는 발급 provider 책임**(GW는 소유하지 않음). **신규 provider = 레지스트리 1행**(코드·경로 변경 0, §4.1.2).
+
+- **현재 대상 provider**: **CleverSpace**(경로②·**B 내부** — 내부망, connector 불요) · **AXS**(경로③·**C 외부** — OAuth2·고정 egress를 **connector**가 추가, §2.3.5·§7.5). 향후 provider도 동일.
+- **경로·중계 방식은 provider 무관 동일**하고, **차이는 trust profile뿐**(C만 connector로 OAuth·egress 추가). 아래는 CleverSpace(B 내부) 예시이며, AXS(C 외부)는 같은 경로에 connector를 얹는다(§2.3.5). 상세 §7.4·§4.1.4.
 
 ```mermaid
 sequenceDiagram
@@ -1942,3 +1945,4 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-01 | **본문 가독성 정리 — 누적된 결정-과정 서술을 규격으로 흡수** — SRS를 조금씩 수정하며 본문에 쌓인 "일기성" 표기(날짜 결정 태그·`A안/C안 채택`·`승격/정명`·`반영 완료`·폐기-철회 과정 서술·`❓확인`·상단 '골격 v0.1 작성 중' 배너)를 제거하고 **현재-상태 규격**으로 흡수. §6.4.1(엔터티 관계)의 결정 박스·상태 박스 통합, §2.3.1·§4.1.4·§7.4 폐기 서술을 'GW 범위 아님'·'②③만 유효' 등 결과 문장으로 정리, 상단 배너를 '문서 상태·읽는 법'(본문=결정/Appendix B=미결/변경이력=이력)으로 교체. **의미·요구사항 변경 없음**(ADR·FR·Appendix 참조·TBD는 보존). 감사추적(변경 이력·Appendix A/B)은 그대로 유지 | (작성자 ID 미지정) |
 | 2026-07-02 | **DNS 멀티리전-ready 표현 통일 — apex·webhook 호스트 모두 v1.0부터 GeoDNS(대상 서울 1개)** — webhook 호스트(`{provider}.webhook.gw.vatech.com`)가 §2.1.1에서 "v1.0=단일 지정 → 2차 GeoDNS 전환"으로 apex와 어긋나게 서술되던 것을 **apex와 동일하게 'v1.0부터 GeoDNS 라우팅·대상=서울 1개, 2차엔 라우팅 대상만 N리전 추가(record 타입·클라이언트 변경 없음)'** 로 통일. §2.1.1 Webhook Ingress 노트·§4.5.1(webhook 행+멀티리전-ready 노트)·§2.7.1 DNS 요건 정합. 처음 배포부터 두 호스트 모두 GeoDNS로 구축하고 서울로 resolve | (작성자 ID 미지정) |
 | 2026-07-02 | **§2.3.1 온보딩 재구성 — enrollment 한 흐름으로 통합(클리닉·region 확립 흡수)** — 기존 '(1) 클리닉/리전 등록 + (2) EzServer enrollment' 2분할이 FR(ENR/RGN)·API·ARD의 분리와 어긋나고, (1)이 비-API 유령 흐름이며 '클리닉 등록 주체'(EzServer 자동 vs OneID 운영자)가 문서 간 모순이던 것을 정리. **enroll이 Clinic-ID로 clinic upsert + 초기 region 확립**(기본=GeoDNS 최근접 리전 v1.0=서울, C/S가 다른 리전 override)으로 통합 — 별도 '클리닉 등록' API·흐름 제거. §2.3.1 단일 시퀀스로 재작성, §7.3 도입부·OpenAPI(enroll/complete=clinic·region 확립 / `/v1/clinics`=운영자 교정용으로 재정의)·08 API 문서·ARD §5.1(스텝4/5·mermaid) 정합. §2.3.1(1)/(2) 하위 참조 19곳을 §2.3.1로 통일. enrollment=1회(재설치 회전), region *변경*은 §7.3.4로 분리 | (작성자 ID 미지정) |
+| 2026-07-02 | **§2.3.4 presigned 중계를 provider-무관으로 재구성** — 제목·틀이 'CleverSpace 경로②'라 CleverSpace 전용처럼 보이던 것을 **provider-무관 프록시 중계**(GW가 Vatech-Target으로 발급 provider에 verbatim 중계·발급 주체가 세션/무결성 책임)로 바로잡음. 현재 대상=CleverSpace(②·B 내부, connector 불요)·AXS(③·C 외부, connector로 OAuth·egress 추가), 신규 provider=레지스트리 1행. **아웃바운드 일반 = target-routed proxy(ADR-11), connector는 외부(C) OAuth·egress 어댑터**임을 명확화(§7.4·§4.1.4는 이미 ②③ provider 나열로 정합) | (작성자 ID 미지정) |
