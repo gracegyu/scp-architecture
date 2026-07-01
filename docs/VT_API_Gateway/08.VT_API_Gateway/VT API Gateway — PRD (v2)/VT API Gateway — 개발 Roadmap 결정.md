@@ -704,7 +704,7 @@ gantt
 
     section ③ GW SRS + API/DBML + GW 구현 (계약 SSOT → 구현)
     SRS 본문 작성            :done, srsw, 2026-06-15, 14d
-    OpenAPI·DBML 작성·정합   :done, designw, 2026-06-19, 17d
+    OpenAPI·DBML 작성·정합   :active, designw, 2026-06-19, 20d
     PR 리뷰·수정(본문+스키마) :active, srspr, 2026-07-09, 14d
     baseline v1.0 (통합)     :milestone, srsbl, after srspr, 0d
     GW 구현 1안 — ④ AXS baseline 후(스펙 병행) :active, impl1, after axsbl, 45d
