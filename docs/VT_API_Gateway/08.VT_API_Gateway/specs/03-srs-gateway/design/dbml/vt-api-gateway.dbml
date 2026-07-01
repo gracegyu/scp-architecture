@@ -9,6 +9,7 @@
 // 컬럼은 snake_case(PostgreSQL 관례), API DTO는 camelCase(SRS §1.3)로 매핑.
 // 시간은 Unix Timestamp(ms) bigint. PHI 본문 미저장(presigned 직결, SRS §6.4).
 // 타입·인덱스·정밀 relation은 LLD(dev-chain-design)에서 확정.
+// jsonb 컬럼(policy.*·egress_allowlist·retry_policy·source_ip_allowlist)의 형식·예시·검증 = design/db-jsonb-fields.md(구현 계약 SSOT). 컬럼 주석엔 shape 요약만.
 // 2026-06-29 PR 정합 보강: upstream_registry 복원력 컬럼·enum화·created_at/updated_at·webhook_event 보강.
 // 2026-07-01: region A안(device.region·region_mapping 제거·device.clinic_id 추가) · compat_matrix 제거 · 전 필드 주석.
 // 2026-07-01: enrollment_token 제거 — 부트스트랩=LM 라이선스·Clinic-ID + C/S 사람 승인(사전 발급 토큰 없음). 승인 대기=device.pending(§2.3.1(2)·§7.2.5).
@@ -128,15 +129,15 @@ Table region_catalog {
 // 정책 (OPA 입력, FR-INT-03)
 Table policy {
   id                varchar [pk]  // 정책 식별자
-  tenant            varchar       // 적용 대상 테넌트(클리닉 등)
-  connector         varchar       // 적용 대상 connector/target(예 axs)
-  allowed_endpoints jsonb         // 허용 endpoint 목록(egress allowlist 판단)
-  scopes            jsonb         // 허용 scope 집합
-  egress            jsonb         // egress 규칙(고정 IP·대상 제한)
+  tenant            varchar [ref: > clinic_region_mapping.clinic_id]  // 정책 적용 테넌트 = clinic_id(FK). **NULL = 이 connector의 전역 기본 정책**(클리닉별 override는 별도 행). **device 단위 아님**(클리닉 단위 — 10만대 device granularity 회피). tenant 범위 최종 확인=R8
+  connector         varchar       // 적용 대상 = connector.name = upstream_registry.target_id(아웃바운드 대상 토큰, 예 axs). 인바운드 webhook의 provider와 통합 여부=R8(§6.4.1)
+  allowed_endpoints jsonb         // 허용 (method,path) 목록 — [{methods:[..],pathPattern:"/v1/..**"}]. 형식·매칭·예시=design/db-jsonb-fields.md#policy
+  scopes            jsonb         // 허용 scope 집합 — ["axs:patient.read", ..]. 형식=design/db-jsonb-fields.md#policy
+  egress            jsonb         // egress 규칙 — {allowedHosts,allowedCidrs,allowedPorts,requireStaticEgressIp}. 형식=design/db-jsonb-fields.md#policy (⚠ egress 3중복=Appendix B #31)
   created_at        bigint        // 생성 시각(Unix ms)
   updated_at        bigint        // 수정 시각(Unix ms)
 
-  Note: '**정책 결정점(OPA) 입력 데이터**(FR-INT-03). (tenant, connector)별로 허용 endpoint·scope·egress 규칙을 보관 → 요청 시 OPA가 이 행을 근거로 allow/deny 판정. connector/target(예 axs)로의 호출이 허용 대상·리전·egress IP 규칙에 맞는지 검사. 실제 자격/host는 connector·upstream_registry, 본 표는 "무엇을 허용하는가"만'
+  Note: '**정책 결정점(OPA) 입력 데이터**(FR-INT-03). **(tenant=clinic, connector) 조합** = "클리닉 T가 connector C(예 axs)를 호출할 때" 허용 endpoint·scope·egress. 요청 시 OPA가 **(clinic, connector) 우선 → 없으면 (NULL, connector) 전역 기본** 순으로 이 행을 근거로 allow/deny. connector = 아웃바운드 대상 토큰(=connector.name=upstream_registry.target_id). 실제 자격/host는 connector·upstream_registry, 본 표는 "무엇을 허용하는가"만. **적용대상마다 다른 정책 = 관리 UI 필요(③-C, Appendix B #32)**. jsonb 형식=design/db-jsonb-fields.md#policy'
   Indexes {
     (tenant, connector)  // 테넌트·connector 조합 조회
   }
@@ -147,7 +148,7 @@ Table connector {
   name             varchar [pk]  // connector 이름(예 axs) — upstream_registry.target_id와 대응
   endpoint         varchar       // 외부 서비스 endpoint(base URL)
   credential_ref   varchar       // OAuth2 자격의 KMS 참조(§7.1.3)
-  egress_allowlist jsonb         // egress 허용 대상 목록
+  egress_allowlist jsonb         // egress 허용 대상 — {hosts,cidrs,ports}. 형식=design/db-jsonb-fields.md#connector (⚠ egress 3중복=Appendix B #31)
   created_at       bigint        // 생성 시각(Unix ms)
   updated_at       bigint        // 수정 시각(Unix ms)
 
@@ -232,7 +233,7 @@ Table webhook_provider {
   inbound_route       varchar                             // 등록된 수신 경로(유연; provider 규약 수용) — 확정 계약 아님
   sig_scheme          varchar                             // 서명/HMAC 방식(provider 규약) — **인증(신뢰)** 근거
   secret_ref          varchar                             // 검증 시크릿 참조(KMS) — Host로 선택된 provider의 HMAC 시크릿
-  source_ip_allowlist jsonb                               // 허용 소스 **CIDR 목록** — **옵션·방어심층**(식별 용도 아님, Host가 대체). UI=③-C
+  source_ip_allowlist jsonb                               // 허용 소스 **CIDR 목록**(문자열 배열) — **옵션·방어심층**(식별 용도 아님, Host가 대체). 형식=design/db-jsonb-fields.md#webhook_provider. UI=③-C
   org_id_path         varchar                             // payload에서 external_org_id 추출 경로(JSONPath 등)
   enabled             boolean [not null, default: true]   // 활성 여부(수신 on/off)
   created_at          bigint                              // 생성 시각(Unix ms)
@@ -246,11 +247,11 @@ Table upstream_registry {
   target_id           varchar [pk]                         // Vatech-Target 논리 ID(예 cleverspace, axs)
   host                varchar [not null]                   // 내부 매핑 host(클라이언트엔 비노출)
   profile             upstream_profile [not null]          // trust profile(internal=B / external=C)
-  egress_allowlist    jsonb                                // external(C)일 때 egress 제한 대상
+  egress_allowlist    jsonb                                // external(C) egress 제한 대상 — {hosts,cidrs,ports}. 형식=design/db-jsonb-fields.md#upstream_registry (⚠ egress 3중복=Appendix B #31)
   connect_timeout_ms  bigint                               // TCP+TLS 핸드셰이크 타임아웃(짧게). 값 TBD(§7.5.4·Appendix B #25)
   response_timeout_ms bigint                               // upstream 응답 대기 타임아웃. 값 TBD
   total_deadline_ms   bigint                               // 프록시 호출 총 예산 — GW deadline < 클라이언트 타임아웃 불변식. 값 TBD
-  retry_policy        jsonb                                // 재시도 설정 — 연결실패 한정·상한·budget(비멱등 POST 금지, §7.5.4)
+  retry_policy        jsonb                                // 재시도 설정 — {retryOn:["connect_failure"],maxRetries,backoff,budgetRatio}(비멱등 POST 금지, §7.5.4). 형식=design/db-jsonb-fields.md#upstream_registry · 수치=Appendix B #25
   circuit_breaker     boolean [not null, default: false]   // 서킷 활성(503+Retry-After 빠른 실패). 임계·v1.0 범위 TBD
   enabled             boolean [not null, default: true]    // 활성 여부(라우팅 on/off)
   created_at          bigint                               // 생성 시각(Unix ms)
