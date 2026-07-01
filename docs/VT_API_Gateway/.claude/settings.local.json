@@ -47,7 +47,10 @@
       "Bash(node -e \"const fs=require\\('fs'\\);const s=fs.readFileSync\\('openapi/vt-api-gateway.openapi.yaml','utf8'\\);try{require\\('js-yaml'\\).load\\(s\\);console.log\\('OpenAPI OK \\(js-yaml\\)'\\)}catch\\(e\\){console.log\\('need pkg:',e.message\\)}\")",
       "Bash(npx --yes js-yaml openapi/vt-api-gateway.openapi.yaml)",
       "Bash(grep -nA12 \"^    Device:\" openapi/vt-api-gateway.openapi.yaml)",
-      "Bash(npx --yes @apidevtools/swagger-cli@4 validate openapi/vt-api-gateway.openapi.yaml)"
+      "Bash(npx --yes @apidevtools/swagger-cli@4 validate openapi/vt-api-gateway.openapi.yaml)",
+      "Bash(grep -cE '^```mermaid' SRS.md)",
+      "Bash(grep -cE '^```$' SRS.md)",
+      "Bash(grep -cE '^```' SRS.md)"
     ]
   }
 }
