@@ -1230,6 +1230,52 @@ flowchart LR
 
 > **DBML·OpenAPI 반영(A안·완료)**: ① `device.clinic_id`(FK→clinic_region_mapping, **nullable**)+인덱스 추가 · ② `device.region` 컬럼·`region_mapping` 테이블 **제거**(clinic 파생) · ③ OpenAPI `Device`에서 `region` 제거·`clinicId` 추가 · ④ `org_mapping`은 (provider, external_org_id) PK라 provider 확장 가능(변경 없음). **미결(별도)**: 전용 `clinic` 테이블 분리 · clinic-less device region(미래).
 
+#### 6.4.2 테이블 조감도 (그룹 수준)
+
+> 관심사별 그룹과 **주요 관계만** 보이는 조감도다(컬럼 없음). **전체 컬럼·관계·제약은 DBML(SSOT)**, 식별 그룹 상세는 §6.4.1.
+
+```mermaid
+flowchart TB
+    subgraph ID["식별·테넌트 (§6.4.1 상세)"]
+        DEV[device]
+        CLI["clinic_region_mapping<br/>(= clinic · region 배정)"]
+        ORG["org_mapping<br/>(외부 org id · 확장)"]
+    end
+    subgraph RGN["리전"]
+        RC[region_catalog]
+    end
+    subgraph AUTH["인증·온보딩"]
+        ENR[enrollment_token]
+        CRED[credential]
+        TOK[token]
+    end
+    subgraph DISP["라우팅·분배"]
+        UPS[upstream_registry]
+        WP[webhook_provider]
+        WE[webhook_event]
+        DC[delivery_channel]
+        CONN[connector]
+    end
+    subgraph OPS["정책·운영"]
+        POL[policy]
+        AUD[audit_log]
+        FLEET[fleet_state]
+        COMPAT[compat_matrix]
+    end
+
+    DEV --> CLI
+    ORG --> CLI
+    CLI --> RC
+    DC --> CLI
+    WE --> ORG
+    WE --> WP
+    CRED --> DEV
+    TOK --> DEV
+    FLEET --> DEV
+    CONN -.-> UPS
+    style ID fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+```
+
 - 저장 정보 유형: 디바이스 레지스트리, device/clinic↔region 매핑, 토큰 메타, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event`, 멱등·DLQ)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·Vatech-Target upstream(`upstream_registry`, 라우팅+per-upstream 복원력 설정)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 본문은 미저장**(presigned 직결)
 - 캐시: **Valkey**(ElastiCache for Valkey·Redis 호환, §1.4)(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS·webhook dedup). **캐시(PG 재구성 가능) + 휘발 상태(nonce·멱등·dedup·rate-limit·lock)이며 SSOT 아님.** 키 패턴·TTL·재구성 출처는 키스페이스 카탈로그 `design/redis/redis-keyspace.md`(DBML과 나란한 설계 산출물)
 - **데이터 토폴로지(멀티 서버·멀티 리전, §2.1.1)**: 리전 내 pod는 **동일 DB·Redis 공유**(무상태 앱 tier). 멀티 리전에서는 **(전역 일관) 라우팅·식별 데이터**(매핑·레지스트리·Org-ID·정책·compat·JWKS) 와 **(리전 로컬) 운영 데이터**(audit·in-flight queue)로 나눈다. 전역 데이터는 어느 리전에서도 같은 답을 내야 하며(soft-state 캐시 + strong-consistency 경로·`mapping_version`), 운영 데이터는 리전 로컬이다. **저장소 구현(전역 DB 단일 vs 리전별 복제)은 gw/1.2 TBD(Appendix B #15)**, 구분 원칙은 고정.
