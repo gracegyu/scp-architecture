@@ -487,7 +487,7 @@ sequenceDiagram
 
 #### (2) EzServer enrollment
 
-신뢰할 수 없는 EzServer(디바이스, §1.4)를 부트스트랩 신뢰(공장 토큰/OOB 일회 코드)로 검증해 allowlist에 등록하고 자격을 발급한다. nonce challenge로 replay를 막고, 머신 fingerprint를 바인딩한다(등록된 클리닉 소속). 상세는 §7.2.5·§7.2.6, 흐름은 ARD §5.1.
+신뢰할 수 없는 EzServer(디바이스, §1.4)를 **부트스트랩 신뢰**(공장 토큰/OOB 일회 코드 — **LM 라이선스·Clinic-ID가 "정당한 그 클리닉의 EzServer"임을 뒷받침**)로 검증해 allowlist 등록·자격 발급한다. EzServer가 **키페어를 생성**해 **nonce를 개인키로 서명(소지 증명)** 하고 **공개키(=fingerprint)** 를 바인딩한다(§7.2.6). **재설치로 키가 바뀌면(fingerprint 변경) 재-enrollment로 회전**한다 — 라이선스/Clinic-ID 재검증 + 기존 revoke + 제한·감사(§7.2.7, 개인키 백업 미도입). 상세 §7.2.5·6·7, 흐름 ARD §5.1.
 
 ```mermaid
 sequenceDiagram
@@ -495,14 +495,15 @@ sequenceDiagram
     participant D as EzServer (디바이스)
     participant GW as GW (Enrollment)
     participant AUD as Audit
-    D->>GW: POST /v1/enroll/start (bootstrap)
+    D->>GW: POST /v1/enroll/start (bootstrap · 라이선스/Clinic-ID)
     GW->>GW: 부트스트랩 신뢰 검증 · nonce 발급
     GW-->>D: nonce challenge
-    D->>D: nonce 서명 · fingerprint 산출
-    D->>GW: POST /v1/enroll/complete (nonceSignature, fingerprint)
+    D->>D: 키페어 생성 · nonce 개인키 서명 · 공개키=fingerprint
+    D->>GW: POST /v1/enroll/complete (nonceSignature, fingerprint=공개키)
     GW->>GW: 서명·fingerprint 검증 · allowlist 등록 · 자격 발급(KMS secretRef)
     GW->>AUD: 등록 이력 append-only 기록
     GW-->>D: Credential (clientId, secretRef)
+    Note over D,GW: 재설치=새 키페어 → 재-enroll: 라이선스/Clinic-ID 재검증 + 기존 fingerprint revoke·회전(제한·감사, §7.2.7). 개인키 백업 안 함
     Note over D,GW: 신뢰 검증 실패·만료/재사용 토큰 → 거부(§7.2.5)
 ```
 
@@ -1441,9 +1442,23 @@ FR-ENR-01·02 (enrollment token = allowlist 등록, 공장 토큰/OOB 일회 코
 
 FR-ENR-03·04 (replay 방지 nonce 서명, device fingerprint 바인딩).
 
-- **Side Effect**: 서버 nonce 발급·검증, HW 특성 바인딩 저장
+- **fingerprint 정의 = EzServer가 생성한 키페어의 공개키(또는 그 해시=key-id).** 물리 머신 지문이 아니다. EzServer가 enrollment 시 키페어를 만들어 **nonce를 개인키로 서명**(소지 증명)하고 **공개키를 fingerprint로 전달** → GW가 device에 바인딩(§6.4 `device.fingerprint`). 이후 인증·재enrollment 시 대조한다.
+  - **v1.0**: 소프트웨어 보관 키(`credential.hw_key_bound=false`). **gw/1.1**: TPM/SE 비추출 키 + hardware attestation(`hw_key_bound=true`, FR-ENR-06·ADR-01).
+  - **LM(LicenseManager) fingerprint와 별개.** LM은 Cryptlex **하드웨어** 머신 지문으로 라이선스 활성화를 관리(`VERR_LICENSE_MACHINE_FINGERPRINT` — 재설치/HW 변경 시 재활성화·횟수 제한). GW fingerprint는 **디바이스 신원 키**(포터블·비추출 지향)로 축이 다르다. 단 **재설치 시 지문 변경→재활성화(제한·감사)** 처리 모델은 LM을 참고한다.
+  - 정밀 암호(서명 알고리즘·키 포맷·key-id 산출)는 보안설계/LLD.
+- **Side Effect**: 서버 nonce 발급·검증, **공개키(fingerprint) 바인딩 저장**.
 
-**비목표(Will Not Do)**: geo/velocity 이상탐지(FR-ENR-05)·하드웨어 attestation(FR-ENR-06)은 **gw/1.1**. v1.0은 nonce·fingerprint까지.
+### 7.2.7 재설치·fingerprint 회전 (P1)
+
+FR-ENR-07 (재설치·키 변경 시 fingerprint 회전). EzServer **재설치·키 유실 시 새 키페어가 생겨 fingerprint가 바뀐다** — 이를 **재-enrollment로 회전**한다. **개인키 백업은 도입하지 않는다**(백업본 유출 시 신원 도용 위험 + gw/1.1 비추출 목표와 상충).
+
+- **회전 게이트(모두 충족)**: ① **부트스트랩 신뢰 재검증**(공장/OOB 토큰 + **LM 라이선스·Clinic-ID**로 정당한 그 클리닉의 EzServer 확인) · ② **동일 `clinic_id`** · ③ **회전 횟수·속도 제한**(LM activation-limit 유사 — 유출 라이선스로 다수 등록 방지) · ④ **감사 로그**(append-only) + 빈번 시 **Admin 알림/승인(옵션)**.
+- **동작**: 기존 fingerprint·credential **revoke**(§7.2.4) → 새 공개키 바인딩·새 credential 발급. **device는 클리닉당 활성 fingerprint 1개**(§6.4.1 1:1)라 회전 = 교체. 회전 이력은 `audit_log`.
+- **원칙**: **"clinic_id만 같으면 무조건 허용" 아님** — 반드시 부트스트랩 신뢰(라이선스) 재검증 + 제한 + revoke-old + 감사.
+- **에러**: 라이선스/신뢰 재검증 실패 → 거부. 회전 한도 초과 → 거부(Admin 개입).
+- **TBD**: 회전 횟수/속도 한도값·Admin 승인 임계·정밀 암호 = 보안설계/LLD·**Appendix B #27**.
+
+**비목표(Will Not Do)**: 개인키 backup/restore(비추출 지향으로 미도입), geo/velocity 이상탐지(FR-ENR-05)·하드웨어 attestation(FR-ENR-06)은 **gw/1.1**. v1.0은 nonce·fingerprint(키 기반)·회전까지.
 
 ## 7.3 리전·라우팅·주권 (P1)
 
@@ -1774,6 +1789,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 24 | **개발·테스트·운영 환경 구축** — dev 에뮬레이터/스텁(EPI·CleverSpace presign·OneID·LMP)·AXS sandbox 자격(↔#6)·staging(운영 유사 축소)·dev/staging AWS 계정·sandbox egress EIP. 책임·일정 | §3.1·§3.4·§3.5 | 인프라/개발 | **dev: AXS 개발 착수 전** · staging: pilot 전 | §3·§7.5·④ |
 | 26 | **IaC 도구 확정** — 현 baseline=Terraform(ARD §4.5·§6.6.2)인데 실무·권장=**CDK**(AWS 전용·TS 스택 정합·CloudFormation 네이티브). 확정 시 ARD §4.5·SRS §6.6.2 정합 | §6.6.2·§6.3.3 | 인프라(③-I)+GW | 환경 구축 착수 전 | §3·§6·④ |
 | 25 | **프록시 타임아웃·재시도·서킷 수치 + v1.0 서킷 포함 범위** — `connect`/`response`/`total_deadline_ms`(per-upstream, `GW deadline < 클라이언트 타임아웃`)·재시도 상한/백오프/budget·서킷 임계·복구. 정책 골격은 §7.5.4·§7.7.4 확정, **수치·서킷 v1.0 범위가 미결**(upstream SLA·인프라 입력 의존) | §7.5.4·§7.7.4·§5.5·§4.1.2-6 | GW+인프라(+AXS SLA) | 프록시 구현 착수 전 | §7.5·§6.3.4·④ |
+| 27 | **fingerprint 회전(재설치) 정책 수치·crypto 확정** — 정책 골격은 §7.2.7 확정(라이선스/Clinic-ID 재검증·기존 revoke·개인키 백업 미도입). **미결**: 회전 속도·횟수 상한, Admin 승인 임계, 키페어 알고리즘·key-id 산출·서명 스킴(nonce), revoke 전파 방식 | §7.2.6·§7.2.7·§2.3.1 | GW+보안 | enrollment 구현 착수 전 | §2.3·§7.2·보안설계·LLD |
 
 ## 8 Change Management Process
 

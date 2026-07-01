@@ -23,6 +23,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.12 | 2026-06-25 | (SRS 동기화) | **디바이스=EzServer 정의 추가(Scott 확정)** — §1 개요에 "GW 관점 디바이스=EzServer(물리 HW는 EzServer 뒤·GW 비대상)" 용어 노트. ARD의 디바이스 머신 인증·enrollment·device→region·§5 시퀀스는 모두 EzServer로 읽음(SRS §1.4와 정합) | Draft |
 | v0.13 | 2026-06-25 | (SRS 동기화) | **ADR-11 CCB 승인(오늘 회의)** — ADR-11 상태 '채택·CCB 확인 대기' → '채택·CCB 승인(2026-06-25)'. SRS Appendix A·B #13과 정합 | Draft |
 | v0.14 | 2026-06-30 | (SRS 동기화) | **ADR-12(Webhook 분배 워커 = 별도 worker Deployment)** 추가 + **Webhook Dispatcher** 컴포넌트 등록 — SQS consumer가 큐 소비→대상 해석→MQTT/HTTP 발행. Webhook Receiver는 수신·ACK·적재까지로 분리. SRS §2.2·§2.3.6·§7.6.7과 동기화. in-process·Lambda 반려 | Draft |
+| v0.15 | 2026-07-01 | (SRS 동기화) | **fingerprint = EzServer 생성 키페어 공개키**(물리·LM Cryptlex 하드웨어 지문 아님) 명확화 + **재설치 fingerprint 회전**(라이선스/Clinic-ID 재검증·기존 revoke·횟수제한·감사, 개인키 백업 미도입) — §5.1·Enrollment Service·SRS §7.2.6/§7.2.7·DBML·OpenAPI 정합 | Draft |
 
 ## 1. 아키텍처 개요
 
@@ -71,7 +72,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | 컴포넌트 | Plane | 책임 | v1.0 심도 |
 | --- | --- | --- | --- |
 | Device Registry / Lifecycle | Control | 디바이스 등록·조회·상태기계(pending→active→suspended→revoked) | 핵심 |
-| Enrollment Service | Control | 부트스트랩 신뢰·nonce·fingerprint·이상탐지·자격 발급 | 핵심(하드웨어 attestation은 v1.1) |
+| Enrollment Service | Control | 부트스트랩 신뢰(라이선스/Clinic-ID)·nonce·**fingerprint(키페어 공개키) 바인딩**·재설치 회전·자격 발급 | 핵심(HW attestation·개인키 비추출은 v1.1) |
 | Auth Service | Control | OAuth2 cc·JWT 발급/검증·token store·secret 회전 | 핵심(DPoP/HW키 v1.1) |
 | Region Resolver | Control | device→region 매핑·mapping_version·강한 일관성 경로 | 핵심(단일 리전) |
 | Router / PEP (target-routed proxy) | Control | `Vatech-Target` 기반 upstream 라우팅(B 내부·C 외부 동일 경로)·정책 체인(인증·버전·egress allowlist)·verbatim bypass. 외부(C)는 Connector Framework로 OAuth·egress 적용 | 핵심(ADR-11) |
@@ -122,10 +123,11 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 
 1. 디바이스가 부트스트랩 신뢰(공장 주입 토큰 / OOB 일회 코드)로 enrollment 요청.
 2. Control plane이 **nonce challenge** 발급.
-3. 디바이스가 nonce 서명 + **device fingerprint** 동봉 응답.
+3. 디바이스가 **키페어 생성** → nonce **개인키 서명**(소지 증명) + **공개키(= device fingerprint)** 동봉 응답. (**fingerprint = 생성 키페어의 공개키/key-id**, 물리 머신 지문 아님 · LM Cryptlex 하드웨어 지문과 별개.)
 4. Control plane: 신뢰 검증 + **geo/velocity 이상탐지** → allowlist 등록(=자격 발급).
-5. 디바이스 자격증명(client_id/secret, 하드웨어 키 바인딩) 발급·저장.
+5. 디바이스 자격증명(client_id/secret, **공개키 바인딩**) 발급·저장. **v1.0=SW 보관 키(hw_key_bound=false), gw/1.1=TPM/SE 비추출**(ADR-01).
 6. lifecycle: pending → active (강한 일관성 경로).
+7. **재설치·키 변경(fingerprint 회전)**: 부트스트랩 신뢰(라이선스·Clinic-ID) 재검증 + **기존 fingerprint/credential revoke → 새 공개키 회전**(횟수·속도 제한·감사, 개인키 백업 미도입). 상세 SRS §7.2.7.
 
 ![](images/image-2026-6-8_21-40-44.png)
 
