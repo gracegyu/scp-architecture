@@ -11,6 +11,7 @@
 // 타입·인덱스·정밀 relation은 LLD(dev-chain-design)에서 확정.
 // 2026-06-29 PR 정합 보강: upstream_registry 복원력 컬럼·enum화·created_at/updated_at·webhook_event 보강.
 // 2026-07-01: region A안(device.region·region_mapping 제거·device.clinic_id 추가) · compat_matrix 제거 · 전 필드 주석.
+// 2026-07-01: enrollment_token 제거 — 부트스트랩=LM 라이선스·Clinic-ID + C/S 사람 승인(사전 발급 토큰 없음). 승인 대기=device.pending(§2.3.1(2)·§7.2.5).
 
 Project vt_api_gateway {
   database_type: 'PostgreSQL'
@@ -25,8 +26,8 @@ Project vt_api_gateway {
 
 // 디바이스 lifecycle 상태(§7.2 상태기계)
 Enum device_status {
-  pending    // 등록 시작·검증 전
-  active     // 정상 운영(인증·호출 허용)
+  pending    // enroll 완료·C/S 승인 대기(인증 불가). pending→active는 C/S 승인 게이트(§7.2.3·§7.2.5)
+  active     // 정상 운영(인증·호출 허용) — C/S 승인 후
   suspended  // 일시 정지(운영자/정책)
   revoked    // 폐기(자격 무효, 복구 불가)
 }
@@ -73,18 +74,10 @@ Table device {
   }
 }
 
-// 온보딩 토큰 (FR-ENR-*)
-Table enrollment_token {
-  token_ref  varchar [pk]                        // 온보딩 토큰 참조(공장 토큰/OOB 코드의 참조, 값 아님)
-  serial     varchar                             // 대상 디바이스 시리얼(부트스트랩 식별)
-  expires_at bigint                              // 만료 시각(Unix ms, 짧은 TTL)
-  used       boolean [not null, default: false]  // 사용 여부(1회성 — 재사용 차단)
-
-  Note: '1회·짧은 TTL. 발급 = allowlist 등록'
-  Indexes {
-    serial  // 시리얼로 온보딩 진행 조회
-  }
-}
+// (제거·2026-07-01) enrollment_token 테이블 삭제 —
+//   부트스트랩 신뢰가 GW 사전 발급 토큰(공장 토큰/OOB)이 아니라 **LM 라이선스·Clinic-ID + C/S 사람 승인**으로 확정됨(§2.3.1(2)·§7.2.5).
+//   따라서 저장할 사전 발급 토큰이 없음. 승인 대기 상태 = device.status='pending'(C/S 승인 시 active),
+//   nonce challenge = Redis 휘발 상태, enroll/승인 이력 = audit_log. 별도 테이블 불필요.
 
 // 디바이스 자격증명 (FR-AUTH-*)
 Table credential {
@@ -93,7 +86,7 @@ Table credential {
   secret_ref   varchar                                // client secret의 KMS 참조(평문 미저장)
   hw_key_bound boolean [not null, default: false]     // HW 키 바인딩 여부(HW키 결속 인증)
 
-  Note: '시크릿 참조만(KMS). 평문 미저장'
+  Note: '**디바이스 런타임 자격증명**(enroll 성공·C/S 승인 후 발급, FR-AUTH-*). device와 1:1(device_id가 PK 겸 FK). client_credentials(client_id/secret)로 API 인증. secret은 원문 미저장 — KMS 참조(secret_ref)만 보관. hw_key_bound=false=v1.0 SW 보관 키 / true=gw/1.1 TPM·SE 비추출(ADR-01). 부트스트랩 신뢰(LM 라이선스·Clinic-ID)+C/S 승인으로 device active된 뒤 이 자격으로 상시 인증(§2.3.1(2)·§7.2.5)'
 }
 
 // 발급 토큰 메타 (FR-AUTH-05)
@@ -103,7 +96,7 @@ Table token {
   jwt_claims jsonb                             // 발급 JWT claim(device·region·aud·TTL hard binding, §7.1.1)
   expires_at bigint                            // 토큰 만료 시각(Unix ms)
 
-  Note: 'claim hard binding(device/region/aud/TTL)'
+  Note: '**발급된 액세스 토큰(JWT)의 메타/이력**(FR-AUTH-05). 토큰 원문이 아니라 발급 사실·claim·만료를 기록(감사·폐기·재발급 판단). claim은 device/region/aud/TTL을 **hard binding**(§7.1.1) — 타 디바이스·타 리전 재사용 차단. credential(장기 자격)로 인증 후 이 단기 토큰을 발급'
   Indexes {
     device_id  // 디바이스별 발급 토큰 조회
   }
@@ -151,7 +144,7 @@ Table policy {
   created_at        bigint        // 생성 시각(Unix ms)
   updated_at        bigint        // 수정 시각(Unix ms)
 
-  Note: 'OPA allowlist·region·scope·egress 판단 근거'
+  Note: '**정책 결정점(OPA) 입력 데이터**(FR-INT-03). (tenant, connector)별로 허용 endpoint·scope·egress 규칙을 보관 → 요청 시 OPA가 이 행을 근거로 allow/deny 판정. connector/target(예 axs)로의 호출이 허용 대상·리전·egress IP 규칙에 맞는지 검사. 실제 자격/host는 connector·upstream_registry, 본 표는 "무엇을 허용하는가"만'
   Indexes {
     (tenant, connector)  // 테넌트·connector 조합 조회
   }
@@ -166,7 +159,7 @@ Table connector {
   created_at       bigint        // 생성 시각(Unix ms)
   updated_at       bigint        // 수정 시각(Unix ms)
 
-  Note: 'external(C) egress 상세 — OAuth credential·egress. 라우팅(target→host)은 upstream_registry, 본 표는 external 자격/엔드포인트. name 예: axs'
+  Note: '**외부(C) connector 자격/엔드포인트**(FR-INT-01/02). 제3자 서비스(예 axs) 호출에 필요한 OAuth2 자격(원문 미저장 — KMS 참조)·base URL·egress 허용 목록. 라우팅(Vatech-Target→host)은 upstream_registry가, 정책 판정은 policy가 담당하고 **본 표는 "그 external을 실제 호출할 때 쓰는 자격·주소"**. name은 upstream_registry.target_id·policy.connector와 대응(예 axs)'
 }
 
 // 감사 로그 (FR-AUD-01)
@@ -177,7 +170,7 @@ Table audit_log {
   action varchar                 // 수행 동작(변경 유형)
   result varchar                 // 결과(성공/실패/거부 등)
 
-  Note: 'append-only(UPDATE/DELETE 금지)'
+  Note: '**감사 로그**(FR-AUD-01) — 규제(IEC 62304/ISO 13485) 대상 변경·접근 이력. append-only(UPDATE/DELETE 금지 — 위변조 방지). 누가(actor: 운영자 OneID/시스템)·언제(ts)·무엇을(action: 리전 변경·자격 발급·정책 수정 등)·결과(result)를 기록. 보존기간은 법규 의존 TBD(§6.4·Appendix B #5). consent(재동의) 이력도 현재는 여기+mapping_version으로 추적'
   Indexes {
     ts     // 시각 범위 조회
     actor  // 행위자별 조회
@@ -190,7 +183,7 @@ Table fleet_state {
   last_heartbeat bigint                                 // 마지막 heartbeat 수신 시각(Unix ms)
   success_rate   decimal                                // 성공률(관측 지표)
 
-  Note: '관측 지표'
+  Note: '**fleet(디바이스 함대) 관측 상태**(FR-FLEET-01/03). device와 1:1(device_id PK 겸 FK). 디바이스별 마지막 heartbeat·성공률을 캐시해 온라인/오프라인·건강도 판단(콘솔 대시보드·이상탐지 입력). 원천 지표는 관측 파이프라인(§6.3.2), 본 표는 최신 상태 스냅샷'
 }
 
 // (제거·2026-07-01) 호환성 매트릭스는 DB 테이블 아님 —
@@ -282,5 +275,5 @@ Table delivery_channel {
   created_at   bigint                                                // 생성 시각(Unix ms)
   updated_at   bigint                                                // 수정 시각(Unix ms)
 
-  Note: '분배 마지막 단계 — Edge=MQTT(클리닉 토픽)/Cloud=HTTP push. §7.6.5/6. 클리닉 온보딩 시 생성'
+  Note: '**webhook 분배 마지막 단계 채널**(FR-WH-05/06). clinic과 1:1(clinic_id PK 겸 FK) — 해석된 대상 클리닉에 "어떤 방식으로" 이벤트를 전달할지. Edge=EzServer로 MQTT(클리닉 토픽, QoS1 하행) / Cloud=클라우드 클라이언트로 HTTP push. Webhook Dispatcher(§7.6.7)가 이 표를 조회해 발행. 클리닉 온보딩 시 생성. §7.6.5/6'
 }

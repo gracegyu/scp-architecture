@@ -175,6 +175,12 @@
         - **org_mapping 경계(확인)**: org_mapping = **얇은 식별자 매핑**(공통 조각)일 뿐, provider별 인증·webhook·payload는 이미 분리(connector·webhook_provider·④). **구조 다른 provider = 전용 테이블+로직(설계된 분기)** — "만능 표" 아님.
         - **미결(확인 요청)**: ① EzServer=클리닉당 1개 확정?(Device 1:N 유지 vs 1:1 UNIQUE 강제) · ② 전용 `clinic` 테이블 분리 여부 · ③ clinic-less device(미래) region 처리 · ④ **`provider` 관리** — 정규 토큰 규약 + **provider 레지스트리(SSOT) FK 도입 여부** + `provider`↔`upstream_registry.target_id` 통합 여부(enum은 부적합).
 
+    - **R9. Enroll 승인 주체 = C/S 확인 (확인만 · 결정 이미 반영)** — Scott 방향대로 **디바이스 enrollment 승인을 C/S 본인이 한다**로 구체화해 문서에 반영했다. 회의에서는 **"이렇게 하면 되냐" 확인만** 요청(변경 없으면 그대로 확정).
+        - **배경**: GW 관리자(Admin)가 승인을 기다릴 수 없음 → **현장 설치를 담당한 C/S가 설치 + GW Console 승인까지 본인이 수행**(설치자가 곧 승인자). 이 사람 승인이 부트스트랩 신뢰 앵커라, LM 라이선스·Clinic-ID만으로 부족한 위·변조 가짜 등록을 현장 검증으로 차단한다(별도 공장 토큰/OOB 불요).
+        - **흐름(반영됨)**: enroll(LM 라이선스·Clinic-ID 검증 + nonce·fingerprint 바인딩) → `device.status=pending`(인증 불가) → **C/S가 GW Console에서 승인** → `active`. 재설치·키 회전 시에도 동일 C/S 승인.
+        - **문서 반영 위치**: SRS §2.3.1(2)·§7.2.3·§7.2.5·§7.9.2 · ARD §5.1 · OpenAPI(`enroll/complete`=202 pending, `PATCH /v1/devices/{id}`=승인 전이) · DBML(`device.pending`, `enrollment_token` 폐기) · 요구사항명세 FR-ENR-01·02.
+        - **확인 포인트**: ① 승인 주체 = **C/S 본인**(Admin 아님) 맞나? · ② C/S에게 **GW Console 승인 권한(write)** 부여 맞나? · ③ **재설치 회전도 C/S 승인** 통과로 충분한가?
+
 - 공유 사항 — 스펙 작성 순서 (SRS PR 이후 후속 스펙)
     - ③ GW SRS(+OpenAPI·DBML)를 한 PR로 baseline. **③ PR 시작(7/6)에 ①·②(One Pager)와 ④(AXS 전체 Sub-SRS, 2주)를 동시 착수**(병행). ③-C·③-P·③-I는 ③ baseline 이후 — **③-I는 GW 1주 초안 → 인프라 담당 완성**. 각 스펙은 **작성 → PR(리뷰·수정) → baseline** 생애주기.
     - 막대 색: **작성=기본 · PR=강조(밝은색) · ◆=baseline/마일스톤 · 회색=완료 · 빨강=외부 선결**. **pilot 8/15는 개발계획서(착수 품의·미승인) 내부 목표**(외부 확정 요구 아님). **AXS sandbox 자격은 스펙 작성엔 불요·E2E·pilot 직전에 필요**라 그 시점에 배치(확보 TBD).

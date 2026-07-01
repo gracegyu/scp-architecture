@@ -42,12 +42,13 @@
 
 | ID | 요구사항 | 우선 | 버전 | 수용 기준 |
 | --- | --- | --- | --- | --- |
-| FR-ENR-01 | enrollment token 발급 = allowlist 등록 | M | v1.0 | 토큰 기반 등록 |
-| FR-ENR-02 | 공장 토큰 / OOB 일회 코드 부트스트랩 | M | v1.0 | 1회·짧은 TTL |
+| FR-ENR-01 | 부트스트랩 신뢰 검증 → `pending` 등록 → C/S 승인 → `active`(allowlist 활성) | M | v1.0 | 승인 전 인증 불가·승인 후 자격 활성 |
+| FR-ENR-02 | 부트스트랩 신뢰 = LM 라이선스·Clinic-ID(공장 토큰/OOB·사전 발급 토큰 미도입) | M | v1.0 | LMP 수신 라이선스·Clinic-ID로 검증 |
 | FR-ENR-03 | nonce challenge(replay 방지) | M | v1.0 | 서버 nonce 서명 |
-| FR-ENR-04 | device fingerprint 바인딩 | S | v1.0 | HW 특성 바인딩 |
+| FR-ENR-04 | device fingerprint 바인딩(= EzServer 생성 키페어 공개키/key-id, 물리 머신 지문 아님) | S | v1.0 | 공개키 바인딩·재검증 |
 | FR-ENR-05 | geo/velocity 이상탐지 | S | v1.1 | 이상 등록 탐지 |
-| FR-ENR-06 | 하드웨어 attestation | S | v1.1 | 제조사 인증서 |
+| FR-ENR-06 | 하드웨어 attestation(TPM/SE 비추출 키) | S | v1.1 | 제조사 인증서·비추출 |
+| FR-ENR-07 | 재설치·fingerprint 회전(재-enroll: 라이선스·Clinic-ID 재검증 + C/S 승인 + 기존 revoke·제한·감사, 개인키 백업 미도입) | M | v1.0 | 회전 게이트 통과·이력 감사 |
 
 ### **리전 / 라우팅 / 주권 (RGN)**
 

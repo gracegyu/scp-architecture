@@ -41,7 +41,13 @@
       "Bash(python3 -c \"import yaml,sys; d=yaml.safe_load\\(open\\('vt-api-gateway.openapi.yaml'\\)\\); print\\('YAML OK · schemas:', len\\(d['components']['schemas']\\), '· ProxyError' , 'ProxyError' in d['components']['schemas']\\)\")",
       "Bash(grep -cE '\\\\$ref:' openapi/vt-api-gateway.openapi.yaml)",
       "Bash(grep -nE \"공개 호스트 1개|단일 공개 호스트|provider별 등록 경로|등록 경로|/webhooks/\\\\{provider\\\\}|/v1/webhooks|경로.{0,6}구분|경로로 구분|/webhooks/axs|단일 webhook ingress|단일 ingress\" SRS.md)",
-      "Bash(grep -nE \"공개 호스트 1개|단일 공개 호스트|provider별 등록 경로|단일 webhook ingress|경로.{0,3}구분.*webhook|/webhooks/\\\\{provider\\\\}로 구분\" SRS.md)"
+      "Bash(grep -nE \"공개 호스트 1개|단일 공개 호스트|provider별 등록 경로|단일 webhook ingress|경로.{0,3}구분.*webhook|/webhooks/\\\\{provider\\\\}로 구분\" SRS.md)",
+      "Bash(npx -p @dbml/cli dbml2sql --postgres dbml/vt-api-gateway.dbml)",
+      "Bash(python3 -c \"import yaml,sys; yaml.safe_load\\(open\\('openapi/vt-api-gateway.openapi.yaml'\\)\\); print\\('OpenAPI YAML OK'\\)\")",
+      "Bash(node -e \"const fs=require\\('fs'\\);const s=fs.readFileSync\\('openapi/vt-api-gateway.openapi.yaml','utf8'\\);try{require\\('js-yaml'\\).load\\(s\\);console.log\\('OpenAPI OK \\(js-yaml\\)'\\)}catch\\(e\\){console.log\\('need pkg:',e.message\\)}\")",
+      "Bash(npx --yes js-yaml openapi/vt-api-gateway.openapi.yaml)",
+      "Bash(grep -nA12 \"^    Device:\" openapi/vt-api-gateway.openapi.yaml)",
+      "Bash(npx --yes @apidevtools/swagger-cli@4 validate openapi/vt-api-gateway.openapi.yaml)"
     ]
   }
 }

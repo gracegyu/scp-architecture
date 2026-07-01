@@ -57,6 +57,7 @@ CleverSpace는 유상화·이용 한도 등 새 정책으로 API를 계속 확�
 | PHI | Protected Health Information — **환자 식별 가능 건강정보**(환자 정보·영상 파일 등). **GW는 PHI 본문을 저장·경유하지 않는다**(presigned 직결, 발급=CleverSpace/AXS) — control plane엔 메타·식별자만. 데이터 주권(리전 밖 미이동)·consent 게이팅 대상이며, 개발·테스트는 더미만(운영만 실 PHI) | §6.4·§6.5·§7.3.3·§3.1 |
 | OTel (OpenTelemetry) | 관측성(추적·메트릭·로그) 수집·전송 **벤더 중립 표준/SDK**(CNCF). 요청 상관용 `traceId`/`spanId`를 생성 | §6.3.2·§3.1.2 |
 | ADOT | **AWS Distro for OpenTelemetry** — AWS가 배포하는 OTel 수집기. OTel 계측 → ADOT 수집 → CloudWatch/Prometheus·Grafana | §3.1.2·§6.3.2 |
+| OOB (Out-Of-Band) | **대역외** — 인증·자격 전달을 주 통신 채널이 아닌 **별도 경로**로 하는 방식. 예: enroll은 네트워크(주 채널)로 하되 검증용 1회 코드는 문자·별도 포털 등 다른 경로로 전달 → 주 채널이 탈취돼도 코드 없이는 등록 불가. **GW는 OOB 코드를 미도입**(부트스트랩=LM 라이선스·Clinic-ID + C/S 승인으로 대체, §2.3.1(2)·§7.2.5) | §7.2.5 |
 | PEP | Policy Enforcement Point — 요청 시점 인증·정책 집행 지점 | §7.1 |
 | originator | 요청을 _시작한_ 주체(`Vatech-*` 헤더의 권위 소스) | §7.7 |
 | `Vatech-Via` | 요청을 _경유한_ 중계 홉(예: EzServer) | originator와 분리 |
@@ -466,7 +467,7 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 
 클리닉 등록은 **자동·무조건**이다(2026-06-25 결정). **EzServer 설치 후 LMP로부터 Clinic-ID를 받는 순간 EzServer가 그 Clinic-ID를 GW로 전송해 자동 등록**한다 — **외부 연동(AXS 등) 여부와 무관하게 모든 클리닉이 GW에 등록**된다(연동 안 해도 무조건). GW는 Clinic-ID·region을 **검증(allowlist·정책)** 후 `clinic_region_mapping`·`delivery_channel`에 저장한다(이 클리닉이 어느 region인지·webhook을 어디로 보낼지 확정). **등록 주체 = 클리닉당 1개인 EzServer로 확정** — 클리닉은 **CleverOne 다수 + EzServer 1개**라 EzServer 자동 등록이 자연스럽다(기존 CleverOne 대안 TBD 종결, Appendix B #17). **외부 연동을 켤 때만** 그 provider의 Org-ID(Straumann 온보딩에서 발급, §2.3.5·④)를 등록하면 `org_mapping`에 (provider, Org-ID)→clinic이 채워져 webhook 분배 대상이 결정된다. **region은 운영 중에도 EzServer Console에서 변경 가능**(FR-RGN-04·§7.3.4 재동의·감사) — 선택지는 `GET /v1/regions`(§7.3.6)로 제공. Admin은 잘못된 등록의 **교정(override)** 만.
 
-> **C/S 등록 확인.** 등록은 EzServer가 자동으로 하지만, 클리닉 설치를 담당한 **C/S(현장 설치 담당)는 설치 후 GW Console에서 해당 클리닉이 정상 등록됐는지 확인**한다. 따라서 **GW Console 사용자는 Admin + C/S 역할**을 갖는다(§7.9.2) — **확인 UI·역할 세부 권한은 ③-C GW Console Sub-SRS**에서 정의(본 SRS는 등록 조회 API·역할 존재까지).
+> **C/S enrollment 승인(활성화 게이트).** 클리닉 등록은 EzServer가 자동으로 하지만, **디바이스 enrollment의 최종 활성화(`pending → active`)는 현장 설치를 담당한 C/S가 GW Console에서 승인**해야 한다(§2.3.1(2)·§7.2.3·§7.2.5). 이 사람 승인이 부트스트랩 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 현장 검증으로 차단한다(별도 공장 토큰/OOB 불필요). 따라서 **GW Console 사용자는 Admin + C/S 역할**을 갖고 **C/S는 enrollment 승인 권한**을 보유한다(§7.9.2) — **승인 UI·역할 세부 권한은 ③-C GW Console Sub-SRS**에서 정의(본 SRS는 승인 관리 API·역할·게이트 존재까지).
 
 ```mermaid
 sequenceDiagram
@@ -487,24 +488,29 @@ sequenceDiagram
 
 #### (2) EzServer enrollment
 
-신뢰할 수 없는 EzServer(디바이스, §1.4)를 **부트스트랩 신뢰**(공장 토큰/OOB 일회 코드 — **LM 라이선스·Clinic-ID가 "정당한 그 클리닉의 EzServer"임을 뒷받침**)로 검증해 allowlist 등록·자격 발급한다. EzServer가 **키페어를 생성**해 **nonce를 개인키로 서명(소지 증명)** 하고 **공개키(=fingerprint)** 를 바인딩한다(§7.2.6). **재설치로 키가 바뀌면(fingerprint 변경) 재-enrollment로 회전**한다 — 라이선스/Clinic-ID 재검증 + 기존 revoke + 제한·감사(§7.2.7, 개인키 백업 미도입). 상세 §7.2.5·6·7, 흐름 ARD §5.1.
+신뢰할 수 없는 EzServer(디바이스, §1.4)를 **부트스트랩 신뢰**(= **LM 라이선스·Clinic-ID**로 "정당한 그 클리닉의 EzServer"임을 뒷받침 — **공장 토큰/OOB 코드는 미도입**, 2026-07-01 결정)로 검증하고, **최종 활성화는 C/S(현장 설치 담당)의 GW Console 승인**으로 확정한다. EzServer가 **키페어를 생성**해 **nonce를 개인키로 서명(소지 증명)** 하고 **공개키(=fingerprint)** 를 바인딩한다(§7.2.6). **enroll 완료 시 디바이스는 `pending`**(인증 불가) — **C/S가 Console에서 승인해야 `active`**(§7.2.3 lifecycle 게이트)가 되어 인증(§7.1.1)이 허용된다. 사람 승인이 신뢰 앵커이므로 Clinic-ID 위·변조 위험을 현장 검증으로 차단한다. **재설치로 키가 바뀌면(fingerprint 변경) 재-enrollment로 회전**하며, 이때도 **라이선스/Clinic-ID 재검증 + C/S 승인 + 기존 revoke + 제한·감사**(§7.2.7, 개인키 백업 미도입). 상세 §7.2.5·6·7, 흐름 ARD §5.1.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant D as EzServer (디바이스)
     participant GW as GW (Enrollment)
+    participant CS as C/S (Console)
     participant AUD as Audit
-    D->>GW: POST /v1/enroll/start (bootstrap · 라이선스/Clinic-ID)
-    GW->>GW: 부트스트랩 신뢰 검증 · nonce 발급
+    D->>GW: POST /v1/enroll/start (라이선스/Clinic-ID)
+    GW->>GW: 부트스트랩 신뢰 검증(LM 라이선스·Clinic-ID) · nonce 발급
     GW-->>D: nonce challenge
     D->>D: 키페어 생성 · nonce 개인키 서명 · 공개키=fingerprint
     D->>GW: POST /v1/enroll/complete (nonceSignature, fingerprint=공개키)
-    GW->>GW: 서명·fingerprint 검증 · allowlist 등록 · 자격 발급(KMS secretRef)
-    GW->>AUD: 등록 이력 append-only 기록
-    GW-->>D: Credential (clientId, secretRef)
-    Note over D,GW: 재설치=새 키페어 → 재-enroll: 라이선스/Clinic-ID 재검증 + 기존 fingerprint revoke·회전(제한·감사, §7.2.7). 개인키 백업 안 함
-    Note over D,GW: 신뢰 검증 실패·만료/재사용 토큰 → 거부(§7.2.5)
+    GW->>GW: 서명·fingerprint 검증 · 디바이스 등록(status=pending) · 자격 준비(KMS secretRef)
+    GW->>AUD: enroll 요청 이력 append-only 기록
+    GW-->>D: Accepted (status=pending · 승인 대기)
+    CS->>GW: GW Console에서 enrollment 승인(현장 설치 확인)
+    GW->>GW: status pending → active(활성화 게이트, §7.2.3)
+    GW->>AUD: 승인 이력(승인자·시각) append-only 기록
+    Note over D,GW: active 전까지 인증 불가(§7.1.1). pending 디바이스는 access token 미발급
+    Note over D,GW: 재설치=새 키페어 → 재-enroll: 라이선스/Clinic-ID 재검증 + C/S 승인 + 기존 fingerprint revoke·회전(제한·감사, §7.2.7). 개인키 백업 안 함
+    Note over D,GW: 신뢰 검증 실패·서명 불일치·승인 거부 → 거부(§7.2.5)
 ```
 
 ### 2.3.2 EzServer(디바이스) 인증·토큰 발급 — FR-AUTH-01/05
@@ -675,6 +681,7 @@ sequenceDiagram
 | 사내 호출자(EzServer/CleverOne) | 상시      | 인증·라우팅·Webhook 수신                  | 서비스(OneID)        | 핵심   |
 | 외부 플랫폼(AXS)                | 이벤트 시 | Webhook·connector                         | 외부(OAuth2)         | 핵심   |
 | 운영자/Admin                    | 일/주     | 관리 API·매핑·kill-switch                 | RBAC                 | 중요   |
+| C/S(현장 설치 담당)             | 설치 시   | enrollment 승인(`pending→active`)·클리닉 등록 조회 | RBAC(승인 write, §7.9.2) | 핵심   |
 | 인프라/DevOps                   | 배포 시   | IaC·관측·로그                             | 시스템               | 중요   |
 
 ## 2.6 Assumptions and Dependencies (가정과 종속 관계)
@@ -1246,7 +1253,6 @@ flowchart TB
         RC[region_catalog]
     end
     subgraph AUTH["인증·온보딩"]
-        ENR[enrollment_token]
         CRED[credential]
         TOK[token]
     end
@@ -1405,7 +1411,7 @@ FR-AUTH-08·09 (OneID 토큰 검증·연계, 디바이스 머신 인증 ↔ OneI
 
 > **본 절의 '디바이스'는 EzServer를 가리킨다**(GW 관점, §1.4 — 클리닉당 1개 엣지 머신). 물리 영상장비는 EzServer 뒤편(GW 비대상).
 
-GW는 무인 EzServer를 **레지스트리**로 관리하고, 신뢰할 수 없는 디바이스를 신뢰 가능한 상태로 전환하는 **온보딩(enrollment)** 절차를 제공한다. 온보딩 = enrollment token 발급 = allowlist 등록이며, 등록된 디바이스만 인증(§7.1.1)·작업이 허용된다. 상세 흐름은 ARD §5.1.
+GW는 무인 EzServer를 **레지스트리**로 관리하고, 신뢰할 수 없는 디바이스를 신뢰 가능한 상태로 전환하는 **온보딩(enrollment)** 절차를 제공한다. 온보딩 = 부트스트랩 신뢰 검증(LM 라이선스·Clinic-ID) + nonce·fingerprint 바인딩 → `pending` 등록 → **C/S 승인**으로 `active`(allowlist 활성)이며, `active` 디바이스만 인증(§7.1.1)·작업이 허용된다. 상세 흐름은 ARD §5.1.
 
 ### 7.2.1 디바이스 레지스트리·조회 (P1)
 
@@ -1423,20 +1429,23 @@ FR-DEV-02 (OPA 기반). 미등록 디바이스 요청 → 차단(403). (§6.5)
 
 FR-DEV-03 (`pending → active → suspended → revoked` 전이·이력).
 
-- **에러/경계**: 허용되지 않은 전이 → 거부, 모든 전이는 이력 보존
+- **`pending → active` = C/S 승인 게이트.** enroll 완료 디바이스는 `pending`(인증 불가)이며 **C/S(현장 설치 담당)의 GW Console 승인**으로만 `active`가 된다(§2.3.1(2)·§7.2.5·§7.9.2). 사람 승인이 부트스트랩 신뢰 앵커다.
+- **에러/경계**: 허용되지 않은 전이 → 거부, 모든 전이는 이력 보존(승인자·시각 포함, §7.9.3)
 
 ### 7.2.4 revocation — 강한 일관성 (P1)
 
 FR-DEV-04 (즉시 차단). revoke 시 캐시 TTL과 무관하게 strong-consistency 경로로 즉시 반영.
 
-### 7.2.5 enrollment 부트스트랩 (P1)
+### 7.2.5 enrollment 부트스트랩 · C/S 승인 (P1)
 
-FR-ENR-01·02 (enrollment token = allowlist 등록, 공장 토큰/OOB 일회 코드).
+FR-ENR-01·02 (부트스트랩 신뢰 검증 → `pending` 등록 → C/S 승인 → `active`).
 
-- **Input**: 부트스트랩 신뢰(공장 주입 토큰 또는 OOB 일회 코드, 짧은 TTL·1회)
-- **Trigger**: 디바이스 최초 enrollment 요청
-- **Output**: allowlist 등록 + 디바이스 자격(client_id/secret, HW키 바인딩) 발급
-- **에러**: 신뢰 검증 실패·만료/재사용 토큰 → 거부
+- **부트스트랩 신뢰 = LM 라이선스·Clinic-ID** (2026-07-01 결정). EzServer 설치 시 LMP로부터 받은 라이선스·Clinic-ID가 "정당한 그 클리닉의 EzServer"임을 뒷받침한다. **공장 주입 토큰·OOB 일회 코드는 미도입** — GW가 그런 토큰을 발급·저장하지 않는다(별도 사전 발급 시크릿 불필요).
+- **활성화 앵커 = C/S 사람 승인.** 자동 검증(라이선스·서명)만으로 `active`가 되지 않는다. enroll 완료 디바이스는 `pending`이며 **현장 설치를 담당한 C/S가 GW Console에서 승인**해야 `active`가 된다(§7.2.3·§7.9.2). 사람 승인이라 Clinic-ID 위·변조로도 가짜 등록이 활성화되지 않는다(위조 위험 무력화).
+- **Input**: 라이선스·Clinic-ID(부트스트랩) + (complete 단계) nonce 서명·공개키(fingerprint)
+- **Trigger**: 디바이스 최초 enrollment 요청 → 이후 C/S 승인
+- **Output**: `pending` 레지스트리 등록 → **C/S 승인 시** allowlist 활성(`active`) + 디바이스 자격(client_id/secret, 공개키 바인딩) 발급
+- **에러**: 라이선스/Clinic-ID 신뢰 검증 실패·nonce 서명 불일치 → 거부. **C/S 승인 거부/미승인 → `pending` 유지(인증 불가)**
 
 ### 7.2.6 nonce challenge · fingerprint 바인딩 (P1)
 
@@ -1452,11 +1461,11 @@ FR-ENR-03·04 (replay 방지 nonce 서명, device fingerprint 바인딩).
 
 FR-ENR-07 (재설치·키 변경 시 fingerprint 회전). EzServer **재설치·키 유실 시 새 키페어가 생겨 fingerprint가 바뀐다** — 이를 **재-enrollment로 회전**한다. **개인키 백업은 도입하지 않는다**(백업본 유출 시 신원 도용 위험 + gw/1.1 비추출 목표와 상충).
 
-- **회전 게이트(모두 충족)**: ① **부트스트랩 신뢰 재검증**(공장/OOB 토큰 + **LM 라이선스·Clinic-ID**로 정당한 그 클리닉의 EzServer 확인) · ② **동일 `clinic_id`** · ③ **회전 횟수·속도 제한**(LM activation-limit 유사 — 유출 라이선스로 다수 등록 방지) · ④ **감사 로그**(append-only) + 빈번 시 **Admin 알림/승인(옵션)**.
+- **회전 게이트(모두 충족)**: ① **부트스트랩 신뢰 재검증**(**LM 라이선스·Clinic-ID**로 정당한 그 클리닉의 EzServer 확인) · ② **동일 `clinic_id`** · ③ **C/S 승인**(재-enroll도 최초와 동일하게 GW Console 사람 승인 게이트 통과) · ④ **회전 횟수·속도 제한**(LM activation-limit 유사 — 유출 라이선스로 다수 등록 방지) · ⑤ **감사 로그**(append-only, 승인자·시각).
 - **동작**: 기존 fingerprint·credential **revoke**(§7.2.4) → 새 공개키 바인딩·새 credential 발급. **device는 클리닉당 활성 fingerprint 1개**(§6.4.1 1:1)라 회전 = 교체. 회전 이력은 `audit_log`.
-- **원칙**: **"clinic_id만 같으면 무조건 허용" 아님** — 반드시 부트스트랩 신뢰(라이선스) 재검증 + 제한 + revoke-old + 감사.
+- **원칙**: **"clinic_id만 같으면 무조건 허용" 아님** — 반드시 부트스트랩 신뢰(라이선스) 재검증 + **C/S 승인** + 제한 + revoke-old + 감사.
 - **에러**: 라이선스/신뢰 재검증 실패 → 거부. 회전 한도 초과 → 거부(Admin 개입).
-- **TBD**: 회전 횟수/속도 한도값·Admin 승인 임계·정밀 암호 = 보안설계/LLD·**Appendix B #27**.
+- **TBD**: 회전 횟수/속도 한도값·빈발 시 Admin 에스컬레이션 임계·정밀 암호 = 보안설계/LLD·**Appendix B #27**(승인 자체는 C/S 필수로 확정).
 
 **비목표(Will Not Do)**: 개인키 backup/restore(비추출 지향으로 미도입), geo/velocity 이상탐지(FR-ENR-05)·하드웨어 attestation(FR-ENR-06)은 **gw/1.1**. v1.0은 nonce·fingerprint(키 기반)·회전까지.
 
@@ -1712,7 +1721,8 @@ FR-ADM-01 (CRUD API, MVP 경량). Console(③-C)이 호출. 테넌트·키·디�
 
 FR-ADM-02 (권한 분리, 경량). 역할별 수행 가능 기능 제한(§6.5). 운영자 인증=OneID(§7.1.4).
 
-- **Console 사용자 역할 = Admin + C/S.** **Admin**=전체 관리·매핑 교정(override). **C/S(현장 설치 담당)**=설치 후 **클리닉 GW 등록 확인** 등 조회 위주(§2.3.1). **역할 정의·화면·세부 권한은 ③-C GW Console Sub-SRS**에서 확정 — 본 SRS는 관리 API·역할 존재까지.
+- **Console 사용자 역할 = Admin + C/S.** **Admin**=전체 관리·매핑 교정(override). **C/S(현장 설치 담당)**=설치 후 **디바이스 enrollment 승인**(`pending → active` 활성화 게이트, §2.3.1(2)·§7.2.3·§7.2.5) + 클리닉 GW 등록 조회. 이 승인이 부트스트랩 신뢰 앵커라 C/S에게 **승인 권한(write)** 을 부여한다(단순 조회 아님).
+- **모든 C/S를 Console 사용자로 등록(요구).** 현장 설치를 수행하는 **C/S 인력은 전원 GW Console 사용자로 사전 등록**(OneID 계정 + C/S 역할 부여)돼 있어야 enrollment 승인이 공백 없이 가능하다 — 설치자가 곧 승인자이므로 설치 담당 C/S가 미등록이면 승인이 막힌다. **C/S 사용자 프로비저닝(계정 생성·역할 부여·오프보딩)·승인 UI·세부 권한은 ③-C GW Console Sub-SRS**에서 설계·확정 — 본 SRS는 관리 API·역할·승인 게이트·C/S 전원 등록 요구까지.
 - **에러**: 권한 외 호출 → 403
 
 ### 7.9.3 감사 로그 — append-only (P1)
@@ -1789,7 +1799,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 24 | **개발·테스트·운영 환경 구축** — dev 에뮬레이터/스텁(EPI·CleverSpace presign·OneID·LMP)·AXS sandbox 자격(↔#6)·staging(운영 유사 축소)·dev/staging AWS 계정·sandbox egress EIP. 책임·일정 | §3.1·§3.4·§3.5 | 인프라/개발 | **dev: AXS 개발 착수 전** · staging: pilot 전 | §3·§7.5·④ |
 | 26 | **IaC 도구 확정** — 현 baseline=Terraform(ARD §4.5·§6.6.2)인데 실무·권장=**CDK**(AWS 전용·TS 스택 정합·CloudFormation 네이티브). 확정 시 ARD §4.5·SRS §6.6.2 정합 | §6.6.2·§6.3.3 | 인프라(③-I)+GW | 환경 구축 착수 전 | §3·§6·④ |
 | 25 | **프록시 타임아웃·재시도·서킷 수치 + v1.0 서킷 포함 범위** — `connect`/`response`/`total_deadline_ms`(per-upstream, `GW deadline < 클라이언트 타임아웃`)·재시도 상한/백오프/budget·서킷 임계·복구. 정책 골격은 §7.5.4·§7.7.4 확정, **수치·서킷 v1.0 범위가 미결**(upstream SLA·인프라 입력 의존) | §7.5.4·§7.7.4·§5.5·§4.1.2-6 | GW+인프라(+AXS SLA) | 프록시 구현 착수 전 | §7.5·§6.3.4·④ |
-| 27 | **fingerprint 회전(재설치) 정책 수치·crypto 확정** — 정책 골격은 §7.2.7 확정(라이선스/Clinic-ID 재검증·기존 revoke·개인키 백업 미도입). **미결**: 회전 속도·횟수 상한, Admin 승인 임계, 키페어 알고리즘·key-id 산출·서명 스킴(nonce), revoke 전파 방식 | §7.2.6·§7.2.7·§2.3.1 | GW+보안 | enrollment 구현 착수 전 | §2.3·§7.2·보안설계·LLD |
+| 27 | **fingerprint 회전(재설치) 정책 수치·crypto 확정** — 정책 골격은 §7.2.7 확정(라이선스/Clinic-ID 재검증·C/S 승인·기존 revoke·개인키 백업 미도입). **미결**: 회전 속도·횟수 상한, 빈발 시 Admin 에스컬레이션 임계, 키페어 알고리즘·key-id 산출·서명 스킴(nonce), revoke 전파 방식 | §7.2.6·§7.2.7·§2.3.1 | GW+보안 | enrollment 구현 착수 전 | §2.3·§7.2·보안설계·LLD |
 
 ## 8 Change Management Process
 
@@ -1883,6 +1893,9 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
 | 2026-06-25 | §1.4 용어에 **LMP(LicenseManager) = Clinic-ID 발급원** 정의 추가(§2.3.1 온보딩 자동 등록의 LMP 약어 명시) | (작성자 ID 미지정) |
 | 2026-06-26 | 잔재 전수 점검·정리 — §2.7 gw/1.2 "멀티클라우드 presign·**signer 확장**" → "멀티 리전 활성화(Aurora Global DB·GeoDNS)", §2.7.1 금지 노트의 "멀티클라우드 presign broker ready" 제거(GW 비소유·FR-SES-06 해당없음·line 1290과 일치), §2.1 노트 "비-AWS minio·디바이스→storage" → "AWS 미지원국 Provider MinIO·EzServer→발급주체 storage". signer/Upload Session/포터블 잔재 0 확인 | (작성자 ID 미지정) |
+| 2026-07-01 | **§2.5 사용자 계층에 C/S(현장 설치 담당) 추가 + C/S 전원 Console 등록 요구** — enrollment 승인 주체인 C/S가 §2.5에 없던 것을 추가(핵심·설치 시·승인 write). §7.9.2에 **모든 C/S 인력을 GW Console 사용자로 사전 등록**(OneID+C/S 역할)해야 승인 공백이 없음을 명시(프로비저닝 상세는 ③-C). §1.4에 **OOB(Out-Of-Band) 대역외** 용어 추가(GW 미도입 명시) | (작성자 ID 미지정) |
+| 2026-07-01 | **enrollment 부트스트랩 = LM 라이선스·Clinic-ID + C/S 사람 승인 게이트 확정** — 부트스트랩 신뢰를 **LM 라이선스·Clinic-ID**(EzServer가 LMP에서 수신)로 확정하고 **공장 토큰/OOB·사전 발급 토큰은 미도입**. 최종 활성화는 **C/S(현장 설치 담당)의 GW Console 승인**(`pending → active` lifecycle 게이트) — 사람 승인이 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 차단(→ "GW의 Clinic-ID 검증 방식" 안건 불요). §2.3.1(2) 산문+시퀀스(C/S 승인 단계·pending/active), §7.2 도입·§7.2.3(승인 게이트)·§7.2.5(부트스트랩·승인)·§7.2.7(회전도 C/S 승인)·§7.9.2(C/S 승인 권한) 갱신. **DBML `enrollment_token` 테이블 제거**(사전 발급 토큰 없음·승인 대기=device.pending, 14 테이블)·device_status 주석·§6.4.2 조감도 노드 제거. OpenAPI: enroll/start(라이선스 부트스트랩)·enroll/complete=**202 pending**·PATCH devices=승인 전이·bootstrap 설명. ARD §5.1 스텝1/4/5/6/7·Enrollment Service·v0.16. 08 문서 데이터모델·enrollment 노트 정합 | (작성자 ID 미지정) |
+| 2026-07-01 | **fingerprint = EzServer 생성 키페어 공개키로 정의·재설치 회전 정책 신설** — device fingerprint가 **물리 머신 지문이 아니라 EzServer가 enrollment 시 생성한 키페어의 공개키/key-id**(신원 바인딩)임을 명확화(LM Cryptlex VERR_LICENSE_MACHINE_FINGERPRINT 하드웨어 지문과 별개; v1.0 SW 보관 키 hw_key_bound=false, gw/1.1 TPM/SE 비추출 ADR-01). §2.3.1(2) enrollment 산문+시퀀스(키페어 생성·nonce 개인키 서명·공개키=fingerprint) 보강, **§7.2.6 정의 + §7.2.7 신설(FR-ENR-07 재설치 회전: 부트스트랩 신뢰(라이선스/Clinic-ID) 재검증·기존 revoke·횟수/속도 제한·감사, 개인키 백업 미도입, "clinic-id 동일=무조건 허용" 반려)**. DBML `device.fingerprint` 주석·OpenAPI EnrollCompleteRequest(nonceSignature·fingerprint) 정합. ARD §5.1 스텝3/5/7·Enrollment Service·v0.15 동기화. 수치·crypto = Appendix B #27 | (작성자 ID 미지정) |
 | 2026-07-01 | **`compat_matrix` DB 테이블 폐기 — 호환성 매트릭스는 파일 SSOT** — 릴리스 커플링 정적 설정이라 소스 파일(① One Pager 동기화)→빌드/CI로 well-known JSON 생성·공시(§7.7.5)로 일원화, DB 미저장(런타임 게이팅 훼손 방지·긴급 차단은 Config push §7.8.4). DBML `compat_matrix` 제거(16→15 테이블)·§6.4.2 조감도 OPS에서 제거·§6.4 저장유형·§7.7.5 명확화. well-known 샘플의 폐기 경로(`/v1/uploads/{id}/commit`)를 `region.change`로 교체 | (작성자 ID 미지정) |
 | 2026-07-01 | **§6.4.1 org_mapping 경계·`provider` 관리 정리** — org_mapping=얇은 식별자 매핑(공통 조각)임을 명시(암묵 가정 3·가드레일·"구조 다른 provider=전용 테이블 분기, 실패 아님"). `provider`는 정규 토큰(소문자)·enum 금지, provider 레지스트리 FK/‌target_id 통합은 R8 결정으로 등록. Agenda R8에 org_mapping 경계·provider 관리·Device 1:N vs 1:1 확인 추가 | (작성자 ID 미지정) |
 | 2026-07-01 | **§6.4.1 데이터 관계 ERD + region 모델 A안 확정(회의 확인 예정 R8)** — Clinic·Device·외부 Org 관계를 mermaid ERD + 기본/확장/미래(점선) 계층도로 명시. **A안: region SSOT=Clinic, device는 clinic 파생** → **DBML `device.region`·`region_mapping` 제거·`device.clinic_id`(FK·nullable)+인덱스 추가**, **OpenAPI `Device`에서 region 제거·clinicId 추가**. Clinic↔Device 1:N(현 1:1=EzServer). 외부 Org-ID=확장((provider,external_org_id)→clinic, AXS만); 신규 provider=org_mapping 확장 or 신규 테이블+추가 개발. DBML 컴파일 검증(17→16 테이블). 미결: clinic 전용 테이블 분리·clinic-less device region(미래) | (작성자 ID 미지정) |

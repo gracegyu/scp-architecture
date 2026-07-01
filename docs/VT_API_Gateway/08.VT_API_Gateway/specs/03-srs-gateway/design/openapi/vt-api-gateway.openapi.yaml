@@ -96,7 +96,7 @@ paths:
   /v1/enroll/start:
     post:
       tags: [ enrollment ]
-      summary: enrollment 시작 → nonce challenge (FR-ENR-01/03)
+      summary: enrollment 시작(LM 라이선스·Clinic-ID 부트스트랩) → nonce challenge (FR-ENR-01/03)
       security: []
       requestBody:
         required: true
@@ -118,7 +118,11 @@ paths:
   /v1/enroll/complete:
     post:
       tags: [ enrollment ]
-      summary: 서명+fingerprint 검증 → 자격 발급(allowlist 등록) (FR-ENR-01/04)
+      summary: 서명+fingerprint 검증 → 디바이스 등록(status=pending, C/S 승인 대기) (FR-ENR-01/04)
+      description: >-
+        nonce 서명·fingerprint를 검증하고 디바이스를 status=pending으로 등록한다.
+        active 활성화(=인증 허용)는 C/S가 GW Console에서 승인해야 하며,
+        승인은 PATCH /v1/devices/{id} (status: active)로 수행된다(§2.3.1(2)·§7.2.3·§7.2.5·§7.9.2).
       security: []
       requestBody:
         required: true
@@ -127,12 +131,12 @@ paths:
             schema:
               $ref: '#/components/schemas/EnrollCompleteRequest'
       responses:
-        '200':
-          description: 발급된 디바이스 자격증명(참조)
+        '202':
+          description: 등록 접수됨(status=pending · C/S 승인 대기). 승인 전 인증 불가
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Credential'
+                $ref: '#/components/schemas/Device'
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
@@ -192,6 +196,10 @@ paths:
     patch:
       tags: [ devices ]
       summary: lifecycle 상태 전이 (FR-DEV-03, pending→active→suspended→revoked)
+      description: >-
+        디바이스 lifecycle 전이. **pending→active는 C/S enrollment 승인 게이트**
+        (현장 설치 담당 C/S만 승인 = 부트스트랩 신뢰 앵커, §2.3.1(2)·§7.2.5·§7.9.2).
+        모든 전이는 승인자·시각 감사(§7.9.3).
       requestBody:
         required: true
         content:
@@ -684,9 +692,12 @@ components:
       properties:
         bootstrap:
           type: string
-          description: 공장 토큰 / OOB 일회 코드
+          description: >-
+            부트스트랩 신뢰 = LM 라이선스·Clinic-ID(EzServer가 설치 시 LMP에서 수신).
+            공장 토큰/OOB 코드는 미도입(GW 사전 발급 토큰 없음). 최종 활성화는 C/S Console 승인(§2.3.1(2)·§7.2.5)
         serial:
           type: string
+          description: 대상 디바이스 시리얼(부트스트랩 식별)
     EnrollChallenge:
       type: object
       properties:
