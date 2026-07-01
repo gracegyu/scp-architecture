@@ -19,7 +19,7 @@
 
 | ID | 요구사항 | 우선 | 버전 | 수용 기준 |
 | --- | --- | --- | --- | --- |
-| FR-AUTH-01 | 디바이스 OAuth2 client_credentials 인증 | M | v1.0 | 토큰 발급·검증 성공 |
+| FR-AUTH-01 | 디바이스 OAuth2 client_credentials 인증 — **비대칭 `private_key_jwt`**(키페어 개인키 서명 → `device.client_public_key` 공개키 검증, 공유 secret 없음, ADR-13) | M | v1.0 | assertion 서명 검증·토큰 발급 성공 |
 | FR-AUTH-02 | 사내 호출자 JWT 발급·검증 | M | v1.0 | JWT 발급·서명 검증 |
 | FR-AUTH-03 | 외부 토큰 저장·자동 갱신(암호화) | M | v1.0 | 만료 전 자동 갱신·평문 미노출 |
 | FR-AUTH-04 | secret 자동 회전(dual-window) | M | v1.0 | 무중단 교체 |
@@ -45,17 +45,17 @@
 | FR-ENR-01 | 부트스트랩 신뢰 검증 → `pending` 등록 → C/S 승인 → `active`(allowlist 활성) | M | v1.0 | 승인 전 인증 불가·승인 후 자격 활성 |
 | FR-ENR-02 | 부트스트랩 신뢰 = LM 라이선스·Clinic-ID(공장 토큰/OOB·사전 발급 토큰 미도입) | M | v1.0 | LMP 수신 라이선스·Clinic-ID로 검증 |
 | FR-ENR-03 | nonce challenge(replay 방지) | M | v1.0 | 서버 nonce 서명 |
-| FR-ENR-04 | device fingerprint 바인딩(= EzServer 생성 키페어 공개키/key-id, 물리 머신 지문 아님) | S | v1.0 | 공개키 바인딩·재검증 |
+| FR-ENR-04 | device 공개키 바인딩 — `client_public_key`(= EzServer 생성 키페어 공개키/key-id, 하드웨어 지문 아님·구 명칭 fingerprint) | S | v1.0 | 공개키 바인딩·재검증 |
 | FR-ENR-05 | geo/velocity 이상탐지 | S | v1.1 | 이상 등록 탐지 |
 | FR-ENR-06 | 하드웨어 attestation(TPM/SE 비추출 키) | S | v1.1 | 제조사 인증서·비추출 |
-| FR-ENR-07 | 재설치·fingerprint 회전(재-enroll: 라이선스·Clinic-ID 재검증 + C/S 승인 + 기존 revoke·제한·감사, 개인키 백업 미도입) | M | v1.0 | 회전 게이트 통과·이력 감사 |
+| FR-ENR-07 | 재설치·공개키(client_public_key) 회전(재-enroll: 라이선스·Clinic-ID 재검증 + C/S 승인 + 기존 revoke·제한·감사, 개인키 백업 미도입) | M | v1.0 | 회전 게이트 통과·이력 감사 |
 
 ### **리전 / 라우팅 / 주권 (RGN)**
 
 | ID | 요구사항 | 우선 | 버전 | 수용 기준 |
 | --- | --- | --- | --- | --- |
 | FR-RGN-01 | device→region resolver(단일 리전) | M | v1.0 | 매핑 라우팅 |
-| FR-RGN-02 | mapping_version(drift·롤백) | M | v1.0 | 버전 추적 |
+| FR-RGN-02 | mapping_version(단조 버전 마커 — 캐시 무효화·CAS·drift 감지; 값 이력·롤백은 audit_log) | M | v1.0 | 버전 단조 증가·drift 감지 |
 | FR-RGN-03 | PHI 리전 밖 미이동 보장 | M | v1.0 | 경계 검증 |
 | FR-RGN-04 | region reassign/override + audit(relocation) | S | v1.0 | 재지정·감사·재동의 |
 | FR-RGN-05 | 멀티 리전(active-active) | M | v1.2 | 다리전 동작 (GW Region Signer 철회 — presign=upstream) |

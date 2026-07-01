@@ -488,7 +488,7 @@ sequenceDiagram
 
 #### (2) EzServer enrollment
 
-신뢰할 수 없는 EzServer(디바이스, §1.4)를 **부트스트랩 신뢰**(= **LM 라이선스·Clinic-ID**로 "정당한 그 클리닉의 EzServer"임을 뒷받침 — **공장 토큰/OOB 코드는 미도입**, 2026-07-01 결정)로 검증하고, **최종 활성화는 C/S(현장 설치 담당)의 GW Console 승인**으로 확정한다. EzServer가 **키페어를 생성**해 **nonce를 개인키로 서명(소지 증명)** 하고 **공개키(=fingerprint)** 를 바인딩한다(§7.2.6). **enroll 완료 시 디바이스는 `pending`**(인증 불가) — **C/S가 Console에서 승인해야 `active`**(§7.2.3 lifecycle 게이트)가 되어 인증(§7.1.1)이 허용된다. 사람 승인이 신뢰 앵커이므로 Clinic-ID 위·변조 위험을 현장 검증으로 차단한다. **재설치로 키가 바뀌면(fingerprint 변경) 재-enrollment로 회전**하며, 이때도 **라이선스/Clinic-ID 재검증 + C/S 승인 + 기존 revoke + 제한·감사**(§7.2.7, 개인키 백업 미도입). 상세 §7.2.5·6·7, 흐름 ARD §5.1.
+신뢰할 수 없는 EzServer(디바이스, §1.4)를 **부트스트랩 신뢰**(= **LM 라이선스·Clinic-ID**로 "정당한 그 클리닉의 EzServer"임을 뒷받침 — **공장 토큰/OOB 코드는 미도입**, 2026-07-01 결정)로 검증하고, **최종 활성화는 C/S(현장 설치 담당)의 GW Console 승인**으로 확정한다. EzServer가 **키페어를 생성**해 **nonce를 개인키로 서명(소지 증명)** 하고 **공개키(= client_public_key)** 를 바인딩한다(§7.2.6). **enroll 완료 시 디바이스는 `pending`**(인증 불가) — **C/S가 Console에서 승인해야 `active`**(§7.2.3 lifecycle 게이트)가 되어 인증(§7.1.1)이 허용된다. 사람 승인이 신뢰 앵커이므로 Clinic-ID 위·변조 위험을 현장 검증으로 차단한다. **재설치로 키가 바뀌면(공개키 변경) 재-enrollment로 회전**하며, 이때도 **라이선스/Clinic-ID 재검증 + C/S 승인 + 기존 revoke + 제한·감사**(§7.2.7, 개인키 백업 미도입). 상세 §7.2.5·6·7, 흐름 ARD §5.1.
 
 ```mermaid
 sequenceDiagram
@@ -500,36 +500,39 @@ sequenceDiagram
     D->>GW: POST /v1/enroll/start (라이선스/Clinic-ID)
     GW->>GW: 부트스트랩 신뢰 검증(LM 라이선스·Clinic-ID) · nonce 발급
     GW-->>D: nonce challenge
-    D->>D: 키페어 생성 · nonce 개인키 서명 · 공개키=fingerprint
-    D->>GW: POST /v1/enroll/complete (nonceSignature, fingerprint=공개키)
-    GW->>GW: 서명·fingerprint 검증 · 디바이스 등록(status=pending) · 자격 준비(KMS secretRef)
+    D->>D: 키페어 생성 · nonce 개인키 서명 · 공개키=client_public_key
+    D->>GW: POST /v1/enroll/complete (nonceSignature, clientPublicKey=공개키)
+    GW->>GW: 서명·공개키 검증 · 디바이스 등록(status=pending) · client_id 발급·공개키(client_public_key) 바인딩(공유 secret 없음)
     GW->>AUD: enroll 요청 이력 append-only 기록
-    GW-->>D: Accepted (status=pending · 승인 대기)
+    GW-->>D: Accepted (client_id · status=pending · 승인 대기)
     CS->>GW: GW Console에서 enrollment 승인(현장 설치 확인)
     GW->>GW: status pending → active(활성화 게이트, §7.2.3)
     GW->>AUD: 승인 이력(승인자·시각) append-only 기록
     Note over D,GW: active 전까지 인증 불가(§7.1.1). pending 디바이스는 access token 미발급
-    Note over D,GW: 재설치=새 키페어 → 재-enroll: 라이선스/Clinic-ID 재검증 + C/S 승인 + 기존 fingerprint revoke·회전(제한·감사, §7.2.7). 개인키 백업 안 함
+    Note over D,GW: 여기서 등록한 공개키(client_public_key)로 이후 매 인증의 개인키 서명을 검증(§2.3.2 · private_key_jwt). 공유 secret 없음
+    Note over D,GW: 재설치=새 키페어 → 재-enroll: 라이선스/Clinic-ID 재검증 + C/S 승인 + 기존 공개키(client_public_key) revoke·회전(제한·감사, §7.2.7). 개인키 백업 안 함
     Note over D,GW: 신뢰 검증 실패·서명 불일치·승인 거부 → 거부(§7.2.5)
 ```
 
 ### 2.3.2 EzServer(디바이스) 인증·토큰 발급 — FR-AUTH-01/05
 
-등록된 EzServer(디바이스, §1.4)가 작업 전 단명 access token을 발급받는다. lifecycle·allowlist를 확인하고, claim(`deviceId`·`region`·`aud`·`TTL`)을 강제 바인딩한다. revoked 디바이스는 캐시 TTL과 무관하게 즉시 차단(§7.2.4). **갱신은 refresh token이 아니라 동일 `client_credentials` 재발급**으로 처리한다(§7.1.1 — 단명+즉시 revocation 모델). 상세는 §7.1.1.
+등록된 EzServer(디바이스, §1.4)가 작업 전 단명 access token을 발급받는다. **인증 = 비대칭 `private_key_jwt`**(공유 secret 없음) — 디바이스가 **개인키로 서명한 assertion(JWT)** 을 제시하면 GW가 **enrollment에서 등록한 공개키(`device.client_public_key`)로 서명을 검증**한다(§7.1.1·ADR-13). 검증 후 lifecycle·allowlist를 확인하고, claim(`deviceId`·`region`·`aud`·`TTL`)을 강제 바인딩한 access token을 발급한다. 디바이스는 그 토큰을 **이후 API 호출의 Bearer로 사용**하고, 만료되면 개인키로 다시 서명해 재발급받는다. revoked 디바이스는 캐시 TTL과 무관하게 즉시 차단(§7.2.4). **갱신은 refresh token이 아니라 개인키 재서명 재발급**(§7.1.1 — 단명+즉시 revocation 모델). 상세는 §7.1.1.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant D as EzServer (디바이스)
-    participant GW as GW (Auth)
+    participant D as EzServer (디바이스, 개인키 보유)
+    participant GW as GW (Auth · 공개키(client_public_key) 보유)
     loop access token 만료 시 (refresh token 미사용)
-        D->>GW: POST /v1/auth/token (clientId/secret, scope)
-        GW->>GW: allowlist·lifecycle 확인(§7.2) · secret 검증
+        D->>D: 개인키로 client_assertion(JWT) 서명 — 소지 증명(private_key_jwt)
+        D->>GW: POST /v1/auth/token (clientId, client_assertion, scope)
+        GW->>GW: allowlist·lifecycle 확인(§7.2) · assertion 서명 검증(device.client_public_key 공개키)
         GW->>GW: claim hard binding (deviceId·region·aud·TTL)
-        GW-->>D: access token (단명, Unix ms 만료)
+        GW-->>D: access token (단명 JWT, Unix ms 만료)
     end
-    Note over D,GW: 미등록/revoked → 거부 · secret 불일치 → 401 · scope 초과 → 403
-    Note over D,GW: 갱신 = 동일 client_credentials 재발급 (refresh_token grant 미도입, §7.1.1)
+    D->>GW: 이후 API 호출은 이 access token을 Bearer로 첨부(만료 시 위 루프 반복)
+    Note over D,GW: 비대칭 서명 검증(암호화·공유 secret 아님) — 개인키는 디바이스를 떠나지 않고 GW는 공개키로 검증만(ADR-13)
+    Note over D,GW: 미등록/revoked/pending → 거부 · assertion 서명 검증 실패 → 401 · scope 초과 → 403
 ```
 
 ### 2.3.3 리전 해석·라우팅 — FR-RGN-\*
@@ -824,7 +827,7 @@ GW는 **클라이언트(EzServer/CleverOne)·upstream(AXS·CleverSpace·OneID)·
 | 의존 | 역할 | 개발 환경 대체 |
 | --- | --- | --- |
 | **AXS** | 외부 연동(C, §7.5) | **AXS sandbox**(unstable, ESIP-14·④) — connector 1차 개발 대상. 자격증명 미수령 시(Appendix B #6) **AXS 응답 mock** |
-| **EzServer PMS Integration(EPI)** | GW 호출 클라이언트(경로 A) | **클라이언트 에뮬레이터** — `Vatech-Target` 헤더 부착·presigned 중계 요청·머신 인증(client_credentials)·역방향 MQTT 구독을 흉내(실 EzServer는 Rust 재개발 중) |
+| **EzServer PMS Integration(EPI)** | GW 호출 클라이언트(경로 A) | **클라이언트 에뮬레이터** — `Vatech-Target` 헤더 부착·presigned 중계 요청·머신 인증(client_credentials + private_key_jwt, 키페어 서명)·역방향 MQTT 구독을 흉내(실 EzServer는 Rust 재개발 중) |
 | **CleverSpace(EzCloud)** | presigned 발급 주체(②) | **발급 스텁** — presigned URL 발급 응답 mock + storage=MinIO/S3 dev (GW는 중계만이라 발급 응답만 필요) |
 | **OneID** | 사람·클리닉 인증(OIDC) | dev 테넌트(실) 또는 **OIDC mock** |
 | **LMP** | Clinic-ID 발급원(온보딩, §2.3.1) | **스텁/시드** — Clinic-ID 발급 흉내로 자동 등록 테스트 |
@@ -1012,7 +1015,7 @@ EzServer(디바이스, §1.4)와는 네트워크(REST/TLS) 인터페이스만. �
 ## 4.5 Communication Interface (통신 인터페이스)
 
 - 프로토콜: HTTPS(TLS 1.2+). Webhook 수신=HTTPS POST. Edge 분배=MQTT(QoS1·persistent).
-- 보안: Bearer JWT(사내), OAuth2 client_credentials(디바이스·AXS), Webhook HMAC 서명·IP allowlist·timestamp.
+- 보안: Bearer JWT(사내), OAuth2 client_credentials(디바이스=private_key_jwt 비대칭·§7.1.1 / AXS=OAuth2), Webhook HMAC 서명·IP allowlist·timestamp.
 - 동기화: idempotency key(업로드 commit·Webhook eventId), 재시도·백오프·DLQ.
 - presigned: 디바이스→리전 storage 직결(GW 미경유).
 
@@ -1232,7 +1235,7 @@ flowchart LR
 > - **가드레일(분리 신호)**: org_mapping에 **provider 조건 분기·provider 전용 컬럼**을 넣고 싶어지는 순간 = 그 provider를 **전용 테이블로 빼라는 신호**. org_mapping은 "순수 식별자 매핑"으로만 유지.
 > - **한 줄**: org_mapping은 "모든 provider가 맞춰야 하는 틀"이 아니라 **"같은 모양 provider를 위한 편의"**. 2번째 provider가 달라도 org_mapping이 아니라 **그 provider 전용 테이블**이 추가될 뿐 기존은 안 깨진다.
 - **`provider` 식별자 관리 (R8 확인)**: `provider`는 여러 테이블(`org_mapping`·`webhook_provider`·`webhook_event`…)에서 키로 쓰이므로 **정규 토큰**(소문자 `^[a-z0-9_]+$`, 예 `axs`)으로 관리하고 표기를 통일한다. **enum 금지**(연동 provider는 런타임 추가 → 스키마 고정 부적합). **canonical provider 레지스트리(SSOT)로 FK 강제**할지, `provider`(webhook/org 축)와 `upstream_registry.target_id`(proxy 대상 축, AXS에선 같은 `axs`)를 **하나로 통합**할지는 **R8 결정**(현재 `webhook_provider`가 webhook측 사실상 레지스트리이나 범용 아님 — cleverspace는 proxy 대상이지 webhook provider 아님).
-- **region (A안 확정)**: **region SSOT = Clinic**(`clinic_region_mapping`, 1:1). **device의 region은 `device.clinic_id → clinic_region_mapping.region` 파생** — **device.region 컬럼·device-level `region_mapping` 테이블은 제거**(중복·drift 제거, relocation은 clinic 1곳만 변경). region 버전·이력은 `clinic_region_mapping.mapping_version`(FR-RGN-02). §7.3 resolver는 deviceId를 받아도 device→clinic→region으로 해석.
+- **region (A안 확정)**: **region SSOT = Clinic**(`clinic_region_mapping`, 1:1). **device의 region은 `device.clinic_id → clinic_region_mapping.region` 파생** — **device.region 컬럼·device-level `region_mapping` 테이블은 제거**(중복·drift 제거, relocation은 clinic 1곳만 변경). region 버전 마커는 `clinic_region_mapping.mapping_version`(캐시 무효화·drift 감지·CAS, §7.3.2), 값 이력·롤백은 `audit_log`(FR-RGN-02). §7.3 resolver는 deviceId를 받아도 device→clinic→region으로 해석.
   - **미래(C안 여지)**: clinic 비소속(비-EzServer) device는 파생할 clinic이 없어 device-level region이 필요할 수 있음 → 실제 등장 시 추가(현재 미정의).
 - **(미결·논의)** 현재 "clinic" 엔터티는 별도 테이블 없이 `clinic_region_mapping`(클리닉 레지스트리 겸 region 배정)이 대신한다 — **전용 `clinic` 테이블 분리 여부**는 별도 결정(본 A안 범위 밖).
 
@@ -1245,16 +1248,12 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph ID["식별·테넌트 (§6.4.1 상세)"]
-        DEV[device]
+        DEV["device<br/>(+ client_id·client_public_key = 인증 자격)"]
         CLI["clinic_region_mapping<br/>(= clinic · region 배정)"]
         ORG["org_mapping<br/>(외부 org id · 확장)"]
     end
     subgraph RGN["리전"]
         RC[region_catalog]
-    end
-    subgraph AUTH["인증·온보딩"]
-        CRED[credential]
-        TOK[token]
     end
     subgraph DISP["라우팅·분배"]
         UPS[upstream_registry]
@@ -1275,19 +1274,19 @@ flowchart TB
     DC --> CLI
     WE --> ORG
     WE --> WP
-    CRED --> DEV
-    TOK --> DEV
     FLEET --> DEV
     CONN -.-> UPS
     style ID fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
 ```
 
-- 저장 정보 유형: 디바이스 레지스트리, device/clinic↔region 매핑, 토큰 메타, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event`, 멱등·DLQ)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·Vatech-Target upstream(`upstream_registry`, 라우팅+per-upstream 복원력 설정)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 본문은 미저장**(presigned 직결). **호환성 매트릭스는 DB 미저장** — 소스 파일 → well-known JSON(§7.7.5, `compat_matrix` 테이블 폐기).
+> **인증·온보딩은 별도 테이블이 없다** — 자격은 `device`(client_id·client_public_key)에 통합, 발급 access token은 **무상태 JWT**(서명 검증·저장 안 함, §7.1.1·ADR-02), enrollment 부트스트랩·승인 대기는 `device.status`(pending), 이력은 `audit_log`. (과거 `enrollment_token`·`credential`·`token` 테이블은 모두 폐기.)
+
+- 저장 정보 유형: 디바이스 레지스트리(+인증 자격 client_id·client_public_key), device/clinic↔region 매핑, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event`, 멱등·DLQ)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·Vatech-Target upstream(`upstream_registry`, 라우팅+per-upstream 복원력 설정)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 본문은 미저장**(presigned 직결). **호환성 매트릭스는 DB 미저장** — 소스 파일 → well-known JSON(§7.7.5, `compat_matrix` 테이블 폐기).
 - 캐시: **Valkey**(ElastiCache for Valkey·Redis 호환, §1.4)(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS·webhook dedup). **캐시(PG 재구성 가능) + 휘발 상태(nonce·멱등·dedup·rate-limit·lock)이며 SSOT 아님.** 키 패턴·TTL·재구성 출처는 키스페이스 카탈로그 `design/redis/redis-keyspace.md`(DBML과 나란한 설계 산출물)
 - **데이터 토폴로지(멀티 서버·멀티 리전, §2.1.1)**: 리전 내 pod는 **동일 DB·Redis 공유**(무상태 앱 tier). 멀티 리전에서는 **(전역 일관) 라우팅·식별 데이터**(매핑·레지스트리·Org-ID·정책·compat·JWKS) 와 **(리전 로컬) 운영 데이터**(audit·in-flight queue)로 나눈다. 전역 데이터는 어느 리전에서도 같은 답을 내야 하며(soft-state 캐시 + strong-consistency 경로·`mapping_version`), 운영 데이터는 리전 로컬이다. **저장소 구현(전역 DB 단일 vs 리전별 복제)은 gw/1.2 TBD(Appendix B #15)**, 구분 원칙은 고정.
 - 무결성:
   - 감사 로그 = **append-only**(UPDATE/DELETE 금지, FR-AUD-01)
-  - 매핑 변경 = `mapping_version` 증가·이력 보존(FR-RGN-02)
+  - 매핑 변경 = `mapping_version` 단조 증가(캐시 무효화·CAS·drift 감지) · 값 이력은 `audit_log`(FR-RGN-02·FR-AUD-01)
   - idempotency key 유니크 제약(중복 commit/이벤트 방지)
 - 보존 기간:
   - **TBD**: 감사 로그·consent 보존 기간
@@ -1370,16 +1369,25 @@ GW는 **두 개의 인증면(surface)을 분리·공존**시킨다(ADR-08): 무�
 
 ### 7.1.1 EzServer(디바이스) 머신 인증 (P1)
 
-FR-AUTH-01·05 (OAuth2 `client_credentials`, claim hard binding).
+FR-AUTH-01·05 (OAuth2 `client_credentials` + **비대칭 `private_key_jwt` 클라이언트 인증**, claim hard binding).
 
-- **Input**: `client_id`/`client_secret`(또는 HW키 바인딩), 요청 scope
-- **Trigger**: 디바이스가 작업 전 토큰 발급 요청. **토큰 갱신 = refresh token이 아니라 동일 `client_credentials`로 재발급**(만료 시 디바이스가 자기 자격으로 재인증). RFC 6749 §4.4.3(client_credentials는 refresh token 미발급)에 부합하며, 단명 토큰 + 즉시 revocation(§7.2.4) 모델을 유지한다.
+> **인증 흐름 3단계(개요).** 무인 디바이스라 사람 로그인(Authorization Code)이 아니라 **머신 인증**이며, **공유 secret 대신 키페어(비대칭 서명)** 를 쓴다.
+> 1. **등록(enroll, 1회, §2.3.1(2))** — EzServer가 **키페어 생성** → **공개키만 GW에 등록**(`device.client_public_key`) + `client_id` 발급. 개인키는 디바이스를 떠나지 않는다. (OIDC의 "client 등록=공개키 등록"에 해당.)
+> 2. **인증(토큰 발급, 만료마다)** — EzServer가 **개인키로 assertion(JWT)을 서명**해 제시 → GW가 **공개키(client_public_key)로 서명 검증** → **단명 access token(JWT) 발급**. (`client_credentials` 그랜트 + `private_key_jwt` 클라이언트 인증.)
+> 3. **API 호출(상시)** — 발급받은 access token을 **Bearer로 첨부**해 통신. 만료 시 2를 반복(개인키 재서명).
+>
+> **핵심:** 개인키 보유자만 만들 수 있는 **서명**으로 신원을 증명(암호화가 아님)하고, GW는 **공개키로 검증만** 한다. **공유 secret은 없다**(배포·회전 노출면 제거, ADR-13). 일반적으로 떠올리는 "로그인 OIDC"(사람·Authorization Code)는 §7.1.4 OneID 면이며 본 절과 분리된다(ADR-08).
+
+- **인증 방식 = 비대칭(공유 secret 없음, ADR-13).** 디바이스 인증은 **OAuth2 `client_credentials` 그랜트 + `private_key_jwt` 클라이언트 인증**(RFC 7521/7523)이다. 디바이스가 **enrollment에서 만든 키페어의 개인키로 JWT assertion을 서명**해 제시하고, GW는 **`device.client_public_key`(그 키페어의 공개키)로 검증**한다. **공유 `client_secret`을 발급·배포·저장하지 않는다** — 개인키는 디바이스를 떠나지 않으므로 secret 하향 전달·회전 문제가 원천 제거된다(enroll 자동 완결, §2.3.1(2)·§7.2.5). `client_public_key`(공개키)가 SSOT라 별도 secret 저장소가 없고, **자격 데이터는 `device.client_id`(nullable)+`device.client_public_key`로 통합**(별도 `credential` 테이블 폐기, §6.4.1). `client_id`가 없는 device = client 자격 미발급 상태.
+- **Input**: `client_id` + **`client_assertion`(디바이스 개인키로 서명한 JWT, `client_assertion_type=jwt-bearer`)**, 요청 scope
+- **Trigger**: 디바이스가 작업 전 토큰 발급 요청. **토큰 갱신 = refresh token이 아니라 개인키로 새 assertion을 서명해 재발급**(만료 시 디바이스가 자기 키로 재인증). RFC 6749 §4.4.3(client_credentials는 refresh token 미발급)에 부합하며, 단명 토큰 + 즉시 revocation(§7.2.4) 모델을 유지한다.
 - **Output**: 단명 access token. claim에 `device_id`·`region`·`aud`·`TTL`을 **강제 바인딩**. **refresh token은 발급하지 않는다.**
 - **Side Effect**: 토큰 발급 이력 기록(§7.9 감사), Redis에 JWKS·rate-limit 카운터 갱신
-- **에러**: 미등록/revoked 디바이스 → 거부(§7.2 lifecycle 연계), secret 불일치 → 401, scope 초과 → 403
+- **에러**: 미등록/revoked/pending 디바이스 → 거부(§7.2 lifecycle 연계), **assertion 서명 검증 실패(공개키 불일치·만료·nonce/aud 불일치)** → 401, scope 초과 → 403
 - **비목표(Will Not Do)**:
-  - **refresh token / `refresh_token` grant 미도입** — 디바이스 머신 인증은 client_credentials 재발급으로만 갱신한다. refresh token은 장수명 자격이라 별도 revocation·회전 관리가 필요해 단명+즉시차단 모델과 상충하므로 도입하지 않는다. (사람·조직의 OIDC refresh 수명주기는 §7.1.4 OneID 도메인이며 디바이스 면과 분리, ADR-08.)
-  - DPoP(sender-constrained)·하드웨어 키(SE/TPM) 비추출은 **gw/1.1**(FR-AUTH-06/07). v1.0은 claim 바인딩까지. (secret 재전송 노출 완화는 refresh token이 아니라 이 DPoP+HW키 경로로 해결한다.)
+  - **refresh token / `refresh_token` grant 미도입** — 디바이스 머신 인증은 개인키 재서명(assertion 재발급)으로만 갱신한다. refresh token은 장수명 자격이라 별도 revocation·회전 관리가 필요해 단명+즉시차단 모델과 상충하므로 도입하지 않는다. (사람·조직의 OIDC refresh 수명주기는 §7.1.4 OneID 도메인이며 디바이스 면과 분리, ADR-08.)
+  - **공유 `client_secret` 미도입**(ADR-13) — 대칭 secret은 하향 전달·보관·회전 노출면이 있어 비대칭(private_key_jwt)으로 대체한다.
+  - DPoP(sender-constrained)·**하드웨어 키(SE/TPM) 비추출은 gw/1.1**(FR-AUTH-06/07) — v1.0은 SW 보관 개인키, gw/1.1에서 같은 키를 TPM/SE 비추출로 이관(+hardware attestation, FR-ENR-06·ADR-01). 즉 v1.0부터 비대칭이며 gw/1.1은 키 보관을 하드웨어로 강화하는 것. **개인키 보관 위치(SW/HW) 속성은 attestation과 함께 gw/1.1에서 도입**(v1.0은 검증 불가라 스키마 미보유).
 
 ### 7.1.2 사내 호출자 JWT 발급·검증 (P1)
 
@@ -1411,12 +1419,13 @@ FR-AUTH-08·09 (OneID 토큰 검증·연계, 디바이스 머신 인증 ↔ OneI
 
 > **본 절의 '디바이스'는 EzServer를 가리킨다**(GW 관점, §1.4 — 클리닉당 1개 엣지 머신). 물리 영상장비는 EzServer 뒤편(GW 비대상).
 
-GW는 무인 EzServer를 **레지스트리**로 관리하고, 신뢰할 수 없는 디바이스를 신뢰 가능한 상태로 전환하는 **온보딩(enrollment)** 절차를 제공한다. 온보딩 = 부트스트랩 신뢰 검증(LM 라이선스·Clinic-ID) + nonce·fingerprint 바인딩 → `pending` 등록 → **C/S 승인**으로 `active`(allowlist 활성)이며, `active` 디바이스만 인증(§7.1.1)·작업이 허용된다. 상세 흐름은 ARD §5.1.
+GW는 무인 EzServer를 **레지스트리**로 관리하고, 신뢰할 수 없는 디바이스를 신뢰 가능한 상태로 전환하는 **온보딩(enrollment)** 절차를 제공한다. 온보딩 = 부트스트랩 신뢰 검증(LM 라이선스·Clinic-ID) + nonce·공개키(client_public_key) 바인딩 → `pending` 등록 → **C/S 승인**으로 `active`(allowlist 활성)이며, `active` 디바이스만 인증(§7.1.1)·작업이 허용된다. 상세 흐름은 ARD §5.1.
 
 ### 7.2.1 디바이스 레지스트리·조회 (P1)
 
 FR-DEV-01 (등록·조회 CRUD).
 
+- **`device_id` 생성 규칙(확정).** GW가 **디바이스 최초 등록(enroll/complete) 시 생성**하는 **불투명(opaque)·안정(stable) 식별자**이며, **형식 = `UUIDv7`(RFC 9562)** — 128비트·시간정렬(인덱스 지역성)·불투명, canonical 소문자 문자열. **제조 일련번호(serial)나 `clinic_id`에서 파생하지 않는다**(외부·가변 값에 PK 결합 방지·열거 방지·공급망 디커플). 한번 부여되면 **디바이스 수명 동안 안정**(재설치·키 회전 시에도 유지 — 재-enroll은 같은 클리닉(EzServer 1대/클리닉, ADR-08)으로 기존 device를 찾아 `device_id`는 유지하고 `client_public_key`·`client_id`만 회전, §7.2.7). **발급 주체 대조**: `clinic_id`=LMP 발급(외부, §1.4) · `device_id`·`client_id`=GW 발급(Appendix B #29). 제조 serial 추적이 필요하면 `device_id`와 **별개의 선택 속성**으로 보관(PK 아님, LLD).
 - **Input**: 디바이스 식별·메타(클리닉 소속 포함)
 - **Output**: 레지스트리 레코드. 조회/목록(커서 페이지네이션)
 - **Side Effect**: 변경 이력 감사(§7.9)
@@ -1442,32 +1451,38 @@ FR-ENR-01·02 (부트스트랩 신뢰 검증 → `pending` 등록 → C/S 승인
 
 - **부트스트랩 신뢰 = LM 라이선스·Clinic-ID** (2026-07-01 결정). EzServer 설치 시 LMP로부터 받은 라이선스·Clinic-ID가 "정당한 그 클리닉의 EzServer"임을 뒷받침한다. **공장 주입 토큰·OOB 일회 코드는 미도입** — GW가 그런 토큰을 발급·저장하지 않는다(별도 사전 발급 시크릿 불필요).
 - **활성화 앵커 = C/S 사람 승인.** 자동 검증(라이선스·서명)만으로 `active`가 되지 않는다. enroll 완료 디바이스는 `pending`이며 **현장 설치를 담당한 C/S가 GW Console에서 승인**해야 `active`가 된다(§7.2.3·§7.9.2). 사람 승인이라 Clinic-ID 위·변조로도 가짜 등록이 활성화되지 않는다(위조 위험 무력화).
-- **Input**: 라이선스·Clinic-ID(부트스트랩) + (complete 단계) nonce 서명·공개키(fingerprint)
+- **Input**: 라이선스·Clinic-ID(부트스트랩) + (complete 단계) nonce 서명·공개키(client_public_key)
 - **Trigger**: 디바이스 최초 enrollment 요청 → 이후 C/S 승인
-- **Output**: `pending` 레지스트리 등록 → **C/S 승인 시** allowlist 활성(`active`) + 디바이스 자격(client_id/secret, 공개키 바인딩) 발급
+- **Output**: `pending` 레지스트리 등록 + **`client_id` 발급·공개키(client_public_key) 바인딩**(공유 secret 없음 — 인증=private_key_jwt, §7.1.1·ADR-13) → **C/S 승인 시** allowlist 활성(`active`)
+- **`client_id` 발급 규칙.** GW(인증 서버)가 **enroll/complete 시 자동 생성**한다 — OAuth2에서 client_id는 AS가 발급하는 **공개 식별자**이지 시크릿이 아니다(RFC 6749 §2.2). 공개키를 등록하고 client_id를 받는 이 절차는 **Dynamic Client Registration(RFC 7591)** 의 도메인 특화형이다. **OAuth은 의미만 규정하고 형식은 미정의**하므로 GW가 규칙을 정한다:
+  - ① **형식(확정) = `gwc_` 접두 + base64url(128비트 CSPRNG)**(패딩 없음, 총 26자). 불투명·고엔트로피, **`device_id`·`clinic_id` 등 내부 식별자에서 파생 금지**(내부 토폴로지 노출·열거 방지). 접두사는 로그·타입 식별용.
+  - ② **GW 전역 유일**(`device.client_id` UNIQUE 제약) — 충돌 시 재생성(무시할 확률).
+  - ③ **비밀 아님**(인증은 private_key_jwt 서명이 담당 — client_id 기밀성에 의존하지 않음). 단 예측이 어려워 fleet 열거를 방해한다.
+  - ④ 발급 형식은 확정(**Appendix B #28**), RFC 6749 §2.2 "크기 문서화" 충족.
+  - ⑤ **재설치·키 회전 시**(§7.2.7): device row(및 `device_id`)는 유지하되, 재설치로 로컬 자격을 잃은 디바이스가 새 키페어와 함께 **새 `client_id`를 재발급**받는다.
 - **에러**: 라이선스/Clinic-ID 신뢰 검증 실패·nonce 서명 불일치 → 거부. **C/S 승인 거부/미승인 → `pending` 유지(인증 불가)**
 
-### 7.2.6 nonce challenge · fingerprint 바인딩 (P1)
+### 7.2.6 nonce challenge · 공개키(client_public_key) 바인딩 (P1)
 
-FR-ENR-03·04 (replay 방지 nonce 서명, device fingerprint 바인딩).
+FR-ENR-03·04 (replay 방지 nonce 서명, device 공개키(client_public_key) 바인딩).
 
-- **fingerprint 정의 = EzServer가 생성한 키페어의 공개키(또는 그 해시=key-id).** 물리 머신 지문이 아니다. EzServer가 enrollment 시 키페어를 만들어 **nonce를 개인키로 서명**(소지 증명)하고 **공개키를 fingerprint로 전달** → GW가 device에 바인딩(§6.4 `device.fingerprint`). 이후 인증·재enrollment 시 대조한다.
-  - **v1.0**: 소프트웨어 보관 키(`credential.hw_key_bound=false`). **gw/1.1**: TPM/SE 비추출 키 + hardware attestation(`hw_key_bound=true`, FR-ENR-06·ADR-01).
-  - **LM(LicenseManager) fingerprint와 별개.** LM은 Cryptlex **하드웨어** 머신 지문으로 라이선스 활성화를 관리(`VERR_LICENSE_MACHINE_FINGERPRINT` — 재설치/HW 변경 시 재활성화·횟수 제한). GW fingerprint는 **디바이스 신원 키**(포터블·비추출 지향)로 축이 다르다. 단 **재설치 시 지문 변경→재활성화(제한·감사)** 처리 모델은 LM을 참고한다.
+- **`client_public_key`(공개키) 정의 = EzServer가 생성한 키페어의 공개키(또는 그 해시=key-id).** 물리 머신 지문이 아니다. EzServer가 enrollment 시 키페어를 만들어 **nonce를 개인키로 서명**(소지 증명)하고 **공개키를 전달** → GW가 device에 바인딩(§6.4 `device.client_public_key`). 이후 인증·재enrollment 시 대조한다.
+  - **v1.0**: 소프트웨어 보관 개인키(디바이스 보유). **gw/1.1**: TPM/SE 비추출 키 + hardware attestation(FR-ENR-06·ADR-01) — 이때 개인키 보관 위치(SW/HW) 속성을 도입(v1.0은 self-assert라 검증 불가·스키마 미보유).
+  - **LM(LicenseManager) machine fingerprint와 별개.** LM은 Cryptlex **하드웨어** 머신 지문으로 라이선스 활성화를 관리(`VERR_LICENSE_MACHINE_FINGERPRINT` — 재설치/HW 변경 시 재활성화·횟수 제한). GW의 `client_public_key`(공개키)는 **디바이스 신원 키**(포터블·비추출 지향)로 축이 다르다. 단 **재설치 시 키 변경→재활성화(제한·감사)** 처리 모델은 LM을 참고한다.
   - 정밀 암호(서명 알고리즘·키 포맷·key-id 산출)는 보안설계/LLD.
-- **Side Effect**: 서버 nonce 발급·검증, **공개키(fingerprint) 바인딩 저장**.
+- **Side Effect**: 서버 nonce 발급·검증, **공개키(client_public_key) 바인딩 저장**.
 
-### 7.2.7 재설치·fingerprint 회전 (P1)
+### 7.2.7 재설치·공개키(client_public_key) 회전 (P1)
 
-FR-ENR-07 (재설치·키 변경 시 fingerprint 회전). EzServer **재설치·키 유실 시 새 키페어가 생겨 fingerprint가 바뀐다** — 이를 **재-enrollment로 회전**한다. **개인키 백업은 도입하지 않는다**(백업본 유출 시 신원 도용 위험 + gw/1.1 비추출 목표와 상충).
+FR-ENR-07 (재설치·키 변경 시 공개키 회전). EzServer **재설치·키 유실 시 새 키페어가 생겨 공개키(client_public_key)가 바뀐다** — 이를 **재-enrollment로 회전**한다. **개인키 백업은 도입하지 않는다**(백업본 유출 시 신원 도용 위험 + gw/1.1 비추출 목표와 상충).
 
 - **회전 게이트(모두 충족)**: ① **부트스트랩 신뢰 재검증**(**LM 라이선스·Clinic-ID**로 정당한 그 클리닉의 EzServer 확인) · ② **동일 `clinic_id`** · ③ **C/S 승인**(재-enroll도 최초와 동일하게 GW Console 사람 승인 게이트 통과) · ④ **회전 횟수·속도 제한**(LM activation-limit 유사 — 유출 라이선스로 다수 등록 방지) · ⑤ **감사 로그**(append-only, 승인자·시각).
-- **동작**: 기존 fingerprint·credential **revoke**(§7.2.4) → 새 공개키 바인딩·새 credential 발급. **device는 클리닉당 활성 fingerprint 1개**(§6.4.1 1:1)라 회전 = 교체. 회전 이력은 `audit_log`.
+- **동작**: 기존 자격 **revoke**(§7.2.4, device.client_public_key·client_id 무효화) → 새 공개키(client_public_key) 바인딩·새 client_id 발급. **device는 클리닉당 활성 공개키(client_public_key) 1개**(§6.4.1 1:1)라 회전 = 교체. 회전 이력은 `audit_log`.
 - **원칙**: **"clinic_id만 같으면 무조건 허용" 아님** — 반드시 부트스트랩 신뢰(라이선스) 재검증 + **C/S 승인** + 제한 + revoke-old + 감사.
 - **에러**: 라이선스/신뢰 재검증 실패 → 거부. 회전 한도 초과 → 거부(Admin 개입).
 - **TBD**: 회전 횟수/속도 한도값·빈발 시 Admin 에스컬레이션 임계·정밀 암호 = 보안설계/LLD·**Appendix B #27**(승인 자체는 C/S 필수로 확정).
 
-**비목표(Will Not Do)**: 개인키 backup/restore(비추출 지향으로 미도입), geo/velocity 이상탐지(FR-ENR-05)·하드웨어 attestation(FR-ENR-06)은 **gw/1.1**. v1.0은 nonce·fingerprint(키 기반)·회전까지.
+**비목표(Will Not Do)**: 개인키 backup/restore(비추출 지향으로 미도입), geo/velocity 이상탐지(FR-ENR-05)·하드웨어 attestation(FR-ENR-06)은 **gw/1.1**. v1.0은 nonce·공개키(키 기반)·회전까지.
 
 ## 7.3 리전·라우팅·주권 (P1)
 
@@ -1484,9 +1499,9 @@ FR-RGN-01·06 (단일 리전 resolver, resolver가 `device_id`·`clinic_id` 모�
 - **에러**: 매핑 부재 → 거부, 캐시 미스 → strong-consistency 경로 폴백
 - 상세 흐름: ARD §5.2
 
-### 7.3.2 mapping_version (drift·롤백) (P1)
+### 7.3.2 mapping_version (버전 마커 · drift 감지) (P1)
 
-FR-RGN-02 (매핑 버전 추적). 매핑 변경 시 `mapping_version` 증가·이력 보존으로 drift 감지·롤백 지원.
+FR-RGN-02 (매핑 버전 추적). 매핑 변경 시 `mapping_version`을 **단조 증가(+1)** 시킨다. 용도: ① **캐시 무효화**(soft-state·다중 리전 — 각 리전 캐시가 버전 불일치를 보고 재적재, ADR-02·§2.1.1) · ② **낙관적 동시성 제어**(CAS — `UPDATE … WHERE mapping_version = N`으로 동시 수정 lost-update 방지) · ③ **drift 감지**(리전 간 버전 차이). **값 이력·롤백은 이 정수가 아니라 `audit_log`(before/after)가 담당** — mapping_version은 "몇 번째 버전인지" 표시일 뿐 과거 값을 담지 않는다. `clinic_region_mapping`·`org_mapping` 등 전역 일관 매핑에 **동일 의미**로 적용.
 
 ### 7.3.3 PHI 리전 경계 보장 (P1)
 
@@ -1514,6 +1529,7 @@ GW가 **운영 중인 리전 목록**을 조회 API로 제공한다 — 클라�
 - **API**: `GET /v1/regions` — 운영 리전 목록(region_id·표시명·endpoint·status[active/draining/planned]). 호스트 §4.5.1.
 - **DB**: `region_catalog` 테이블(§6.4)이 SSOT — v1.0은 **단일 리전 1행**, 2차(gw/1.2)에 N행으로 확장(§2.7.1 멀티리전-ready). `clinic_region_mapping.region`은 이 카탈로그를 참조한다.
 - **상태 전이**: `draining`(신규 등록 차단·기존 유지)·`planned`(목록 비노출) 등으로 점진 추가/회수 지원.
+- **관리(쓰기) API·Console UI는 미정의** — 본 절은 조회(`GET`)만 확정. 리전 개통·상태 전이·회수의 **운영자 관리 API(§7.9)** 와 **Console region 관리 UI(③-C)** 는 **Appendix B #30**으로 추적(v1.0=단일 리전이라 시급도 낮음, gw/1.2 전 필요).
 
 ## 7.4 파일 업로드 — presigned 중계 (P1) — **GW 비발급**
 
@@ -1757,6 +1773,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-23 | 라우팅 모델 | target-routed proxy(`Vatech-Target` 유무로 GW-own/proxy 구분, proxy는 verbatim) | 경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream | upstream 무한 확장을 설정(레지스트리 1행) 기반으로 — 코드·경로 변경 0(NFR-SCL), 내부·외부 단일 규칙 | PM/아키텍트(**CCB 승인 2026-06-25**) | ADR-11 |
 | 2026-06-23 | 리전 구축 단계화 | **1차 단일 리전(gw/1.0) → 2차 멀티 리전(gw/1.2)**, 단 v1.0부터 멀티리전-ready 설계 | 처음부터 멀티 리전 / 단일 리전 고정(확장 시 재작업) | 리스크·비용 낮추되 2차 확장을 재설계 없이(설정·배포 증분). 기존 "gw/1.0 흡수 여부 TBD"(B#7) 종결 | PM/아키텍트 | §2.7.1·§4.5.1·§7.3.5 |
 | 2026-06-30 | Webhook Dispatcher(분배 워커) | **별도 worker Deployment**(GW와 동일 코드베이스·HTTP 없이 SQS consumer만, 독립 스케일 KEDA·장애 격리) | 기존 GW 모듈 in-process(부하·스케일 결합) / 서버리스 Lambda(로직·DB·시크릿·egress 중복, 2nd 런타임 검증 부담) | 코드·도메인·커넥터·시크릿 공유(드리프트 0·단일 검증 스택) + API와 독립 스케일·격리. webhook은 버스트성이라 분배만 큐depth로 확장 | 아키텍트/GW 리드 | ADR-12 · §2.2·§2.3.6·§7.6.7 |
+| 2026-07-01 | 디바이스 머신 인증 방식 | **비대칭 `private_key_jwt`**(OAuth2 client_credentials + RFC 7523 — enroll 키페어 개인키 서명, `device.fingerprint` 공개키 검증) | 대칭 `client_secret` | secret 하향 전달·보관·회전 노출면 제거 + 이미 생성하는 키페어 재사용(자격 일원화)·비추출 gw/1.1 자연 승급. 공유 secret 폐지 | 아키텍트/GW 리드 | ADR-13 · §7.1.1·§7.2.5·§2.3.1(2) |
 
 > 전체 ADR(01~11)·근거는 ARD §2. 본 표는 SRS 차원 핵심 결정 요약. **ADR-11은 ARD §2에 기재(v0.10) · CCB 승인 완료(2026-06-25)**(Appendix B #13). **라우팅 방식 4안 다기준 비교·결정 표는 §4.1.2**(헤더 vs 경로 vs 서브도메인 vs 클라이언트 지정).
 
@@ -1777,11 +1794,14 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 22 | 업로드·presigned 모델 | **확정(2026-06-23): GW 비발급·중계만**(발급=CleverSpace②/AXS③). `/v1/uploads`·리전 Signer·Upload Session 폐기 | §4.1.4·§7.4·ADR-03/04 |
 | 23 | DNS apex 호스트명 | **확정(Scott, 2026-06-24): `gw.vatech.com`**(클라이언트 유일 호스트, GeoDNS apex) | §4.5.1 |
 | 13 | 라우팅 모델 ADR-11 (target-routed proxy) | **CCB 승인 완료(2026-06-25)** · ARD 기재(v0.10). 잔여(구현)=클라이언트 `Vatech-Target` 부착(③-P-\*, 결정 아님) | §4.1.1·§4.1.2·§7.5·Appendix A·ARD §2 |
+| 29 | `device_id` 생성 형식 | **확정(2026-07-01): `device_id` = UUIDv7**(RFC 9562, 128비트·시간정렬·불투명, canonical 소문자 문자열). GW가 등록 시 생성, serial·clinic_id 비파생, 재설치·회전 시 유지. 제조 serial은 PK 아닌 별도 선택 속성으로만(LLD) | §7.2.1·§6.4.1 |
+| 28 | `client_id` 발급 형식 | **확정(2026-07-01): `client_id` = `gwc_` + base64url(128비트 CSPRNG)**(패딩 없음, 총 26자, 불투명·내부 식별자 비파생·비밀 아님). UNIQUE 충돌 시 재생성(무시할 확률). 재설치·키 회전 시 재발급 | §7.2.5·§7.1.1 |
 
 ### B-2. 미결 (열린 TBD — baseline 전/설계 단계에 닫을 항목)
 
 | # | 항목 | 본문 | 책임자 | 마감 | 영향 |
 | --- | --- | --- | --- | --- | --- |
+| 30 | **region 카탈로그 관리(생성·상태 전이) API + Console UI** — 현재 `region_catalog`는 **읽기(`GET /v1/regions`)만** 정의(§7.3.6). 리전 개통·`draining`/`planned` 전이·회수 등 **운영자 관리 API(§7.9 관리 API)** 와 **GW Console region 관리 UI(③-C)** 가 필요. v1.0=단일 리전 1행이라 시급도 낮으나 gw/1.2 멀티리전 전 필요 | §7.3.6·§7.9·§6.4 | GW(관리 API)+③-C(UI) | gw/1.2 멀티리전 착수 전 | §7.3·③-C Console Sub-SRS |
 | 1 | v1.0 목표 RPS·동시 세션(fleet 규모) | §5.1·5.2 | 인프라(규모 PL 입력) | 설계 착수 전 | §3.1·§7.1·§7.4 |
 | 2 | 공개 엔드포인트 DNS 잔여 — apex는 확정(#23). 인증서·GeoDNS 구성·리전 내부 호스트 + **Webhook provider별 호스트 `{provider}.webhook.gw.vatech.com` 명시 등록**(와일드카드 DNS 미사용, TLS는 `*.webhook…` 와일드카드 cert 가능) | §4.5.1·§7.6.1·§7.6.2 | 인프라/플랫폼팀 | 배포 구성 착수 전 | §1.7.1·§3.1·§7.3.5·§7.6.1·①②④·③-C |
 | 3 | 경로 B EOS 시점 | §2.8·§7.6 | PM(제품) | ① One Pager 확정 시 | §7.6·① |
@@ -1799,7 +1819,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 24 | **개발·테스트·운영 환경 구축** — dev 에뮬레이터/스텁(EPI·CleverSpace presign·OneID·LMP)·AXS sandbox 자격(↔#6)·staging(운영 유사 축소)·dev/staging AWS 계정·sandbox egress EIP. 책임·일정 | §3.1·§3.4·§3.5 | 인프라/개발 | **dev: AXS 개발 착수 전** · staging: pilot 전 | §3·§7.5·④ |
 | 26 | **IaC 도구 확정** — 현 baseline=Terraform(ARD §4.5·§6.6.2)인데 실무·권장=**CDK**(AWS 전용·TS 스택 정합·CloudFormation 네이티브). 확정 시 ARD §4.5·SRS §6.6.2 정합 | §6.6.2·§6.3.3 | 인프라(③-I)+GW | 환경 구축 착수 전 | §3·§6·④ |
 | 25 | **프록시 타임아웃·재시도·서킷 수치 + v1.0 서킷 포함 범위** — `connect`/`response`/`total_deadline_ms`(per-upstream, `GW deadline < 클라이언트 타임아웃`)·재시도 상한/백오프/budget·서킷 임계·복구. 정책 골격은 §7.5.4·§7.7.4 확정, **수치·서킷 v1.0 범위가 미결**(upstream SLA·인프라 입력 의존) | §7.5.4·§7.7.4·§5.5·§4.1.2-6 | GW+인프라(+AXS SLA) | 프록시 구현 착수 전 | §7.5·§6.3.4·④ |
-| 27 | **fingerprint 회전(재설치) 정책 수치·crypto 확정** — 정책 골격은 §7.2.7 확정(라이선스/Clinic-ID 재검증·C/S 승인·기존 revoke·개인키 백업 미도입). **미결**: 회전 속도·횟수 상한, 빈발 시 Admin 에스컬레이션 임계, 키페어 알고리즘·key-id 산출·서명 스킴(nonce), revoke 전파 방식 | §7.2.6·§7.2.7·§2.3.1 | GW+보안 | enrollment 구현 착수 전 | §2.3·§7.2·보안설계·LLD |
+| 27 | **공개키(client_public_key) 회전(재설치) 정책 수치·crypto 확정** — 정책 골격은 §7.2.7 확정(라이선스/Clinic-ID 재검증·C/S 승인·기존 revoke·개인키 백업 미도입). **미결**: 회전 속도·횟수 상한, 빈발 시 Admin 에스컬레이션 임계, 키페어 알고리즘·key-id 산출·서명 스킴(nonce), revoke 전파 방식 | §7.2.6·§7.2.7·§2.3.1 | GW+보안 | enrollment 구현 착수 전 | §2.3·§7.2·보안설계·LLD |
 
 ## 8 Change Management Process
 
@@ -1893,6 +1913,16 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
 | 2026-06-25 | §1.4 용어에 **LMP(LicenseManager) = Clinic-ID 발급원** 정의 추가(§2.3.1 온보딩 자동 등록의 LMP 약어 명시) | (작성자 ID 미지정) |
 | 2026-06-26 | 잔재 전수 점검·정리 — §2.7 gw/1.2 "멀티클라우드 presign·**signer 확장**" → "멀티 리전 활성화(Aurora Global DB·GeoDNS)", §2.7.1 금지 노트의 "멀티클라우드 presign broker ready" 제거(GW 비소유·FR-SES-06 해당없음·line 1290과 일치), §2.1 노트 "비-AWS minio·디바이스→storage" → "AWS 미지원국 Provider MinIO·EzServer→발급주체 storage". signer/Upload Session/포터블 잔재 0 확인 | (작성자 ID 미지정) |
+| 2026-07-01 | **region 관리 API·Console UI 미비 발견 → Appendix B #30 등록** — `region_catalog`가 읽기(`GET /v1/regions`)만 있고 운영자 관리(생성·상태 전이)·Console UI가 없음을 검토 중 발견. §7.3.6에 "관리 API·UI 미정의(Appendix B #30 추적)" 명시. (발견 사항 기록 원칙 = Appendix B 정본 · UI=③-C · 논의=Agenda · 실행=Jira, DBML TODO 주석 비권장) | (작성자 ID 미지정) |
+| 2026-07-01 | **`mapping_version` 의미 정정("롤백" 과장 제거)** — 단조 증가(+1) 버전 마커로, 용도는 **캐시 무효화(soft-state 다중 리전)·낙관적 동시성(CAS)·drift 감지**임을 명확화. **정수 하나로는 과거 값이 없어 롤백 불가 → 값 이력·롤백은 `audit_log`(before/after)** 로 귀속. §7.3.2 제목·본문(drift·롤백→버전 마커·drift 감지), §6.4.2·§6.4.1, DBML `clinic_region_mapping`·`org_mapping`·관련 주석, 요구사항 FR-RGN-02 정합. org_mapping도 동일 의미(전역 캐시 대상) 명시 | (작성자 ID 미지정) |
+| 2026-07-01 | **`device_id`·`client_id` 형식 확정(권장→확정)** — **`device_id` = UUIDv7**(RFC 9562, 불투명·시간정렬·serial/clinic 비파생) · **`client_id` = `gwc_`+base64url(128비트 CSPRNG)**(불투명·내부 식별자 비파생·비밀 아님·충돌 시 재생성). §7.2.1·§7.2.5 확정 표현으로 갱신, DBML `device_id`·`client_id` 주석 반영, **Appendix B #28·#29를 B-2(미결)→B-1(완료·확정) 이동** | (작성자 ID 미지정) |
+| 2026-07-01 | **`device_id` 생성 규칙 정의(§7.2.1)** — `device_id`도 GW가 등록 시 생성함을 명시. **불투명·안정 식별자(UUID v4/v7 또는 ULID 권장)**, **제조 serial·clinic_id 비파생**(외부·가변값 PK 결합·열거 방지), 재설치·키 회전 시 유지(재-enroll은 클리닉으로 기존 device 매칭). 발급 주체 대조 명시(clinic_id=LMP / device_id·client_id=GW). serial 추적 필요 시 별도 선택 속성. DBML `device.device_id` 주석 반영. 정확한 형식=**Appendix B #29** | (작성자 ID 미지정) |
+| 2026-07-01 | **`client_id` 발급 규칙 정의(§7.2.5)** — OAuth2(RFC 6749 §2.2)는 client_id를 "AS(=GW) 발급·AS 내 유일·비밀 아님"으로만 규정하고 **형식은 미정의**라, GW 규칙을 명시: GW가 enroll/complete 시 **불투명 고엔트로피 난수**(≥128비트·URL-safe)로 생성, **device_id·clinic_id 등 내부 식별자 비파생**(열거 방지), UNIQUE, 비밀 아님(인증=private_key_jwt), 재설치·키 회전 시 device_id 유지·client_id 재발급. 공개키 등록+client_id 발급 = **DCR(RFC 7591) 도메인 특화형**. DBML `device.client_id` 주석·OpenAPI(enroll/complete·Device clientId 설명) 반영. 정확한 길이·인코딩·prefix = **Appendix B #28** | (작성자 ID 미지정) |
+| 2026-07-01 | **`fingerprint` → `client_public_key` 리네이밍(전 문서)** — 실제로는 EzServer 키페어의 **공개키**인데 "fingerprint"가 **하드웨어/머신 지문**을 연상시키고 **LM Cryptlex machine fingerprint와 단어 충돌**(계속 "지문 아님" 주석 필요)이라 정확한 명칭으로 교체. DBML `device.client_public_key`(snake), OpenAPI `clientPublicKey`(camel, EnrollCompleteRequest·Device), SRS §2.3.1(2)·§2.3.2·§6.4.2·§7.1.1·§7.2.5/6/7(§7.2.6·§7.2.7 제목 포함)·ARD §5.1·다이어그램·ADR-13·요구사항 FR-ENR-04/FR-AUTH-01·08 데이터모델 일괄 반영. LM machine fingerprint 참조는 그대로 보존. 과거 변경이력·결정로그 행은 불변(기록 무결성) | (작성자 ID 미지정) |
+| 2026-07-01 | **`token` 테이블 삭제 + DBML 테이블 설명 보강** — 발급 access token은 **무상태 JWT**(서명 검증·DB 조회 안 함, ADR-02)이고 폐기는 **디바이스 단위**(§7.2.4)라 발급 토큰을 저장할 필요가 없음(발급 이력=audit_log, claim 바인딩=§7.1.1 발급 로직). `jwt_claims`는 JWT 원문이 아니라 claim 메타였고 원문 저장은 유출 위험. §6.4.2 조감도에서 token 노드·AUTH 그룹 제거(인증 자격은 device로 통합)·저장유형 텍스트 정리. DBML `token` 테이블 삭제(13→12)·`clinic_region_mapping`·`region_catalog`·`webhook_event`·`org_mapping` Note 리치화. 08 데이터모델 Token 행 제거. **ARD §5.1 온보딩 다이어그램을 구 이미지→mermaid(3단계) 교체**·Auth Service 컴포넌트 정리·v0.19. 미래 토큰단위 폐기 필요 시 token_denylist(jti,exp)만 추가 | (작성자 ID 미지정) |
+| 2026-07-01 | **인증 흐름 이해도 보강(다이어그램·§7.1.1)** — §2.3.2 인증 시퀀스의 잔재 `clientId/secret`을 **`clientId, client_assertion`(개인키 서명 JWT)** 로 교정 + **개인키 서명 단계·access token Bearer 재사용(3단계)** 명시, 도입부에 비대칭·공개키 검증 설명 추가. §2.3.1(2) enroll 시퀀스에 "등록 공개키로 이후 인증 검증" 연결 노트 추가. §7.1.1에 **인증 흐름 3단계 개요 박스**(등록→서명 인증→토큰 사용, "서명이지 암호화·공유 secret 아님", 로그인 OIDC와 분리) 신설. 문서 오류 정정 + 리뷰어 이해도 목적(설계 변경 없음) | (작성자 ID 미지정) |
+| 2026-07-01 | **`credential` 테이블 삭제 → `device` 통합** — private_key_jwt 전환 후 자격 데이터가 client_id 하나만 남아(개인키=디바이스, 공개키=device.fingerprint) 별도 1:1 테이블이 불필요. `client_id`를 **`device.client_id`(nullable·unique)** 로 이관 — `device_id`로 통일하지 않음(client_id는 optional: "client 자격 미발급 device" 표현 유지). `secret_ref`는 공유 secret 폐지로 제거, **`hw_key_bound`는 v1.0에서 self-assert라 검증 불가 → gw/1.1 attestation(FR-ENR-06·FR-AUTH-07)으로 이관**(현재 스키마 미보유). DBML 14→13 테이블·§6.4.2 조감도 credential 노드 제거·§7.1.1·§7.2.5·6·7 참조 정리. OpenAPI: `Device`에 clientId 추가·`Credential` 스키마 제거. 08 문서·ARD §5.1·v0.18 정합 | (작성자 ID 미지정) |
+| 2026-07-01 | **디바이스 인증 = 비대칭 `private_key_jwt` 확정(ADR-13) — 공유 client_secret 폐지** — 디바이스 머신 인증을 OAuth2 client_credentials + **private_key_jwt**(enroll 키페어 개인키로 JWT assertion 서명 → `device.fingerprint` 공개키로 검증)로 확정. **공유 secret 발급·배포·저장·회전 전면 폐지**(하향 전달 노출면 제거·enroll 자동 완결·키페어 중복 제거). §7.1.1 인증방식·Input·에러·비목표 재작성, §7.2.5 Output(client_id 발급·secret 없음), §2.3.1(2)·§2.3.2 시퀀스(assertion 서명 검증). **DBML `credential.secret_ref` 제거**. OpenAPI: `TokenRequest`(clientSecret→clientAssertion+type), `Credential`(secretRef 제거), `enroll/complete`=client_id 반환. 요구사항 FR-AUTH-01·08 문서·ARD §5.1·ADR-13·v0.17 정합. Appendix A ADR-13 | (작성자 ID 미지정) |
 | 2026-07-01 | **§2.5 사용자 계층에 C/S(현장 설치 담당) 추가 + C/S 전원 Console 등록 요구** — enrollment 승인 주체인 C/S가 §2.5에 없던 것을 추가(핵심·설치 시·승인 write). §7.9.2에 **모든 C/S 인력을 GW Console 사용자로 사전 등록**(OneID+C/S 역할)해야 승인 공백이 없음을 명시(프로비저닝 상세는 ③-C). §1.4에 **OOB(Out-Of-Band) 대역외** 용어 추가(GW 미도입 명시) | (작성자 ID 미지정) |
 | 2026-07-01 | **enrollment 부트스트랩 = LM 라이선스·Clinic-ID + C/S 사람 승인 게이트 확정** — 부트스트랩 신뢰를 **LM 라이선스·Clinic-ID**(EzServer가 LMP에서 수신)로 확정하고 **공장 토큰/OOB·사전 발급 토큰은 미도입**. 최종 활성화는 **C/S(현장 설치 담당)의 GW Console 승인**(`pending → active` lifecycle 게이트) — 사람 승인이 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 차단(→ "GW의 Clinic-ID 검증 방식" 안건 불요). §2.3.1(2) 산문+시퀀스(C/S 승인 단계·pending/active), §7.2 도입·§7.2.3(승인 게이트)·§7.2.5(부트스트랩·승인)·§7.2.7(회전도 C/S 승인)·§7.9.2(C/S 승인 권한) 갱신. **DBML `enrollment_token` 테이블 제거**(사전 발급 토큰 없음·승인 대기=device.pending, 14 테이블)·device_status 주석·§6.4.2 조감도 노드 제거. OpenAPI: enroll/start(라이선스 부트스트랩)·enroll/complete=**202 pending**·PATCH devices=승인 전이·bootstrap 설명. ARD §5.1 스텝1/4/5/6/7·Enrollment Service·v0.16. 08 문서 데이터모델·enrollment 노트 정합 | (작성자 ID 미지정) |
 | 2026-07-01 | **fingerprint = EzServer 생성 키페어 공개키로 정의·재설치 회전 정책 신설** — device fingerprint가 **물리 머신 지문이 아니라 EzServer가 enrollment 시 생성한 키페어의 공개키/key-id**(신원 바인딩)임을 명확화(LM Cryptlex VERR_LICENSE_MACHINE_FINGERPRINT 하드웨어 지문과 별개; v1.0 SW 보관 키 hw_key_bound=false, gw/1.1 TPM/SE 비추출 ADR-01). §2.3.1(2) enrollment 산문+시퀀스(키페어 생성·nonce 개인키 서명·공개키=fingerprint) 보강, **§7.2.6 정의 + §7.2.7 신설(FR-ENR-07 재설치 회전: 부트스트랩 신뢰(라이선스/Clinic-ID) 재검증·기존 revoke·횟수/속도 제한·감사, 개인키 백업 미도입, "clinic-id 동일=무조건 허용" 반려)**. DBML `device.fingerprint` 주석·OpenAPI EnrollCompleteRequest(nonceSignature·fingerprint) 정합. ARD §5.1 스텝3/5/7·Enrollment Service·v0.15 동기화. 수치·crypto = Appendix B #27 | (작성자 ID 미지정) |

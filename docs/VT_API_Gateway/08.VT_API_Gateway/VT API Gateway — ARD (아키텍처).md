@@ -25,6 +25,9 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.14 | 2026-06-30 | (SRS 동기화) | **ADR-12(Webhook 분배 워커 = 별도 worker Deployment)** 추가 + **Webhook Dispatcher** 컴포넌트 등록 — SQS consumer가 큐 소비→대상 해석→MQTT/HTTP 발행. Webhook Receiver는 수신·ACK·적재까지로 분리. SRS §2.2·§2.3.6·§7.6.7과 동기화. in-process·Lambda 반려 | Draft |
 | v0.15 | 2026-07-01 | (SRS 동기화) | **fingerprint = EzServer 생성 키페어 공개키**(물리·LM Cryptlex 하드웨어 지문 아님) 명확화 + **재설치 fingerprint 회전**(라이선스/Clinic-ID 재검증·기존 revoke·횟수제한·감사, 개인키 백업 미도입) — §5.1·Enrollment Service·SRS §7.2.6/§7.2.7·DBML·OpenAPI 정합 | Draft |
 | v0.16 | 2026-07-01 | (SRS 동기화) | **enrollment 부트스트랩 = LM 라이선스·Clinic-ID + C/S 사람 승인 게이트**(공장 토큰/OOB 미도입). enroll 완료=status pending → C/S가 GW Console 승인 → active(§7.2.3 lifecycle 게이트·§7.9.2 C/S 승인 권한). 재설치 회전도 C/S 승인 통과. **DBML `enrollment_token` 테이블 제거**(사전 발급 토큰 없음, 승인 대기=device.pending), OpenAPI enroll/complete=202 pending·PATCH devices=승인 전이. §5.1 스텝1/4/5/6/7·Enrollment Service 동기화 | Draft |
+| v0.17 | 2026-07-01 | (SRS 동기화) | **디바이스 인증 = 비대칭 private_key_jwt(ADR-13)** — 공유 client_secret 폐지, enrollment 키페어(개인키 서명 → fingerprint 공개키 검증) 재사용. §5.1 스텝5·ADR-13 추가. **DBML `credential.secret_ref` 제거**, OpenAPI(TokenRequest=clientAssertion·Credential=secretRef 제거·enroll/complete=client_id 반환), 요구사항 FR-AUTH-01 정합 | Draft |
+| v0.19 | 2026-07-01 | (SRS 동기화) | **token 테이블 삭제** — 발급 access token은 무상태 JWT(서명 검증·미저장), 폐기=device 단위(§7.2.4)라 저장 불필요(이력=audit_log). §5.1 온보딩 다이어그램을 **구 이미지 → mermaid 시퀀스로 교체**(enroll→C/S 승인→private_key_jwt 인증→API 3단계). Auth Service 컴포넌트에서 "token store·secret 회전" 제거(무상태·private_key_jwt 반영). DBML 13→12 테이블·SRS §6.4.2·08 데이터모델 정합 | Draft |
+| v0.18 | 2026-07-01 | (SRS 동기화) | **credential 테이블 삭제 → device 통합** — private_key_jwt 전환 후 남은 client_id를 `device.client_id`(nullable·unique, "client_id 없는 device" 표현 유지)로 이관, secret_ref 폐기, `hw_key_bound`는 v1.0 검증 불가라 gw/1.1 attestation(FR-ENR-06·FR-AUTH-07)으로 이관. DBML 13 테이블·§6.4.2 조감도 노드 제거·OpenAPI(Device에 clientId·Credential 스키마 제거) 정합 | Draft |
 
 ## 1. 아키텍처 개요
 
@@ -48,6 +51,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | ADR-10 | 라우팅 키 통합 — device↔clinic↔region (resolver가 device_id·clinic_id 모두 수용) | 디바이스 단위(08)·클리닉 단위(서비스 연동) 라우팅 이원화 제거. 디바이스는 클리닉에 소속되어 동일 리전으로 귀결 | 채택 |
 | ADR-11 | 라우팅 모델 = target-routed proxy — `Vatech-Target` 유무로 GW 고유 API(없음) vs upstream proxy(있음·논리 ID enum) 구분, proxy는 verbatim 전달(host만 교체). 신규 upstream = 레지스트리 1행(코드·경로 변경 0) | 경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream(SSRF) 반려. upstream 무한 확장을 설정 기반으로(NFR-SCL), 내부(B)·외부(C)를 단일 규칙으로 — 차이는 trust profile(C=OAuth·고정 egress IP)뿐 (SRS §4.1.1·§4.1.2) | 채택(2026-06-23) · **CCB 승인(2026-06-25)** |
 | ADR-12 | Webhook Dispatcher(분배 워커) = **별도 worker Deployment** — SQS(A)를 소비(consume)해 대상 해석 후 MQTT(Edge)/HTTP(클라우드)로 발행하는 주체. GW와 동일 코드베이스·HTTP 없이 consumer만, API tier와 독립 스케일(KEDA·SQS 큐depth)·장애 격리 | 기존 GW 모듈 in-process(부하·스케일 결합) / 서버리스 Lambda(로직·DB·시크릿·egress 중복·2nd 런타임 검증 부담) 반려. 코드·도메인·커넥터·시크릿 공유로 드리프트 0·단일 검증 스택 유지 + webhook 버스트를 분배만 독립 확장 (SRS §2.2·§2.3.6·§7.6.7) | 채택(2026-06-30) |
+| ADR-13 | 디바이스 머신 인증 = **비대칭 `private_key_jwt`**(OAuth2 client_credentials + RFC 7523) — enrollment 키페어의 개인키로 JWT assertion 서명, GW가 `device.client_public_key`(공개키)로 검증. **공유 `client_secret` 폐지**(하향 전달·보관·회전 노출면 제거·enroll 자동 완결) | 대칭 client_secret 반려(secret 배포·회전 부담·키페어와 중복). 이미 생성하는 키페어를 인증에 재사용 → 자격 일원화·비추출(gw/1.1 TPM/SE) 자연 승급 (SRS §7.1.1·§7.2.5·§2.3.1(2)) | 채택(2026-07-01) |
 
 ## 3. 논리 / 배포 구성
 
@@ -73,8 +77,8 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | 컴포넌트 | Plane | 책임 | v1.0 심도 |
 | --- | --- | --- | --- |
 | Device Registry / Lifecycle | Control | 디바이스 등록·조회·상태기계(pending→active→suspended→revoked) | 핵심 |
-| Enrollment Service | Control | 부트스트랩 신뢰(**LM 라이선스·Clinic-ID**)·nonce·**fingerprint(키페어 공개키) 바인딩**·**C/S 승인 게이트(pending→active)**·재설치 회전·자격 발급 | 핵심(HW attestation·개인키 비추출은 v1.1) |
-| Auth Service | Control | OAuth2 cc·JWT 발급/검증·token store·secret 회전 | 핵심(DPoP/HW키 v1.1) |
+| Enrollment Service | Control | 부트스트랩 신뢰(**LM 라이선스·Clinic-ID**)·nonce·**client_public_key(키페어 공개키) 바인딩**·**C/S 승인 게이트(pending→active)**·재설치 회전·자격 발급 | 핵심(HW attestation·개인키 비추출은 v1.1) |
+| Auth Service | Control | OAuth2 client_credentials + **private_key_jwt(비대칭)**·JWT 발급/검증(무상태·발급 토큰 미저장). 디바이스 자격=device(client_id·client_public_key). 외부(C) 토큰/secret 회전은 §7.1.3 connector | 핵심(DPoP/HW키·attestation v1.1) |
 | Region Resolver | Control | device→region 매핑·mapping_version·강한 일관성 경로 | 핵심(단일 리전) |
 | Router / PEP (target-routed proxy) | Control | `Vatech-Target` 기반 upstream 라우팅(B 내부·C 외부 동일 경로)·정책 체인(인증·버전·egress allowlist)·verbatim bypass. 외부(C)는 Connector Framework로 OAuth·egress 적용 | 핵심(ADR-11) |
 | Config Service | Control | 중앙 config push/pull | 핵심 |
@@ -124,13 +128,39 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 
 1. 디바이스가 부트스트랩 신뢰(**LM 라이선스·Clinic-ID** — EzServer가 설치 시 LMP에서 수신)로 enrollment 요청. (공장 토큰/OOB 미도입.)
 2. Control plane이 **nonce challenge** 발급.
-3. 디바이스가 **키페어 생성** → nonce **개인키 서명**(소지 증명) + **공개키(= device fingerprint)** 동봉 응답. (**fingerprint = 생성 키페어의 공개키/key-id**, 물리 머신 지문 아님 · LM Cryptlex 하드웨어 지문과 별개.)
-4. Control plane: 신뢰 검증(LM 라이선스·Clinic-ID) + 서명·fingerprint 검증 → 디바이스 **status=pending 등록**(아직 인증 불가).
-5. **C/S(현장 설치 담당) 승인**: GW Console에서 enrollment 승인 → **status pending → active**(활성화 게이트, 사람 승인 = 부트스트랩 신뢰 앵커). 승인 후 자격증명(client_id/secret, **공개키 바인딩**) 활성. **v1.0=SW 보관 키(hw_key_bound=false), gw/1.1=TPM/SE 비추출**(ADR-01).
+3. 디바이스가 **키페어 생성** → nonce **개인키 서명**(소지 증명) + **공개키(= client_public_key)** 동봉 응답. (**client_public_key = 생성 키페어의 공개키/key-id**, 하드웨어 지문 아님 · LM Cryptlex machine fingerprint와 별개.)
+4. Control plane: 신뢰 검증(LM 라이선스·Clinic-ID) + 서명·공개키 검증 → 디바이스 **status=pending 등록**(아직 인증 불가).
+5. **C/S(현장 설치 담당) 승인**: GW Console에서 enrollment 승인 → **status pending → active**(활성화 게이트, 사람 승인 = 부트스트랩 신뢰 앵커). 승인 후 자격(**client_id + 공개키(client_public_key) 바인딩**) 활성. **인증=비대칭 private_key_jwt(공유 secret 없음, ADR-13)** — 디바이스가 개인키로 서명, GW가 client_public_key(공개키)로 검증. **v1.0=SW 보관 개인키, gw/1.1=TPM/SE 비추출+attestation**(ADR-01). 자격은 별도 테이블 없이 device(client_id nullable·client_public_key)에 통합.
 6. lifecycle: pending → (C/S 승인) → active (강한 일관성 경로). active 디바이스만 인증(§7.1) 허용.
-7. **재설치·키 변경(fingerprint 회전)**: 부트스트랩 신뢰(라이선스·Clinic-ID) 재검증 + **C/S 승인** + **기존 fingerprint/credential revoke → 새 공개키 회전**(횟수·속도 제한·감사, 개인키 백업 미도입). 상세 SRS §7.2.7.
+7. **재설치·키 변경(공개키 회전)**: 부트스트랩 신뢰(라이선스·Clinic-ID) 재검증 + **C/S 승인** + **기존 공개키(client_public_key)/client_id revoke → 새 공개키 회전**(횟수·속도 제한·감사, 개인키 백업 미도입). 상세 SRS §7.2.7.
 
-![](images/image-2026-6-8_21-40-44.png)
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as EzServer (디바이스, 개인키 보유)
+    participant GW as GW (Enrollment/Auth)
+    participant CS as C/S (Console)
+    rect rgb(238,246,255)
+    Note over D,CS: [1] Enroll (1회) — 키페어 등록 + C/S 승인
+    D->>GW: enroll/start (LM 라이선스·Clinic-ID)
+    GW->>GW: 부트스트랩 신뢰 검증 · nonce 발급
+    GW-->>D: nonce challenge
+    D->>D: 키페어 생성 · nonce 개인키 서명 · 공개키=client_public_key
+    D->>GW: enroll/complete (nonce 서명, clientPublicKey=공개키)
+    GW->>GW: 검증 · device 등록(status=pending) · client_id 발급·공개키 바인딩
+    GW-->>D: client_id · status=pending (승인 대기)
+    CS->>GW: GW Console 승인(현장 설치 확인) → status pending→active
+    end
+    rect rgb(240,248,240)
+    Note over D,GW: [2] 인증(만료마다) — 개인키 서명으로 토큰 발급
+    D->>D: 개인키로 client_assertion(JWT) 서명 (private_key_jwt)
+    D->>GW: auth/token (client_id, client_assertion, scope)
+    GW->>GW: device.client_public_key(공개키)로 서명 검증 · lifecycle 확인 · claim 바인딩
+    GW-->>D: 단명 access token (JWT)
+    end
+    D->>GW: [3] 이후 API 호출에 access token을 Bearer로 첨부(만료 시 [2] 반복)
+    Note over D,GW: 공유 secret 없음 · 발급 access token 미저장(무상태 JWT) · 폐기=device 단위(ADR-13·§7.1.1)
+```
 
 ### **5.2 리전 해석 (Region Resolution)**
 

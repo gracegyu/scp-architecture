@@ -25,7 +25,7 @@
 | --- | --- | --- | --- |
 | POST | /v1/auth/token | 디바이스 client_credentials → JWT 발급 | AUTH-01/02 |
 | POST | /v1/enroll/start | enrollment 시작 → nonce challenge | ENR-01/03 |
-| POST | /v1/enroll/complete | 서명+fingerprint 검증 → 자격 발급(allowlist 등록) | ENR-01/04 |
+| POST | /v1/enroll/complete | 서명+공개키(clientPublicKey) 검증 → 자격 발급(allowlist 등록) | ENR-01/04 |
 | GET | /v1/region/resolve | device→region 해석(mapping_version) | RGN-01/02 |
 | POST | /v1/clinics | 클리닉 등록 — region 자가 선택(OneID 운영자 인증) | RGN-* |
 | POST | /v1/clinics/{clinicId}/org-bindings | 외부 provider Org-ID 등록(연동 연결 시·provider별) | INT-* |
@@ -50,9 +50,7 @@
 
 | 엔터티 | 핵심 필드 | 비고 |
 | --- | --- | --- |
-| Device | device_id, fingerprint, clinic_id, status(lifecycle) | PHI 없음 · region은 clinic 파생(A안) |
-| Credential | device_id, client_id, secret_ref(KMS), hw_key_bound | 시크릿 참조만 · enroll·C/S 승인 후 발급 |
-| Token | device_id, jwt_claims, expires_at | claim binding |
+| Device | device_id, client_id(nullable), client_public_key, clinic_id, status(lifecycle) | PHI 없음 · region은 clinic 파생(A안) · **인증 자격 통합**(별도 Credential 테이블 없음): private_key_jwt(client_id+공개키(client_public_key), 공유 secret 없음) |
 | RegionMapping | device_id, region, mapping_version | drift·롤백 |
 | Policy | tenant/connector, allowed_endpoints, scopes, egress | OPA |
 | Connector | name(axs), endpoint, credential_ref, egress_allowlist | adapter |
@@ -67,7 +65,7 @@
 | **UpstreamRegistry** | target_id, host, profile(internal/external), egress_allowlist | **Vatech-Target proxy 라우팅**(ADR-11) |
 | **DeliveryChannel** | clinic_id, channel_type(mqtt_edge/http_cloud), endpoint | webhook 분배 채널(Edge MQTT/Cloud HTTP) |
 
-> **Enrollment 모델(2026-07-01 확정)**: 부트스트랩 신뢰 = **LM 라이선스·Clinic-ID**(EzServer가 설치 시 LMP에서 수신)이며, **공장 토큰/OOB 코드·사전 발급 토큰은 미도입**(과거 `EnrollmentToken`/`token_ref` 폐기). 흐름: enroll(라이선스·Clinic-ID 검증 + nonce·fingerprint 바인딩) → `device.status=pending` → **C/S(현장 설치 담당)의 GW Console 승인** → `active`(인증 허용). 사람 승인이 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 차단한다. 승인 대기 상태는 별도 테이블 없이 `device.pending`, 이력은 `AuditLog`. 정본: SRS §2.3.1(2)·§7.2.5·§7.9.2 · ARD §5.1.
+> **Enrollment 모델(2026-07-01 확정)**: 부트스트랩 신뢰 = **LM 라이선스·Clinic-ID**(EzServer가 설치 시 LMP에서 수신)이며, **공장 토큰/OOB 코드·사전 발급 토큰은 미도입**(과거 `EnrollmentToken`/`token_ref` 폐기). 흐름: enroll(라이선스·Clinic-ID 검증 + nonce·공개키(client_public_key) 바인딩) → `device.status=pending` → **C/S(현장 설치 담당)의 GW Console 승인** → `active`(인증 허용). 사람 승인이 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 차단한다. 승인 대기 상태는 별도 테이블 없이 `device.pending`, 이력은 `AuditLog`. **이후 디바이스 인증 = 비대칭 `private_key_jwt`**(enroll 키페어 개인키 서명 → `client_public_key` 공개키 검증, 공유 secret 없음, ADR-13·§7.1.1). 정본: SRS §2.3.1(2)·§7.1.1·§7.2.5·§7.9.2 · ARD §5.1.
 
 ## 3. 데이터 주권 매핑
 

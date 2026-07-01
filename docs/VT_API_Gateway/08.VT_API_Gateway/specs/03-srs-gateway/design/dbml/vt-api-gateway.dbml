@@ -12,6 +12,10 @@
 // 2026-06-29 PR 정합 보강: upstream_registry 복원력 컬럼·enum화·created_at/updated_at·webhook_event 보강.
 // 2026-07-01: region A안(device.region·region_mapping 제거·device.clinic_id 추가) · compat_matrix 제거 · 전 필드 주석.
 // 2026-07-01: enrollment_token 제거 — 부트스트랩=LM 라이선스·Clinic-ID + C/S 사람 승인(사전 발급 토큰 없음). 승인 대기=device.pending(§2.3.1(2)·§7.2.5).
+// 2026-07-01: 디바이스 인증=비대칭 private_key_jwt(개인키 서명→device.fingerprint 공개키 검증), 공유 secret 폐지(ADR-13·§7.1.1).
+// 2026-07-01: credential 테이블 삭제 → device로 통합(client_id를 device.client_id nullable로 이관, secret_ref 폐기, hw_key_bound는 gw/1.1 attestation으로 이관). 13 테이블.
+// 2026-07-01: token 테이블 삭제 — 무상태 JWT(서명 검증)·디바이스 단위 폐기라 발급 토큰 저장 불필요, 이력은 audit_log. 12 테이블.
+// 2026-07-01: device.fingerprint → device.client_public_key 리네이밍 — 실제로 키페어 공개키라 'fingerprint'(하드웨어 지문 연상·LM machine fingerprint 충돌)를 정확한 명칭으로 교체(§7.2.6).
 
 Project vt_api_gateway {
   database_type: 'PostgreSQL'
@@ -58,16 +62,17 @@ Enum region_status {
   planned   // 계획(미개통)
 }
 
-// 디바이스 레지스트리 (FR-DEV-*)
+// 디바이스 레지스트리 (FR-DEV-* · FR-AUTH-01)
 Table device {
-  device_id   varchar [pk]                                       // GW 디바이스 식별자(= EzServer 인스턴스, §1.4)
+  device_id   varchar [pk]                                       // GW 디바이스 식별자(= EzServer 인스턴스, §1.4). **GW가 등록 시 생성 = UUIDv7**(RFC 9562·불투명·시간정렬, serial·clinic_id 비파생, §7.2.1·Appendix B #29 확정). 재설치·키 회전 시에도 유지. clinic_id는 LMP 발급이나 device_id는 GW 발급
   clinic_id   varchar [ref: > clinic_region_mapping.clinic_id]   // 소속 클리닉(FK). nullable(미래 클리닉 비소속 device). 등록 시 포함
-  fingerprint varchar                                            // EzServer가 enrollment 시 생성한 키페어의 공개키/key-id(신원 바인딩). 물리 머신 지문 아님(LM Cryptlex와 별개). 재설치=새 키→재-enroll로 회전(§7.2.6·7.2.7). v1.0 SW키(credential.hw_key_bound=false), gw/1.1 TPM/SE
+  client_public_key varchar                                      // EzServer가 enrollment 시 생성한 키페어의 공개키(또는 key-id). private_key_jwt 서명 검증 키·디바이스 신원 바인딩(§7.1.1·ADR-13). **하드웨어/머신 지문 아님**(구 명칭 'fingerprint'을 정확화, LM Cryptlex machine fingerprint와 별개). 재설치=새 키→재-enroll로 회전(§7.2.6·7.2.7). nullable(enroll 전). v1.0 SW키, gw/1.1 TPM/SE
+  client_id   varchar [unique]                                   // OAuth2 client id(고유). **GW가 enroll 시 생성 = `gwc_`+base64url(128비트 CSPRNG)**(불투명·내부 식별자 비파생, RFC 6749 §2.2·§7.2.5·Appendix B #28 확정). 공개 식별자(비밀 아님). **nullable** — client 자격 미발급 device(enroll 전·미래 비인증 device) 표현. 인증=private_key_jwt로 이 client_id + client_public_key(공개키) 검증(§7.1.1·ADR-13)
   status      device_status [not null, default: 'pending']       // lifecycle 상태(pending→active→suspended→revoked)
   created_at  bigint                                             // 생성(등록) 시각(Unix ms)
   updated_at  bigint                                             // 수정 시각(Unix ms)
 
-  Note: 'GW 관점의 디바이스 = EzServer(클리닉당 1개 엣지 머신, §1.4). PHI 없음. lifecycle 상태기계(§7.2). **region은 컬럼 없음 — clinic_id→clinic_region_mapping.region 파생**(§6.4.1 A안, region SSOT=clinic). clinic_id nullable(미래 비-EzServer). 컬럼명 device_* 리네이밍은 LLD'
+  Note: 'GW 관점의 디바이스 = EzServer(클리닉당 1개 엣지 머신, §1.4). PHI 없음. lifecycle 상태기계(§7.2). **region은 컬럼 없음 — clinic_id→clinic_region_mapping.region 파생**(§6.4.1 A안, region SSOT=clinic). clinic_id·client_id nullable(client_id 없음=client 자격 미발급 device). **인증=private_key_jwt**(개인키=디바이스 보유, 공개키=client_public_key로 검증, 공유 secret 없음·ADR-13) — 별도 credential 테이블 없음(2026-07-01 통합). client_public_key는 구 명칭 \'fingerprint\'을 정확화(하드웨어 지문 아님). 개인키 보관 위치(SW/HW)는 gw/1.1 attestation(FR-ENR-06·FR-AUTH-07)에서 도입'
   Indexes {
     clinic_id  // 클리닉별 디바이스 조회
     status     // 상태별 조회(운영·정리)
@@ -79,42 +84,29 @@ Table device {
 //   따라서 저장할 사전 발급 토큰이 없음. 승인 대기 상태 = device.status='pending'(C/S 승인 시 active),
 //   nonce challenge = Redis 휘발 상태, enroll/승인 이력 = audit_log. 별도 테이블 불필요.
 
-// 디바이스 자격증명 (FR-AUTH-*)
-Table credential {
-  device_id    varchar [pk, ref: - device.device_id]  // PK·FK → device(디바이스당 1개, 1:1)
-  client_id    varchar [unique]                       // client_credentials의 client id(고유)
-  secret_ref   varchar                                // client secret의 KMS 참조(평문 미저장)
-  hw_key_bound boolean [not null, default: false]     // HW 키 바인딩 여부(HW키 결속 인증)
+// (제거·2026-07-01) credential 테이블 삭제 → device로 통합 —
+//   비대칭 private_key_jwt(ADR-13)로 전환 후 자격 데이터가 client_id 하나만 남음(개인키=디바이스, 공개키=device.client_public_key).
+//   client_id를 device.client_id(nullable·unique)로 이관("client_id 없는 device" optional 의미 유지). secret_ref는 공유 secret 폐지로 제거.
+//   hw_key_bound는 v1.0에선 항상 false·검증 불가(attestation 필요)라 현재 스키마에서 제외 → gw/1.1 attestation(FR-ENR-06·FR-AUTH-07)에서 도입(ERD 미래).
 
-  Note: '**디바이스 런타임 자격증명**(enroll 성공·C/S 승인 후 발급, FR-AUTH-*). device와 1:1(device_id가 PK 겸 FK). client_credentials(client_id/secret)로 API 인증. secret은 원문 미저장 — KMS 참조(secret_ref)만 보관. hw_key_bound=false=v1.0 SW 보관 키 / true=gw/1.1 TPM·SE 비추출(ADR-01). 부트스트랩 신뢰(LM 라이선스·Clinic-ID)+C/S 승인으로 device active된 뒤 이 자격으로 상시 인증(§2.3.1(2)·§7.2.5)'
-}
-
-// 발급 토큰 메타 (FR-AUTH-05)
-Table token {
-  id         varchar [pk]                      // 발급 토큰 메타 식별자
-  device_id  varchar [ref: > device.device_id] // 어느 디바이스에 발급됐는지(FK)
-  jwt_claims jsonb                             // 발급 JWT claim(device·region·aud·TTL hard binding, §7.1.1)
-  expires_at bigint                            // 토큰 만료 시각(Unix ms)
-
-  Note: '**발급된 액세스 토큰(JWT)의 메타/이력**(FR-AUTH-05). 토큰 원문이 아니라 발급 사실·claim·만료를 기록(감사·폐기·재발급 판단). claim은 device/region/aud/TTL을 **hard binding**(§7.1.1) — 타 디바이스·타 리전 재사용 차단. credential(장기 자격)로 인증 후 이 단기 토큰을 발급'
-  Indexes {
-    device_id  // 디바이스별 발급 토큰 조회
-  }
-}
+// (제거·2026-07-01) token 테이블 삭제 —
+//   발급 access token은 **무상태 JWT**(서명으로 검증, DB 조회 안 함·ADR-02). 폐기는 **디바이스 단위**(device.status revoked → lifecycle 차단, §7.2.4)이지 토큰 단위가 아니라 발급 토큰을 저장할 필요가 없음.
+//   발급 이력은 audit_log가 담당. claim hard binding(FR-AUTH-05)은 발급 로직(§7.1.1)이 JWT에 넣는 것이지 테이블이 아님.
+//   미래 토큰 단위 즉시 폐기가 필요해지면(gw/1.1) 발급마다 쌓는 표가 아니라 token_denylist(jti, exp)만 추가.
 
 // (제거·2026-07-01 A안) device→region 매핑(region_mapping)은 삭제 —
 //   region SSOT=clinic. device region은 device.clinic_id → clinic_region_mapping.region 파생(§6.4.1).
-//   region 버전·이력(drift/롤백)은 clinic_region_mapping.mapping_version이 담당(FR-RGN-02).
+//   region 버전 마커(캐시 무효화·drift 감지·CAS)는 clinic_region_mapping.mapping_version, 값 이력·롤백은 audit_log(FR-RGN-02).
 
 // clinic → region 매핑 겸 클리닉 레지스트리 (FR-RGN-06, 라우팅 키 통합)
 Table clinic_region_mapping {
   clinic_id       varchar [pk]                                    // 클리닉 식별자(현재 클리닉 레지스트리 겸함 — 전용 clinic 테이블 분리는 R8 미결)
   region          varchar [not null, ref: > region_catalog.region_id]  // 이 클리닉의 배정 리전(FK, region SSOT)
-  mapping_version integer [not null, default: 1]                  // 매핑 버전 — region 변경(relocation) drift/롤백 추적(FR-RGN-02)
+  mapping_version integer [not null, default: 1]                  // 매핑 버전 — 변경마다 단조 증가(+1). 캐시 무효화·낙관적 동시성(CAS)·drift 감지용(FR-RGN-02·§7.3.2). **값 이력/롤백은 audit_log**(이 컬럼만으론 과거 값 없음)
   created_at      bigint                                          // 생성(클리닉 등록) 시각(Unix ms)
   updated_at      bigint                                          // 수정 시각(Unix ms)
 
-  Note: 'device↔clinic↔region 단일 체계(ADR-10). EzServer가 LMP Clinic-ID 수신 시 자동·무조건 등록(외부 연동 무관)으로 생성 · Admin은 교정만(FR-RGN-04). 일괄 수기 설정 아님'
+  Note: '**클리닉→region 매핑 SSOT 겸 클리닉 레지스트리**(FR-RGN-06·ADR-10). region의 유일 진실원 — device는 region 컬럼 없이 clinic_id로 이 표를 참조해 region을 파생한다(§6.4.1 A안). **생성 = EzServer가 LMP에서 Clinic-ID 수신 시 자동·무조건 등록**(외부 연동 여부 무관, §2.3.1(1)) · Admin은 잘못된 등록의 교정(override)만(FR-RGN-04) — 일괄 수기 설정 아님. region 변경(relocation)은 mapping_version +1(캐시 무효화·drift 감지·CAS); 값 이력·롤백은 audit_log(FR-RGN-02). region은 region_catalog FK. device·org_mapping·webhook_event·delivery_channel이 clinic_id로 이 표를 참조(라우팅 허브). 전용 clinic 테이블 분리는 R8 미결'
 }
 
 // GW 운영 리전 카탈로그 (region list API SSOT) — §7.3.6 / FR-RGN-*
@@ -127,7 +119,7 @@ Table region_catalog {
   created_at   bigint                                       // 생성 시각(Unix ms)
   updated_at   bigint                                       // 수정 시각(Unix ms)
 
-  Note: 'GW가 운영하는 리전 목록(GET /v1/regions). v1.0=1행, gw/1.2=N행(§2.7.1 멀티리전-ready). clinic_region_mapping.region이 참조(device region은 clinic 파생, §6.4.1 A안)'
+  Note: '**GW 운영 리전 카탈로그**(region list API SSOT — GET /v1/regions, §7.3.6). GW가 서비스하는 리전 목록·표시명·endpoint·상태·기본값을 보관한다. 클리닉 등록/재지정 시 **선택 가능한 region 목록이 이 표에서 나오며**, clinic_region_mapping.region이 이 표를 FK로 참조한다(그 리전이 실존·운영 중임을 보장). v1.0=1행(단일 리전), gw/1.2=N행(§2.7.1 멀티리전-ready). status=draining이면 신규 배정 중단(기존만 유지)·planned는 미개통. 운영자가 관리(리전 개통·정리)'
 }
 
 // 업로드 세션 테이블 제거(2026-06-23): GW는 업로드 세션·presigned·storage를 소유하지 않음.
@@ -206,7 +198,7 @@ Table webhook_event {
   received_at     bigint                                             // 수신 시각(Unix ms)
   dispatched_at   bigint                                             // 분배 완료 시각(Unix ms)
 
-  Note: '멱등(event_id dedup)·분배 상태·해석된 대상(clinic/region). GW는 payload 비해석 — external_org_id로 org_mapping 조회해 대상 결정. 본문은 외부 스키마(④)'
+  Note: '**외부 webhook 이벤트 수신·분배 상태 기록**(FR-WH-*·§7.6). **Webhook Receiver가 수신 시 생성**(state=received)하고 **Webhook Dispatcher(§7.6.7)가 분배하며 갱신**(dispatched/dead_letter·attempts·last_error·dispatched_at). **멱등**: event_id가 멱등 키라 중복 수신을 dedup(§7.6.4). **GW는 payload를 해석하지 않고** external_org_id로 org_mapping을 조회해 대상 clinic→region을 해석(target에 저장). 본문은 payload_ref로만 참조(opaque·외부 스키마 ④, GW 미저장). 재시도 N회 실패 → dead_letter(DLQ, §7.6.3). 오래된 이벤트 보존/정리 정책은 운영·LLD'
   Indexes {
     provider   // provider별 조회
     state      // 상태별 조회(재시도·DLQ)
@@ -222,11 +214,11 @@ Table org_mapping {
   provider        varchar [not null]                                  // 외부 provider(예 axs) — R8: 정규 토큰·레지스트리 FK 검토
   external_org_id varchar [not null]                                  // provider 식별자(예 AXS Organization-ID)
   clinic_id       varchar [not null, ref: > clinic_region_mapping.clinic_id]  // 대응 클리닉(FK)
-  mapping_version integer [not null, default: 1]                      // 매핑 버전(변경 이력·복구)
+  mapping_version integer [not null, default: 1]                      // 매핑 버전 — 변경마다 +1(단조). 캐시 무효화·CAS·drift 감지(clinic_region_mapping과 동일 의미, §7.3.2). 값 이력=audit_log
   created_at      bigint                                              // 생성 시각(Unix ms)
   updated_at      bigint                                              // 수정 시각(Unix ms)
 
-  Note: '(provider, external_org_id) → clinic_id → region. webhook 분배 1차 키. **외부 연동 연결 시 provider별 자가 등록으로 채워짐**(§2.3.5) · Admin 교정(/admin/v1/org-mappings). ClinicID↔Org-ID 이중 저장(복구). 얇은 식별자 매핑(§6.4.1 경계 — provider별 로직 아님)'
+  Note: '**(provider, external_org_id) → clinic_id 매핑 = webhook 분배 1차 라우팅 키**(§4.1.3·§7.6). 외부 이벤트(예 AXS)가 어느 클리닉(→ clinic_region_mapping으로 region)으로 갈지 역조회하는 표. **생성 = 외부 연동 연결 시 provider별 자가 등록**(§2.3.5, Straumann 온보딩 Org-ID) · Admin 교정(/admin/v1/org-mappings). (provider, external_org_id) 복합 PK, clinic_id 역인덱스로 양방향 조회(복구). **얇은 식별자 매핑**(§6.4.1 경계 — provider별 인증·payload 로직은 여기 아님; 구조 다른 provider는 전용 테이블·추가 개발). provider는 정규 토큰(R8: 레지스트리 FK 도입 검토)'
   Indexes {
     (provider, external_org_id) [pk]  // 복합 PK — (provider, 외부 org id) 유일
     clinic_id                         // 클리닉→외부 id 역조회

@@ -118,9 +118,9 @@ paths:
   /v1/enroll/complete:
     post:
       tags: [ enrollment ]
-      summary: 서명+fingerprint 검증 → 디바이스 등록(status=pending, C/S 승인 대기) (FR-ENR-01/04)
+      summary: 서명+공개키(clientPublicKey) 검증 → 디바이스 등록(status=pending, C/S 승인 대기) (FR-ENR-01/04)
       description: >-
-        nonce 서명·fingerprint를 검증하고 디바이스를 status=pending으로 등록한다.
+        nonce 서명·공개키(clientPublicKey)를 검증하고 디바이스를 status=pending으로 등록한다.
         active 활성화(=인증 허용)는 C/S가 GW Console에서 승인해야 하며,
         승인은 PATCH /v1/devices/{id} (status: active)로 수행된다(§2.3.1(2)·§7.2.3·§7.2.5·§7.9.2).
       security: []
@@ -132,11 +132,17 @@ paths:
               $ref: '#/components/schemas/EnrollCompleteRequest'
       responses:
         '202':
-          description: 등록 접수됨(status=pending · C/S 승인 대기). 승인 전 인증 불가
+          description: >-
+            등록 접수됨(status=pending · C/S 승인 대기). client_id 발급(공개키(clientPublicKey) 바인딩).
+            공유 secret 없음 — 이후 private_key_jwt로 인증(§7.1.1). active 전 토큰 미발급
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Device'
+                type: object
+                properties:
+                  deviceId: { type: string }
+                  clientId: { type: string, description: 'GW가 발급한 불투명 client id(RFC 6749 §2.2·§7.2.5, 내부 식별자 비파생·비밀 아님). 이후 토큰 요청에 사용(개인키 서명으로 인증)' }
+                  status: { $ref: '#/components/schemas/DeviceStatus' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
@@ -648,13 +654,20 @@ components:
     # 인증
     TokenRequest:
       type: object
-      required: [ clientId, scope ]
+      required: [ clientId, clientAssertion, scope ]
+      description: >-
+        디바이스 머신 인증 = OAuth2 client_credentials + private_key_jwt(비대칭, ADR-13·§7.1.1).
+        공유 client_secret 미사용 — 디바이스 개인키로 서명한 JWT assertion을 GW가 등록된 공개키(clientPublicKey)로 검증.
       properties:
         clientId:
           type: string
-        clientSecret:
+        clientAssertionType:
           type: string
-          description: client_secret 또는 HW키 바인딩
+          description: RFC 7523 고정값
+          default: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
+        clientAssertion:
+          type: string
+          description: 디바이스 개인키로 서명한 JWT assertion(소지 증명). GW가 등록된 공개키(clientPublicKey)로 검증(§7.1.1)
         scope:
           type: string
     TokenResponse:
@@ -708,14 +721,14 @@ components:
           format: int64
     EnrollCompleteRequest:
       type: object
-      required: [ nonceSignature, fingerprint ]
+      required: [ nonceSignature, clientPublicKey ]
       properties:
         nonceSignature:
           type: string
           description: EzServer 개인키로 nonce 서명(소지 증명, §7.2.6)
-        fingerprint:
+        clientPublicKey:
           type: string
-          description: EzServer 생성 키페어의 공개키(또는 key-id) = device fingerprint. 물리 머신 지문 아님. 재설치 시 새 키→재-enroll로 회전(§7.2.6·7.2.7)
+          description: EzServer 생성 키페어의 공개키(또는 key-id) = 디바이스 공개키(clientPublicKey). 물리 머신 지문 아님. 재설치 시 새 키→재-enroll로 회전(§7.2.6·7.2.7)
 
     # 디바이스
     DeviceStatus:
@@ -723,29 +736,23 @@ components:
       enum: [ pending, active, suspended, revoked ]
     Device:
       type: object
+      description: >-
+        디바이스 = EzServer(§1.4). 인증 자격도 여기에 통합 — 별도 Credential 스키마 없음(2026-07-01).
+        인증=private_key_jwt(비대칭, ADR-13): clientId + clientPublicKey(공개키)로 검증, 공유 secret 없음.
       properties:
         deviceId:
           type: string
         clinicId:
           type: string
           description: 소속 클리닉(등록 시 포함). nullable — 미래 클리닉 비소속(비-EzServer) 디바이스. region은 clinic에서 파생(§6.4.1 A안, region 컬럼 없음)
-        fingerprint:
-          type: string
-        status:
-          $ref: '#/components/schemas/DeviceStatus'
-
-    Credential:
-      type: object
-      description: 시크릿 참조만(KMS), 평문 미노출
-      properties:
-        deviceId:
-          type: string
         clientId:
           type: string
-        secretRef:
+          description: OAuth2 client id — GW가 enroll 시 발급한 불투명 식별자(RFC 6749 §2.2·§7.2.5, 내부 식별자 비파생·비밀 아님). nullable — client 자격 미발급 device(enroll 전·미래 비인증). 토큰 요청 시 이 값 + 개인키 서명(private_key_jwt)으로 인증(§7.1.1)
+        clientPublicKey:
           type: string
-        hwKeyBound:
-          type: boolean
+          description: enrollment 키페어의 공개키(또는 key-id) = 디바이스 공개키(clientPublicKey). 인증 assertion 서명 검증에 사용(§7.1.1). 물리 머신 지문 아님
+        status:
+          $ref: '#/components/schemas/DeviceStatus'
 
     # 리전
     RegionResolveResponse:
