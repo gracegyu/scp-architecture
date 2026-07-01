@@ -6,10 +6,9 @@
   "compatibility": {
     "apis": [
       {
-        "id": "uploads.commit",
-        "path": "/v1/uploads/{id}/commit",
+        "id": "region.change",
+        "path": "/v1/clinics/{clinicId}/region",
         "minClientVersion": {
-          "CleverOne": "1.3.0",
           "EzServer": "2.1.0"
         },
         "errorCode": "COMPAT_CLIENT_TOO_OLD",
