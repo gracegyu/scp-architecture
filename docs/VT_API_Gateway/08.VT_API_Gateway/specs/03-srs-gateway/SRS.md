@@ -1,12 +1,12 @@
 # VatechAPIGateway SRS (③ GW 일원화 + 멀티 Region)
 
-> **골격(skeleton) — v0.1 작성 중.** 고정 항목(1~7장 + Appendix)을 모두 배치했다. 근거가 있는 내용은 PRD/ARD/요구사항 명세에서 가져왔고, 사람이 확정해야 할 곳은 `TBD`(4항목) 또는 `❓확인`으로 표시했다. 본 골격은 SRS v3.3 표준을 따른다.
+> **문서 상태·읽는 법.** 본 문서는 GW 플랫폼 요구사항의 SSOT이며 SRS v3.3 표준(1~7장 + Appendix)을 따른다. **확정된 결정은 본문**(전략 §2·비기능 §6·기능 §7)에 규격으로 반영되어 있고, **미확정 항목은 `TBD`와 Appendix B(미결 추적)** 로, **결정 변경 이력은 문서 말미 「변경 이력」**에 둔다.
 
 **문서 통제**
 
 | 문서 ID | ESIP-GW-SRS |
 | --- | --- |
-| 문서 버전 | v0.1 (Draft · 골격) |
+| 문서 버전 | Draft (baseline 전 — 개정 이력은 「변경 이력」 참조) |
 | 적용 제품 버전 | gw/1.0.0.0~ |
 | 분류 | 통제 문서 (Controlled · IEC 62304 / ISO 13485 — 요구사항 추적성) |
 | SSOT 여부 | 본 SRS가 GW 플랫폼 요구사항의 SSOT. 기존 [요구사항 명세](https://vks.vatech.com/x/AcSSEg)·[PRD](https://vks.vatech.com/pages/viewpage.action?pageId=311608280)·[ARD](https://vks.vatech.com/pages/viewpage.action?pageId=311608281)는 추출/배경 뷰 |
@@ -63,7 +63,7 @@ CleverSpace는 유상화·이용 한도 등 새 정책으로 API를 계속 확�
 | `Vatech-Via` | 요청을 _경유한_ 중계 홉(예: EzServer) | originator와 분리 |
 | Edge | 클리닉 현장의 EzServer (방화벽 뒤, inbound 불가) | §7.6 |
 | soft-state | 완전 stateless가 아닌, cache TTL·mapping_version 기반 상태 | ADR-02 |
-| Region Signer Agent | **폐기(2026-06-23)** — GW는 presigned 직접 발급·서명 안 함(발급=upstream CleverSpace/AXS, GW 중계) | §4.1.4·§7.4 |
+| Region Signer Agent | **미채택**(GW 범위 아님) — presigned 직접 발급·서명은 GW가 하지 않는다(발급=upstream, GW 중계) | §4.1.4·§7.4 |
 | ClinicID↔Org-ID | 클리닉 식별자와 외부(AXS) 조직 식별자 매핑 | §7.3 / ④ |
 | 경로 B (Path B) | CleverOne → CleverSpace 직접 연동(EzServer 미경유) | Deprecated 대상 |
 
@@ -316,7 +316,7 @@ flowchart TD
 - **저장소 역할(PostgreSQL / Redis).** **PostgreSQL = 원본(SSOT).** 전역 일관 데이터는 **리전 간 복제/sync**(원본 → 리전 복제본), 리전 로컬 데이터(audit·in-flight queue)는 리전 전용. **Redis = 빠른 조회 캐시(리전마다).** Redis끼리 직접 복제하기보다 **각 리전이 로컬 PostgreSQL에서 캐시(cache-aside)** 하고 **TTL·`mapping_version`으로 무효화**해 일관성을 맞춘다(멱등 키·nonce 같은 휘발 상태는 리전 Redis 로컬). 즉 일관성의 근거는 _PostgreSQL 복제 + 캐시 무효화_ 다.
 - **전역데이터 복제 토폴로지 세부**(원본 primary 위치·단일 vs multi-primary·충돌 처리)는 gw/1.2 설계 결정(Appendix B #15)이나, 위 **"PostgreSQL 원본+리전 복제 / Redis 리전 캐시" 모델과 "전역 일관/리전 로컬" 구분 원칙은 버전과 무관하게 고정**이다.
 
-> **GW는 AWS에만 배포한다(2026-06-25 결정).** 비AWS·private GW 배포는 없다 — **AWS 미지원 국가도 별도 GW 없이 가장 가까운 AWS 리전 GW에 접속**(GeoDNS). 그 국가의 데이터 주권용 storage(MinIO 등)는 **Provider(CleverSpace/AXS)가 제공·GW는 presigned 중계만**(GW storage 비호스팅, §7.4·§3.1.2). 배포·NAT·EIP·GeoDNS 구성은 **인프라(③-I)** 소유이며, 본 SRS는 _GW가 전제하는 요구_ 만 기술한다(§3.1·§7.3.5·§2.6).
+> **GW는 AWS에만 배포한다.** 비AWS·private GW 배포는 없다 — **AWS 미지원 국가도 별도 GW 없이 가장 가까운 AWS 리전 GW에 접속**(GeoDNS). 그 국가의 데이터 주권용 storage(MinIO 등)는 **Provider(CleverSpace/AXS)가 제공·GW는 presigned 중계만**(GW storage 비호스팅, §7.4·§3.1.2). 배포·NAT·EIP·GeoDNS 구성은 **인프라(③-I)** 소유이며, 본 SRS는 _GW가 전제하는 요구_ 만 기술한다(§3.1·§7.3.5·§2.6).
 
 ## 2.2 Overall System Configuration (전체 시스템 구성)
 
@@ -465,7 +465,7 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 
 #### (1) 클리닉/클라이언트 온보딩·리전 등록
 
-클리닉 등록은 **자동·무조건**이다(2026-06-25 결정). **EzServer 설치 후 LMP로부터 Clinic-ID를 받는 순간 EzServer가 그 Clinic-ID를 GW로 전송해 자동 등록**한다 — **외부 연동(AXS 등) 여부와 무관하게 모든 클리닉이 GW에 등록**된다(연동 안 해도 무조건). GW는 Clinic-ID·region을 **검증(allowlist·정책)** 후 `clinic`·`delivery_channel`에 저장한다(이 클리닉이 어느 region인지·webhook을 어디로 보낼지 확정). **등록 주체 = 클리닉당 1개인 EzServer로 확정** — 클리닉은 **CleverOne 다수 + EzServer 1개**라 EzServer 자동 등록이 자연스럽다(기존 CleverOne 대안 TBD 종결, Appendix B #17). **외부 연동을 켤 때만** 그 provider의 Org-ID(Straumann 온보딩에서 발급, §2.3.5·④)를 등록하면 `org_mapping`에 (provider, Org-ID)→clinic이 채워져 webhook 분배 대상이 결정된다. **region은 운영 중에도 EzServer Console에서 변경 가능**(FR-RGN-04·§7.3.4 재동의·감사) — 선택지는 `GET /v1/regions`(§7.3.6)로 제공. Admin은 잘못된 등록의 **교정(override)** 만.
+클리닉 등록은 **자동·무조건**이다. **EzServer 설치 후 LMP로부터 Clinic-ID를 받는 순간 EzServer가 그 Clinic-ID를 GW로 전송해 자동 등록**한다 — **외부 연동(AXS 등) 여부와 무관하게 모든 클리닉이 GW에 등록**된다(연동 안 해도 무조건). GW는 Clinic-ID·region을 **검증(allowlist·정책)** 후 `clinic`·`delivery_channel`에 저장한다(이 클리닉이 어느 region인지·webhook을 어디로 보낼지 확정). **등록 주체 = 클리닉당 1개인 EzServer로 확정** — 클리닉은 **CleverOne 다수 + EzServer 1개**라 EzServer 자동 등록이 자연스럽다(기존 CleverOne 대안 TBD 종결, Appendix B #17). **외부 연동을 켤 때만** 그 provider의 Org-ID(Straumann 온보딩에서 발급, §2.3.5·④)를 등록하면 `org_mapping`에 (provider, Org-ID)→clinic이 채워져 webhook 분배 대상이 결정된다. **region은 운영 중에도 EzServer Console에서 변경 가능**(FR-RGN-04·§7.3.4 재동의·감사) — 선택지는 `GET /v1/regions`(§7.3.6)로 제공. Admin은 잘못된 등록의 **교정(override)** 만.
 
 > **C/S enrollment 승인(활성화 게이트).** 클리닉 등록은 EzServer가 자동으로 하지만, **디바이스 enrollment의 최종 활성화(`pending → active`)는 현장 설치를 담당한 C/S가 GW Console에서 승인**해야 한다(§2.3.1(2)·§7.2.3·§7.2.5). 이 사람 승인이 부트스트랩 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 현장 검증으로 차단한다(별도 공장 토큰/OOB 불필요). 따라서 **GW Console 사용자는 Admin + C/S 역할**을 갖고 **C/S는 enrollment 승인 권한**을 보유한다(§7.9.2) — **승인 UI·역할 세부 권한은 ③-C GW Console Sub-SRS**에서 정의(본 SRS는 승인 관리 API·역할·게이트 존재까지).
 
@@ -482,13 +482,13 @@ sequenceDiagram
     GW->>DB: clinic · delivery_channel 저장
     GW-->>EZ: 등록 완료 (이 클리닉 = 해당 region)
     Note over EZ,DB: 외부 연동(AXS) 연결 시에만 provider Org-ID 등록 → org_mapping (§2.3.5·④)
-    Note over GW,DB: 자동·무조건 등록(2026-06-25). Admin은 교정만(override, FR-RGN-04)
+    Note over GW,DB: 자동·무조건 등록. Admin은 교정만(override, FR-RGN-04)
     Note over LMP,GW: 등록 주체 = EzServer 확정(클리닉당 1회). region 변경=EzServer Console(§7.3.4)
 ```
 
 #### (2) EzServer enrollment
 
-신뢰할 수 없는 EzServer(디바이스, §1.4)를 **부트스트랩 신뢰**(= **LM 라이선스·Clinic-ID**로 "정당한 그 클리닉의 EzServer"임을 뒷받침 — **공장 토큰/OOB 코드는 미도입**, 2026-07-01 결정)로 검증하고, **최종 활성화는 C/S(현장 설치 담당)의 GW Console 승인**으로 확정한다. EzServer가 **키페어를 생성**해 **nonce를 개인키로 서명(소지 증명)** 하고 **공개키(= client_public_key)** 를 바인딩한다(§7.2.6). **enroll 완료 시 디바이스는 `pending`**(인증 불가) — **C/S가 Console에서 승인해야 `active`**(§7.2.3 lifecycle 게이트)가 되어 인증(§7.1.1)이 허용된다. 사람 승인이 신뢰 앵커이므로 Clinic-ID 위·변조 위험을 현장 검증으로 차단한다. **재설치로 키가 바뀌면(공개키 변경) 재-enrollment로 회전**하며, 이때도 **라이선스/Clinic-ID 재검증 + C/S 승인 + 기존 revoke + 제한·감사**(§7.2.7, 개인키 백업 미도입). 상세 §7.2.5·6·7, 흐름 ARD §5.1.
+신뢰할 수 없는 EzServer(디바이스, §1.4)를 **부트스트랩 신뢰**(= **LM 라이선스·Clinic-ID**로 "정당한 그 클리닉의 EzServer"임을 뒷받침 — **공장 토큰/OOB 코드는 미도입**)로 검증하고, **최종 활성화는 C/S(현장 설치 담당)의 GW Console 승인**으로 확정한다. EzServer가 **키페어를 생성**해 **nonce를 개인키로 서명(소지 증명)** 하고 **공개키(= client_public_key)** 를 바인딩한다(§7.2.6). **enroll 완료 시 디바이스는 `pending`**(인증 불가) — **C/S가 Console에서 승인해야 `active`**(§7.2.3 lifecycle 게이트)가 되어 인증(§7.1.1)이 허용된다. 사람 승인이 신뢰 앵커이므로 Clinic-ID 위·변조 위험을 현장 검증으로 차단한다. **재설치로 키가 바뀌면(공개키 변경) 재-enrollment로 회전**하며, 이때도 **라이선스/Clinic-ID 재검증 + C/S 승인 + 기존 revoke + 제한·감사**(§7.2.7, 개인키 백업 미도입). 상세 §7.2.5·6·7, 흐름 ARD §5.1.
 
 ```mermaid
 sequenceDiagram
@@ -691,7 +691,7 @@ sequenceDiagram
 
 - **AXS sandbox 자격증명·OAuth Client** — Straumann 제공 대기. (미수령 시 영향: §7.5 connector E2E·④ Sub-SRS 검증 지연)
 - **GW 인프라(K8s·Route 53 GeoDNS·고정 egress IP 집합·DNS 호스트)** — 인프라 담당 별도. 본 SRS는 계획·요구만 기술. (미확정 시 영향: §3·§4.5·§7.3). **고정 egress IP는 단일 IP가 아니라 AZ/리전별 NAT의 고정 EIP 집합**(멀티 서버·멀티 리전)이며, AXS는 그 **합집합을 whitelist**한다 — 오토스케일·새 AZ·리전 증설로 _whitelist에 없는_ egress IP가 생기지 않게 EIP 풀로 핀(pin)하고 증설 시 Straumann과 협의·갱신(§2.1.1).
-- **MQTT 브로커 운영 주체** — TBD (미결 이유: 운영 조직 미정 / 책임자 ❓ / 마감 ❓ / 영향: §7.6·ARD MQTT Broker)
+- **MQTT 브로커 운영 주체** — TBD (미결 이유: 운영 조직 미정 / 책임자·마감 TBD / 영향: §7.6·ARD MQTT Broker)
 - **CleverOne SRS(Nick)** — 클라이언트 식별 헤더 상세. 미확보 시 §7.7 정밀화 제약.
 
 ## 2.7 Apportioning of Requirements (단계별 요구사항)
@@ -724,7 +724,7 @@ sequenceDiagram
 GW 본체는 신규 구축이나, **기존 클라이언트(구버전 CleverOne/EzServer)와 경로 B**에 대한 호환 정책이 필요하다.
 
 - 호환 대상: 구버전 클라이언트 — well-known·오류코드 fallback으로 흡수(§7.7)
-- 호환 포기: 경로 B는 **Deprecated 후 EOS** (시점 TBD — §2.8, 책임자 ❓, 마감 ❓, 영향: §7.6·① One Pager)
+- 호환 포기: 경로 B는 **Deprecated 후 EOS** (시점 TBD — §2.8, 책임자·마감 TBD, 영향: §7.6·① One Pager)
 - 호환 매트릭스(클라이언트×API 최소버전): TBD — ① 운영 호환성 매트릭스 확정본 의존
 
 ---
@@ -764,7 +764,7 @@ GW는 **개발(dev) · 테스트(test/staging) · 운영(prod) 3종 환경**으�
 
 GW가 동작하는 소프트웨어 스택. 근거·전체 표는 [ARD §4.5 기술 스택](<../../VT API Gateway — ARD (아키텍처).md>). 버전 `TBD`는 설계 단계 확정.
 
-> **배포 환경 = AWS 전용(2026-06-25 결정).** GW는 **AWS(EKS)에만 배포**한다 — 비AWS·private GW 배포는 두지 않는다. **AWS 미지원 국가도 별도 GW 없이 가장 가까운 AWS 리전의 GW에 접속**한다(GeoDNS, §7.3.5). 그 국가의 데이터 주권용 storage(MinIO 등)는 **GW가 아니라 Provider(CleverSpace/AXS)가 제공**하고, GW는 presigned를 **중계만** 한다(GW는 storage 비호스팅, §7.4). 상태 저장소·미들웨어는 **AWS 관리형**을 기본으로 하고(HA·백업·패치 위임, 무상태 pod ADR-02), pod→AWS 접근은 **IRSA**로 부여한다(정적 시크릿 미내장). 멀티 리전 데이터 토폴로지는 §2.1.1. 제품·버전 확정은 인프라/설계 단계(③-I·Appendix B #12).
+> **배포 환경 = AWS 전용.** GW는 **AWS(EKS)에만 배포**한다 — 비AWS·private GW 배포는 두지 않는다. **AWS 미지원 국가도 별도 GW 없이 가장 가까운 AWS 리전의 GW에 접속**한다(GeoDNS, §7.3.5). 그 국가의 데이터 주권용 storage(MinIO 등)는 **GW가 아니라 Provider(CleverSpace/AXS)가 제공**하고, GW는 presigned를 **중계만** 한다(GW는 storage 비호스팅, §7.4). 상태 저장소·미들웨어는 **AWS 관리형**을 기본으로 하고(HA·백업·패치 위임, 무상태 pod ADR-02), pod→AWS 접근은 **IRSA**로 부여한다(정적 시크릿 미내장). 멀티 리전 데이터 토폴로지는 §2.1.1. 제품·버전 확정은 인프라/설계 단계(③-I·Appendix B #12).
 
 - **언어 / 런타임**: TypeScript · Node.js LTS (버전 TBD)
 - **프레임워크**: NestJS (DDD 모듈 · TDD)
@@ -969,7 +969,7 @@ Webhook은 두 면(§4.1.1) 어느 쪽에도 깔끔히 떨어지지 않는 **하
 
 파일 전송은 **control plane(API 면)** 과 **data plane(바이트 경로)** 을 분리해 이해한다. **GW는 presigned를 발급하지 않는다** — 발급 주체는 upstream(CleverSpace·AXS)이고 GW는 발급 요청을 **중계(bypass)** 만 한다. 파일 **바이트**는 어느 경로든 발급 주체 storage로 **직접** 업로드(GW 미경유).
 
-> **폐기(2026-06-23 결정)**: 이전 \"경로①(GW Region Signer가 우리 리전 storage용 presigned 직접 발급, `/v1/uploads`)\"는 **철회**되었다. GW는 서명·세션·storage를 소유하지 않는다. 아래 ②③만 유효하며, 번호는 기존 참조 보존을 위해 그대로 둔다.
+> 업로드 경로는 **②·③만 유효**하다 — GW는 presigned 직접 발급·업로드 세션·region storage를 소유하지 않는다(발급=upstream). 번호 ①은 기존 참조 보존을 위해 비워 둔다.
 
 #### 두 가지 업로드 경로 (둘 다 GW 중계·bypass)
 
@@ -987,7 +987,7 @@ presigned URL을 **Client가 받은 뒤**, 파일 **바이트**는 **발급 주�
 [data]    Client ═══════════════════════════════════════► 발급 주체 storage 직접 업로드 (GW 미경유)
 ```
 
-> **GW가 하지 않는 일**: presigned **직접 발급(서명)**·업로드 **세션 소유**·region **storage 소유** — 모두 폐기. CleverSpace/AXS presign 스키마를 GW가 통합·변환하지도 않는다. GW는 발급 요청을 **중계**하고 정책(인증·버전·egress)만 적용한다.
+> **GW가 하지 않는 일**: presigned **직접 발급(서명)**·업로드 **세션 소유**·region **storage 소유** — **GW 범위 아님**. CleverSpace/AXS presign 스키마를 GW가 통합·변환하지도 않는다. GW는 발급 요청을 **중계**하고 정책(인증·버전·egress)만 적용한다.
 
 > **②·③ 정본**: CleverSpace presign 변경은 **② Presigned One Pager**·CleverSpace OpenAPI. AXS presign·파일은 **④ Sub-SRS**·AXS 스냅샷.
 
@@ -1068,7 +1068,7 @@ None
   - 결정 마감 시점: 설계 착수 전
   - 영향 받는 섹션: §3.1·§5.1·§5.4·§7.4
 
-> ❓확인 필요 — **v1.0 운영 목표(디바이스 대수·클리닉 수·피크 업로드 패턴)**. 이 값이 정해지면 §5.1·5.2를 구체 수치로 확정한다.
+> **미확정** — **v1.0 운영 목표(디바이스 대수·클리닉 수·피크 업로드 패턴)**. 이 값이 정해지면 §5.1·5.2를 구체 수치로 확정한다.
 
 ## 5.3 Response Time (대응시간)
 
@@ -1178,9 +1178,9 @@ Webhook 전달 보증(QoS1·재시도·DLQ), 업로드 idempotency. **동기 프
 
 - ERD: [DBML — `vt-api-gateway.dbml`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/dbml/vt-api-gateway.dbml). 신규 테이블의 컬럼·타입·인덱스·relation은 DBML(dev-chain-design)이 SSOT
 
-#### 6.4.1 핵심 엔터티 관계 (Clinic · Device · 외부 Org) — A안 채택(주간회의 확인 예정)
+#### 6.4.1 핵심 엔터티 관계 (Clinic · Device · 외부 Org)
 
-> **A안 채택(2026-07-01)**: **region SSOT = Clinic**, device는 clinic에서 region **파생**(device.region·device→region 매핑 제거). DBML·OpenAPI에 반영 완료. **주간회의(R8)에서 최종 확인**. 미래(점선)는 DBML 미정의.
+핵심 엔터티는 **Clinic·Device**(항상 존재)와 **외부 Org-ID**(외부 연동 시 확장)이며, **region의 SSOT는 Clinic**이다 — device는 자신의 region 컬럼 없이 clinic에서 파생한다. 관계 개요:
 
 ```mermaid
 erDiagram
@@ -1224,7 +1224,7 @@ flowchart LR
 
 - **기본 엔터티 = Clinic · Device**(항상 존재). **확장 엔터티 = 외부 Org-ID**(외부 연동 시에만). org는 "기본"이 아니라 **확장**이다.
 - **Clinic ↔ Device = 1:N**(모델). **현재는 1:1** — 클리닉당 EzServer 1대(§2.3.1·Appendix B #17). `device.clinic_id`는 **nullable** — **미래 비-EzServer 디바이스**가 직접 등록되면 한 클리닉에 N대이거나 클리닉 비소속(clinic_id 없음)일 수 있다.
-- **디바이스 등록 시 clinic_id 포함**: EzServer가 LMP Clinic-ID 수신 시 자동 등록(§2.3.1)하므로 device에 clinic_id가 채워진다 → **`device.clinic_id`(FK·nullable) 추가 완료**(DBML·OpenAPI).
+- **디바이스 등록 시 clinic_id 포함**: EzServer가 LMP Clinic-ID 수신 시 자동 등록(§2.3.1)하므로 device에 clinic_id가 채워진다(`device.clinic_id`, FK·nullable).
 - **외부 Org-ID = (provider, external_org_id) → clinic_id**(`org_mapping`). **provider별 클리닉↔외부 id 1:1**. **AXS 연동 시에만 `axs` org_id 존재**하고, 미연동이면 없다.
   - **송신(AXS)**: clinic → org_id 조회해 **org_id를 실어 보냄**.
   - **수신(Webhook)**: 이벤트에 **org_id 동반** → `(provider, org_id) → clinic` **역조회로 분배 대상** 판정(§7.6·§2.3.6).
@@ -1234,13 +1234,13 @@ flowchart LR
 > - **암묵 가정**: 외부 식별자가 ① 단일 평면 id ② clinic과 (provider 내) 1:1 ③ 추가 속성 불요. → 이걸 **위반하는 provider**(계층형 org→다수 site, clinic당 다중 id, provider별 추가 속성)는 **전용 테이블+로직으로 분기**한다. 이는 **설계된 분기이지 실패가 아니다.**
 > - **가드레일(분리 신호)**: org_mapping에 **provider 조건 분기·provider 전용 컬럼**을 넣고 싶어지는 순간 = 그 provider를 **전용 테이블로 빼라는 신호**. org_mapping은 "순수 식별자 매핑"으로만 유지.
 > - **한 줄**: org_mapping은 "모든 provider가 맞춰야 하는 틀"이 아니라 **"같은 모양 provider를 위한 편의"**. 2번째 provider가 달라도 org_mapping이 아니라 **그 provider 전용 테이블**이 추가될 뿐 기존은 안 깨진다.
-- **`connector`(아웃바운드) ↔ `provider`(인바운드) 분리 = 유지 확정(2026-07-01)**: 아웃바운드 축(`connector`/`upstream_registry.target_id` — GW→외부 호출)과 인바운드 축(`provider` — `webhook_provider`/`org_mapping`, 외부→GW webhook)은 **서로 다른 관심사라 분리 상태를 유지**한다(하나로 통합하지 않음). AXS처럼 같은 party가 양쪽에 `axs` 토큰으로 나타나도 역할이 달라 자연스러운 분리다. **표기만 정규 토큰**(소문자 `^[a-z0-9_]+$`)으로 통일하고 **enum 금지**(런타임 추가). *잔여(선택)*: `provider` 값에 canonical 레지스트리 FK를 걸지 여부는 필요 시 검토(현재는 미강제).
-- **`policy`의 tenant·connector 연결 (확정 권장)**: **`policy.tenant` = `clinic_id`**(FK → `clinic`) — 테넌트 단위는 **클리닉**이다(device 단위 아님, 10만대 granularity 회피). **`tenant = NULL` = 그 connector 전역 기본 정책**, 클리닉별은 override 행. 평가는 `(clinic, connector)` 우선 → `(NULL, connector)` fallback → 없으면 deny. **`policy.connector` = 아웃바운드 대상 토큰**(= `connector.name` = `upstream_registry.target_id`, 예 `axs`) — 인바운드 `provider`와 동일 party이나 통합은 R8(위 항목). 정책은 대상마다 달라 **관리 API(§7.9)+Console UI(③-C)** 필요(Appendix B #32). jsonb 형식=`design/db-jsonb-fields.md#policy`. tenant 범위 최종 확인=R8.
-- **region (A안 확정)**: **region SSOT = Clinic**(`clinic`, 1:1). **device의 region은 `device.clinic_id → clinic.region` 파생** — **device.region 컬럼·device-level `region_mapping` 테이블은 제거**(중복·drift 제거, relocation은 clinic 1곳만 변경). region 버전 마커는 `clinic.mapping_version`(캐시 무효화·drift 감지·CAS, §7.3.2), 값 이력·롤백은 `audit_log`(FR-RGN-02). §7.3 resolver는 deviceId를 받아도 device→clinic→region으로 해석.
-  - **미래(C안 여지)**: clinic 비소속(비-EzServer) device는 파생할 clinic이 없어 device-level region이 필요할 수 있음 → 실제 등장 시 추가(현재 미정의).
-- **(해결·2026-07-01 C안)** **전용 `clinic` 테이블 확정** — 구 `clinic_region_mapping`을 **`clinic`으로 승격**(canonical 클리닉 엔터티). clinic_id를 참조하는 5개 테이블(device·org_mapping·webhook_event·delivery_channel·policy.tenant)의 원본이며 region SSOT. region·mapping_version은 clinic 컬럼으로 유지(1:1 인라인, 조인 없음). 클리닉 속성은 필요 시 이 표에 추가. `clinic_id`는 LMP 발급 Clinic-ID(GW 생성 아님).
+- **`connector`(아웃바운드) ↔ `provider`(인바운드) 분리**: 아웃바운드 축(`connector`/`upstream_registry.target_id` — GW→외부 호출)과 인바운드 축(`provider` — `webhook_provider`/`org_mapping`, 외부→GW webhook)은 **서로 다른 관심사라 분리 상태를 유지**한다(하나로 통합하지 않음). AXS처럼 같은 party가 양쪽에 `axs` 토큰으로 나타나도 역할이 달라 자연스러운 분리다. **표기만 정규 토큰**(소문자 `^[a-z0-9_]+$`)으로 통일하고 **enum 금지**(런타임 추가). `provider`에 canonical 레지스트리 FK는 강제하지 않는다(필요 시 도입).
+- **`policy`의 tenant·connector**: **`policy.tenant` = `clinic_id`**(FK → `clinic`) — 테넌트 단위는 **클리닉**이다(device 단위 아님, 10만대 granularity 회피). **`tenant = NULL` = 그 connector 전역 기본 정책**, 클리닉별은 override 행. 평가는 `(clinic, connector)` 우선 → `(NULL, connector)` fallback → 없으면 deny. **`policy.connector` = 아웃바운드 대상 토큰**(= `connector.name` = `upstream_registry.target_id`, 예 `axs`) — 인바운드 `provider`와 동일 party이나 통합하지 않는다(위 항목). 정책은 대상마다 달라 **관리 API(§7.9)+Console UI(③-C)** 필요(Appendix B #32). jsonb 형식은 `design/db-jsonb-fields.md#policy`.
+- **region 모델**: **region SSOT = Clinic**(`clinic`, 1:1). **device의 region은 `device.clinic_id → clinic.region` 파생** — **device.region 컬럼·device-level `region_mapping` 테이블은 제거**(중복·drift 제거, relocation은 clinic 1곳만 변경). region 버전 마커는 `clinic.mapping_version`(캐시 무효화·drift 감지·CAS, §7.3.2), 값 이력·롤백은 `audit_log`(FR-RGN-02). §7.3 resolver는 deviceId를 받아도 device→clinic→region으로 해석.
+  - **미래**: clinic 비소속(비-EzServer) device는 파생할 clinic이 없어 device-level region이 필요할 수 있다 → 실제 등장 시 추가(현재 미정의).
+- **`clinic` = canonical 엔터티**: `clinic_id`를 참조하는 5개 테이블(device·org_mapping·webhook_event·delivery_channel·policy.tenant)의 원본이자 region SSOT. `region`·`mapping_version`을 컬럼으로 보유한다(clinic↔region 1:1이라 인라인 — 조회 조인 없음). 클리닉 속성(이름·상태·C/S 담당자 등)은 필요 시 이 표에 추가한다. `clinic_id`는 **LMP가 발급한 Clinic-ID**(GW 생성 아님).
 
-> **DBML·OpenAPI 반영(A안·완료)**: ① `device.clinic_id`(FK→clinic, **nullable**)+인덱스 추가 · ② `device.region` 컬럼·`region_mapping` 테이블 **제거**(clinic 파생) · ③ OpenAPI `Device`에서 `region` 제거·`clinicId` 추가 · ④ `org_mapping`은 (provider, external_org_id) PK라 provider 확장 가능(변경 없음). **전용 `clinic` 테이블 = 승격 확정(C안·2026-07-01)**. **미결(별도)**: clinic-less device region(미래).
+> **상세 스키마는 DBML·OpenAPI(SSOT).** `device`는 region 컬럼 없이 `clinic_id`(FK·nullable)로 clinic을 참조하고, 외부 Org-ID는 `org_mapping`의 (provider, external_org_id) PK로 provider 확장을 수용한다.
 
 #### 6.4.2 테이블 조감도 (그룹 수준)
 
@@ -1280,7 +1280,7 @@ flowchart TB
     style ID fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
 ```
 
-> **인증·온보딩은 별도 테이블이 없다** — 자격은 `device`(client_id·client_public_key)에 통합, 발급 access token은 **무상태 JWT**(서명 검증·저장 안 함, §7.1.1·ADR-02), enrollment 부트스트랩·승인 대기는 `device.status`(pending), 이력은 `audit_log`. (과거 `enrollment_token`·`credential`·`token` 테이블은 모두 폐기.)
+> **인증·온보딩은 별도 테이블이 없다** — 자격은 `device`(client_id·client_public_key)에 통합, 발급 access token은 **무상태 JWT**(서명 검증·저장 안 함, §7.1.1·ADR-02), enrollment 부트스트랩·승인 대기는 `device.status`(pending), 이력은 `audit_log`.
 
 - 저장 정보 유형: 디바이스 레지스트리(+인증 자격 client_id·client_public_key), device/clinic↔region 매핑, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event`, 멱등·DLQ)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·Vatech-Target upstream(`upstream_registry`, 라우팅+per-upstream 복원력 설정)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 본문은 미저장**(presigned 직결). **호환성 매트릭스는 DB 미저장** — 소스 파일 → well-known JSON(§7.7.5, `compat_matrix` 테이블 폐기).
 - 캐시: **Valkey**(ElastiCache for Valkey·Redis 호환, §1.4)(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS·webhook dedup). **캐시(PG 재구성 가능) + 휘발 상태(nonce·멱등·dedup·rate-limit·lock)이며 SSOT 아님.** 키 패턴·TTL·재구성 출처는 키스페이스 카탈로그 `design/redis/redis-keyspace.md`(DBML과 나란한 설계 산출물)
@@ -1292,7 +1292,7 @@ flowchart TB
 - 보존 기간:
   - **TBD**: 감사 로그·consent 보존 기간
     - 미결 이유: 의료·개인정보 법규(보존 의무 기간) 확인 필요
-    - 결정 책임자: ❓ (품질/법무)
+    - 결정 책임자: 품질/법무(TBD)
     - 결정 마감 시점: baseline 전
     - 영향 받는 섹션: §6.5·§7.9.3·§7.9.5
 
@@ -1312,7 +1312,7 @@ IEC 62304 / ISO 13485(의료기기 SW), OAuth 2.0 / OIDC, OpenAPI 3.0, ISO 8601(
 
 BE = NestJS + DDD + TDD, DB = PostgreSQL, ORM = Prisma, CI = Azure Pipelines. (ARD §4.5)
 
-> **IaC 도구 — CDK 권장(확정 TBD).** ARD §4.5 baseline은 `Terraform`이나, **AWS 전용(2026-06-25, Appendix B #20)** 전환으로 Terraform의 멀티클라우드 이점이 사라졌고 조직 실무가 **AWS CDK**이며 **TypeScript로 작성 시 GW(NestJS/TS) 스택과 동일 언어**라 개발자가 인프라 코드를 함께 소유한다 → **CDK 권장**(CloudFormation 합성·AWS 네이티브). 단 IaC 도구·표준은 **인프라(③-I) 소유**이므로 최종 확정·ARD §4.5 정합은 비준 대상(Appendix B #26, 7/2 R5). Terraform 유지 시(모듈 생태계·state·멀티계정 강점) 사유를 명시한다.
+> **IaC 도구 — CDK 권장(확정 TBD).** ARD §4.5 baseline은 `Terraform`이나, **AWS 전용(Appendix B #20)** 전환으로 Terraform의 멀티클라우드 이점이 사라졌고 조직 실무가 **AWS CDK**이며 **TypeScript로 작성 시 GW(NestJS/TS) 스택과 동일 언어**라 개발자가 인프라 코드를 함께 소유한다 → **CDK 권장**(CloudFormation 합성·AWS 네이티브). 단 IaC 도구·표준은 **인프라(③-I) 소유**이므로 최종 확정·ARD §4.5 정합은 비준 대상(Appendix B #26, 7/2 R5). Terraform 유지 시(모듈 생태계·state·멀티계정 강점) 사유를 명시한다.
 
 ## 6.7 Memory Constraints (메모리 제한 사항)
 
@@ -1450,7 +1450,7 @@ FR-DEV-04 (즉시 차단). revoke 시 캐시 TTL과 무관하게 strong-consiste
 
 FR-ENR-01·02 (부트스트랩 신뢰 검증 → `pending` 등록 → C/S 승인 → `active`).
 
-- **부트스트랩 신뢰 = LM 라이선스·Clinic-ID** (2026-07-01 결정). EzServer 설치 시 LMP로부터 받은 라이선스·Clinic-ID가 "정당한 그 클리닉의 EzServer"임을 뒷받침한다. **공장 주입 토큰·OOB 일회 코드는 미도입** — GW가 그런 토큰을 발급·저장하지 않는다(별도 사전 발급 시크릿 불필요).
+- **부트스트랩 신뢰 = LM 라이선스·Clinic-ID**. EzServer 설치 시 LMP로부터 받은 라이선스·Clinic-ID가 "정당한 그 클리닉의 EzServer"임을 뒷받침한다. **공장 주입 토큰·OOB 일회 코드는 미도입** — GW가 그런 토큰을 발급·저장하지 않는다(별도 사전 발급 시크릿 불필요).
 - **활성화 앵커 = C/S 사람 승인.** 자동 검증(라이선스·서명)만으로 `active`가 되지 않는다. enroll 완료 디바이스는 `pending`이며 **현장 설치를 담당한 C/S가 GW Console에서 승인**해야 `active`가 된다(§7.2.3·§7.9.2). 사람 승인이라 Clinic-ID 위·변조로도 가짜 등록이 활성화되지 않는다(위조 위험 무력화).
 - **Input**: 라이선스·Clinic-ID(부트스트랩) + (complete 단계) nonce 서명·공개키(client_public_key)
 - **Trigger**: 디바이스 최초 enrollment 요청 → 이후 C/S 승인
@@ -1542,7 +1542,7 @@ GW가 **운영 중인 리전 목록**을 조회 API로 제공한다 — 클라�
 
 **비목표(Will Not Do)**:
 
-- **GW가 presigned를 직접 발급**(Region Signer·GW 소유 region storage·GW Upload Session) — **폐기**(2026-06-23 결정. 기존 경로①·ADR-03/04 철회). GW는 서명·세션·storage를 갖지 않는다.
+- **GW가 presigned를 직접 발급**(Region Signer·GW 소유 region storage·GW Upload Session) — **GW 범위 아님**(ADR-03/04). GW는 서명·세션·storage를 갖지 않는다.
 - CleverSpace·AXS presign을 GW가 하나의 API로 통합·변환 — §4.1.4, B/C bypass(verbatim).
 
 ## 7.5 외부 연동·Connector 프레임워크 (P1)
@@ -1747,7 +1747,7 @@ FR-ADM-02 (권한 분리, 경량). 역할별 수행 가능 기능 제한(§6.5).
 FR-AUD-01 (변조 방지·보존).
 
 - **Side Effect**: 모든 관리 변경(operator id·timestamp·before/after·IP)을 append-only로 기록
-- **경계/보존**: 보존 기간은 TBD(§6.4, 책임자 ❓, 마감 ❓, 영향: §6.4·§7.9.3)
+- **경계/보존**: 보존 기간은 TBD(§6.4, 책임자·마감 TBD, 영향: §6.4·§7.9.3)
 
 ### 7.9.4 data classification tagging (P1)
 
@@ -1961,3 +1961,4 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | **C/S 등록 확인 + Console 사용자 역할(회의 결정)** — 자동 등록 후 C/S(현장 설치 담당)가 GW Console에서 클리닉 정상 등록을 확인. Console 사용자=**Admin + C/S**(§7.9.2), 확인 UI·역할 세부 권한은 **③-C Console Sub-SRS**. §2.3.1에 C/S 확인 노트 추가 | (작성자 ID 미지정) |
 | 2026-06-25 | **클리닉 등록 = EzServer 자동·무조건 확정(회의 결정)** — EzServer가 LMP Clinic-ID 수신 시 자동으로 GW에 Clinic-ID 전송·등록, **외부 연동 무관 무조건 등록**. §2.3.1 텍스트·시퀀스(LMP→EzServer→GW)·§7.3 정합, 등록 주체 EzServer로 확정(Appendix B #17 종결, CleverOne 대안 폐기). org_mapping은 연동 시에만 | (작성자 ID 미지정) |
 | 2026-06-25 | **GW 배포 = AWS 전용 확정(회의 결정)** — AWS 미지원 국가도 별도 GW 없이 **가장 가까운 AWS 리전 GW에 접속**(GeoDNS); 주권용 storage(MinIO)는 **Provider 제공·GW 중계만**(GW storage 비호스팅). 직전(같은 날) 검토했던 포터빌리티 레이어를 **롤백** — **§2.1.2(비AWS·포터블 배포) 삭제**, §3.1.2를 AWS-native로 복귀(**SQS·IoT Core·IRSA·Aurora·ElastiCache·EKS·ECR·ALB/Route53·CloudWatch/ADOT**), §3.1.1·§3.3·§4.4·§7.6.3(A·SQS)·§7.6.6(B·IoT Core/Amazon MQ)·§2.1.1(AWS 전용 노트)·§7.3.5·Appendix B #4·개발계획서 §5 정합. §3.1.2 오브젝트 스토리지는 'GW 비호스팅·Provider storage(AWS=S3/비AWS국=MinIO) 중계' | (작성자 ID 미지정) |
+| 2026-07-01 | **본문 가독성 정리 — 누적된 결정-과정 서술을 규격으로 흡수** — SRS를 조금씩 수정하며 본문에 쌓인 "일기성" 표기(날짜 결정 태그·`A안/C안 채택`·`승격/정명`·`반영 완료`·폐기-철회 과정 서술·`❓확인`·상단 '골격 v0.1 작성 중' 배너)를 제거하고 **현재-상태 규격**으로 흡수. §6.4.1(엔터티 관계)의 결정 박스·상태 박스 통합, §2.3.1·§4.1.4·§7.4 폐기 서술을 'GW 범위 아님'·'②③만 유효' 등 결과 문장으로 정리, 상단 배너를 '문서 상태·읽는 법'(본문=결정/Appendix B=미결/변경이력=이력)으로 교체. **의미·요구사항 변경 없음**(ADR·FR·Appendix 참조·TBD는 보존). 감사추적(변경 이력·Appendix A/B)은 그대로 유지 | (작성자 ID 미지정) |
