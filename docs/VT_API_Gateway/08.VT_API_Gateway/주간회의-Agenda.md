@@ -183,7 +183,7 @@
 
   ```mermaid
   gantt
-      title 스펙 생애주기(작성→PR→baseline) + GW 구현 — 기간 잠정·일정 약속 아님
+      title 스펙 생애주기(작성→PR→baseline) + GW 구현 — 기간 잠정
       dateFormat YYYY-MM-DD
       axisFormat %m/%d
       todayMarker stroke-width:3px,stroke:#d33,opacity:0.6

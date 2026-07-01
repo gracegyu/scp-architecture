@@ -975,6 +975,8 @@ presigned URL을 **Client가 받은 뒤**, 파일 **바이트**는 **발급 주�
 
 GW 본체는 무인 control plane. Admin UI는 **③-C GW Console Sub-SRS**에서 정의(본 SRS는 관리 API §7.9까지). 따라서 본 절은 `N/A(③-C에서 정의)`.
 
+> **Console 스택 힌트(권장 · 확정은 ③-C).** GW Console은 **관리 API(§7.9)를 소비하는 CRUD 백오피스**(디바이스·클리닉·region·org-mapping·webhook-provider·policy·감사 조회 + C/S enrollment 승인)라, **CRUD-admin 프레임워크가 자연스럽다 — `react-admin`(코어 MIT) 권장**(대안: Refine). 근거: 관리 API가 REST CRUD·OpenAPI(§1.7.1) 계약이라 dataProvider로 바로 매핑, `authProvider`로 **OneID(OIDC) 위임**(§7.1.4)·`permissions`로 **Admin/C-S RBAC**(§7.9.2) 게이팅, GW=NestJS/TS와 **end-to-end TS**. 유의: GW는 **커서 페이지네이션**(§7.2.1)이라 커서 dataProvider 어댑터 필요. **최종 UI 스택·화면·컴포넌트는 ③-C 결정**이며 본 SRS는 방향 힌트만 준다.
+
 ## 4.3 Hardware Interface (하드웨어 인터페이스)
 
 EzServer(디바이스, §1.4)와는 네트워크(REST/TLS) 인터페이스만. 직접 제어하는 HW 없음(물리 영상장비는 EzServer 뒤·GW 비대상) → `None`.
@@ -1946,3 +1948,4 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-02 | **DNS 멀티리전-ready 표현 통일 — apex·webhook 호스트 모두 v1.0부터 GeoDNS(대상 서울 1개)** — webhook 호스트(`{provider}.webhook.gw.vatech.com`)가 §2.1.1에서 "v1.0=단일 지정 → 2차 GeoDNS 전환"으로 apex와 어긋나게 서술되던 것을 **apex와 동일하게 'v1.0부터 GeoDNS 라우팅·대상=서울 1개, 2차엔 라우팅 대상만 N리전 추가(record 타입·클라이언트 변경 없음)'** 로 통일. §2.1.1 Webhook Ingress 노트·§4.5.1(webhook 행+멀티리전-ready 노트)·§2.7.1 DNS 요건 정합. 처음 배포부터 두 호스트 모두 GeoDNS로 구축하고 서울로 resolve | (작성자 ID 미지정) |
 | 2026-07-02 | **§2.3.1 온보딩 재구성 — enrollment 한 흐름으로 통합(클리닉·region 확립 흡수)** — 기존 '(1) 클리닉/리전 등록 + (2) EzServer enrollment' 2분할이 FR(ENR/RGN)·API·ARD의 분리와 어긋나고, (1)이 비-API 유령 흐름이며 '클리닉 등록 주체'(EzServer 자동 vs OneID 운영자)가 문서 간 모순이던 것을 정리. **enroll이 Clinic-ID로 clinic upsert + 초기 region 확립**(기본=GeoDNS 최근접 리전 v1.0=서울, C/S가 다른 리전 override)으로 통합 — 별도 '클리닉 등록' API·흐름 제거. §2.3.1 단일 시퀀스로 재작성, §7.3 도입부·OpenAPI(enroll/complete=clinic·region 확립 / `/v1/clinics`=운영자 교정용으로 재정의)·08 API 문서·ARD §5.1(스텝4/5·mermaid) 정합. §2.3.1(1)/(2) 하위 참조 19곳을 §2.3.1로 통일. enrollment=1회(재설치 회전), region *변경*은 §7.3.4로 분리 | (작성자 ID 미지정) |
 | 2026-07-02 | **§2.3.4 presigned 중계를 provider-무관으로 재구성** — 제목·틀이 'CleverSpace 경로②'라 CleverSpace 전용처럼 보이던 것을 **provider-무관 프록시 중계**(GW가 Vatech-Target으로 발급 provider에 verbatim 중계·발급 주체가 세션/무결성 책임)로 바로잡음. 현재 대상=CleverSpace(②·B 내부, connector 불요)·AXS(③·C 외부, connector로 OAuth·egress 추가), 신규 provider=레지스트리 1행. **아웃바운드 일반 = target-routed proxy(ADR-11), connector는 외부(C) OAuth·egress 어댑터**임을 명확화(§7.4·§4.1.4는 이미 ②③ provider 나열로 정합) | (작성자 ID 미지정) |
+| 2026-07-02 | **§4.2 GW Console 스택 힌트 추가(권장·확정은 ③-C)** — Console이 관리 API(§7.9) 위 CRUD 백오피스라 **`react-admin`(코어 MIT) 권장**(대안 Refine) 힌트를 §4.2에 명시: dataProvider=REST/OpenAPI 매핑, authProvider=OneID(OIDC), permissions=Admin/C-S RBAC, end-to-end TS, 커서 페이지네이션 어댑터 유의. 관측(Fluent Bit+ADOT)·IaC(CDK) 힌트와 동일하게 **방향 힌트만**(UI 스택·화면 확정은 ③-C Sub-SRS). SRS 스코프(관리 API까지)는 불변 | (작성자 ID 미지정) |
