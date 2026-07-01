@@ -9,8 +9,8 @@
 // 컬럼은 snake_case(PostgreSQL 관례), API DTO는 camelCase(SRS §1.3)로 매핑.
 // 시간은 Unix Timestamp(ms) bigint. PHI 본문 미저장(presigned 직결, SRS §6.4).
 // 타입·인덱스·정밀 relation은 LLD(dev-chain-design)에서 확정.
-// 2026-06-29 PR 정합 보강: upstream_registry 복원력 컬럼(connect/response/total_deadline·retry_policy·circuit_breaker, OpenAPI 정합),
-//   enum화(upstream_profile·delivery_channel_type·region_status), config/mapping 테이블 created_at/updated_at, webhook_event FK·상태(attempts·received_at) 보강.
+// 2026-06-29 PR 정합 보강: upstream_registry 복원력 컬럼·enum화·created_at/updated_at·webhook_event 보강.
+// 2026-07-01: region A안(device.region·region_mapping 제거·device.clinic_id 추가) · compat_matrix 제거 · 전 필드 주석.
 
 Project vt_api_gateway {
   database_type: 'PostgreSQL'
@@ -23,84 +23,89 @@ Project vt_api_gateway {
 //  2) consent(재동의) 추적: 리전 재지정 시 재동의(FR-COMP-02·§7.9.5)·보존기간(Appendix B #5 TBD)을 위한 전용 테이블은 미정의 — ④/LLD에서 확정(현재는 audit_log + mapping_version으로 이력).
 //  3) 보존기간(audit_log·consent)은 법규 의존 TBD(§6.4·Appendix B #5).
 
+// 디바이스 lifecycle 상태(§7.2 상태기계)
 Enum device_status {
-  pending
-  active
-  suspended
-  revoked
+  pending    // 등록 시작·검증 전
+  active     // 정상 운영(인증·호출 허용)
+  suspended  // 일시 정지(운영자/정책)
+  revoked    // 폐기(자격 무효, 복구 불가)
 }
 
+// webhook 이벤트 처리 상태(§7.6)
 Enum webhook_state {
-  received
-  dispatched
-  dead_letter
+  received    // 수신·큐(SQS) 적재됨
+  dispatched  // 대상으로 분배 완료
+  dead_letter // N회 재시도 실패 → DLQ
 }
 
+// upstream trust profile(§4.1.1, B 내부 / C 외부)
 Enum upstream_profile {
-  internal
-  external
+  internal  // B: 사내 서비스(내부망, 예 cleverspace·oneid)
+  external  // C: 제3자(OAuth·고정 egress IP, 예 axs)
 }
 
+// 분배 채널 종류(§7.6.5/6)
 Enum delivery_channel_type {
-  mqtt_edge
-  http_cloud
+  mqtt_edge   // Edge(EzServer) MQTT QoS1 하행
+  http_cloud  // 클라우드 HTTP push
 }
 
+// GW 운영 리전 상태(§7.3.6)
 Enum region_status {
-  active
-  draining
-  planned
+  active    // 정상 운영
+  draining  // 신규 배정 중단(기존만 유지)
+  planned   // 계획(미개통)
 }
 
 // 디바이스 레지스트리 (FR-DEV-*)
 Table device {
-  device_id   varchar [pk]
-  clinic_id   varchar [ref: > clinic_region_mapping.clinic_id]  // 소속 클리닉. nullable(미래 클리닉 비소속 device). 등록 시 포함
-  fingerprint varchar
-  status      device_status [not null, default: 'pending']
-  created_at  bigint
-  updated_at  bigint
+  device_id   varchar [pk]                                       // GW 디바이스 식별자(= EzServer 인스턴스, §1.4)
+  clinic_id   varchar [ref: > clinic_region_mapping.clinic_id]   // 소속 클리닉(FK). nullable(미래 클리닉 비소속 device). 등록 시 포함
+  fingerprint varchar                                            // 디바이스 HW/식별 지문 — enrollment 시 등록, 재인증 시 대조(위장·복제 방지, §7.2)
+  status      device_status [not null, default: 'pending']       // lifecycle 상태(pending→active→suspended→revoked)
+  created_at  bigint                                             // 생성(등록) 시각(Unix ms)
+  updated_at  bigint                                             // 수정 시각(Unix ms)
 
   Note: 'GW 관점의 디바이스 = EzServer(클리닉당 1개 엣지 머신, §1.4). PHI 없음. lifecycle 상태기계(§7.2). **region은 컬럼 없음 — clinic_id→clinic_region_mapping.region 파생**(§6.4.1 A안, region SSOT=clinic). clinic_id nullable(미래 비-EzServer). 컬럼명 device_* 리네이밍은 LLD'
   Indexes {
-    clinic_id
-    status
+    clinic_id  // 클리닉별 디바이스 조회
+    status     // 상태별 조회(운영·정리)
   }
 }
 
 // 온보딩 토큰 (FR-ENR-*)
 Table enrollment_token {
-  token_ref  varchar [pk]
-  serial     varchar
-  expires_at bigint
-  used       boolean [not null, default: false]
+  token_ref  varchar [pk]                        // 온보딩 토큰 참조(공장 토큰/OOB 코드의 참조, 값 아님)
+  serial     varchar                             // 대상 디바이스 시리얼(부트스트랩 식별)
+  expires_at bigint                              // 만료 시각(Unix ms, 짧은 TTL)
+  used       boolean [not null, default: false]  // 사용 여부(1회성 — 재사용 차단)
 
   Note: '1회·짧은 TTL. 발급 = allowlist 등록'
   Indexes {
-    serial
+    serial  // 시리얼로 온보딩 진행 조회
   }
 }
 
 // 디바이스 자격증명 (FR-AUTH-*)
 Table credential {
-  device_id    varchar [pk, ref: - device.device_id]
-  client_id    varchar [unique]
-  secret_ref   varchar
-  hw_key_bound boolean [not null, default: false]
+  device_id    varchar [pk, ref: - device.device_id]  // PK·FK → device(디바이스당 1개, 1:1)
+  client_id    varchar [unique]                       // client_credentials의 client id(고유)
+  secret_ref   varchar                                // client secret의 KMS 참조(평문 미저장)
+  hw_key_bound boolean [not null, default: false]     // HW 키 바인딩 여부(HW키 결속 인증)
 
   Note: '시크릿 참조만(KMS). 평문 미저장'
 }
 
 // 발급 토큰 메타 (FR-AUTH-05)
 Table token {
-  id         varchar [pk]
-  device_id  varchar [ref: > device.device_id]
-  jwt_claims jsonb
-  expires_at bigint
+  id         varchar [pk]                      // 발급 토큰 메타 식별자
+  device_id  varchar [ref: > device.device_id] // 어느 디바이스에 발급됐는지(FK)
+  jwt_claims jsonb                             // 발급 JWT claim(device·region·aud·TTL hard binding, §7.1.1)
+  expires_at bigint                            // 토큰 만료 시각(Unix ms)
 
   Note: 'claim hard binding(device/region/aud/TTL)'
   Indexes {
-    device_id
+    device_id  // 디바이스별 발급 토큰 조회
   }
 }
 
@@ -108,26 +113,26 @@ Table token {
 //   region SSOT=clinic. device region은 device.clinic_id → clinic_region_mapping.region 파생(§6.4.1).
 //   region 버전·이력(drift/롤백)은 clinic_region_mapping.mapping_version이 담당(FR-RGN-02).
 
-// clinic → region 매핑 (FR-RGN-06, 라우팅 키 통합)
+// clinic → region 매핑 겸 클리닉 레지스트리 (FR-RGN-06, 라우팅 키 통합)
 Table clinic_region_mapping {
-  clinic_id       varchar [pk]
-  region          varchar [not null, ref: > region_catalog.region_id]
-  mapping_version integer [not null, default: 1]
-  created_at      bigint
-  updated_at      bigint
+  clinic_id       varchar [pk]                                    // 클리닉 식별자(현재 클리닉 레지스트리 겸함 — 전용 clinic 테이블 분리는 R8 미결)
+  region          varchar [not null, ref: > region_catalog.region_id]  // 이 클리닉의 배정 리전(FK, region SSOT)
+  mapping_version integer [not null, default: 1]                  // 매핑 버전 — region 변경(relocation) drift/롤백 추적(FR-RGN-02)
+  created_at      bigint                                          // 생성(클리닉 등록) 시각(Unix ms)
+  updated_at      bigint                                          // 수정 시각(Unix ms)
 
   Note: 'device↔clinic↔region 단일 체계(ADR-10). EzServer가 LMP Clinic-ID 수신 시 자동·무조건 등록(외부 연동 무관)으로 생성 · Admin은 교정만(FR-RGN-04). 일괄 수기 설정 아님'
 }
 
 // GW 운영 리전 카탈로그 (region list API SSOT) — §7.3.6 / FR-RGN-*
 Table region_catalog {
-  region_id    varchar [pk]            // 예: apne2(서울), use1(미주)
-  display_name varchar
-  endpoint     varchar                 // 리전 내부 endpoint(§4.5.1)
-  status       region_status [not null, default: 'active']  // active | draining | planned
-  is_default   boolean [not null, default: false]
-  created_at   bigint
-  updated_at   bigint
+  region_id    varchar [pk]                                 // 리전 식별자(예 apne2=서울, use1=미주)
+  display_name varchar                                      // 사용자 표시명
+  endpoint     varchar                                      // 리전 내부 endpoint(§4.5.1)
+  status       region_status [not null, default: 'active']  // 운영 상태(active|draining|planned)
+  is_default   boolean [not null, default: false]           // 기본 리전 여부(단일 리전/GeoDNS 기본값)
+  created_at   bigint                                       // 생성 시각(Unix ms)
+  updated_at   bigint                                       // 수정 시각(Unix ms)
 
   Note: 'GW가 운영하는 리전 목록(GET /v1/regions). v1.0=1행, gw/1.2=N행(§2.7.1 멀티리전-ready). clinic_region_mapping.region이 참조(device region은 clinic 파생, §6.4.1 A안)'
 }
@@ -137,91 +142,82 @@ Table region_catalog {
 
 // 정책 (OPA 입력, FR-INT-03)
 Table policy {
-  id                varchar [pk]
-  tenant            varchar
-  connector         varchar
-  allowed_endpoints jsonb
-  scopes            jsonb
-  egress            jsonb
-  created_at        bigint
-  updated_at        bigint
+  id                varchar [pk]  // 정책 식별자
+  tenant            varchar       // 적용 대상 테넌트(클리닉 등)
+  connector         varchar       // 적용 대상 connector/target(예 axs)
+  allowed_endpoints jsonb         // 허용 endpoint 목록(egress allowlist 판단)
+  scopes            jsonb         // 허용 scope 집합
+  egress            jsonb         // egress 규칙(고정 IP·대상 제한)
+  created_at        bigint        // 생성 시각(Unix ms)
+  updated_at        bigint        // 수정 시각(Unix ms)
 
   Note: 'OPA allowlist·region·scope·egress 판단 근거'
   Indexes {
-    (tenant, connector)
+    (tenant, connector)  // 테넌트·connector 조합 조회
   }
 }
 
 // 외부 connector (FR-INT-01/02)
 Table connector {
-  name             varchar [pk]
-  endpoint         varchar
-  credential_ref   varchar
-  egress_allowlist jsonb
-  created_at       bigint
-  updated_at       bigint
+  name             varchar [pk]  // connector 이름(예 axs) — upstream_registry.target_id와 대응
+  endpoint         varchar       // 외부 서비스 endpoint(base URL)
+  credential_ref   varchar       // OAuth2 자격의 KMS 참조(§7.1.3)
+  egress_allowlist jsonb         // egress 허용 대상 목록
+  created_at       bigint        // 생성 시각(Unix ms)
+  updated_at       bigint        // 수정 시각(Unix ms)
 
   Note: 'external(C) egress 상세 — OAuth credential·egress. 라우팅(target→host)은 upstream_registry, 본 표는 external 자격/엔드포인트. name 예: axs'
 }
 
 // 감사 로그 (FR-AUD-01)
 Table audit_log {
-  id     bigint [pk, increment]
-  ts     bigint [not null]
-  actor  varchar
-  action varchar
-  result varchar
+  id     bigint [pk, increment]  // 감사 항목 식별자(자동 증가)
+  ts     bigint [not null]       // 발생 시각(Unix ms)
+  actor  varchar                 // 행위자(운영자 OneID/시스템)
+  action varchar                 // 수행 동작(변경 유형)
+  result varchar                 // 결과(성공/실패/거부 등)
 
   Note: 'append-only(UPDATE/DELETE 금지)'
   Indexes {
-    ts
-    actor
+    ts     // 시각 범위 조회
+    actor  // 행위자별 조회
   }
 }
 
 // fleet 상태 (FR-FLEET-01/03)
 Table fleet_state {
-  device_id      varchar [pk, ref: - device.device_id]
-  last_heartbeat bigint
-  success_rate   decimal
+  device_id      varchar [pk, ref: - device.device_id]  // PK·FK → device(디바이스당 1개)
+  last_heartbeat bigint                                 // 마지막 heartbeat 수신 시각(Unix ms)
+  success_rate   decimal                                // 성공률(관측 지표)
 
   Note: '관측 지표'
 }
 
-// 호환성 매트릭스 (FR-COMPAT-05, 단일 소스)
-Table compat_matrix {
-  id                 varchar [pk]
-  api_or_feature     varchar [not null]
-  min_client_version varchar
-  error_code         varchar
-  fallback           varchar
-
-  Note: '호환성 단일 소스. well-known 공시 파일의 생성 원본(design/well-known/)'
-  Indexes {
-    api_or_feature
-  }
-}
+// (제거·2026-07-01) 호환성 매트릭스는 DB 테이블 아님 —
+//   릴리스 커플링 정적 설정이라 SSOT=소스 파일(① One Pager 동기화) → 빌드/CI로 well-known JSON 생성·공시
+//   (design/well-known/server-configuration.*.json, §7.7.5·FR-COMPAT-05). 런타임 DB 미사용.
+//   긴급 클라 버전 차단이 필요하면 일반 테이블이 아니라 Config push(§7.8.4)로 처리.
 
 // 외부 이벤트 (FR-WH-*)
 Table webhook_event {
-  event_id        varchar [pk]
-  provider        varchar [not null, ref: > webhook_provider.provider]
-  external_org_id varchar
-  clinic_id       varchar [ref: > clinic_region_mapping.clinic_id]
-  region          varchar [ref: > region_catalog.region_id]
-  payload_ref     varchar
-  state           webhook_state [not null, default: 'received']
-  target          varchar
-  attempts        integer [not null, default: 0]   // 분배 시도 횟수(N회 실패 → dead_letter·DLQ, §7.6.3)
-  last_error      varchar                           // 마지막 분배 실패 사유(관측·DLQ 진단)
-  received_at     bigint                            // 수신 시각(Unix ms)
-  dispatched_at   bigint                            // 분배 완료 시각
+  event_id        varchar [pk]                                        // 이벤트 식별자 = 멱등 키(중복 수신 dedup, §7.6.4)
+  provider        varchar [not null, ref: > webhook_provider.provider] // 발신 provider(FK, 예 axs)
+  external_org_id varchar                                             // provider의 org 식별자(예 AXS Org-ID) — 분배 대상 역조회 키
+  clinic_id       varchar [ref: > clinic_region_mapping.clinic_id]    // 해석된 대상 클리닉(FK, org_mapping 조회 결과)
+  region          varchar [ref: > region_catalog.region_id]          // 해석된 대상 리전(FK, clinic 파생)
+  payload_ref     varchar                                            // 본문 참조(opaque — GW 비해석, 외부 스키마 ④)
+  state           webhook_state [not null, default: 'received']      // 처리 상태(received|dispatched|dead_letter)
+  target          varchar                                            // 해석된 분배 대상(채널/엔드포인트)
+  attempts        integer [not null, default: 0]                     // 분배 시도 횟수(N회 실패 → dead_letter·DLQ, §7.6.3)
+  last_error      varchar                                            // 마지막 분배 실패 사유(관측·DLQ 진단)
+  received_at     bigint                                             // 수신 시각(Unix ms)
+  dispatched_at   bigint                                             // 분배 완료 시각(Unix ms)
 
   Note: '멱등(event_id dedup)·분배 상태·해석된 대상(clinic/region). GW는 payload 비해석 — external_org_id로 org_mapping 조회해 대상 결정. 본문은 외부 스키마(④)'
   Indexes {
-    provider
-    state
-    clinic_id
+    provider   // provider별 조회
+    state      // 상태별 조회(재시도·DLQ)
+    clinic_id  // 클리닉별 조회
   }
 }
 
@@ -230,61 +226,61 @@ Table webhook_event {
 
 // Org-ID ↔ ClinicID 매핑 (webhook/inbound 라우팅 키)
 Table org_mapping {
-  provider        varchar [not null]   // 예: axs
-  external_org_id varchar [not null]   // provider 식별자(예: AXS Organization-ID)
-  clinic_id       varchar [not null, ref: > clinic_region_mapping.clinic_id]
-  mapping_version integer [not null, default: 1]
-  created_at      bigint
-  updated_at      bigint
+  provider        varchar [not null]                                  // 외부 provider(예 axs) — R8: 정규 토큰·레지스트리 FK 검토
+  external_org_id varchar [not null]                                  // provider 식별자(예 AXS Organization-ID)
+  clinic_id       varchar [not null, ref: > clinic_region_mapping.clinic_id]  // 대응 클리닉(FK)
+  mapping_version integer [not null, default: 1]                      // 매핑 버전(변경 이력·복구)
+  created_at      bigint                                              // 생성 시각(Unix ms)
+  updated_at      bigint                                              // 수정 시각(Unix ms)
 
-  Note: '(provider, external_org_id) → clinic_id → region. webhook 분배 1차 키. **외부 연동 연결 시 provider별 자가 등록으로 채워짐**(§2.3.5) · Admin 교정(/admin/v1/org-mappings). ClinicID↔Org-ID 이중 저장(복구)'
+  Note: '(provider, external_org_id) → clinic_id → region. webhook 분배 1차 키. **외부 연동 연결 시 provider별 자가 등록으로 채워짐**(§2.3.5) · Admin 교정(/admin/v1/org-mappings). ClinicID↔Org-ID 이중 저장(복구). 얇은 식별자 매핑(§6.4.1 경계 — provider별 로직 아님)'
   Indexes {
-    (provider, external_org_id) [pk]
-    clinic_id
+    (provider, external_org_id) [pk]  // 복합 PK — (provider, 외부 org id) 유일
+    clinic_id                         // 클리닉→외부 id 역조회
   }
 }
 
 // Webhook provider 레지스트리 (유연 수신·발신자 검증·라우팅 키 추출 config) FR-WH-01/02
 Table webhook_provider {
-  provider            varchar [pk]      // 예: axs
-  inbound_host        varchar [unique]  // **1차 식별 키** — provider별 전용 수신 호스트(예 axs.webhook.gw.vatech.com). Host/SNI로 발신자 식별(§7.6.1·§7.6.2)
-  inbound_route       varchar           // 등록된 수신 경로(유연; provider 규약 수용) — 확정 계약 아님
-  sig_scheme          varchar           // 서명/HMAC 방식(provider 규약) — **인증(신뢰)** 근거
-  secret_ref          varchar           // 검증 시크릿 참조(KMS) — Host로 선택된 provider의 HMAC 시크릿
-  source_ip_allowlist jsonb             // 허용 소스 **CIDR 목록** — **옵션·방어심층**(식별 용도 아님, Host가 대체). 관리=/admin/v1/webhook-providers(§7.9.1), UI=③-C
-  org_id_path         varchar           // payload에서 external_org_id 추출 경로(JSONPath 등)
-  enabled             boolean [not null, default: true]
-  created_at          bigint
-  updated_at          bigint
+  provider            varchar [pk]                        // provider 식별자(예 axs) — 정규 토큰
+  inbound_host        varchar [unique]                    // **1차 식별 키** — provider별 전용 수신 호스트(예 axs.webhook.gw.vatech.com). Host/SNI로 발신자 식별(§7.6.1·§7.6.2)
+  inbound_route       varchar                             // 등록된 수신 경로(유연; provider 규약 수용) — 확정 계약 아님
+  sig_scheme          varchar                             // 서명/HMAC 방식(provider 규약) — **인증(신뢰)** 근거
+  secret_ref          varchar                             // 검증 시크릿 참조(KMS) — Host로 선택된 provider의 HMAC 시크릿
+  source_ip_allowlist jsonb                               // 허용 소스 **CIDR 목록** — **옵션·방어심층**(식별 용도 아님, Host가 대체). UI=③-C
+  org_id_path         varchar                             // payload에서 external_org_id 추출 경로(JSONPath 등)
+  enabled             boolean [not null, default: true]   // 활성 여부(수신 on/off)
+  created_at          bigint                              // 생성 시각(Unix ms)
+  updated_at          bigint                              // 수정 시각(Unix ms)
 
   Note: '식별=inbound_host(Host/SNI)로 provider·시크릿 선택, 인증=HMAC+timestamp(호스트명은 식별이지 인증 아님). source_ip는 옵션. GW는 payload 비해석, 본 config로 발신자 검증 + 라우팅 키만 추출(§4.1.3·§7.6.2). 경로/형식은 provider 규약 수용. 와일드카드 DNS 미사용 — provider별 명시 호스트(연단위 추가)'
 }
 
 // Vatech-Target → upstream host 레지스트리 (target-routed proxy, ADR-11)
 Table upstream_registry {
-  target_id           varchar [pk]               // Vatech-Target 논리 ID(예: cleverspace, axs)
-  host                varchar [not null]         // 내부 매핑 host(클라이언트엔 비노출)
-  profile             upstream_profile [not null] // internal | external
-  egress_allowlist    jsonb                      // external(C)일 때 egress 제한
-  connect_timeout_ms  bigint                     // TCP+TLS 핸드셰이크 타임아웃(짧게). 값 TBD(§7.5.4·Appendix B #25)
-  response_timeout_ms bigint                     // upstream 응답 대기 타임아웃. 값 TBD
-  total_deadline_ms   bigint                     // 프록시 호출 총 예산 — GW deadline < 클라이언트 타임아웃 불변식. 값 TBD
-  retry_policy        jsonb                      // 재시도 설정 — 연결실패 한정·상한·budget(비멱등 POST 금지, §7.5.4)
-  circuit_breaker     boolean [not null, default: false]  // 서킷 활성(503+Retry-After 빠른 실패). 임계·v1.0 범위 TBD
-  enabled             boolean [not null, default: true]
-  created_at          bigint
-  updated_at          bigint
+  target_id           varchar [pk]                         // Vatech-Target 논리 ID(예 cleverspace, axs)
+  host                varchar [not null]                   // 내부 매핑 host(클라이언트엔 비노출)
+  profile             upstream_profile [not null]          // trust profile(internal=B / external=C)
+  egress_allowlist    jsonb                                // external(C)일 때 egress 제한 대상
+  connect_timeout_ms  bigint                               // TCP+TLS 핸드셰이크 타임아웃(짧게). 값 TBD(§7.5.4·Appendix B #25)
+  response_timeout_ms bigint                               // upstream 응답 대기 타임아웃. 값 TBD
+  total_deadline_ms   bigint                               // 프록시 호출 총 예산 — GW deadline < 클라이언트 타임아웃 불변식. 값 TBD
+  retry_policy        jsonb                                // 재시도 설정 — 연결실패 한정·상한·budget(비멱등 POST 금지, §7.5.4)
+  circuit_breaker     boolean [not null, default: false]   // 서킷 활성(503+Retry-After 빠른 실패). 임계·v1.0 범위 TBD
+  enabled             boolean [not null, default: true]    // 활성 여부(라우팅 on/off)
+  created_at          bigint                               // 생성 시각(Unix ms)
+  updated_at          bigint                               // 수정 시각(Unix ms)
 
   Note: '프록시 라우팅(§4.1.2). 신규 upstream = 1행. external(C) 자격/egress 상세는 connector 연계. 타임아웃·재시도·서킷은 per-upstream 복원력 **설정**(§7.5.4) — 서킷 **런타임 상태(open/closed·카운터)는 pod-local in-memory로 비저장**, 본 표는 설정만(§2.2)'
 }
 
 // 분배 채널 (clinic → 어떤 방식으로 client에 전달) FR-WH-05/06
 Table delivery_channel {
-  clinic_id    varchar [pk, ref: - clinic_region_mapping.clinic_id]
-  channel_type delivery_channel_type [not null]   // mqtt_edge | http_cloud
-  endpoint     varchar                  // http_cloud endpoint 또는 mqtt 토픽 규약
-  created_at   bigint
-  updated_at   bigint
+  clinic_id    varchar [pk, ref: - clinic_region_mapping.clinic_id]  // PK·FK → clinic(클리닉당 1개)
+  channel_type delivery_channel_type [not null]                      // 분배 방식(mqtt_edge=Edge / http_cloud=클라우드)
+  endpoint     varchar                                               // http_cloud endpoint 또는 mqtt 토픽 규약
+  created_at   bigint                                                // 생성 시각(Unix ms)
+  updated_at   bigint                                                // 수정 시각(Unix ms)
 
   Note: '분배 마지막 단계 — Edge=MQTT(클리닉 토픽)/Cloud=HTTP push. §7.6.5/6. 클리닉 온보딩 시 생성'
 }

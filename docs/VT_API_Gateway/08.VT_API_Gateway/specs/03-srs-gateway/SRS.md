@@ -1260,7 +1260,6 @@ flowchart TB
         POL[policy]
         AUD[audit_log]
         FLEET[fleet_state]
-        COMPAT[compat_matrix]
     end
 
     DEV --> CLI
@@ -1276,7 +1275,7 @@ flowchart TB
     style ID fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
 ```
 
-- 저장 정보 유형: 디바이스 레지스트리, device/clinic↔region 매핑, 토큰 메타, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event`, 멱등·DLQ)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·Vatech-Target upstream(`upstream_registry`, 라우팅+per-upstream 복원력 설정)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 본문은 미저장**(presigned 직결)
+- 저장 정보 유형: 디바이스 레지스트리, device/clinic↔region 매핑, 토큰 메타, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event`, 멱등·DLQ)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·Vatech-Target upstream(`upstream_registry`, 라우팅+per-upstream 복원력 설정)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 본문은 미저장**(presigned 직결). **호환성 매트릭스는 DB 미저장** — 소스 파일 → well-known JSON(§7.7.5, `compat_matrix` 테이블 폐기).
 - 캐시: **Valkey**(ElastiCache for Valkey·Redis 호환, §1.4)(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS·webhook dedup). **캐시(PG 재구성 가능) + 휘발 상태(nonce·멱등·dedup·rate-limit·lock)이며 SSOT 아님.** 키 패턴·TTL·재구성 출처는 키스페이스 카탈로그 `design/redis/redis-keyspace.md`(DBML과 나란한 설계 산출물)
 - **데이터 토폴로지(멀티 서버·멀티 리전, §2.1.1)**: 리전 내 pod는 **동일 DB·Redis 공유**(무상태 앱 tier). 멀티 리전에서는 **(전역 일관) 라우팅·식별 데이터**(매핑·레지스트리·Org-ID·정책·compat·JWKS) 와 **(리전 로컬) 운영 데이터**(audit·in-flight queue)로 나눈다. 전역 데이터는 어느 리전에서도 같은 답을 내야 하며(soft-state 캐시 + strong-consistency 경로·`mapping_version`), 운영 데이터는 리전 로컬이다. **저장소 구현(전역 DB 단일 vs 리전별 복제)은 gw/1.2 TBD(Appendix B #15)**, 구분 원칙은 고정.
 - 무결성:
@@ -1649,6 +1648,8 @@ FR-COMPAT-04 (미지원 시 표준 오류코드 + "업데이트 필요" fallback
 
 FR-COMPAT-05 (매트릭스를 단일 소스로 동결, 빌드/CI 반영·검증). 매트릭스 확정본은 ① 산출물과 동기화(§2.8).
 
+> **SSOT = 소스 파일(DB 아님).** 호환성 매트릭스는 **릴리스에 묶인 정적 설정**이라 **레포 소스(① One Pager 동기화)를 SSOT로 두고, 빌드/CI로 `/.well-known/{env}/server-configuration.json` 생성·공시**한다(런타임 조회는 파일/캐시). **DB 테이블로 두지 않는다**(런타임 임의 변경이 버전 게이팅을 깨는 것 방지 — `compat_matrix` 테이블 폐기, 2026-07-01). 긴급 클라이언트 버전 차단이 필요하면 일반 테이블이 아니라 **Config push(§7.8.4)** 로 처리한다.
+
 **비목표(Will Not Do)**: 클라이언트 자동 업데이트·강제 설치는 본 게이트 범위 밖(클라이언트 제품 영역).
 
 ## 7.8 Fleet 운영·Config (P1)
@@ -1866,6 +1867,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
 | 2026-06-25 | §1.4 용어에 **LMP(LicenseManager) = Clinic-ID 발급원** 정의 추가(§2.3.1 온보딩 자동 등록의 LMP 약어 명시) | (작성자 ID 미지정) |
 | 2026-06-26 | 잔재 전수 점검·정리 — §2.7 gw/1.2 "멀티클라우드 presign·**signer 확장**" → "멀티 리전 활성화(Aurora Global DB·GeoDNS)", §2.7.1 금지 노트의 "멀티클라우드 presign broker ready" 제거(GW 비소유·FR-SES-06 해당없음·line 1290과 일치), §2.1 노트 "비-AWS minio·디바이스→storage" → "AWS 미지원국 Provider MinIO·EzServer→발급주체 storage". signer/Upload Session/포터블 잔재 0 확인 | (작성자 ID 미지정) |
+| 2026-07-01 | **`compat_matrix` DB 테이블 폐기 — 호환성 매트릭스는 파일 SSOT** — 릴리스 커플링 정적 설정이라 소스 파일(① One Pager 동기화)→빌드/CI로 well-known JSON 생성·공시(§7.7.5)로 일원화, DB 미저장(런타임 게이팅 훼손 방지·긴급 차단은 Config push §7.8.4). DBML `compat_matrix` 제거(16→15 테이블)·§6.4.2 조감도 OPS에서 제거·§6.4 저장유형·§7.7.5 명확화. well-known 샘플의 폐기 경로(`/v1/uploads/{id}/commit`)를 `region.change`로 교체 | (작성자 ID 미지정) |
 | 2026-07-01 | **§6.4.1 org_mapping 경계·`provider` 관리 정리** — org_mapping=얇은 식별자 매핑(공통 조각)임을 명시(암묵 가정 3·가드레일·"구조 다른 provider=전용 테이블 분기, 실패 아님"). `provider`는 정규 토큰(소문자)·enum 금지, provider 레지스트리 FK/‌target_id 통합은 R8 결정으로 등록. Agenda R8에 org_mapping 경계·provider 관리·Device 1:N vs 1:1 확인 추가 | (작성자 ID 미지정) |
 | 2026-07-01 | **§6.4.1 데이터 관계 ERD + region 모델 A안 확정(회의 확인 예정 R8)** — Clinic·Device·외부 Org 관계를 mermaid ERD + 기본/확장/미래(점선) 계층도로 명시. **A안: region SSOT=Clinic, device는 clinic 파생** → **DBML `device.region`·`region_mapping` 제거·`device.clinic_id`(FK·nullable)+인덱스 추가**, **OpenAPI `Device`에서 region 제거·clinicId 추가**. Clinic↔Device 1:N(현 1:1=EzServer). 외부 Org-ID=확장((provider,external_org_id)→clinic, AXS만); 신규 provider=org_mapping 확장 or 신규 테이블+추가 개발. DBML 컴파일 검증(17→16 테이블). 미결: clinic 전용 테이블 분리·clinic-less device region(미래) | (작성자 ID 미지정) |
 | 2026-06-30 | **§2.1.1 Webhook Ingress 위치 정정 + path 잔재 제거** — Webhook Ingress 컴퓨트를 전역 계층(GTIER)에서 **각 리전 GW pods**로 옮겨 그림(컴퓨트=리전, 전역=DNS 호스트+매핑 데이터만). 다이어그램 재작성(전역=Route53 DNS+SSOT / 리전=LB·pods(API+Webhook Ingress)·저장소·NAT, webhook=DNS→리전→매핑→분배(교차 가능)), 노드 라벨 간소화. **단일↔멀티 리전 전환 명문화**(DNS 단일 지정→GeoDNS 전역·데이터 단일→복제, Ingress는 항상 리전). path 기반 잔재(`공개 호스트 1개·provider별 등록 경로 /webhooks/axs`·`단일 webhook ingress`) 제거 → **provider별 전용 호스트(DNS)** 로 통일 | (작성자 ID 미지정) |
