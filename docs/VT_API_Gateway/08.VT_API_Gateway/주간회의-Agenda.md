@@ -113,7 +113,7 @@
 
         - **핵심 논리**: Terraform을 고르는 가장 큰 이유 = 멀티클라우드인데 **AWS 전용이면 그 이유가 사라진다**. 남는 비교에서 CDK가 **언어 일관성(TS)·AWS 네이티브·조직 역량**으로 우위. (Terraform의 모듈·state 강점은 AWS 전용 + TS 스택에선 일관성에 밀림.)
         - **결정 요청**: ① IaC 도구 = CDK 확정? ② 확정 시 ARD §4.5·SRS §6.6.2 정합(Terraform→CDK) ③ 최종 표준은 인프라(③-I) 소유 확인.
-    - **R6. GW SRS 리뷰어 목록 확정 (회의에서 작성)** — ③ GW SRS(+OpenAPI·DBML) **PR 7/6 시작 전**에 리뷰어를 지정해야 리뷰가 공백 없이 진행된다. SRS가 걸치는 **영역별로 리뷰어를 배정**한다. 아래 표의 이름 칸을 회의에서 채운다(총괄 2인은 CCB 기확정, 나머지는 영역 담당 지명).
+    - **R6. GW SRS 리뷰어 목록 확정 (회의에서 작성)** — ③ GW SRS(+OpenAPI·DBML) **PR 7/9 시작 전**에 리뷰어를 지정해야 리뷰가 공백 없이 진행된다. SRS가 걸치는 **영역별로 리뷰어를 배정**한다. 아래 표의 이름 칸을 회의에서 채운다(총괄 2인은 CCB 기확정, 나머지는 영역 담당 지명).
 
         | 영역 | 리뷰 포인트 | 리뷰어 |
         | --- | --- | --- |
@@ -183,7 +183,7 @@
         - **확인 포인트**: ① 승인 주체 = **C/S 본인**(Admin 아님) 맞나? · ② C/S에게 **GW Console 승인 권한(write)** 부여 맞나? · ③ **재설치 회전도 C/S 승인** 통과로 충분한가?
 
 - 공유 사항 — 스펙 작성 순서 (SRS PR 이후 후속 스펙)
-    - ③ GW SRS(+OpenAPI·DBML)를 한 PR로 baseline. **③ PR 시작(7/6)에 ①·②(One Pager)와 ④(AXS 전체 Sub-SRS, 2주)를 동시 착수**(병행). ③-C·③-P·③-I는 ③ baseline 이후 — **③-I는 GW 1주 초안 → 인프라 담당 완성**. 각 스펙은 **작성 → PR(리뷰·수정) → baseline** 생애주기.
+    - ③ GW SRS(+OpenAPI·DBML)를 한 PR로 baseline. **③ PR 시작(7/9)에 ①·②(One Pager)와 ④(AXS 전체 Sub-SRS, 2주)를 동시 착수**(병행). ③-C·③-P·③-I는 ③ baseline 이후 — **③-I는 GW 1주 초안 → 인프라 담당 완성**. 각 스펙은 **작성 → PR(리뷰·수정) → baseline** 생애주기.
     - 막대 색: **작성=기본 · PR=강조(밝은색) · ◆=baseline/마일스톤 · 회색=완료 · 빨강=외부 선결**. **pilot 8/15는 개발계획서(착수 품의·미승인) 내부 목표**(외부 확정 요구 아님). **AXS sandbox 자격은 스펙 작성엔 불요·E2E·pilot 직전에 필요**라 그 시점에 배치(확보 TBD).
     - **`③ GW SRS + 구현` 섹션에 `GW 구현 1안·2안` 막대를 둘 다 표기 → R7에서 택일.** 1안=④ AXS baseline 후 즉시(스펙 병행) / 2안=전 스펙 완료 후. 둘 다 ④ AXS 연동(첫 연동·테스트 필수) 이후·**기간 미정**(SRS 확정 후 재산정).
     - 어느 제품·단계에 무슨 문서인지는 Roadmap §4 표, 스펙 단위·유형 정본은 PRD §12.1. **본 gantt 정본 = [개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정 시 그쪽을 먼저).
@@ -198,23 +198,23 @@
         section ③ GW SRS + API/DBML + GW 구현 (계약 SSOT → 구현)
         SRS 본문 작성            :done, srsw, 2026-06-15, 14d
         OpenAPI·DBML 작성·정합   :done, designw, 2026-06-19, 17d
-        PR 리뷰·수정(본문+스키마) :active, srspr, 2026-07-06, 14d
+        PR 리뷰·수정(본문+스키마) :active, srspr, 2026-07-09, 14d
         baseline v1.0 (통합)     :milestone, srsbl, after srspr, 0d
         GW 구현 1안 — ④ AXS baseline 후(스펙 병행) :active, impl1, after axsbl, 45d
         GW 구현 2안 — 전 스펙 완료 후 :active, impl2, after conbl infbl oidw, 45d
 
         section ① API 호환성 One Pager (③ PR 시 동시 착수)
-        작성                  :op1w, 2026-07-06, 7d
+        작성                  :op1w, 2026-07-09, 7d
         PR 리뷰·수정          :active, op1pr, after op1w, 7d
         baseline              :milestone, op1bl, after op1pr, 0d
 
         section ② Presigned One Pager (③ PR 시 동시 착수)
-        작성                  :op2w, 2026-07-06, 7d
+        작성                  :op2w, 2026-07-09, 7d
         PR 리뷰·수정          :active, op2pr, after op2w, 7d
         baseline              :milestone, op2bl, after op2pr, 0d
 
         section ④ AXS Sub-SRS (③ PR 시 ①②와 동시 착수)
-        작성 (전체 Sub-SRS)    :axsw, 2026-07-06, 14d
+        작성 (전체 Sub-SRS)    :axsw, 2026-07-09, 14d
         PR 리뷰·수정          :active, axspr, after axsw, 14d
         baseline              :milestone, axsbl, after axspr, 0d
         AXS sandbox 자격 확보(E2E·pilot 선결·시점 TBD) :crit, cred, 2026-07-28, 14d
