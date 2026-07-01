@@ -18,8 +18,8 @@ Project vt_api_gateway {
 }
 
 // ── 리뷰 포인트(설계 검토 필요) ──
-//  1) region_mapping(device→region) vs clinic_region_mapping(clinic→region): device=EzServer=클리닉당 1개이고 등록은 clinic 단위라,
-//     device→region은 clinic_region_mapping에서 파생 가능할 수 있음(ADR-10 단일 체계). 둘 다 유지할지/파생으로 둘지 LLD에서 확정.
+//  1) [해결·2026-07-01 A안] region SSOT=clinic. device.region·region_mapping 제거, device.clinic_id 추가 →
+//     device region은 clinic_region_mapping.region 파생(§6.4.1). 미결: clinic-less(비-EzServer) device의 region(미래·C안), 전용 clinic 테이블 분리 여부.
 //  2) consent(재동의) 추적: 리전 재지정 시 재동의(FR-COMP-02·§7.9.5)·보존기간(Appendix B #5 TBD)을 위한 전용 테이블은 미정의 — ④/LLD에서 확정(현재는 audit_log + mapping_version으로 이력).
 //  3) 보존기간(audit_log·consent)은 법규 의존 TBD(§6.4·Appendix B #5).
 
@@ -55,15 +55,15 @@ Enum region_status {
 // 디바이스 레지스트리 (FR-DEV-*)
 Table device {
   device_id   varchar [pk]
+  clinic_id   varchar [ref: > clinic_region_mapping.clinic_id]  // 소속 클리닉. nullable(미래 클리닉 비소속 device). 등록 시 포함
   fingerprint varchar
-  region      varchar
   status      device_status [not null, default: 'pending']
   created_at  bigint
   updated_at  bigint
 
-  Note: 'GW 관점의 디바이스 = EzServer(클리닉당 1개 엣지 머신, §1.4 — 물리 영상장비는 EzServer 뒤·GW 비대상). PHI 없음. lifecycle 상태기계(§7.2). 컬럼명 device_* 리네이밍은 LLD'
+  Note: 'GW 관점의 디바이스 = EzServer(클리닉당 1개 엣지 머신, §1.4). PHI 없음. lifecycle 상태기계(§7.2). **region은 컬럼 없음 — clinic_id→clinic_region_mapping.region 파생**(§6.4.1 A안, region SSOT=clinic). clinic_id nullable(미래 비-EzServer). 컬럼명 device_* 리네이밍은 LLD'
   Indexes {
-    region
+    clinic_id
     status
   }
 }
@@ -104,16 +104,9 @@ Table token {
   }
 }
 
-// device → region 매핑 (FR-RGN-01/02)
-Table region_mapping {
-  device_id       varchar [pk, ref: - device.device_id]
-  region          varchar [not null, ref: > region_catalog.region_id]
-  mapping_version integer [not null, default: 1]
-  created_at      bigint
-  updated_at      bigint
-
-  Note: 'drift·롤백 추적. (리뷰 포인트 1: clinic_region_mapping에서 파생 가능성 — LLD 확정)'
-}
+// (제거·2026-07-01 A안) device→region 매핑(region_mapping)은 삭제 —
+//   region SSOT=clinic. device region은 device.clinic_id → clinic_region_mapping.region 파생(§6.4.1).
+//   region 버전·이력(drift/롤백)은 clinic_region_mapping.mapping_version이 담당(FR-RGN-02).
 
 // clinic → region 매핑 (FR-RGN-06, 라우팅 키 통합)
 Table clinic_region_mapping {
@@ -136,7 +129,7 @@ Table region_catalog {
   created_at   bigint
   updated_at   bigint
 
-  Note: 'GW가 운영하는 리전 목록(GET /v1/regions). v1.0=1행, gw/1.2=N행(§2.7.1 멀티리전-ready). region_mapping·clinic_region_mapping.region이 참조'
+  Note: 'GW가 운영하는 리전 목록(GET /v1/regions). v1.0=1행, gw/1.2=N행(§2.7.1 멀티리전-ready). clinic_region_mapping.region이 참조(device region은 clinic 파생, §6.4.1 A안)'
 }
 
 // 업로드 세션 테이블 제거(2026-06-23): GW는 업로드 세션·presigned·storage를 소유하지 않음.

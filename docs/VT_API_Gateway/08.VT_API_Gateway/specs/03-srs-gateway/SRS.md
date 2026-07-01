@@ -1166,6 +1166,70 @@ Webhook 전달 보증(QoS1·재시도·DLQ), 업로드 idempotency. **동기 프
 ## 6.4 Logical Database Requirements (데이터베이스 요구사항)
 
 - ERD: [DBML — `vt-api-gateway.dbml`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/dbml/vt-api-gateway.dbml). 신규 테이블의 컬럼·타입·인덱스·relation은 DBML(dev-chain-design)이 SSOT
+
+#### 6.4.1 핵심 엔터티 관계 (Clinic · Device · 외부 Org) — A안 채택(주간회의 확인 예정)
+
+> **A안 채택(2026-07-01)**: **region SSOT = Clinic**, device는 clinic에서 region **파생**(device.region·device→region 매핑 제거). DBML·OpenAPI에 반영 완료. **주간회의(R8)에서 최종 확인**. 미래(점선)는 DBML 미정의.
+
+```mermaid
+erDiagram
+    CLINIC ||--o{ DEVICE : "보유(현 1:1=EzServer · 모델 1:N)"
+    CLINIC ||--|| REGION : "배정(1:1)"
+    CLINIC ||--o{ EXTERNAL_ORG : "확장: 연동 provider별 1 (AXS=현재)"
+    CLINIC {
+        string clinic_id PK
+        string region FK
+    }
+    DEVICE {
+        string device_id PK
+        string clinic_id FK "nullable · region은 clinic 파생"
+        string status
+    }
+    EXTERNAL_ORG {
+        string provider PK "예 axs"
+        string external_org_id PK "예 AXS Org-ID"
+        string clinic_id FK
+    }
+    REGION {
+        string region_id PK
+    }
+```
+
+기본(항상 존재) ↔ 확장(연동 시) ↔ 미래(추가 개발) 계층:
+
+```mermaid
+flowchart LR
+    DEV["Device · 기본"]:::base
+    CLI["Clinic · 기본"]:::base
+    ORG["외부 Org-ID · 확장(AXS)"]:::ext
+    FUT["미래 provider id · 확장(추가 개발)"]:::fut
+    DEV -->|"clinic_id (nullable)"| CLI
+    CLI -->|"provider별 1:1"| ORG
+    CLI -.->|"신규 연동 시"| FUT
+    classDef base fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1
+    classDef ext fill:#fff3e0,stroke:#fb8c00,stroke-width:2px,color:#e65100
+    classDef fut fill:#ffffff,stroke:#9e9e9e,stroke-width:1.5px,stroke-dasharray:5 4,color:#555
+```
+
+- **기본 엔터티 = Clinic · Device**(항상 존재). **확장 엔터티 = 외부 Org-ID**(외부 연동 시에만). org는 "기본"이 아니라 **확장**이다.
+- **Clinic ↔ Device = 1:N**(모델). **현재는 1:1** — 클리닉당 EzServer 1대(§2.3.1·Appendix B #17). `device.clinic_id`는 **nullable** — **미래 비-EzServer 디바이스**가 직접 등록되면 한 클리닉에 N대이거나 클리닉 비소속(clinic_id 없음)일 수 있다.
+- **디바이스 등록 시 clinic_id 포함**: EzServer가 LMP Clinic-ID 수신 시 자동 등록(§2.3.1)하므로 device에 clinic_id가 채워진다 → **`device.clinic_id`(FK·nullable) 추가 완료**(DBML·OpenAPI).
+- **외부 Org-ID = (provider, external_org_id) → clinic_id**(`org_mapping`). **provider별 클리닉↔외부 id 1:1**. **AXS 연동 시에만 `axs` org_id 존재**하고, 미연동이면 없다.
+  - **송신(AXS)**: clinic → org_id 조회해 **org_id를 실어 보냄**.
+  - **수신(Webhook)**: 이벤트에 **org_id 동반** → `(provider, org_id) → clinic` **역조회로 분배 대상** 판정(§7.6·§2.3.6).
+- **확장성(제3·4 서비스)**: 신규 연동은 — (a) **동일 패턴이면 `org_mapping`에 provider 값만 추가**(외부 id가 (provider, external_id)→clinic 형태), (b) **구조가 다르면 신규 테이블·추가 개발**(현 구조에 억지로 흡수하지 않음 — 그게 정상). 어느 경우든 **Device·Clinic(기본)은 불변**, 외부 id는 **확장 레이어**로만 늘어난다. API도 동일하게 **provider 파라미터화**로 확장(특정 provider 하드코딩 금지).
+
+> **`org_mapping` 경계·가정 (오해 방지).** `org_mapping`은 **provider별 로직이 아니라 "얇은 식별자 대응표"**(외부 org id ↔ 우리 clinic)다. provider별 인증·OAuth(→`connector`/`upstream_registry`)·webhook 검증·payload 스키마(→`webhook_provider`·④)는 **이미 별도로 분리**돼 있고, org_mapping은 그중 **가장 공통적인 조각만** 담는다. 따라서 **진짜 확장성은 "만능 org_mapping"이 아니라 "관심사 분리"에서 온다.**
+> - **암묵 가정**: 외부 식별자가 ① 단일 평면 id ② clinic과 (provider 내) 1:1 ③ 추가 속성 불요. → 이걸 **위반하는 provider**(계층형 org→다수 site, clinic당 다중 id, provider별 추가 속성)는 **전용 테이블+로직으로 분기**한다. 이는 **설계된 분기이지 실패가 아니다.**
+> - **가드레일(분리 신호)**: org_mapping에 **provider 조건 분기·provider 전용 컬럼**을 넣고 싶어지는 순간 = 그 provider를 **전용 테이블로 빼라는 신호**. org_mapping은 "순수 식별자 매핑"으로만 유지.
+> - **한 줄**: org_mapping은 "모든 provider가 맞춰야 하는 틀"이 아니라 **"같은 모양 provider를 위한 편의"**. 2번째 provider가 달라도 org_mapping이 아니라 **그 provider 전용 테이블**이 추가될 뿐 기존은 안 깨진다.
+- **`provider` 식별자 관리 (R8 확인)**: `provider`는 여러 테이블(`org_mapping`·`webhook_provider`·`webhook_event`…)에서 키로 쓰이므로 **정규 토큰**(소문자 `^[a-z0-9_]+$`, 예 `axs`)으로 관리하고 표기를 통일한다. **enum 금지**(연동 provider는 런타임 추가 → 스키마 고정 부적합). **canonical provider 레지스트리(SSOT)로 FK 강제**할지, `provider`(webhook/org 축)와 `upstream_registry.target_id`(proxy 대상 축, AXS에선 같은 `axs`)를 **하나로 통합**할지는 **R8 결정**(현재 `webhook_provider`가 webhook측 사실상 레지스트리이나 범용 아님 — cleverspace는 proxy 대상이지 webhook provider 아님).
+- **region (A안 확정)**: **region SSOT = Clinic**(`clinic_region_mapping`, 1:1). **device의 region은 `device.clinic_id → clinic_region_mapping.region` 파생** — **device.region 컬럼·device-level `region_mapping` 테이블은 제거**(중복·drift 제거, relocation은 clinic 1곳만 변경). region 버전·이력은 `clinic_region_mapping.mapping_version`(FR-RGN-02). §7.3 resolver는 deviceId를 받아도 device→clinic→region으로 해석.
+  - **미래(C안 여지)**: clinic 비소속(비-EzServer) device는 파생할 clinic이 없어 device-level region이 필요할 수 있음 → 실제 등장 시 추가(현재 미정의).
+- **(미결·논의)** 현재 "clinic" 엔터티는 별도 테이블 없이 `clinic_region_mapping`(클리닉 레지스트리 겸 region 배정)이 대신한다 — **전용 `clinic` 테이블 분리 여부**는 별도 결정(본 A안 범위 밖).
+
+> **DBML·OpenAPI 반영(A안·완료)**: ① `device.clinic_id`(FK→clinic_region_mapping, **nullable**)+인덱스 추가 · ② `device.region` 컬럼·`region_mapping` 테이블 **제거**(clinic 파생) · ③ OpenAPI `Device`에서 `region` 제거·`clinicId` 추가 · ④ `org_mapping`은 (provider, external_org_id) PK라 provider 확장 가능(변경 없음). **미결(별도)**: 전용 `clinic` 테이블 분리 · clinic-less device region(미래).
+
 - 저장 정보 유형: 디바이스 레지스트리, device/clinic↔region 매핑, 토큰 메타, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event`, 멱등·DLQ)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·Vatech-Target upstream(`upstream_registry`, 라우팅+per-upstream 복원력 설정)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 본문은 미저장**(presigned 직결)
 - 캐시: **Valkey**(ElastiCache for Valkey·Redis 호환, §1.4)(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS·webhook dedup). **캐시(PG 재구성 가능) + 휘발 상태(nonce·멱등·dedup·rate-limit·lock)이며 SSOT 아님.** 키 패턴·TTL·재구성 출처는 키스페이스 카탈로그 `design/redis/redis-keyspace.md`(DBML과 나란한 설계 산출물)
 - **데이터 토폴로지(멀티 서버·멀티 리전, §2.1.1)**: 리전 내 pod는 **동일 DB·Redis 공유**(무상태 앱 tier). 멀티 리전에서는 **(전역 일관) 라우팅·식별 데이터**(매핑·레지스트리·Org-ID·정책·compat·JWKS) 와 **(리전 로컬) 운영 데이터**(audit·in-flight queue)로 나눈다. 전역 데이터는 어느 리전에서도 같은 답을 내야 하며(soft-state 캐시 + strong-consistency 경로·`mapping_version`), 운영 데이터는 리전 로컬이다. **저장소 구현(전역 DB 단일 vs 리전별 복제)은 gw/1.2 TBD(Appendix B #15)**, 구분 원칙은 고정.
@@ -1756,6 +1820,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-25 | Webhook IP allowlist 관리 명확화 — 신뢰=HMAC(주)·IP allowlist=옵션 재확인. §7.6.2에 검증 config(`inbound_host`·`sig_scheme`·`secret_ref`·`source_ip_allowlist`) **관리 API `/admin/v1/webhook-providers`(§7.9.1), UI=③-C** 명시. allowlist 형식을 **CIDR 목록**으로 DBML·OpenAPI에 명확화(관리 API·데이터는 기정의 — 신규 아님) | (작성자 ID 미지정) |
 | 2026-06-25 | §1.4 용어에 **LMP(LicenseManager) = Clinic-ID 발급원** 정의 추가(§2.3.1 온보딩 자동 등록의 LMP 약어 명시) | (작성자 ID 미지정) |
 | 2026-06-26 | 잔재 전수 점검·정리 — §2.7 gw/1.2 "멀티클라우드 presign·**signer 확장**" → "멀티 리전 활성화(Aurora Global DB·GeoDNS)", §2.7.1 금지 노트의 "멀티클라우드 presign broker ready" 제거(GW 비소유·FR-SES-06 해당없음·line 1290과 일치), §2.1 노트 "비-AWS minio·디바이스→storage" → "AWS 미지원국 Provider MinIO·EzServer→발급주체 storage". signer/Upload Session/포터블 잔재 0 확인 | (작성자 ID 미지정) |
+| 2026-07-01 | **§6.4.1 org_mapping 경계·`provider` 관리 정리** — org_mapping=얇은 식별자 매핑(공통 조각)임을 명시(암묵 가정 3·가드레일·"구조 다른 provider=전용 테이블 분기, 실패 아님"). `provider`는 정규 토큰(소문자)·enum 금지, provider 레지스트리 FK/‌target_id 통합은 R8 결정으로 등록. Agenda R8에 org_mapping 경계·provider 관리·Device 1:N vs 1:1 확인 추가 | (작성자 ID 미지정) |
+| 2026-07-01 | **§6.4.1 데이터 관계 ERD + region 모델 A안 확정(회의 확인 예정 R8)** — Clinic·Device·외부 Org 관계를 mermaid ERD + 기본/확장/미래(점선) 계층도로 명시. **A안: region SSOT=Clinic, device는 clinic 파생** → **DBML `device.region`·`region_mapping` 제거·`device.clinic_id`(FK·nullable)+인덱스 추가**, **OpenAPI `Device`에서 region 제거·clinicId 추가**. Clinic↔Device 1:N(현 1:1=EzServer). 외부 Org-ID=확장((provider,external_org_id)→clinic, AXS만); 신규 provider=org_mapping 확장 or 신규 테이블+추가 개발. DBML 컴파일 검증(17→16 테이블). 미결: clinic 전용 테이블 분리·clinic-less device region(미래) | (작성자 ID 미지정) |
 | 2026-06-30 | **§2.1.1 Webhook Ingress 위치 정정 + path 잔재 제거** — Webhook Ingress 컴퓨트를 전역 계층(GTIER)에서 **각 리전 GW pods**로 옮겨 그림(컴퓨트=리전, 전역=DNS 호스트+매핑 데이터만). 다이어그램 재작성(전역=Route53 DNS+SSOT / 리전=LB·pods(API+Webhook Ingress)·저장소·NAT, webhook=DNS→리전→매핑→분배(교차 가능)), 노드 라벨 간소화. **단일↔멀티 리전 전환 명문화**(DNS 단일 지정→GeoDNS 전역·데이터 단일→복제, Ingress는 항상 리전). path 기반 잔재(`공개 호스트 1개·provider별 등록 경로 /webhooks/axs`·`단일 webhook ingress`) 제거 → **provider별 전용 호스트(DNS)** 로 통일 | (작성자 ID 미지정) |
 | 2026-06-30 | **GW 다이어그램 색 위계 정립(§2.1·§2.1.1·§2.2)** — 4단 일관 체계: **연두 박스=GW 범위** · **연파랑 박스=GW core·Webhook Ingress**(§2.2 CORE/WHTIER, §2.1.1 WHIN) · **흰 카드+파란 테두리=우리가 만드는 세부 컴포넌트**(서비스·GW pod) · **회색=managed 인프라/데이터**(SQS·DB·NAT·LB) · 외부=기본. plane 그룹(Control/Data/Integration)은 투명 처리(노랑 제거). §2.1→§2.2 줌인 관계를 색으로 연결. **범례를 mermaid 다이어그램으로 만들어 3개 다이어그램 각각 아래 배치**(글 색-나열은 다이어그램과 중복·drift라 통합 제거, 뉘앙스 1줄만 §2.1에 유지) | (작성자 ID 미지정) |
 | 2026-06-30 | **Webhook 명칭 통일** — tier 명칭이 §2.1='Webhook Receiver' vs §2.2='Webhook ingress'로 불일치(내부 컴포넌트와도 충돌)하던 것을 **tier='Webhook Ingress'** 로 통일(§2.1·§2.1.1·§2.2 다이어그램·본문), 내부 컴포넌트는 **'Webhook Receiver'(수신·검증·ACK·적재) + 'Webhook Dispatcher'(분배 워커)** 로 분리 정의. §2.1 노트에 'Ingress=Receiver+SQS+Dispatcher' 정의 추가 | (작성자 ID 미지정) |
