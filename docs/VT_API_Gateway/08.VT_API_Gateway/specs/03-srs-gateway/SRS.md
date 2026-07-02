@@ -31,7 +31,7 @@ CleverSpace는 유상화·이용 한도 등 새 정책으로 API를 계속 확�
 - **제품측(CleverSpace·CleverOne·EzServer) 변경 상세** — ① API 호환성 / ② Presigned One Pager에서 다룬다. 본 SRS는 GW 쪽 계약만 정의한다.
 - **Straumann AXS connector 상세** — ④ Sub-SRS([Straumann AXS Sub-SRS](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/04-subsrs-straumann-axs/Sub-SRS.md))에서 다룬다. 본 SRS는 connector 프레임워크(§7.5)까지만.
 - **GW Console(Admin Web) UI 상세** — ③-C Sub-SRS([GW Console Sub-SRS](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/03c-subsrs-gw-console/Sub-SRS.md))에서 다룬다. 본 SRS는 관리 API(§7.9)까지만.
-- **CleverLab↔AXS 직접 연동(Roadmap 5단계 갈래 B)** — **현 시점 미고려**(2026-06 회의). 단 외부 cloud 서비스 연동 **일반 역량**(C 프록시·§4.1.1·§7.5)은 유지하므로, 향후 활성화 시 신규 코드가 아닌 레지스트리 등록으로 수용한다. 우선 범위는 **갈래 A(EzServer→AXS)** 다(④).
+- **CleverLab↔AXS 직접 연동(Roadmap 5단계 갈래 B)** — **현 시점 미고려**(2026-06 회의). 단 외부 cloud 서비스 연동 **일반 역량**(외부(C) 프록시·§4.1.1·§7.5)은 유지하므로, 향후 활성화 시 신규 코드가 아닌 레지스트리 등록으로 수용한다. 우선 범위는 **갈래 A(EzServer→AXS)** 다(④).
 - **레거시 10만대 마이그레이션** — v2.0(FR-MIG-\*). 본 v1.0 범위 밖.
 
 ## 1.3 Document Conventions (문서규칙)
@@ -205,9 +205,9 @@ flowchart TD
 | Route 53 GeoDNS | EzServer를 최근접 GW Region에 연결 |
 | GW Console | Admin Web(③-C Sub-SRS) — 관리 API 호출 |
 
-> 상세 인터페이스는 §4. **Webhook Ingress는 GW 내부의 별도 sub-tier**(외부 서버 아님 — A면 GW 고유 API, §4.1.1·§7.6.1). *(Ingress = 수신(Webhook Receiver)·큐(SQS)·분배(Webhook Dispatcher)를 묶은 서브티어 — Receiver·Dispatcher는 **GW core와 별개의 Deployment**로 독립 스케일(§6.6.2·§7.6.7), §2.2)* **API 호출 경로는 대상에 무관하게 동일하다** — `CleverOne→EzServer→GW→CleverSpace` 든 `…→GW→AXS` 든 모두 **GW를 단일 경유하는 target-routed proxy**(ADR-11, 경로 B 제거). 차이는 **trust profile뿐**: 내부(B=CleverSpace·OneID, 통과+정규화 신원) vs 외부(C=AXS, GW가 OAuth·고정 egress IP 추가). 그래서 다이어그램의 `GW→upstream` 화살표는 같은 종류이고, AXS만 라벨이 `C·외부`다. **CleverLab은 GW가 호출하는 프록시 대상이 아니라**, 클라우드↔클라우드 외부 연동(갈래 B)에서 **GW를 호출하는 클라이언트**다(CleverLab→GW→AXS) — 현 시점 **보류**(§1.2).
+> 상세 인터페이스는 §4. **Webhook Ingress는 GW 내부의 별도 sub-tier**(외부 서버 아님 — GW 고유 API(A), §4.1.1·§7.6.1). *(Ingress = 수신(Webhook Receiver)·큐(SQS)·분배(Webhook Dispatcher)를 묶은 서브티어 — Receiver·Dispatcher는 **GW core와 별개의 Deployment**로 독립 스케일(§6.6.2·§7.6.7), §2.2)* **API 호출 경로는 대상에 무관하게 동일하다** — `CleverOne→EzServer→GW→CleverSpace` 든 `…→GW→AXS` 든 모두 **GW를 단일 경유하는 target-routed proxy**(ADR-11, 경로 B 제거). 차이는 **trust profile뿐**: 내부(B=CleverSpace·OneID, 통과+정규화 신원) vs 외부(C=AXS, GW가 OAuth·고정 egress IP 추가). 그래서 다이어그램의 `GW→upstream` 화살표는 같은 종류이고, AXS만 라벨이 `C·외부`다. **CleverLab은 GW가 호출하는 프록시 대상이 아니라**, 클라우드↔클라우드 외부 연동(갈래 B)에서 **GW를 호출하는 클라이언트**다(CleverLab→GW→AXS) — 현 시점 **보류**(§1.2).
 >
-> **유일하게 다른 건 Webhook(이벤트 인바운드)** — AXS는 결과 이벤트를 GW로 _밀어 보내고_, GW가 **Webhook Ingress**로 받아 방화벽 뒤 **EzServer는 MQTT(하행, 갈래 A 역방향)**·**클라우드는 HTTP push**로 분배한다(대상=Org-ID→Clinic→리전 매핑, §7.3). 클라우드 수신 대상은 **CleverLab(갈래 B·보류)뿐**이며, **CleverSpace는 webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드일 뿐 — 다이어그램엔 *API 호출 대상*으로만 그린다). 대상별 시나리오는 §2.3.6. AXS의 **외부 연동(egress)은 GW core**, **Webhook(인바운드)은 Webhook Ingress**로 들어와 방향이 반대다. 멱등·교차 리전 등 분배 상세는 **§2.3.6·§7.6**.
+> **유일하게 다른 건 Webhook(이벤트 인바운드)** — AXS는 결과 이벤트를 GW로 _밀어 보내고_, GW가 **Webhook Ingress**로 받아 방화벽 뒤 **EzServer는 MQTT(하행, 갈래 A 역방향)**·**클라우드는 HTTP push**로 분배한다(대상=Org-ID→Clinic→리전 매핑, §7.3). 클라우드 수신 대상은 **CleverLab(갈래 B·보류)뿐**이며, **CleverSpace는 webhook 수신 대상이 아니다**(내부(B) 프록시·presigned 백엔드일 뿐 — 다이어그램엔 *API 호출 대상*으로만 그린다). 대상별 시나리오는 §2.3.6. AXS의 **외부 연동(egress)은 GW core**, **Webhook(인바운드)은 Webhook Ingress**로 들어와 방향이 반대다. 멱등·교차 리전 등 분배 상세는 **§2.3.6·§7.6**.
 >
 > **본 도는 control plane(정보 경로) context다** — **대용량 데이터의 presigned 직접 업로드(EzServer→발급주체 storage, GW 미경유)·AWS 미지원국 Provider MinIO·리전별 CS 노드는 생략**했다(Roadmap §2.6은 데이터 plane까지 함께 그림). 데이터 경로는 §2.3.4(경로②)·§2.3.5(경로③)·§4.1.4, 멀티 리전·MinIO는 §2.1.1·§3.1.2 참조.
 
@@ -215,7 +215,7 @@ flowchart TD
 
 GW는 두 축으로 다중화된다: **멀티 서버**(한 리전 내 Multi-AZ K8s 복제본 — HA·수평 확장, §6.3.1) 와 **멀티 리전**(서울·미주 등, gw/1.2·§7.3.5). 두 경우 모두 **inbound는 안정 endpoint 하나**(리전별 LB, GeoDNS 뒤)로 수렴하지만 **outbound(egress)는 NAT EIP 다수**로 나간다 — **inbound IP ≠ egress IP**. GW pod는 **무상태(soft-state, ADR-02)** 라 DB·Redis를 pod마다 두지 않는다 — **같은 리전 pod는 동일 저장소를 공유**하고, 라우팅·식별 데이터는 **전역 일관**으로 둔다(데이터 토폴로지는 다이어그램 아래 참조).
 
-> **v1.0은 단일 리전(예: 서울)만 실제 배포**한다(§2.7.1). 아래 다이어그램의 **멀티 리전(A·B)은 2차(gw/1.2) 목표 토폴로지**이며, v1.0 설계가 이를 *ready*로 갖춘다 — **구조(데이터 토폴로지·Region Resolver·apex DNS·egress 집합)는 동일하고 리전 수만 1→N**이다. v1.0은 리전 1개(예: RA)만 두고 GeoDNS·apex가 이를 가리킨다 — 전역 SSOT는 단일 리전 내에 존재하고, 2차에 복제를 추가한다.
+> **v1.0은 단일 리전(예: 서울)만 실제 배포**한다(§2.7.1). 아래 다이어그램의 **멀티 리전(예: 리전 2곳)은 2차(gw/1.2) 목표 토폴로지**이며, v1.0 설계가 이를 *ready*로 갖춘다 — **구조(데이터 토폴로지·Region Resolver·apex DNS·egress 집합)는 동일하고 리전 수만 1→N**이다. v1.0은 리전 1개(예: 서울)만 두고 GeoDNS·apex가 이를 가리킨다 — 전역 SSOT는 단일 리전 내에 존재하고, 2차에 복제를 추가한다.
 
 > **Webhook Ingress 위치 — 컴퓨트는 리전, DNS·데이터만 전역.** Webhook Ingress(Receiver·SQS·Dispatcher, §2.2·§7.6)는 **GW 소프트웨어라 각 리전의 GW pods에서 실행**된다 — 전역 계층의 별도 컴퓨트가 아니다. 전역(리전 비종속)인 것은 **① 공개 호스트 DNS**(`axs.webhook.gw.vatech.com` = Route 53)와 **② 매핑 데이터 SSOT**뿐이다. 즉:
 > - **단일 리전(v1.0)**: `axs.webhook.gw.vatech.com`은 **apex와 동일하게 v1.0부터 GeoDNS 라우팅으로 구성하되 대상이 서울 1개** → (서울) LB → **서울 리전 Webhook Ingress**가 수신·처리.
@@ -558,7 +558,7 @@ sequenceDiagram
 
 ### 2.3.5 외부 연동 — AXS presign·파일 bypass (경로③, 갈래 A) — FR-INT-\*
 
-**§4.1.4 경로③ 전용 (C 프록시).** EzServer→AXS 외부 연동(5단계 갈래 A). 클라이언트는 **`axs.gw.vatech.com` 서브도메인**으로 AXS 경로를 **그대로** 호출하고(§4.1.2 — CleverOne→EzServer 구간은 `Vatech-Target: axs` 헤더로 지시하면 EzServer가 서브도메인으로 변환), GW는 connector로 OAuth2 토큰을 관리(§7.1.3)·egress allowlist를 집행(§7.5.3)하되 요청/응답 body는 **AXS OpenAPI 그대로 통과(verbatim bypass)** 한다 — GW가 발급하거나 해석·변환하지 않는다. 대용량은 AXS가 발급한 presigned로 **AXS S3에 직접** 업로드(GW 미경유). 연동 의미·Org-ID 매핑 상세는 **④ Sub-SRS**, 본 SRS는 프레임워크·egress까지만. 상세는 §7.5.
+**§4.1.4 경로③ 전용 (외부(C) 프록시).** EzServer→AXS 외부 연동(5단계 갈래 A). 클라이언트는 **`axs.gw.vatech.com` 서브도메인**으로 AXS 경로를 **그대로** 호출하고(§4.1.2 — CleverOne→EzServer 구간은 `Vatech-Target: axs` 헤더로 지시하면 EzServer가 서브도메인으로 변환), GW는 connector로 OAuth2 토큰을 관리(§7.1.3)·egress allowlist를 집행(§7.5.3)하되 요청/응답 body는 **AXS OpenAPI 그대로 통과(verbatim bypass)** 한다 — GW가 발급하거나 해석·변환하지 않는다. 대용량은 AXS가 발급한 presigned로 **AXS S3에 직접** 업로드(GW 미경유). 연동 의미·Org-ID 매핑 상세는 **④ Sub-SRS**, 본 SRS는 프레임워크·egress까지만. 상세는 §7.5.
 
 > **경로 동일성**: 본 흐름(`EZ→GW→upstream`)은 **CleverSpace(B 내부)도 동일**하다(ADR-11 target-routed proxy). AXS(C 외부)는 GW가 **OAuth·고정 egress IP**를 추가할 뿐 경로·중계 방식은 같다. 즉 본 시나리오는 AXS를 예로 든 *일반 upstream proxy*이며, CleverSpace는 `cleverspace.gw.vatech.com`으로 같은 경로를 탄다(차이는 trust profile뿐).
 
@@ -580,7 +580,7 @@ sequenceDiagram
 
 ### 2.3.6 Webhook 수신·분배 — FR-WH-\*
 
-외부(AXS)가 **provider별 전용 호스트**(`axs.webhook.gw.vatech.com`)로 이벤트를 push하면, GW가 **Host/SNI로 발신자를 식별**(→그 provider의 시크릿 선택)하고 **HMAC·timestamp 검증·eventId 멱등** 후 즉시 ACK하고 대상별로 분배한다(store-and-forward, ADR-09). 클라우드는 HTTP push, 방화벽 뒤 Edge(EzServer)는 MQTT QoS1 역방향. **발신자 식별은 수신 호스트(우리가 통제)로, 목적지(분배 대상)는 Org-ID↔ClinicID 매핑(§7.3)으로** 결정한다 — 둘 다 송신 source IP에 의존하지 않으며, **Host는 식별이지 인증이 아니다**(인증=HMAC). 수신 계약은 A면(GW 고유 API), payload는 외부 참조(§4.1.3). 상세는 §7.6.
+외부(AXS)가 **provider별 전용 호스트**(`axs.webhook.gw.vatech.com`)로 이벤트를 push하면, GW가 **Host/SNI로 발신자를 식별**(→그 provider의 시크릿 선택)하고 **HMAC·timestamp 검증·eventId 멱등** 후 즉시 ACK하고 대상별로 분배한다(store-and-forward, ADR-09). 클라우드는 HTTP push, 방화벽 뒤 Edge(EzServer)는 MQTT QoS1 역방향. **발신자 식별은 수신 호스트(우리가 통제)로, 목적지(분배 대상)는 Org-ID↔ClinicID 매핑(§7.3)으로** 결정한다 — 둘 다 송신 source IP에 의존하지 않으며, **Host는 식별이지 인증이 아니다**(인증=HMAC). 수신 계약은 GW 고유 API(A), payload는 외부 참조(§4.1.3). 상세는 §7.6.
 
 ```mermaid
 sequenceDiagram
@@ -614,9 +614,9 @@ Webhook은 **외부 서비스(현재 AXS)가 보낸 이벤트**를 GW가 받아,
 | --- | --- | --- | --- |
 | **EzServer (Edge)** | 클리닉의 AXS 연동(**갈래 A**) **역방향** — 그 클리닉의 환자·파일·오더 상태 등 AXS가 통지하는 결과를 방화벽 뒤 EzServer로 | **MQTT QoS1**(EZ outbound 구독) | **역방향 capability는 b1(v1.0)에 포함**(WH-06·ARD v0.9·§7.6.6). 단 갈래 A의 _데이터_ 1차 범위는 EZ→AXS 단방향이며, **TBD — 역방향으로 보낼 대상 이벤트 목록·활성화 세부는 ④ Sub-SRS에서 확정**(Roadmap §3.7.1) |
 | **CleverLab (클라우드)** | 기공소 주문 연동(**갈래 B**) — Straumann Scan SW→AXS로 들어온 **기공 오더 전송·확정 결과**를 CleverLab로 | **HTTP push**(내부망) | **갈래 B — 현 시점 범위 외(보류, §1.2).** **TBD — 갈래 B 활성화 여부·시점 확정 필요**(PM/제품). 활성화 시 받을 이벤트(오더·확정 결과)는 ④ |
-| **CleverSpace (클라우드)** | **해당 없음 — CleverSpace는 Webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드일 뿐, AXS 이벤트 수신처 아님) | — | **N/A (확정).** 클라우드 webhook 수신은 CleverLab만(갈래 B). 결정 2026-06-23 |
+| **CleverSpace (클라우드)** | **해당 없음 — CleverSpace는 Webhook 수신 대상이 아니다**(내부(B) 프록시·presigned 백엔드일 뿐, AXS 이벤트 수신처 아님) | — | **N/A (확정).** 클라우드 webhook 수신은 CleverLab만(갈래 B). 결정 2026-06-23 |
 
-> 정리: **현 v1.0의 _구체적_ 분배 대상은 EzServer(갈래 A 역방향)** 가 핵심이고, **클라우드 수신 대상은 CleverLab만(갈래 B·보류)** 이다. **CleverSpace는 webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드). 즉 "클라우드 HTTP push"는 *메커니즘*이고 그 수신처는 **CleverLab**이며, 활성화는 갈래 B 결정에 달려 있다. AXS 이벤트 종류(patient/file/lab-order)·대상 매핑 상세는 **④ Sub-SRS**. (갈래 B 활성화 등 미결은 Appendix B 추적)
+> 정리: **현 v1.0의 _구체적_ 분배 대상은 EzServer(갈래 A 역방향)** 가 핵심이고, **클라우드 수신 대상은 CleverLab만(갈래 B·보류)** 이다. **CleverSpace는 webhook 수신 대상이 아니다**(내부(B) 프록시·presigned 백엔드). 즉 "클라우드 HTTP push"는 *메커니즘*이고 그 수신처는 **CleverLab**이며, 활성화는 갈래 B 결정에 달려 있다. AXS 이벤트 종류(patient/file/lab-order)·대상 매핑 상세는 **④ Sub-SRS**. (갈래 B 활성화 등 미결은 Appendix B 추적)
 
 ### 2.3.7 버전 호환 게이팅 — FR-COMPAT-\*
 
@@ -879,7 +879,7 @@ GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의
 - **A. GW 고유 API** — GW가 직접 정의·처리하는 면(§7 전부).
 - **Proxy. 레지스트리 라우팅 프록시** — 등록된 upstream으로 요청을 **그대로 전달(verbatim bypass)** 하는 면. upstream이 우리 소유(내부)냐 제3자(외부)냐에 따라 **trust profile만 다르며**(라우팅 메커니즘은 동일), 각각 **B(internal)·C(external)** 로 부른다.
 
-**두 면은 요청 Host(서브도메인)로 배타적으로 갈린다** — apex `gw.vatech.com`이면 A(GW가 처리), `{target}.gw.vatech.com`(등록된 upstream 서브도메인)이면 Proxy(그 upstream으로 전달). 라우팅 모델·불변식은 §4.1.2, 결정 근거는 ADR-11(target-routed proxy — 라우팅 신호는 **서브도메인**, 7/2 R1 개정). *`Vatech-Target` 헤더는 **CleverOne→EzServer 내부 구간**에서 target을 지시하는 키이며, **EzServer가 이를 서브도메인으로 변환**해 GW에 전달한다(§4.5.1).*
+**두 면은 요청 Host(서브도메인)로 배타적으로 갈린다** — apex `gw.vatech.com`이면 **GW 고유 API(A)** 가 처리, `{target}.gw.vatech.com`(등록된 upstream 서브도메인)이면 **프록시**가 그 upstream으로 전달. 라우팅 모델·불변식은 §4.1.2, 결정 근거는 ADR-11(target-routed proxy — 라우팅 신호는 **서브도메인**, 7/2 R1 개정). *`Vatech-Target` 헤더는 **CleverOne→EzServer 내부 구간**에서 target을 지시하는 키이며, **EzServer가 이를 서브도메인으로 변환**해 GW에 전달한다(§4.5.1).*
 
 | 면 | 무엇 | 라우팅 키(GW 앞단) | GW 역할 | 정본(SSOT) |
 | --- | --- | --- | --- | --- |
@@ -887,18 +887,18 @@ GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의
 | **B. 프록시(internal)** | **우리 소유** 백엔드(CleverSpace·OneID) | **서브도메인 `cleverspace.gw.vatech.com`**(라벨 = 논리 ID) | **verbatim bypass** + 정규화 신원 전달 + 정책 체인. 내부망 trusted — 백엔드가 GW 신뢰 | 각 백엔드 제품의 OpenAPI |
 | **C. 프록시(external)** | **외부 제3자**(Straumann AXS, 향후 DS Core/3Shape) | **서브도메인 `axs.gw.vatech.com`**(라벨 = 논리 ID) | **verbatim bypass** + OAuth2 인증·토큰/secret 관리(§7.1.3)·고정 egress IP·egress allowlist(§7.5)·Webhook 역수신(§7.6). 경계 밖 untrusted | ④ Sub-SRS + 외부 OpenAPI 스냅샷 |
 
-- **handle(A) vs proxy(B/C) 판별 = Host(서브도메인)**(배타). apex = A, 등록된 `{target}.gw.vatech.com` = proxy, **미등록 서브도메인 → 거부(`404`)**. 상세 불변식은 §4.1.2.
+- **GW 고유 API(A) vs 프록시(내부 B·외부 C) 판별 = Host(서브도메인)**(배타). apex = GW 고유 API, 등록된 `{target}.gw.vatech.com` = 프록시, **미등록 서브도메인 → 거부(`404`)**. 상세 불변식은 §4.1.2.
 - **B vs C = trust profile 차이일 뿐 라우팅은 동일**: B = 내부 안내 데스크(통과 + 정규화 신원), C = 거래처 방문(OAuth·토큰·secret·고정 egress IP·외부 장애 책임). C가 토큰·secret·외부 장애 책임까지 지므로 §7.5 커넥터 프레임워크로 1급 처리하고, B는 정책 체인 수준의 경량이다.
 - **신규 upstream 추가 = 레지스트리 1행**(논리 ID→host + trust profile + 정책·egress)으로 끝난다 — **코드·경로 네임스페이스 변경 0**(NFR-SCL §6.3.5). §7.5.1 connector 프레임워크를 _내부·외부 전 upstream_ 으로 일반화한 것이며, 내부·외부를 **하나의 라우팅 규칙**으로 다룬다.
 - **파일 업로드·presigned는 API 면과 데이터 경로를 구분한다**(§4.1.4): 경로②=B proxy(`cleverspace.gw.vatech.com`)·경로③=C proxy(`axs.gw.vatech.com`) — 둘 다 GW가 발급을 **중계(bypass)** 만 하고 presigned를 **직접 발급하지 않는다**(경로①=GW 직접 발급은 폐기, §4.1.4). **파일 바이트**는 어느 경로든 presigned로 **storage 직접 업로드**(GW 미경유).
-- **CleverLab은 B 프록시 대상이 아니다.** 우리 클라우드 기공소 PMS지만, GW와의 관계는 **갈래 B 클라우드↔클라우드 연동(보류)** — CleverLab이 **C(AXS)를 향해 GW를 호출하는 클라이언트**(CleverLab→GW→AXS, EzServer가 GW를 호출하는 것과 같은 역할)이고, AXS 이벤트는 Webhook으로 수신(GW→CleverLab)한다. 따라서 위 B 행에 넣지 않는다(§2.1·④·§7.6.5).
+- **CleverLab은 내부(B) 프록시 대상이 아니다.** 우리 클라우드 기공소 PMS지만, GW와의 관계는 **갈래 B 클라우드↔클라우드 연동(보류)** — CleverLab이 **C(AXS)를 향해 GW를 호출하는 클라이언트**(CleverLab→GW→AXS, EzServer가 GW를 호출하는 것과 같은 역할)이고, AXS 이벤트는 Webhook으로 수신(GW→CleverLab)한다. 따라서 위 B 행에 넣지 않는다(§2.1·④·§7.6.5).
 
 ### 4.1.2 라우팅·API 설계 규칙
 
-1. **라우팅 모델 — Host(서브도메인)로 면을 가른다.** 요청 Host가 **apex `gw.vatech.com`이면 GW 고유 API(A)** 로 GW가 처리하고, **`{target}.gw.vatech.com`(등록 upstream 서브도메인)이면 Proxy(B/C)** 로 그 upstream에 전달한다. 두 면은 **배타** — apex에 upstream 경로를 흉내 내면 `404`, **미등록 서브도메인 → fail-closed(`404`)**(추측 라우팅 금지). **CleverOne→EzServer 내부 구간은 `Vatech-Target` 헤더로 target을 지시**하고 **EzServer가 서브도메인으로 변환**해 GW에 전달한다(§4.5.1 · 7/2 R1) — GW 앞단 라우팅 신호는 **서브도메인**이다. GW를 직접 호출하는 클라이언트(Console·클라우드)는 처음부터 target 서브도메인을 사용한다.
+1. **라우팅 모델 — Host(서브도메인)로 면을 가른다.** 요청 Host가 **apex `gw.vatech.com`이면 GW 고유 API(A)** 로 GW가 처리하고, **`{target}.gw.vatech.com`(등록 upstream 서브도메인)이면 프록시(내부 B·외부 C)** 로 그 upstream에 전달한다. 두 면은 **배타** — apex에 upstream 경로를 흉내 내면 `404`, **미등록 서브도메인 → fail-closed(`404`)**(추측 라우팅 금지). **CleverOne→EzServer 내부 구간은 `Vatech-Target` 헤더로 target을 지시**하고 **EzServer가 서브도메인으로 변환**해 GW에 전달한다(§4.5.1 · 7/2 R1) — GW 앞단 라우팅 신호는 **서브도메인**이다. GW를 직접 호출하는 클라이언트(Console·클라우드)는 처음부터 target 서브도메인을 사용한다.
 2. **목적지는 GW가 결정한다(서버측 레지스트리) — 클라이언트는 원서버 host/주소를 지정하지 않는다.** 서브도메인 라벨 `{target}`은 **논리 서비스 ID만** 담고 **원서버 host/URL은 실을 수 없다**. GW가 레지스트리로 라벨→host를 해석(allowlist 검증)하며 **미등록 라벨 → 거부(`404`/`403`)**. 따라서 클라이언트는 _논리 의도_ 만 표명하고 **주소 결정권은 GW**가 보유한다(SSRF·오픈 프록시·토폴로지 결합 차단). 원서버 주소 헤더·임의 라우팅 헤더(`X-Upstream` 등) 신설 금지 — 라우팅 키는 **서브도메인 라벨** 단일(EzServer 앞단의 `Vatech-Target`은 이 라벨로 1:1 변환).
 3. **proxy 전달은 verbatim, 정책은 path를 본다.** 클라이언트는 target 서브도메인에 **upstream 경로를 그대로** 호출하고, GW는 **host만 바꿔 요청/응답 body를 그대로 통과**(필드 해석·변환 없음)한다. 단 **인증·버전 게이트·egress allowlist 정책은 (target+method+path)로 검사**한다 — GW는 path를 _라우팅엔_ 쓰지 않되 _정책엔_ 본다. **리전 목적지**는 **서브도메인 라벨**(어느 서비스) + `Vatech-Clinic-Id`(어느 리전, §7.3 resolver)의 **직교 조합**으로 구체 host를 정한다(멀티 Region).
-4. **proxy(B·C)도 정책 체인을 통과한다** — 인증(§7.1)·버전 게이트(§7.7)·egress/allowlist(§7.5.3·§6.5). 전달이 무검증이 아니다. B/C 차이는 **trust profile**(§4.1.1)뿐 — C는 OAuth·토큰 관리(§7.1.3)·고정 egress IP가 추가된다.
+4. **프록시(내부 B·외부 C)도 정책 체인을 통과한다** — 인증(§7.1)·버전 게이트(§7.7)·egress/allowlist(§7.5.3·§6.5). 전달이 무검증이 아니다. 내부(B)·외부(C) 차이는 **trust profile**(§4.1.1)뿐 — 외부(C)는 OAuth·토큰 관리(§7.1.3)·고정 egress IP가 추가된다.
 
 > **서브도메인(GW 라우팅) · `Vatech-Target`(EzServer 앞단 hop 키) ≠ `Vatech-*` 식별 헤더(§7.7.1).** 식별·버전·리전 헤더는 `Vatech-*` 표준(`Product`·`Version`·`OS`·`Clinic-Id`·`Via`)만 쓰며 **버전 호환 판정용 필수**(FR-COMPAT-01)다 — "누가·어떤 버전·어느 클리닉"을 싣는다. **GW 앞단 라우팅은 Host(서브도메인)** 로 정하고, `Vatech-Target`은 **CleverOne→EzServer 구간에서만** "어느 논리 서비스로"를 지시하는 키다(EzServer가 서브도메인으로 변환). 이름이 비슷하나 역할이 다르다(식별 vs 라우팅 hop 지시).
 
@@ -908,7 +908,7 @@ GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의
 
 #### 라우팅 방식 비교·결정 (ADR-11)
 
-API Gateway가 "어느 upstream으로 보낼지"를 정하는 방식은 여럿이다. 아래 4안을 다기준으로 비교한다. ADR-11은 처음 **헤더 기반(`Vatech-Target`)** 으로 결정(CCB 승인 2026-06-25)했으나, **운영/장애대응·업계 관례**에서 서브도메인·경로가 우위라는 트레이드오프를 재평가(7/2 R1)한 결과 **GW edge 라우팅은 C안(서브도메인 `{target}.gw.vatech.com`)을 채택**한다. 다만 **CleverOne→EzServer 내부 구간은 A안(헤더 `Vatech-Target`)** 으로 target을 지시하고 **EzServer가 서브도메인으로 변환**한다(순정 nginx·split-horizon 불요) — 즉 **A(내부) + C(edge) 조합**이다. D(클라이언트 지정)는 SSRF로 반려. 구간별 3안(A+C·B+C·C+C) 상세 비교는 **주간회의 Agenda(7/9 R1)**. (표기 ◎ 우수 · ○ 양호 · △ 제약 · ✕ 부적합)
+API Gateway가 "어느 upstream으로 보낼지"를 정하는 방식은 여럿이다. 아래 표에서 네 방식 — **헤더(`Vatech-Target`) · 경로 프리픽스 · 서브도메인 · 클라이언트 지정 host** — 을 다기준으로 비교한다(표 안에서만 A~D로 약칭하며, 이 약칭은 §4.1.1의 트러스트 프로파일 A/B/C와 무관하다). ADR-11은 처음 **헤더 방식**으로 결정(CCB 승인 2026-06-25)했으나, **운영/장애대응·업계 관례**에서 서브도메인·경로가 우위라는 트레이드오프를 재평가(7/2 R1)한 결과 **GW edge 라우팅은 서브도메인 방식(`{target}.gw.vatech.com`)을 채택**한다. 다만 **CleverOne→EzServer 내부 구간은 헤더 방식(`Vatech-Target`)** 으로 target을 지시하고 **EzServer가 서브도메인으로 변환**한다(순정 nginx·split-horizon 불요) — 즉 **내부구간=헤더 + edge=서브도메인** 조합이다. 클라이언트 지정 host 방식은 SSRF로 반려. 구간별 조합(내부구간을 헤더/경로/서브도메인 중 무엇으로 두는지 × edge=서브도메인) 상세 비교는 **주간회의 Agenda(7/9 R1)**. (표기 ◎ 우수 · ○ 양호 · △ 제약 · ✕ 부적합)
 
 | 기준 | A. 헤더 `Vatech-Target` (내부구간 채택) | B. 경로 프리픽스 `/axs/…` | C. 서브도메인 `axs.gw…` (**edge 채택**) | D. 클라이언트 지정 host/URL |
 | --- | --- | --- | --- | --- |
@@ -924,7 +924,7 @@ API Gateway가 "어느 upstream으로 보낼지"를 정하는 방식은 여럿�
 | 유지보수·장애대응(표준 로그·LB/CDN/WAF에서 target 가시·제어) | △ 커스텀 헤더 — 로그·엣지 제어에 추가 설정 필요 | ◎ URL에 target 노출 — 표준 도구로 추적·차단·rate-limit | ◎ host 노출(표준 로그) | △ |
 | 관측·정책(앱 내부 target 식별) | ◎ 단일 헤더 키 | ○ path 파싱 | ○ host 파싱 | △ |
 
-> **결론(7/2 R1 재평가).** 서브도메인(C)은 **업계 관례**와 **운영/장애대응**(target이 host에 그대로 보여 표준 로그·LB/CDN/WAF로 추적·차단·rate-limit이 쉬움)에서 우수하고, verbatim 중계(path 보존)·SSRF 안전(서버측 레지스트리)도 헤더와 동등하다 — 유일한 부담이던 upstream별 DNS·cert는 **`*.gw.vatech.com` 와일드카드 GeoDNS + 와일드카드 TLS cert**로 해소된다(§4.5.1). 이에 **GW edge 라우팅은 C안(서브도메인)** 을 채택한다. 다만 **CleverOne→EzServer 내부 구간**은 대부분 평문 HTTP이고 클라이언트 변경을 최소화해야 하므로, 그 구간에서만 **A안(헤더 `Vatech-Target`)** 으로 target을 지시하고 **EzServer가 서브도메인으로 변환**해 GW에 HTTPS 전달한다 — 이 조합(A+C)이면 **순정 nginx로 가능하고 split-horizon DNS가 불필요**하다(C+C는 split-horizon/forward-proxy가 필요해 배제). 경로 프리픽스(B)는 verbatim 시 prefix strip이 필요하고 새 URL 규약을 신설해 A보다 열위, D는 SSRF로 반려. 즉 **운영 친화(C edge) + 내부구간 최소변경(A hop)** 의 결합이다. **ADR-11 — CCB 승인 2026-06-25 · 7/2 R1 개정(header→subdomain edge)**(Appendix A·B #13). 구간별 3안 상세는 주간회의 Agenda(7/9 R1). 본 절은 SRS 차원 요약이며 결정 로그는 Appendix A.
+> **결론(7/2 R1 재평가).** **서브도메인 방식**은 **업계 관례**와 **운영/장애대응**(target이 host에 그대로 보여 표준 로그·LB/CDN/WAF로 추적·차단·rate-limit이 쉬움)에서 우수하고, verbatim 중계(path 보존)·SSRF 안전(서버측 레지스트리)도 **헤더 방식**과 동등하다 — 유일한 부담이던 upstream별 DNS·cert는 **`*.gw.vatech.com` 와일드카드 GeoDNS + 와일드카드 TLS cert**로 해소된다(§4.5.1). 이에 **GW edge 라우팅은 서브도메인 방식**을 채택한다. 다만 **CleverOne→EzServer 내부 구간**은 대부분 평문 HTTP이고 클라이언트 변경을 최소화해야 하므로, 그 구간에서만 **헤더 방식(`Vatech-Target`)** 으로 target을 지시하고 **EzServer가 서브도메인으로 변환**해 GW에 HTTPS 전달한다 — 이 **내부구간=헤더 + edge=서브도메인** 조합이면 **순정 nginx로 가능하고 split-horizon DNS가 불필요**하다(내부구간까지 서브도메인으로 두면 split-horizon/forward-proxy가 필요해 배제). **경로 프리픽스 방식**은 verbatim 시 prefix strip이 필요하고 새 URL 규약을 신설해 헤더 방식보다 열위, 클라이언트 지정 host 방식은 SSRF로 반려. 즉 **운영 친화(edge=서브도메인) + 내부구간 최소변경(헤더 hop)** 의 결합이다. **ADR-11 — CCB 승인 2026-06-25 · 7/2 R1 개정(라우팅 신호 헤더→서브도메인 edge)**(Appendix A·B #13). 구간별 조합 상세는 주간회의 Agenda(7/9 R1). 본 절은 SRS 차원 요약이며 결정 로그는 Appendix A.
 
 ### 4.1.3 Webhook API 정의 방침
 
@@ -955,8 +955,8 @@ Webhook은 두 면(§4.1.1) 어느 쪽에도 깔끔히 떨어지지 않는 **하
 
 | # | 대상 | presign·업로드 **요청 API** (control) | presign **발급 주체** | GW 역할 | OpenAPI 정본 |
 | --- | --- | --- | --- | --- | --- |
-| **②** | **CleverSpace 등 사내 백엔드** presign·파일 API | **B 프록시** — `cleverspace.gw.vatech.com`, upstream 경로 verbatim(§4.1.2) | **CleverSpace** | **verbatim bypass** — 요청/응답 body 그대로 통과, GW 해석·변환·서명 **없음** | CleverSpace OpenAPI |
-| **③** | **Straumann AXS** 등 외부 presign·파일 API | **C 프록시** — `axs.gw.vatech.com`, upstream 경로 verbatim(§4.1.2) | **AXS**(외부) | **verbatim bypass** + OAuth2·egress allowlist(§7.5) | ④ Sub-SRS + AXS 스냅샷 |
+| **②** | **CleverSpace 등 사내 백엔드** presign·파일 API | **내부(B) 프록시** — `cleverspace.gw.vatech.com`, upstream 경로 verbatim(§4.1.2) | **CleverSpace** | **verbatim bypass** — 요청/응답 body 그대로 통과, GW 해석·변환·서명 **없음** | CleverSpace OpenAPI |
+| **③** | **Straumann AXS** 등 외부 presign·파일 API | **외부(C) 프록시** — `axs.gw.vatech.com`, upstream 경로 verbatim(§4.1.2) | **AXS**(외부) | **verbatim bypass** + OAuth2·egress allowlist(§7.5) | ④ Sub-SRS + AXS 스냅샷 |
 
 #### data plane (공통)
 
@@ -1003,12 +1003,12 @@ EzServer(디바이스, §1.4)와는 네트워크(REST/TLS) 인터페이스만. �
 
 ### 4.5.1 공개 엔드포인트(DNS)
 
-DNS 호스트는 *클라이언트가 접속하는 외부 계약*이므로 본 SRS에 기록한다. **GW API apex `gw.vatech.com`은 확정(Scott)** 이다. **GW edge 라우팅은 target 서브도메인 `{target}.gw.vatech.com`으로 한다(ADR-11 · 7/2 R1, §4.1.2)** — apex는 GW 고유 API(A), target 서브도메인은 등록 upstream 프록시(B/C). 인증서·GeoDNS 구성·리전 내부 호스트 네이밍 등 *구성*은 인프라/플랫폼팀 소유이며, 아래 표의 나머지 항목(리전 내부 호스트·Console·Webhook 경로)은 규약·예시다.
+DNS 호스트는 *클라이언트가 접속하는 외부 계약*이므로 본 SRS에 기록한다. **GW API apex `gw.vatech.com`은 확정(Scott)** 이다. **GW edge 라우팅은 target 서브도메인 `{target}.gw.vatech.com`으로 한다(ADR-11 · 7/2 R1, §4.1.2)** — apex는 GW 고유 API(A), target 서브도메인은 등록 upstream 프록시(내부 B·외부 C). 인증서·GeoDNS 구성·리전 내부 호스트 네이밍 등 *구성*은 인프라/플랫폼팀 소유이며, 아래 표의 나머지 항목(리전 내부 호스트·Console·Webhook 경로)은 규약·예시다.
 
 | 용도 | 호스트 | 비고 |
 | --- | --- | --- |
-| GW 고유 API (GeoDNS apex) | `gw.vatech.com` **(확정)** | **GW 고유 API(A면, §4.1.1)의 호스트.** Route 53 GeoDNS로 최근접 리전 라우팅(§7.3.5). **v1.0(단일 리전)에서도 apex를 사용** — apex가 단일 리전을 가리키고, 2차에 백엔드만 N개로 늘린다 |
-| **프록시 target (upstream별)** | `https://{target}.gw.vatech.com` (예: `axs.gw.vatech.com`·`cleverspace.gw.vatech.com`) | **GW edge 라우팅 키 = 서브도메인 라벨**(B/C 프록시, §4.1.2). **`*.gw.vatech.com` 와일드카드 GeoDNS**(모두 GW edge LB로 resolve)로 두어 신규 target은 **레지스트리 1행**이면 되고 DNS·cert 추가가 불필요하다 — GW가 라벨을 레지스트리로 검증해 **미등록 라벨은 `404`**(SSRF 안전). **CleverOne→EzServer 내부 구간은 `Vatech-Target` 헤더**로 지시하고 **EzServer가 이 서브도메인으로 변환**해 HTTPS 전달(§4.1.2). apex와 동일하게 v1.0부터 GeoDNS(대상=서울 1개) |
+| GW 고유 API (GeoDNS apex) | `gw.vatech.com` **(확정)** | **GW 고유 API(A, §4.1.1)의 호스트.** Route 53 GeoDNS로 최근접 리전 라우팅(§7.3.5). **v1.0(단일 리전)에서도 apex를 사용** — apex가 단일 리전을 가리키고, 2차에 백엔드만 N개로 늘린다 |
+| **프록시 target (upstream별)** | `https://{target}.gw.vatech.com` (예: `axs.gw.vatech.com`·`cleverspace.gw.vatech.com`) | **GW edge 라우팅 키 = 서브도메인 라벨**(프록시: 내부 B·외부 C, §4.1.2). **`*.gw.vatech.com` 와일드카드 GeoDNS**(모두 GW edge LB로 resolve)로 두어 신규 target은 **레지스트리 1행**이면 되고 DNS·cert 추가가 불필요하다 — GW가 라벨을 레지스트리로 검증해 **미등록 라벨은 `404`**(SSRF 안전). **CleverOne→EzServer 내부 구간은 `Vatech-Target` 헤더**로 지시하고 **EzServer가 이 서브도메인으로 변환**해 HTTPS 전달(§4.1.2). apex와 동일하게 v1.0부터 GeoDNS(대상=서울 1개) |
 | Webhook 수신 (provider별) | `https://{provider}.webhook.gw.vatech.com` (예: `axs.webhook.gw.vatech.com`) | **provider별 전용 호스트로 발신자 식별**(Host/SNI). **apex와 동일하게 v1.0부터 GeoDNS 라우팅으로 구성**(대상=서울 1개, 2차에 리전 대상만 추가 §2.1.1·§2.7.1). **와일드카드 DNS 미사용**(엄격 관리·명시 등록; 추가는 연단위로 드묾 — 프록시 target과 달리 발신자 식별 무결성이 중요), TLS는 `*.webhook.gw.vatech.com` 와일드카드 cert 가능. 경로/형식은 provider 규약 수용(유연, §7.6.1·§4.1.3). **Host=식별, 인증=HMAC**(§7.6.2) |
 | 리전별 엔드포인트(내부) | `gw-<region>.vatech.com` (예: `-apne2`) | GeoDNS 백엔드·내부/운영용. **v1.0부터 네이밍 규칙 예약**(단일 리전 1개만 실재), 2차에 N개로 확장. 클라이언트엔 노출하지 않음 |
 | GW Console | `console.gw.vatech.com` | **③-C 영역** — 본 SRS는 참조만. 확정은 ③-C Sub-SRS |
@@ -1152,7 +1152,7 @@ IaC 환경 재현으로 이식 대비. (presign broker는 GW가 두지 않음 �
 
 ### 6.3.4 Reliability (신뢰성)
 
-Webhook 전달 보증(QoS1·재시도·DLQ), 업로드 idempotency. **동기 프록시(B/C) 복원력**: per-upstream 타임아웃·서킷 브레이커·멱등 한정 재시도로 장애 격리(한 upstream 장애가 GW 전체로 번지지 않게) — `GW deadline < 클라이언트 타임아웃` 불변식(§7.5.4·§4.1.2-6). MTBF 목표 TBD.
+Webhook 전달 보증(QoS1·재시도·DLQ), 업로드 idempotency. **동기 프록시(내부·외부 upstream) 복원력**: per-upstream 타임아웃·서킷 브레이커·멱등 한정 재시도로 장애 격리(한 upstream 장애가 GW 전체로 번지지 않게) — `GW deadline < 클라이언트 타임아웃` 불변식(§7.5.4·§4.1.2-6). MTBF 목표 TBD.
 
 ### 6.3.5 Remaining Attributes (나머지 특성)
 
@@ -1531,7 +1531,7 @@ GW가 **운영 중인 리전 목록**을 조회 API로 제공한다 — 클라�
 
 > **위임 경계**: 업로드 **세션(start→chunk→commit)·resumable/multipart·idempotency·checksum/ETag·완료처리(콜백+스토리지 이벤트)** 는 **발급 주체의 책임**이다 — CleverSpace presign은 **② Presigned One Pager**·CleverSpace OpenAPI, AXS presign·파일은 **④ Sub-SRS**·AXS 스냅샷이 정본. 본 SRS(GW)는 이를 정의하지 않는다.
 
-**FR-SES 매핑(요구사항 명세)**: FR-SES-01~05(세션·presigned·resumable·멱등·무결성)는 **GW 직접 구현이 아니라 발급 주체(CleverSpace ②/AXS ④) 소유**다. GW 책임은 _중계_(§4.1.1 B/C 프록시·§7.5 connector)로 한정한다. FR-SES-06(멀티클라우드 presign broker)도 GW가 broker를 두지 않으므로 해당 없음.
+**FR-SES 매핑(요구사항 명세)**: FR-SES-01~05(세션·presigned·resumable·멱등·무결성)는 **GW 직접 구현이 아니라 발급 주체(CleverSpace ②/AXS ④) 소유**다. GW 책임은 _중계_(§4.1.1 프록시: 내부 B·외부 C·§7.5 connector)로 한정한다. FR-SES-06(멀티클라우드 presign broker)도 GW가 broker를 두지 않으므로 해당 없음.
 
 **비목표(Will Not Do)**:
 
@@ -1549,7 +1549,7 @@ GW는 외부 시스템 연동을 **플러그형 connector(adapter)** 로 추상�
 FR-INT-01 (adapter 플러그형 등록).
 
 - **Output**: 신규 connector를 설정 기반으로 등록(코드 변경 최소)
-- **라우팅**: §4.1.2 target-routed proxy를 따른다 — connector 등록 = **레지스트리 1행**(논리 ID(예 `axs`)→host + trust profile `external` + egress allowlist). 내부 proxy(B)와 **동일 라우팅 메커니즘**이며 trust profile만 `external`이다. 신규 외부 연동(DS Core/3Shape 등) 확장 시 경로 네임스페이스·GW 코드 변경 없이 레지스트리 등록만으로 추가(NFR-SCL §6.3.5).
+- **라우팅**: §4.1.2 target-routed proxy를 따른다 — connector 등록 = **레지스트리 1행**(논리 ID(예 `axs`)→host + trust profile `external` + egress allowlist). 내부(B) 프록시와 **동일 라우팅 메커니즘**이며 trust profile만 `external`이다. 신규 외부 연동(DS Core/3Shape 등) 확장 시 경로 네임스페이스·GW 코드 변경 없이 레지스트리 등록만으로 추가(NFR-SCL §6.3.5).
 - **Side Effect**: connector 토큰 저장·갱신은 §7.1.3 위임
 
 ### 7.5.2 AXS connector (P1)
@@ -1566,7 +1566,7 @@ FR-INT-03 (허용 대상만 외부 통신). allowlist 외 egress는 OPA로 차�
 
 ### 7.5.4 프록시 복원력 — 타임아웃·재시도·업스트림 오류 (P1)
 
-FR-INT-05 (target-routed proxy(§4.1.2)의 **동기 전달 구간** 복원력 — 타임아웃·재시도·서킷·오류 매핑). 동기 프록시(B/C)는 Webhook **비동기 큐(A·재시도/DLQ, §7.6.3)와 다른 레그**다 — 응답을 기다리는 호출자가 있으므로 큐잉이 아니라 **deadline·즉시 오류**로 다룬다. 수치(타임아웃·재시도·서킷 임계)는 upstream SLA·인프라 입력 의존 **TBD**(Appendix B #25, 주간회의 7/2 R4).
+FR-INT-05 (target-routed proxy(§4.1.2)의 **동기 전달 구간** 복원력 — 타임아웃·재시도·서킷·오류 매핑). 동기 프록시(내부·외부 upstream)는 Webhook **비동기 큐(수신면=GW 고유 API·재시도/DLQ, §7.6.3)와 다른 레그**다 — 응답을 기다리는 호출자가 있으므로 큐잉이 아니라 **deadline·즉시 오류**로 다룬다. 수치(타임아웃·재시도·서킷 임계)는 upstream SLA·인프라 입력 의존 **TBD**(Appendix B #25, 주간회의 7/2 R4).
 
 - **타임아웃 계층(핵심).** GW는 *서버*이자 *클라이언트*다. **`GW upstream 총 deadline < downstream 클라이언트 타임아웃`** 이어야 한다 — 아니면 클라이언트가 먼저 포기해도 GW는 upstream 응답을 계속 기다려 **고아 요청·커넥션/워커 점유·재시도 증폭**이 생긴다. GW는 클라이언트보다 **먼저 504를 반환**해 결정적 오류를 준다.
   - **per-upstream 레지스트리(`upstream_registry`) 설정**: `connect_timeout_ms`(TCP+TLS 핸드셰이크, 짧게)·`response_timeout_ms`(응답 대기)·`total_deadline_ms`(전체 예산). upstream·작업 유형별로 다르게(값 TBD). 대용량 파일은 **presigned 직결**(GW 미경유, §4.1.4)이라 본 deadline은 control·metadata 중심.
@@ -1613,7 +1613,7 @@ FR-WH-03 (`eventId` dedup — 중복 수신 1회만 반영).
 
 ### 7.6.5 클라우드 분배 — HTTP push (P1)
 
-FR-WH-05 (클라우드 대상에 내부망 HTTP push, 순서 보존). **클라우드 수신 대상은 CleverLab만**(갈래 B·현 시점 보류, §1.2). **CleverSpace는 webhook 수신 대상이 아니다**(B 프록시·presigned 백엔드 — 대상 아님으로 확정, §2.3.6). 대상별 시나리오는 §2.3.6.
+FR-WH-05 (클라우드 대상에 내부망 HTTP push, 순서 보존). **클라우드 수신 대상은 CleverLab만**(갈래 B·현 시점 보류, §1.2). **CleverSpace는 webhook 수신 대상이 아니다**(내부(B) 프록시·presigned 백엔드 — 대상 아님으로 확정, §2.3.6). 대상별 시나리오는 §2.3.6.
 
 - **TBD — CleverLab 갈래 B 활성화 여부·시점**(PM/제품). 본 절은 *HTTP push 메커니즘*만 정의하고, 활성화 시 받을 이벤트(오더·확정 결과)는 ④에서 확정한다(Appendix B #16). (CleverSpace는 대상 아님 — 조사 불요.)
 
@@ -1665,7 +1665,7 @@ FR-COMPAT-03 (요청 전 버전 게이팅).
 
 FR-COMPAT-04 (미지원 시 표준 오류코드 + "업데이트 필요" fallback 안내).
 
-**프록시(B/C) 업스트림 오류 매핑(§7.5.4 연계).** GW가 *생성*하는 오류와 upstream이 _돌려준_ 오류를 구분한다 — 전자는 GW 표준 envelope, 후자는 verbatim 통과. `Vatech-Error-Origin` 헤더로 책임 주체를 표시한다.
+**프록시(내부·외부 upstream) 오류 매핑(§7.5.4 연계).** GW가 *생성*하는 오류와 upstream이 _돌려준_ 오류를 구분한다 — 전자는 GW 표준 envelope, 후자는 verbatim 통과. `Vatech-Error-Origin` 헤더로 책임 주체를 표시한다.
 
 | 상황 | HTTP | 본문 | `Vatech-Error-Origin` |
 | --- | --- | --- | --- |
