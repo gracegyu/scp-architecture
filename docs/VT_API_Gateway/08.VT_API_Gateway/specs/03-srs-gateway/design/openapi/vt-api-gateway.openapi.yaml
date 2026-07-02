@@ -4,9 +4,9 @@
 # 구현 착수 후에는 NestJS code-first(@nestjs/swagger) /api-docs 산출물이 정본이 된다.
 #
 # 시드 출처: "VT API Gateway - API 명세·데이터 모델·주권" §1 엔드포인트.
-# 범위: GW 고유 API(A면 — Vatech-Target 없는 호출)만 정의(§4.1.1·ADR-11).
-#       프록시(B 내부·C 외부)는 Vatech-Target 헤더로 라우팅되는 verbatim bypass이며 OpenAPI에 정의하지 않는다
-#       (레지스트리 config + upstream OpenAPI 정본). §4.1.2 참조.
+# 범위: GW 고유 API(A면 — apex gw.vatech.com 호출)만 정의(§4.1.1·ADR-11, 7/2 R1).
+#       프록시(B 내부·C 외부)는 target 서브도메인({target}.gw.vatech.com, Host/SNI)으로 라우팅되는 verbatim bypass이며 OpenAPI에 정의하지 않는다
+#       (레지스트리 config + upstream OpenAPI 정본). Vatech-Target 헤더는 CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환). §4.1.2·§4.5.1 참조.
 # 필드는 camelCase, 시간은 Unix ms(SRS §1.3). 상세 스키마는 LLD에서 확정.
 # 에러 계약: 공통 Error envelope + 재사용 응답(400/401/403/404/409/429) + 프록시 GW생성 오류(502/503/504=ProxyError, §7.5.4·§7.7.4)
 #   + Vatech-Error-Origin(gateway|upstream)·Retry-After 헤더. 인증=bearerAuth(JWT) 기본, 공개 ep(auth·enroll·webhook·well-known)는 security:[] 재정의.
@@ -16,10 +16,10 @@ info:
   title: Vatech API Gateway
   version: 0.0.0
   description: >-
-    설계 초안. GW 고유 API(A면 — Vatech-Target 없는 호출, §4.1.1·ADR-11)만 정의. 파일 업로드: GW는 presigned 발급 안 함 — CleverSpace(경로②)·AXS(경로③) 발급, GW 중계(§4.1.4·§7.4). 프록시(B 내부·C 외부)는 Vatech-Target 헤더로 라우팅되는 verbatim bypass이며 본 파일에 정의하지 않는다 — CleverSpace presign=경로②(Vatech-Target: cleverspace, CS OpenAPI 정본), AXS presign/파일=경로③(Vatech-Target: axs, ④). 라우팅 규칙은 §4.1.2.
+    설계 초안. GW 고유 API(A면 — apex gw.vatech.com, §4.1.1·ADR-11)만 정의. 파일 업로드: GW는 presigned 발급 안 함 — CleverSpace(경로②)·AXS(경로③) 발급, GW 중계(§4.1.4·§7.4). 프록시(B 내부·C 외부)는 target 서브도메인({target}.gw.vatech.com, Host/SNI)으로 라우팅되는 verbatim bypass이며 본 파일에 정의하지 않는다 — CleverSpace presign=경로②(cleverspace.gw.vatech.com, CS OpenAPI 정본), AXS presign/파일=경로③(axs.gw.vatech.com, ④). Vatech-Target 헤더는 CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환). 라우팅 규칙은 §4.1.2·§4.5.1(7/2 R1).
 servers:
 - url: https://gw.vatech.com
-  description: 제안(§4.5.1, DNS 확정 전 TBD)
+  description: GW 고유 API(A면) apex(§4.5.1). 프록시 target은 {target}.gw.vatech.com 서브도메인(레지스트리 등록·본 파일 미정의)
 
 tags:
 - name: auth
@@ -351,14 +351,14 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # --- 파일 업로드: GW 고유 API 없음 ---
-  # presigned 발급 주체 = CleverSpace(경로②)·AXS(경로③). GW는 발급 요청을 Vatech-Target proxy로 중계(bypass)만 하며 서명·세션·storage를 갖지 않는다(§4.1.4·§7.4 · ADR-03/04 철회).
+  # presigned 발급 주체 = CleverSpace(경로②)·AXS(경로③). GW는 발급 요청을 target 서브도메인 proxy로 중계(bypass)만 하며 서명·세션·storage를 갖지 않는다(§4.1.4·§7.4 · ADR-03/04 철회).
 
-  # --- 프록시(B 내부·C 외부)는 본 OpenAPI에 정의하지 않는다 (§4.1.1·§4.1.2·ADR-11) ---
-  # 라우팅 = Vatech-Target 헤더(논리 ID enum, 예 cleverspace/axs) → 레지스트리 allowlist→host 해석.
+  # --- 프록시(B 내부·C 외부)는 본 OpenAPI에 정의하지 않는다 (§4.1.1·§4.1.2·ADR-11, 7/2 R1) ---
+  # 라우팅 = target 서브도메인({target}.gw.vatech.com, Host/SNI · 라벨=논리 ID) → 레지스트리 allowlist→host 해석. 미등록 라벨=404.
   # GW는 클라이언트가 친 upstream 경로를 host만 바꿔 verbatim 전달(요청/응답 body 그대로). 경로를 GW가 정의/변환하지 않음.
-  #   - 경로②(B): Vatech-Target: cleverspace — CleverSpace OpenAPI 정본
-  #   - 경로③(C): Vatech-Target: axs — AXS OpenAPI 스냅샷 + ④ Sub-SRS 정본 (OAuth2·egress allowlist는 GW 정책)
-  # Vatech-Target 없는 호출만 아래 GW 고유 API(A)로 처리된다.
+  #   - 경로②(B): cleverspace.gw.vatech.com — CleverSpace OpenAPI 정본
+  #   - 경로③(C): axs.gw.vatech.com — AXS OpenAPI 스냅샷 + ④ Sub-SRS 정본 (OAuth2·egress allowlist는 GW 정책)
+  # apex gw.vatech.com 호출만 아래 GW 고유 API(A)로 처리된다. Vatech-Target 헤더는 CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환).
   #
   # 프록시 에러·타임아웃 계약 (정본 §7.5.4·§7.7.4 — 경로가 아니라 전 프록시 공통이므로 여기 주석으로 기술):
   #   - 타임아웃: per-upstream(connect/response/total_deadline, UpstreamRegistry). GW 총 deadline < 클라이언트 타임아웃(고아 요청 방지).
@@ -525,7 +525,7 @@ paths:
   /admin/v1/upstreams:
     get:
       tags: [ admin ]
-      summary: Vatech-Target → upstream 레지스트리 조회 (target-routed proxy, ADR-11)
+      summary: target 서브도메인 → upstream 레지스트리 조회 (target-routed proxy, ADR-11 · 7/2 R1)
       responses:
         '200':
           description: upstream 목록
@@ -562,7 +562,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: 디바이스/사람 JWT(FR-AUTH·§7.1). 공개 엔드포인트(auth·enroll·webhook·well-known)는 op별 security 재정의. 프록시 호출은 Vatech-Target 헤더 추가(§4.1.2)
+      description: 디바이스/사람 JWT(FR-AUTH·§7.1). 공개 엔드포인트(auth·enroll·webhook·well-known)는 op별 security 재정의. 프록시 호출은 target 서브도메인({target}.gw.vatech.com)으로 라우팅(§4.1.2; CleverOne→EzServer 구간은 Vatech-Target 헤더→EzServer가 서브도메인 변환)
 
   headers:
     VatechErrorOrigin:
@@ -608,7 +608,7 @@ components:
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
-    # --- 프록시(B/C) 전용 — GW 생성 오류. 특정 경로가 아니라 Vatech-Target proxy 공통(§7.5.4·§7.7.4). ---
+    # --- 프록시(B/C) 전용 — GW 생성 오류. 특정 경로가 아니라 target 서브도메인 proxy 공통(§7.5.4·§7.7.4). ---
     # --- upstream 자체 4xx/5xx는 본 응답을 쓰지 않고 원응답을 verbatim 통과(Vatech-Error-Origin: upstream). ---
     UpstreamUnreachable:
       description: upstream 연결 실패(거부·DNS·TLS) — GW 생성 (502)
@@ -834,7 +834,7 @@ components:
       type: object
       required: [ targetId, host, profile ]
       properties:
-        targetId: { type: string, description: 'Vatech-Target 논리 ID(예 cleverspace, axs)' }
+        targetId: { type: string, description: 'target 서브도메인 라벨 = 논리 ID(예 cleverspace, axs) — GW edge가 {targetId}.gw.vatech.com Host로 라우팅(ADR-11, 7/2 R1). CleverOne→EzServer Vatech-Target 헤더값과 동일(EzServer가 서브도메인 변환)' }
         host: { type: string, description: '내부 매핑 host(클라이언트 비노출)' }
         profile: { type: string, enum: [ internal, external ] }
         egressAllowlist: { type: array, items: { type: string } }
@@ -844,7 +844,7 @@ components:
         retryPolicy: { type: string, description: '재시도 정책 — 멱등 메서드/idempotency key + 연결·pre-response 타임아웃 한정(상한+백오프+budget). 비멱등 POST 금지(§7.5.4)' }
         circuitBreaker: { type: boolean, description: '서킷 브레이커 활성(연속 실패 시 503+Retry-After 빠른 실패). 임계·v1.0 범위 TBD' }
         enabled: { type: boolean }
-      description: 'target-routed proxy 라우팅(ADR-11). 신규 upstream = 1행. 타임아웃·재시도·서킷은 per-upstream 복원력 설정(§7.5.4)'
+      description: 'target-routed proxy 라우팅(ADR-11, 7/2 R1 — edge=서브도메인). 신규 upstream = 1행(*.gw.vatech.com 와일드카드라 DNS·cert 추가 0). 타임아웃·재시도·서킷은 per-upstream 복원력 설정(§7.5.4)'
     DeliveryChannel:
       type: object
       required: [ clinicId, channelType ]
@@ -889,7 +889,7 @@ components:
           type: string
           enum: [ gateway ]
           description: 'GW가 생성한 오류임을 표시(헤더 Vatech-Error-Origin: gateway와 동일). upstream 자체 4xx/5xx는 본 스키마를 쓰지 않고 원응답을 verbatim 통과(origin: upstream)'
-        targetId: { type: string, description: '실패한 Vatech-Target 논리 ID' }
+        targetId: { type: string, description: '실패한 target 서브도메인 라벨(논리 ID)' }
         retryAfter: { type: integer, description: '503 시 재시도 권고(초)' }
         message: { type: string }
       description: 'GW 생성 프록시 오류 본문(502/503/504). upstream 응답은 verbatim 통과라 이 스키마 미적용(§7.5.4·§7.7.4)'

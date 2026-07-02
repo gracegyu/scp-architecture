@@ -5,7 +5,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | 항목        | 내용                                         |
 | -------------- | --------------------------------------------------- |
 | 문서 ID        | ESIP-GW-ARD                                         |
-| 문서 버전      | v0.9                                                |
+| 문서 버전      | v0.23                                               |
 | 적용 제품 버전 | gw/1.0.0.0                                          |
 | 분류           | 통제 문서 (Controlled · IEC 62304 / ISO 13485 대상) |
 | 상태           | Draft                                               |
@@ -31,6 +31,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.20 | 2026-07-01 | (SRS 동기화) | **§5.2 리전 해석 다이어그램·본문을 region A안으로 갱신** — 구 `device→region` 직접 매핑 이미지(image-2026-6-8_21-41-16)를 **mermaid 시퀀스로 교체**하고 본문 step을 **`deviceId→device.clinic_id→clinic_region_mapping.region` 파생**(region SSOT=clinic, device엔 region 컬럼 없음, §6.4.1·ADR-10)으로 정정. 캐시(mapping_version·TTL)·strong-consistency·PHI 주권(OPA) 흐름 명시. SRS §2.3.3·§6.4.1 A안과 정합 | Draft |
 | v0.21 | 2026-07-01 | (SRS 동기화) | **`clinic_region_mapping` → `clinic` 승격(C안)** — clinic_id를 5개 테이블이 참조하는 canonical 엔터티라 정명. region·mapping_version은 clinic 컬럼 유지(1:1). connector(아웃바운드)/provider(인바운드) 분리 유지 확정. §5.2 등 clinic 참조 갱신·DBML·SRS §6.4·Agenda R8 정합 | Draft |
 | v0.22 | 2026-07-02 | (SRS 동기화) | **온보딩=enrollment 한 흐름 통합** — 클리닉/region 등록을 enroll에 흡수(별도 흐름·API 제거). enroll이 Clinic-ID로 clinic upsert + 초기 region 확립(기본=GeoDNS 최근접·v1.0 서울, C/S override). §5.1 스텝4/5·mermaid에 clinic upsert·region 반영. SRS §2.3.1·§7.3·OpenAPI 정합 | Draft |
+| v0.23 | 2026-07-02 | (SRS 동기화) | **ADR-11 개정(R1) — 라우팅 신호 header→서브도메인 edge.** GW edge 라우팅=target 서브도메인 `{target}.gw.vatech.com`(Host/SNI, C안), `Vatech-Target` 헤더=CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환, A안) = **A(내부)+C(edge)**(순정 nginx·split-horizon 불요·`*.gw.vatech.com` 와일드카드로 DNS/cert 부담 해소). ADR-11 행·Router/PEP 컴포넌트·§5.3 업로드 시퀀스 갱신. SRS §4.1.1·§4.1.2·§4.5.1·ADR-11·Agenda 7/9 R1 정합. 구간별 3안 상세=Agenda | Draft |
 
 
 ## 1. 아키텍처 개요
@@ -53,7 +54,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | ADR-08 | 인증 2면 공존 — 디바이스 머신 인증(OAuth2 cc·enrollment) + OneID(OIDC, 사람·클리닉·사내 호출자) | 무인 디바이스와 사람/서비스 신원은 성질이 달라 단일 인증면으로 묶지 않음 / OneID 단독(무인 디바이스 부적합)·디바이스 단독(사내 서비스 미수용) 반려 | 채택 |
 | ADR-09 | Webhook Receiver — 외부 이벤트 단일 수신·분배(클라우드 HTTP push / Edge(EzServer) MQTT QoS1) | 방화벽 뒤 Edge inbound 불가 + 외부 서명·IP·멱등 검증 분산 방지 / 서비스별 개별 수신(반려) · ESMN Roadmap §2.7 흡수 | 채택 |
 | ADR-10 | 라우팅 키 통합 — device↔clinic↔region (resolver가 device_id·clinic_id 모두 수용) | 디바이스 단위(08)·클리닉 단위(서비스 연동) 라우팅 이원화 제거. 디바이스는 클리닉에 소속되어 동일 리전으로 귀결 | 채택 |
-| ADR-11 | 라우팅 모델 = target-routed proxy — `Vatech-Target` 유무로 GW 고유 API(없음) vs upstream proxy(있음·논리 ID enum) 구분, proxy는 verbatim 전달(host만 교체). 신규 upstream = 레지스트리 1행(코드·경로 변경 0) | 경로 네임스페이스 라우팅 / 투명 프록시 / 클라이언트 지정 upstream(SSRF) 반려. upstream 무한 확장을 설정 기반으로(NFR-SCL), 내부(B)·외부(C)를 단일 규칙으로 — 차이는 trust profile(C=OAuth·고정 egress IP)뿐 (SRS §4.1.1·§4.1.2) | 채택(2026-06-23) · **CCB 승인(2026-06-25)** |
+| ADR-11 | 라우팅 모델 = target-routed proxy — **GW edge 라우팅 = target 서브도메인 `{target}.gw.vatech.com`**(Host/SNI): apex `gw.vatech.com`=GW 고유 API(A), 등록 서브도메인=upstream proxy(B/C), 미등록 서브도메인=`404`. proxy는 verbatim(host만 교체). **`Vatech-Target` 헤더는 CleverOne→EzServer 내부 hop 키**(EzServer가 서브도메인으로 변환). 신규 upstream = 레지스트리 1행(`*.gw.vatech.com` 와일드카드라 DNS·cert 추가 0) | 경로 프리픽스 / 헤더-only / 클라이언트 지정 upstream(SSRF) 반려. 운영·장애대응·관례에서 host 노출이 우위이고 verbatim·SSRF 안전은 헤더와 동등, 와일드카드로 DNS/cert 부담 해소. 내부구간(CleverOne→EzServer)만 헤더(A안)로 최소변경·순정 nginx·split-horizon 불요 = **A(내부)+C(edge)**. 내부(B)·외부(C) 단일 규칙, 차이는 trust profile(C=OAuth·고정 egress IP)뿐 (SRS §4.1.1·§4.1.2·§4.5.1) | 채택(2026-06-23) · **CCB 승인(2026-06-25)** · **7/2 R1 개정(header→subdomain edge)** |
 | ADR-12 | Webhook Dispatcher(분배 워커) = **별도 worker Deployment** — SQS(A)를 소비(consume)해 대상 해석 후 MQTT(Edge)/HTTP(클라우드)로 발행하는 주체. GW와 동일 코드베이스·HTTP 없이 consumer만, API tier와 독립 스케일(KEDA·SQS 큐depth)·장애 격리 | 기존 GW 모듈 in-process(부하·스케일 결합) / 서버리스 Lambda(로직·DB·시크릿·egress 중복·2nd 런타임 검증 부담) 반려. 코드·도메인·커넥터·시크릿 공유로 드리프트 0·단일 검증 스택 유지 + webhook 버스트를 분배만 독립 확장 (SRS §2.2·§2.3.6·§7.6.7) | 채택(2026-06-30) |
 | ADR-13 | 디바이스 머신 인증 = **비대칭 `private_key_jwt`**(OAuth2 client_credentials + RFC 7523) — enrollment 키페어의 개인키로 JWT assertion 서명, GW가 `device.client_public_key`(공개키)로 검증. **공유 `client_secret` 폐지**(하향 전달·보관·회전 노출면 제거·enroll 자동 완결) | 대칭 client_secret 반려(secret 배포·회전 부담·키페어와 중복). 이미 생성하는 키페어를 인증에 재사용 → 자격 일원화·비추출(gw/1.1 TPM/SE) 자연 승급 (SRS §7.1.1·§7.2.5·§2.3.1) | 채택(2026-07-01) |
 
@@ -84,7 +85,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | Enrollment Service | Control | 부트스트랩 신뢰(**LM 라이선스·Clinic-ID**)·nonce·**client_public_key(키페어 공개키) 바인딩**·**C/S 승인 게이트(pending→active)**·재설치 회전·자격 발급 | 핵심(HW attestation·개인키 비추출은 v1.1) |
 | Auth Service | Control | OAuth2 client_credentials + **private_key_jwt(비대칭)**·JWT 발급/검증(무상태·발급 토큰 미저장). 디바이스 자격=device(client_id·client_public_key). 외부(C) 토큰/secret 회전은 §7.1.3 connector | 핵심(DPoP/HW키·attestation v1.1) |
 | Region Resolver | Control | device→region 매핑·mapping_version·강한 일관성 경로 | 핵심(단일 리전) |
-| Router / PEP (target-routed proxy) | Control | `Vatech-Target` 기반 upstream 라우팅(B 내부·C 외부 동일 경로)·정책 체인(인증·버전·egress allowlist)·verbatim bypass. 외부(C)는 Connector Framework로 OAuth·egress 적용 | 핵심(ADR-11) |
+| Router / PEP (target-routed proxy) | Control | **target 서브도메인(Host/SNI) 기반** upstream 라우팅(B 내부·C 외부 동일 경로)·정책 체인(인증·버전·egress allowlist)·verbatim bypass. 서브도메인 라벨을 레지스트리로 검증(미등록=`404`). 외부(C)는 Connector Framework로 OAuth·egress 적용 | 핵심(ADR-11) |
 | Config Service | Control | 중앙 config push/pull | 핵심 |
 | Fleet Ops | Control | heartbeat·kill-switch·성공률·rollout | 기본(rollout/카나리 v1.1) |
 | Connector Framework + AXS | Integration | adapter·egress 정책·AXS OAuth2 위임·proxy | 핵심(추가 connector v1.1) |
@@ -197,7 +198,7 @@ sequenceDiagram
 
 요구사항: FR-SES-01~05([요구사항 명세](<VT API Gateway — 요구사항 명세 (Requirements).md>)) — **발급 주체(CleverSpace ②/AXS ④) 소유**, GW는 중계.
 
-1. 클라이언트(EzServer/디바이스) → GW: presigned 발급 **요청**(Vatech-Target로 대상 지정, B/C bypass).
+1. 클라이언트(EzServer/디바이스) → GW: presigned 발급 **요청**(target 서브도메인 `{target}.gw.vatech.com`으로 대상 지정, B/C bypass; CleverOne→EzServer 구간은 `Vatech-Target` 헤더→EzServer가 서브도메인 변환).
 2. GW: 인증·버전 게이트·정책(egress) 적용 후 **upstream(CleverSpace/AXS)으로 verbatim 중계** — GW는 서명하지 않는다.
 3. upstream이 presigned URL 발급 → GW가 그대로 전달(변환 없음).
 4. 클라이언트 → **발급 주체 storage 직결** 업로드(Control plane 미경유). resumable/multipart·checksum·commit·완료처리는 **upstream 책임**.
