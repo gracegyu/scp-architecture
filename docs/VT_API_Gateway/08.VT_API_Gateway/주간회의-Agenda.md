@@ -193,8 +193,8 @@
       OpenAPI·DBML 작성·정합   :active, designw, 2026-06-19, 20d
       PR 리뷰·수정(본문+스키마) :active, srspr, 2026-07-09, 14d
       baseline v1.0 (통합)     :milestone, srsbl, after srspr, 0d
-      GW 구현 1안 — ④ AXS baseline 후(스펙 병행) :active, impl1, after axsbl, 45d
-      GW 구현 2안 — 전 스펙 완료 후 :active, impl2, after conbl infbl oidw, 45d
+      GW 구현 (R7 채택=1안) — ④ AXS baseline 후·스펙 병행 :active, impl1, after axsbl, 45d
+      GW 구현 2안(반려) — 전 스펙 완료 후 :crit, impl2, after conbl infbl oidw, 45d
 
       section ① API 호환성 One Pager (③ PR 시 동시 착수)
       작성                  :op1w, 2026-07-09, 7d
@@ -251,6 +251,7 @@
   
 - R3. 수집 에이전트 확정
   - Grafana Alloy로 사용한다. 이렇게 SRS에 반영해야 해
+  - **→ 반영완료(2026-07-02)**: SRS §1.4 용어·§3.1.2·§6.3.2 수집 에이전트=Grafana Alloy. 앱 계약(stdout JSON+OTel) 불변.
 
 - R4. 프록시(B/C) 에러·타임아웃 정책
   - GW단에서 timeout을 처리하지 않고, infra(istio나 솔루션을 붙여서)에서 조정하므로 추후 결정한다.
@@ -258,6 +259,7 @@
   - retry도 istio에서 처리하므로 GW에서 하지 않는다.
   - 서킷브레이커도 infra(istio)에서 처리한다.
   - 따라서, infra에서 제공하는 것은 GW가 할 필요가 없어. GW에서 꼭 지원해야 하는 것들만 남겨서 정리하면 돼. 그 항목의 추천안은 유지하면 돼. 이렇게 SRS 새로 정리해줘. 
+  - **→ 반영완료(2026-07-02)**: §7.5.4 재작성 — **분담**: ① **GW→provider 연결 timeout(connect 3s·response 10s/AXS SLA·total_deadline<클라, D1~D3)은 GW 책임**(GW가 AXS 등에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound) · ② **재시도·서킷은 istio egress**(D5~D8) · ③ GW 앱레벨=오류 정규화·멱등·취소(D9). DBML/OpenAPI: retry_policy·circuit_breaker만 제거, 연결 timeout 컬럼 유지. Appendix B #25=①값+②istio 분담.
 
 - R5. IaC 도구 확정
   - Terraform으로 확정한다. 
@@ -277,9 +279,12 @@
   | 제품 적응 ③-P-CO (CleverOne) | 경유 전환 영향 | 탁수용/ Nick |
   | 제품 적응 ③-P-OID (OneID) | 인증 연계 영향 | 서유진 / Jin |
   | QA·검증 | §3.6·테스트·호환성 매트릭스 | **정우혁/ James_ES** |
+  - **→ 반영완료(2026-07-02)**: SRS §9 Document Approvals에 영역별 리뷰어 표 추가 + §8·§9·Appendix B #10에 **Scott=PM 겸임** 반영.
 
 - R7. 스펙 ↔ GW 구현 진행 전략 
-  - 1안으로 결정
+  - **1안으로 결정** — ④ AXS Sub-SRS baseline **직후 구현 착수 + ③-C·③-P·③-I 스펙 병행**(2안=전 스펙 완료 후 착수는 납기 지연으로 반려).
+  - 구현 시작점=④ AXS baseline(고정, 첫 연동·E2E 필수). 구현 기간=미정(SRS 확정 후 재산정). pilot 8/15는 재검토.
+  - 반영: `specs/00-execution-allocation.md` "구현 착수 전략" 섹션 신설 · 위 gantt에 1안 채택 표기.
 
 - R9. 온보딩/enrollment 모델 확인
   -  EzServer 에서 private key 분실시 재발급 과정이 필요하다.
@@ -287,6 +292,7 @@
   -  EzServer내에서 private 키를 안전하게 보관/백업할 방법이 필요하다. 
   -  이런 것이 SRS에 다 반영되었나? 또는 OnePager에서 구체적으로 작성하면 되나?
   -  분실 시 재발급 과정은 GW SRS에 있어야 하지 않나?
+  - **→ 반영완료(2026-07-02)**: 상당 부분 이미 SRS에 있었고 '개인키 분실 복구'로 명확화. **분실 복구=재-enroll 회전**(§7.2.7, 유일 경로·백업 복원 없음)·**개인키 백업(export) 미도입**(§7.2.6, 디바이스 비이탈)·**at-rest 안전 보관=EzServer(③-P-EZ) OnePager**·라이선스 등록 시 자동 enroll 편의(§2.3.1). GW SRS에 재발급 과정 있음(§7.2.7).
 
 # VT API Gateway — 7/9 주간회의 Agenda
 
