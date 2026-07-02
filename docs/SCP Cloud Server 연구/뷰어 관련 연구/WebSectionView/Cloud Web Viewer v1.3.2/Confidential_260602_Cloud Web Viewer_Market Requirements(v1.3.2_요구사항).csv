@@ -1,0 +1,12 @@
+﻿,,,,,
+No.,요구사항 ID,분류 1,분류 2,내용,비고 (기획)
+1,CWV-REQ-SEC-001,Section ,Layout,Scout(Axial)/Panorama/Section view로 구성된 Section 레이아웃을 제공한다.,Clever One 수준의 다양한 레이아웃은 제공하지 않는다.
+2,CWV-REQ-SEC-002,Section ,Draw Curve,Scout view에서 커브를 입력할 수 있다.,Default Curve 기능은 제공하지 않는다.
+3,CWV-REQ-SEC-003,Scout view,Edit Curve,Scout view에서 Point를 편집(추가/이동/삭제) 할 수 있다.,
+4,CWV-REQ-SEC-004,Scout view,Sectional Line,Scout view에서 Sectional Line 위치를 조절할 수 있다.,
+5,CWV-REQ-SEC-005,Panorama view,Sectional Line,Panorama view에서 Sectional Line 위치를 조절할 수 있다.,
+6,CWV-REQ-SEC-006,Section view,Section Slice,Section view에서 Slice를 변경할 수 있다.,
+7,CWV-REQ-SEC-007,Section view,Thickness/Interval,Section  view의 Thickness/Interval을 설정할 수 있다.,
+8,CWV-REQ-SEC-008,Section,Tool,Section 레이아웃에 Annotation/Measure Tool을 입력할 수 있다.,"MPR 레이아웃과 동일한 툴을 제공한다. 기존 대비 툴을 확장하는 것도 검토한다. (Arrow 등)
+* 현재 Length, Free Draw, Angle 제공 중"
+9,CWV-REQ-SEC-009,Section,Windowing,Section 레이아웃의 모든 view에 Windowing을 조정할 수 있다.,

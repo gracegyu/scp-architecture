@@ -16,7 +16,7 @@ P1,Section view,Section Slice,Section view에서 Slice를 변경할 수 있다.,
 P2,Section view,Section Slice,Section view의 단면 개수를 변경할 수 있다.,,,X,~27.03
 P1,Section view,Thickness/Interval,Section  view의 Thickness/Interval을 설정할 수 있다.,,,O,~26.10
 P1,Section,Tool,Section 레이아웃에 Annotation/Measure Tool을 입력할 수 있다.,"MPR 레이아웃과 동일한 툴을 제공한다. 기존 대비 툴을 확장하는 것도 검토한다. (Arrow 등)
-* 현재 Length, Free Draw, Angle 제공 중",,X,~26.10
+* 현재 Length, Free Draw, Angle 제공 중",1차에서는 저장 기능 제외하면 됩니다.,X,~26.10
 P1,Section,Windowing,Section 레이아웃의 모든 view에 Windowing을 조정할 수 있다.,,,O,~26.10
 P2,Section,Image Filter,Section 레이아웃의 모든 view에 Image Filter를 적용할 수 있다.,,,X,~27.03
 Future,Collaboration,Project File,"[CT] 프로젝트 파일을 포함한 CT 데이터를 공유할 수 있다.
