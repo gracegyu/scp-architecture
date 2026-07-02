@@ -1,46 +1,38 @@
 # Cloud Web Viewer v1.3.2 MMI — 개발실 리뷰 의견
 
-## 문서 개요
-
-- 리뷰 대상: Cloud Web Viewer v1.3.2 MMI (Document Version 0.9.1, Epic 1 Section Layout, 1.1~1.14 + Appendix)
-- 관련 이슈: PLAN-1287
-- 참고 기준: 기능정의서·요구사항·전체 요구사항(Market Requirements), 개발 검토 문서, Cross Section 웹 구현 PoC(scp-section-poc)
-- 리뷰 관점: MMI가 v1.3.2에 담은 기능을 개발 관점에서 구현 가능성·구현 공수·추가 PoC 필요 여부·구체 고려사항으로 검토한다. 요구사항의 우선순위(P1/P2/Future) 표기와 무관하게, MMI에 포함된 기능은 "이번 버전에 반영한다"는 전제로 검토했다.
-- 구현 가능성 표기: "가능(PoC 보유)" = 현재 PoC에 이미 동작하는 수준으로 있음, "가능(이식)" = 기존 MPR 기능을 옮기는 수준, "가능(신규)" = 신규 개발이나 구현에 무리 없음, "조건부" = 선행 결정·PoC 결과에 따라 확정.
-- 구현 공수 기준: 하 = 1~2일(기존 로직 재사용·UI 추가), 중 = 수일~2주(기존 로직 확장·좌표/성능 처리), 상 = 2주 이상 또는 신규 서브시스템·외부 포맷·좌표계 재설계.
-
----
-
 ## 1. 종합 의견
 
-- MMI에 정의된 기능은 대부분 구현 가능하다. 상당수는 PoC 또는 기존 MPR 레이아웃 기능을 재사용한다.
-- 이번 버전에서 개발 무게가 있는 항목은 네 가지다.
+- PLAN-1287 회신용이다. Cloud Web Viewer v1.3.2 MMI(v0.9.1, Epic 1 Section Layout, 1.1~1.14)를 기능정의서·Market Requirements, Cross Section 웹 PoC(scp-section-poc), Clever Space MPR 레이아웃 구현을 기준으로 검토했다. MMI 우선순위(P1/P2/Future)와 무관하게, MMI에 포함된 기능은 v1.3.2 반영 전제로 본다.
+- MMI에 정의된 기능은 대부분 구현 가능하다. 상당수는 PoC에 이미 있는 구현을 쓰거나, Clever Space 기존 MPR 레이아웃에 구현된 기능을 Section 레이아웃에 같은 수준으로 가져와 재사용한다.
+- Save Project(4.1)는 이번 버전에서 공수·범위가 가장 큰 항목으로 보인다. MMI는 "MPR과 동일하게 prj에 저장"으로 요약되어 있으나, 데스크톱 앱(Ez3D-i·CleverOne) prj(XML)와의 호환 방향(Desktop→Web / Web→Desktop / 양방향 / Web 독자) 및 Section 저장 좌표계는 구현 단계에서 추가 확정이 필요하다. 이 선행 결정 없이는 저장 범위·포맷을 확정하기 어렵다. PoC에서도 동일 이유로 후순위로 두었으며, 별도 과제로 일정·범위를 분리해 검토하는 것을 권고한다.
+- 그 외 개발 무게가 있는 항목은 세 가지다.
   - Section Slice 변경(스크롤) — 신규, 성능이 핵심
-  - Save Project — 저장 항목·좌표계 설계
-  - 계측/주석 확장(Arrow, Free Draw, Angle)과 저장 연동
+  - 계측·주석 기능 확장(Arrow, Free Draw, Angle 등)과, Save Project(4.1)에 그 결과를 저장할지 여부에 따른 연동
   - Thickness 설정 — 기본값·상한 정책
 - 공통 최대 리스크는 성능이다. 단면을 연속 재생성하는 조작(Section Slice, Thickness, 회전)이 겹칠 때 응답 지연이 발생할 수 있다. 관련 수치·정책은 선행 성능 PoC로 확정할 것을 권고한다.
-- 구현 전 확정이 필요한 선결 항목은 (a) Scout 뷰가 기존 MPR Axial 컴포넌트 재사용인지, (b) Save Project의 prj 저장이 MPR에 이미 있는지, (c) 계측/주석 저장의 좌표계, (d) B/L 방향 결정 로직(Ez3D-i)의 웹 재사용성, (e) 모바일 조작 정책이다.
+- 구현 전 확정이 필요한 선결 항목은 (a) Scout 뷰가 Clever Space 기존 MPR Axial 컴포넌트를 그대로 재사용하는 구조인지, (b) Cloud Web Viewer MPR 레이아웃에 prj 저장·로드가 이미 구현되어 있는지(Save Project 공수 산정), (c) 계측·주석을 prj에 저장할 때 위치를 화면 2D 픽셀 좌표로 둘지, 환자 볼륨 3D 좌표로 둘지, (d) B/L 방향을 Ez3D-i와 같이 판정하는 규칙을 웹에서 어떻게 재현할지(C++ 코드 직접 이식 불가), (e) v1.3.2에서 모바일·터치 조작을 어느 수준까지 지원할지이다.
 
 ---
 
 ## 2. 기능별 개발 검토 요약
 
+표 열 설명: 구현 가능성 — 가능(PoC 보유) = PoC에 이미 동작함, 가능(MPR→Section) = Clever Space MPR 레이아웃 기능·UI를 Section에 같은 수준으로 적용, 가능(신규) = Section에 없어 새로 구현, 가능(보강) = PoC에 엔진·로직은 있고 UI·정책만 보완, 조건부 = 선행 결정·PoC 후 확정. 구현 공수 — 하 = 1~2일, 중 = 수일~2주, 상 = 2주 이상(또는 포맷·좌표계 재설계). 상세는 4장·5장.
+
 | MMI | 기능 | 구현 가능성 | 구현 공수 | 추가 PoC 필요 | 개발실 판단 |
 | --- | --- | --- | --- | --- | --- |
-| 1.1 | Section Layout 전환 | 가능(PoC 보유) | - | - | MPR ↔ Section 토글. 문제 없음 |
-| 1.2 | Layout 구성/정보 표시 | 가능(PoC 보유) | 하 | - | 대부분 PoC 보유. Section ruler 전체축 표기는 PoC와 상이(3.7) |
+| 1.1 | Section Layout 전환 | 가능(PoC 보유) | - | - | MPR 레이아웃과 Section 레이아웃을 토글로 전환. 문제 없음 |
+| 1.2 | Layout 구성/정보 표시 | 가능(PoC 보유) | 하 | - | 대부분 PoC 보유. Section ruler 전체 축 표기는 PoC와 상이(5장) |
 | 1.3 | Scout Curve 구성 요소 | 가능(PoC 보유) | 하 | - | 폭 기본 30mm 반영. B/L 로직·기준점은 4.6 |
 | 1.4 | Panorama Line 구성 요소 | 가능(PoC 보유) | 하 | - | 경계선 100mm. Height 조절은 4.7 |
-| 1.5 | Draw Curve | 가능(PoC 보유) | 하 | - | 미리보기 스펙·Section 표시 시점이 PoC와 상이(3.7) |
-| 1.6 | Edit Curve | 가능(PoC+신규) | 중 | 조건부 | 편집은 PoC 보유. BL/LB 기준점 이동은 신규(4.6) |
-| 1.7 | Scout View 조작 | 가능(PoC+신규) | 중 | 조건부 | 위치·폭 조절 PoC 보유. Panorama thickness·기준점은 4.6·4.7 |
-| 1.8 | Panorama View 조작 | 가능(PoC+신규) | 중 | 권장 | 위치 이동 PoC 보유. 각도 ±45° 회전은 신규(4.5) |
+| 1.5 | Draw Curve | 가능(PoC 보유) | 하 | - | 미리보기 스펙·Section 표시 시점이 PoC와 상이(5장) |
+| 1.6 | Edit Curve | 가능(PoC+신규) | 중 | 조건부 | 곡선 편집은 PoC 보유. BL/LB 기준점을 곡선 위에서 옮기는 기능은 PoC에 없어 신규(4.6) |
+| 1.7 | Scout View 조작 | 가능(PoC+신규) | 중 | 조건부 | Scout 위치·폭 조절은 PoC 보유. Panorama thickness line·BL/LB 기준점은 4.6·4.7 |
+| 1.8 | Panorama View 조작 | 가능(PoC+신규) | 중 | 권장 | Panorama 위치 이동은 PoC 보유. Active section line ±45° 회전은 PoC에 없어 신규(4.5) |
 | 1.9 | Section View 조작 | 가능(신규·핵심) | 중 | 필요(성능) | Section Slice 변경이 이번 핵심 신규(4.2) |
-| 1.10 | Thickness/Interval | 가능(보강) | 하~중 | 필요(상한) | Interval은 PoC 보유. Thickness UI 추가(4.3). 기본값 0mm 확인 |
-| 1.11 | Windowing/Image Filter | 가능(이식) | 하~중 | 불필요 | Windowing은 PoC 보유. Image Filter는 MPR 이식(4.4) |
-| 1.12 | 공통 툴 신규(Arrow 등) | 가능(신규) | 중 | 불필요 | 계측/주석 확장. MPR 이식(4.4) |
-| 1.13 | Section 공통 툴 | 가능(PoC 보유) | - | - | MPR 공통 툴 재사용 |
+| 1.10 | Thickness/Interval | 가능(보강) | 하~중 | 필요(상한) | Interval UI는 PoC 보유. Thickness 조절 UI를 추가(4.3). MMI 기본값 0mm vs PoC 6mm 확인 |
+| 1.11 | Windowing/Image Filter | 가능(MPR→Section) | 하~중 | 불필요 | Windowing은 PoC 보유. Image Filter는 MPR → Section 적용(4.4) |
+| 1.12 | 공통 툴 신규(Arrow 등) | 가능(신규) | 중 | 불필요 | 계측/주석 확장. 계측·Arrow 등은 MPR → Section 적용(4.4) |
+| 1.13 | Section 공통 툴 | 가능(PoC 보유) | - | - | Pan/Rotate/Zoom 등 MPR 레이아웃에 이미 있는 공통 툴을 Section 레이아웃에서 그대로 재사용 |
 | 1.14 | Save Project | 가능(범위 큼) | 중~상 | 조건부 | 저장 전제로 상세 검토(4.1) |
 
 ---
@@ -49,11 +41,11 @@
 
 MMI를 구현으로 옮기기 전에 아래 구조를 먼저 확정해야 정확한 설계·산정이 가능하다.
 
-### 3.1 Scout(Axial)는 기존 MPR 뷰 재사용으로 이해
+### 3.1 Scout(Axial)는 Clever Space 기존 MPR Axial 컴포넌트 재사용으로 이해
 
-- MMI 1.2·1.10에서 Scout는 "MPR 속성의 View"이며 Scout의 Thickness/Interval이 MPR 서브모듈 단면과 상호 동기화된다고 명시했다.
-- 따라서 Scout(Axial)는 신규 렌더가 아니라 기존 MPR Axial 컴포넌트를 재사용하고, 그 위에 Curve·Section line 오버레이를 얹는 구조로 본다. Panorama·Section만 Curve 기반 신규 엔진이다.
-- 확인 필요: 이 구조가 맞는지. 맞다면 Scout 관련 기능(slice 이동, Thickness/Interval, Image Adjust)은 MPR 재사용으로 부담이 작다.
+- MMI 1.2·1.10에서 Scout는 "MPR 속성의 View"이며, Scout의 Thickness/Interval 변경이 MPR 서브모듈의 단면 설정과 서로 동기화된다고 명시했다.
+- 따라서 Scout(Axial)는 신규 렌더 엔진이 아니라 Clever Space 기존 MPR Axial 컴포넌트를 그대로 쓰고, 그 위에 Curve·Section line 오버레이만 추가하는 구조로 본다. Panorama·Section만 Curve 기반 신규 렌더 엔진이다.
+- 확인 필요: 위 구조가 맞는지. 맞다면 Scout의 slice 이동·Thickness/Interval·Image Adjust는 MPR Axial 쪽 구현을 재사용하면 되므로 Section 전용 신규 개발 부담은 작다.
 
 ### 3.2 Section line(전체) vs Active section line(9개) 데이터 모델
 
@@ -62,18 +54,42 @@ MMI를 구현으로 옮기기 전에 아래 구조를 먼저 확정해야 정확
 
 ### 3.3 좌표계 — 저장·계측의 공통 기반
 
-- 계측/주석을 저장(4.1)하면, 단면 픽셀 좌표로 보관할 경우 곡선·간격·폭·Thickness가 바뀔 때 무효가 된다.
-- 환자(볼륨) 3D 좌표로 저장하고 단면 재생성 시 재투영하는 설계가 필요하다. 이 좌표계는 저장·계측·향후 협업(Overlay Navigation)의 공통 기반이 된다.
+- 계측·주석을 Save Project(4.1)에 저장하려면, 단면 화면 픽셀 좌표로만 보관할 경우 Curve·Interval·폭·Thickness가 바뀔 때 저장값이 무효가 된다.
+- 환자 볼륨 3D 좌표로 저장하고 단면을 다시 만들 때 재투영하는 설계가 필요하다. 이 좌표계는 Save Project·계측·주석·향후 다른 사용자와 오버레이를 맞추는 기능(Overlay Navigation)의 공통 기반이 된다.
 
 ---
 
 ## 4. 주요 신규·검토 기능 상세
 
-### 4.1 Save Project (1.14)
+### 4.1 Save Project (1.14) — 공수·범위가 가장 큰 항목(별도 과제 검토 권고)
 
-MMI가 저장을 포함했고 저장 항목은 "개발실 리뷰 후 변경 가능"으로 열어두었다. 저장을 전제로 항목별로 검토한다.
+MMI는 "MPR 레이아웃과 동일한 방식으로 prj 파일에 저장"으로 요약되어 있다. UX 관점에서는 이해하기 쉬운 표현이나, 구현 관점에서는 아래 세 가지—(1) 데스크톱 prj와의 호환 방향, (2) Section 전용 저장 좌표계, (3) prj 스키마·버전을 누가 어떻게 관리할지(포맷 거버넌스)—를 먼저 확정해야 저장 스펙을 정할 수 있다. PoC에서도 동일 이유로 후순위로 두었으며, 저장 항목 목록만으로는 범위·일정 산정이 어렵다.
 
-전제(공수를 가르는 핵심): MMI는 "MPR 레이아웃과 동일한 방식으로 prj 파일에 저장"으로 기술했다. MPR의 prj 저장/로드가 이미 있으면 Section은 기존 구조에 필드를 추가하는 확장이므로 중간 규모다. 없으면 저장 서브시스템 신규로 규모가 커진다. 먼저 확인이 필요하다.
+A. 가장 먼저 정할 것 — prj 호환 방향 (MMI에서 추가 확정 필요)
+
+prj 파일은 데스크톱 앱(Ez3D-i, CleverOne)에서 XML로 저장된다. "MPR과 동일하게 저장"이 성립하려면, 웹에서 저장/수정한 prj가 데스크톱과 어떤 관계인지부터 정의해야 한다. 아래 4가지는 난이도·범위가 완전히 다르다.
+
+| 시나리오 | 의미 | 난이도 |
+| --- | --- | --- |
+| Desktop → Web | 데스크톱이 만든 prj를 웹이 읽어 같은 Section 뷰 재현 | 상. 데스크톱 XML 파싱 + 좌표·단위 매핑 + Section 파라미터 해석 |
+| Web → Desktop | 웹이 만든/수정한 prj를 데스크톱이 읽어 동일 재현 | 상. 웹이 데스크톱 XML 규격을 정확히 생산해야 함 |
+| Desktop ↔ Web | 양방향 왕복(한쪽 수정 → 다른 쪽에서 그대로) | 최상. 두 앱이 스키마·기능집합을 사실상 100% 공유해야 하고 라운드트립 손실이 없어야 함 |
+| Web 독자 prj | 웹 전용 포맷(JSON 등), 데스크톱과 교환 안 함 | 중. 자유 설계 가능하나 데스크톱 호환은 포기 |
+
+B. 근거 — 리포트 연구 선례
+
+- 리포트 연구에서도 데스크톱 파일은 전부 XML(E2 `.rpt`, E3 RC `.xml`, CleverOne `.rpt`, EzOrtho `CH*.xml`)이고, 마이그레이션은 Desktop XML → Cloud JSON 단방향만 범위로 잡았다. 그조차 좌표 혼재(%/mm/비율), 용지 정보 누락, 주석 정규화 등 이슈가 많은 대형 작업이었다.
+- 즉 리포트에서도 양방향·역방향은 범위에 넣지 않았다. Section prj에서 양방향(↔)을 원하면 리포트보다 더 큰 작업이 된다.
+- Section 특유의 난점: 현재 데스크톱 리포트 샘플은 Section plane 상태를 저장하지 않는다(AutoFill 타입이 Unknown). 재사용할 기성 필드가 없어 Section 고유 스키마를 새로 정의해야 한다.
+
+C. Section 고유의 좌표계 난제
+
+- Section 뷰는 Curve·Interval·Thickness로 완전히 결정된다. 주석/계측(#10)을 저장해도 Curve·Interval이 바뀌면 저장된 위치가 무의미해진다.
+- 화면(2D) 좌표로 저장하면 파라미터 변경 시 깨진다. 환자 볼륨 3D 좌표로 저장하고 재투영해야 복원된다(3.3). 이 좌표계 설계가 저장에서 가장 무겁다.
+
+D. 저장 항목 자체는 쉬운 부분
+
+아래 개별 값 직렬화는 대부분 공수 하다. 다만 A·B·C가 정해져야 이 스키마가 확정된다.
 
 | # | 저장 항목 | 개발 판단 | 비고 |
 | --- | --- | --- | --- |
@@ -84,26 +100,23 @@ MMI가 저장을 포함했고 저장 항목은 "개발실 리뷰 후 변경 가�
 | 5 | Section Curve(Point 좌표) | 하 | 핵심 데이터. 볼륨 좌표 저장 권장 |
 | 6 | Panorama 경계선 위치 | 하 | Z 상/하한 |
 | 7 | Panorama 중심선 위치 | 하 | |
-| 8 | Active line 회전 각도 | 종속 | 회전(4.5) 채택 시에만 유효. 미채택 시 항목 삭제(MMI도 명시) |
-| 9 | Thickness/Interval 값 | 하 | Thickness UI(4.3)와 함께 |
-| 10 | Overlay 값(Length·Angle·Arrow·Free Draw) | 중~상 | 핵심. 저장 = 계측/주석 영구화. 3.3·4.4와 직결 |
-| 11 | Windowing/Image Filter 값 | 하 | Image Filter(4.4) 채택 여부와 함께 |
-| 12 | B/L Switching 상태 | 하 | |
-| 13 | BL/LB 기준점 위치 | 종속 | 기준점 이동(4.6) 채택 시 |
+| 8 | Active line 회전 각도 | 종속 | ±45° 회전(4.5)을 v1.3.2에 포함하기로 할 때만 저장 항목. 미채택 시 MMI대로 항목 삭제 |
+| 9 | Thickness/Interval 값 | 하 | Thickness 조절 UI(4.3) 구현과 함께 저장 |
+| 10 | Overlay 값(Length·Angle·Arrow·Free Draw) | 중~상 | Save Project에 영구 저장할 때 핵심. 볼륨 3D 좌표 설계(3.3)와 계측/주석 구현(4.4)을 먼저 정해야 함 |
+| 11 | Windowing/Image Filter 값 | 하 | Image Filter MPR → Section 적용(4.4) 여부와 함께 저장 |
+| 12 | B/L Switching 상태 | 하 | 사용자가 B/L 표기를 수동으로 뒤집었는지 여부 |
+| 13 | BL/LB 기준점 위치 | 종속 | 기준점 drag & drop(4.6)을 v1.3.2에 포함하기로 할 때만 저장 |
 
-판단 요약:
+결론 / 권고
 
-- 개별 값 저장은 대부분 단순한 직렬화다. 공수의 실체는 값 개수가 아니라 아래 셋이다.
-  1. prj 포맷 확장: MPR 공통 필드에 Section 고유 필드(Curve, Panorama 설정 등)를 더한 스키마 합의. Clever One·EzServer와 호환이 필요하면 규격 협의가 추가된다.
-  2. 계측/주석(#10) 영구화: 3.3의 볼륨 좌표 저장·재투영 설계. 저장에서 가장 무거운 부분이다.
-  3. 종속 기능(#8 회전·#9 Thickness·#11 Filter·#13 기준점): 해당 기능 채택이 확정돼야 저장 스펙도 확정된다.
-- 결론: 기존 prj 저장이 있으면 저장 자체는 중간 규모로 가능하다. 단 계측/주석 영구화 좌표계가 선결 설계 과제이며, 이를 정하지 않으면 "저장했는데 단면을 바꾸면 사라진다"는 문제가 생긴다.
+- Save Project는 v1.3.2에서 공수·범위가 가장 큰 항목으로 보인다. MMI의 "MPR과 동일 저장" 요약만으로는 호환 방향·좌표계·포맷을 확정하기 어렵다.
+- 권고: (1) 호환 방향(A의 4시나리오)을 기획·제품팀(Ez3D-i/CleverOne)과 먼저 확정한다. (2) Section 저장 좌표계(C, 3.3)를 선행 설계한다. (3) 이번 버전은 "Web 독자 prj" 또는 "저장 보류"를 우선 검토하고, 데스크톱 양방향 호환이 필요하면 별도 과제로 일정·범위를 분리한다.
 
 ### 4.2 Section Slice 변경 (1.9) — 이번 핵심 신규
 
-- 내용: Section view에서 휠·슬라이더로 slice를 변경하면 표시 단면이 바뀌고, Scout·Panorama의 Active section line 위치가 실시간 연동된다.
+- 내용: Section view에서 휠·슬라이더로 slice를 변경하면 표시되는 9장 단면이 바뀌고, Scout·Panorama에 그려진 Active section line 위치도 같은 slice 인덱스로 맞춰 갱신된다.
 - 현재 PoC: 항상 중심 기준 9장만 생성. 전체 인덱싱·페이징 없음(3.2).
-- 추가 필요: 전체 단면 개수 산출, 표시 시작 인덱스 상태, 휠·슬라이더 이동, slice number 라벨, Scout/Panorama 양방향 연동.
+- 추가 필요: 전체 단면 개수 산출, 표시 시작 인덱스 상태, 휠·슬라이더 이동, slice number 라벨, Section view ↔ Scout/Panorama 간 Active section line 위치를 서로 맞추는 연동(한쪽에서 slice를 바꾸면 다른 뷰도 같이 갱신).
 - 구현 가능성 가능 · 구현 공수 중 · 추가 PoC 필요(성능). 스크롤 시 단면 연속 재생성이 최대 부하다. 스크롤 단위·재생성 디바운스·캐싱(이미 만든 단면 재사용)을 성능 PoC로 결정한다.
 
 ### 4.3 Thickness/Interval (1.10)
@@ -111,27 +124,27 @@ MMI가 저장을 포함했고 저장 항목은 "개발실 리뷰 후 변경 가�
 - 내용: Setting 버튼으로 Thickness/Interval 조절. Interval은 PoC 보유. Thickness는 슬랩 엔진 보유·UI 없음.
 - 기본값: MMI는 Scout/Panorama/Section 모두 Thickness 0mm. PoC 기본은 6mm(슬랩). 기본값 방향 확정 필요.
 - 구현 가능성 가능 · 구현 공수 하~중 · 추가 PoC 필요(상한). 두께가 커질수록 픽셀당 보간량이 늘어 생성 시간이 증가한다. Thickness 상한·기본값·샘플 스텝을 성능/화질 PoC로 정한다.
-- 참고: Section Interval 변경 시 Scout/Panorama의 Section line 간격이 함께 갱신되는 연동은 PoC 로직 확장으로 가능하다.
-- Draw curve 모드 중 Thickness/Interval 변경 시 draw curve 취소(MMI "개발실 리뷰 후 스펙 확정") — 개발실 의견: 기술적으로 진행 중이던 draw curve를 취소할 필요는 없다. 미완성 곡선에 새 Interval은 재슬라이스로, 새 Thickness는 샘플 깊이 변경으로 그대로 적용해 이어 그릴 수 있다. 취소가 정당한 경우는 설정 UI 조작이 드로잉 제스처와 충돌할 때뿐이다. **권고: 진행 중 곡선을 유지(값 즉시 적용)하는 것을 기본으로 하고, 취소 방식을 택하면 사용자에게 안내 표시. 어느 쪽이든 공수 하.**
+- 참고: Section view에서 Interval 값을 바꾸면, Scout·Panorama에 그려진 Section line 간격도 같이 갱신되도록 하는 연동은 PoC 로직을 확장하면 가능하다.
+- Draw curve 모드 중 Thickness/Interval 변경 시 draw curve 취소(MMI "개발실 리뷰 후 스펙 확정") — 개발실 의견: 기술적으로 진행 중이던 draw curve를 취소할 필요는 없다. 미완성 곡선에 새 Interval은 재슬라이스로, 새 Thickness는 샘플 깊이 변경으로 그대로 적용해 이어 그릴 수 있다. 취소가 정당한 경우는 설정 UI 조작이 드로잉 제스처와 충돌할 때뿐이다. 권고: 진행 중 곡선을 유지(값 즉시 적용)하는 것을 기본으로 하고, 취소 방식을 택하면 사용자에게 안내 표시. 어느 쪽이든 공수 하.
 
 ### 4.4 계측/주석 확장 및 Image Filter (1.11·1.12)
 
-- 계측/주석: Angle 버튼 위치 변경, Free Draw를 2D 단면으로 확대, Arrow 신규. MPR 동일 툴. 주석 렌더 엔진은 리포트 PoC에서 보유했고, 계측은 신규지만 기존 MPR 계측을 동일 수준으로 이식하는 작업이다. 구현 가능성 가능 · 구현 공수 중 · 추가 PoC 불필요.
-- Image Filter: Section에 W/L(PoC 보유) + Smooth/Sharpen/Max Sharpen/Inverse/MIP. MPR과 동일·연동. MPR 기존 기능 이식이라 부담이 낮다. 구현 가능성 가능 · 구현 공수 하~중 · 추가 PoC 불필요.
-- 저장 연동: 계측/주석·필터를 저장하면 영구 대상이 되어 3.3 좌표계 설계가 필요하다.
+- 계측/주석: Angle 툴바 버튼 위치 변경, Free Draw 적용 범위를 2D 단면 전체로 확대, Arrow 신규 추가. MMI는 MPR 레이아웃과 같은 툴 목록·같은 UI 배치를 Section에도 요구한다. 주석 렌더 엔진은 Cloud Web Viewer 리포트 PoC에서 이미 보유했고, 계측(Measure)은 Section에 아직 없어 Clever Space 기존 MPR 뷰의 계측 기능을 Section 뷰에 같은 수준으로 적용(MPR → Section)하는 작업이다. 구현 가능성 가능 · 구현 공수 중 · 추가 PoC 불필요.
+- Image Filter: Section 단면에 W/L(PoC 보유) + Smooth/Sharpen/Max Sharpen/Inverse/MIP를 적용. MMI는 MPR 레이아웃과 같은 필터 목록·같은 조작 UX를 요구하며, Scout/Panorama/Section 뷰 간 필터 값을 맞추는 연동도 포함한다. 기존 MPR Image Filter 구현을 Section 단면 렌더에 연결(MPR → Section)하면 되므로 부담이 낮다. 구현 가능성 가능 · 구현 공수 하~중 · 추가 PoC 불필요.
+- Save Project 연동: 계측·주석·Image Filter를 prj에 저장하면 세션을 넘어 영구 데이터가 되므로, 3.3의 볼륨 3D 좌표 설계가 필요하다.
 
 ### 4.5 Active section line 각도 회전 ±45° (1.8, PoC 없음)
 
 - 내용: Panorama에서 Center section line 끝 control point를 드래그해 Active section line을 회전. 파노라마 중심선과의 교점을 축으로 회전, control point는 경계선을 따라 이동, ±45°. 회전 시 Scout의 Section line은 갱신하지 않는다.
 - 현재 PoC: 회전 없음(법선 고정).
-- 구현 가능성 가능 · 구현 공수 중 · 추가 PoC 권장(성능). 회전은 법선을 바꿔 단면을 재생성하므로 성능 영향이 있다. 저장 항목 #8과 연동되며, 미채택 시 저장 항목에서 제거한다.
+- 구현 가능성 가능 · 구현 공수 중 · 추가 PoC 권장(성능). 회전은 단면 법선을 바꿔 9장을 다시 생성하므로 성능 영향이 있다. v1.3.2에 포함하기로 하면 Save Project 저장 항목 #8(회전 각도)도 함께 넣고, 미포함이면 MMI대로 해당 항목을 빼면 된다.
 - 확인: 회전 시 Scout Section line 미갱신이라는 비대칭 동작이 의도된 것인지 확인 필요.
 
 ### 4.6 B/L 방향 로직과 BL/LB 기준점 (1.3·1.5·1.6·1.7)
 
 - B/L 결정 로직: Curve 입력 시 B(협측)/L(설측) 방향을 결정하며 Ez3D-i와 동일 로직 적용, MMI 두 곳(1.5·1.6)에서 "Ez3D-i 코드 재사용 가능 여부 개발실 확인 후 스펙 확정"으로 표기됨.
   - 개발실 의견 — 코드 직접 재사용은 불가: Ez3D-i는 C++(Qt) 데스크톱 코드다. 이번 뷰어는 웹(TypeScript, 필요 시 WASM) 환경이라 소스 그대로 가져다 쓰는 재사용은 성립하지 않는다. 언어·런타임·좌표계·렌더 스택이 모두 다르므로 어차피 웹용으로 재구현해야 한다.
-  - 권고 — "코드 재사용" 대신 "스펙 확정": MMI가 코드 재사용을 전제로 항목을 열어둔 것은 구현 환경 차이를 반영하지 못한 표기로 보인다. 개발실이 필요한 것은 C++ 소스가 아니라, B/L을 무엇으로 판정하는지에 대한 명확한 규칙(입력 방향·기준 축·좌우 판별 조건, 기준점 이동 시 재판정 규칙)이다. 규칙을 spec으로 확정해주면 그대로 웹에서 구현하는 편이 빠르고 안전하다.
+  - 권고 — "코드 재사용" 대신 "스펙 확정": MMI는 Ez3D-i와 동일 로직을 목표로 하되, 코드 재사용 가능 여부를 개발실 확인으로 열어두었다. 웹 환경 특성상 C++ 소스 직접 재사용은 어렵고, 개발실이 필요한 것은 B/L을 무엇으로 판정하는지에 대한 명확한 규칙(입력 방향·기준 축·좌우 판별 조건, 기준점 이동 시 재판정 규칙)이다. 규칙을 spec으로 확정해주면 웹에서 구현하는 편이 빠르고 안전하다.
   - C++ 코드의 활용도: 소스를 그대로 재사용할 수는 없지만, 판정 알고리즘의 정확한 기준(어떤 벡터·각도·부호로 B/L을 가르는지)을 확인하는 참조로는 도움이 된다. 다만 참조 목적이면 전체 소스보다 해당 판정 함수 한두 개와 그 입력 정의만 확인하면 충분하며, 이를 위해 원본 확보에 큰 공수를 들일 필요는 없다.
   - 현재 PoC 상태: 좌우 반전(B/L 표시) 규칙만 있고 자동 결정 로직은 없어 별도 구현·검증이 필요하다.
 - BL/LB 기준점 이동: 기준점을 곡선 위에서 drag & drop(section line을 따라 한 칸씩 스냅 이동)해 B/L 표기 기준을 바꾼다. PoC에 없는 신규이며 MMI도 "개발실 리뷰 후 적용 여부 확정"으로 열어둔 선택 항목이다.
@@ -148,7 +161,7 @@ MMI가 저장을 포함했고 저장 항목은 "개발실 리뷰 후 변경 가�
 | 항목(MMI) | 판단 | 비고 |
 | --- | --- | --- |
 | Active line 반대편 미리보기(1.5·1.7) | 가능·중·PoC 권장 | 반대편 추가 렌더의 성능 영향 확인 |
-| Panorama thickness line 조절(1.3·1.7) | 가능·하~중·불필요 | Section thickness와 동일 메커니즘 |
+| Panorama thickness line 조절(1.3·1.7) | 가능·하~중·불필요 | Panorama의 thickness line 조절은 Section view의 Thickness 조절과 같은 슬랩·재생성 메커니즘을 공유 |
 | Panorama Height 경계선 조절(1.4·1.8) | 가능·하·불필요 | PoC 선구현. 세로 폭 조절 |
 | 개별 slice 최대화(1.9) | 가능·하·불필요 | 더블클릭 최대화(Ez3D-i). 레이아웃 처리 |
 | Section 폭(Active line 길이) 조절(1.7) | 가능·하·불필요 | PoC 보유. 조작 방식만 확정(아래 5장) |
@@ -157,15 +170,15 @@ MMI가 저장을 포함했고 저장 항목은 "개발실 리뷰 후 변경 가�
 
 ## 5. PoC와 상이한 항목 (MMI가 표기한 부분)
 
-MMI가 "PoC와 상이함"으로 표기한 항목이다. Clever One 기준을 따를지 PoC 방식을 유지할지 확정이 필요하다. 대부분 조작 방식·표시 차이라 개발 부담은 크지 않다.
+MMI가 "PoC와 상이함"으로 표기한 항목이다. CleverOne 기준을 따를지 PoC 방식을 유지할지 확정이 필요하다. 대부분 조작 방식·표시 차이라 개발 부담은 크지 않다.
 
-| MMI | 항목 | Clever One(MMI) | PoC | 개발실 의견 |
+| MMI | 항목 | CleverOne(MMI) | PoC | 개발실 의견 |
 | --- | --- | --- | --- | --- |
 | 1.2 | Section ruler | 가로·세로 전체 축에 표시 | 영상 폭에 맞춰 표시 | 표시 방식 차이. 반영 부담 작음 |
 | 1.3 | L/B 방향 표시 | Curve 입력 시 방향 자동 결정(Ez3D-i 로직) | 좌우 반전 표시만 있고 자동 결정 없음 | 자동 결정 로직 신규 필요. Ez3D-i는 C++라 코드 재사용 불가, 판정 규칙 spec 확정 필요(4.6) |
 | 1.5 | L/B 방향 표시 | Curve 입력 시 방향 자동 결정(Ez3D-i 로직) | 좌우 반전 표시만 있고 자동 결정 없음 | 1.3과 동일 항목. 4.6 참조 |
 | 1.5 | Draw 중 미리보기(Section/Active section line) | 미리보기 curve 기준 실시간 갱신 | 2점 이후 미갱신 | 채택 가능. 실시간 갱신은 Scout 오버레이 선(선 재그리기+호길이 재계산)에 한정되어 부담 없음. 이미지 9장은 MMI상 드로잉 완료 후 생성(1.5의 289줄 "완료 전 blank")이라 드로잉 중 재생성이 없음 |
-| 1.5 | Section view(이미지) 표시 시점 | Curve 입력 완료 시 표시, 완료 전까지 blank(MMI 289줄) | 점 추가 시(3점~) 실시간 생성·갱신 | **권고: MMI 방식(완료 후 1회 생성·표시) 채택. 구현 가능·공수 하.**<br>PoC가 그리는 중에도 매 점마다 생성하는 것을 "완료 시 1회 생성"으로 게이트하는 소폭 변경(draw 모드 종료 시 생성). 재생성이 줄어 성능상 안전, 추가 PoC 불필요.<br>(연속 재생성의 핵심 리스크는 이 항목이 아니라 4.2 Section Slice 변경) |
+| 1.5 | Section view(이미지) 표시 시점 | Curve 입력 완료 시 표시, 완료 전까지 blank(MMI 289줄) | 점 추가 시(3점~) 실시간 생성·갱신 | 권고: MMI 방식(완료 후 1회 생성·표시) 채택. 구현 가능·공수 하.<br>PoC가 그리는 중에도 매 점마다 생성하는 것을 "완료 시 1회 생성"으로 게이트하는 소폭 변경(draw 모드 종료 시 생성). 재생성이 줄어 성능상 안전, 추가 PoC 불필요.<br>(연속 재생성의 핵심 리스크는 이 항목이 아니라 4.2 Section Slice 변경) |
 | 1.7 | Section 폭(Active section line 길이) 조절 | Center section line 양끝 control point 드래그(양쪽 대칭) | Slider | 구현 가능·공수 하~중. 폭→단면 재생성 파이프라인은 PoC(slider)가 이미 보유하므로 입력 수단만 대칭 드래그 핸들로 추가.<br>드래그 중 연속 재생성 부하는 slider 드래그와 동일 수준(리사이즈 중 이전 이미지가 잠깐 늘어나 보이는 현상 포함)이며 스로틀·표시 분리로 완화됨.<br>결정: slider를 드래그로 교체할지 병행할지. 작은 핸들 드래그는 터치에서 불리 → 6장 모바일 정책과 연계 |
 | 1.8 | Section 세로 폭(Height) 조절 | 경계선 드래그 | Slider | 구현 가능·공수 하~중. 높이→단면 재생성 파이프라인은 PoC(slider)가 이미 보유하므로 입력 수단만 경계선 드래그로 추가.<br>드래그 중 연속 재생성 부하는 slider 드래그와 동일 수준이며 스로틀·표시 분리로 완화됨.<br>결정: slider를 드래그로 교체할지 병행할지. 6장 모바일 정책과 연계 |
 | 1.6·1.7 | BL/LB 기준점 이동 | 기준점 drag & drop으로 B/L 기준 설정 | PoC에 없음(신규) | "동작 상이"가 아닌 PoC 미보유 신규 항목이라 상세는 4.6·6장(4번)에서 다룸. 1.6·1.7 동일 기능(구현 1회) |
@@ -173,21 +186,30 @@ MMI가 "PoC와 상이함"으로 표기한 항목이다. Clever One 기준을 따
 
 ---
 
-## 6. 확인·결정 필요 항목
+## 6. 기획·관련팀 결정 요청
 
-MMI가 개발실에 확인을 요청했거나, 개발 관점에서 먼저 정해야 하는 항목이다.
+> 본 섹션은 기획팀(및 필요 시 관련팀)의 결정·회신을 요청하는 항목이다. 개발실은 구현 가능성·공수·권고 의견을 본문(4장 등)에 적어 두었고, 아래 "기획·관련팀이 결정할 내용" 열에 답이 필요하다. PLAN-1287 comment 또는 기획이 지정한 채널로 회신해 주시면 MMI 반영 후 개발 착수가 가능하다.
 
-1. Save Project: MPR 레이아웃의 prj 저장/로드가 이미 있는가(공수 산정 핵심). 저장 포맷이 Clever One·EzServer와 호환되어야 하는가.
-2. 계측/주석 저장: 단면 재생성 후에도 복원되어야 하는가. 그렇다면 볼륨 좌표 저장·재투영 방식으로 설계해도 되는가(3.3).
-3. Active section line 회전(±45°) 채택 여부(저장 #8과 연동). 회전 시 Scout Section line 미갱신이 의도인지.
-4. BL/LB 기준점 이동 채택 여부(B/L 로직 확보가 선결).
-5. B/L 결정 로직: Ez3D-i는 C++(Qt)라 코드 직접 재사용 불가. 코드 재사용 전제 대신 판정 규칙(입력 방향·기준 축·좌우 판별·기준점 이동 시 재판정)을 spec으로 확정 요청. C++ 소스는 알고리즘 참조로만 활용.
-6. Thickness 기본값(0mm vs PoC 6mm)과 상한 정책(성능 PoC로 결정 가능).
-7. Draw curve 모드 중 Thickness/Interval 변경 시 draw curve 취소 스펙 확정(MMI 1.10). 개발실 권고: 취소할 기술적 이유는 없어 진행 중 곡선 유지(값 즉시 적용)를 기본으로 제안(상세 4.3).
-8. Draw 중 미리보기 스펙 확정(MMI 1.5): Scout 오버레이 선(Section/Active section line)은 실시간 갱신(부담 없음). Section view 이미지는 MMI 289줄대로 완료 전 blank·완료 후 1회 생성이 성능상 안전하며 개발실도 이 방식을 권고. PoC 표시 시점과 상이한 부분만 이 기준으로 통일 확정.
-9. 개별 slice 더블클릭 최대화 채택 여부(MMI 1.9).
-10. 모바일 조작 정책: PLAN-1287 본문은 "모바일 실행 가능 → context menu·마우스 휠 전용 금지", 기능정의서는 "Clever Space는 모바일 미고려·마우스 기반, 터치는 EzDent Web 적용 시 정의"로 상반된다. 현재 MMI는 Point/Curve 삭제·L/B 전환을 우클릭 context menu로, slice 이동을 휠로 제공한다. 이번 버전 기준을 확정하고, 향후 EzDent Web(터치) 이식을 막지 않도록 대체 조작 경로를 설계 단계에서 열어두는 수준을 권고한다.
-11. Scout 명칭(Axial View 검토 중) 확정 일정.
+| # | MMI | 기획·관련팀이 결정할 내용 | 확인·결정 주체 | 개발실 의견(요약) |
+| --- | --- | --- | --- | --- |
+| 1 | 1.14 Save Project | prj 호환 방향: Desktop→Web / Web→Desktop / 양방향 / Web 독자 prj 중 무엇인가. 이번 버전에 저장 기능을 포함할지, 보류할지. | 기획 (+ 양방향 시 Ez3D-i·CleverOne) | 공수·범위가 가장 큼(4.1). 호환 방향·좌표계 선행 확정 필요. Web 독자 prj 또는 저장 보류 우선 검토 권고 |
+| 2 | 1.11·1.12 계측/주석 | 계측·주석을 prj에 저장(영구)할지, 브라우저 세션 동안만(휘발) 유지할지. 저장할 경우 Curve·Interval 등이 바뀐 뒤에도 계측 위치가 복원되어야 하는지. | 기획 | 영구 저장이면 볼륨 3D 좌표 설계 필요(3.3). 세션만이면 공수 낮음 |
+| 3 | 1.8 회전 | Active section line ±45° 회전 기능을 v1.3.2에 포함할지. 회전 시 Scout의 Section line은 갱신하지 않는 MMI 동작이 의도된 것인지. | 기획 | 구현 가능·공수 중·성능 PoC 권장(4.5). 미포함이면 Save Project 저장 항목 #8 제거 |
+| 4 | 1.6·1.7 기준점 | BL/LB 기준점 이동 기능을 포함할지. | 기획 | UI는 어렵지 않으나 B/L 로직(#5) 선결(4.6). 후순위 가능 |
+| 5 | 1.3·1.5 B/L | B/L 자동 판정 규칙 spec 확정(입력 방향·기준 축·좌우 판별·기준점 이동 시 재판정). Ez3D-i와 동일 동작의 구체 기준. | 기획 (+ Ez3D-i/영상SW 협의) | C++ 코드 직접 재사용 불가. 판정 규칙을 spec으로 주시면 웹 재구현(4.6) |
+| 6 | 1.10 Thickness | Thickness 기본값(0mm vs PoC 6mm)과 상한. | 기획 (성능 PoC 결과 참고) | 성능 PoC로 상한·기본값 제안 가능(4.3) |
+| 7 | 1.10 Draw curve | Draw curve 중 Thickness/Interval 변경 시 진행 중 곡선을 취소 할지 유지(값 즉시 적용)할지. | 기획 | 권고: 유지(값 즉시 적용). 취소할 기술적 이유 없음(4.3) |
+| 8 | 1.5 Draw curve | Section view 이미지 표시 시점: 드로잉 완료 후 1회 생성(MMI 289줄) vs PoC처럼 점 추가 시 갱신. | 기획 | 권고: MMI 방식(완료 후 1회). 구현 가능·공수 하(5장) |
+| 9 | 1.9 Section | 개별 slice 더블클릭 최대화(Ez3D-i 기능) 포함 여부. | 기획 | 구현 가능·공수 하·PoC 불필요(4.7) |
+| 10 | 전체 조작 | v1.3.2 모바일/터치 정책: 마우스 전용 vs 터치 대응. context menu·휠 전용 조작 허용 여부. | 기획·PM | PLAN-1287 vs 기능정의서 상충. 이번 버전 기준 확정 필요 |
+| 11 | 1.2 Scout | Scout vs Axial View 명칭 및 확정 일정. | 기획 | Axial View 검토 중(PLAN-1287). 개발실은 확정 후 UI 반영 |
+
+개발실 내부 처리(기획 회신 불필요 — 결과만 기획에 공유):
+
+| 항목 | 담당 | 내용 |
+| --- | --- | --- |
+| MPR prj 저장/로드 존재 여부 | Cloud Web Viewer·MPR 개발 | Clever Space MPR 레이아웃에 prj 파일 저장·로드 기능이 이미 구현되어 있는지 내부 확인(#1 Save Project 공수 산정용) |
+| Section Slice·Thickness·회전 성능 PoC | Section PoC 팀 | #6 Thickness 상한 등 수치 제안용(7장) |
 
 ---
 
@@ -195,13 +217,13 @@ MMI가 개발실에 확인을 요청했거나, 개발 관점에서 먼저 정해
 
 - 단면 9장 생성이 단일 스레드에서 약 390~420 ms 수준으로, 이번 범위에서 가장 무거운 연산이다.
 - 재생성을 가장 자주 유발하는 것은 Section Slice 변경(4.2)이다. Thickness(4.3)·회전(4.5)·반대편 미리보기(4.7)는 한 장 생성 부하 또는 생성 횟수를 늘리는 가중 요인이다.
-- 대응(일부 적용): 입력 스로틀, 표시 분리. 추가로 재생성 디바운스, 단면 캐싱, Thickness 상한·샘플 스텝, 확장 시 Web Worker·WASM·SIMD를 단계적으로 검토한다.
+- 대응(일부 PoC에 이미 적용): 입력 이벤트 스로틀, 재생성 중에도 이전 단면 이미지를 먼저 보여 주는 표시 분리. 추가로 재생성 디바운스, 이미 만든 단면 캐싱, Thickness 상한·샘플 스텝, 확장 시 Web Worker·WASM·SIMD를 단계적으로 검토한다.
 - 권고: Section Slice·Thickness·회전을 붙인 소규모 성능 PoC로 최악 조건을 측정해 스크롤 단위·디바운스·캐싱·Thickness 상한을 정하고 MMI 수치에 반영한다.
 
 ---
 
 ## 8. 리뷰 진행 방식 제안
 
-1. 문서 회신: 본 문서로 6장 확인 항목을 회신받는다. 특히 Save Project 전제(prj 저장 유무)와 계측/주석 저장 좌표계, 회전·기준점 채택 여부를 우선 확정한다.
-2. 성능 PoC: 성능이 걸린 항목(Section Slice·Thickness·회전)은 선행 성능 PoC 결과로 수치를 확정한다.
-3. 범위 확정 후 MMI 수정 → 개발 착수(설계·구현계획).
+1. 기획 회신: 6장 표의 "기획·관련팀이 결정할 내용" 에 대해 기획팀이 PLAN-1287 comment 등으로 회신한다. 우선 #1 Save Project, #2 계측/주석 저장, #3·#4 기능 채택 여부부터 확정을 권고한다.
+2. 성능 PoC: Section Slice·Thickness·회전은 개발실이 선행 PoC 수행 후, #6 등에 필요한 수치를 기획에 제안한다(7장).
+3. MMI 수정 → 개발 착수: 6장 결정 사항을 MMI에 반영한 뒤 설계·구현계획을 시작한다.
