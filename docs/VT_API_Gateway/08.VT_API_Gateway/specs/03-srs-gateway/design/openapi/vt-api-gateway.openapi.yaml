@@ -4,7 +4,7 @@
 # 구현 착수 후에는 NestJS code-first(@nestjs/swagger) /api-docs 산출물이 정본이 된다.
 #
 # 시드 출처: "VT API Gateway - API 명세·데이터 모델·주권" §1 엔드포인트.
-# 범위: GW 고유 API(A면 — apex gw.vatech.com 호출)만 정의(§4.1.1·ADR-11, 7/2 R1).
+# 범위: GW 고유 API(A — apex gw.vatech.com 호출)만 정의(§4.1.1·ADR-11, 7/2 R1).
 #       프록시(B 내부·C 외부)는 target 서브도메인({target}.gw.vatech.com, Host/SNI)으로 라우팅되는 verbatim bypass이며 OpenAPI에 정의하지 않는다
 #       (레지스트리 config + upstream OpenAPI 정본). Vatech-Target 헤더는 CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환). §4.1.2·§4.5.1 참조.
 # 필드는 camelCase, 시간은 Unix ms(SRS §1.3). 상세 스키마는 LLD에서 확정.
@@ -16,10 +16,10 @@ info:
   title: Vatech API Gateway
   version: 0.0.0
   description: >-
-    설계 초안. GW 고유 API(A면 — apex gw.vatech.com, §4.1.1·ADR-11)만 정의. 파일 업로드: GW는 presigned 발급 안 함 — CleverSpace(경로②)·AXS(경로③) 발급, GW 중계(§4.1.4·§7.4). 프록시(B 내부·C 외부)는 target 서브도메인({target}.gw.vatech.com, Host/SNI)으로 라우팅되는 verbatim bypass이며 본 파일에 정의하지 않는다 — CleverSpace presign=경로②(cleverspace.gw.vatech.com, CS OpenAPI 정본), AXS presign/파일=경로③(axs.gw.vatech.com, ④). Vatech-Target 헤더는 CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환). 라우팅 규칙은 §4.1.2·§4.5.1(7/2 R1).
+    설계 초안. GW 고유 API(A — apex gw.vatech.com, §4.1.1·ADR-11)만 정의. 파일 업로드: GW는 presigned 발급 안 함 — CleverSpace(경로②)·AXS(경로③) 발급, GW 중계(§4.1.4·§7.4). 프록시(B 내부·C 외부)는 target 서브도메인({target}.gw.vatech.com, Host/SNI)으로 라우팅되는 verbatim bypass이며 본 파일에 정의하지 않는다 — CleverSpace presign=경로②(cleverspace.gw.vatech.com, CS OpenAPI 정본), AXS presign/파일=경로③(axs.gw.vatech.com, ④). Vatech-Target 헤더는 CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환). 라우팅 규칙은 §4.1.2·§4.5.1(7/2 R1).
 servers:
 - url: https://gw.vatech.com
-  description: GW 고유 API(A면) apex(§4.5.1). 프록시 target은 {target}.gw.vatech.com 서브도메인(레지스트리 등록·본 파일 미정의)
+  description: GW 고유 API(A) apex(§4.5.1). 프록시 target은 {target}.gw.vatech.com 서브도메인(레지스트리 등록·본 파일 미정의)
 
 tags:
 - name: auth
