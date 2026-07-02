@@ -5,7 +5,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | 항목        | 내용                                         |
 | -------------- | --------------------------------------------------- |
 | 문서 ID        | ESIP-GW-ARD                                         |
-| 문서 버전      | v0.23                                               |
+| 문서 버전      | v0.24                                               |
 | 적용 제품 버전 | gw/1.0.0.0                                          |
 | 분류           | 통제 문서 (Controlled · IEC 62304 / ISO 13485 대상) |
 | 상태           | Draft                                               |
@@ -32,6 +32,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.21 | 2026-07-01 | (SRS 동기화) | **`clinic_region_mapping` → `clinic` 승격(C안)** — clinic_id를 5개 테이블이 참조하는 canonical 엔터티라 정명. region·mapping_version은 clinic 컬럼 유지(1:1). connector(아웃바운드)/provider(인바운드) 분리 유지 확정. §5.2 등 clinic 참조 갱신·DBML·SRS §6.4·Agenda R8 정합 | Draft |
 | v0.22 | 2026-07-02 | (SRS 동기화) | **온보딩=enrollment 한 흐름 통합** — 클리닉/region 등록을 enroll에 흡수(별도 흐름·API 제거). enroll이 Clinic-ID로 clinic upsert + 초기 region 확립(기본=GeoDNS 최근접·v1.0 서울, C/S override). §5.1 스텝4/5·mermaid에 clinic upsert·region 반영. SRS §2.3.1·§7.3·OpenAPI 정합 | Draft |
 | v0.23 | 2026-07-02 | (SRS 동기화) | **ADR-11 개정(R1) — 라우팅 신호 header→서브도메인 edge.** GW edge 라우팅=target 서브도메인 `{target}.gw.vatech.com`(Host/SNI, 서브도메인 방식), `Vatech-Target` 헤더=CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환, 헤더 방식) = **내부구간 헤더 + edge 서브도메인**(순정 nginx·split-horizon 불요·`*.gw.vatech.com` 와일드카드로 DNS/cert 부담 해소). ADR-11 행·Router/PEP 컴포넌트·§5.3 업로드 시퀀스 갱신. SRS §4.1.1·§4.1.2·§4.5.1·ADR-11·Agenda 7/9 R1 정합. 구간별 3안 상세=Agenda | Draft |
+| v0.24 | 2026-07-02 | (SRS 동기화) | **GW 내부 컴포넌트 명칭 직관화** — `Router / PEP`→**`Proxy Router`**, `Connector Framework`→**`External Connector`**(SRS §2.2·§2.3 정합). §2 tier 표·§3 컴포넌트 표 반영. PEP는 `Proxy Router`의 정책 집행 성격 설명으로 유지(=`Policy(OPA)` PDP와 짝). `connector` 일반 개념·"AXS connector" 인스턴스는 불변 | Draft |
 
 
 ## 1. 아키텍처 개요
@@ -66,7 +67,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | --- | --- | --- |
 | Control (글로벌, soft-state) | Device Registry · Enrollment · Auth(OAuth2/JWT) · Region Resolver · Config · Fleet Ops · Policy(OPA) · Audit | 메타데이터만 · PHI 미경유 |
 | Data (리전 한정) | **GW 비호스팅** — presigned 발급·storage는 upstream(CleverSpace/AXS); GW는 중계만 | PHI 리전 밖 미이동(주권) |
-| Integration (north-south) | Connector Framework · AXS Connector · Egress 정책 | 안전 링크 pull |
+| Integration (north-south) | External Connector · AXS Connector · Egress 정책 | 안전 링크 pull |
 
 ### **3.2 배포 구성 (v1.0 · AWS 단일 리전)**
 
@@ -85,10 +86,10 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | Enrollment Service | Control | 부트스트랩 신뢰(**LM 라이선스·Clinic-ID**)·nonce·**client_public_key(키페어 공개키) 바인딩**·**C/S 승인 게이트(pending→active)**·재설치 회전·자격 발급 | 핵심(HW attestation·개인키 비추출은 v1.1) |
 | Auth Service | Control | OAuth2 client_credentials + **private_key_jwt(비대칭)**·JWT 발급/검증(무상태·발급 토큰 미저장). 디바이스 자격=device(client_id·client_public_key). 외부(C) 토큰/secret 회전은 §7.1.3 connector | 핵심(DPoP/HW키·attestation v1.1) |
 | Region Resolver | Control | device→region 매핑·mapping_version·강한 일관성 경로 | 핵심(단일 리전) |
-| Router / PEP (target-routed proxy) | Control | **target 서브도메인(Host/SNI) 기반** upstream 라우팅(B 내부·C 외부 동일 경로)·정책 체인(인증·버전·egress allowlist)·verbatim bypass. 서브도메인 라벨을 레지스트리로 검증(미등록=`404`). 외부(C)는 Connector Framework로 OAuth·egress 적용 | 핵심(ADR-11) |
+| Proxy Router (target-routed proxy) | Control | **target 서브도메인(Host/SNI) 기반** upstream 라우팅(B 내부·C 외부 동일 경로)·정책 집행(PEP: 인증·버전·정책(OPA)·egress allowlist)·verbatim bypass. 서브도메인 라벨을 레지스트리로 검증(미등록=`404`). 외부(C)는 External Connector로 OAuth·egress 적용 | 핵심(ADR-11) |
 | Config Service | Control | 중앙 config push/pull | 핵심 |
 | Fleet Ops | Control | heartbeat·kill-switch·성공률·rollout | 기본(rollout/카나리 v1.1) |
-| Connector Framework + AXS | Integration | adapter·egress 정책·AXS OAuth2 위임·proxy | 핵심(추가 connector v1.1) |
+| External Connector + AXS | Integration | adapter·egress 정책·AXS OAuth2 위임·proxy | 핵심(추가 connector v1.1) |
 | Policy Engine (OPA) | Control | allowlist·region·scope·egress 판단 | 핵심 |
 | Audit Service | Control | append-only 감사 로그 | 경량(MVP) |
 | Admin UI / RBAC | Control | 운영자 관리·권한 | 경량(MVP) |

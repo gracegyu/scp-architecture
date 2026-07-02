@@ -348,7 +348,7 @@ flowchart LR
             subgraph CTRL["Control Plane (글로벌, soft-state)"]
                 AUTH["Auth Service"]
                 OIDI["OneID Integration"]
-                ROUTER["Router / PEP<br/>(target-routed proxy)"]
+                ROUTER["Proxy Router<br/>(target-routed proxy · 정책 집행 PEP)"]
                 RGN["Region Resolver"]
                 COMPAT["API Compatibility Gate"]
                 ADM["Admin API / RBAC"]
@@ -363,7 +363,7 @@ flowchart LR
                 DNOTE["(GW 데이터 plane 컴포넌트 없음)<br/>presigned 발급·storage는 upstream(CleverSpace/AXS), GW는 중계"]
             end
             subgraph INTEG["Integration Plane"]
-                CONN["Connector Framework<br/>(egress·OAuth)"]
+                CONN["External Connector<br/>(외부 C · egress·OAuth)"]
             end
         end
         subgraph WHTIER["Webhook Ingress (Webhook Receiver → SQS → Webhook Dispatcher)"]
@@ -384,7 +384,7 @@ flowchart LR
     ROUTER -->|"프록시 (B·내부)"| CS
     ROUTER -->|"프록시 (C·외부)"| AXS
     ROUTER -.->|"외부(C) 시 OAuth·고정 egress IP"| CONN
-    %% GW core 요청 파이프라인(PEP 체인) — 인증→호환성→라우터→(외부면 connector)→upstream, region·정책 참조
+    %% GW core 요청 파이프라인(PEP 체인) — 인증→호환성→Proxy Router→(외부면 External Connector)→upstream, region·정책 참조
     COMPAT -->|"게이트 통과 → 라우팅"| ROUTER
     ROUTER -.->|"region 해석 참조"| RGN
     ROUTER -.->|"정책 판정(PEP)"| OPA
@@ -450,7 +450,7 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 | 액터 | 의미 (출처) |
 | --- | --- |
 | EzServer(Edge=GW '디바이스') / CleverOne | 사내·현장 호출자(§2.1·§2.5). EzServer는 방화벽 뒤 Edge·GW 관점의 '디바이스'(§1.4); CleverOne은 EZ 경유. 물리 영상장비는 EzServer 뒤(GW 비대상) |
-| GW | 본 SRS 대상. 내부 컴포넌트(Auth·Region Resolver·Connector·Webhook Receiver·내부 큐(A·SQS)·Webhook Dispatcher(§7.6.7)/MQTT(B))는 §2.2 |
+| GW | 본 SRS 대상. 내부 컴포넌트(Auth·Region Resolver·Proxy Router·External Connector·Webhook Receiver·내부 큐(A·SQS)·Webhook Dispatcher(§7.6.7)/MQTT(B))는 §2.2 |
 | OneID / CleverSpace / CleverLab | 우리 클라우드 백엔드(§2.1) |
 | Straumann AXS / AXS S3 | 외부 플랫폼·외부 스토리지(§2.1, 경로③·§4.1.4) |
 | upstream storage(S3/MinIO) | CleverSpace·AXS 등 **발급 주체 소유** 객체 스토리지 — presigned 직접 업로드 대상(§4.1.4·§7.4) |
@@ -458,6 +458,41 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 > **본 절 시나리오 ↔ §7 기능·§4.1.4 경로 매핑**: 온보딩(§7.2)·인증(§7.1)·리전(§7.3)·파일 업로드 경로②(§7.4·§4.1.4②)·외부 연동 경로③(§7.5·§4.1.4③)·Webhook(§7.6·§4.1.3)·버전 호환(§7.7).
 >
 > **API 호출 경로는 대상 무관 동일**(`…→GW→upstream` target-routed proxy, ADR-11): CleverSpace(B 내부)·AXS(C 외부)는 **같은 경로**이고 trust profile만 다르다(C는 OAuth·egress 추가). 그래서 **§2.3.5(외부 연동)는 CleverSpace에도 그대로 적용되는 일반 proxy 흐름**이며, AXS를 예로 들었을 뿐 GW 동작은 동일하다. CleverSpace presign(경로②)에 **별도 시나리오를 두지 않는 이유는 경로가 달라서가 아니라**, 그 계약이 GW 밖(② One Pager·CleverSpace OpenAPI)에 있고 GW는 verbatim bypass(B)만 하기 때문이다(§4.1.4②).
+
+#### 라우팅 Flow — 전 구간 (CleverOne → EzServer → GW → provider)
+
+아래 시나리오(§2.3.2~§2.3.7)는 모두 이 라우팅 골격 위에서 동작한다. 대표 경로 **`CleverOne → EzServer → GW → AXS`**(외부 provider 호출)를 예로, **구간마다 target을 어떻게 지시하는지**를 보인다(ADR-11 · 7/2 R1, 상세 §4.1.2·§4.5.1).
+
+- **① CleverOne → EzServer (내부 구간 = 헤더).** CleverOne은 방화벽 안 EzServer에 요청하며 **`Vatech-Target: axs` 헤더**로 "어느 논리 서비스로 갈지"만 표명한다(대부분 평문 HTTP, 일부 self-signed HTTPS). 원서버 host·URL은 싣지 않는다.
+- **② EzServer = 헤더 → 서브도메인 변환.** EzServer(nginx 리버스 프록시)가 헤더값 `axs`를 **`axs.gw.vatech.com` 서브도메인으로 변환**해 **HTTPS로 GW에 전달**한다(순정 nginx·제네릭 map, split-horizon DNS 불요; 평문→HTTPS 브리징). GW를 직접 호출하는 클라이언트(Console·클라우드)는 이 서브도메인을 처음부터 쓴다.
+- **③ Proxy Router = 서브도메인(Host/SNI)으로 라우팅.** GW의 **`Proxy Router`**(§2.2 Control Plane)가 **Host 서브도메인 라벨**을 레지스트리(`upstream_registry`)로 해석해 원서버 host를 정한다 — apex `gw.vatech.com`이면 **GW 고유 API(A)**, 등록된 `{target}.gw.vatech.com`이면 **프록시**, **미등록 라벨은 `404`**(SSRF 안전). 같은 컴포넌트가 **정책 집행 지점(PEP)** 으로서 인증(`Auth Service`)·버전 게이트(`API Compatibility Gate`)·정책(`Policy(OPA)`=PDP)·리전(`Region Resolver`)을 참조한다(§2.2). 리전은 서브도메인(어느 서비스)과 `Vatech-Clinic-Id`(어느 리전, §7.3)의 **직교 조합**으로 정한다.
+- **④ 프로파일 적용 후 verbatim 전달.** `Proxy Router`가 **host만 바꿔 body를 그대로** 전달한다. **외부(C=AXS)** 는 **`External Connector`**(§2.2 Integration Plane·§7.5)가 **OAuth2 토큰·고정 egress IP**를 얹고, **내부(B=CleverSpace 등)** 는 내부망이라 `Proxy Router`가 `External Connector` 없이 통과+정규화 신원만 얹는다 — **경로·중계 방식은 동일, trust profile만 다르다**. 응답은 verbatim 통과하되 **GW가 *생성*한 오류만** 표준 envelope(502/503/504·`Vatech-Error-Origin: gateway`).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant CO as CleverOne (PMS 클라이언트)
+    participant EZ as EzServer (Edge · nginx r-proxy)
+    box rgb(232,245,233) VT API Gateway (GW · 내부 모듈 · §2.2)
+    participant RT as Proxy Router
+    participant CN as External Connector (외부 C)
+    end
+    participant AXS as Straumann AXS (외부 provider)
+    CO->>EZ: 요청 + 헤더 Vatech-Target: axs (대부분 평문 HTTP)
+    EZ->>EZ: 헤더값 axs → axs.gw.vatech.com 변환 (제네릭 map · SSRF 방어)
+    EZ->>RT: HTTPS https://axs.gw.vatech.com/{AXS 경로 verbatim} (Host/SNI)
+    RT->>RT: Host 서브도메인 라벨 axs → upstream_registry allowlist→host (미등록=404) · 인증·버전 게이트·정책(OPA)
+    RT->>CN: 외부(C) → OAuth2 토큰·egress allowlist 요청
+    CN-->>RT: 액세스 토큰 · 고정 egress EIP
+    RT->>AXS: host만 교체해 verbatim 전달 (body 그대로)
+    AXS-->>RT: 응답 (원 status·body)
+    RT-->>EZ: verbatim 통과 (GW 생성 오류만 502/503/504 envelope)
+    EZ-->>CO: 응답 전달
+    Note over CO,EZ: 내부 구간 = 헤더(Vatech-Target). EzServer가 서브도메인으로 변환(순정 nginx·split-horizon 불요)
+    Note over RT,AXS: 라우팅 신호=서브도메인(Host/SNI). 내부(B=CleverSpace)면 Proxy Router가 External Connector 없이 직접 전달 — 경로 동일, trust profile만 다름
+```
+
+> **정리.** target 지시는 **구간마다 형태가 다르다** — CleverOne→EzServer는 **헤더(`Vatech-Target`)**, EzServer→GW(및 GW 직접 호출)는 **서브도메인(`{target}.gw.vatech.com`)**. **GW의 라우팅 신호는 오직 서브도메인**이며, 헤더는 EzServer가 서브도메인으로 바꾸기 위한 내부 hop 키일 뿐이다. `axs`를 `cleverspace`로 바꾸면 그대로 CleverSpace(내부 B) 호출 흐름이 된다(§2.3.4). Webhook(외부→GW)만 이 프록시 경로가 아니라 provider 전용 수신 호스트로 들어오는 별개 흐름이다(§2.3.6).
 
 ### 2.3.1 온보딩 — EzServer enrollment (클리닉·region 확립 포함) — FR-ENR-\* · FR-RGN-\*
 
@@ -544,7 +579,7 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     participant EZ as EzServer/디바이스
-    participant GW as GW (proxy·중계)
+    participant GW as GW (Proxy Router · §2.2)
     participant CS as CleverSpace (presign 발급·storage 소유)
     participant S3 as CleverSpace storage (S3/MinIO)
     EZ->>GW: presigned 발급 요청 (Host cleverspace.gw.vatech.com · B bypass)
@@ -566,7 +601,7 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     participant EZ as EzServer (Edge)
-    participant GW as GW (Connector)
+    participant GW as GW (Proxy Router · External Connector · §2.2)
     participant AXS as Straumann AXS
     participant AS3 as AXS S3 (외부)
     EZ->>GW: POST https://axs.gw.vatech.com/{AXS 경로 verbatim} (정보·Create Document)
@@ -888,7 +923,7 @@ GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의
 | **C. 프록시(external)** | **외부 제3자**(Straumann AXS, 향후 DS Core/3Shape) | **서브도메인 `axs.gw.vatech.com`**(라벨 = 논리 ID) | **verbatim bypass** + OAuth2 인증·토큰/secret 관리(§7.1.3)·고정 egress IP·egress allowlist(§7.5)·Webhook 역수신(§7.6). 경계 밖 untrusted | ④ Sub-SRS + 외부 OpenAPI 스냅샷 |
 
 - **GW 고유 API(A) vs 프록시(내부 B·외부 C) 판별 = Host(서브도메인)**(배타). apex = GW 고유 API, 등록된 `{target}.gw.vatech.com` = 프록시, **미등록 서브도메인 → 거부(`404`)**. 상세 불변식은 §4.1.2.
-- **B vs C = trust profile 차이일 뿐 라우팅은 동일**: B = 내부 안내 데스크(통과 + 정규화 신원), C = 거래처 방문(OAuth·토큰·secret·고정 egress IP·외부 장애 책임). C가 토큰·secret·외부 장애 책임까지 지므로 §7.5 커넥터 프레임워크로 1급 처리하고, B는 정책 체인 수준의 경량이다.
+- **B vs C = trust profile 차이일 뿐 라우팅은 동일**: B = 내부 안내 데스크(통과 + 정규화 신원), C = 거래처 방문(OAuth·토큰·secret·고정 egress IP·외부 장애 책임). C가 토큰·secret·외부 장애 책임까지 지므로 §7.5 `External Connector`로 1급 처리하고, B는 정책 체인 수준의 경량이다.
 - **신규 upstream 추가 = 레지스트리 1행**(논리 ID→host + trust profile + 정책·egress)으로 끝난다 — **코드·경로 네임스페이스 변경 0**(NFR-SCL §6.3.5). §7.5.1 connector 프레임워크를 _내부·외부 전 upstream_ 으로 일반화한 것이며, 내부·외부를 **하나의 라우팅 규칙**으로 다룬다.
 - **파일 업로드·presigned는 API 면과 데이터 경로를 구분한다**(§4.1.4): 경로②=B proxy(`cleverspace.gw.vatech.com`)·경로③=C proxy(`axs.gw.vatech.com`) — 둘 다 GW가 발급을 **중계(bypass)** 만 하고 presigned를 **직접 발급하지 않는다**(경로①=GW 직접 발급은 폐기, §4.1.4). **파일 바이트**는 어느 경로든 presigned로 **storage 직접 업로드**(GW 미경유).
 - **CleverLab은 내부(B) 프록시 대상이 아니다.** 우리 클라우드 기공소 PMS지만, GW와의 관계는 **갈래 B 클라우드↔클라우드 연동(보류)** — CleverLab이 **C(AXS)를 향해 GW를 호출하는 클라이언트**(CleverLab→GW→AXS, EzServer가 GW를 호출하는 것과 같은 역할)이고, AXS 이벤트는 Webhook으로 수신(GW→CleverLab)한다. 따라서 위 B 행에 넣지 않는다(§2.1·④·§7.6.5).
@@ -1960,4 +1995,6 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-02 | **§2.3.4 presigned 중계를 provider-무관으로 재구성** — 제목·틀이 'CleverSpace 경로②'라 CleverSpace 전용처럼 보이던 것을 **provider-무관 프록시 중계**(GW가 Vatech-Target으로 발급 provider에 verbatim 중계·발급 주체가 세션/무결성 책임)로 바로잡음. 현재 대상=CleverSpace(②·B 내부, connector 불요)·AXS(③·C 외부, connector로 OAuth·egress 추가), 신규 provider=레지스트리 1행. **아웃바운드 일반 = target-routed proxy(ADR-11), connector는 외부(C) OAuth·egress 어댑터**임을 명확화(§7.4·§4.1.4는 이미 ②③ provider 나열로 정합) | (작성자 ID 미지정) |
 | 2026-07-02 | **§4.2 GW Console 스택 힌트 추가(권장·확정은 ③-C)** — Console이 관리 API(§7.9) 위 CRUD 백오피스라 **`react-admin`(코어 MIT) 권장**(대안 Refine) 힌트를 §4.2에 명시: dataProvider=REST/OpenAPI 매핑, authProvider=OneID(OIDC), permissions=Admin/C-S RBAC, end-to-end TS, 커서 페이지네이션 어댑터 유의. 관측(Fluent Bit+ADOT)·IaC(CDK) 힌트와 동일하게 **방향 힌트만**(UI 스택·화면 확정은 ③-C Sub-SRS). SRS 스코프(관리 API까지)는 불변 | (작성자 ID 미지정) |
 | 2026-07-02 | **IaC = Terraform 확정 + k8s Deployment 기능별 분리 (R5)** — §6.6.2의 'CDK 권장(TBD)·비교'를 폐기하고 **Terraform 확정**(조직 표준 `es-infra` 편입·별도 GW-infra 레포 불요·ARD §4.5 일치)으로 교체. **k8s 배포=기능별 Deployment 분리**(GW core·Webhook Receiver·Webhook Dispatcher 각 독립 스케일·격리, 코드 공유) 명시. §2.1.1 다이어그램 라벨('GW pods API+Webhook Ingress'→'GW Deployments core·WH Receiver·WH Dispatcher')·서브티어 노트, Appendix B #26 B-2→B-1(Terraform 확정), Agenda R5·참조 카탈로그 es-infra 정합 | (작성자 ID 미지정) |
+| 2026-07-02 | **§2.3 인트로에 '라우팅 Flow — 전 구간' 추가** — 기존 §2.3.4/§2.3.5 시퀀스가 EzServer→GW부터 시작해 **CleverOne→EzServer→GW→AXS 전 구간**(특히 CleverOne→EzServer 헤더 → EzServer가 서브도메인 변환 → GW 서브도메인 라우팅 → 외부 C connector OAuth·egress)이 한 그림에 없던 공백을 보강. 구간별 target 지시 형태(내부=헤더 `Vatech-Target` / edge=서브도메인) 시퀀스+설명 추가. 하위 번호(§2.3.1~7) 불변(무번호 h4). §4.1.2·§4.5.1·ADR-11 정합 | (작성자 ID 미지정) |
 | 2026-07-02 | **라우팅 모델 ADR-11 개정 (R1) — 라우팅 신호 header→서브도메인 edge.** 7/2 R1 재평가 결과 **GW edge 라우팅 = target 서브도메인 `{target}.gw.vatech.com`**(Host/SNI, C안) 채택, **`Vatech-Target` 헤더는 CleverOne→EzServer 내부 hop 키로 강등**(EzServer가 서브도메인 변환, A안) — A(내부)+C(edge) 조합(순정 nginx·split-horizon 불요). §4.1.1(2면 판별=Host)·§4.1.2(규칙1~3·식별헤더 노트·비교표 캡션/결론·C열 재평가)·§4.5.1(프록시 target 서브도메인 행·`*.gw.vatech.com` 와일드카드 GeoDNS+TLS cert·webhook은 와일드카드 DNS 미사용 유지)·§2.7.1/§3.1 DNS·§2.3.4/§2.3.5 시퀀스(EZ→GW=서브도메인·CO→EZ=헤더)·§4.1.4 업로드표·hardening 오류표·§6.4/§7.9 레지스트리 표기 반영. Appendix A ADR-11 결정로그·노트, Appendix B #13 개정(header→subdomain edge, 잔여=EzServer 변환·클라 부착). 이전 CCB 승인(2026-06-25 header) 대체(감사추적 보존). 구간별 3안 상세=Agenda 7/9 R1. ARD·OpenAPI·DBML 동반 개정 | (작성자 ID 미지정) |
+| 2026-07-02 | **GW 내부 컴포넌트 명칭 직관화 — `Router / PEP`→`Proxy Router`, `Connector Framework`→`External Connector`.** 직관성 위해 컴포넌트 박스 이름만 변경(PEP는 개념·용어집(§1.4)·`Proxy Router` 설명으로 유지, PEP=`Policy(OPA)`(PDP)와 짝). §2.2 다이어그램 라벨·§2.3 라우팅 Flow(참여자·prose·note)·§2.3.4/§2.3.5 GW 라벨·§4.1.1(§7.5 참조)·§2.2 액터 목록·파이프라인 주석, ARD 컴포넌트 표(§2·§3) 반영. 노드 ID(`ROUTER`/`CONN`)·`connector` 일반 개념/테이블/"AXS connector" 인스턴스·§7.5 개념은 불변 | (작성자 ID 미지정) |
