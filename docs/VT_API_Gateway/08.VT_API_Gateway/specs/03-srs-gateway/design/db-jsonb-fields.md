@@ -82,21 +82,7 @@ connector로 나가는 호출의 네트워크 제약(§7.5.3).
 ### `egress_allowlist`
 - external(C) target일 때만 사용. 구조는 `connector.egress_allowlist`와 동일(위 ⚠️).
 
-### `retry_policy` — 프록시 재시도 설정(§7.5.4)
-```json
-{
-  "retryOn": ["connect_failure"],
-  "maxRetries": 1,
-  "backoff": { "type": "exponential", "baseMs": 50, "maxMs": 500 },
-  "budgetRatio": 0.1
-}
-```
-- `retryOn`: 재시도 트리거 배열. **v1.0=`["connect_failure"]` 한정**(연결 실패만; 비멱등 POST의 응답단계 재시도 금지, §7.5.4).
-- `maxRetries`: 정수 상한.
-- `backoff`: `{ type: "exponential"|"fixed", baseMs, maxMs }`.
-- `budgetRatio`: 전체 요청 대비 재시도 허용 비율(재시도 폭주 방지).
-- **검증**: `retryOn` ⊆ {connect_failure}(v1.0), `maxRetries`≥0, ms≥0.
-- **수치 미결**: 정확한 값·서킷 포함 범위 = **Appendix B #25**(정책 골격만 확정).
+> **재시도·서킷 = istio (7/2 R4).** 재시도·서킷 브레이커는 **service mesh(istio) egress**가 담당하므로 `upstream_registry`에 `retry_policy`·`circuit_breaker`를 두지 않는다(값=istio `DestinationRule`/`VirtualService`, GitOps·인프라). **단 GW→provider 연결 timeout(`connect_timeout_ms`/`response_timeout_ms`/`total_deadline_ms`)은 GW 책임**(GW가 provider에 직접 연결하는 HTTP 클라이언트, D1~D3)이라 **스칼라 컬럼으로 유지**(jsonb 아님). 본 파일 jsonb 대상은 `egress_allowlist`만. 수치=Appendix B #25.
 
 ---
 
@@ -115,3 +101,4 @@ connector로 나가는 호출의 네트워크 제약(§7.5.3).
 | 일시 | 내용 |
 | --- | --- |
 | 2026-07-01 | 신설 — DB jsonb 컬럼(policy 3개·connector/upstream egress·retry_policy·webhook source_ip) 형식·예시·검증 정의. egress 3중복 → Appendix B #31 |
+| 2026-07-02 (R4) | `upstream_registry.retry_policy` 형식 섹션 제거 — **재시도·서킷=service mesh(istio) 담당**(GW 미소유). **단 GW→provider 연결 timeout(connect/response/total_deadline)은 GW 책임이라 스칼라 컬럼 유지**(D1~D3, §7.5.4). jsonb 대상은 egress_allowlist만 |

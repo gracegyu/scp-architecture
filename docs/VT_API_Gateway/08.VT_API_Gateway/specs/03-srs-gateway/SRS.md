@@ -56,7 +56,7 @@ CleverSpace는 유상화·이용 한도 등 새 정책으로 API를 계속 확�
 | Valkey | **캐시 엔진**(Redis 포크·완전 호환 — RESP 프로토콜·클라이언트·명령·키스페이스 동일). AWS 제품 = **ElastiCache for Valkey**. Redis는 2024 초 오픈소스 종료, Valkey가 후속·저비용이라 채택. 본 문서·키스페이스의 "Redis(호환)"는 곧 **Valkey**를 가리킴 | §3.1.2·§6.4·`design/redis/` |
 | PHI | Protected Health Information — **환자 식별 가능 건강정보**(환자 정보·영상 파일 등). **GW는 PHI 본문을 저장·경유하지 않는다**(presigned 직결, 발급=CleverSpace/AXS) — control plane엔 메타·식별자만. 데이터 주권(리전 밖 미이동)·consent 게이팅 대상이며, 개발·테스트는 더미만(운영만 실 PHI) | §6.4·§6.5·§7.3.3·§3.1 |
 | OTel (OpenTelemetry) | 관측성(추적·메트릭·로그) 수집·전송 **벤더 중립 표준/SDK**(CNCF). 요청 상관용 `traceId`/`spanId`를 생성 | §6.3.2·§3.1.2 |
-| ADOT | **AWS Distro for OpenTelemetry** — AWS가 배포하는 OTel 수집기. OTel 계측 → ADOT 수집 → CloudWatch/Prometheus·Grafana | §3.1.2·§6.3.2 |
+| Grafana Alloy | **OTel 호환 통합 수집 에이전트**(Grafana) — 로그·메트릭·트레이스를 한 에이전트로 수집·전송. OTel 계측 → Alloy 수집 → 백엔드(Prometheus/Loki/Tempo·Grafana 등, 인프라 선택). **수집 에이전트 확정(7/2 R3)** | §3.1.2·§6.3.2 |
 | OOB (Out-Of-Band) | **대역외** — 인증·자격 전달을 주 통신 채널이 아닌 **별도 경로**로 하는 방식. 예: enroll은 네트워크(주 채널)로 하되 검증용 1회 코드는 문자·별도 포털 등 다른 경로로 전달 → 주 채널이 탈취돼도 코드 없이는 등록 불가. **GW는 OOB 코드를 미도입**(부트스트랩=LM 라이선스·Clinic-ID + C/S 승인으로 대체, §2.3.1·§7.2.5) | §7.2.5 |
 | PEP | Policy Enforcement Point — 요청 시점 인증·정책 집행 지점 | §7.1 |
 | originator | 요청을 _시작한_ 주체(`Vatech-*` 헤더의 권위 소스) | §7.7 |
@@ -427,7 +427,7 @@ flowchart TD
     classDef ext fill:#ffffff,stroke:#bbbbbb,color:#555555
 ```
 
-> **프록시 복원력(타임아웃·재시도·서킷 브레이커)의 위치**: 별도 공유 컴포넌트가 아니라 **`ROUTER`(외부 C는 `CONN`)의 데이터 경로 안 in-process 행위**다(§7.5.4) — 다이어그램에 새 박스를 두지 않는다. **런타임 상태(서킷 open/closed·실패 카운터)는 pod-local 메모리이며 GW pod 간 공유하지 않는다**(DB·Redis 미사용). 각 pod가 _자기가 관측한_ 실패로 자신을 보호하는 것이 표준(Resilience4j·Envoy outlier detection)이고, 매 요청 hot-path에 원격 상태 왕복을 두면 "빠른 실패" 목적과 모순된다. **공유 대상은 설정뿐**(임계·타임아웃 = `upstream_registry`(DB), pod별 캐시). upstream이 실제 죽으면 각 pod가 독립적으로 곧 트립하므로 상태 공유가 불필요하다.
+> **프록시 복원력의 위치(7/2 R4)**: **재시도·서킷 브레이커는 service mesh(istio) egress**가 담당한다(GW 밖·인프라 소유, §3.1·③-I) — GW에 서킷 런타임 상태 저장을 두지 않는다. **단 GW→provider 연결 timeout(connect/response/total_deadline)은 GW 책임**이다 — GW(`External Connector`/`Proxy Router`)가 provider에 **직접 연결하는 HTTP 클라이언트**라 자기 호출을 bound해야 한다(`upstream_registry`에 per-upstream 보유, §7.5.4·D1~D3). 그 외 GW 앱 레벨 = mesh/자기 timeout 실패를 **표준 오류 envelope로 정규화**(`Vatech-Error-Origin`)·멱등·클라이언트 취소 전파. 재시도·서킷 값만 istio 설정(GitOps)이며 `upstream_registry`에 두지 않는다.
 
 > **그리는 규칙**: §2.2는 §2.1과 같은 그림에서 **GW 쪽만 확대**한 것이다 — **VatechAPIGateway 바깥(외부 시스템·엣지)은 §2.1과 동일**, 안쪽을 **`GW core`(Control/Data/Integration plane) + `Webhook Ingress` 두 부분**으로 펼친다. 각 외부는 GW 내부 컴포넌트와 **1개 이상 연결**(가장 깔끔하게 1개), **요청 처리 파이프라인(PEP 체인)은 연결**한다 — `COMPAT→ROUTER`(호환성 게이트 통과→라우팅), `ROUTER⇢RGN`(region 참조)·`ROUTER⇢OPA`(정책 판정)·`ROUTER⇢CONN`(외부 C). 반면 순수 **cross-cutting/관리 컴포넌트**(EzServer Registry·Enrollment·Config·Fleet·Audit)는 거의 모든 흐름이 닿아 가독성을 위해 **미연결**(외부와의 특정 연결만 표기: CONSOLE→ADM·R53→RGN). (**예외**: CleverOne은 §2.1처럼 **EzServer를 경유**해 GW에 닿으므로 GW 내부 컴포넌트에 직접 연결하지 않는다 — `CO→EZ→GW`.) **API 호출은 대상 무관 동일 경로**(`ROUTER` = target-routed proxy, ADR-11) — CleverSpace·OneID = B(내부 프록시 대상), AXS = C(외부, `ROUTER`가 `CONN`으로 OAuth·고정 egress IP 추가). **CleverLab은 프록시 대상이 아니라 갈래B 클라우드 클라이언트**(CleverLab→GW→AXS, 보류) — GW를 _호출하는_ 쪽이다. **Webhook(이벤트)만 별개** — 현재 AXS만 GW로 발신; 클라우드 수신 대상=**CleverLab만**(갈래B 보류), **CleverSpace는 webhook 대상 아님**(§2.3.6). 수신→분배 런타임은 **§2.3.6**이 정본.
 
@@ -498,10 +498,10 @@ sequenceDiagram
 
 온보딩은 **EzServer enrollment 한 흐름**이다 — 디바이스 머신 신뢰와 **그 클리닉의 존재·초기 region 확립**을 함께 처리한다(별도 "클리닉 등록" 전용 흐름·API 없음 — enroll이 흡수). enrollment은 **최초 1회**(재설치 시 재-enroll 회전, §7.2.7)이고, **region *변경*은 온보딩 이후의 별도 관심사**다(§2.3.3·§7.3.4·FR-RGN-04).
 
-- **부트스트랩 신뢰 = LM 라이선스·Clinic-ID.** EzServer는 설치 시 LMP에서 받은 **Clinic-ID를 enroll 요청에 실어** 보낸다. GW가 라이선스·Clinic-ID로 "정당한 그 클리닉의 EzServer"를 검증한다(공장 토큰/OOB 미도입).
+- **부트스트랩 신뢰 = LM 라이선스·Clinic-ID.** EzServer는 설치 시 LMP에서 받은 **Clinic-ID를 enroll 요청에 실어** 보낸다. GW가 라이선스·Clinic-ID로 "정당한 그 클리닉의 EzServer"를 검증한다(공장 토큰/OOB 미도입). **라이선스 등록 흐름에 enroll을 태워 설치자 개입을 최소화**한다(7/2 R9 편의 — LMP Clinic-ID 수신 시 자동 enroll, Appendix B #17).
 - **클리닉·region 확립(enroll 흡수).** GW는 검증 후 그 Clinic-ID의 **clinic을 없으면 생성(upsert)** 하고 디바이스를 `pending`으로 등록한다. **region 기본값 = enroll 요청이 GeoDNS로 도달한 최근접 리전**(§2.7.1; v1.0은 단일 리전이라 항상 서울). **C/S는 현장에서 `GET /v1/regions` 선택지로 다른 region을 지정**해 enroll할 수 있다(기본값 override).
 - **활성화 게이트 = C/S 승인.** enroll 완료 디바이스는 `pending`(인증 불가) → **현장 설치를 담당한 C/S가 GW Console에서 승인**(설치 확인 + region 확정/override) → `active`. 사람 승인이 부트스트랩 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 현장 검증으로 차단한다(§7.2.3·§7.9.2). 따라서 **GW Console 사용자 = Admin + C/S**이고 **C/S는 enrollment 승인 권한** 보유.
-- **키페어·인증 바인딩.** EzServer가 키페어를 생성해 **nonce를 개인키로 서명(소지 증명)** 하고 **공개키(`client_public_key`)** 를 바인딩한다(§7.2.6). 이후 인증은 이 키로 **private_key_jwt**(§2.3.2·§7.1.1·ADR-13, 공유 secret 없음). 재설치로 키가 바뀌면 재-enroll로 회전(라이선스·Clinic-ID 재검증 + C/S 승인 + 기존 revoke·제한·감사, §7.2.7).
+- **키페어·인증 바인딩.** EzServer가 키페어를 생성해 **nonce를 개인키로 서명(소지 증명)** 하고 **공개키(`client_public_key`)** 를 바인딩한다(§7.2.6). 이후 인증은 이 키로 **private_key_jwt**(§2.3.2·§7.1.1·ADR-13, 공유 secret 없음). **개인키는 디바이스를 떠나지 않으며 백업(export)하지 않는다** — 재설치·**개인키 분실·손상**으로 키가 바뀌면 재-enroll로 회전해 복구한다(라이선스·Clinic-ID 재검증 + C/S 승인 + 기존 revoke·제한·감사, §7.2.6·§7.2.7). 개인키 at-rest 안전 보관은 EzServer(③-P-EZ) 책임.
 - **등록 주체 = 클리닉당 1개 EzServer**(Appendix B #17). 외부 연동(AXS 등)은 **켤 때만** 그 provider의 Org-ID(Straumann 온보딩 발급, §2.3.5·④)를 등록해 `org_mapping`((provider, Org-ID)→clinic)을 채우며, 온보딩과 무관하다(연동 안 해도 클리닉·디바이스는 정상).
 
 ```mermaid
@@ -793,7 +793,7 @@ GW가 동작하는 소프트웨어 스택. 근거·전체 표는 [ARD §4.5 기�
 - **시크릿 / 키 관리**: **AWS KMS · Secrets Manager**(enrollment·PKI는 Vault 검토). pod 주입은 **Secrets Store CSI / External Secrets**(IRSA 연계, 정적 시크릿 미내장)
 - **컨테이너 / 오케스트레이션**: Docker · **EKS(Kubernetes)**. 멀티 서버 HA=k8s pod 복제. 이미지 레지스트리 **Amazon ECR**
 - **인그레스 / 부하분산**: **AWS LB Controller(ALB/NLB)** — 리전별 **안정 inbound endpoint 1개**(§2.1.1) + **Route 53 GeoDNS**(§7.3.5·§4.5.1). **egress=NAT Gateway 고정 EIP 집합**(AXS whitelist=합집합, §2.1.1·§7.5.3)
-- **관측성**: **OpenTelemetry(ADOT)** · 구조화 로그(Pino) → **CloudWatch / Amazon Managed Prometheus·Grafana**. 도구는 여기까지, **로그 구조(필드·상관키·레벨)는 §6.3.2가 정의**(취합·분석은 인프라 소유). PHI·시크릿 미기록(§6.2)
+- **관측성**: **OpenTelemetry 계측 + 구조화 로그(Pino)**, **수집 에이전트 = Grafana Alloy**(로그·메트릭·트레이스 통합 수집, 7/2 R3 확정) → 백엔드는 인프라 선택(Grafana 스택 Prometheus/Loki/Tempo 또는 CloudWatch·AMP). 도구는 여기까지, **로그 구조(필드·상관키·레벨)는 §6.3.2가 정의**(취합·분석은 인프라 소유). PHI·시크릿 미기록(§6.2)
 - **API 문서**: `@nestjs/swagger` code-first (`/api-docs`, §1.7.1)
 
 > **DB 선택 근거.** **엔진=PostgreSQL 확정**, 관리형 제품은 **처음부터 Aurora PostgreSQL 권장**(인프라 비준 TBD, Appendix B #18). (1) **전역 일관 데이터(§2.1.1)**: 매핑·레지스트리·정책·JWKS 등 전역 SSOT의 리전 간 저지연 복제를 **Aurora Global Database**가 내장 제공(빠른 failover·스토리지 자동확장)한다 — RDS 교차 리전 읽기복제(비동기·지연·수동 승격)보다 우수. (2) **전환 비대칭성**: 멀티 리전 전환이 Aurora는 Global Database 활성화(마이그레이션 0)인 반면 RDS-first는 RDS→Aurora 플랫폼 마이그레이션(SSOT 컷오버·재검증·CCB)이라 비대칭적으로 비싸 **단일 리전부터 Aurora**를 쓴다 — 통제 제품(IEC 62304) 재검증·IaC 이중구축 회피. (3) **비용**: Aurora는 동급 인스턴스 기준 RDS 대비 **~20% 내외**(I/O·구성 변동) 높으나 저QPS control plane이라 절대 월 비용 차가 작고, 후속 마이그레이션 비용보다 작다. (4) **호환성**: Aurora PostgreSQL은 PostgreSQL 호환이라 Prisma·스키마·쿼리를 그대로 쓴다(일부 확장·최신 마이너 버전 지연 가능 — 저QPS CRUD라 영향 작음).
@@ -939,7 +939,7 @@ GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의
 
 5. **GW 고유 API 컨벤션**: REST/JSON, **경로 버전 프리픽스 `/v1`**(예 `/v1/auth/token`, 관리 API는 `/admin/v1/*`; Webhook 수신 경로는 유연·provider별 등록이라 본 컨벤션 예외 — §4.1.3·§7.6.1), camelCase 필드, 시간 Unix ms(§1.3), 표준 오류코드(§7.7.4), idempotency key(§4.5). 단 `/.well-known/*`은 표준 관례상 버전 프리픽스 없이 노출(§7.7.2). 스키마 정본은 Swagger(code-first).
 
-6. **프록시 실패·타임아웃·업스트림 오류 의미론.** GW는 _서버_(downstream=원클라이언트)이자 *upstream의 클라이언트*다 — **GW의 upstream 총 deadline은 downstream 클라이언트 타임아웃보다 짧게** 잡아, 클라이언트가 포기하기 전에 GW가 **결정적 오류(504)** 를 돌려준다(고아 요청·커넥션/워커 점유·재시도 증폭 방지). 타임아웃·재시도·서킷·오류 매핑은 **per-upstream 레지스트리 설정**이며 상세는 §7.5.4, 오류코드 매핑은 §7.7.4. **GW가 생성한 오류**(연결 실패=`502` / deadline 초과=`504` / 서킷·일시불가=`503`)는 **GW 표준 error envelope**로 내고, **upstream 자체 4xx/5xx는 verbatim 통과**(body 미변형)하되 **`Vatech-Error-Origin`(`gateway`|`upstream`)** 마커로 책임을 구분한다. 클라이언트 조기 절단 시 GW는 upstream 호출을 **취소**한다(cancellation 전파).
+6. **프록시 실패·업스트림 오류 의미론.** **GW→provider 연결 timeout(connect/response/total_deadline)은 GW 책임**(GW가 직접 연결하는 HTTP 클라이언트, 7/2 R4·§7.5.4·D1~D3), **재시도·서킷 브레이커는 service mesh(istio) egress**가 담당(GW 미구현). GW는 **자기 timeout·연결 실패, mesh 기인 오류**(연결 실패=`502` / timeout·deadline 초과=`504` / 서킷·일시불가=`503`)를 **표준 error envelope**로 정규화하고, **upstream 자체 4xx/5xx는 verbatim 통과**(body 미변형)하되 **`Vatech-Error-Origin`(`gateway`|`upstream`)** 마커로 책임을 구분한다(§7.7.4). 클라이언트 조기 절단 시 GW는 upstream 호출을 **취소**한다(cancellation 전파). 재시도·서킷 값은 GW가 소유·저장하지 않는다(istio 설정).
 
 #### 라우팅 방식 비교·결정 (ADR-11)
 
@@ -1114,7 +1114,7 @@ None
 
 - Webhook: 수신 후 **즉시 2xx ACK**(처리는 큐 위임, §7.6.3) — ACK 지연 목표 TBD(설계 단계, 영향: §7.6)
 - presigned URL TTL: 5~15분(§7.4.2)
-- **프록시 타임아웃 예산(§7.5.4)**: per-upstream `connect`/`response`/`total_deadline` — `GW 총 deadline < 클라이언트 타임아웃`이 불변식. 구체 값은 upstream SLA·인프라 입력 의존 **TBD**(Appendix B #25)
+- **프록시 복원력(§7.5.4)**: **GW→provider 연결 timeout(connect 3s/response 10s·AXS SLA/total_deadline<클라)은 GW 책임**(`upstream_registry`, 7/2 R4·D1~D3). **재시도·서킷은 service mesh(istio) egress**(GW 미구현). GW는 추가로 오류 정규화·멱등·취소 전파. 수치=Appendix B #25
 
 ---
 
@@ -1168,16 +1168,16 @@ GW는 의료 데이터(PHI) 경로의 control plane이므로, 데이터 보호·
 
 NestJS 모듈(bounded context) 분리·TDD. (NFR-MNT/OBS)
 
-**관측·구조화 로그.** 도구는 §3.1.2(Pino·OpenTelemetry/ADOT). 본 절은 **로그의 구조(요구)** 를 정의하고, 정확한 필드·레벨 확정본은 인프라 취합 포맷과 협의해 확정한다(**Appendix B #14**, 필요 시 `design/`에 로그 스키마 산출물).
+**관측·구조화 로그.** 도구는 §3.1.2(Pino·OpenTelemetry 계측 · 수집 에이전트=Grafana Alloy, 7/2 R3). 본 절은 **로그의 구조(요구)** 를 정의하고, 정확한 필드·레벨 확정본은 인프라 취합 포맷과 협의해 확정한다(**Appendix B #14**, 필요 시 `design/`에 로그 스키마 산출물).
 
 - **형식**: 모든 로그는 **기계 파싱 가능한 구조화 JSON 한 줄**.
 - **필수 필드(최소셋)**: `ts`(Unix ms)·`level`·`service`/`version`·**`traceId`/`spanId`(OTel 상관)**·`requestId`·`tenantId`/`clinicId`·`actor`·`action`·`result`·`latencyMs`·실패 시 `errorCode`.
 - **상관키**: OpenTelemetry **`traceId`** 로 요청 전 구간을 상관하고, **`Vatech-*`(originator)·`Vatech-Via`(경유 홉)** 를 함께 남겨 클라이언트·중계 홉까지 추적한다(§7.7).
 - **레벨**: error/warn/info/debug (운영 기본 info 이상).
 - **금지**: **PHI·시크릿·토큰 평문 미기록**(식별자만, §6.2·§6.4·§1.4 PHI).
-- **앱 계약 vs 수집층 분리.** GW **앱**은 **stdout 구조화 JSON 로그 + OTel 계측(trace/metric·traceId)** 까지만 책임진다(고정). 그 로그·텔레메트리를 실어 나르는 **수집 에이전트는 교체 가능**하며 **인프라 선택**이다(2026-06 회의·§2.6, **Appendix B #14**).
-  - **권장 패턴(인프라 리뷰·확정)**: **Fluent Bit(DaemonSet) → CloudWatch**(컨테이너 로그·EKS 표준) **+ ADOT(OTel) → CloudWatch/AMP·X-Ray**(metric/trace). 단일 파이프라인 선호 시 OTel Collector가 로그까지 담당하는 구성도 가능. **OTel은 trace 상관(`traceId`)을 위해 필수**이고 Fluent Bit는 로그 전송 특화라 **둘은 경쟁이 아니라 역할 분리**.
-  - 로그 백엔드(CloudWatch / Loki·Grafana / OpenSearch 등)도 인프라 선택. **어느 조합이든 앱은 stdout JSON+OTel로 동일** — 수집층 변경이 앱에 영향 없음.
+- **앱 계약 vs 수집층 분리.** GW **앱**은 **stdout 구조화 JSON 로그 + OTel 계측(trace/metric·traceId)** 까지만 책임진다(고정). 그 로그·텔레메트리를 실어 나르는 **수집 에이전트 = `Grafana Alloy`**(7/2 R3 확정)이며 **인프라 소유**다(§2.6).
+  - **수집 에이전트(확정): Grafana Alloy**(DaemonSet) — OTel 호환 단일 에이전트로 **로그·메트릭·트레이스를 통합 수집·전송**(별도 로그 전송기 불요). **OTel은 trace 상관(`traceId`)을 위해 앱 계약에 고정**이고, Alloy가 OTel 파이프라인을 그대로 수집한다.
+  - 로그·텔레메트리 백엔드(Grafana 스택 Loki/Mimir/Tempo·Grafana / 또는 CloudWatch·AMP·OpenSearch 등)는 **인프라 선택**. **어느 백엔드든 앱은 stdout JSON+OTel로 동일** — 수집층·백엔드 변경이 앱에 영향 없음.
 
 - **로그 취합·분석은 인프라 담당 영역**(2026-06 회의) — GW는 구조화 로그(Pino)·trace(OpenTelemetry)를 **생성·노출**하고, 중앙 수집·저장·분석 파이프라인은 인프라가 구성한다(③-I). **로그 포맷(필드·상관관계 키·레벨)은 검토 중(TBD)** — 확정 시 GW·인프라 합의(영향: §6.2 PHI·시크릿 미기록 제약 준수, Appendix B #14).
 
@@ -1187,7 +1187,7 @@ IaC 환경 재현으로 이식 대비. (presign broker는 GW가 두지 않음 �
 
 ### 6.3.4 Reliability (신뢰성)
 
-Webhook 전달 보증(QoS1·재시도·DLQ), 업로드 idempotency. **동기 프록시(내부·외부 upstream) 복원력**: per-upstream 타임아웃·서킷 브레이커·멱등 한정 재시도로 장애 격리(한 upstream 장애가 GW 전체로 번지지 않게) — `GW deadline < 클라이언트 타임아웃` 불변식(§7.5.4·§4.1.2-6). MTBF 목표 TBD.
+Webhook 전달 보증(QoS1·재시도·DLQ), 업로드 idempotency. **동기 프록시(내부·외부 upstream) 복원력**(7/2 R4): **GW→provider 연결 timeout(connect/response/total_deadline)은 GW 책임**(자기 아웃바운드 호출 bound, §7.5.4). **재시도·서킷 브레이커로 장애 격리는 service mesh(istio) egress**가 담당. GW는 추가로 **오류 정규화·멱등·취소 전파**. MTBF 목표 TBD.
 
 ### 6.3.5 Remaining Attributes (나머지 특성)
 
@@ -1303,7 +1303,7 @@ flowchart TB
 
 > **인증·온보딩은 별도 테이블이 없다** — 자격은 `device`(client_id·client_public_key)에 통합, 발급 access token은 **무상태 JWT**(서명 검증·저장 안 함, §7.1.1·ADR-02), enrollment 부트스트랩·승인 대기는 `device.status`(pending), 이력은 `audit_log`.
 
-- 저장 정보 유형: 디바이스 레지스트리(+인증 자격 client_id·client_public_key), device/clinic↔region 매핑, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event`, 멱등·DLQ)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·upstream target 서브도메인(`upstream_registry`, 라우팅 라벨+per-upstream 복원력 설정)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 본문은 미저장**(presigned 직결). **호환성 매트릭스는 DB 미저장** — 소스 파일 → well-known JSON(§7.7.5, `compat_matrix` 테이블 폐기).
+- 저장 정보 유형: 디바이스 레지스트리(+인증 자격 client_id·client_public_key), device/clinic↔region 매핑, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event`, 멱등·DLQ)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·upstream target 서브도메인(`upstream_registry`, 라우팅 라벨+egress allowlist+GW 연결 timeout · 재시도·서킷은 istio, R4)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 본문은 미저장**(presigned 직결). **호환성 매트릭스는 DB 미저장** — 소스 파일 → well-known JSON(§7.7.5, `compat_matrix` 테이블 폐기).
 - 캐시: **Valkey**(ElastiCache for Valkey·Redis 호환, §1.4)(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS·webhook dedup). **캐시(PG 재구성 가능) + 휘발 상태(nonce·멱등·dedup·rate-limit·lock)이며 SSOT 아님.** 키 패턴·TTL·재구성 출처는 키스페이스 카탈로그 `design/redis/redis-keyspace.md`(DBML과 나란한 설계 산출물)
 - **데이터 토폴로지(멀티 서버·멀티 리전, §2.1.1)**: 리전 내 pod는 **동일 DB·Redis 공유**(무상태 앱 tier). 멀티 리전에서는 **(전역 일관) 라우팅·식별 데이터**(매핑·레지스트리·Org-ID·정책·compat·JWKS) 와 **(리전 로컬) 운영 데이터**(audit·in-flight queue)로 나눈다. 전역 데이터는 어느 리전에서도 같은 답을 내야 하며(soft-state 캐시 + strong-consistency 경로·`mapping_version`), 운영 데이터는 리전 로컬이다. **저장소 구현(전역 DB 단일 vs 리전별 복제)은 gw/1.2 TBD(Appendix B #15)**, 구분 원칙은 고정.
 - 무결성:
@@ -1497,13 +1497,14 @@ FR-ENR-03·04 (replay 방지 nonce 서명, device 공개키(client_public_key) �
 
 - **`client_public_key`(공개키) 정의 = EzServer가 생성한 키페어의 공개키(또는 그 해시=key-id).** 물리 머신 지문이 아니다. EzServer가 enrollment 시 키페어를 만들어 **nonce를 개인키로 서명**(소지 증명)하고 **공개키를 전달** → GW가 device에 바인딩(§6.4 `device.client_public_key`). 이후 인증·재enrollment 시 대조한다.
   - **v1.0**: 소프트웨어 보관 개인키(디바이스 보유). **gw/1.1**: TPM/SE 비추출 키 + hardware attestation(FR-ENR-06·ADR-01) — 이때 개인키 보관 위치(SW/HW) 속성을 도입(v1.0은 self-assert라 검증 불가·스키마 미보유).
+  - **개인키는 디바이스를 떠나지 않는다(7/2 R9).** GW는 **공개키(`client_public_key`)만 보관**하고 개인키는 수신·저장하지 않는다. **개인키의 at-rest 안전 보관**(OS keystore·파일 권한·디스크 암호화 등)은 **EzServer(③-P-EZ) 책임**이며 OnePager에서 구체화한다 — 클라우드 백업·export는 미도입(분실 시 복구=§7.2.7 재-enroll 회전).
   - **LM(LicenseManager) machine fingerprint와 별개.** LM은 Cryptlex **하드웨어** 머신 지문으로 라이선스 활성화를 관리(`VERR_LICENSE_MACHINE_FINGERPRINT` — 재설치/HW 변경 시 재활성화·횟수 제한). GW의 `client_public_key`(공개키)는 **디바이스 신원 키**(포터블·비추출 지향)로 축이 다르다. 단 **재설치 시 키 변경→재활성화(제한·감사)** 처리 모델은 LM을 참고한다.
   - 정밀 암호(서명 알고리즘·키 포맷·key-id 산출)는 보안설계/LLD.
 - **Side Effect**: 서버 nonce 발급·검증, **공개키(client_public_key) 바인딩 저장**.
 
-### 7.2.7 재설치·공개키(client_public_key) 회전 (P1)
+### 7.2.7 재설치·개인키 분실 복구 — 공개키(client_public_key) 회전 (P1)
 
-FR-ENR-07 (재설치·키 변경 시 공개키 회전). EzServer **재설치·키 유실 시 새 키페어가 생겨 공개키(client_public_key)가 바뀐다** — 이를 **재-enrollment로 회전**한다. **개인키 백업은 도입하지 않는다**(백업본 유출 시 신원 도용 위험 + gw/1.1 비추출 목표와 상충).
+FR-ENR-07 (재설치·키 변경 시 공개키 회전). EzServer **재설치·개인키 분실·손상 시 새 키페어가 생겨 공개키(client_public_key)가 바뀐다** — 이를 **재-enrollment로 회전**해 복구한다. **개인키 분실 복구 경로 = 이 재-enroll 회전이 유일**하며(백업본 복원 없음), **개인키 백업(export)은 도입하지 않는다**(7/2 R9 — 백업본 유출 시 신원 도용 위험 + "개인키는 디바이스를 떠나지 않는다" 원칙·gw/1.1 비추출 목표와 상충). 즉 **분실 = 새 키로 재발급**(새 `client_id`·공개키), 복원이 아니다.
 
 - **회전 게이트(모두 충족)**: ① **부트스트랩 신뢰 재검증**(**LM 라이선스·Clinic-ID**로 정당한 그 클리닉의 EzServer 확인) · ② **동일 `clinic_id`** · ③ **C/S 승인**(재-enroll도 최초와 동일하게 GW Console 사람 승인 게이트 통과) · ④ **회전 횟수·속도 제한**(LM activation-limit 유사 — 유출 라이선스로 다수 등록 방지) · ⑤ **감사 로그**(append-only, 승인자·시각).
 - **동작**: 기존 자격 **revoke**(§7.2.4, device.client_public_key·client_id 무효화) → 새 공개키(client_public_key) 바인딩·새 client_id 발급. **device는 클리닉당 활성 공개키(client_public_key) 1개**(§6.4.1 1:1)라 회전 = 교체. 회전 이력은 `audit_log`.
@@ -1599,21 +1600,22 @@ FR-INT-03 (허용 대상만 외부 통신). allowlist 외 egress는 OPA로 차�
 
 **비목표(Will Not Do)**: 추가 connector(DS Core/3Shape, FR-INT-04)는 **gw/1.1**(설정 추가로 확장).
 
-### 7.5.4 프록시 복원력 — 타임아웃·재시도·업스트림 오류 (P1)
+### 7.5.4 프록시 복원력 — GW 연결 timeout · 오류 의미론 (재시도·서킷은 mesh) (P1)
 
-FR-INT-05 (target-routed proxy(§4.1.2)의 **동기 전달 구간** 복원력 — 타임아웃·재시도·서킷·오류 매핑). 동기 프록시(내부·외부 upstream)는 Webhook **비동기 큐(수신면=GW 고유 API·재시도/DLQ, §7.6.3)와 다른 레그**다 — 응답을 기다리는 호출자가 있으므로 큐잉이 아니라 **deadline·즉시 오류**로 다룬다. 수치(타임아웃·재시도·서킷 임계)는 upstream SLA·인프라 입력 의존 **TBD**(Appendix B #25, 주간회의 7/2 R4).
+FR-INT-05 (target-routed proxy(§4.1.2)의 **동기 전달 구간** 복원력). 동기 프록시(내부·외부 upstream)는 Webhook **비동기 큐(수신면=GW 고유 API·재시도/DLQ, §7.6.3)와 다른 레그**다 — 응답을 기다리는 호출자가 있어 큐잉이 아니라 **즉시 오류**로 다룬다. **책임 분담(7/2 R4)**: **재시도·서킷 브레이커는 service mesh(istio) egress**가 담당(GW 미구현)하고, **GW는 (1) 자기 아웃바운드 연결 timeout, (2) 오류 표현 정규화, (3) 멱등, (4) 클라이언트 취소 전파**를 진다.
 
-- **타임아웃 계층(핵심).** GW는 *서버*이자 *클라이언트*다. **`GW upstream 총 deadline < downstream 클라이언트 타임아웃`** 이어야 한다 — 아니면 클라이언트가 먼저 포기해도 GW는 upstream 응답을 계속 기다려 **고아 요청·커넥션/워커 점유·재시도 증폭**이 생긴다. GW는 클라이언트보다 **먼저 504를 반환**해 결정적 오류를 준다.
-  - **per-upstream 레지스트리(`upstream_registry`) 설정**: `connect_timeout_ms`(TCP+TLS 핸드셰이크, 짧게)·`response_timeout_ms`(응답 대기)·`total_deadline_ms`(전체 예산). upstream·작업 유형별로 다르게(값 TBD). 대용량 파일은 **presigned 직결**(GW 미경유, §4.1.4)이라 본 deadline은 control·metadata 중심.
-  - **클라이언트 조기 절단 → upstream 호출 취소**(cancellation 전파)로 자원 회수.
-  - **클라이언트 타임아웃 인지.** HTTP는 클라이언트 타임아웃을 표준 전달하지 않는다 — GW는 연결 close로 *사후*에만 안다. "GW가 먼저 504"를 보장하려면 값을 *사전*에 알아야 하므로, v1.0은 **(A) 계약값 합의**(EzServer↔GW, SRS 명시)를 기본으로 하고, 클라이언트가 **선택적 `Vatech-Timeout-Ms` 헤더(상대값)** 를 보내면 GW가 내부 deadline을 `now + min(헤더, 설정값)`으로 클램프한다(B). 헤더는 **상대 timeout**(클록 동기 불필요 — gRPC `grpc-timeout`·Envoy `x-envoy-expected-rq-timeout-ms` 선례)이며, "deadline"은 GW 내부 절대시각 개념으로 구분한다. 합의 방식·헤더 채택은 TBD(Appendix B #25, 7/2 R4-D10).
-- **재시도 정책(보수적).** GW는 **타겟당 단일 upstream(레지스트리 1행)** 을 중계하는 verbatim relay라 — 로드밸런싱 풀처럼 _다른 인스턴스로_ 넘길 대상이 없다 — 재시도를 **최소화**한다. 기본은 **연결 수립 실패(요청 바이트 전송 전)에 한해 1회 재시도**(요청이 upstream에 도달 전이라 POST 포함 전 메서드 안전; HAProxy 기본·nginx 1.9.13+ 비멱등 보호와 같은 보수적 입장). **응답 타임아웃(요청 전송 후)·upstream 5xx는 GW 재시도 안 함** — upstream이 이미 처리했을 수 있어 멱등이라도 위험. **애플리케이션 레벨 재시도는 클라이언트가 소유**한다(idempotency key·업무 의미를 클라이언트가 가장 잘 안다). (옵션: 멱등 GET류의 응답 전 타임아웃 재시도 추가 가능하나 v1.0 비포함 권장.) 재시도 활성 시 지수 백오프+jitter+retry budget으로 폭주를 막는다. 소유·범위 결정은 R4-D5(값 TBD).
-- **서킷 브레이커(per upstream).** 연속 실패 임계 초과 시 회로 개방 → **빠른 실패 `503`(+`Retry-After`)**, 반열림 탐침으로 복구. v1.0 기본 포함(임계·복구 파라미터 TBD; 구현 부담 시 일부 gw/1.1로 이월 — 7/2 R4 결정).
-- **상태 지역성(멀티 서버).** 서킷·재시도·타임아웃의 **런타임 상태(open/closed·실패 카운터)는 pod-local in-memory**이며 **GW pod 간 공유하지 않는다**(DB·Redis·GW간 동기화 미사용) — 각 pod가 자기 관측 기반으로 보호하는 것이 표준(Resilience4j·Envoy per-instance)이고, hot-path에 원격 상태 의존을 두면 빠른 실패 목적과 모순된다. **공유 대상은 설정값뿐**(`upstream_registry`의 임계·타임아웃·on/off, pod별 읽어 캐시). 별도 복원력 컴포넌트를 두지 않고 `ROUTER`/`CONN` 데이터 경로의 in-process 행위로 구현한다(§2.2).
-- **업스트림 오류 → 클라이언트 매핑(상세 표 §7.7.4).** **GW 생성 오류**(`502` 연결 실패 / `504` 타임아웃 / `503` 서킷·일시불가)는 **GW 표준 error envelope**, **upstream 자체 4xx/5xx**는 **verbatim 통과**(body 미변형). **`Vatech-Error-Origin: gateway|upstream`** 마커로 책임을 구분하고, GW 생성 시 `Vatech-Upstream-Latency-Ms` 등 관측 헤더를 부가한다.
-- **관측(§6.3.2 연계).** 로그/메트릭에 `upstreamLatencyMs`·`upstreamStatus`·`retryCount`·`timeout`(bool)·`circuitState`를 남겨 장애 시 원인(어느 upstream·타임아웃·서킷)을 즉시 식별한다.
+- **Provider 연결 timeout = GW 책임(D1~D3).** GW는 provider(AXS·CleverSpace 등)에 **직접 연결하는 HTTP 클라이언트**다(프록시 전달·connector의 OAuth2 토큰 취득 §7.5.1) — mesh가 있어도 **자기 호출을 반드시 bound**해야 무한 대기·워커 점유를 막는다. per-upstream 설정(`upstream_registry`):
+  - **`connect_timeout_ms`** — TCP+TLS 핸드셰이크 대기(도달 불가 빠른 감지). **추천 3s**.
+  - **`response_timeout_ms`** — 연결 후 응답 대기, 초과 시 `504`. **추천 10s, 외부(AXS)는 SLA 반영 개별값**. 대용량 파일은 presigned 직결(GW 미경유, §4.1.4)이라 본 timeout은 control·metadata 중심.
+  - **`total_deadline_ms`** — 프록시 호출 총 예산. **`GW total_deadline < 클라이언트(EzServer) 타임아웃`** 불변식(예 클라 30s → GW ≤80%)으로 **GW가 먼저 `504`** 를 돌려 고아 요청을 막는다. 클라이언트 타임아웃 인지는 **계약값 합의 기본 + 선택적 `Vatech-Timeout-Ms` 헤더(상대값)** 로 내부 deadline을 `now + min(헤더, 설정)`으로 클램프(값·헤더 채택 Appendix B #25).
+- **재시도·서킷 브레이커 = mesh(istio, D5~D8).** **재시도**(연결 실패 한정 등 보수적 정책)·**서킷 브레이커**(outlier detection)·`503`+`Retry-After`는 **istio egress**가 담당한다 — GW는 구현하지 않는다. 값·정책은 istio `DestinationRule`/`VirtualService`(GitOps·인프라 소유, §3.1·③-I). **앱 레벨 재시도(업무 의미)는 클라이언트 소유**(mesh 네트워크 재시도와 층이 다름).
+- **GW 앱 레벨 책임(D9 · mesh가 못 하는 것).**
+  - **오류 표현 정규화(§7.7.4).** GW 자기 timeout·연결 실패, 또는 mesh 기인 실패(서킷 개방 등)를 **GW 표준 error envelope + `Vatech-Error-Origin: gateway`** 로 통일한다(`502` 연결 실패 / `504` timeout·deadline 초과 / `503` 서킷·일시불가·`Retry-After`). **upstream 자체 4xx/5xx는 verbatim 통과**(body 미변형) + `Vatech-Error-Origin: upstream`. "인프라 계층 오류든 upstream 오류든 클라이언트가 한 가지 계약으로 읽도록" 표현을 통일한다.
+  - **멱등.** 클라이언트 `Idempotency-Key`를 존중해 안전한 재요청을 지원한다(업로드 commit 등, §4.5).
+  - **클라이언트 취소 전파.** 클라이언트 조기 절단 시 GW는 **upstream 호출을 취소**(cancellation 전파)해 자원을 회수한다.
+- **관측(§6.3.2 연계).** GW 로그/메트릭에 `upstreamLatencyMs`·`upstreamStatus`·`timeout`(GW 자기 timeout 여부)·`errorOrigin`(gateway|upstream)을 남긴다. **재시도 횟수·서킷 상태는 mesh(istio) 텔레메트리**가 정본이며, GW 로그와 함께 **Grafana Alloy로 수집**(§6.3.2·R3)해 원인을 식별한다.
 
-- **에러**: upstream 연결 불가 → `502`(`Vatech-Error-Origin: gateway`), deadline 초과 → `504`, 서킷 개방/일시 불가 → `503`(+`Retry-After`). upstream 자체 오류 → 원응답 **verbatim 통과**(`Vatech-Error-Origin: upstream`). 비멱등 요청은 재시도 없이 즉시 반환.
+- **에러**: (GW 자기) 연결 실패 → `502`(`Vatech-Error-Origin: gateway`) · response/deadline 초과 → `504`; (mesh) 서킷 개방/일시 불가 → `503`(+`Retry-After`). upstream 자체 오류 → 원응답 **verbatim 통과**(`Vatech-Error-Origin: upstream`).
 
 ## 7.6 Webhook 수신·이벤트 분배 (P1)
 
@@ -1700,18 +1702,18 @@ FR-COMPAT-03 (요청 전 버전 게이팅).
 
 FR-COMPAT-04 (미지원 시 표준 오류코드 + "업데이트 필요" fallback 안내).
 
-**프록시(내부·외부 upstream) 오류 매핑(§7.5.4 연계).** GW가 *생성*하는 오류와 upstream이 _돌려준_ 오류를 구분한다 — 전자는 GW 표준 envelope, 후자는 verbatim 통과. `Vatech-Error-Origin` 헤더로 책임 주체를 표시한다.
+**프록시(내부·외부 upstream) 오류 매핑(§7.5.4 연계).** **GW 자기 연결 timeout·연결 실패**(GW→provider 아웃바운드, R4·D1~D3)와 **mesh 기인 서킷·일시불가**(istio egress)를 GW가 표준 envelope로 **정규화**한 것과, upstream이 _돌려준_ 오류를 구분한다 — 전자는 GW 표준 envelope, 후자는 verbatim 통과. `Vatech-Error-Origin` 헤더로 책임 주체를 표시한다.
 
 | 상황 | HTTP | 본문 | `Vatech-Error-Origin` |
 | --- | --- | --- | --- |
 | upstream 연결 실패(거부·DNS·TLS) | `502` Bad Gateway | GW envelope(`UPSTREAM_UNREACHABLE`) | `gateway` |
-| upstream 응답 지연 — GW deadline 초과 | `504` Gateway Timeout | GW envelope(`UPSTREAM_TIMEOUT`) | `gateway` |
+| upstream 응답 지연 — GW 연결 timeout·deadline 초과(D2/D3) | `504` Gateway Timeout | GW envelope(`UPSTREAM_TIMEOUT`) | `gateway` |
 | 서킷 개방 / upstream 일시 불가 | `503` Service Unavailable(+`Retry-After`) | GW envelope(`UPSTREAM_UNAVAILABLE`) | `gateway` |
 | 라우팅 실패(미등록 target 서브도메인·allowlist 외) | `404`/`403` | GW envelope | `gateway` |
 | upstream이 자체 4xx/5xx 응답 | upstream 원 코드 | **upstream body verbatim**(GW 미변형) | `upstream` |
 | 클라이언트 조기 절단 | (응답 없음) | — GW가 upstream 호출 취소 | — |
 
-> **원칙**: GW 생성 오류만 GW envelope를 쓰고, upstream 응답은 코드·body를 **그대로 통과**(verbatim bypass 일관성, §4.1.2-3). 호출자는 `Vatech-Error-Origin`으로 "GW가 못 갔다(gateway)" vs "대상이 거부했다(upstream)"를 구분한다. 자동 재시도는 멱등 요청·연결/pre-response 타임아웃 한정(§7.5.4).
+> **원칙**: GW 정규화 오류(GW 자기 연결 timeout·연결 실패 + mesh 기인 서킷)만 GW envelope를 쓰고, upstream 응답은 코드·body를 **그대로 통과**(verbatim bypass 일관성, §4.1.2-3). 호출자는 `Vatech-Error-Origin`으로 "GW/인프라가 못 갔다(gateway)" vs "대상이 거부했다(upstream)"를 구분한다. **GW→provider 연결 timeout은 GW 책임**, **재시도·서킷은 mesh(istio) 담당**이다(§7.5.4·R4).
 
 ### 7.7.5 호환성 매트릭스 단일 소스 (P1)
 
@@ -1815,7 +1817,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | # | 항목 | 결정 | 본문 |
 | --- | --- | --- | --- |
 | 7 | 멀티 Region·멀티클라우드 gw/1.0 흡수 | **1차 단일 / 2차(gw/1.2) 멀티 리전, v1.0 멀티리전-ready**(2026-06-23). 잔여=2차 구축 *시점*만 | §2.7.1 |
-| 10 | CCB 명단·승인자 | **승인=Scott(실장·총괄)·Raymond(GW 백엔드 리드) 확정**; QA·보안·인프라 사안별 옵저버. **PM은 미지정(별도 지정 가능) — 'Scott=PM' 아님**(Scott=현재 전체 관리자/실장) | §8·§9 |
+| 10 | CCB 명단·승인자 + 영역별 리뷰어 | **승인=Scott(실장·총괄·PM 겸임)·Raymond(GW 리드) 확정**(7/2 R6); QA·보안·인프라 사안별 옵저버. **영역별 리뷰어 목록 확정(7/2 R6 — §9)**: 아키텍처=Thomas·인프라=Jack·QA=정우혁/James·③-P별 담당(CS 고형용/CO 탁수용/OID 서유진) | §8·§9 |
 | 17 | 클리닉 GW 등록 주체 | **확정(2026-06-25): EzServer(클리닉당 1개)가 LMP Clinic-ID 수신 시 자동·무조건 GW 등록**(연동 무관). CleverOne 대안 폐기 | §2.3.1·§7.3 |
 | 19 | 디바이스 정의·연결 모델 | **확정(2026-06-25): GW 관점 디바이스=EzServer**(물리 영상장비는 EzServer 뒤·GW 비대상, 직접 연결 없음). Agenda #1 종결 | §1.4·§2.3.2·§7.1·§7.2·ADR-08 |
 | 20 | GW 배포 클라우드 | **확정(2026-06-25): AWS 전용**(비AWS GW 없음·AWS 미지원국은 가까운 AWS GW 접속, 주권 storage=Provider MinIO 중계). 비AWS 포터블 배포(§2.1.2 초안) 폐기 | §2.1.1·§3.1.2 |
@@ -1844,19 +1846,19 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 9 | RTO/RPO·유지보수 윈도우 | §6.3.1·§6.8 | 인프라 | 설계 단계 | §6 |
 | 11 | 인증(IEC 62304/13485) 일정·준비물 | §6.13·§6.14 | 품질/마케팅 | 추후 | — |
 | 12 | 인프라·런타임 상세 버전(도구·노드) | §3·§4.4 | 인프라/개발 | 설계 단계 | §3 |
-| 14 | 로그 포맷(필드·상관키·레벨) 검토 확정 + **수집 에이전트 선택**(권장: Fluent Bit 로그 + ADOT trace/metric; 단일 파이프라인 시 OTel Collector). 앱 계약=stdout JSON+OTel 고정, 수집층은 인프라 선택 | §6.3.2 | 인프라(취합·분석·수집층)+GW(생성) | 설계 단계 | §6.2·§6.3.2·③-I |
+| 14 | 로그 포맷(필드·상관키·레벨) 검토 확정. **수집 에이전트=Grafana Alloy 확정(7/2 R3)** — 앱 계약=stdout JSON+OTel 고정, 백엔드는 인프라 선택. 잔여=로그 포맷 확정만 | §6.3.2 | 인프라(취합·분석·포맷)+GW(생성) | 설계 단계 | §6.2·§6.3.2·③-I |
 | 15 | 전역데이터 복제 토폴로지 세부(primary 위치·단일 vs multi-primary·충돌) — "PostgreSQL 원본+리전 복제 / Redis 캐시" 모델·구분 원칙은 고정, 복제 세부만 미정 | §2.1.1·§6.4 | PM/아키텍트+인프라 | gw/1.2 설계 | §7.3·§6.4·§6.3.1 |
 | 16 | Webhook 클라우드 분배 — **CleverLab 갈래 B 활성화 여부·시점**(CleverSpace=대상 아님 확정). EzServer(갈래 A) 역방향 대상 이벤트 목록 | §2.3.6·§7.6.5·§7.6.6 | PM/제품+GW(④) | ④ 상세설계 | §7.6·④·§2.1·§2.2 |
 | 18 | 관계형 DB 관리형 제품 — **엔진=PostgreSQL 확정·제품=Aurora PostgreSQL 권장**(처음부터; RDS-first 비권장, 비용 델타 ~20%·저QPS라 작음). **인프라 비준만 남음** | §3.1.2·§2.1.1 | 인프라/아키텍트 | v1.0 배포 구성 착수 전 | §2.1.1·§6.3·§7.3 |
 | 24 | **개발·테스트·운영 환경 구축** — dev 에뮬레이터/스텁(EPI·CleverSpace presign·OneID·LMP)·AXS sandbox 자격(↔#6)·staging(운영 유사 축소)·dev/staging AWS 계정·sandbox egress EIP. 책임·일정 | §3.1·§3.4·§3.5 | 인프라/개발 | **dev: AXS 개발 착수 전** · staging: pilot 전 | §3·§7.5·④ |
-| 25 | **프록시 타임아웃·재시도·서킷 수치 + v1.0 서킷 포함 범위** — `connect`/`response`/`total_deadline_ms`(per-upstream, `GW deadline < 클라이언트 타임아웃`)·재시도 상한/백오프/budget·서킷 임계·복구. 정책 골격은 §7.5.4·§7.7.4 확정, **수치·서킷 v1.0 범위가 미결**(upstream SLA·인프라 입력 의존) | §7.5.4·§7.7.4·§5.5·§4.1.2-6 | GW+인프라(+AXS SLA) | 프록시 구현 착수 전 | §7.5·§6.3.4·④ |
+| 25 | **프록시 복원력 분담(7/2 R4)** — **① GW→provider 연결 timeout = GW `upstream_registry`**(D1 connect 추천 3s · D2 response 10s/AXS는 SLA 개별값 · D3 total_deadline < 클라이언트 ≤80%; GW가 provider에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound). **② 재시도·서킷 = istio egress**(`DestinationRule`/`VirtualService`, 인프라 소유). 잔여=①의 수치 확정(AXS SLA)·②의 istio 정책·클라이언트(EzServer) 타임아웃 30s(D4)·인지 방식(계약값/`Vatech-Timeout-Ms` D10) | §7.5.4·§7.7.4·§3.1 | GW(①연결 timeout)+인프라(②재시도·서킷·+AXS SLA) | 프록시 구현 착수 전 | §7.5·§6.3.4·④ |
 | 27 | **공개키(client_public_key) 회전(재설치) 정책 수치·crypto 확정** — 정책 골격은 §7.2.7 확정(라이선스/Clinic-ID 재검증·C/S 승인·기존 revoke·개인키 백업 미도입). **미결**: 회전 속도·횟수 상한, 빈발 시 Admin 에스컬레이션 임계, 키페어 알고리즘·key-id 산출·서명 스킴(nonce), revoke 전파 방식 | §7.2.6·§7.2.7·§2.3.1 | GW+보안 | enrollment 구현 착수 전 | §2.3·§7.2·보안설계·LLD |
 
 ## 8 Change Management Process
 
 - 변경 분류: Minor(문구) / Major(요구사항·NFR 수치·아키텍처)
 - **CCB(Change Control Board)**
-  - **핵심(승인)**: 실장(총괄) — **Scott** · GW 백엔드 리드 — **Raymond**. **PM은 미지정 — 별도 PM 지정 시 CCB에 추가**('Scott=PM'은 미확정, Scott은 현재 전체 관리자/실장)
+  - **핵심(승인)**: 실장(총괄)·**PM 겸임** — **Scott** · GW 백엔드 리드 — **Raymond** (7/2 R6: Scott이 PM 겸임 확정)
   - **옵저버(사안별)**: QA 리드·보안·인프라 — Major 변경 검토 시 필요에 따라 참여(고정 명단 없음, v1.0)
   - **확대**: 필요 시 CCB에 인원 추가(실장 합의)
 - 절차: PR(영향 평가: §·Swagger·DBML·일정) → Major는 CCB(핵심 2인) 승인 → Appendix A 1줄 추가 → baseline 시 release tag
@@ -1865,14 +1867,31 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 
 본 SRS는 baseline 통과 시 인수자·일시를 본 절에 기록한다. (현재 골격 — 미승인)
 
+**승인자(CCB).**
+
 | 역할                 | 인수자   | 승인 일시 |
 | -------------------- | -------- | --------- |
-| 실장·총괄 (CCB 승인) | Scott    | —         |
-| PM (CCB·미지정)      | (TBD)    | —         |
+| 실장·총괄·PM (CCB 승인) | Scott    | —         |
 | GW 백엔드 리드 (CCB) | Raymond  | —         |
 | QA 리드 (옵저버)     | (사안별) | —         |
 | 보안 (옵저버)        | (사안별) | —         |
 | 인프라 (옵저버)      | (사안별) | —         |
+
+**리뷰어(영역별) — 7/2 R6 확정.** baseline 리뷰 분담. 승인권은 CCB(위)에 있고, 아래는 영역별 리뷰 책임이다.
+
+| 영역 | 리뷰 포인트 | 리뷰어 |
+| --- | --- | --- |
+| 총괄·승인(CCB) | baseline 승인 | **Scott**(실장·총괄·PM)·**Raymond**(GW 리드) |
+| 아키텍처·라우팅 | ADR(특히 ADR-11 R1 재평가)·3-plane·§2 | **Thomas** (복수 아키텍트 추가 가능) |
+| 인증·보안 | §7.1·§6.2·§6.5·PHI·데이터 주권 | (보안) **Scott** |
+| 인프라(③-I) | §3.1·배포·EIP·IaC(R5)·환경 구축 | **Jack** |
+| DB·데이터 모델 | §6.4·DBML·보존기간(Appendix B #5) | **Raymond**(GW 팀 자체 소유·별도 DBA 없음) — 보존기간만 법무/품질 입력 |
+| API 계약 | §4·§7·OpenAPI 정합·에러 계약 | **Raymond**(GW 팀 자체 소유) — *외부* 적합성 검토는 소비자 ③-P |
+| ③-P-EZ (EzServer) | 클라이언트·클리닉 등록 주체 영향 | **Thomas** (담당 1인 이상) |
+| ③-P-CS (CleverSpace) | presigned·내부(B) 프록시 영향 | **고형용/Larry** |
+| ③-P-CO (CleverOne) | 경유(EzServer) 전환 영향 | **탁수용/Nick** |
+| ③-P-OID (OneID) | 인증 연계 영향 | **서유진/Jin** |
+| QA·검증 | §3.6·테스트·호환성 매트릭스 | **정우혁/James_ES** |
 
 ---
 
@@ -1998,3 +2017,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-02 | **§2.3 인트로에 '라우팅 Flow — 전 구간' 추가** — 기존 §2.3.4/§2.3.5 시퀀스가 EzServer→GW부터 시작해 **CleverOne→EzServer→GW→AXS 전 구간**(특히 CleverOne→EzServer 헤더 → EzServer가 서브도메인 변환 → GW 서브도메인 라우팅 → 외부 C connector OAuth·egress)이 한 그림에 없던 공백을 보강. 구간별 target 지시 형태(내부=헤더 `Vatech-Target` / edge=서브도메인) 시퀀스+설명 추가. 하위 번호(§2.3.1~7) 불변(무번호 h4). §4.1.2·§4.5.1·ADR-11 정합 | (작성자 ID 미지정) |
 | 2026-07-02 | **라우팅 모델 ADR-11 개정 (R1) — 라우팅 신호 header→서브도메인 edge.** 7/2 R1 재평가 결과 **GW edge 라우팅 = target 서브도메인 `{target}.gw.vatech.com`**(Host/SNI, C안) 채택, **`Vatech-Target` 헤더는 CleverOne→EzServer 내부 hop 키로 강등**(EzServer가 서브도메인 변환, A안) — A(내부)+C(edge) 조합(순정 nginx·split-horizon 불요). §4.1.1(2면 판별=Host)·§4.1.2(규칙1~3·식별헤더 노트·비교표 캡션/결론·C열 재평가)·§4.5.1(프록시 target 서브도메인 행·`*.gw.vatech.com` 와일드카드 GeoDNS+TLS cert·webhook은 와일드카드 DNS 미사용 유지)·§2.7.1/§3.1 DNS·§2.3.4/§2.3.5 시퀀스(EZ→GW=서브도메인·CO→EZ=헤더)·§4.1.4 업로드표·hardening 오류표·§6.4/§7.9 레지스트리 표기 반영. Appendix A ADR-11 결정로그·노트, Appendix B #13 개정(header→subdomain edge, 잔여=EzServer 변환·클라 부착). 이전 CCB 승인(2026-06-25 header) 대체(감사추적 보존). 구간별 3안 상세=Agenda 7/9 R1. ARD·OpenAPI·DBML 동반 개정 | (작성자 ID 미지정) |
 | 2026-07-02 | **GW 내부 컴포넌트 명칭 직관화 — `Router / PEP`→`Proxy Router`, `Connector Framework`→`External Connector`.** 직관성 위해 컴포넌트 박스 이름만 변경(PEP는 개념·용어집(§1.4)·`Proxy Router` 설명으로 유지, PEP=`Policy(OPA)`(PDP)와 짝). §2.2 다이어그램 라벨·§2.3 라우팅 Flow(참여자·prose·note)·§2.3.4/§2.3.5 GW 라벨·§4.1.1(§7.5 참조)·§2.2 액터 목록·파이프라인 주석, ARD 컴포넌트 표(§2·§3) 반영. 노드 ID(`ROUTER`/`CONN`)·`connector` 일반 개념/테이블/"AXS connector" 인스턴스·§7.5 개념은 불변 | (작성자 ID 미지정) |
+| 2026-07-02 | **R3 — 수집 에이전트 = Grafana Alloy 확정.** 관측 수집 에이전트를 'Fluent Bit+ADOT 권장(TBD)'에서 **Grafana Alloy(OTel 호환 통합 수집)** 로 확정. §1.4 용어(ADOT→Grafana Alloy)·§3.1.2(796)·§6.3(1171)·§6.3.2 수집층 권장 패턴 갱신. 앱 계약(stdout JSON+OTel) 불변, 백엔드는 인프라 선택. Appendix B #14=로그 포맷만 잔여 | (작성자 ID 미지정) |
+| 2026-07-02 | **R4 — 프록시 복원력 분담 정리(GW 연결 timeout vs mesh 재시도·서킷).** §7.5.4 재작성: **GW→provider 연결 timeout(connect/response/total_deadline)은 GW 책임**(GW가 provider에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound, D1~D3), **재시도·서킷 브레이커는 service mesh(istio) egress**(GW 미구현, D5~D8). GW 앱레벨=오류 정규화(`Vatech-Error-Origin`)·멱등·취소 전파(D9). §2.2 노트·§4.1.2-6·§5.5·§6.3·§6.4·§7.7.4 정합. **DBML/OpenAPI `upstream_registry`에서 retry_policy·circuit_breaker만 제거, 연결 timeout 컬럼 3종은 유지**. db-jsonb retry_policy 섹션 제거. Appendix B #25=①GW timeout 값+②istio 재시도·서킷 분담 | (작성자 ID 미지정) |
+| 2026-07-02 | **R6 — 리뷰어 목록 확정 + Scott=PM 겸임.** §9 Document Approvals에 **영역별 리뷰어 표**(아키텍처=Thomas·인프라=Jack·QA=정우혁/James·DB/API=Raymond 자체·③-P별 담당·인증보안=Scott) 추가. §8 CCB·§9 승인표·Appendix B #10을 **Scott(실장·총괄·PM 겸임)** 로 갱신('PM 미지정' 해소) | (작성자 ID 미지정) |
+| 2026-07-02 | **R7 — 스펙↔구현 진행 = 1안 확정.** ④ AXS baseline 직후 구현 착수 + ③-C·③-P·③-I 스펙 병행(2안=전 스펙 완료 후 반려). `specs/00-execution-allocation.md`에 '구현 착수 전략' 섹션 신설, Agenda gantt에 1안 채택 표기. 구현 기간=SRS 확정 후 재산정(SRS 본문 영향 없음·계획 문서 반영) | (작성자 ID 미지정) |
+| 2026-07-02 | **R9 — 개인키 분실 복구 명확화(백업 미도입).** 분실·손상 복구=재-enroll 회전이 유일(백업 복원 없음), 개인키는 디바이스 비이탈·export 미도입. §7.2.7 제목/intro에 '개인키 분실 복구' 명시, §7.2.6에 at-rest 보관=③-P-EZ 책임·GW는 공개키만 보관 명시, §2.3.1(부트스트랩=라이선스 등록 시 자동 enroll 편의·키페어 bullet 분실 복구) 보강. ARD "개인키 백업 미도입"(v0.15)과 정합 | (작성자 ID 미지정) |

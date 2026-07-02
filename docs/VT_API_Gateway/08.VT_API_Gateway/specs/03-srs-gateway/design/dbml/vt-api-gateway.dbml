@@ -14,6 +14,7 @@
 // 2026-07-01: region A안(device.region·region_mapping 제거·device.clinic_id 추가) · compat_matrix 제거 · 전 필드 주석.
 // 2026-07-01: enrollment_token 제거 — 부트스트랩=LM 라이선스·Clinic-ID + C/S 사람 승인(사전 발급 토큰 없음). 승인 대기=device.pending(§2.3.1·§7.2.5).
 // 2026-07-02 (R1): 라우팅 신호 개정 — upstream_registry.target_id = target 서브도메인 라벨(GW edge={target_id}.gw.vatech.com, ADR-11 7/2 R1). Vatech-Target 헤더=CleverOne→EzServer 내부 hop(EzServer가 서브도메인 변환). 주석만 갱신(스키마 불변).
+// 2026-07-02 (R4): upstream_registry 복원력 컬럼 정리 — **재시도·서킷(retry_policy·circuit_breaker) 제거**(service mesh/istio egress 담당). **GW→provider 연결 timeout(connect/response/total_deadline)은 유지**(GW가 provider에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound 필수 — D1~D3, §7.5.4). GW 앱레벨=오류 정규화·멱등·취소.
 // 2026-07-01: 디바이스 인증=비대칭 private_key_jwt(개인키 서명→device.fingerprint 공개키 검증), 공유 secret 폐지(ADR-13·§7.1.1).
 // 2026-07-01: credential 테이블 삭제 → device로 통합(client_id를 device.client_id nullable로 이관, secret_ref 폐기, hw_key_bound는 gw/1.1 attestation으로 이관). 13 테이블.
 // 2026-07-01: token 테이블 삭제 — 무상태 JWT(서명 검증)·디바이스 단위 폐기라 발급 토큰 저장 불필요, 이력은 audit_log. 12 테이블.
@@ -250,16 +251,14 @@ Table upstream_registry {
   host                varchar [not null]                   // 내부 매핑 host(클라이언트엔 비노출)
   profile             upstream_profile [not null]          // trust profile(internal=B / external=C)
   egress_allowlist    jsonb                                // external(C) egress 제한 대상 — {hosts,cidrs,ports}. 형식=design/db-jsonb-fields.md#upstream_registry (⚠ egress 3중복=Appendix B #31)
-  connect_timeout_ms  bigint                               // TCP+TLS 핸드셰이크 타임아웃(짧게). 값 TBD(§7.5.4·Appendix B #25)
-  response_timeout_ms bigint                               // upstream 응답 대기 타임아웃. 값 TBD
-  total_deadline_ms   bigint                               // 프록시 호출 총 예산 — GW deadline < 클라이언트 타임아웃 불변식. 값 TBD
-  retry_policy        jsonb                                // 재시도 설정 — {retryOn:["connect_failure"],maxRetries,backoff,budgetRatio}(비멱등 POST 금지, §7.5.4). 형식=design/db-jsonb-fields.md#upstream_registry · 수치=Appendix B #25
-  circuit_breaker     boolean [not null, default: false]   // 서킷 활성(503+Retry-After 빠른 실패). 임계·v1.0 범위 TBD
+  connect_timeout_ms  bigint                               // GW→provider 연결(TCP+TLS) 대기 — GW 자기 아웃바운드 timeout(D1, 추천 3s, §7.5.4·R4)
+  response_timeout_ms bigint                               // GW→provider 응답 대기, 초과 시 504 — GW 자기 timeout(D2, 추천 10s·외부 AXS는 SLA 개별값)
+  total_deadline_ms   bigint                               // 프록시 호출 총 예산 — GW total_deadline < 클라이언트 타임아웃 불변식(D3, ≤80%)
   enabled             boolean [not null, default: true]    // 활성 여부(라우팅 on/off)
   created_at          bigint                               // 생성 시각(Unix ms)
   updated_at          bigint                               // 수정 시각(Unix ms)
 
-  Note: '프록시 라우팅(§4.1.2 · ADR-11 7/2 R1 — GW edge=target 서브도메인 {target_id}.gw.vatech.com, `*.gw.vatech.com` 와일드카드라 신규 upstream = 1행이면 DNS·cert 추가 0). external(C) 자격/egress 상세는 connector 연계. 타임아웃·재시도·서킷은 per-upstream 복원력 **설정**(§7.5.4) — 서킷 **런타임 상태(open/closed·카운터)는 pod-local in-memory로 비저장**, 본 표는 설정만(§2.2)'
+  Note: '프록시 라우팅(§4.1.2 · ADR-11 7/2 R1 — GW edge=target 서브도메인 {target_id}.gw.vatech.com, `*.gw.vatech.com` 와일드카드라 신규 upstream = 1행이면 DNS·cert 추가 0). external(C) 자격/egress 상세는 connector 연계. **연결 timeout(connect/response/total_deadline)은 GW 책임**(GW가 provider에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound, 7/2 R4·§7.5.4). **재시도·서킷 브레이커는 service mesh(istio) egress 담당(GW 미소유·컬럼 없음)**. GW 앱레벨=오류 정규화·멱등·취소'
 }
 
 // 분배 채널 (clinic → 어떤 방식으로 client에 전달) FR-WH-05/06

@@ -360,13 +360,13 @@ paths:
   #   - 경로③(C): axs.gw.vatech.com — AXS OpenAPI 스냅샷 + ④ Sub-SRS 정본 (OAuth2·egress allowlist는 GW 정책)
   # apex gw.vatech.com 호출만 아래 GW 고유 API(A)로 처리된다. Vatech-Target 헤더는 CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환).
   #
-  # 프록시 에러·타임아웃 계약 (정본 §7.5.4·§7.7.4 — 경로가 아니라 전 프록시 공통이므로 여기 주석으로 기술):
-  #   - 타임아웃: per-upstream(connect/response/total_deadline, UpstreamRegistry). GW 총 deadline < 클라이언트 타임아웃(고아 요청 방지).
-  #   - GW 생성 오류 = ProxyError 스키마: 502 연결실패(UPSTREAM_UNREACHABLE) / 504 deadline 초과(UPSTREAM_TIMEOUT) / 503 서킷·일시불가(UPSTREAM_UNAVAILABLE, Retry-After). 헤더 Vatech-Error-Origin: gateway.
+  # 프록시 에러·복원력 계약 (정본 §7.5.4·§7.7.4 — 경로가 아니라 전 프록시 공통이므로 여기 주석으로 기술):
+  #   - GW→provider 연결 timeout(connect/response/total_deadline, UpstreamRegistry)=GW 책임(7/2 R4·D1~D3): GW가 provider에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound. total_deadline < 클라이언트 타임아웃.
+  #   - 재시도·서킷 브레이커=service mesh(istio) egress 담당(GW 미구현, D5~D8).
+  #   - GW 정규화 오류 = ProxyError 스키마: 502 연결실패(UPSTREAM_UNREACHABLE) / 504 timeout·deadline(UPSTREAM_TIMEOUT, GW 자기 timeout) / 503 서킷·일시불가(UPSTREAM_UNAVAILABLE, mesh). 헤더 Vatech-Error-Origin: gateway.
   #     재사용 응답 정의 = components/responses/{UpstreamUnreachable(502), UpstreamUnavailable(503), UpstreamTimeout(504)} (프록시 게이트웨이 핸들러에서 사용).
   #   - upstream 자체 4xx/5xx = 원 코드·body verbatim 통과(GW 미변형). 헤더 Vatech-Error-Origin: upstream.
-  #   - 재시도: 멱등(GET/HEAD/OPTIONS/PUT/DELETE) 또는 idempotency key 보유 + 연결/pre-response 타임아웃 한정(상한+백오프+budget). 비멱등 POST 자동 재시도 금지.
-  #   - 클라이언트 조기 절단 → GW가 upstream 호출 취소.
+  #   - GW 앱레벨: 연결 timeout + 오류 정규화 + 멱등(Idempotency-Key 존중) + 클라이언트 조기 절단 시 upstream 호출 취소. 네트워크 재시도·서킷은 mesh 담당.
 
   # --- Webhook 수신 (§7.6 / §4.1.3) — provider별 전용 호스트({provider}.webhook.gw.vatech.com)로 식별(Host/SNI). 경로/스키마는 provider 규약 수용·유연(아래는 예시). GW는 발신자 검증·라우팅만, payload 비해석 ---
   /v1/webhooks/{provider}:
@@ -838,13 +838,11 @@ components:
         host: { type: string, description: '내부 매핑 host(클라이언트 비노출)' }
         profile: { type: string, enum: [ internal, external ] }
         egressAllowlist: { type: array, items: { type: string } }
-        connectTimeoutMs: { type: integer, description: 'TCP+TLS 핸드셰이크 타임아웃(짧게). 값 TBD(Appendix B #25, §7.5.4)' }
-        responseTimeoutMs: { type: integer, description: 'upstream 응답 대기 타임아웃. 값 TBD' }
-        totalDeadlineMs: { type: integer, description: '프록시 호출 총 예산 — GW deadline < 클라이언트 타임아웃 불변식. 값 TBD' }
-        retryPolicy: { type: string, description: '재시도 정책 — 멱등 메서드/idempotency key + 연결·pre-response 타임아웃 한정(상한+백오프+budget). 비멱등 POST 금지(§7.5.4)' }
-        circuitBreaker: { type: boolean, description: '서킷 브레이커 활성(연속 실패 시 503+Retry-After 빠른 실패). 임계·v1.0 범위 TBD' }
+        connectTimeoutMs: { type: integer, description: 'GW→provider 연결(TCP+TLS) 대기 — GW 자기 아웃바운드 timeout(D1, 추천 3s). §7.5.4·R4' }
+        responseTimeoutMs: { type: integer, description: 'GW→provider 응답 대기(초과 504) — GW 자기 timeout(D2, 추천 10s·외부 AXS는 SLA 개별값)' }
+        totalDeadlineMs: { type: integer, description: '프록시 호출 총 예산 — GW total_deadline < 클라이언트 타임아웃 불변식(D3, ≤80%)' }
         enabled: { type: boolean }
-      description: 'target-routed proxy 라우팅(ADR-11, 7/2 R1 — edge=서브도메인). 신규 upstream = 1행(*.gw.vatech.com 와일드카드라 DNS·cert 추가 0). 타임아웃·재시도·서킷은 per-upstream 복원력 설정(§7.5.4)'
+      description: 'target-routed proxy 라우팅(ADR-11, 7/2 R1 — edge=서브도메인). 신규 upstream = 1행(*.gw.vatech.com 와일드카드라 DNS·cert 추가 0). **연결 timeout(connect/response/total_deadline)=GW 책임**(GW가 provider에 직접 연결하는 HTTP 클라이언트, §7.5.4). **재시도·서킷 브레이커=service mesh(istio) egress 담당(7/2 R4)** — 본 스키마 미포함, GW 미소유. GW 앱레벨=오류 정규화·멱등·취소'
     DeliveryChannel:
       type: object
       required: [ clinicId, channelType ]
