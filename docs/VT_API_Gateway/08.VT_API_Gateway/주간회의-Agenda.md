@@ -101,7 +101,7 @@
 
     - **핵심 논리**: Terraform을 고르는 가장 큰 이유 = 멀티클라우드인데 **AWS 전용이면 그 이유가 사라진다**. 남는 비교에서 CDK가 **언어 일관성(TS)·AWS 네이티브·조직 역량**으로 우위. (Terraform의 모듈·state 강점은 AWS 전용 + TS 스택에선 일관성에 밀림.)
     - **결정 요청**: ① IaC 도구 = CDK 확정? ② 확정 시 ARD §4.5·SRS §6.6.2 정합(Terraform→CDK) ③ 최종 표준은 인프라(③-I) 소유 확인.
-
+  
   - **R6. GW SRS 리뷰어 목록 확정 (회의에서 작성)** — ③ GW SRS(+OpenAPI·DBML) **PR 7/9 시작 전**에 리뷰어를 지정해야 리뷰가 공백 없이 진행된다. SRS가 걸치는 **영역별로 리뷰어를 배정**한다. 아래 표의 이름 칸을 회의에서 채운다(총괄 2인은 CCB 기확정, 나머지는 영역 담당 지명).
 
     | 영역 | 리뷰 포인트 | 리뷰어 |
@@ -232,3 +232,117 @@
   ```
 
 - 이월 논의 사항 (6/25 미결 — 계속) | # | 항목 | 타입 | 상태 | | --- | --- | --- | --- | | 4 | Webhook 클라우드 분배(CleverLab 갈래B) | [논의] | v1.0 제외 — Open 후 결정 | | 6 | AXS sandbox 자격증명(Straumann 제공) | [정보] | pilot(08-15) 블로커 — 확보 시점? | | 7 | 경로 B EOS 시점 | [논의] | ① One Pager 확정 의존 | | 8 | v1.0 목표 RPS·동시 세션 | [정보] | 인프라/규모 PL 입력 대기 | | 9 | RTO/RPO·유지보수 윈도우 | [정보] | 인프라 설계 단계 | | 10 | 감사·consent 보존 기간 | [정보] | 법무 확인 대기 | | 11 | 호환성 매트릭스 확정본 | [정보] | ① One Pager 의존 |
+
+
+# 7/2 주간회의 결정사항
+
+- R1. 라우팅 방식 재평가
+  - C안(서브도메인 방식)으로 결정했어. 유지보수/장애대응이 편하고 provider 추가시 인프라 확장은 큰 문제가 아니라고 했어.  
+  - 이에 Thomas가 걱정이 있어. CleverOne에서 CleverSpace등 Cloud로 가는 모든 통신은 EzServer를 통하는데, EzServer는 nginx로 r-proxy 방식으로 설정하여 어떻게 서브도메인으로 필요한 접속을 하냐는 것이야. 
+    - 나는 EzServer로 접속해서도 axs.gw.vatech.com으로 접속하도록 할 수 있다고 생각했는데 어때?
+    - 그래서 내가 방안을 마련하기로 했어. 
+  -  C(sub domain) 형태로 가면 CleverOne 에서 EzServer/GW를 통해서 AXS API를 사용하는 방법을 검토한다. 전규현/ Raymond 
+    - 방안
+      - CleverOne에서 EzServer간은 A방안으로 하고, EzServer와 GW는 C안으로 하는 방안도 있다. (Scott의견)
+      - nginx 확장을 구현해서 GW 연결과 내부 API 호출을 분리하는 방안도 있다. (Raymond의견)
+      - 아니면 우리가 Rust로 GW를 직접 만드는 방안도 있는데, Thomas는 이미 nginx(+php)로 EzServer를 만들어서 Rust로 새로 개발하면 공수가 크다고 했어. 
+      - nginx로 간단히 해결 되면 좋고, 이구간에서는 A방안을 써도 되고, 가장 좋은 방법을 찾아야해. 
+  - 문제가 없는지 어느 방법이 있는지? 
+  
+- R3. 수집 에이전트 확정
+  - Grafana Alloy로 사용한다. 이렇게 SRS에 반영해야 해
+
+- R4. 프록시(B/C) 에러·타임아웃 정책
+  - GW단에서 timeout을 처리하지 않고, infra(istio나 솔루션을 붙여서)에서 조정하므로 추후 결정한다.
+  - Provider 연결은 timeout 처리가 필요하다. 다시 정리한다.
+  - retry도 istio에서 처리하므로 GW에서 하지 않는다.
+  - 서킷브레이커도 infra(istio)에서 처리한다.
+  - 따라서, infra에서 제공하는 것은 GW가 할 필요가 없어. GW에서 꼭 지원해야 하는 것들만 남겨서 정리하면 돼. 그 항목의 추천안은 유지하면 돼. 이렇게 SRS 새로 정리해줘. 
+
+- R5. IaC 도구 확정
+  - Terraform으로 확정한다. 
+    - k8s Deployment는 기능별로 잘게 쪼갠다. (GWcore, Webhook Receiver, Webhook Dispatcher 각각)
+
+- R6. GW SRS 리뷰어 목록 확정 
+  | 영역 | 리뷰 포인트 | 리뷰어 |
+  | --- | --- | --- |
+  | 총괄·승인(CCB) | baseline 승인 | **Scott(실장·총괄,PM)·Raymond(GW 리드)** |
+  | 아키텍처·라우팅 | ADR(특히 ADR-11 R1 재평가)·3-plane·§2 | **Thomas** (외 추가 가능 — 복수 아키텍트) |
+  | 인증·보안 | §7.1·§6.2·§6.5·PHI·데이터 주권 | (보안 담당) — Scott |
+  | 인프라(③-I) | §3.1·배포·EIP·IaC(R5)·환경 구축 | **Jack** |
+  | DB·데이터 모델 | §6.4·DBML·보존기간(#5) | **GW 팀(작성자) = Raymond** — 자체 소유(별도 DBA 없음). 보존기간(#5)만 법무/품질 입력 |
+  | API 계약 | §4·§7·OpenAPI 정합·에러 계약 | **GW 팀(작성자) = Raymond** — 자체 소유(총괄과 동일). *외부* 적합성 검토는 소비자 ③-P |
+  | 제품 적응 ③-P-EZ (EzServer) | 클라이언트·클리닉 등록 주체 영향 | Thomas (담당 1인 이상) |
+  | 제품 적응 ③-P-CS (CleverSpace) | presigned·B 프록시 영향 | 고형용/ Larry |
+  | 제품 적응 ③-P-CO (CleverOne) | 경유 전환 영향 | 탁수용/ Nick |
+  | 제품 적응 ③-P-OID (OneID) | 인증 연계 영향 | 서유진 / Jin |
+  | QA·검증 | §3.6·테스트·호환성 매트릭스 | **정우혁/ James_ES** |
+
+- R7. 스펙 ↔ GW 구현 진행 전략 
+  - 1안으로 결정
+
+- R9. 온보딩/enrollment 모델 확인
+  -  EzServer 에서 private key 분실시 재발급 과정이 필요하다.
+  -  License 등록과정에서 GW 온보딩을 하게 하는 방안을 검토한다. (최대한 편리하게)
+  -  EzServer내에서 private 키를 안전하게 보관/백업할 방법이 필요하다. 
+  -  이런 것이 SRS에 다 반영되었나? 또는 OnePager에서 구체적으로 작성하면 되나?
+  -  분실 시 재발급 과정은 GW SRS에 있어야 하지 않나?
+
+# VT API Gateway — 7/9 주간회의 Agenda
+
+- 지난주 결정 사항 적용 방안 (7/2 결정 → 적용 방법 확정)
+
+- **R1. 라우팅 방식 재평가 방안** — GW edge = **C안(서브도메인)** 확정 · CleverOne→EzServer 내부구간 = **A+C 채택**.
+  - **전제**: GW edge(EzServer→GW) = **C안(서브도메인)** `{target}.gw.vatech.com` 확정(운영/로그/LB/WAF 가시성은 공개 edge에서 확보). 남은 결정 = **내부구간(CleverOne→EzServer)** 에서 target을 EzServer에 전달하는 방식(A/B/C). 표기 = `내부구간 + edge`(edge는 항상 C).
+  - **비교 (항목별 · A+C → B+C → C+C)**:
+
+    | 기준 | **A+C (헤더) — 채택** | B+C (경로 prefix) | C+C (내부도 서브도메인) |
+    | --- | --- | --- | --- |
+    | CleverOne 호출 | `http(s)://<ezserver>/...` + 헤더 `Vatech-Target: axs` | `http(s)://<ezserver>/gw/axs/...` | `https://axs.gw.vatech.com/...` |
+    | split-horizon DNS(로컬 DNS/hosts 조작) | **불요** | **불요** | **필요**(또는 forward-proxy) |
+    | nginx | **순정** | **순정** | **확장 필요**(CONNECT 모듈 `ngx_http_proxy_connect_module` 또는 Squid/Envoy) |
+    | EzServer 헤더 주입·가공(L7) | ◎ 가능 | ◎ 가능 | ✕ (CONNECT 터널이라 통과만) |
+    | provider 추가 시 EzServer | **무변경**(제네릭 `$http_vatech_target`) | **무변경**(제네릭 `$target` 경로) | (split-horizon 유지) |
+    | CleverOne 변경 | **헤더 1개**(기존 `Vatech-Target` 재활용 → 최소) | URL에 `/gw/{target}/` 경로 규약 신설 | proxy 설정 or DNS 의존 |
+    | 기존 결정(ADR-11 `Vatech-Target`) 정합 | **◎ 재활용** | △ 새 규약 | — |
+    | HTTP/HTTPS(self-signed) 인바운드 수용 | ◎ `listen 80`+`443` 둘 다 | ◎ 둘 다 | 터널(E2E TLS) |
+    | 평문 구간(LAN) 노출 | 평문(토큰/PHI 노출 주의) | 평문(동일) | 터널(암호화) |
+
+  - **결정: `A+C` 채택** — CleverOne→EzServer = **A안(헤더 `Vatech-Target`)**, EzServer→GW = **C안(서브도메인)**.
+    - **근거**: split-horizon·nginx 확장 불요(순정) · 헤더 가공 가능 · provider 추가 시 EzServer 무변경 · **기존 `Vatech-Target` 헤더 재활용**(클라 변경 최소·ADR-11 정합). 헤더명 = **`Vatech-Target`**(X- prefix 미사용, RFC 6648).
+    - `C+C`는 split-horizon 또는 forward-proxy(모듈)+헤더 불가라 배제 · `B+C`는 되지만 새 URL 경로 규약이라 A보다 열위.
+    - **역할 정리**: `Vatech-Target`은 폐기가 아니라 **내부구간 target 지시 키**로 유지 → **EzServer가 서브도메인으로 변환** → **GW edge는 Host/SNI(서브도메인)로 라우팅**. (버전 호환용 `Vatech-*` 식별 헤더는 별도.)
+  - **적용 방법 (EzServer nginx — A+C · 순정)**:
+
+    ```nginx
+    # 내부(A: Vatech-Target 헤더) → GW edge(C: 서브도메인) 브리징. 순정 nginx.
+    resolver 8.8.8.8 1.1.1.1;                        # 변수 proxy_pass 런타임 해석 → 공인 DNS(루프 방지)
+
+    map $http_vatech_target $gw_target {             # target 검증(SSRF 방어)·제네릭
+        default              "";                     # 형식 위반 → 빈값
+        "~^[a-z0-9-]{1,40}$" $http_vatech_target;    # 소문자·숫자·하이픈만 허용(provider 추가해도 무변경)
+    }
+
+    server {
+        listen 80;                                   # 평문 HTTP(대부분)
+        listen 443 ssl;                              # 자체 HTTPS(self-signed, 켜진 경우)
+        ssl_certificate     /etc/ezserver/tls/self.crt;      # 443용(self-signed)
+        ssl_certificate_key /etc/ezserver/tls/self.key;
+
+        location / {
+            if ($gw_target = "") { return 400; }             # Vatech-Target 없음/형식 위반 → 400
+            proxy_pass          https://$gw_target.gw.vatech.com$request_uri;  # C: {target}.gw.vatech.com
+            proxy_ssl_server_name on;
+            proxy_ssl_name      $gw_target.gw.vatech.com;    # 아웃바운드 SNI
+            proxy_set_header    Host $gw_target.gw.vatech.com;# Host(GW가 라우팅)
+            proxy_ssl_verify    on;                          # GW 공인 인증서 검증(중간자 방지)
+            proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+            proxy_connect_timeout 3s;                        # (프록시 타임아웃은 §7.5.4/R4)
+            # 버전 호환용 Vatech-* 식별 헤더(Product/Version/OS/Clinic-Id/Via)는 그대로 전달
+        }
+    }
+    ```
+    - **동작**: CleverOne이 `Vatech-Target: axs` 헤더로 EzServer 호출(평문/HTTPS 무관) → EzServer가 헤더값을 `axs.gw.vatech.com`으로 변환해 **HTTPS로 GW 전달**(HTTP→HTTPS 브리징). EzServer 자체 HTTPS-off와 무관(아웃바운드는 nginx가 클라이언트로 HTTPS 개시, cert 설치 불요).
+    - **보안**: 평문 LAN 구간에 토큰/PHI가 실리면 노출 — 민감 트래픽은 그 구간 HTTPS 권장(기존 운영 자세라 별도 판단).
+  - **SRS 반영 예정(확정 후)**: ADR-11(라우팅 = **edge 서브도메인** · `Vatech-Target`은 내부 hop 변환 키로 유지) · §4.5.1(`{target}.gw.vatech.com` + `*.gw.vatech.com` 와일드카드 cert + GeoDNS 와일드카드) · §4.1.2(라우팅 방식) · §4.1.4(업로드 target 지정) · webhook 서브도메인과 일관성 명시.
+  - 

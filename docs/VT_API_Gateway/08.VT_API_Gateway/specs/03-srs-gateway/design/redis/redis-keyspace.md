@@ -21,7 +21,7 @@
 | `gw:cache:clinic-region:{clinicId}` | string/hash | 초~분 | clinic→region 해석(§7.3.1) | `clinic`(region 컬럼) |
 | `gw:cache:device-region:{deviceId}` | string/hash | 초~분 | device→region 해석(파생) | `device.clinic_id → clinic.region`(region A안, `region_mapping` 폐기·§6.4.1) |
 | `gw:cache:org:{provider}:{externalOrgId}` | string | 초~분 | webhook 라우팅 키(org→clinic, §2.3.6) | `org_mapping` |
-| `gw:cache:upstream:{targetId}` | hash | 분 | Vatech-Target→host·profile(§4.1.2) | `upstream_registry` |
+| `gw:cache:upstream:{targetId}` | hash | 분 | target 서브도메인 라벨→host·profile(§4.1.2) | `upstream_registry` |
 | `gw:cache:regions` | hash/json | 분 | GW 운영 리전 목록(§7.3.6) | `region_catalog` |
 | `gw:cache:jwks` | string/json | 분 | 토큰 검증 공개키(§7.1.2) | 키 저장소(KMS)/발급기 |
 | `gw:cache:compat` | hash | 분 | 호환성 매트릭스/well-known(§7.7) | `compat_matrix` |

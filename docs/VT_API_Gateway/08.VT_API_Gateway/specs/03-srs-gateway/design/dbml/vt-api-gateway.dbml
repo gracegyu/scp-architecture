@@ -13,6 +13,7 @@
 // 2026-06-29 PR 정합 보강: upstream_registry 복원력 컬럼·enum화·created_at/updated_at·webhook_event 보강.
 // 2026-07-01: region A안(device.region·region_mapping 제거·device.clinic_id 추가) · compat_matrix 제거 · 전 필드 주석.
 // 2026-07-01: enrollment_token 제거 — 부트스트랩=LM 라이선스·Clinic-ID + C/S 사람 승인(사전 발급 토큰 없음). 승인 대기=device.pending(§2.3.1·§7.2.5).
+// 2026-07-02 (R1): 라우팅 신호 개정 — upstream_registry.target_id = target 서브도메인 라벨(GW edge={target_id}.gw.vatech.com, ADR-11 7/2 R1). Vatech-Target 헤더=CleverOne→EzServer 내부 hop(EzServer가 서브도메인 변환). 주석만 갱신(스키마 불변).
 // 2026-07-01: 디바이스 인증=비대칭 private_key_jwt(개인키 서명→device.fingerprint 공개키 검증), 공유 secret 폐지(ADR-13·§7.1.1).
 // 2026-07-01: credential 테이블 삭제 → device로 통합(client_id를 device.client_id nullable로 이관, secret_ref 폐기, hw_key_bound는 gw/1.1 attestation으로 이관). 13 테이블.
 // 2026-07-01: token 테이블 삭제 — 무상태 JWT(서명 검증)·디바이스 단위 폐기라 발급 토큰 저장 불필요, 이력은 audit_log. 12 테이블.
@@ -153,7 +154,7 @@ Table connector {
   created_at       bigint        // 생성 시각(Unix ms)
   updated_at       bigint        // 수정 시각(Unix ms)
 
-  Note: '**외부(C) connector 자격/엔드포인트**(FR-INT-01/02). 제3자 서비스(예 axs) 호출에 필요한 OAuth2 자격(원문 미저장 — KMS 참조)·base URL·egress 허용 목록. 라우팅(Vatech-Target→host)은 upstream_registry가, 정책 판정은 policy가 담당하고 **본 표는 "그 external을 실제 호출할 때 쓰는 자격·주소"**. name은 upstream_registry.target_id·policy.connector와 대응(예 axs)'
+  Note: '**외부(C) connector 자격/엔드포인트**(FR-INT-01/02). 제3자 서비스(예 axs) 호출에 필요한 OAuth2 자격(원문 미저장 — KMS 참조)·base URL·egress 허용 목록. 라우팅(target 서브도메인→host)은 upstream_registry가, 정책 판정은 policy가 담당하고 **본 표는 "그 external을 실제 호출할 때 쓰는 자격·주소"**. name은 upstream_registry.target_id·policy.connector와 대응(예 axs)'
 }
 
 // 감사 로그 (FR-AUD-01)
@@ -243,9 +244,9 @@ Table webhook_provider {
   Note: '식별=inbound_host(Host/SNI)로 provider·시크릿 선택, 인증=HMAC+timestamp(호스트명은 식별이지 인증 아님). source_ip는 옵션. GW는 payload 비해석, 본 config로 발신자 검증 + 라우팅 키만 추출(§4.1.3·§7.6.2). 경로/형식은 provider 규약 수용. 와일드카드 DNS 미사용 — provider별 명시 호스트(연단위 추가)'
 }
 
-// Vatech-Target → upstream host 레지스트리 (target-routed proxy, ADR-11)
+// target 서브도메인 → upstream host 레지스트리 (target-routed proxy, ADR-11 · 7/2 R1 edge=서브도메인)
 Table upstream_registry {
-  target_id           varchar [pk]                         // Vatech-Target 논리 ID(예 cleverspace, axs)
+  target_id           varchar [pk]                         // target 서브도메인 라벨 = 논리 ID(예 cleverspace, axs) — GW edge가 {target_id}.gw.vatech.com Host로 라우팅. CleverOne→EzServer Vatech-Target 헤더값과 동일(EzServer가 서브도메인 변환)
   host                varchar [not null]                   // 내부 매핑 host(클라이언트엔 비노출)
   profile             upstream_profile [not null]          // trust profile(internal=B / external=C)
   egress_allowlist    jsonb                                // external(C) egress 제한 대상 — {hosts,cidrs,ports}. 형식=design/db-jsonb-fields.md#upstream_registry (⚠ egress 3중복=Appendix B #31)
@@ -258,7 +259,7 @@ Table upstream_registry {
   created_at          bigint                               // 생성 시각(Unix ms)
   updated_at          bigint                               // 수정 시각(Unix ms)
 
-  Note: '프록시 라우팅(§4.1.2). 신규 upstream = 1행. external(C) 자격/egress 상세는 connector 연계. 타임아웃·재시도·서킷은 per-upstream 복원력 **설정**(§7.5.4) — 서킷 **런타임 상태(open/closed·카운터)는 pod-local in-memory로 비저장**, 본 표는 설정만(§2.2)'
+  Note: '프록시 라우팅(§4.1.2 · ADR-11 7/2 R1 — GW edge=target 서브도메인 {target_id}.gw.vatech.com, `*.gw.vatech.com` 와일드카드라 신규 upstream = 1행이면 DNS·cert 추가 0). external(C) 자격/egress 상세는 connector 연계. 타임아웃·재시도·서킷은 per-upstream 복원력 **설정**(§7.5.4) — 서킷 **런타임 상태(open/closed·카운터)는 pod-local in-memory로 비저장**, 본 표는 설정만(§2.2)'
 }
 
 // 분배 채널 (clinic → 어떤 방식으로 client에 전달) FR-WH-05/06
