@@ -1,0 +1,43 @@
+﻿[Cloud Web Viewer V1.3.2] 기능정의서,,,,,,,,
+,,,,,,,,
+No.,요구사항 ID,Document ID,Level 1,Level 2,Level 3,Feature,기능 설명,비고
+1,CWV-REQ-SEC-001,EP01_F001_SectionLayoutSwitch,Section ,Layout,Section Layout,CT 실행 후 Section Layout으로 전환할 수 있다.,"1) CT 실행 후 Section Layout으로 전환하는 버튼 제공
+2) MPR ↔ Section Layout 간 토글 전환",* Clever One 수준의 다양한 레이아웃은 제공하지 않는다.
+2,CWV-REQ-SEC-001,EP01_F002_SectionLayoutOverview,Section ,Layout,Section Component,Section Layout 구성 설명,"1) Section Layout을 구성하는 Scout, Panorama, Section View의 구성 및 표시 정보 설명",
+3,CWV-REQ-SEC-002,EP01_F003_ScoutCurveComponents,Section ,Draw Curve,Scout Curve Component,Scout View의 Curve 구성 요소 설명,1) Scout View에 표시되는 Curve 및 Line 구성 요소 명칭 및 정의,
+4,CWV-REQ-SEC-002,EP01_F004_PanoLineComponents,Section ,Draw Curve,Panorama Line Component,Panorama View의 Line 구성 요소 설명,1) Panorama View에 표시되는 Line 구성 요소 명칭 및 정의,
+5,CWV-REQ-SEC-002,EP01_F005_DrawCurve,Section ,Draw Curve,Draw Curve,Scout view에서 커브를 입력할 수 있다.,"1) Scout View에서 Point를 클릭하여 Curve를 입력
+2) 입력된 Curve를 기준으로 Panorama 및 Section View 생성","* Default Curve 기능은 제공하지 않는다.
+* Clever Space에서는 모바일 환경을 고려하지 않으므로 마우스 조작을 기반으로 작성함
+추후 EzDent Web 적용 시 터치 조작 정의가 필요함. "
+6,CWV-REQ-SEC-003,EP01_F006_EditCurve,Scout view,Edit Curve,Edit Curve,Curve 및 Point를 편집할 수 있다.,"1) 입력된 Curve의 Point를 이동, 추가, 삭제
+2) Curve 전체 이동 및 B/L 방향 전환 가능
+3) 수정된 Curve를 기준으로 Panorama 및 Section View 업데이트","* Clever Space에서는 모바일 환경을 고려하지 않으므로 마우스 조작을 기반으로 작성함
+추후 EzDent Web 적용 시 터치 조작 정의가 필요함. "
+7,CWV-REQ-SEC-004,EP01_F007_ScoutView,Scout view,Sectional Line,Move Sectional Line (Scout),Scout view에서 사용 가능한 조작 기능 설명 ,"1) Scout View에서 Sectional Line 위치 이동
+2) 선택한 Sectional Line 위치에 따라 Panorama View의 Sectional Line 위치 연동
+3) 선택한 Sectional Line 위치에 따라 Section View의 Slice 변경",
+8,CWV-REQ-SEC-005,EP01_F008_PanoView,Panorama view,Sectional Line,Move Sectional Line (Pano),Panorama view에서 사용 가능한 조작 기능 설명,"1) Panorama View에서 Sectional Line 위치 이동
+2) 선택한 Sectional Line 위치에 따라 Scout View의 Sectional Line 위치 연동
+3) 선택한 Sectional Line 위치에 따라 Section View의 Slice 변경",
+9,CWV-REQ-SEC-006,EP01_F009_SectionView,Section view,Section Slice,Change Section Slice,Section view에서 사용 가능한 조작 기능 설명,"1) Section View에서 Slice 변경
+2) Slice 변경에 따라 Scout 및 Panorama View의 Sectional Line 위치 연동",
+10,CWV-REQ-SEC-007,EP01_F010_ThicknessInterval,Section view,Thickness/Interval,Section Thickness/Interval,Section 레이아웃의 Thickness 및 Interval을 변경할 수 있다.,"1) Section View의 Thickness 및 Interval 변경
+2) 변경된 값은 Scout, Panorama, Section view에 적용",* 1) UI 및 동작 방식은 MPR Layout과 동일
+11,CWV-REQ-SEC-009,EP01_F011_WindowingFilter,Section,Windowing,"Width/Level, Image Filter",Section View의 Windowing 값을 변경하고 Image Filter를 적용할 수 있다. ,"1) Section View의 Windowing 값 변경
+2) Section View의 Image Filter 적용","* 1) UI 및 동작 방식은 MPR Layout과 동일
+* 개발실 추가 협의 필요
+: Cloud Web Viewer의 MPR 레이아웃에서 제공하던 기능이며, Section 레이아웃에도 동일하게 기능을 제공한다."
+12,CWV-REQ-SEC-008,EP01_F012_NewCommonTools,Section,Tool,Common Tool,"공통 툴 신규 추가 (Angle 순서 변경, Free Draw 기능 확대, Arrow 신규 추가)","1) Angle 버튼 순서 변경
+2) CT 영상에 Free Draw 입력 가능하도록 스펙 변경
+3) Arrow 툴 추가 (2D, CT 공통)",
+13,CWV-REQ-SEC-008,EP01_F013_CommonTools,Section,Tool,Section Layout Tools,Section 레이아웃에서 Cloud Web Viewer의 공통 툴을 사용할 수 있다.,"Section 레이아웃에서 사용 가능한 공통 툴 설명
+1) Pan, Zoom, Reset View, Pointer
+2) Length, Angle, Free Draw, Arrow
+3) Grid, Overlay On/Off
+4) Reset Cloud Work, Initialize All
+5) Single/Dual Layout 전환
+6) View Original
+7) Setting",
+14,CWV-REQ-SEC-008,EP01_F014_SaveProject,Section,Tool,Save Project,Section 레이아웃의 작업 내용을 저장할 수 있다.,1) Cloud Web Viewer 작업 내용 저장 기능,"* 개발실 추가 협의 필요
+: Cloud Web Viewer의 기존 기능이며, Section 레이아웃에도 동일한 저장 기능을 제공한다."
