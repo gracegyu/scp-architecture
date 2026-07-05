@@ -782,6 +782,12 @@ components:
         cacheTtlSeconds:
           type: integer
           description: '이 해석 결과를 클라이언트가 캐시해도 되는 시간(초). 만료 후 재해석 권장(§7.3.1 soft-state)'
+        hosts:
+          type: object
+          description: '클라이언트가 실제 호출하는 공개 호스트 — 모두 GeoDNS라 **리전 불변**(리전별로 다르지 않음·참고용, §4.5.1). endpoint(리전 내부 진단용)와 구분'
+          properties:
+            apex: { type: string, description: 'GW 고유 API·프록시 apex(예 gw.vatech.com, GeoDNS). 프록시 target은 {target}.gw.vatech.com' }
+            webhookHostPattern: { type: string, description: 'provider 웹훅 수신 호스트 관례({provider}.webhook.gw.vatech.com) — 외부 provider가 이 리전 클리닉 이벤트를 push할 때 쓰는 호스트(GeoDNS, §4.5.1·§7.6.1)' }
         sovereigntyPolicy:
           type: object
           description: 'PHI 데이터 주권 정책(§7.3.3) — PHI 바이트가 이 리전을 벗어나지 못함(OPA 집행)'
@@ -789,6 +795,13 @@ components:
             dataResidencyRegion: { type: string, description: 'PHI가 머물러야 하는 리전(보통 region과 동일)' }
             phiEgressAllowed: { type: boolean, description: '리전 밖 PHI 유출 허용 여부(항상 false)' }
             crossBorder: { type: boolean, description: 'true면 국경 간 — 재동의·주권 재평가(FR-COMP-02)' }
+            storage:
+              type: object
+              description: 'PHI storage 주권 — GW는 storage 비호스팅, 발급 provider(CleverSpace/AXS) 소유(§7.4·§3.1.2)'
+              properties:
+                hostedBy: { type: string, description: '항상 provider — PHI 바이트는 provider storage에 presigned 직결(GW 비경유)' }
+                kind: { type: string, description: 'AWS 리전=S3, AWS 미지원국=provider MinIO 등(provider가 결정·리전 주권 충족)' }
+                regionBound: { type: boolean, description: 'provider storage가 dataResidencyRegion 안에 있어야 함(항상 true)' }
 
     # Webhook
     WebhookEnvelope:
