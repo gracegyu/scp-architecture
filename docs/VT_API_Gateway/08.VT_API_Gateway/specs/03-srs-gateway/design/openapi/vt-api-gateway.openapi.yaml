@@ -362,6 +362,7 @@ paths:
   #
   # 프록시 에러·복원력 계약 (정본 §7.5.4·§7.7.4 — 경로가 아니라 전 프록시 공통이므로 여기 주석으로 기술):
   #   - GW→provider 연결 timeout(connect/response/total_deadline, UpstreamRegistry)=GW 책임(7/2 R4·D1~D3): GW가 provider에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound. total_deadline < 클라이언트 타임아웃.
+  #   - 클라이언트 타임아웃 인지(D10): 프록시 호출 시 클라이언트가 선택적 요청 헤더 Vatech-Timeout-Ms(상대값 ms) 전송 가능 → GW가 내부 deadline=now+min(헤더, total_deadline)로 클램프(gRPC grpc-timeout 선례). 미전송 시 계약값(EzServer 30s, D4) 사용. 프록시는 verbatim이라 본 헤더는 upstream에 전달 안 함.
   #   - 재시도·서킷 브레이커=service mesh(istio) egress 담당(GW 미구현, D5~D8).
   #   - GW 정규화 오류 = ProxyError 스키마: 502 연결실패(UPSTREAM_UNREACHABLE) / 504 timeout·deadline(UPSTREAM_TIMEOUT, GW 자기 timeout) / 503 서킷·일시불가(UPSTREAM_UNAVAILABLE, mesh). 헤더 Vatech-Error-Origin: gateway.
   #     재사용 응답 정의 = components/responses/{UpstreamUnreachable(502), UpstreamUnavailable(503), UpstreamTimeout(504)} (프록시 게이트웨이 핸들러에서 사용).
