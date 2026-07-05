@@ -611,14 +611,14 @@ components:
     # --- 프록시(B/C) 전용 — GW 생성 오류. 특정 경로가 아니라 target 서브도메인 proxy 공통(§7.5.4·§7.7.4). ---
     # --- upstream 자체 4xx/5xx는 본 응답을 쓰지 않고 원응답을 verbatim 통과(Vatech-Error-Origin: upstream). ---
     UpstreamUnreachable:
-      description: upstream 연결 실패(거부·DNS·TLS) — GW 생성 (502)
+      description: upstream 연결 실패(거부·DNS·TLS) — GW 연결 timeout·GW 정규화 (502)
       headers:
         Vatech-Error-Origin: { $ref: '#/components/headers/VatechErrorOrigin' }
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ProxyError' }
     UpstreamUnavailable:
-      description: 서킷 개방 / upstream 일시 불가 — GW 생성 (503)
+      description: 서킷 개방(mesh/istio) / upstream 일시 불가 — GW 정규화 (503)
       headers:
         Retry-After: { $ref: '#/components/headers/RetryAfter' }
         Vatech-Error-Origin: { $ref: '#/components/headers/VatechErrorOrigin' }
@@ -626,7 +626,7 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/ProxyError' }
     UpstreamTimeout:
-      description: upstream 응답 지연 — GW deadline 초과·GW 생성 (504)
+      description: upstream 응답 지연 — GW 연결 timeout(response/total_deadline, D2/D3) 초과·GW 정규화 (504)
       headers:
         Vatech-Error-Origin: { $ref: '#/components/headers/VatechErrorOrigin' }
       content:
