@@ -1432,7 +1432,7 @@ FR-AUTH-03·04 (외부(AXS 등) 토큰 암호화 저장·만료 전 자동 갱�
 
 - **Output**: 외부 connector(§7.5)가 사용할 유효 토큰. 평문 미노출(KMS)
 - **Side Effect**: 만료 전 자동 갱신, secret 무중단 교체(이중 윈도우)
-- **에러**: 갱신 실패 시 백오프 재시도 후 connector 호출 차단·알람
+- **에러**: 갱신 실패 시 백오프 재시도 후 connector 호출 차단·알람. *(이 재시도는 **앱 레벨 토큰 수명 관리**이며, 프록시 요청 경로의 재시도·서킷=mesh(istio, §7.5.4·R4)와 별개다.)*
 
 ### 7.1.4 OneID(OIDC) 연계 — 사람·클리닉·사내 호출자 (P1)
 
@@ -1708,7 +1708,7 @@ FR-COMPAT-04 (미지원 시 표준 오류코드 + "업데이트 필요" fallback
 | --- | --- | --- | --- |
 | upstream 연결 실패(거부·DNS·TLS) | `502` Bad Gateway | GW envelope(`UPSTREAM_UNREACHABLE`) | `gateway` |
 | upstream 응답 지연 — GW 연결 timeout·deadline 초과(D2/D3) | `504` Gateway Timeout | GW envelope(`UPSTREAM_TIMEOUT`) | `gateway` |
-| 서킷 개방 / upstream 일시 불가 | `503` Service Unavailable(+`Retry-After`) | GW envelope(`UPSTREAM_UNAVAILABLE`) | `gateway` |
+| 서킷 개방(mesh/istio) / upstream 일시 불가 | `503` Service Unavailable(+`Retry-After`) | GW envelope(`UPSTREAM_UNAVAILABLE`) | `gateway` |
 | 라우팅 실패(미등록 target 서브도메인·allowlist 외) | `404`/`403` | GW envelope | `gateway` |
 | upstream이 자체 4xx/5xx 응답 | upstream 원 코드 | **upstream body verbatim**(GW 미변형) | `upstream` |
 | 클라이언트 조기 절단 | (응답 없음) | — GW가 upstream 호출 취소 | — |
