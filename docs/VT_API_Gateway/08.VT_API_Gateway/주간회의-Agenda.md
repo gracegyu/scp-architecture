@@ -411,6 +411,18 @@
     - **SRS 반영 완료**: DBML(Table `upstream`)·OpenAPI(`Upstream`·`/admin/v1/upstreams`)·db-jsonb(#upstream)·redis(`gw:cache:upstream`)·SRS §6.4·§7.5·§7.6·§7.9·§2.3.4·ERD·API명세·③-C·ARD 전부 정합.
     - **이번 회의에서 다른 이름으로 바뀌면** 그때 일괄 재반영(단순 rename). 결정만 주면 됨.
 
+  - **R4. AXS Org-ID 취득 경로·절차 (조사 — 이번 회의 확정 불요)** — AXS webhook 분배·아웃바운드 호출의 라우팅 키인 **외부 Org-ID(Straumann Organization-ID)를 각 클리닉이 어떻게 갖게 되는가**를 확인한다. GW는 `org_mapping`(로컬 매핑)만 채우지만, 그 전에 "그 클리닉의 AXS 조직이 우리 연동과 연결돼 Org-ID가 존재"해야 하는데 그 취득 경로가 미확인이다(§2.3.4 「연동 링크·org_mapping 생애주기」는 GW 공통 레일만 규정).
+    - **묻는 것 (핵심 3택)**:
+      1. 클리닉이 **이미 Straumann에 등록**돼 Org-ID를 보유하고 있나? (경우 A — 기존 AXS 고객)
+      2. 아니면 EzServer 설치 시 **우리가 Straumann 등록/연결 절차를 대행**해 Org-ID를 발급·연결받아야 하나? (경우 B — 신규)
+      3. **두 경우가 다 존재**하나? (일부 기존 고객 / 일부 신규 → GW는 양쪽 다 수용해야)
+    - **경우 B라면 절차는? (어디서·누가·어떤 UI)**:
+      - AXS **별도 콘솔/포털**에서 조직 담당자가 발급·동의하는가? (out-of-band)
+      - **GW가 AXS API로** 대행하는가? — *우리 조사(AXS Organization API)*: `POST /v1/organization/integration/link`(`customerNumber` + 우리 Client ID) → `organizationId` + **조직 관리자 동의**(status `PENDING`→`APPROVED`). 즉 **조직 자체는 Straumann 고객**이고 우리는 그 조직에 우리 연동을 **"연결(link)"** 만 한다(생성 아님). 보조 API `.../check`(연결 확인)·`.../unlink`(해제)·`.../{customerNumber}/info`(region·country).
+      - **EzServer Console에서** 그 연결을 트리거하는 **UI를 제공**해야 하나? (customerNumber 입력·동의 상태 표시·완료 시 org-binding 자동 등록 등)
+    - **부가 요청**: Straumann과 **계약·sandbox 제공 시 Tech support(기술 질의) 채널**도 함께 확보 요청 — 위 절차·동의 흐름·`customerNumber` 취득 방법은 Straumann에 직접 확인해야 정확하다. (AXS sandbox 자격은 이월 #6과 연계)
+    - **성격/산출**: [정보·조사] — **이번 회의 확정 불요**, "알아볼 경로(누구에게·어떻게 확인할지)"만 정하면 됨. 확정 시 **④ AXS Sub-SRS**에 구체화(경우 A/B 판정·링크 트리거 주체·UI 소유). **미확정 시 차주 이월**(아래 이월 논의 사항에 등재 예정). 근거 자료: 참조-카탈로그 §3 AXS_docs `organization.yml`·Integration_guide.
+
 - 공유 사항 (결정 아님 · 정보 공유)
 
   - **S1. GW→각 EzServer(클리닉) 범용 하행(downlink) 레일 확보** — webhook 역방향 분배를 위해 만든 **MQTT 하행 채널**(EzServer가 방화벽 뒤에서 outbound 지속 구독, §7.6.6)은, 사실상 **중앙(GW)에서 각 클리닉 edge로 능동 전달하는 최초의 수단**이다. 토픽을 `gw/clinic/{clinicId}/{stream}` 로 두어 **`{stream}` 확장점을 예약**했다(EzServer는 `#` 구독·미지 stream 무시·forward-compat).
@@ -470,3 +482,15 @@
         PR 리뷰·수정          :active, infpr, after infw2, 14d
         baseline              :milestone, infbl, after infpr, 0d
     ```
+
+- 이월 논의 사항 (6/25·7/2 미결 — 계속)
+  | # | 항목 | 타입 | 상태 |
+  | --- | --- | --- | --- |
+  | 4 | Webhook 클라우드 분배(CleverLab 갈래B) | [논의] | v1.0 제외 — Open 후 결정 |
+  | 6 | AXS sandbox 자격증명(Straumann 제공) | [정보] | pilot(08-15) 블로커 — 확보 시점? (R4 Tech support 채널과 함께 요청) |
+  | 7 | 경로 B EOS 시점 | [논의] | ① One Pager 확정 의존 |
+  | 8 | v1.0 목표 RPS·동시 세션 | [정보] | 인프라/규모 PL 입력 대기 |
+  | 9 | RTO/RPO·유지보수 윈도우 | [정보] | 인프라 설계 단계 |
+  | 10 | 감사·consent 보존 기간 | [정보] | 법무 확인 대기 |
+  | 11 | 호환성 매트릭스 확정본 | [정보] | ① One Pager 의존 |
+  - **차주 이월 후보**: R4(AXS Org-ID 취득 경로·절차)가 이번 회의에서 확정/조사경로 미정이면 다음 주 이월 논의에 등재.
