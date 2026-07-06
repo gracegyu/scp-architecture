@@ -1,5 +1,7 @@
 # ③-I — GW Infra 구축 계획 (3·4단계)
 
+> **이 파일의 역할 = 승격용 구조화 씨앗(seed).** ③ SRS 작업 중 이 문서로 갈 내용을 **최종 목차에 대응되게** 미리 정리해 둔다(발견 즉시 캡처·인사이트 유실 방지). 정식 Sub-SRS/문서 집필은 **의존하는 ③ SRS 절이 baseline된 뒤 승격**한다 — 몰아쓰기가 아니라 "옮겨 붙이고 살 붙이기". 승격 트리거: ① ③ 해당 절 동결 + ② 소유권 확정(GW 공통 아님) + ③ 레포/템플릿 존재. 근거: ③이 흔들리는 동안 자식 문서를 미리 쓰면 개명·재번호가 수십 절로 번져 유지면이 폭발한다.
+
 - 상태: 미작성 (인프라 담당 별도 — GW SRS 요구를 입력으로 IaC 계획 작성)
 - 문서 유형: IaC 구축 계획서 (기능 스펙/One Pager 아님)
 - 범위: **단일 Region GW(3단계·v1.0)** — **Route 53 GeoDNS 라우팅·DNS 호스트(apex `gw.vatech.com` + webhook `{target}.webhook.gw.vatech.com`)·K8s HA·고정 egress IP를 v1.0부터 구축**(GeoDNS 대상=서울 1개로 resolve, 멀티리전-ready, SRS §2.7.1·§4.5.1). **4단계=N리전 활성화**(GeoDNS 라우팅 대상 증분·글로벌 복제 — record 타입·클라이언트 변경 없음). 비-AWS국 MinIO는 upstream(CleverSpace/AXS) 제공(GW 중계만)
