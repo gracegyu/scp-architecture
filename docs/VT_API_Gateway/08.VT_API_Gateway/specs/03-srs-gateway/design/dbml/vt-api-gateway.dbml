@@ -316,7 +316,7 @@ Table upstream_registry {
   created_at          bigint                               // 생성 시각(Unix ms). 예 `1720137600000`
   updated_at          bigint                               // 수정 시각(Unix ms). 예 `1720224000000`
 
-  Note: '프록시 라우팅(§4.1.2 · ADR-11 7/2 R1 — GW edge=target 서브도메인 {target_id}.gw.vatech.com, `*.gw.vatech.com` 와일드카드라 신규 upstream = 1행이면 DNS·cert 추가 0). external(C) 자격/egress 상세는 connector 연계. **연결 timeout(connect/response/total_deadline)은 GW 책임**(GW가 provider에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound, 7/2 R4·§7.5.4). **재시도·서킷 브레이커는 service mesh(istio) egress 담당(GW 미소유·컬럼 없음)**. GW 앱레벨=오류 정규화·멱등·취소'
+  Note: '**프록시 라우팅 레지스트리**(target-routed proxy, ADR-11·§4.1.2). GW는 요청의 호스트 `{target_id}.gw.vatech.com` 로 프록시 대상을 정하는데, 이 표가 그 **서브도메인 라벨(target_id) → 실제 host·신뢰프로파일·연결 timeout** 매핑을 보관한다. 예컨대 `axs.gw.vatech.com` 요청이 오면 GW는 `target_id=axs` 행을 찾아 `host`로 요청을 그대로(verbatim) 프록시하고, 그 행의 `profile`(internal/external)과 timeout을 적용한다. **한 행 = 프록시 대상 하나**다. **v1.0에도 행이 여러 개**다 — `axs`(외부 C·Straumann) · `cleverspace`(내부 B·presigned 백엔드) · `oneid`(내부 B·인증 연계); axs 하나가 아니다. 신규 연동은 **행 1개 추가**로 끝난다(`*.gw.vatech.com` 와일드카드 DNS·cert라 인프라·코드 추가 0). 역할 분담: 외부(C)의 OAuth 자격·egress allowlist는 `connector`가, 정책 판정은 `policy`가 맡고, **본 표는 "어느 host로 보내고 얼마나 기다리나"(라우팅+연결 timeout)만** 담당한다. 연결 timeout(connect/response/total_deadline)은 GW가 provider에 직접 연결하는 HTTP 클라이언트라 **GW 책임**(D1~D3·§7.5.4)이고, **재시도·서킷 브레이커는 service mesh(istio) egress**가 담당한다(GW 미소유·컬럼 없음). GW 앱레벨은 오류 정규화·멱등·취소만 맡는다.'
 }
 
 // 분배 채널 (clinic → 어떤 방식으로 client에 전달) FR-WH-05/06
