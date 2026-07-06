@@ -658,7 +658,7 @@ sequenceDiagram
     par 클라우드 대상 = CleverLab만 (갈래B 보류)
         DISP->>CL: HTTP push (내부망)
     and Edge 대상 (갈래A 역방향, b1)
-        DISP->>EZ: MQTT QoS1 publish (IoT Core · EZ outbound 구독)
+        DISP->>EZ: MQTT QoS1 publish → gw/clinic/{clinicId}/webhook (EZ outbound 구독·§7.6.6)
     end
     Note over WH,EZ: 미등록 Host/provider → 404 · 인증(HMAC) 실패 → 401 · 식별=수신 Host / 목적지=매핑(§7.3)
     Note over Q,CL: 현 v1.0 구체 대상=EzServer(b1). 클라우드 수신=CleverLab만(갈래B 보류) · CleverSpace는 대상 아님(아래 표·§7.6.5)
@@ -1703,6 +1703,19 @@ FR-WH-05 (클라우드 대상에 내부망 HTTP push, 순서 보존). **클라�
 
 FR-WH-06 (EzServer로 **MQTT QoS1·persistent**, 토픽=클리닉 단위). 오프라인 시 버퍼 후 재전달. b1(pilot)에 forward + 역방향 포함(AXS pilot 일정). **엣지 전달(B)에 SQS를 쓰지 않는다** — EzServer는 방화벽 뒤라 inbound 불가하고 **outbound 지속 구독(subscribe)으로 push받아야** 하므로 MQTT가 필수다(SQS 폴링·자격 배포는 부적합). 발행 주체는 **Webhook Dispatcher(§7.6.7)** 이며, EzServer가 브로커에 구독해 push받는다. **브로커 후보 = AWS IoT Core / Amazon MQ**(방화벽 뒤 엣지·cert 인증·fleet 규모). 제품·운영 주체 **TBD**(§3.1.2·Appendix B #4). 내부 큐(A·SQS, §7.6.3)와 **별개 레그**다(A=SQS pull 버퍼, B=MQTT push — 역할·서비스 분리).
 
+**토픽 규약(clinic-scoped 하행) — 확정.** 하행 토픽은 **클리닉 스코프**로 정한다:
+
+```
+gw/clinic/{clinicId}/{stream}        # {clinicId}=LMP 발급 Clinic-ID(전역 유일), {stream}=하행 용도(v1.0=webhook만·나머지 예약 확장점)
+```
+
+- **리전은 토픽에 넣지 않는다.** `clinicId`가 전역 유일이라 그 자체로 클리닉/EzServer를 특정하고, **리전은 EzServer가 접속하는 브로커 endpoint 선택으로 이미 결정**된다(토픽 중복 불요·교차리전은 대상 리전 브로커로 발행).
+- **브로커 endpoint 획득(EzServer 측)**: EzServer는 **자기 클리닉 리전의 브로커 endpoint**에 접속해야 하며, 이 endpoint는 **region resolution(`GET /v1/region/resolve`)·enrollment config로 GW가 하달**한다(브로커 endpoint 필드는 #4 확정 시 `RegionResolveResponse.hosts`에 추가) — EzServer는 받은 endpoint에 붙어 자기 토픽만 구독한다. 클리닉 relocation(리전 변경) 시 EzServer는 **새 리전 브로커로 재접속**하며 토픽은 불변. (구체 endpoint 필드·브로커 문법은 브로커 제품 #4 확정 후.)
+- **`{stream}` = 범용 하행 레일(예약 확장점)**: 이 MQTT 하행은 **GW→방화벽 뒤 EzServer로 능동 전달하는 최초의 수단**이라, 토픽에 `{stream}` 축을 두어 미래 다양한 하행 용도를 무구조변경으로 수용한다. **v1.0 구현 = `webhook`(이벤트 분배) 하나뿐**이며, `announce`(공지·클라이언트 업데이트 안내)·`command`(kill-switch 등)·`config`(원격 설정, §7.8.4)·`promo` 등은 **예약된 미래 확장점(미구현)** 이다. 새 용도는 **발행자만 추가**하면 되고 레일·구독은 불변(확장점 예약 비용≈0, 기능은 미구현).
+- **구독·격리**: EzServer는 **자기 클리닉 프리픽스 전체를 구독**(`gw/clinic/{clinicId}/#`)하고 **모르는 stream은 무시**한다(미래 stream 추가 시 재구독·재배포 불요·forward-compat; v1.0은 `webhook`만 처리). 브로커 authz(cert/IoT policy)로 **타 클리닉 토픽 접근을 차단**한다. (EzServer=클리닉당 1대·ADR-08이라 clinic-scope = 그 device.)
+- **QoS·전달**: 모든 하행 **QoS1·persistent**(오프라인 버퍼 후 재전달). 따라서 `webhook_event.dispatch_target` = `mqtt_edge:gw/clinic/{clinicId}/webhook`.
+- **브로커 독립**: 위는 **논리 구조**이며, 브로커 제품(#4) 확정 시 **브로커별 토픽 문법만 매핑**한다(IoT Core는 슬래시 계층 그대로 사용). 논리 구조는 불변.
+
 ### 7.6.7 Webhook Dispatcher — 분배 워커(SQS consumer) (P1)
 
 FR-WH-07 (수신과 분배를 잇는 **Webhook Dispatcher**). §7.6.3 큐(A·SQS)에 적재된 이벤트를 **소비(consume)** 해 대상별로 발행하는 GW 컴포넌트다 — 큐는 스스로 push하지 못하므로, Webhook Dispatcher가 §7.6.5(HTTP push)·§7.6.6(MQTT) 전달을 수행한다.
@@ -1813,16 +1826,18 @@ FR-CFG-01 (타겟팅 원격 적용).
 
 **실효 버전(`configVersion`) = 콘텐츠 해시.** GW는 실효 config에 기여한 항목들을 `(config_key, config_value, 기여 행 version)`로 정렬해 canonical JSON으로 직렬화한 뒤 **SHA-256 hex 문자열**을 산출한다(문자열). 값·기여 스코프·행 `version` 중 하나라도 바뀌면 해시가 바뀌고 아니면 안정적이라, device는 자신의 `appliedConfigVersion`과 **동등성만 비교**(순서 무의미)해 다르면 다시 pull한다. **행 `version`의 최댓값은 쓰지 않는다**(더 구체 스코프 값 변경을 놓칠 수 있음). **전역 단조 카운터도 쓰지 않는다**(무관한 device까지 재-pull 유발). 산출식은 stateless라 pod 간 동일 결과를 보장한다.
 
-**전달(delivery).** GW는 device에 접속할 수 없으므로(§7.8.1과 동일 제약) 두 경로만 쓴다.
+**v1.0 범위 — 중앙 config는 GW-내부(gw.*)가 실사용.** v1.0에서 중앙 config는 **GW 인스턴스(여러 pod·리전)가 공유하는 런타임 설정(`gw.*`)** 이 실제 용도다(재배포 없이 조정). device를 건드리는 값은 **heartbeat 주기(`gw.heartbeat.interval_seconds`) 하나뿐이며, 이는 heartbeat 응답(`nextIntervalSeconds`)으로 전달**한다(별도 하행 불요). **device로의 원격 config 전달**(아래 pull/push·`device.*` 키)은 **gw/1.1+ 기능**으로, §7.6.6 범용 하행 레일의 미래 활용이다(v1.0 미구현).
 
-| 경로 | 동작 | v1.0 |
+**전달(delivery) — gw/1.1+.** device 대상 config 전달이 필요해지면(방화벽 뒤라 GW가 접속 불가·§7.8.1 동일 제약) 두 경로를 쓴다.
+
+| 경로 | 동작 | 상태 |
 | --- | --- | --- |
-| **Pull(기본)** | device가 `GET /v1/fleet/config`(인증 토큰 subject=device_id)로 자신의 실효 config 조회. + heartbeat 응답(`FleetHeartbeatAck.configVersion`)으로 "적용 버전과 다르면 다시 pull" 신호(piggyback) | O |
-| **Push-notify(옵션)** | 즉시 반영이 필요하면 GW가 **역방향 MQTT(§7.6.6)** 로 "config 변경" 알림 publish → device가 받아 pull | 알림까지만(전체 payload MQTT push는 gw/1.1) |
+| **Pull** | device가 `GET /v1/fleet/config`(인증 토큰 subject=device_id)로 자신의 실효 config 조회. + heartbeat 응답(`FleetHeartbeatAck.configVersion`)으로 "적용 버전과 다르면 다시 pull" 신호(piggyback) | **gw/1.1+** |
+| **Push-notify** | GW가 **역방향 MQTT(§7.6.6)** `config` stream으로 "config 변경" 알림 publish → device가 받아 pull | **gw/1.1+** |
 
-push-notify 메시지는 **트리거일 뿐 config 본문을 싣지 않는다**: `{ "type": "config.changed", "deviceId": "<id>", "configVersion": "<해시>", "at": <Unix ms> }`. device는 이를 받으면 `GET /v1/fleet/config`로 pull한다. 알림이 유실돼도 다음 heartbeat의 `configVersion`으로 복구되므로 **at-most-once로 충분**하다(재전송·순서 보장 불요). 토픽은 device 다운링크(§7.6.6).
+push-notify 메시지(gw/1.1+)는 **트리거일 뿐 config 본문을 싣지 않는다**: `{ "type": "config.changed", "deviceId": "<id>", "configVersion": "<해시>", "at": <Unix ms> }`. device는 이를 받으면 `GET /v1/fleet/config`로 pull한다. 알림이 유실돼도 다음 heartbeat의 `configVersion`으로 복구되므로 **at-most-once로 충분**하다. 토픽 = **`gw/clinic/{clinicId}/config`**(§7.6.6 하행 레일의 예약 `config` stream).
 
-**적용·오류·drift.** device는 받은 config를 **원자적으로 적용**하고, 실패 시 **이전 config를 유지**한 채 다음 pull에서 재시도한다. device는 적용한 버전(`appliedConfigVersion`)을 heartbeat 본문에 실어 보고하고, GW는 이를 실효 버전과 비교해 **미반영(drift) device를 대시보드에 노출**한다(관리 API §7.9 / ③-C).
+**적용·오류·drift(gw/1.1+).** device는 받은 config를 **원자적으로 적용**하고, 실패 시 **이전 config를 유지**한 채 다음 pull에서 재시도한다. device는 적용한 버전(`appliedConfigVersion`)을 heartbeat 본문에 실어 보고하고, GW는 이를 실효 버전과 비교해 **미반영(drift) device를 대시보드에 노출**한다(관리 API §7.9 / ③-C).
 
 **관리·보안.** 운영자는 `GET/PUT/DELETE /admin/v1/config`(design/openapi, `admin` 태그)로 (스코프, 키, 값)을 CRUD하며, 모든 변경은 감사된다(action=`config.publish`, §7.9.3). config에 **PHI를 넣지 않는다**(§6.4). device pull은 인증 필수이며 device는 **자기 스코프의 실효 config만** 조회한다(타 device config 노출 금지). 값은 키 레지스트리 스키마로 검증해 잘못된 타입·범위를 거부한다.
 
@@ -1908,7 +1923,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 28 | `client_id` 발급 형식 | **확정(2026-07-01): `client_id` = `gwc_` + base64url(128비트 CSPRNG)**(패딩 없음, 총 26자, 불투명·내부 식별자 비파생·비밀 아님). UNIQUE 충돌 시 재생성(무시할 확률). 재설치·키 회전 시 재발급 | §7.2.5·§7.1.1 |
 | 26 | IaC 도구 | **확정(2026-07-02, R5): Terraform** — 조직 표준 `es-infra`(Terraform)에 편입, 별도 IaC 도구 없음(ARD §4.5 일치). k8s 배포=기능별 Deployment 분리(GW core·Webhook Receiver·Webhook Dispatcher) | §6.6.2·§2.1.1·§7.6 |
 | 31 | egress 규칙 SSOT 일원화 | **확정(2026-07-06): `connector.egress_allowlist` 단일 SSOT**(+`requireStaticEgressIp` 이관). `policy.egress`·`upstream_registry.egress_allowlist` **제거**(3중복 해소). egress=외부(C) 대상 속성이지 per-tenant authz 아님 — OPA·네트워크 모두 connector 참조 | §7.5.3·§6.4·design/db-jsonb-fields.md |
-| 35 | 중앙 Config(§7.8.4) 저장·전달·버전 모델 | **확정(2026-07-06)**: SSOT=PostgreSQL `config` 테이블(`config_scope` global/region/clinic/device·다형 참조), 실효=키별 가장 구체 우선(override 병합), 실효 `configVersion`=**콘텐츠 해시(SHA-256, 문자열)**(행 version 최댓값·전역 카운터 아님), 전달=pull(`GET /v1/fleet/config`+heartbeat `configVersion` 신호)/push-notify(역방향 MQTT `config.changed` 알림·at-most-once·본문 미포함), 키 레지스트리=**앱 레벨 확장형 seed**(db-jsonb#config·DB enum 아님), 관리=`/admin/v1/config` CRUD(감사 `config.publish`). Console UI 화면=③-C 위임. **v1.0 비목표**(gw/1.1↑): rollout/카나리·명명 그룹 코호트·MQTT 전체 payload push(FR-FLEET-04) | §7.8.4·§7.8.1·design/dbml·design/db-jsonb-fields.md#config·design/openapi |
+| 35 | 중앙 Config(§7.8.4) 저장·전달·버전 모델 | **확정(2026-07-06)**: SSOT=PostgreSQL `config` 테이블(`config_scope` global/region/clinic/device·다형 참조), 실효=키별 가장 구체 우선(override 병합), 실효 `configVersion`=**콘텐츠 해시(SHA-256)**, 키 레지스트리=**앱 레벨 확장형 seed**(db-jsonb#config·DB enum 아님), 관리=`/admin/v1/config` CRUD(감사 `config.publish`). **v1.0 실사용 = GW-내부 config(`gw.*`, pod·리전 공유)** + heartbeat 주기(`gw.heartbeat.interval_seconds`)를 heartbeat 응답으로 device 전달. **device로의 원격 config 전달(`device.*`·`GET /v1/fleet/config` pull·MQTT `config` stream push-notify·configVersion drift)=gw/1.1+**(§7.6.6 범용 하행 레일의 미래 활용). Console UI=③-C. 기타 비목표(gw/1.1↑): rollout/카나리·명명 그룹(FR-FLEET-04) | §7.8.4·§7.8.1·§7.6.6·design/dbml·design/db-jsonb-fields.md#config·design/openapi |
 
 ### B-2. 미결 (열린 TBD — baseline 전/설계 단계에 닫을 항목)
 
@@ -1922,7 +1937,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 1 | v1.0 목표 RPS·동시 세션(fleet 규모) | §5.1·5.2 | 인프라(규모 PL 입력) | 설계 착수 전 | §3.1·§7.1·§7.4 |
 | 2 | 공개 엔드포인트 DNS 잔여 — apex는 확정(#23). 인증서·GeoDNS 구성·리전 내부 호스트 + **Webhook provider별 호스트 `{provider}.webhook.gw.vatech.com` 명시 등록**(와일드카드 DNS 미사용, TLS는 `*.webhook…` 와일드카드 cert 가능) | §4.5.1·§7.6.1·§7.6.2 | 인프라/플랫폼팀 | 배포 구성 착수 전 | §1.7.1·§3.1·§7.3.5·§7.6.1·①②④·③-C |
 | 3 | 경로 B EOS 시점 | §2.8·§7.6 | PM(제품) | ① One Pager 확정 시 | §7.6·① |
-| 4 | 엣지(B) MQTT 브로커 제품·운영 주체 — 후보 AWS IoT Core / Amazon MQ. (내부 큐 A=SQS는 §3.1.2, 별개) | §3.1.2·§7.6 | 운영조직/인프라(미정) | ③-P-EZ 착수 전 | §7.6·§3.1.2·ARD |
+| 4 | 엣지(B) MQTT 브로커 제품·운영 주체 — 후보 AWS IoT Core / Amazon MQ. (내부 큐 A=SQS는 §3.1.2, 별개) **논리 토픽 규약은 §7.6.6에 확정**(`gw/clinic/{clinicId}/{stream}`, 리전 미포함)이라, 잔여=**브로커 제품·운영 주체 + 브로커별 토픽 문법 매핑·authz(cert/policy) + 브로커 endpoint 하달 필드(`RegionResolveResponse.hosts`에 추가)** | §3.1.2·§7.6.6 | 운영조직/인프라(미정) | ③-P-EZ 착수 전 | §7.6·§3.1.2·ARD |
 | 5 | 감사·consent 보존 기간 | §6.4·§7.9.3·§7.9.5 | 품질/법무 | baseline 전 | §6.5 |
 | 6 | OpenAPI·DBML (`docs/specs/design/`) | §1.5·§4.1·§6.4 | GW(본인) | dev-chain-design 작성 후 | §7 전반 |
 | 8 | 호환성 매트릭스 확정본 | §2.8·§7.7.5 | ① One Pager | ① 확정 시 | §7.7 |
@@ -2118,6 +2133,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-06 | **fleet heartbeat 메커니즘·API 명문화** — `fleet_state.last_heartbeat`는 device→GW push로만 갱신됨을 확정(GW는 병원 방화벽 뒤 edge를 폴링 불가). §7.8.1에 메커니즘 서술(주기 push·`nextIntervalSeconds`·온라인/오프라인 임계값 파생 판정·device 유휴시에도 전송)·Input/Output·device 구현 가이드 추가, **`POST /v1/fleet/heartbeat` 신설**(OpenAPI: `fleet` 태그·`FleetHeartbeat`/`FleetHeartbeatAck` 스키마), DBML `last_heartbeat` 주석 보강. **③-P-EZ onePager에 EzServer 주기 호출 구현 가이드 반영**. 정본 주기·오프라인 임계값 = Appendix B #34(운영 튜닝). 스키마 컬럼 변경 없음(주석·API 추가) | (작성자 ID 미지정) |
 | 2026-07-06 | **heartbeat `nextIntervalSeconds` 관리 계층 명시 + 중앙 config 갭 등록** — §7.8.1에 2계층(정본=중앙 config §7.8.4 resolve, fallback=`.env` 앱 기본값; resolve 순서·`.env`는 재배포/전역뿐이라 fallback 용도임) 명문화. §7.8.4 중앙 config가 요구사항만 있고 **저장·전달 모델 미설계**임을 **Appendix B #35 신설**로 등록(config 저장 스키마·전달 방식·실패 재시도). 문서만(스키마 변경 없음) | (작성자 ID 미지정) |
 | 2026-07-06 | **§7.8.4 중앙 Config 구현 수준 서술 + 데이터 모델·API 신설** — 요구사항 한 줄이던 §7.8.4를 구현 가능 수준으로 전면 서술: 정의(원격 fleet 설정 관리)·두 종류(`gw.*`/`device.*`)·SSOT=PostgreSQL·스코프(global/region/clinic/device)·실효 해석(키별 가장 구체 우선 override)·전달(pull=`GET /v1/fleet/config`+heartbeat configVersion / push-notify=역방향 MQTT)·적용/오류/drift·관리 API·보안. **DBML `config` 테이블+`config_scope` enum 신설**(13 테이블), **db-jsonb#config**(키 레지스트리·값 형식) 신설, **redis `gw:cache:config:{deviceId}`** 추가, **OpenAPI**(`GET /v1/fleet/config`·`/admin/v1/config` GET/PUT/DELETE·`FleetConfig`/`ConfigEntry` 스키마·heartbeat `configVersion`/`appliedConfigVersion`) 추가. §7.8.1 nextIntervalSeconds를 `config` 키(`gw.heartbeat.interval_seconds`)로 연결. Appendix B #35를 '설계 완료·잔여(키 레지스트리·버전 산출식·MQTT payload)'로 갱신 | (작성자 ID 미지정) |
+| 2026-07-06 | **MQTT 하행을 범용 downlink 레일로 재정의 + device 원격 config를 gw/1.1+로 격하** — `{stream}`을 "config 전용"이 아니라 **범용 하행 확장점**으로 재서술(§7.6.6): GW→방화벽 뒤 EzServer 능동 전달의 최초 수단, **v1.0=`webhook`만 구현**·`announce`/`command`/`config`는 예약(미구현), EzServer는 `#` 구독+미지 stream 무시(forward-compat). **중앙 config는 v1.0에서 GW-내부(`gw.*`)가 실사용**(pod·리전 공유)이고 heartbeat 주기만 heartbeat 응답으로 device 전달 — **device 원격 config 전달(`device.*`·`GET /v1/fleet/config`·MQTT `config` push-notify·configVersion)=gw/1.1+**(§7.8.4 v1.0 범위·db-jsonb device.* 미래 표기·OpenAPI 해당 필드 gw/1.1 주석·Appendix B #35 갱신). ③-P-EZ onePager 구독 가이드·Agenda 7/9 공유(S1) 반영 | (작성자 ID 미지정) |
+| 2026-07-06 | **MQTT 하행 토픽 규약 확정(§7.6.6)** — 클리닉 스코프 `gw/clinic/{clinicId}/{stream}`(stream=`webhook`/`config`), **리전 미포함**(clinicId 전역 유일·리전=브로커 endpoint로 결정). EzServer는 `gw/clinic/{clinicId}/#` 구독·authz로 자기 클리닉만·QoS1 persistent. 이 하행 채널을 webhook 분배(§7.6.6)와 config push-notify(§7.8.4)가 stream으로 분리 공유. §2.3.6 시퀀스·§7.8.4 config 토픽·DBML(`delivery_channel.endpoint`·`webhook_event.dispatch_target` 예시)·③-P-EZ onePager(구독 가이드)·Appendix B #4(잔여=브로커 제품·문법 매핑만) 정합. 논리 구조 확정·브로커별 문법은 #4 후 | (작성자 ID 미지정) |
 | 2026-07-06 | **webhook `event_type` 규칙 명확화** — receiver가 임의 생성이 아니라 **`webhook_provider.event_type_path`(신설)로 payload에서 verbatim 추출**. **provider-owned free string·GW enum 아님**(provider별 어휘·증가 — audit action·config_key 원칙), 의미=`(provider, event_type)`, 미추출 시 null. 용도=Console 필터·관측이고 **목적지 라우팅은 org_mapping**(별개). §7.6.1에 추출 필드 규칙(eventId·org_id·event_type = 레지스트리 경로 config), §4.1.3 추출 목록에 event_type 추가, DBML `webhook_provider.event_type_path`+`webhook_event.event_type` 주석 정합 | (작성자 ID 미지정) |
 | 2026-07-06 | **(R2 추천안 반영) webhook payload 저장 방식** — 본문(opaque·환자 PHI 포함 가능)은 **관계형 DB 미저장**, 리전 로컬 S3(SSE·짧은 TTL)+`payload_ref` claim-check(in-flight=SQS)로 최소 보관. `webhook_event`=PHI-free 메타데이터(Console 검색/필터). §6.4 "PHI 미저장"을 'PHI 영상 본문 미저장 + webhook payload 전이·리전 최소 persist'로 정교화, §7.6.3에 payload 보관·Console redact+접근통제 규격 추가. DBML `webhook_event`에 **`event_type` 컬럼+인덱스** 추가·`payload_ref`/Note 갱신. Appendix B **#36 신설**(payload TTL·메타 보존·redact 필드 — 7/9 R2 확정 전 provisional). Agenda 7/9 R2 상정 | (작성자 ID 미지정) |
 | 2026-07-06 | **중앙 Config 잔여 3건 확정 → #35 종결(B-2→B-1)** — (a) **키 레지스트리 = 앱 레벨 확장형 seed**(db-jsonb#config에 초기 예상 키 7종 표: heartbeat interval/threshold·log.level·upload concurrency/chunk·telemetry·feature_flags + type/범위/기본값/소비자; 새 키는 마이그레이션 없이 상수 추가, 미등록 키·범위밖 값 거부) — 전부 열거 아님·확장형임을 §7.8.4에 명시 · (b) **실효 `configVersion` = 콘텐츠 해시(SHA-256)** 확정(기여 (key,value,행version) 정렬 canonical JSON; 행 version 최댓값=값변경 누락 버그·전역 카운터=과도 재pull이라 배제; stateless·동등성 비교) — OpenAPI 3곳 타입 integer→string, DBML version 주석·db-jsonb 버전 규칙 정합 · (c) **push-notify payload = `{type:config.changed, deviceId, configVersion, at}`**(트리거만·본문 미포함·at-most-once, 유실 시 heartbeat로 복구) §7.8.4 명시. Appendix B #35 B-2→B-1(완료) | (작성자 ID 미지정) |

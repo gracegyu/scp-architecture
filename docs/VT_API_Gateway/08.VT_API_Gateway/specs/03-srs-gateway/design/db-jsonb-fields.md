@@ -97,6 +97,7 @@ gw.heartbeat.interval_seconds        gw.heartbeat.offline_threshold_multiplier  
 ```
 - **형식**: `^(gw|device)\.[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$` (점 구분 소문자·언더스코어).
 - **네임스페이스**: `gw.*` = **GW가 소비**(GW 동작·응답에 반영) · `device.*` = **device로 전달**(GW 비해석, device가 적용).
+- **v1.0 실사용 = `gw.*`(GW-내부 config·특히 heartbeat 파라미터). `device.*`는 gw/1.1+ 예약**(device 원격 config = §7.6.6 하행 레일의 미래 활용, v1.0 미구현). 아래 표에서 `device.*` 행은 **미래 예시**다.
 - **키 레지스트리(초기 seed — 앱 레벨 상수, 확장 가능·비열거적)**: 아래는 **현재 예상되는 항목의 예시**이며 **완전한 목록이 아니다**. 새 설정은 개발 시 이 표(=앱 레벨 상수)에 한 줄씩 추가하면 되고, `config_key`가 DB enum이 아니라 **마이그레이션 없이** 늘어난다. 각 키는 `type`·허용범위·기본값(fallback)·소비자를 명시한다.
 
   | config_key | 타입 | 허용범위/enum | 기본값(fallback) | 소비자 | 비고 |
