@@ -482,6 +482,29 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 >
 > **API 호출 경로는 대상 무관 동일**(`…→GW→upstream` target-routed proxy, ADR-11): CleverSpace(B 내부)·AXS(C 외부)는 **같은 경로**이고 trust profile만 다르다(C는 OAuth·egress 추가). 그래서 **§2.3.5(외부 연동)는 CleverSpace에도 그대로 적용되는 일반 proxy 흐름**이며, AXS를 예로 들었을 뿐 GW 동작은 동일하다. CleverSpace presign(경로②)에 **별도 시나리오를 두지 않는 이유는 경로가 달라서가 아니라**, 그 계약이 GW 밖(② One Pager·CleverSpace OpenAPI)에 있고 GW는 verbatim bypass(B)만 하기 때문이다(§4.1.4②).
 
+#### 데이터 레코드 생성 시점 (provenance) — 각 표가 언제·누구에 의해 채워지나
+
+"어느 레코드가 언제 생기나"를 한 곳에 모은다. 크게 **① EzServer enroll 시 자동**(클리닉 측), **② provider 연동 설정 시 Admin/Console**(연동 측, ③-C), **③ 런타임 자동**(이벤트·관측), **④ 운영자 사전 설정**으로 나뉜다.
+
+| 테이블 | 생성 시점 | 주체/트리거 |
+| --- | --- | --- |
+| `region_catalog` | 리전 개통(사전 프로비저닝) | ④ 운영자 |
+| `clinic` | **EzServer enroll 시 upsert**(§2.3.1) | ① GW 자동(LMP Clinic-ID) |
+| `device` | **EzServer enroll**(pending → C/S 승인 시 active) | ① GW 자동 |
+| `fleet_state` | **최초 heartbeat 시 upsert** | ③ device push(§7.8.1) |
+| `connector` | **provider 연동 설정 시** | ② Admin/Console(§7.9·③-C) |
+| `upstream_registry` | **provider 연동 설정 시** | ② Admin/Console |
+| `webhook_provider` | **provider 연동 설정 시** | ② Admin/Console |
+| `policy` | 정책 설정 시 | ② Admin(§7.5.3·Appendix B #32) |
+| `org_mapping` | **외부 연동 연결 시 자가 등록**(§2.3.5), 오설정은 Admin 교정 | ② provider 온보딩/Admin |
+| `config` | 운영자 config 등록 | ④ Admin(§7.8.4) |
+| `webhook_event` | **이벤트 수신마다 1행**(§7.6) | ③ GW 런타임 |
+| `audit_log` | 감사 대상 동작마다 | ③ GW 런타임 |
+
+> 핵심 구분: **클리닉 측 레코드(clinic·device)는 EzServer enroll이 자동 생성**하고(§2.3.1·connector 무관), **연동 측 레코드(connector·upstream_registry·webhook_provider·policy)는 provider를 붙일 때 Admin/Console이 등록**하며(등록 시퀀스=§2.3.5·가이드=③-C), **org_mapping은 그 연동을 실제 쓰는 클리닉이 붙을 때** 자가 등록된다. 즉 "device 최초 접속"이 만드는 것은 클리닉 측이지 연동(connector) 측이 아니다.
+>
+> **분배는 저장 레코드가 아니라 규약으로 도출**한다 — 대상 clinic이 정해지면 그 클리닉 EzServer의 MQTT 토픽(`gw/clinic/{clinicId}/webhook`, §7.6.6)이 결정적이라 **별도 delivery 테이블이 없다**(v1.0 전 클리닉 edge). 따라서 **등록 순서 무관**(provider-first=AXS / clinic-first=운영 중 새 provider 추가 둘 다 동일)이고, **새 provider를 추가해도 기존 클리닉에 만들 delivery 레코드가 없다**(fanout 없음) — 새 provider가 기존 클리닉에 추가하는 것은 **`org_mapping` 한 행뿐**. (예외: 어떤 provider의 이벤트가 클리닉 EzServer가 아닌 **다른 수신자**(클라우드 등)로 가야 하면 규약 도출만으론 부족 → 수신자 모델 도입, Appendix B #37.)
+
 #### 라우팅 Flow — 전 구간 (CleverOne → EzServer → GW → provider)
 
 아래 시나리오(§2.3.2~§2.3.7)는 모두 이 라우팅 골격 위에서 동작한다. 대표 경로 **`CleverOne → EzServer → GW → AXS`**(외부 provider 호출)를 예로, **구간마다 target을 어떻게 지시하는지**를 보인다(ADR-11 · 7/2 R1, 상세 §4.1.2·§4.5.1).
@@ -614,9 +637,32 @@ sequenceDiagram
     Note over EZ,S3: 세션·완료처리(콜백+ObjectCreated)·무결성은 CleverSpace 책임(② One Pager). GW는 발급 중계만, 서명·세션 없음
 ```
 
-### 2.3.5 외부 연동 — AXS presign·파일 bypass (경로③, 갈래 A) — FR-INT-\*
+### 2.3.5 외부 연동 — 등록(Admin)·호출(presign·파일 bypass) (경로③, 갈래 A) — FR-INT-\*
 
 **§4.1.4 경로③ 전용 (외부(C) 프록시).** EzServer→AXS 외부 연동(5단계 갈래 A). 클라이언트는 **`axs.gw.vatech.com` 서브도메인**으로 AXS 경로를 **그대로** 호출하고(§4.1.2 — CleverOne→EzServer 구간은 `Vatech-Target: axs` 헤더로 지시하면 EzServer가 서브도메인으로 변환), GW는 connector로 OAuth2 토큰을 관리(§7.1.3)·egress allowlist를 집행(§7.5.3)하되 요청/응답 body는 **AXS OpenAPI 그대로 통과(verbatim bypass)** 한다 — GW가 발급하거나 해석·변환하지 않는다. 대용량은 AXS가 발급한 presigned로 **AXS S3에 직접** 업로드(GW 미경유). 연동 의미·Org-ID 매핑 상세는 **④ Sub-SRS**, 본 SRS는 프레임워크·egress까지만. 상세는 §7.5.
+
+**연동 등록(사전 — Admin/Console ③-C).** 아래 런타임 호출이 되려면 그 전에 provider를 **등록**해야 한다. Admin이 GW Console에서 코어 3행(`connector`·`upstream_registry`·`webhook_provider`)을 순차 등록하고 정책(`policy`)을 설정한다(관리 API §7.9·등록 레코드/화면 가이드=③-C `_status.md`). 자격·시크릿은 KMS에 저장하고 DB엔 참조만 둔다. **등록 순서는 클리닉 enroll과 무관**하다(provider-first=AXS / clinic-first=운영 중 새 provider 추가 둘 다 동일). `org_mapping`은 이 연동을 **실제 쓰는 클리닉이 붙을 때** 자가 등록된다. **분배 경로는 저장 레코드가 아니라 규약 도출**(clinic→MQTT 토픽 `gw/clinic/{clinicId}/webhook`·§7.6.6)이라, 새 provider를 붙여도 클리닉별로 만들 delivery 레코드가 없다(별도 테이블 없음). 여러 테이블에 걸친 다중 쓰기라 원자성(트랜잭션/saga)은 LLD.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant OP as Admin (GW Console ③-C)
+    participant GW as GW (관리 API · §7.9)
+    participant KMS as KMS
+    participant DB as GW DB
+    Note over OP,DB: provider(예 AXS) 연동 등록 — 코어 3행 순차 생성(런타임 호출 이전 1회 · 클리닉 enroll과 순서 무관)
+    OP->>GW: POST /admin/v1/connectors (name=axs · endpoint · egress · OAuth 자격/시크릿)
+    GW->>KMS: 자격·시크릿 저장
+    KMS-->>GW: credential_ref (KMS 참조)
+    GW->>DB: connector insert (credential_ref만·원문 미저장)
+    OP->>GW: POST /admin/v1/upstreams (target_id=axs · host · profile=external · timeout)
+    GW->>DB: upstream_registry insert (axs.gw.vatech.com 라우팅)
+    OP->>GW: POST /admin/v1/webhook-providers (inbound_host · sig_scheme · secret_ref · *_path)
+    GW->>DB: webhook_provider insert (수신·검증 config)
+    OP->>GW: 정책 설정 (connector=axs 허용 endpoint·scope)
+    GW->>DB: policy insert
+    Note over OP,DB: 분배 채널 레코드 없음(clinic→MQTT 토픽 규약 도출·§7.6.6) · org_mapping은 클리닉이 이 provider 쓸 때 자가 등록 · 원자성=트랜잭션/saga(LLD) · 삭제는 역순 DELETE
+```
 
 > **경로 동일성**: 본 흐름(`EZ→GW→upstream`)은 **CleverSpace(B 내부)도 동일**하다(ADR-11 target-routed proxy). AXS(C 외부)는 GW가 **OAuth·고정 egress IP**를 추가할 뿐 경로·중계 방식은 같다. 즉 본 시나리오는 AXS를 예로 든 *일반 upstream proxy*이며, CleverSpace는 `cleverspace.gw.vatech.com`으로 같은 경로를 탄다(차이는 trust profile뿐).
 
@@ -654,7 +700,7 @@ sequenceDiagram
     WH-->>AXS: 2xx ACK (즉시)
     WH->>Q: 적재 (재시도·백오프·DLQ)
     DISP->>Q: pull (consume)
-    DISP->>DISP: 대상 해석(org_mapping→clinic→region→delivery_channel, §7.3)
+    DISP->>DISP: 대상 해석(org_mapping→clinic→region→그 클리닉 MQTT 토픽 도출, §7.3·§7.6.6)
     par 클라우드 대상 = CleverLab만 (갈래B 보류)
         DISP->>CL: HTTP push (내부망)
     and Edge 대상 (갈래A 역방향, b1)
@@ -999,7 +1045,7 @@ Webhook은 두 면(§4.1.1) 어느 쪽에도 깔끔히 떨어지지 않는 **하
 3. **분배 경로 = REST API로 노출하지 않는다 (내부).**
    - 클라우드 대상(**CleverLab** — 갈래 B 수신처; CleverSpace는 webhook 대상 아님): **받는 쪽 백엔드의 OpenAPI**가 정본(B·내부 프로파일 성격, 내부망 HTTP push). GW는 그 API를 호출할 뿐 정의하지 않는다.
    - Edge(EzServer): **MQTT QoS1**(§7.6.6) — REST가 아니므로 OpenAPI 대상이 아니다. 토픽 네이밍·payload·QoS·retain 규약은 별도(AsyncAPI 또는 §7.6 표)로 기술한다.
-4. **목적지 결정 = 매핑이다, 송신 host가 아니다.** payload의 식별자(예 AXS Org-ID)를 ClinicID로 매핑(`org_mapping` 테이블, §6.4)하고 ClinicID→region(§7.3)→분배 채널(`delivery_channel`)로 대상 client를 정한다. GW는 본문을 해석하지 않고 이 라우팅 키만 본다. 매핑 규칙 상세는 ④ Sub-SRS.
+4. **목적지 결정 = 매핑이다, 송신 host가 아니다.** payload의 식별자(예 AXS Org-ID)를 ClinicID로 매핑(`org_mapping` 테이블, §6.4)하고 ClinicID→region(§7.3)→그 클리닉 MQTT 토픽(`gw/clinic/{clinicId}/webhook`·§7.6.6)으로 대상 client를 정한다(분배 방식·토픽은 clinic에서 도출·별도 테이블 없음). GW는 본문을 해석하지 않고 이 라우팅 키만 본다. 매핑 규칙 상세는 ④ Sub-SRS.
 
 > **정의 산출물 배치**: 수신 엔드포인트는 GW 단일 OpenAPI(`design/openapi/vt-api-gateway.openapi.yaml`)에 다른 GW 고유 API와 **함께** 둔다(code-first 단일 `/api-docs`와 일관). 외부 payload는 `$ref`로 분리 참조, MQTT 분배는 OpenAPI 밖(AsyncAPI/규약 문서). 별도 `webhook.openapi.yaml`로 쪼개지 않는다 — 같은 서비스가 노출하는 한 면이기 때문.
 
@@ -1267,7 +1313,7 @@ flowchart LR
 ```
 
 - **주체 = `device`, `clinic` = 선택적 그룹(§1.2 귀속 원칙).** GW 호출 주체는 **device**이고, `clinic`은 device의 **선택적 그룹**으로 *clinic-종속 정보*(region·policy 기본값·provider-org 관계)의 **홈**이다. region·policy 등은 **device 기준으로 해석**하되 device가 clinic-bound면 **clinic이 제공(상속)**, clinic-less면 device 자체/global 기본 — 해석 순서 **device → clinic → global**. **v1.0은 100% clinic-bound라 실제로는 전부 clinic 단위로 해석**되며, 스키마는 device/global 스코프를 미리 수용한다.
-- **`clinic` 엔터티**: v1.0에서 대부분의 참조(device·org_mapping·webhook_event·delivery_channel·policy)가 clinic_id를 통하는 **clinic-종속 정보의 홈**이자 **region SSOT**다(clinic-bound 전제). PK `clinic_id`는 **LMP가 발급한 Clinic-ID**(GW 생성 아님). `region`(→`region_catalog`)·`mapping_version`을 컬럼으로 보유한다(clinic↔region 1:1이라 인라인 — 조회 조인 없음). 클리닉 속성(이름·상태·C/S 담당자 등)은 필요 시 이 표에 추가한다.
+- **`clinic` 엔터티**: v1.0에서 대부분의 참조(device·org_mapping·webhook_event·policy)가 clinic_id를 통하는 **clinic-종속 정보의 홈**이자 **region SSOT**다(clinic-bound 전제). PK `clinic_id`는 **LMP가 발급한 Clinic-ID**(GW 생성 아님). `region`(→`region_catalog`)·`mapping_version`을 컬럼으로 보유한다(clinic↔region 1:1이라 인라인 — 조회 조인 없음). 클리닉 속성(이름·상태·C/S 담당자 등)은 필요 시 이 표에 추가한다.
 - **기본 엔터티 = Clinic · Device**(항상 존재). **확장 엔터티 = 외부 Org-ID**(외부 연동 시에만). org는 "기본"이 아니라 **확장**이다.
 - **Clinic ↔ Device = 1:N**(모델). **현재는 1:1** — 클리닉당 EzServer 1대(§2.3.1·Appendix B #17). `device.clinic_id`는 **nullable** — **미래 비-EzServer 디바이스**가 직접 등록되면 한 클리닉에 N대이거나 클리닉 비소속(clinic_id 없음)일 수 있다.
 - **디바이스 등록 시 clinic_id 포함**: EzServer가 LMP Clinic-ID 수신 시 자동 등록(§2.3.1)하므로 device에 clinic_id가 채워진다(`device.clinic_id`, FK·nullable).
@@ -1305,7 +1351,6 @@ flowchart TB
         UPS[upstream_registry]
         WP[webhook_provider]
         WE[webhook_event]
-        DC[delivery_channel]
         CONN[connector]
     end
     subgraph OPS["정책·운영"]
@@ -1317,7 +1362,6 @@ flowchart TB
     DEV --> CLI
     ORG --> CLI
     CLI --> RC
-    DC --> CLI
     WE --> ORG
     WE --> WP
     FLEET --> DEV
@@ -1327,7 +1371,7 @@ flowchart TB
 
 > **인증·온보딩은 별도 테이블이 없다** — 자격은 `device`(client_id·client_public_key)에 통합, 발급 access token은 **무상태 JWT**(서명 검증·저장 안 함, §7.1.1·ADR-02), enrollment 부트스트랩·승인 대기는 `device.status`(pending), 이력은 `audit_log`.
 
-- 저장 정보 유형: 디바이스 레지스트리(+인증 자격 client_id·client_public_key), device/clinic↔region 매핑, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event` — PHI-free 메타데이터; 본문은 리전 로컬 S3·짧은 TTL·참조, R2·§7.6.3)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·upstream target 서브도메인(`upstream_registry`, 라우팅 라벨+GW 연결 timeout · egress=connector SSOT #31 · 재시도·서킷은 istio, R4)·외부(C) 자격·**egress allowlist(SSOT)**(`connector`)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 영상 본문은 미저장**(presigned 직결). **webhook payload는 관계형 DB 미저장** — 환자정보 포함 가능해 리전 로컬 S3에 짧은 TTL로 최소 보관·참조(R2·§7.6.3). **호환성 매트릭스는 DB 미저장** — 소스 파일 → well-known JSON(§7.7.5, `compat_matrix` 테이블 폐기).
+- 저장 정보 유형: 디바이스 레지스트리(+인증 자격 client_id·client_public_key), device/clinic↔region 매핑, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event` — PHI-free 메타데이터; 본문은 리전 로컬 S3·짧은 TTL·참조, R2·§7.6.3)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·upstream target 서브도메인(`upstream_registry`, 라우팅 라벨+GW 연결 timeout · egress=connector SSOT #31 · 재시도·서킷은 istio, R4)·외부(C) 자격·**egress allowlist(SSOT)**(`connector`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. (분배 채널은 별도 테이블 없이 clinic→MQTT 토픽 규약으로 도출·§7.6.6) **PHI 영상 본문은 미저장**(presigned 직결). **webhook payload는 관계형 DB 미저장** — 환자정보 포함 가능해 리전 로컬 S3에 짧은 TTL로 최소 보관·참조(R2·§7.6.3). **호환성 매트릭스는 DB 미저장** — 소스 파일 → well-known JSON(§7.7.5, `compat_matrix` 테이블 폐기).
 - 캐시: **Valkey**(ElastiCache for Valkey·Redis 호환, §1.4)(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS·webhook dedup). **캐시(PG 재구성 가능) + 휘발 상태(nonce·멱등·dedup·rate-limit·lock)이며 SSOT 아님.** 키 패턴·TTL·재구성 출처는 키스페이스 카탈로그 `design/redis/redis-keyspace.md`(DBML과 나란한 설계 산출물)
 - **데이터 토폴로지(멀티 서버·멀티 리전, §2.1.1)**: 리전 내 pod는 **동일 DB·Redis 공유**(무상태 앱 tier). 멀티 리전에서는 **(전역 일관) 라우팅·식별 데이터**(매핑·레지스트리·Org-ID·정책·compat·JWKS) 와 **(리전 로컬) 운영 데이터**(audit·in-flight queue)로 나눈다. 전역 데이터는 어느 리전에서도 같은 답을 내야 하며(soft-state 캐시 + strong-consistency 경로·`mapping_version`), 운영 데이터는 리전 로컬이다. **저장소 구현(전역 DB 단일 vs 리전별 복제)은 gw/1.2 TBD(Appendix B #15)**, 구분 원칙은 고정.
 - 무결성:
@@ -1721,7 +1765,7 @@ gw/clinic/{clinicId}/{stream}        # {clinicId}=LMP 발급 Clinic-ID(전역 �
 FR-WH-07 (수신과 분배를 잇는 **Webhook Dispatcher**). §7.6.3 큐(A·SQS)에 적재된 이벤트를 **소비(consume)** 해 대상별로 발행하는 GW 컴포넌트다 — 큐는 스스로 push하지 못하므로, Webhook Dispatcher가 §7.6.5(HTTP push)·§7.6.6(MQTT) 전달을 수행한다.
 
 - **구현 = GW와 동일 코드베이스의 별도 worker Deployment(ADR-12)** — HTTP 서버 없이 SQS consumer만 실행. API tier와 **독립 스케일(SQS 큐depth, KEDA)·장애 격리**하되 코드·도메인 모델·커넥터·시크릿을 공유(드리프트 0, 단일 검증 스택). v1.0은 고정 replica로 시작, 볼륨 증가 시 오토스케일. (서버리스 Lambda 대안은 로직·DB·시크릿·egress 중복과 2nd 런타임 검증 부담으로 반려 — ADR-12.)
-- **동작**: SQS pull → **대상 해석**(`org_mapping` Org-ID→Clinic → `clinic`→region → `delivery_channel`→채널·엔드포인트, §6.4·§7.3) → Edge면 **MQTT publish(IoT Core, §7.6.6)** / 클라우드면 **HTTP push(§7.6.5)** → 발행 성공 시 메시지 삭제. **교차 리전**(수신 리전 ≠ 대상 리전) 전달 포함.
+- **동작**: SQS pull → **대상 해석**(`org_mapping` Org-ID→Clinic → `clinic`→region, §6.4·§7.3) → Edge면 **그 클리닉 MQTT 토픽(`gw/clinic/{clinicId}/webhook`)으로 publish(§7.6.6·리전 브로커)** / (미래 클라우드면 HTTP push·§7.6.5) → 발행 성공 시 메시지 삭제. 분배 방식·토픽은 clinic에서 도출(별도 delivery 테이블 없음·§7.6.6). **교차 리전**(수신 리전 ≠ 대상 리전) 전달 포함.
 - **멱등·신뢰성**: `eventId` dedup(§7.6.4)으로 중복 발행 방지. 발행 실패 → **재시도·백오프, N회 초과 → DLQ·알람**(§7.6.3). 처리 단위 멱등이라 at-least-once 소비에도 중복 부작용 0.
 - **에러**: 대상 미해석(매핑 부재) → DLQ·알람. MQTT/HTTP 발행 실패 → 재시도 후 DLQ.
 
@@ -1931,6 +1975,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | --- | --- | --- | --- | --- | --- |
 | 32 | **정책(policy) 관리 API + Console UI** — 정책은 `(scope_type, scope_id, connector)` 스코프(**global\|clinic\|device**)마다 다르게 적용되므로(허용 endpoint·scope; egress는 connector SSOT #31) 운영자가 **CRUD·검토**할 **관리 API(§7.9)+GW Console UI(③-C)** 가 필요. 현재 스키마·jsonb 형식만 정의(design/db-jsonb-fields.md), 관리 인터페이스 미정의. **정책 스코프 = device-중심(device→clinic→global) 확정**(2026-07-06, §1.2·§6.4.1 — 구 'clinic 단위·device 배제'를 대체). **스코프 평가 규칙(deny-by-default·clinic=상한) = §7.5.3 확정**; 차원별 병합(교집합/우선)만 OPA(Rego)/LLD 잔여 | §7.5.3·§7.9·§6.4·design/db-jsonb-fields.md | GW(관리 API)+③-C(UI) | 정책 구현 착수 전 | §7.1·③-C Console Sub-SRS |
 | 33 | **비-EzServer·clinic-less device 구체화(미래 확장점)** — v1.0 device=EzServer(clinic-bound)뿐. 모델은 device-중심으로 clinic-less/비-EzServer를 **수용하도록 설계**(§1.2 Will Not Do)하되 구체 정체는 미정의. 실제 등장 시 확정: (a) clinic-less device의 **region 출처**(자체 지정/global) · (b) **provider-org 신원**(`org_mapping`은 현재 clinic-키 → device-스코프 확장) · (c) **인증 부트스트랩**(EzServer=LM 라이선스·Clinic-ID; clinic-less는 다른 신뢰 앵커) · (d) policy `device` 스코프 실사용 | §1.2·§6.4.1·§7.2·§7.3 | GW(설계)+제품 로드맵 | 해당 device 연동 요구 시 | §1.2 Will Not Do·§6.4.1 |
+| 37 | **분배 수신자(delivery) 모델 도입 — 비-edge/클라우드·다중 수신자** — v1.0은 전 클리닉이 EzServer(edge)라 분배 방식이 불변·토픽이 clinic_id에서 결정적(`gw/clinic/{clinicId}/webhook`, §7.6.6)이라 **저장 테이블 없이 규약으로 도출**한다(구 `delivery_channel` 테이블은 정보 0이라 **삭제**). **미래에** 어떤 provider의 이벤트가 **클리닉 EzServer가 아닌 다른 수신자**(클라우드 CleverLab=갈래B / 한 클리닉 복수 수신자 / provider·event_type별 상이 목적지)로 가야 하면 규약 도출만으론 부족 → **수신자 모델 도입**(예: `(clinic, recipient)` 또는 라우팅 규칙 테이블). 트리거=갈래B(CleverLab 클라우드 수신) 활성화 또는 비-edge 수신 provider 등장 | §7.6.5/6·§2.3·design/dbml | GW+제품 | 갈래B 활성화/비-edge 수신 요구 시 | §7.6·④ |
 | 36 | **webhook payload 보존기간(TTL)·이벤트 메타 보존 확정** — 저장 방식은 **R2 추천안 채택**(본문=리전 로컬 S3·SSE·claim-check 참조, 관계형 DB 미저장; in-flight=SQS; Console redact+접근통제 — §7.6.3). **미결(운영·컴플라이언스)**: (a) payload S3 **TTL**(디버깅·재생용, 초안 7~30일) · (b) `webhook_event` 메타데이터 보존기간 · (c) redact 대상 필드 목록. 감사·consent 보존정책(#5)과 함께 확정. **7/9 R2 확정 전 provisional**(회의 결정 시 조정) | §7.6.3·§6.4·design/dbml | GW+품질/법무 | webhook 구현 착수 전 | §7.6·§6.4·③-C·④ |
 | 34 | **fleet heartbeat 정본 주기·오프라인 임계값 확정** — heartbeat API(`POST /v1/fleet/heartbeat`)·메커니즘(device→GW push, GW는 edge 폴링 불가)은 **확정**(§7.8.1·OpenAPI). **미결(운영 튜닝)**: 권장 기본 주기(초안 예: 1h)·오프라인 판정 임계값(주기의 배수)·중앙 config 하달 방식(§7.8.4 연동). 10만대 규모 부하와 오프라인 감지 지연(P1이라 준실시간 아님)·kill-switch(별도 즉시 경로 §7.8.2)를 함께 고려해 확정 | §7.8.1·§7.8.4·design/openapi | GW+인프라(규모) | fleet 구현 착수 전 | §7.8·③-C·③-P-EZ |
 | 30 | **region 카탈로그 관리(생성·상태 전이) API + Console UI** — 현재 `region_catalog`는 **읽기(`GET /v1/regions`)만** 정의(§7.3.6). 리전 개통·`draining`/`planned` 전이·회수 등 **운영자 관리 API(§7.9 관리 API)** 와 **GW Console region 관리 UI(③-C)** 가 필요. v1.0=단일 리전 1행이라 시급도 낮으나 gw/1.2 멀티리전 전 필요 | §7.3.6·§7.9·§6.4 | GW(관리 API)+③-C(UI) | gw/1.2 멀티리전 착수 전 | §7.3·③-C Console Sub-SRS |
@@ -2133,6 +2178,9 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-06 | **fleet heartbeat 메커니즘·API 명문화** — `fleet_state.last_heartbeat`는 device→GW push로만 갱신됨을 확정(GW는 병원 방화벽 뒤 edge를 폴링 불가). §7.8.1에 메커니즘 서술(주기 push·`nextIntervalSeconds`·온라인/오프라인 임계값 파생 판정·device 유휴시에도 전송)·Input/Output·device 구현 가이드 추가, **`POST /v1/fleet/heartbeat` 신설**(OpenAPI: `fleet` 태그·`FleetHeartbeat`/`FleetHeartbeatAck` 스키마), DBML `last_heartbeat` 주석 보강. **③-P-EZ onePager에 EzServer 주기 호출 구현 가이드 반영**. 정본 주기·오프라인 임계값 = Appendix B #34(운영 튜닝). 스키마 컬럼 변경 없음(주석·API 추가) | (작성자 ID 미지정) |
 | 2026-07-06 | **heartbeat `nextIntervalSeconds` 관리 계층 명시 + 중앙 config 갭 등록** — §7.8.1에 2계층(정본=중앙 config §7.8.4 resolve, fallback=`.env` 앱 기본값; resolve 순서·`.env`는 재배포/전역뿐이라 fallback 용도임) 명문화. §7.8.4 중앙 config가 요구사항만 있고 **저장·전달 모델 미설계**임을 **Appendix B #35 신설**로 등록(config 저장 스키마·전달 방식·실패 재시도). 문서만(스키마 변경 없음) | (작성자 ID 미지정) |
 | 2026-07-06 | **§7.8.4 중앙 Config 구현 수준 서술 + 데이터 모델·API 신설** — 요구사항 한 줄이던 §7.8.4를 구현 가능 수준으로 전면 서술: 정의(원격 fleet 설정 관리)·두 종류(`gw.*`/`device.*`)·SSOT=PostgreSQL·스코프(global/region/clinic/device)·실효 해석(키별 가장 구체 우선 override)·전달(pull=`GET /v1/fleet/config`+heartbeat configVersion / push-notify=역방향 MQTT)·적용/오류/drift·관리 API·보안. **DBML `config` 테이블+`config_scope` enum 신설**(13 테이블), **db-jsonb#config**(키 레지스트리·값 형식) 신설, **redis `gw:cache:config:{deviceId}`** 추가, **OpenAPI**(`GET /v1/fleet/config`·`/admin/v1/config` GET/PUT/DELETE·`FleetConfig`/`ConfigEntry` 스키마·heartbeat `configVersion`/`appliedConfigVersion`) 추가. §7.8.1 nextIntervalSeconds를 `config` 키(`gw.heartbeat.interval_seconds`)로 연결. Appendix B #35를 '설계 완료·잔여(키 레지스트리·버전 산출식·MQTT payload)'로 갱신 | (작성자 ID 미지정) |
+| 2026-07-06 | **`delivery_channel` 테이블 삭제(13→12) — 분배 채널을 규약 도출로 전환** — v1.0 전 클리닉이 EzServer(edge)라 분배 방식이 불변(mqtt_edge)·토픽이 clinic_id에서 결정적(`gw/clinic/{clinicId}/webhook`·§7.6.6)이라 테이블에 담을 정보가 0. webhook 분배 = **org_mapping→clinic(→region 브로커)→그 클리닉 MQTT 토픽 도출**(테이블 조회 불요). DBML(Table·Enum `delivery_channel_type` 삭제·clinic/webhook_event/org_mapping Note·헤더)·SRS(§7.6.7 dispatcher·§4.1.3-4·§2.3.1 enroll 시퀀스·§2.3 provenance·§2.3.5·§6.4.1·§6.4 저장정보·ERD)·API명세(DeliveryChannel 행 삭제) 정합. 비-edge/클라우드·다중 수신자는 **Appendix B #37**(수신자 모델 도입 시점) | (작성자 ID 미지정) |
+| 2026-07-06 | **연동 등록 시퀀스 위치 정정 + provider/clinic 등록 순서·delivery_channel fanout 시나리오 설계** — 등록 시퀀스를 §2.3 intro→**§2.3.5로 이동**(제목을 "외부 연동 — 등록(Admin)·호출(presign·파일 bypass)"로 확장, 라이프사이클 한곳), provenance 표는 intro 유지. **등록 순서 무관**(provider-first=AXS / clinic-first=운영 중 새 provider 추가) 명문화. **`delivery_channel`은 per-clinic·provider-독립 → 새 provider 추가 시 기존 클리닉에 fanout 생성 안 함**(그 provider 이벤트도 클리닉 기존 채널로; 새 provider가 추가하는 건 org_mapping뿐). §2.3 provenance 노트·§2.3.5·DBML delivery_channel Note 정합. **미래 비-edge/다중 수신자(클라우드 등) = Appendix B #37 신설** | (작성자 ID 미지정) |
+| 2026-07-06 | **레코드 생성 시점(provenance) 명확화** — "각 표가 언제·누가 채우나"가 흩어져 있어 §2.3에 **provenance 표 신설**(13개 테이블·① enroll자동/② provider설정/③ 런타임/④ 운영자). **delivery_channel = EzServer enroll 시 GW 자동 생성**(mqtt_edge·토픽 결정적·**connector 무관**)임을 확정 — DBML Note 정밀화 + §2.3.1 enroll 시퀀스에 delivery_channel 자동 생성 단계 추가. 핵심: device 최초 접속이 만드는 건 클리닉 측(clinic·device·delivery_channel)이지 연동(connector) 측이 아님 | (작성자 ID 미지정) |
 | 2026-07-06 | **admin API — connector CRUD 신설 + 레지스트리 DELETE + provider 등록 가이드** — provider(예 AXS) 등록/관리/삭제가 API로 가능하도록 보강: **`/admin/v1/connectors` GET/POST + `/admin/v1/connectors/{name}` DELETE 신설**(기존 누락), `/admin/v1/upstreams/{targetId}`·`/admin/v1/webhook-providers/{provider}` **DELETE 추가**(연동 해지), OpenAPI **`Connector` 스키마 신설**. §7.9.1에 connector 포함·"provider 등록=upstream+connector+webhook_provider 코어 3행+policy+클리닉별 org_mapping 다중 쓰기·원자성 LLD" 명시. **③-C `_status.md`에 provider 등록 레코드표·Console UI 마법사·API 호출 순서 가이드 신설**(gw console 스펙 작성용). credential/secret=KMS·화면 마스킹·감사 | (작성자 ID 미지정) |
 | 2026-07-06 | **MQTT 하행을 범용 downlink 레일로 재정의 + device 원격 config를 gw/1.1+로 격하** — `{stream}`을 "config 전용"이 아니라 **범용 하행 확장점**으로 재서술(§7.6.6): GW→방화벽 뒤 EzServer 능동 전달의 최초 수단, **v1.0=`webhook`만 구현**·`announce`/`command`/`config`는 예약(미구현), EzServer는 `#` 구독+미지 stream 무시(forward-compat). **중앙 config는 v1.0에서 GW-내부(`gw.*`)가 실사용**(pod·리전 공유)이고 heartbeat 주기만 heartbeat 응답으로 device 전달 — **device 원격 config 전달(`device.*`·`GET /v1/fleet/config`·MQTT `config` push-notify·configVersion)=gw/1.1+**(§7.8.4 v1.0 범위·db-jsonb device.* 미래 표기·OpenAPI 해당 필드 gw/1.1 주석·Appendix B #35 갱신). ③-P-EZ onePager 구독 가이드·Agenda 7/9 공유(S1) 반영 | (작성자 ID 미지정) |
 | 2026-07-06 | **MQTT 하행 토픽 규약 확정(§7.6.6)** — 클리닉 스코프 `gw/clinic/{clinicId}/{stream}`(stream=`webhook`/`config`), **리전 미포함**(clinicId 전역 유일·리전=브로커 endpoint로 결정). EzServer는 `gw/clinic/{clinicId}/#` 구독·authz로 자기 클리닉만·QoS1 persistent. 이 하행 채널을 webhook 분배(§7.6.6)와 config push-notify(§7.8.4)가 stream으로 분리 공유. §2.3.6 시퀀스·§7.8.4 config 토픽·DBML(`delivery_channel.endpoint`·`webhook_event.dispatch_target` 예시)·③-P-EZ onePager(구독 가이드)·Appendix B #4(잔여=브로커 제품·문법 매핑만) 정합. 논리 구조 확정·브로커별 문법은 #4 후 | (작성자 ID 미지정) |
