@@ -22,6 +22,7 @@
 // 2026-07-06: fleet_state.last_heartbeat 의미 명확화 — device→GW push(POST /v1/fleet/heartbeat)로만 갱신(GW는 edge 폴링 불가). 온라인/오프라인=임계값 초과 파생 판정(§7.8.1). 주석만(스키마 불변).
 // 2026-07-06 (R2): webhook_event payload 저장 방식 — 본문은 관계형 DB 미저장(opaque·PHI 포함 가능), 리전 로컬 S3(짧은 TTL·SSE)+payload_ref claim-check(in-flight=SQS). event_type 컬럼 추가(Console 필터)·인덱스. 추천안 채택(7/9 R2 확정 전 provisional).
 // 2026-07-06: webhook event_type 규칙 명확화 — webhook_provider.event_type_path로 payload에서 verbatim 추출(provider-owned free string·GW enum 아님·nullable, 의미=(provider,event_type)). 목적지 라우팅은 org_mapping(별개). §7.6.1.
+// 2026-07-06 (정합성 점검): webhook_event.target → dispatch_target 리네이밍·정의 명확화 — upstream_registry.target_id(아웃바운드 프록시 provider)와 이름 충돌 제거. 의미=실제 발행한 구체적 분배 목적지(delivery_channel 해석 스냅샷 {channel_type}:{endpoint}), clinic_id·region('어디')과 별개('어떤 채널·주소로'). Note의 "target에 저장"(clinic/region이 target에 들어간다는 모순) 수정.
 // 2026-07-06 (정합성 점검): webhook_provider.event_id_path 추가 — 멱등 키(event_id) 추출도 provider별 경로 config(예 AXS messageId), §7.6.1 "eventId 레지스트리 추출"과 정합(누락 보정). config.created_at 추가(policy·connector와 대칭). 헤더 jsonb 목록에 config.config_value 반영. org_mapping.provider → webhook_provider FK 통일(webhook_event.provider와 동일 인바운드 축·R8 검토 해소). (config.updated_by 중복·surrogate id 생성 규칙은 LLD)
 // 2026-07-06: config 테이블 신설(13 테이블) — 중앙 Config(FR-CFG-01·§7.8.4) 구현 모델. Enum config_scope{global|region|clinic|device} + (scope_type,scope_id,config_key)당 1행·config_value jsonb·version(drift/캐시 무효화). 실효=키별 가장 구체 우선(override). 전달=pull(GET /v1/fleet/config·heartbeat configVersion)/push-notify(역방향 MQTT). 값 형식=db-jsonb#config.
 // 2026-07-01: 디바이스 인증=비대칭 private_key_jwt(개인키 서명→device.fingerprint 공개키 검증), 공유 secret 폐지(ADR-13·§7.1.1).
@@ -247,13 +248,13 @@ Table webhook_event {
   region          varchar [ref: > region_catalog.region_id]          // 해석된 대상 리전(FK, clinic 파생)
   payload_ref     varchar                                            // 본문 보관 참조(claim-check). 본문=리전 로컬 S3(SSE·짧은 TTL, R2)·in-flight는 SQS. **관계형 DB에 본문 미저장**(payload는 opaque·환자 PHI 포함 가능·복제 금지, §6.4·§7.6.3). 외부 스키마 ④
   state           webhook_state [not null, default: 'received']      // 처리 상태(received|dispatched|dead_letter)
-  target          varchar                                            // 해석된 분배 대상(채널/엔드포인트)
+  dispatch_target varchar                                            // 실제 발행한 **구체적 분배 목적지**(delivery_channel 해석 스냅샷) — 형식 `{channel_type}:{endpoint}`, 예 `mqtt_edge:<그 클리닉 EzServer 하행 토픽>` / `http_cloud:<HTTP URL>`. **clinic_id·region('어디')과 별개로 '어떤 채널·주소로' 보냈나**(감사·디버깅용 스냅샷). 발행 전 null. ※ upstream_registry.target_id(아웃바운드 프록시 provider)와 **무관**(이름 충돌 주의)
   attempts        integer [not null, default: 0]                     // 분배 시도 횟수(N회 실패 → dead_letter·DLQ, §7.6.3)
   last_error      varchar                                            // 마지막 분배 실패 사유(관측·DLQ 진단)
   received_at     bigint                                             // 수신 시각(Unix ms)
   dispatched_at   bigint                                             // 분배 완료 시각(Unix ms)
 
-  Note: '**외부 webhook 이벤트 수신·분배 상태 기록**(FR-WH-*·§7.6). 본 표는 **PHI-free 운영 메타데이터**(provider·event_type·org·clinic·region·state·시각)로 Console 검색/필터 대상. **Webhook Receiver가 수신 시 생성**(state=received)하고 **Webhook Dispatcher(§7.6.7)가 분배하며 갱신**(dispatched/dead_letter·attempts·last_error·dispatched_at). **멱등**: event_id가 멱등 키라 중복 수신을 dedup(§7.6.4). **GW는 payload를 해석하지 않고** external_org_id로 org_mapping을 조회해 대상 clinic→region을 해석(target에 저장). **본문은 관계형 DB에 저장하지 않고**(opaque·환자 PHI 포함 가능) 리전 로컬 S3(짧은 TTL·SSE)에 두고 payload_ref로 참조(claim-check, R2·§7.6.3). 재시도 N회 실패 → dead_letter(DLQ, §7.6.3). 이벤트 메타 보존/payload TTL은 Appendix B'
+  Note: '**외부 webhook 이벤트 수신·분배 상태 기록**(FR-WH-*·§7.6). 본 표는 **PHI-free 운영 메타데이터**(provider·event_type·org·clinic·region·state·시각)로 Console 검색/필터 대상. **Webhook Receiver가 수신 시 생성**(state=received)하고 **Webhook Dispatcher(§7.6.7)가 분배하며 갱신**(dispatched/dead_letter·attempts·last_error·dispatched_at). **멱등**: event_id가 멱등 키라 중복 수신을 dedup(§7.6.4). **GW는 payload를 해석하지 않고** external_org_id로 org_mapping을 조회해 대상 clinic→region을 해석(**clinic_id·region 컬럼**에 저장). 발행 시 delivery_channel(clinic_id)로 구체 채널·엔드포인트를 정해 **dispatch_target에 스냅샷**(clinic/region은 '어디', dispatch_target은 '어떤 채널·주소로'). **본문은 관계형 DB에 저장하지 않고**(opaque·환자 PHI 포함 가능) 리전 로컬 S3(짧은 TTL·SSE)에 두고 payload_ref로 참조(claim-check, R2·§7.6.3). 재시도 N회 실패 → dead_letter(DLQ, §7.6.3). 이벤트 메타 보존/payload TTL은 Appendix B'
   Indexes {
     provider   // provider별 조회
     event_type // 이벤트 유형별 필터(Console)
