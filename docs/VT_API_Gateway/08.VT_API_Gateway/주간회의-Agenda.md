@@ -357,4 +357,34 @@
     - **동작**: CleverOne이 `Vatech-Target: axs` 헤더로 EzServer 호출(평문/HTTPS 무관) → EzServer가 헤더값을 `axs.gw.vatech.com`으로 변환해 **HTTPS로 GW 전달**(HTTP→HTTPS 브리징). EzServer 자체 HTTPS-off와 무관(아웃바운드는 nginx가 클라이언트로 HTTPS 개시, cert 설치 불요).
     - **보안**: 평문 LAN 구간에 토큰/PHI가 실리면 노출 — 민감 트래픽은 그 구간 HTTPS 권장(기존 운영 자세라 별도 판단).
   - **SRS 반영 예정(확정 후)**: ADR-11(라우팅 = **edge 서브도메인** · `Vatech-Target`은 내부 hop 변환 키로 유지) · §4.5.1(`{target}.gw.vatech.com` + `*.gw.vatech.com` 와일드카드 cert + GeoDNS 와일드카드) · §4.1.2(라우팅 방식) · §4.1.4(업로드 target 지정) · webhook 서브도메인과 일관성 명시.
-  - 
+
+- **R2. Webhook payload 저장 방식 결정 (중요 · 결정 요청)** — `webhook_event`가 수신하는 이벤트 **본문(payload)** 을 어디에·어떻게 보관할지 확정.
+  - **배경(references 스펙 확인 결과)**:
+    - v1.0 webhook 소스 = **AXS 단독**(CleverSpace=webhook 대상 아님 확정 · CleverLab=갈래B 보류).
+    - AXS payload = **JSON**, 수 KB(알림 메타데이터 — 큰 영상은 webhook 아님·presigned). **환자 PHI 포함**: `patient.created/updated`에 이름·생년월일·성별·patientId, file 이벤트에 storageUri·파일메타.
+    - GW는 payload를 **opaque·verbatim**(해석·수정 안 함)으로 다루며, store-and-forward 버퍼는 이미 **SQS(리전 로컬)**.
+  - **핵심 논점**: 쟁점은 "payload가 너무 큰가"가 **아니라** "**payload에 환자 PHI가 들어온다**"는 점. GW 대전제(§6.4 "GW는 PHI 미저장")를 **"webhook에서는 PHI를 전이(transient) 경유하고 persist를 최소화한다"** 로 정교화해야 함(리전 로컬·암호화·짧은 TTL·복제 금지·콘솔 비노출).
+  - **결정 항목 (3)**:
+
+    | # | 결정 항목 | 옵션 | **추천안** |
+    | --- | --- | --- | --- |
+    | R2-1 | dispatch 후에도 payload를 보관? | (a) **일정기간 보관**(디버깅·재생·감사) / (b) SQS 전이만·사후 폐기 | **(a) 일정기간 보관** |
+    | R2-2 | 보관 장소 | **S3(리전 로컬·참조)** vs PG DB(jsonb 컬럼) | **S3** |
+    | R2-3 | Console 상세 뷰의 환자정보 | **redact(마스킹)+접근통제** vs 원문 노출 | **redact+접근통제** |
+
+  - **R2-2 비교 (S3 vs DB) — 추천 = S3**:
+
+    | 기준 | **S3(리전 로컬·참조) — 추천** | PG DB(jsonb 컬럼) |
+    | --- | --- | --- |
+    | PHI/데이터 주권 | 리전 로컬·SSE 암호화·TTL·**복제 안 함** → 안전 | 통제 DB에 PHI 상주. **글로벌 복제 시 국경 넘김**·리전 로컬이어도 PHI scope 확대 |
+    | Console 검색/필터 | 메타데이터(이미 `webhook_event` 컬럼: provider·clinic·state·eventType·기간)로 **충분**, 본문은 단건 fetch | 본문 내부 검색까지 가능 = **환자 신원 검색 = PHI 부채**(원치 않음) |
+    | payload 포맷 | **무관**(blob — 미래 비-JSON provider 수용) | **JSON 가정**(opaque 철학과 상충) |
+    | 보존 관리 | lifecycle 규칙 **자동 TTL**·암호화 기본(관리형·부담 적음) | 수동 정리 잡 필요 |
+    | 단순성 | claim-check 참조·orphan 관리(경미) | 원자적·단일 저장소(가장 단순) |
+    | 대전제 정합 | **"GW는 PHI 미저장" 유지**(전이만) | 대전제 약화 |
+
+    - **추천 근거 요약**: payload가 **환자 PHI**를 담고 GW가 **opaque(포맷 무관)** 로 다루므로, **검사 안 한 외부 PHI를 복제되는 통제 DB에 원문 저장하지 않는다**가 핵심. Console 요구(검색/필터)는 **PHI-free 메타데이터 컬럼으로 이미 충족**되고, 본문은 단건 조회(참조 fetch)로 족하다. "S3가 번거롭다"는 우려는 SQS가 이미 in-flight 본문을 들고 있고 S3 lifecycle이 자동이라 실제 부담은 작다.
+    - **DB(jsonb)가 정당화되는 조건**: `webhook_event`가 **엄격히 리전-로컬(비복제)** 이고 조직이 리전 PG의 PHI 보관을 허용하며 최대 단순성/검색성을 원할 때 — 절충 대안(짧은 TTL·접근통제 필수).
+  - **R2-1 보존기간(TTL)**: 디버깅·재생·감사 목적이므로 **짧게**(초안 예: 7~30일). 정확한 값은 감사·consent 보존정책(Appendix B #5)과 함께 확정.
+  - **R2-3**: redact = Console 화면 표시 시 환자정보 **마스킹**(전달 본문은 verbatim 불변). 운영자 디버깅은 허용하되 환자 신원 불필요 노출을 막는 데이터 최소화(§6.4). 접근통제 = 역할(Admin/C-S)별 payload 열람 권한.
+  - **SRS 반영 예정(확정 후)**: DBML `webhook_event.payload_ref` 주석(본문=리전 S3·claim-check 참조·관계형 DB 미저장) · **`event_type` 컬럼 추가 검토**(Console 필터) · §6.4(webhook PHI 전이·최소 persist로 정교화) · §7.6(store-and-forward 본문 보관·TTL) · Appendix B(보존기간·본 결정 로그). 

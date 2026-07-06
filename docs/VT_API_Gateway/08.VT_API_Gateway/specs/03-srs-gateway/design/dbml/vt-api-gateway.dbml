@@ -20,6 +20,8 @@
 // 2026-07-06: connector.credential_ref 의미 명확화 — access token이 아니라 장수명 client 자격의 KMS 참조(DB 평문 미저장). access token은 gw:cache:conn-token(redis-keyspace)에 캐시·만료 전 선제 갱신(§7.1.3). 스키마 불변(주석만).
 // 2026-07-06 (#31): egress SSOT 일원화 — **connector.egress_allowlist = 단일 SSOT**(+requireStaticEgressIp). **policy.egress·upstream_registry.egress_allowlist 제거**(3중복 해소). egress는 외부(C) 대상 속성이지 per-tenant authz 아님 — OPA/네트워크 모두 connector 참조.
 // 2026-07-06: fleet_state.last_heartbeat 의미 명확화 — device→GW push(POST /v1/fleet/heartbeat)로만 갱신(GW는 edge 폴링 불가). 온라인/오프라인=임계값 초과 파생 판정(§7.8.1). 주석만(스키마 불변).
+// 2026-07-06 (R2): webhook_event payload 저장 방식 — 본문은 관계형 DB 미저장(opaque·PHI 포함 가능), 리전 로컬 S3(짧은 TTL·SSE)+payload_ref claim-check(in-flight=SQS). event_type 컬럼 추가(Console 필터)·인덱스. 추천안 채택(7/9 R2 확정 전 provisional).
+// 2026-07-06: webhook event_type 규칙 명확화 — webhook_provider.event_type_path로 payload에서 verbatim 추출(provider-owned free string·GW enum 아님·nullable, 의미=(provider,event_type)). 목적지 라우팅은 org_mapping(별개). §7.6.1.
 // 2026-07-06: config 테이블 신설(13 테이블) — 중앙 Config(FR-CFG-01·§7.8.4) 구현 모델. Enum config_scope{global|region|clinic|device} + (scope_type,scope_id,config_key)당 1행·config_value jsonb·version(drift/캐시 무효화). 실효=키별 가장 구체 우선(override). 전달=pull(GET /v1/fleet/config·heartbeat configVersion)/push-notify(역방향 MQTT). 값 형식=db-jsonb#config.
 // 2026-07-01: 디바이스 인증=비대칭 private_key_jwt(개인키 서명→device.fingerprint 공개키 검증), 공유 secret 폐지(ADR-13·§7.1.1).
 // 2026-07-01: credential 테이블 삭제 → device로 통합(client_id를 device.client_id nullable로 이관, secret_ref 폐기, hw_key_bound는 gw/1.1 attestation으로 이관). 13 테이블.
@@ -237,10 +239,11 @@ Table config {
 Table webhook_event {
   event_id        varchar [pk]                                        // 이벤트 식별자 = 멱등 키(중복 수신 dedup, §7.6.4)
   provider        varchar [not null, ref: > webhook_provider.provider] // 발신 provider(FK, 예 axs)
+  event_type      varchar                                             // provider 이벤트 유형 — webhook_provider.event_type_path로 payload에서 **verbatim 추출**(예 axs patient.created). **provider-owned free string·GW enum 아님**(어휘가 provider별·계속 증가 — audit action·config_key와 동일 원칙), 의미=(provider,event_type) 조합, 미추출 시 null. PHI-free. 용도=Console 필터·관측(+선택 유형별 처리). **목적지 라우팅은 org_mapping(별개)**
   external_org_id varchar                                             // provider의 org 식별자(예 AXS Org-ID) — 분배 대상 역조회 키
   clinic_id       varchar [ref: > clinic.clinic_id]    // 해석된 대상 클리닉(FK, org_mapping 조회 결과)
   region          varchar [ref: > region_catalog.region_id]          // 해석된 대상 리전(FK, clinic 파생)
-  payload_ref     varchar                                            // 본문 참조(opaque — GW 비해석, 외부 스키마 ④)
+  payload_ref     varchar                                            // 본문 보관 참조(claim-check). 본문=리전 로컬 S3(SSE·짧은 TTL, R2)·in-flight는 SQS. **관계형 DB에 본문 미저장**(payload는 opaque·환자 PHI 포함 가능·복제 금지, §6.4·§7.6.3). 외부 스키마 ④
   state           webhook_state [not null, default: 'received']      // 처리 상태(received|dispatched|dead_letter)
   target          varchar                                            // 해석된 분배 대상(채널/엔드포인트)
   attempts        integer [not null, default: 0]                     // 분배 시도 횟수(N회 실패 → dead_letter·DLQ, §7.6.3)
@@ -248,9 +251,10 @@ Table webhook_event {
   received_at     bigint                                             // 수신 시각(Unix ms)
   dispatched_at   bigint                                             // 분배 완료 시각(Unix ms)
 
-  Note: '**외부 webhook 이벤트 수신·분배 상태 기록**(FR-WH-*·§7.6). **Webhook Receiver가 수신 시 생성**(state=received)하고 **Webhook Dispatcher(§7.6.7)가 분배하며 갱신**(dispatched/dead_letter·attempts·last_error·dispatched_at). **멱등**: event_id가 멱등 키라 중복 수신을 dedup(§7.6.4). **GW는 payload를 해석하지 않고** external_org_id로 org_mapping을 조회해 대상 clinic→region을 해석(target에 저장). 본문은 payload_ref로만 참조(opaque·외부 스키마 ④, GW 미저장). 재시도 N회 실패 → dead_letter(DLQ, §7.6.3). 오래된 이벤트 보존/정리 정책은 운영·LLD'
+  Note: '**외부 webhook 이벤트 수신·분배 상태 기록**(FR-WH-*·§7.6). 본 표는 **PHI-free 운영 메타데이터**(provider·event_type·org·clinic·region·state·시각)로 Console 검색/필터 대상. **Webhook Receiver가 수신 시 생성**(state=received)하고 **Webhook Dispatcher(§7.6.7)가 분배하며 갱신**(dispatched/dead_letter·attempts·last_error·dispatched_at). **멱등**: event_id가 멱등 키라 중복 수신을 dedup(§7.6.4). **GW는 payload를 해석하지 않고** external_org_id로 org_mapping을 조회해 대상 clinic→region을 해석(target에 저장). **본문은 관계형 DB에 저장하지 않고**(opaque·환자 PHI 포함 가능) 리전 로컬 S3(짧은 TTL·SSE)에 두고 payload_ref로 참조(claim-check, R2·§7.6.3). 재시도 N회 실패 → dead_letter(DLQ, §7.6.3). 이벤트 메타 보존/payload TTL은 Appendix B'
   Indexes {
     provider   // provider별 조회
+    event_type // 이벤트 유형별 필터(Console)
     state      // 상태별 조회(재시도·DLQ)
     clinic_id  // 클리닉별 조회
   }
@@ -284,6 +288,7 @@ Table webhook_provider {
   secret_ref          varchar                             // 검증 시크릿 참조(KMS) — Host로 선택된 provider의 HMAC 시크릿
   source_ip_allowlist jsonb                               // 허용 소스 **CIDR 목록**(문자열 배열) — **옵션·방어심층**(식별 용도 아님, Host가 대체). 형식=design/db-jsonb-fields.md#webhook_provider. UI=③-C
   org_id_path         varchar                             // payload에서 external_org_id 추출 경로(JSONPath 등)
+  event_type_path     varchar                             // payload에서 event_type 추출 경로(JSONPath 등, 예 AXS $.eventType). provider-owned 어휘를 verbatim 추출 — GW enum 아님. 미설정 시 event_type=null
   enabled             boolean [not null, default: true]   // 활성 여부(수신 on/off)
   created_at          bigint                              // 생성 시각(Unix ms)
   updated_at          bigint                              // 수정 시각(Unix ms)
