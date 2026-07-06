@@ -148,7 +148,7 @@ Table policy {
 
 // 외부 connector (FR-INT-01/02)
 Table connector {
-  name             varchar [pk]  // connector 이름(예 axs) — upstream_registry.target_id와 대응
+  name             varchar [pk]  // connector 이름(예 axs, cleverspace) — upstream_registry.target_id와 대응
   endpoint         varchar       // 외부 서비스 endpoint(base URL)
   credential_ref   varchar       // OAuth2 자격의 KMS 참조(§7.1.3)
   egress_allowlist jsonb         // egress 허용 대상 — {hosts,cidrs,ports}. 형식=design/db-jsonb-fields.md#connector (⚠ egress 3중복=Appendix B #31)
