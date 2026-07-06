@@ -213,7 +213,7 @@ flowchart TD
     classDef ext fill:#ffffff,stroke:#bbbbbb,color:#555555
 ```
 
-> managed(회색)=우리가 만들지 않는 AWS 자원(SQS·DB·NAT·LB) · 외부=GW 범위 박스 밖. **§2.1(상위) → §2.2(GW core 펼침)** 가 같은 색으로 줌인되어 이어진다.
+> managed(회색)=우리가 만들지 않는 AWS 자원(SQS·DB·S3·NAT·LB) · 외부=GW 범위 박스 밖. **§2.1(상위) → §2.2(GW core 펼침)** 가 같은 색으로 줌인되어 이어진다.
 
 | 외부 시스템 | 역할 |
 | --- | --- |
@@ -250,7 +250,7 @@ flowchart TB
     subgraph RA["GW Region A (서울)"]
         LBA["Ingress LB (inbound 1)"]
         GA["GW Deployments<br/>core · WH Receiver · WH Dispatcher"]
-        STA[("저장소 PG·SQS·Valkey")]
+        STA[("저장소 PG·SQS·Valkey·S3<br/>(S3=webhook payload·리전·짧은 TTL)")]
         NATA["NAT · egress EIP set A"]
         LBA --> GA
         GA --- STA
@@ -265,7 +265,7 @@ flowchart TB
     subgraph RB["GW Region B (미주) · gw/1.2"]
         LBB["Ingress LB (inbound 1)"]
         GB["GW Deployments<br/>core · WH Receiver · WH Dispatcher"]
-        STB[("저장소 PG·SQS·Valkey")]
+        STB[("저장소 PG·SQS·Valkey·S3<br/>(S3=webhook payload·리전·짧은 TTL)")]
         NATB["NAT · egress EIP set B"]
         LBB --> GB
         GB --- STB
@@ -389,9 +389,12 @@ flowchart LR
         subgraph WHTIER["Webhook Ingress (Webhook Receiver → SQS → Webhook Dispatcher)"]
             WH["Webhook Receiver<br/>검증·멱등·ACK·적재"]
             SQSQ["내부 큐 A·SQS<br/>(재시도·DLQ)"]
+            S3PL["payload 보관 S3<br/>(리전·SSE·짧은 TTL · PHI)"]
             DISP["Webhook Dispatcher<br/>SQS consumer·별도 Deployment<br/>대상 해석·publish (ADR-12)"]
             WH --> SQSQ
+            WH -->|"payload 저장(ref)"| S3PL
             SQSQ --> DISP
+            S3PL -.->|"본문 read"| DISP
         end
     end
 
@@ -418,7 +421,7 @@ flowchart LR
     DISP ==>|"MQTT (하행·IoT Core)"| EZ
     DISP ==>|"HTTP push (갈래B·보류)"| CLAB
 
-    %% 색 위계: 연두(GW 범위) > 연파랑(GW core·Webhook Ingress) > 흰카드+파란테두리(우리 컴포넌트) · 회색(managed: SQS·DB)
+    %% 색 위계: 연두(GW 범위) > 연파랑(GW core·Webhook Ingress) > 흰카드+파란테두리(우리 컴포넌트) · 회색(managed: SQS·DB·S3)
     style GWBOX fill:#e8f5e9,stroke:#66bb6a,stroke-width:3px
     style CORE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style WHTIER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
@@ -428,7 +431,7 @@ flowchart LR
     classDef comp fill:#ffffff,stroke:#1565c0,stroke-width:1.5px,color:#0d47a1
     classDef mgd fill:#eceff1,stroke:#90a4ae,color:#37474f
     class AUTH,OIDI,ROUTER,RGN,COMPAT,ADM,DREG,ENR,CFG,FLEET,OPA,AUD,CONN,WH,DISP comp
-    class SQSQ,DNOTE mgd
+    class SQSQ,S3PL,DNOTE mgd
 ```
 
 **색 범례** (§2.1과 동일):
