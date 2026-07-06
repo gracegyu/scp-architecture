@@ -62,7 +62,7 @@
 | Clinic | clinic_id, region, mapping_version | device의 **선택적 그룹**(clinic-종속 정보 홈: region·policy 기본·provider-org) · 라우팅 키 통합(device↔clinic) |
 | **RegionCatalog** | region_id, display_name, endpoint, status(active/draining/planned), is_default | **GW 운영 리전 목록**(region list API SSOT, §7.3.6) |
 | **OrgMapping** | provider, external_org_id, clinic_id, mapping_version | **webhook 라우팅 키** — (provider·Org-ID)→clinic→region |
-| **WebhookProvider** | provider, inbound_route, sig_scheme, secret_ref, source_ip_allowlist, org_id_path, event_type_path | **유연 수신 config** — 발신자 검증·식별자 추출(org_id·event_type = provider 어휘 verbatim, GW 비해석·enum 아님) |
+| **WebhookProvider** | provider, inbound_host, inbound_route, sig_scheme, secret_ref, source_ip_allowlist, event_id_path, org_id_path, event_type_path | **유연 수신 config** — 발신자 검증(Host/HMAC)·식별자 추출(event_id·org_id·event_type = provider별 경로 config, verbatim·GW 비해석·enum 아님) |
 | **UpstreamRegistry** | target_id(=target 서브도메인 라벨), host, profile(internal/external), connect/response/total_deadline_ms, enabled | **target 서브도메인 proxy 라우팅**(ADR-11·7/2 R1) · GW 연결 timeout(D1~D3) · egress=Connector, 재시도·서킷=istio |
 | **DeliveryChannel** | clinic_id, channel_type(mqtt_edge/http_cloud), endpoint | webhook 분배 채널(Edge MQTT/Cloud HTTP) |
 
