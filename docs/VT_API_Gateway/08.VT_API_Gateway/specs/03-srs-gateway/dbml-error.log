@@ -43,3 +43,18 @@
     vt-api-gateway.dbml(259,573): A Note can only contain one quoted string
     vt-api-gateway.dbml(259,576): A Note can only contain one quoted string
 
+2026-07-06T05:31:15.420Z
+
+    vt-api-gateway.dbml(259,572): Unexpected token '·'
+    vt-api-gateway.dbml(259,9): Expect a following space
+    vt-api-gateway.dbml(259,544): Expect a following space
+    vt-api-gateway.dbml(259,546): Expect a following space
+    vt-api-gateway.dbml(259,570): Expect a following space
+    vt-api-gateway.dbml(259,573): Expect a following space
+    vt-api-gateway.dbml(259,544): A Note can only contain one quoted string
+    vt-api-gateway.dbml(259,546): A Note can only contain one quoted string
+    vt-api-gateway.dbml(259,567): A Note can only contain one quoted string
+    vt-api-gateway.dbml(259,570): A Note can only contain one quoted string
+    vt-api-gateway.dbml(259,573): A Note can only contain one quoted string
+    vt-api-gateway.dbml(259,576): A Note can only contain one quoted string
+

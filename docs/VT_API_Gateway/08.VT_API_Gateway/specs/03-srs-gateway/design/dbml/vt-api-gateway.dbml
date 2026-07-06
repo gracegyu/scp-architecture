@@ -21,6 +21,7 @@
 // 2026-07-06 (#31): egress SSOT 일원화 — **connector.egress_allowlist = 단일 SSOT**(+requireStaticEgressIp). **policy.egress·upstream_registry.egress_allowlist 제거**(3중복 해소). egress는 외부(C) 대상 속성이지 per-tenant authz 아님 — OPA/네트워크 모두 connector 참조.
 // 2026-07-06: fleet_state.last_heartbeat 의미 명확화 — device→GW push(POST /v1/fleet/heartbeat)로만 갱신(GW는 edge 폴링 불가). 온라인/오프라인=임계값 초과 파생 판정(§7.8.1). 주석만(스키마 불변).
 // 2026-07-06 (R2): webhook_event payload 저장 방식 — 본문은 관계형 DB 미저장(opaque·PHI 포함 가능), 리전 로컬 S3(짧은 TTL·SSE)+payload_ref claim-check(in-flight=SQS). event_type 컬럼 추가(Console 필터)·인덱스. 추천안 채택(7/9 R2 확정 전 provisional).
+// 2026-07-06: webhook_provider 필드 설명 보강 — 각 필드에 AXS 실제 스펙 예시 문자열 추가(inbound_route=/v1/webhooks/axs, sig_scheme=hmac-sha512·헤더 Signature·hex·서명대상 minified JSON, secret_ref=kms://…, *_path=$.messageId/$.organizationId/$.eventType). AXS를 1차 참고한 범용 유연 수신 레지스트리임을 Note에 명시(AXS 전용 아님). 스키마 불변(주석만).
 // 2026-07-06: webhook event_type 규칙 명확화 — webhook_provider.event_type_path로 payload에서 verbatim 추출(provider-owned free string·GW enum 아님·nullable, 의미=(provider,event_type)). 목적지 라우팅은 org_mapping(별개). §7.6.1.
 // 2026-07-06: MQTT 하행=범용 downlink 레일 재정의(§7.6.6, v1.0 webhook만·config/announce/command 예약) + device 원격 config(device.* 키·pull·push-notify)=gw/1.1+. v1.0 중앙 config는 GW-내부(gw.*)가 실사용. config 테이블·컬럼 불변(용도 범위만 조정).
 // 2026-07-06: MQTT 하행 토픽 규약 확정(§7.6.6) — clinic-scoped `gw/clinic/{clinicId}/{stream}`(stream=webhook/config), 리전 미포함. delivery_channel.endpoint(mqtt_edge)·webhook_event.dispatch_target 예시를 이 규약으로 구체화. 브로커 제품·문법 매핑만 #4 잔여.
@@ -286,20 +287,20 @@ Table org_mapping {
 
 // Webhook provider 레지스트리 (유연 수신·발신자 검증·라우팅 키 추출 config) FR-WH-01/02
 Table webhook_provider {
-  provider            varchar [pk]                        // provider 식별자(예 axs) — 정규 토큰
-  inbound_host        varchar [unique]                    // **1차 식별 키** — provider별 전용 수신 호스트(예 axs.webhook.gw.vatech.com). Host/SNI로 발신자 식별(§7.6.1·§7.6.2)
-  inbound_route       varchar                             // 등록된 수신 경로(유연; provider 규약 수용) — 확정 계약 아님
-  sig_scheme          varchar                             // 서명/HMAC 방식(provider 규약) — **인증(신뢰)** 근거
-  secret_ref          varchar                             // 검증 시크릿 참조(KMS) — Host로 선택된 provider의 HMAC 시크릿
-  source_ip_allowlist jsonb                               // 허용 소스 **CIDR 목록**(문자열 배열) — **옵션·방어심층**(식별 용도 아님, Host가 대체). 형식=design/db-jsonb-fields.md#webhook_provider. UI=③-C
-  event_id_path       varchar                             // payload에서 event_id(멱등 키) 추출 경로(JSONPath 등, 예 AXS $.messageId). provider마다 필드명 상이(messageId/eventId/id)라 config로 지정(§7.6.1·§7.6.4)
-  org_id_path         varchar                             // payload에서 external_org_id 추출 경로(JSONPath 등)
-  event_type_path     varchar                             // payload에서 event_type 추출 경로(JSONPath 등, 예 AXS $.eventType). provider-owned 어휘를 verbatim 추출 — GW enum 아님. 미설정 시 event_type=null
-  enabled             boolean [not null, default: true]   // 활성 여부(수신 on/off)
+  provider            varchar [pk]                        // provider 정규 토큰(소문자 ^[a-z0-9_]+$). 예 `axs`. 아웃바운드 connector.name과 같은 party여도 인바운드 축이라 별개(§6.4.1)
+  inbound_host        varchar [unique]                    // **1차 식별 키** — 우리가 provider에 발급한 전용 수신 호스트. 예 `axs.webhook.gw.vatech.com`. Host/SNI로 발신자 식별(우리 통제·source IP 비의존, §7.6.1·§7.6.2)
+  inbound_route       varchar                             // GW가 이 provider 이벤트를 받는 **경로(path)** = provider에 등록한 callback URL의 path 부분. 예 AXS엔 callback `https://axs.webhook.gw.vatech.com/v1/webhooks/axs` 등록 → inbound_route=`/v1/webhooks/axs`. Host/SNI로 이미 provider를 식별하므로 경로는 **확정 계약이 아니라 등록 기반·유연**(provider 규약 수용, §4.1.3)
+  sig_scheme          varchar                             // 발신자 **서명 검증 스킴**(인증/신뢰 근거, §7.6.2) — 알고리즘+서명 헤더+인코딩+서명대상을 규정하는 식별자. 예 AXS `hmac-sha512`(HMAC-SHA512·서명 헤더 `Signature`·hex 인코딩·서명대상=minified JSON body) / 타 provider 예 `hmac-sha256`(헤더 `X-Hub-Signature-256`·base64). 스킴별 세부 파라미터는 앱 레벨 스킴 정의(LLD)
+  secret_ref          varchar                             // HMAC 검증 **공유 시크릿의 KMS 참조**(원문 DB 미저장, §6.2). 예 `kms://alias/axs-webhook-hmac`. AXS 구독 등록 시 우리가 제공한 shared secret — Host로 provider 선택 후 이 시크릿으로 sig_scheme 서명 검증
+  source_ip_allowlist jsonb                               // 허용 소스 **CIDR 목록**(문자열 배열). 예 `["203.0.113.0/24"]`. **옵션·방어심층**(식별 용도 아님·Host가 대체, 비면 IP 체크 생략). 형식=design/db-jsonb-fields.md#webhook_provider. UI=③-C
+  event_id_path       varchar                             // payload에서 event_id(멱등 키) 추출 경로(JSONPath). 예 AXS `$.messageId`. provider마다 필드명 상이(messageId/eventId/id)라 config로 지정(§7.6.1·§7.6.4)
+  org_id_path         varchar                             // payload에서 external_org_id(분배 대상 역조회 키) 추출 경로(JSONPath). 예 AXS `$.organizationId`
+  event_type_path     varchar                             // payload에서 event_type 추출 경로(JSONPath). 예 AXS `$.eventType`. provider-owned 어휘를 verbatim 추출 — GW enum 아님. 미설정 시 event_type=null
+  enabled             boolean [not null, default: true]   // 활성 여부(수신 on/off). 예 `true`
   created_at          bigint                              // 생성 시각(Unix ms)
   updated_at          bigint                              // 수정 시각(Unix ms)
 
-  Note: '식별=inbound_host(Host/SNI)로 provider·시크릿 선택, 인증=HMAC+timestamp(호스트명은 식별이지 인증 아님). source_ip는 옵션. GW는 payload 비해석, 본 config로 발신자 검증 + 라우팅 키만 추출(§4.1.3·§7.6.2). 경로/형식은 provider 규약 수용. 와일드카드 DNS 미사용 — provider별 명시 호스트(연단위 추가)'
+  Note: '**범용 유연 수신 레지스트리**(FR-WH-01/02) — **AXS를 1차 provider로 참고**했으나 AXS 전용 하드코딩이 아니라 **어떤 provider든 1행 등록으로 수용**(신규 연동=코드변경 0). 파이프라인: ① **식별** = inbound_host(Host/SNI)로 provider·시크릿 선택 → ② **인증** = sig_scheme+secret_ref로 서명 검증(+timestamp; 호스트명은 식별이지 인증 아님·source_ip는 옵션 방어심층) → ③ **추출** = event_id_path·org_id_path·event_type_path로 필요한 식별자만 뽑음(payload 본문은 비해석·§4.1.3·§7.6.2). 경로/형식은 provider 규약 수용. 와일드카드 DNS 미사용 — provider별 명시 호스트(연단위 추가). AXS 예시 근거: references/Straumann연동/AXS_docs/webhooks.md'
 }
 
 // target 서브도메인 → upstream host 레지스트리 (target-routed proxy, ADR-11 · 7/2 R1 edge=서브도메인)
