@@ -41,7 +41,7 @@ GW는 upstream으로 verbatim 프록시하므로(§4.1.2), **정책은 (method +
 ["axs:patient.read", "axs:study.write", "axs:upload"]
 ```
 
-- **타입**: 문자열 배열(집합). 소문자 `provider:resource.action` 관례.
+- **타입**: 문자열 배열(집합). 소문자 `target:resource.action` 관례.
 - **검증**: 각 원소 비어있지 않은 토큰. 중복 무시.
 - **기본값**: 빈 배열 = 어떤 scope도 불허(fail-closed).
 
@@ -73,7 +73,7 @@ GW는 upstream으로 verbatim 프록시하므로(§4.1.2), **정책은 (method +
 ```json
 ["203.0.113.0/24", "198.51.100.7/32"]
 ```
-- **타입**: CIDR 문자열 배열. 발신자 **식별은 Host/SNI**(inbound_host)가 하고, 이 목록은 **옵션 방어심층**(비어 있으면 IP 체크 생략, §7.6.2). webhook 발신 provider에만 채움.
+- **타입**: CIDR 문자열 배열. 발신자 **식별은 Host/SNI**(inbound_host)가 하고, 이 목록은 **옵션 방어심층**(비어 있으면 IP 체크 생략, §7.6.2). webhook 발신 upstream에만 채움.
 - **검증**: 각 원소 유효 CIDR.
 
 > 라우팅(host·profile·연결 timeout) 스칼라는 jsonb 아님 — 재시도·서킷은 service mesh(istio) egress(7/2 R4), 연결 timeout(connect/response/total_deadline)은 GW 책임 스칼라 컬럼(D1~D3·§7.5.4, 수치=Appendix B #25).

@@ -327,9 +327,9 @@ paths:
         type: string
     post:
       tags: [ clinics ]
-      summary: 외부 provider Org-ID 등록 (외부 연동 연결 시, provider별) (FR-INT-*)
+      summary: 외부 upstream Org-ID 등록 (외부 연동 연결 시, upstream별) (FR-INT-*)
       description: >-
-        클리닉이 외부 연동(예 AXS)을 켤 때 그 provider의 Org-ID 등록 → org_mapping((provider, Org-ID)→clinic). webhook 분배 키. Org-ID는 provider 온보딩에서 발급(§2.3.5·④).
+        클리닉이 외부 연동(예 AXS)을 켤 때 그 upstream의 Org-ID 등록 → org_mapping((upstream, Org-ID)→clinic). webhook 분배 키. Org-ID는 upstream 온보딩에서 발급(§2.3.5·④).
       requestBody:
         required: true
         content:
@@ -413,16 +413,16 @@ paths:
   #   - upstream 자체 4xx/5xx = 원 코드·body verbatim 통과(GW 미변형). 헤더 Vatech-Error-Origin: upstream.
   #   - GW 앱레벨: 연결 timeout + 오류 정규화 + 멱등(Idempotency-Key 존중) + 클라이언트 조기 절단 시 upstream 호출 취소. 네트워크 재시도·서킷은 mesh 담당.
 
-  # --- Webhook 수신 (§7.6 / §4.1.3) — provider별 전용 호스트({provider}.webhook.gw.vatech.com)로 식별(Host/SNI). 경로/스키마는 provider 규약 수용·유연(아래는 예시). GW는 발신자 검증·라우팅만, payload 비해석 ---
-  /v1/webhooks/{provider}:
+  # --- Webhook 수신 (§7.6 / §4.1.3) — upstream별 전용 호스트({target}.webhook.gw.vatech.com)로 식별(Host/SNI). 경로/스키마는 upstream 규약 수용·유연(아래는 예시). GW는 발신자 검증·라우팅만, payload 비해석 ---
+  /v1/webhooks/{target}:
     post:
       tags: [ webhooks ]
       security: []
-      summary: 외부 이벤트 Webhook 수신 (FR-WH-01~05) — provider별 전용 호스트로 식별, 경로/형식 유연(예시)
+      summary: 외부 이벤트 Webhook 수신 (FR-WH-01~05) — upstream별 전용 호스트로 식별, 경로/형식 유연(예시)
       description: >-
-        **발신자 식별 = provider별 전용 호스트**(`{provider}.webhook.gw.vatech.com`, Host/SNI → 레지스트리 inbound_host, §7.6.2) — source IP 비의존. 아래 경로 `/v1/webhooks/{provider}`와 스키마는 **예시**이며 확정 계약이 아니다(provider 규약 수용·유연, §4.1.3). **신뢰(인증) = HMAC + timestamp**(호스트명은 식별이지 인증 아님); source IP allowlist는 옵션. GW는 멱등(eventId)·라우팅만 하며 payload는 소비자가 해석한다(opaque, ④/AXS 스냅샷 참조).
+        **발신자 식별 = upstream별 전용 호스트**(`{target}.webhook.gw.vatech.com`, Host/SNI → 레지스트리 inbound_host, §7.6.2) — source IP 비의존. 아래 경로 `/v1/webhooks/{target}`와 스키마는 **예시**이며 확정 계약이 아니다(upstream 규약 수용·유연, §4.1.3). **신뢰(인증) = HMAC + timestamp**(호스트명은 식별이지 인증 아님); source IP allowlist는 옵션. GW는 멱등(eventId)·라우팅만 하며 payload는 소비자가 해석한다(opaque, ④/AXS 스냅샷 참조).
       parameters:
-      - name: provider
+      - name: target
         in: path
         required: true
         schema:
@@ -531,6 +531,107 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      tags: [ admin ]
+      summary: Org-ID↔ClinicID 매핑 삭제 — 연동 해지·오설정 제거 (복합키 targetId+externalOrgId)
+      parameters:
+        - name: targetId
+          in: query
+          required: true
+          schema: { type: string }
+          description: upstream 대상 라벨(=Vatech-Target)
+        - name: externalOrgId
+          in: query
+          required: true
+          schema: { type: string }
+          description: upstream 발급 외부 Org-ID
+      responses:
+        '204': { description: 삭제됨 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  # --- webhook 이벤트 조회 (Console 검색/필터, §7.6·§7.9.1) — GW 런타임 생성, write API 없음(조회 전용) ---
+  /admin/v1/webhook-events:
+    get:
+      tags: [ admin ]
+      summary: webhook 이벤트(메타) 검색/조회 — Console 운영·감사용 (PHI-free, payload는 payload_ref로 참조)
+      parameters:
+        - name: targetId
+          in: query
+          schema: { type: string }
+          description: 발신 upstream 라벨 필터
+        - name: clinicId
+          in: query
+          schema: { type: string }
+          description: 분배 대상 clinic 필터
+        - name: eventType
+          in: query
+          schema: { type: string }
+          description: upstream 원어 event_type 필터
+        - name: state
+          in: query
+          schema: { $ref: '#/components/schemas/WebhookEventState' }
+          description: 처리 상태 필터
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+          description: 페이지네이션 커서
+      responses:
+        '200':
+          description: webhook 이벤트 메타 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WebhookEvent'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  # --- fleet 상태 조회 (§7.8, 대시보드) — device push heartbeat로 갱신, 조회 전용 ---
+  /admin/v1/fleet:
+    get:
+      tags: [ admin ]
+      summary: fleet 상태(디바이스 heartbeat·버전) 조회 — 운영 대시보드 (fleet_state)
+      parameters:
+        - name: clinicId
+          in: query
+          schema: { type: string }
+          description: clinic 필터
+        - name: staleOnly
+          in: query
+          schema: { type: boolean, default: false }
+          description: last_heartbeat 임계 초과(정체) 디바이스만
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: fleet 상태 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FleetState'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # --- 연동 대상(upstream) 통합 관리 (§7.5·§7.6·§7.1.3, Console ③-C) — 라우팅+자격+webhook 수신 한 레코드 ---
@@ -870,7 +971,7 @@ components:
           description: '클라이언트가 실제 호출하는 공개 호스트 — 모두 GeoDNS라 **리전 불변**(리전별로 다르지 않음·참고용, §4.5.1). endpoint(리전 내부 진단용)와 구분'
           properties:
             apex: { type: string, description: 'GW 고유 API·프록시 apex(예 gw.vatech.com, GeoDNS). 프록시 target은 {target}.gw.vatech.com' }
-            webhookHostPattern: { type: string, description: 'provider 웹훅 수신 호스트 관례({provider}.webhook.gw.vatech.com) — 외부 provider가 이 리전 클리닉 이벤트를 push할 때 쓰는 호스트(GeoDNS, §4.5.1·§7.6.1)' }
+            webhookHostPattern: { type: string, description: 'upstream 웹훅 수신 호스트 관례({target}.webhook.gw.vatech.com) — 외부 upstream가 이 리전 클리닉 이벤트를 push할 때 쓰는 호스트(GeoDNS, §4.5.1·§7.6.1)' }
         sovereigntyPolicy:
           type: object
           description: 'PHI 데이터 주권 정책(§7.3.3) — PHI 바이트가 이 리전을 벗어나지 못함(OPA 집행)'
@@ -880,11 +981,11 @@ components:
             crossBorder: { type: boolean, description: 'true면 국경 간 — 재동의·주권 재평가(FR-COMP-02)' }
             storage:
               type: object
-              description: 'PHI storage 주권 — GW는 storage 비호스팅, 발급 provider(CleverSpace/AXS) 소유(§7.4·§3.1.2)'
+              description: 'PHI storage 주권 — GW는 storage 비호스팅, 발급 upstream(CleverSpace/AXS) 소유(§7.4·§3.1.2)'
               properties:
-                hostedBy: { type: string, description: '항상 provider — PHI 바이트는 provider storage에 presigned 직결(GW 비경유)' }
-                kind: { type: string, description: 'AWS 리전=S3, AWS 미지원국=provider MinIO 등(provider가 결정·리전 주권 충족)' }
-                regionBound: { type: boolean, description: 'provider storage가 dataResidencyRegion 안에 있어야 함(항상 true)' }
+                hostedBy: { type: string, description: '항상 upstream — PHI 바이트는 upstream storage에 presigned 직결(GW 비경유)' }
+                kind: { type: string, description: 'AWS 리전=S3, AWS 미지원국=upstream MinIO 등(upstream가 결정·리전 주권 충족)' }
+                regionBound: { type: boolean, description: 'upstream storage가 dataResidencyRegion 안에 있어야 함(항상 true)' }
 
     # Fleet heartbeat (§7.8.1)
     FleetHeartbeat:
@@ -968,7 +1069,7 @@ components:
       type: object
       required: [ targetId, profile ]
       description: >-
-        연동 대상(외부 provider·내부 backend) **통합 레코드**(엔터티=upstream) — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드에(구 upstream_registry·connector·webhook_provider 병합). **upstream 하나 등록=1 레코드**. credential_ref·secret_ref는 KMS 참조만(원문 미노출). org_mapping·webhook_event·policy가 targetId를 참조. AXS=①②③ 다 채움 / 내부(cleverspace·oneid)=① 라우팅만.
+        연동 대상(외부 서비스·내부 backend) **통합 레코드**(엔터티=upstream) — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드에(구 upstream_registry·connector·webhook_provider 병합). **upstream 하나 등록=1 레코드**. credential_ref·secret_ref는 KMS 참조만(원문 미노출). org_mapping·webhook_event·policy가 targetId를 참조. AXS=①②③ 다 채움 / 내부(cleverspace·oneid)=① 라우팅만.
       properties:
         targetId: { type: string, description: '연동 대상 ID = Vatech-Target 값 = 서브도메인 라벨 = PK. 예 axs·cleverspace·oneid' }
         # ── ① 라우팅 (모든 대상) ──
@@ -996,13 +1097,13 @@ components:
         sourceIpAllowlist: { type: array, items: { type: string, description: 'CIDR(예 203.0.113.0/24)' }, description: '허용 소스 CIDR(옵션·방어심층·Host가 1차 식별)' }
         eventIdPath: { type: string, description: 'payload에서 event_id(멱등) 추출 경로. 예 $.messageId' }
         orgIdPath: { type: string, description: 'payload에서 externalOrgId 추출 경로. 예 $.organizationId' }
-        eventTypePath: { type: string, description: 'payload에서 event_type 추출 경로. 예 $.eventType(provider 어휘 verbatim·GW enum 아님)' }
+        eventTypePath: { type: string, description: 'payload에서 event_type 추출 경로. 예 $.eventType(upstream 어휘 verbatim·GW enum 아님)' }
 
     # Webhook
     WebhookEnvelope:
       type: object
       description: >-
-        GW가 검증·라우팅에 사용하는 최상위 공통 필드만 정의. 실제 이벤트 본문(payload)은 provider 외부 스키마이므로 opaque(object) 또는 외부 $ref로 둔다(§4.1.3-2).
+        GW가 검증·라우팅에 사용하는 최상위 공통 필드만 정의. 실제 이벤트 본문(payload)은 upstream 외부 스키마이므로 opaque(object) 또는 외부 $ref로 둔다(§4.1.3-2).
       required: [ eventId, eventType ]
       properties:
         eventId:
@@ -1013,7 +1114,7 @@ components:
           description: 이벤트 유형(분배 라우팅 키)
         payload:
           type: object
-          description: provider별 외부 스키마(④/AXS 스냅샷 참조). GW 재정의 금지.
+          description: upstream별 외부 스키마(④/AXS 스냅샷 참조). GW 재정의 금지.
     WebhookAck:
       type: object
       properties:
@@ -1021,6 +1122,39 @@ components:
           type: boolean
         eventId:
           type: string
+
+    WebhookEventState:
+      type: string
+      enum: [ received, dispatched, dead_letter ]
+      description: 'webhook 처리 상태(DBML webhook_state). received=수신·미분배, dispatched=분배 완료, dead_letter=N회 실패·DLQ'
+    WebhookEvent:
+      type: object
+      description: >-
+        webhook 이벤트 **PHI-free 운영 메타데이터**(webhook_event 테이블 매핑, §7.6). payload 본문은 리전 로컬 S3에만 두고 payloadRef로 참조(claim-check, R2). 관계형 DB·본 응답에 본문 미포함.
+      required: [ eventId, targetId, state ]
+      properties:
+        eventId: { type: string, description: '이벤트 식별자 = 멱등 키(dedup). 예 c2f8aaf5-…' }
+        targetId: { type: string, description: '발신 upstream 라벨. 예 axs' }
+        eventType: { type: string, description: 'upstream 원어 event_type(verbatim·GW enum 아님·null 가능). 예 patient.created' }
+        externalOrgId: { type: string, description: '발신 org 식별자(분배 역조회 키). 예 0040694997' }
+        clinicId: { type: string, description: '해석된 대상 clinic(org_mapping 조회 결과). null 가능' }
+        region: { type: string, description: '해석된 대상 region(clinic 파생)' }
+        payloadRef: { type: string, description: '본문 claim-check 참조(리전 로컬 S3). 예 s3://gw-webhook-payload-apne2/axs/…json' }
+        state: { $ref: '#/components/schemas/WebhookEventState' }
+        dispatchTarget: { type: string, description: "구체적 분배 목적지 스냅샷 {channel}:{endpoint}. 예 mqtt_edge:gw/clinic/CLINIC-0040694997/webhook" }
+        attempts: { type: integer, description: '분배 시도 횟수' }
+        lastError: { type: string, description: '마지막 분배 실패 사유(성공 시 null)' }
+        receivedAt: { type: integer, format: int64, description: '수신 시각(Unix ms)' }
+        dispatchedAt: { type: integer, format: int64, description: '분배 완료 시각(Unix ms·미분배 시 null)' }
+
+    FleetState:
+      type: object
+      description: 'device별 관측 상태 스냅샷(fleet_state 테이블, §7.8). device push heartbeat로 갱신, 온라인/오프라인은 last_heartbeat 임계 초과 파생.'
+      required: [ deviceId ]
+      properties:
+        deviceId: { type: string, description: 'device_id(PK·FK). 예 01920a7b-…' }
+        lastHeartbeat: { type: integer, format: int64, description: '마지막 heartbeat 수신 시각(Unix ms). device→GW push(§7.8.1)' }
+        successRate: { type: number, format: double, description: '성공률(0~1) 관측 지표. 예 0.987' }
 
     # 감사
     AuditLog:
