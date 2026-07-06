@@ -1,28 +1,28 @@
 **문서 정보**
 
-| 항목 | 내용 |
-| --- | --- |
-| 문서 유형 | 제품 요구사항 정의서 (PRD) |
-| 버전 | v2.2 (Roadmap 흡수) |
-| 상태 | Draft — 검토·승인 후 상세 설계(ARD/HLD) 진입 |
-| 작성 | 김성훈 / Scott 실장 (ES 개발실) |
-| 사업 동인 | [VGBX-8906](https://vts.vatech.com/browse/VGBX-8906) · [VTWB-16535](https://vts.vatech.com/browse/VTWB-16535) (VT-Straumann 공진화) |
-| 작업 추적 | ESIP-1 (Pillar) · [ESIP-2](https://vts.vatech.com/browse/ESIP-2) (v1.0) · 기획 [ESIP3](https://vts.vatech.com/browse/ESIP-3) |
-| 문서 ID | ESIP-GW-PRD |
-| 적용 제품 버전 | gw/1.0.0.0 (정규버전 Major) |
-| 분류 | 통제 문서 (Controlled · IEC 62304 / ISO 13485 대상) |
-| 아키텍처 | [VT API Gateway — ARD (아키텍처)](<VT API Gateway — ARD (아키텍처).md>) |
+| 항목           | 내용                                                                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 문서 유형      | 제품 요구사항 정의서 (PRD)                                                                                                          |
+| 버전           | v2.2 (Roadmap 흡수)                                                                                                                 |
+| 상태           | Draft — 검토·승인 후 상세 설계(ARD/HLD) 진입                                                                                        |
+| 작성           | 김성훈 / Scott 실장 (ES 개발실)                                                                                                     |
+| 사업 동인      | [VGBX-8906](https://vts.vatech.com/browse/VGBX-8906) · [VTWB-16535](https://vts.vatech.com/browse/VTWB-16535) (VT-Straumann 공진화) |
+| 작업 추적      | ESIP-1 (Pillar) · [ESIP-2](https://vts.vatech.com/browse/ESIP-2) (v1.0) · 기획 [ESIP3](https://vts.vatech.com/browse/ESIP-3)        |
+| 문서 ID        | ESIP-GW-PRD                                                                                                                         |
+| 적용 제품 버전 | gw/1.0.0.0 (정규버전 Major)                                                                                                         |
+| 분류           | 통제 문서 (Controlled · IEC 62304 / ISO 13485 대상)                                                                                 |
+| 아키텍처       | [VT API Gateway — ARD (아키텍처)](<VT API Gateway — ARD (아키텍처).md>)                                                             |
 
 ## 0. 문서 통제 · 개정 이력 (Revision History)
 
 Controlled document. Confluence page history = 변경 원장, 아래 개정 이력 = 통제 요약. '적용 제품 버전'으로 제품 버전(ES 4-seg / Jira fixVersion)과 결속하며, 릴리스 시 baseline을 동결한다. 승인은 위임전결(정규=품의 / 비정규=전결).
 
-| 문서 버전 | 일자 | 작성 | 변경 내용 | 상태 |
-| --- | --- | --- | --- | --- |
-| v1.0 | 2026-06 | Scott | 초안 — 시나리오 2+ 외부 연동 프록시 GW | Superseded |
-| v2.0 | 2026-06-08 | Scott | 외부 리뷰 반영 재정립 — 디바이스 통신 중앙화 control plane | Superseded |
-| v2.1 | 2026-06-08 | Scott | v2 견적 6,940만 원 확정 | Draft |
-| v2.2 | 2026-06-15 | Scott | ESMN Roadmap 흡수 — API 버전 호환성·OneID 인증면·Webhook Receiver·라우팅 키 통합 (§12) | Draft |
+| 문서 버전 | 일자       | 작성  | 변경 내용                                                                              | 상태       |
+| --------- | ---------- | ----- | -------------------------------------------------------------------------------------- | ---------- |
+| v1.0      | 2026-06    | Scott | 초안 — 시나리오 2+ 외부 연동 프록시 GW                                                 | Superseded |
+| v2.0      | 2026-06-08 | Scott | 외부 리뷰 반영 재정립 — 디바이스 통신 중앙화 control plane                             | Superseded |
+| v2.1      | 2026-06-08 | Scott | v2 견적 6,940만 원 확정                                                                | Draft      |
+| v2.2      | 2026-06-15 | Scott | ESMN Roadmap 흡수 — API 버전 호환성·OneID 인증면·Webhook Receiver·라우팅 키 통합 (§12) | Draft      |
 
 ## 1. 배경 및 목적
 
@@ -49,19 +49,20 @@ Controlled document. Confluence page history = 변경 원장, 아래 개정 이�
 
 ## 3. 이해관계자 (Stakeholders)
 
-| 구분 | 역할 |
-| --- | --- |
-| 마케팅전략팀 | 전략 오너, 제휴 정의 (박지웅 팀장) |
-| 개발실 (ES) | 설계·개발 (김성훈 / Scott 실장) |
-| 외부 플랫폼사 | Straumann (1차), DS Core / Envista / 3Shape (후속) |
-| 사내 시스템 | Clever One / Clever Lab / CleverSpace / EzServer · 인증 OneID(OIDC) |
-| 운영자 | 테넌트·키·로그·fleet 관리 (관리자 UI) |
+| 구분          | 역할                                                                |
+| ------------- | ------------------------------------------------------------------- |
+| 마케팅전략팀  | 전략 오너, 제휴 정의 (박지웅 팀장)                                  |
+| 개발실 (ES)   | 설계·개발 (김성훈 / Scott 실장)                                     |
+| 외부 플랫폼사 | Straumann (1차), DS Core / Envista / 3Shape (후속)                  |
+| 사내 시스템   | Clever One / Clever Lab / CleverSpace / EzServer · 인증 OneID(OIDC) |
+| 운영자        | 테넌트·키·로그·fleet 관리 (관리자 UI)                               |
 
 ## 4. 아키텍처 — 3-Plane
 
 허가·열쇠는 중앙(control)에서 받되, 무거운 영상은 중앙을 거치지 않고 자국 리전 저장소로 직행한다.
 
 | Plane | 역할 | 데이터 |
+| --- | --- | --- |
 | Control (글로벌 HA, **soft-state**) | allowlist 확인 → device→region 해석 → upload session 발급 → config push + fleet 운영 | 메타데이터만 · **PHI 미경유** |
 | Data (리전 한정) | 디바이스 ↔ 리전 storage 직결(presigned/session) | 실제 영상 · **리전 밖 미이동(주권)** |
 | Integration (north-south) | 내부/외부 클라우드 connector + egress 정책 | 안전 링크(presigned) pull |
@@ -102,38 +103,42 @@ soft-state: 완전 stateless 아님. region resolver cache TTL(초)·device→re
 
 아래는 v1 PRD 요구사항(외부 연동·프록시·파일)으로 유효하다. v2 범위의 **디바이스 레지스트리·enrollment·fleet 운영·region resolver·upload session·마이그레이션** FR은 다음 개정에서 식별자(FR-DEV/FR-ENR/FR-FLEET/FR-RGN/FR-SES/FR-MIG)로 추가한다.
 
-| FR-AUTH-01 | 외부 플랫폼별 OAuth2 인증 위임 처리 | 필수 |
-| --- | --- | --- |
-| FR-AUTH-02 | 사내 호출자(EzServer/Clever One)에 JWT 발급·검증 | 필수 |
-| FR-AUTH-03 | 외부 Access/Refresh Token 안전 저장·만료 전 자동 갱신 | 필수 |
-| FR-AUTH-04 | 테넌트별 OAuth Client 자격증명 분리 보관 | 필수 |
-| FR-AUTH-05 | 토큰·시크릿 암호화 저장(at-rest), 평문 노출 금지 | 필수 |
-| FR-MT-01~03 | 테넌트(플랫폼×고객) 격리 · 라우팅 · 설정만으로 추가(코어 무변경) | 필수 |
-| FR-PXY-01 / FR-FILE-01~02 | 외부 규격 프록시·변환 · 대용량 파일 업로드 후 비동기 전달 | 필수 |
-| FR-POL-01 / FR-ADM-01·04 / FR-AUD-01 / FR-HA-01 | 접근정책 · 관리 화면 · RBAC · 감사로그 · Multi-AZ 가용성 | 필수 |
+| ID                                              | 요구사항                                                         | 우선순위 |
+| ----------------------------------------------- | ---------------------------------------------------------------- | -------- |
+| FR-AUTH-01                                      | 외부 플랫폼별 OAuth2 인증 위임 처리                              | 필수     |
+| FR-AUTH-02                                      | 사내 호출자(EzServer/Clever One)에 JWT 발급·검증                 | 필수     |
+| FR-AUTH-03                                      | 외부 Access/Refresh Token 안전 저장·만료 전 자동 갱신            | 필수     |
+| FR-AUTH-04                                      | 테넌트별 OAuth Client 자격증명 분리 보관                         | 필수     |
+| FR-AUTH-05                                      | 토큰·시크릿 암호화 저장(at-rest), 평문 노출 금지                 | 필수     |
+| FR-MT-01~03                                     | 테넌트(플랫폼×고객) 격리 · 라우팅 · 설정만으로 추가(코어 무변경) | 필수     |
+| FR-PXY-01 / FR-FILE-01~02                       | 외부 규격 프록시·변환 · 대용량 파일 업로드 후 비동기 전달        | 필수     |
+| FR-POL-01 / FR-ADM-01·04 / FR-AUD-01 / FR-HA-01 | 접근정책 · 관리 화면 · RBAC · 감사로그 · Multi-AZ 가용성         | 필수     |
 
 ## 7. 비기능 요구사항 (Non-Functional)
 
-| NFR-SEC | 보안 | 전 구간 TLS · 시크릿 암호화(KMS) · 최소 권한 IAM · 평문 로깅 금지 · **PII/환자정보 비저장**(파일 staging 후 즉시 정리) |
-| --- | --- | --- |
-| NFR-PERF | 성능 | 인증·프록시 오버헤드 p95 < 300ms(파일 제외) · 대용량 파일 비동기 |
-| NFR-AVA | 가용성 | Multi-AZ 관리형 ≥ 99.9% · v2: 글로벌 HA active-active(soft-state) |
-| NFR-SCL | 확장성 | 플랫폼·테넌트·리전 추가가 설정 기반 O(1) |
-| NFR-OBS / MNT | 관측·유지보수 | 구조화 로그·메트릭·감사 분리 · IaC 환경 재현 |
+| ID            | 분류          | 우선순위                                                                                                               |
+| ------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| NFR-SEC       | 보안          | 전 구간 TLS · 시크릿 암호화(KMS) · 최소 권한 IAM · 평문 로깅 금지 · **PII/환자정보 비저장**(파일 staging 후 즉시 정리) |
+| NFR-PERF      | 성능          | 인증·프록시 오버헤드 p95 < 300ms(파일 제외) · 대용량 파일 비동기                                                       |
+| NFR-AVA       | 가용성        | Multi-AZ 관리형 ≥ 99.9% · v2: 글로벌 HA active-active(soft-state)                                                      |
+| NFR-SCL       | 확장성        | 플랫폼·테넌트·리전 추가가 설정 기반 O(1)                                                                               |
+| NFR-OBS / MNT | 관측·유지보수 | 구조화 로그·메트릭·감사 분리 · IaC 환경 재현                                                                           |
 
 ## 8. 마일스톤 · 견적
 
-| M1 설계·기반 | 1개월차 | HLD/LLD · 인증·라우팅 설계 · AXS 규격 분석 · IaC 골격 |
-| --- | --- | --- |
-| M2 코어 구현 | 2개월차 | Auth/Token/Proxy/File/Policy · 관리자 UI·대시보드(경량) |
-| M3 통합·안정화 | 3개월차 | AXS E2E 연동 · 감사·이중화(최소) · 부하·안정화 |
+| 단계           | 기간    | 산출물                                                  |
+| -------------- | ------- | ------------------------------------------------------- |
+| M1 설계·기반   | 1개월차 | HLD/LLD · 인증·라우팅 설계 · AXS 규격 분석 · IaC 골격   |
+| M2 코어 구현   | 2개월차 | Auth/Token/Proxy/File/Policy · 관리자 UI·대시보드(경량) |
+| M3 통합·안정화 | 3개월차 | AXS E2E 연동 · 감사·이중화(최소) · 부하·안정화          |
 
 v2 견적 **6,940만 원으로 확정**(2026-06-08). 범위: control/data/integration plane + fleet 운영 + 멀티클라우드 presign brokering + 리전 signer + 레거시 10만대 마이그레이션 포함. 참고 — v1 초기 견적은 3개월 / 9.5MM / 약 7,040만 원. MM 상세 내역은 개발계획서(품의)에서 확정한다.
 
 ## 9. OSS vs 직접 구현
 
-| OSS 활용 | Keycloak/Ory(OAuth2 AS) · Kong/APISIX/Envoy(엣지) · OPA(정책) · Vault(secret·PKI·enrollment) · MinIO(온프렘 S3) · OpenTelemetry · 글로벌 복제 DB(CockroachDB/Yugabyte) |
+| 구분 | 내용 |
 | --- | --- |
+| OSS 활용 | Keycloak/Ory(OAuth2 AS) · Kong/APISIX/Envoy(엣지) · OPA(정책) · Vault(secret·PKI·enrollment) · MinIO(온프렘 S3) · OpenTelemetry · 글로벌 복제 DB(CockroachDB/Yugabyte) |
 | 직접 구현 | 디바이스 레지스트리/lifecycle/allowlist · enrollment(+nonce·fingerprint·anomaly) · region resolver(+versioning) · upload session · presign broker(S3·Blob·GCS·MinIO) · 리전 signer agent · config 배포 · **fleet 운영** · connector+egress · 마이그레이션 툴링 · audit |
 | 기존 GW 미사용 근거 | 디바이스–리전 매칭 + 멀티클라우드/온프렘 presign brokering + 중앙 config·fleet 운영 도메인 로직은 범용 API GW에 없음 |
 
@@ -151,8 +156,9 @@ v2 견적 **6,940만 원으로 확정**(2026-06-08). 범위: control/data/integ
 
 본 PRD의 디바이스 통신 중앙화 control plane(3-Plane)을 **골격**으로 유지하고, ESMN *VatechAPIGateway 구축 및 API 호환성 통합 Roadmap*(2026-06-11 SCServer 기술검토 회의)의 4개 요소를 v1.0 범위로 흡수한다. 상세 결정은 ARD §7, 요구사항은 요구사항 명세(COMPAT·WH·AUTH-08/09·RGN-06) 참조.
 
-| ① API 버전 호환성 | Vatech-* 식별 헤더 · well-known 런타임 공시 · 오류코드 매핑/fallback · 호환성 매트릭스. GW 신설 전에도 즉시 적용(CleverSpace v1.3.0 대응) | ARD ADR-07 · FR-COMPAT |
+| 흡수 | 내용 | 위치 |
 | --- | --- | --- |
+| ① API 버전 호환성 | Vatech-\* 식별 헤더 · well-known 런타임 공시 · 오류코드 매핑/fallback · 호환성 매트릭스. GW 신설 전에도 즉시 적용(CleverSpace v1.3.0 대응) | ARD ADR-07 · FR-COMPAT |
 | ② OneID 인증면 | 무인 디바이스 머신 인증(OAuth2 cc·enrollment)과 별개로, 사람·클리닉·사내 호출자는 OneID(OIDC)로 인증 — 2면 공존 | ARD ADR-08 · FR-AUTH-08/09 |
 | ③ Webhook Receiver | 외부 이벤트(AXS 등) 단일 수신·검증·분배. 클라우드=HTTP push, Edge(EzServer)=MQTT(QoS1) | ARD ADR-09 · FR-WH |
 | ④ 라우팅 키 통합 | device→region(08)과 ClinicID→region(서비스 연동)을 device↔clinic↔region 단일 체계로 통합 | ARD ADR-10 · FR-RGN-06 |
@@ -166,7 +172,7 @@ v2 견적 **6,940만 원으로 확정**(2026-06-08). 범위: control/data/integ
 Roadmap 5단계를 **One Pager 2 + SRS 1 + Sub-SRS 2**로 나누어 작성한다. 스펙 경계 ≠ 실행 경계 — 케이스 D는 ③·③-C·④를 통합 실행한다.
 
 | # | Roadmap 단계 | 성격 | 스펙 문서 | 비고 |
-|---|--------------|------|-----------|------|
+| --- | --- | --- | --- | --- |
 | ① | 1단계 API 호환성 | 기존 제품 수정 | Engineering One Pager | 즉시 착수, ②와 병행 |
 | ② | 2단계 Presigned URL | 기존 경로 업그레이드 | Engineering One Pager | GW 선행 요건, ①과 병행 |
 | ③ | 3+4단계 GW 일원화 + 멀티 Region | 신규 플랫폼 구축 | SRS | 프로젝트 기준 스펙. PEP·라우팅·Webhook 프레임·GeoDNS·매핑 API 등 |

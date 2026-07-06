@@ -1659,7 +1659,7 @@ GW는 외부 이벤트의 **단일 수신·분배점**이다(ADR-09). 방화벽 
 
 FR-WH-01 (외부 이벤트 수신면 — **provider별 전용 호스트** `{provider}.webhook.gw.vatech.com`, §4.5.1). **발신자 식별은 Host/SNI**(레지스트리 `inbound_host`)로 하며 상대 source IP에 의존하지 않는다. **경로·형식은 provider 규약을 수용하는 유연·레지스트리 기반**이며 GW가 강제하지 않는다(§4.1.3). GW는 _누가 보냈는지_ 만 검증하고 payload는 소비자가 해석한다.
 
-**추출 필드(config 기반).** GW는 payload를 해석하지 않되, 검증·매핑·관측에 필요한 **최상위 식별자만** `webhook_provider` 레지스트리의 **경로 config**로 뽑는다 — `eventId`(멱등), `external_org_id`(목적지 매핑, `org_id_path`), `event_type`(관측·필터, `event_type_path`). **`event_type`은 provider가 payload에 실은 이벤트 유형 토큰을 그대로(verbatim) 저장**한다(예 AXS `patient.created`). 이는 **provider 소유 어휘라 GW enum으로 고정하지 않으며**(provider마다 다르고 새 유형이 계속 추가됨 — `audit_log.action`·config_key와 동일 원칙), 의미는 **`(provider, event_type)` 조합**으로만 성립한다. `event_type_path` 미설정·미추출이면 `null`이며(관측용 부가 정보이지 처리 필수 아님), **목적지 라우팅은 `event_type`이 아니라 `org_mapping`** 이 결정한다.
+**추출 필드(config 기반).** GW는 payload를 해석하지 않되, 검증·매핑·관측에 필요한 **최상위 식별자만** `webhook_provider` 레지스트리의 **경로 config**로 뽑는다 — `eventId`(멱등, `event_id_path` — 예 AXS `messageId`), `external_org_id`(목적지 매핑, `org_id_path`), `event_type`(관측·필터, `event_type_path`). **`event_type`은 provider가 payload에 실은 이벤트 유형 토큰을 그대로(verbatim) 저장**한다(예 AXS `patient.created`). 이는 **provider 소유 어휘라 GW enum으로 고정하지 않으며**(provider마다 다르고 새 유형이 계속 추가됨 — `audit_log.action`·config_key와 동일 원칙), 의미는 **`(provider, event_type)` 조합**으로만 성립한다. `event_type_path` 미설정·미추출이면 `null`이며(관측용 부가 정보이지 처리 필수 아님), **목적지 라우팅은 `event_type`이 아니라 `org_mapping`** 이 결정한다.
 
 - **Input**: 외부(AXS 등) 이벤트 — HTTPS POST
 - **Output**: 즉시 `2xx` ACK(§7.6.3)
