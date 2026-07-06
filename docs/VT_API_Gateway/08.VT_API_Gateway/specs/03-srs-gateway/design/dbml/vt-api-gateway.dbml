@@ -20,6 +20,7 @@
 // 2026-07-06: connector.credential_ref 의미 명확화 — access token이 아니라 장수명 client 자격의 KMS 참조(DB 평문 미저장). access token은 gw:cache:conn-token(redis-keyspace)에 캐시·만료 전 선제 갱신(§7.1.3). 스키마 불변(주석만).
 // 2026-07-06 (#31): egress SSOT 일원화 — **connector.egress_allowlist = 단일 SSOT**(+requireStaticEgressIp). **policy.egress·upstream_registry.egress_allowlist 제거**(3중복 해소). egress는 외부(C) 대상 속성이지 per-tenant authz 아님 — OPA/네트워크 모두 connector 참조.
 // 2026-07-06: fleet_state.last_heartbeat 의미 명확화 — device→GW push(POST /v1/fleet/heartbeat)로만 갱신(GW는 edge 폴링 불가). 온라인/오프라인=임계값 초과 파생 판정(§7.8.1). 주석만(스키마 불변).
+// 2026-07-06: config 테이블 신설(13 테이블) — 중앙 Config(FR-CFG-01·§7.8.4) 구현 모델. Enum config_scope{global|region|clinic|device} + (scope_type,scope_id,config_key)당 1행·config_value jsonb·version(drift/캐시 무효화). 실효=키별 가장 구체 우선(override). 전달=pull(GET /v1/fleet/config·heartbeat configVersion)/push-notify(역방향 MQTT). 값 형식=db-jsonb#config.
 // 2026-07-01: 디바이스 인증=비대칭 private_key_jwt(개인키 서명→device.fingerprint 공개키 검증), 공유 secret 폐지(ADR-13·§7.1.1).
 // 2026-07-01: credential 테이블 삭제 → device로 통합(client_id를 device.client_id nullable로 이관, secret_ref 폐기, hw_key_bound는 gw/1.1 attestation으로 이관). 13 테이블.
 // 2026-07-01: token 테이블 삭제 — 무상태 JWT(서명 검증)·디바이스 단위 폐기라 발급 토큰 저장 불필요, 이력은 audit_log. 12 테이블.
@@ -142,6 +143,13 @@ Enum policy_scope {
   device   // 특정 device(scope_id=device_id) — clinic-less/예외
 }
 
+Enum config_scope {
+  global   // fleet 전역 기본(scope_id NULL)
+  region   // 특정 리전(scope_id=region_id)
+  clinic   // 특정 클리닉(scope_id=clinic_id)
+  device   // 특정 device(scope_id=device_id)
+}
+
 Table policy {
   id                varchar [pk]  // 정책 식별자
   scope_type        policy_scope [not null]  // 부착 스코프 global|clinic|device. 주체=device, 실효정책=device→clinic(소속 시)→global 합성(§1.2·§6.4.1)
@@ -200,6 +208,24 @@ Table fleet_state {
   success_rate   decimal                                // 성공률(관측 지표)
 
   Note: '**fleet(디바이스 함대) 관측 상태**(FR-FLEET-01/03). device와 1:1(device_id PK 겸 FK). 디바이스별 마지막 heartbeat·성공률을 캐시해 온라인/오프라인·건강도 판단(콘솔 대시보드·이상탐지 입력). 원천 지표는 관측 파이프라인(§6.3.2), 본 표는 최신 상태 스냅샷'
+}
+
+// 중앙 Config (원격 fleet 설정 관리·타겟팅 push/pull) FR-CFG-01
+Table config {
+  id           varchar [pk]                    // config 항목 식별자
+  scope_type   config_scope [not null]         // 부착 스코프 global|region|clinic|device. 실효 config=키별 device>clinic>region>global(가장 구체 우선, override 병합·§7.8.4)
+  scope_id     varchar                         // 부착 대상 id — global=NULL / region=region_id / clinic=clinic_id / device=device_id. **다형 참조·하드 FK 없음**(scope_type discriminator + 앱레벨 무결성; policy와 동일 방식)
+  config_key   varchar [not null]              // 점 구분 소문자 키. 네임스페이스 gw.*(GW 소비, 예 gw.heartbeat.interval_seconds) / device.*(device 전달, GW 비해석). 키별 값 타입=앱 레벨 키 레지스트리(design/db-jsonb-fields.md#config)
+  config_value jsonb [not null]                // 값(스칼라/객체). 형식·표준 키=design/db-jsonb-fields.md#config
+  version      bigint [not null]               // 행 변경 시 증가 — 캐시 무효화용. device에 주는 실효 configVersion은 별도 콘텐츠 해시(기여 (key,value,version) 정렬 SHA-256, §7.8.4·db-jsonb#config) — 행 version 최댓값 아님
+  updated_at   bigint                          // 수정 시각(Unix ms)
+  updated_by   varchar                         // 변경 주체(audit actor, 예 user:oneid-…) — 감사 action=config.publish(§7.9.3)
+
+  Note: '**중앙 Config**(FR-CFG-01, §7.8.4) — 운영자가 fleet 설정을 재배포 없이 원격 관리. (scope_type, scope_id, config_key)당 1행. device 실효 config=키별 device>clinic>region>global 가장 구체 우선(override 병합). 전달=pull(GET /v1/fleet/config·heartbeat configVersion 신호) / push-notify(역방향 MQTT §7.6.6). PHI 미저장(§6.4). 관리=admin API+③-C. **v1.0=global/region/clinic/device 즉시 적용·pull**; rollout·카나리·명명 그룹(FR-FLEET-04)=gw/1.1. 값 형식=design/db-jsonb-fields.md#config'
+  Indexes {
+    (scope_type, scope_id, config_key) [unique] // 스코프·키당 유일
+    config_key                                   // 키별 조회
+  }
 }
 
 // (제거·2026-07-01) 호환성 매트릭스는 DB 테이블 아님 —

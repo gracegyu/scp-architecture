@@ -1769,7 +1769,7 @@ GW는 병원 방화벽 뒤의 edge(device=EzServer)를 능동적으로 폴링할
 
 - **Input**: device의 주기적 heartbeat(`POST /v1/fleet/heartbeat` — appVersion·metrics 선택; device_id는 인증 토큰 subject에서 취득)
 - **Output**: 디바이스 상태·health 대시보드용 지표(관리 API §7.9 / Console ③-C)
-- **`nextIntervalSeconds` 관리(2계층)**: 응답으로 돌려줄 주기 값은 **정본 = 중앙 config(§7.8.4)** 에서 resolve하고, 해당 override가 없으면 **부트스트랩 기본값 = 앱 정적 config(`.env` 등, 예 `DEFAULT_HEARTBEAT_INTERVAL_SECONDS`)** 로 대체한다(resolve 순서: 중앙 config → `.env` 기본값). **`.env`는 재배포해야 바뀌고 전역뿐이므로 정본이 아니라 fallback 기본값 용도**이고, 운영자가 재배포 없이 조정하거나 그룹·리전별로 다르게 주는 것은 중앙 config로 한다. **단 §7.8.4 중앙 config 저장소는 아직 미모델링(Appendix B #35)** 이라, 그 설계 전까지는 사실상 `.env` 기본값이 유일한 소스다. v1.0은 전역 단일값으로 충분하며 per-device 타겟팅·rollout은 gw/1.1(FR-FLEET-04)로 미룬다.
+- **`nextIntervalSeconds` 관리(2계층)**: 응답으로 돌려줄 주기 값은 **정본 = 중앙 config(§7.8.4, `config` 테이블의 `gw.heartbeat.interval_seconds` 키)** 에서 device 스코프로 resolve하고, 해당 값이 없으면 **부트스트랩 기본값 = 앱 정적 config(`.env` 등, 예 `DEFAULT_HEARTBEAT_INTERVAL_SECONDS`)** 로 대체한다(resolve 순서: 중앙 config → `.env` 기본값). **`.env`는 재배포해야 바뀌고 전역뿐이므로 정본이 아니라 fallback 기본값 용도**이고, 운영자가 재배포 없이 조정하거나 리전·클리닉·device별로 다르게 주는 것은 중앙 config로 한다. v1.0은 전역 단일값으로 충분하며 per-device 타겟팅 세분·rollout은 gw/1.1(FR-FLEET-04)로 미룬다.
 - **주기·임계값 수치**: 정본 기본 주기·오프라인 임계값(권장 주기의 배수)은 운영 튜닝 대상(Appendix B #34)
 - **device측 구현 가이드**: EzServer가 이 heartbeat를 주기 호출하도록 EzServer 서브스펙(③-P-EZ onePager)에 반영해야 한다
 
@@ -1788,11 +1788,38 @@ FR-FLEET-03 (지표 노출).
 
 FR-CFG-01 (타겟팅 원격 적용).
 
-- **Input**: config 페이로드 + 타겟(디바이스/그룹/리전)
-- **Output**: 원격 적용. 디바이스는 pull 또는 push 수신
-- **에러**: 적용 실패 시 이전 config 유지·재시도
+**정의.** 중앙 Config는 운영자가 fleet(디바이스 함대)의 설정을 **코드 재배포 없이 원격으로 관리·전달**하는 서브시스템이다(MDM·remote-config·feature-flag 계열). 운영자가 콘솔(③-C)에서 값을 정의하면 GW가 SSOT에 저장하고, 각 device의 스코프에 맞는 **실효 config**를 해석해 pull/push로 전달한다. GW는 방화벽 뒤 device에 직접 접속할 수 없으므로 전달은 heartbeat(§7.8.1)와 동일한 제약을 받는다.
 
-**비목표(Will Not Do)**: config rollout/카나리(FR-FLEET-04)는 **gw/1.1**, 10만대 운영 최적화(FR-FLEET-05)는 **v2.0**.
+**두 종류의 config.** (a) **GW-동작 config** — GW가 직접 소비하거나 device에 알려주는 값(예 `gw.heartbeat.interval_seconds`·`gw.heartbeat.offline_threshold_multiplier`). (b) **device-동작 config** — GW는 전달만 하고 해석하지 않는 device 자체 설정(예 `device.upload.max_concurrency`). 둘은 같은 저장소·전달 경로를 공유하되 키 네임스페이스(`gw.*` / `device.*`)로 구분한다.
+
+**데이터 모델(SSOT=PostgreSQL).** config는 `config` 테이블(design/dbml)에 **(스코프, 키)당 1행**으로 저장한다. 저장소를 PostgreSQL로 두는 이유는 §7.8.4가 요구하는 *타겟별 상이·버전·런타임 변경·전달 추적*이 정적 파일이나 `.env`로는 불가능하기 때문이다(`.env`는 GW 부트스트랩 기본값 fallback일 뿐 — §7.8.1). 읽기는 Redis(`gw:cache:config:{deviceId}`)로 캐시하고, `version` 변경 시 무효화한다.
+
+- **스코프(`config_scope`)**: `global | region | clinic | device`. `scope_id`는 다형 참조(global=NULL / region=region_id / clinic=clinic_id / device=device_id)로, 정책(§7.5.3)과 같은 하드 FK 없는 discriminator 방식이다.
+- **키(`config_key`)**: `gw.*`(GW 소비) / `device.*`(device 전달) 네임스페이스의 점 구분 소문자 키. 키별 값 타입·허용범위는 **앱 레벨 키 레지스트리(스키마)** 로 검증한다. 레지스트리는 **초기 seed + 확장형**이라 모든 설정을 지금 열거하지 않고 개발하며 한 줄씩 추가하며(`config_key`가 DB enum이 아니라 마이그레이션 불요), **현재 예상 키의 예시·형식은 design/db-jsonb-fields.md#config** 에 둔다. 등록되지 않은 키·범위 밖 값은 관리 API에서 거부한다.
+- **값(`config_value`)**: jsonb(스칼라 또는 객체). **버전(`version`)**: 행 변경 시 증가 — device drift 감지·캐시 무효화용.
+
+**실효 config 해석(precedence).** device의 실효 config는 **키별로 가장 구체적인 스코프가 이긴다**: `device` > `clinic`(소속 시) > `region` > `global`. 정책의 deny-by-default와 달리 config는 **override 병합**이라, 각 키를 독립적으로 가장 구체 스코프 값으로 확정한다.
+
+**실효 버전(`configVersion`) = 콘텐츠 해시.** GW는 실효 config에 기여한 항목들을 `(config_key, config_value, 기여 행 version)`로 정렬해 canonical JSON으로 직렬화한 뒤 **SHA-256 hex 문자열**을 산출한다(문자열). 값·기여 스코프·행 `version` 중 하나라도 바뀌면 해시가 바뀌고 아니면 안정적이라, device는 자신의 `appliedConfigVersion`과 **동등성만 비교**(순서 무의미)해 다르면 다시 pull한다. **행 `version`의 최댓값은 쓰지 않는다**(더 구체 스코프 값 변경을 놓칠 수 있음). **전역 단조 카운터도 쓰지 않는다**(무관한 device까지 재-pull 유발). 산출식은 stateless라 pod 간 동일 결과를 보장한다.
+
+**전달(delivery).** GW는 device에 접속할 수 없으므로(§7.8.1과 동일 제약) 두 경로만 쓴다.
+
+| 경로 | 동작 | v1.0 |
+| --- | --- | --- |
+| **Pull(기본)** | device가 `GET /v1/fleet/config`(인증 토큰 subject=device_id)로 자신의 실효 config 조회. + heartbeat 응답(`FleetHeartbeatAck.configVersion`)으로 "적용 버전과 다르면 다시 pull" 신호(piggyback) | O |
+| **Push-notify(옵션)** | 즉시 반영이 필요하면 GW가 **역방향 MQTT(§7.6.6)** 로 "config 변경" 알림 publish → device가 받아 pull | 알림까지만(전체 payload MQTT push는 gw/1.1) |
+
+push-notify 메시지는 **트리거일 뿐 config 본문을 싣지 않는다**: `{ "type": "config.changed", "deviceId": "<id>", "configVersion": "<해시>", "at": <Unix ms> }`. device는 이를 받으면 `GET /v1/fleet/config`로 pull한다. 알림이 유실돼도 다음 heartbeat의 `configVersion`으로 복구되므로 **at-most-once로 충분**하다(재전송·순서 보장 불요). 토픽은 device 다운링크(§7.6.6).
+
+**적용·오류·drift.** device는 받은 config를 **원자적으로 적용**하고, 실패 시 **이전 config를 유지**한 채 다음 pull에서 재시도한다. device는 적용한 버전(`appliedConfigVersion`)을 heartbeat 본문에 실어 보고하고, GW는 이를 실효 버전과 비교해 **미반영(drift) device를 대시보드에 노출**한다(관리 API §7.9 / ③-C).
+
+**관리·보안.** 운영자는 `GET/PUT/DELETE /admin/v1/config`(design/openapi, `admin` 태그)로 (스코프, 키, 값)을 CRUD하며, 모든 변경은 감사된다(action=`config.publish`, §7.9.3). config에 **PHI를 넣지 않는다**(§6.4). device pull은 인증 필수이며 device는 **자기 스코프의 실효 config만** 조회한다(타 device config 노출 금지). 값은 키 레지스트리 스키마로 검증해 잘못된 타입·범위를 거부한다.
+
+- **Input**: config 페이로드((스코프, 키, 값)) + 타겟 스코프(global/region/clinic/device) — 운영자 `PUT /admin/v1/config`
+- **Output**: device별 실효 config 원격 적용 — device는 pull(`GET /v1/fleet/config` · heartbeat `configVersion` 신호) 또는 push-notify(역방향 MQTT) 수신
+- **에러**: 적용 실패 시 device가 이전 config 유지·다음 pull 재시도. GW는 drift(미반영) device를 가시화
+
+**비목표(Will Not Do)**: config rollout/카나리(단계적 %·명명 그룹 코호트 타겟, FR-FLEET-04)는 **gw/1.1**, 10만대 운영 최적화(FR-FLEET-05)는 **v2.0**. v1.0은 스코프=global/region/clinic/device의 즉시 적용과 pull 전달까지다(임의 명명 그룹·단계 rollout·MQTT 전체 push 제외).
 
 ## 7.9 관리·감사·컴플라이언스 (P1)
 
@@ -1870,6 +1897,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 28 | `client_id` 발급 형식 | **확정(2026-07-01): `client_id` = `gwc_` + base64url(128비트 CSPRNG)**(패딩 없음, 총 26자, 불투명·내부 식별자 비파생·비밀 아님). UNIQUE 충돌 시 재생성(무시할 확률). 재설치·키 회전 시 재발급 | §7.2.5·§7.1.1 |
 | 26 | IaC 도구 | **확정(2026-07-02, R5): Terraform** — 조직 표준 `es-infra`(Terraform)에 편입, 별도 IaC 도구 없음(ARD §4.5 일치). k8s 배포=기능별 Deployment 분리(GW core·Webhook Receiver·Webhook Dispatcher) | §6.6.2·§2.1.1·§7.6 |
 | 31 | egress 규칙 SSOT 일원화 | **확정(2026-07-06): `connector.egress_allowlist` 단일 SSOT**(+`requireStaticEgressIp` 이관). `policy.egress`·`upstream_registry.egress_allowlist` **제거**(3중복 해소). egress=외부(C) 대상 속성이지 per-tenant authz 아님 — OPA·네트워크 모두 connector 참조 | §7.5.3·§6.4·design/db-jsonb-fields.md |
+| 35 | 중앙 Config(§7.8.4) 저장·전달·버전 모델 | **확정(2026-07-06)**: SSOT=PostgreSQL `config` 테이블(`config_scope` global/region/clinic/device·다형 참조), 실효=키별 가장 구체 우선(override 병합), 실효 `configVersion`=**콘텐츠 해시(SHA-256, 문자열)**(행 version 최댓값·전역 카운터 아님), 전달=pull(`GET /v1/fleet/config`+heartbeat `configVersion` 신호)/push-notify(역방향 MQTT `config.changed` 알림·at-most-once·본문 미포함), 키 레지스트리=**앱 레벨 확장형 seed**(db-jsonb#config·DB enum 아님), 관리=`/admin/v1/config` CRUD(감사 `config.publish`). Console UI 화면=③-C 위임. **v1.0 비목표**(gw/1.1↑): rollout/카나리·명명 그룹 코호트·MQTT 전체 payload push(FR-FLEET-04) | §7.8.4·§7.8.1·design/dbml·design/db-jsonb-fields.md#config·design/openapi |
 
 ### B-2. 미결 (열린 TBD — baseline 전/설계 단계에 닫을 항목)
 
@@ -1877,7 +1905,6 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | --- | --- | --- | --- | --- | --- |
 | 32 | **정책(policy) 관리 API + Console UI** — 정책은 `(scope_type, scope_id, connector)` 스코프(**global\|clinic\|device**)마다 다르게 적용되므로(허용 endpoint·scope; egress는 connector SSOT #31) 운영자가 **CRUD·검토**할 **관리 API(§7.9)+GW Console UI(③-C)** 가 필요. 현재 스키마·jsonb 형식만 정의(design/db-jsonb-fields.md), 관리 인터페이스 미정의. **정책 스코프 = device-중심(device→clinic→global) 확정**(2026-07-06, §1.2·§6.4.1 — 구 'clinic 단위·device 배제'를 대체). **스코프 평가 규칙(deny-by-default·clinic=상한) = §7.5.3 확정**; 차원별 병합(교집합/우선)만 OPA(Rego)/LLD 잔여 | §7.5.3·§7.9·§6.4·design/db-jsonb-fields.md | GW(관리 API)+③-C(UI) | 정책 구현 착수 전 | §7.1·③-C Console Sub-SRS |
 | 33 | **비-EzServer·clinic-less device 구체화(미래 확장점)** — v1.0 device=EzServer(clinic-bound)뿐. 모델은 device-중심으로 clinic-less/비-EzServer를 **수용하도록 설계**(§1.2 Will Not Do)하되 구체 정체는 미정의. 실제 등장 시 확정: (a) clinic-less device의 **region 출처**(자체 지정/global) · (b) **provider-org 신원**(`org_mapping`은 현재 clinic-키 → device-스코프 확장) · (c) **인증 부트스트랩**(EzServer=LM 라이선스·Clinic-ID; clinic-less는 다른 신뢰 앵커) · (d) policy `device` 스코프 실사용 | §1.2·§6.4.1·§7.2·§7.3 | GW(설계)+제품 로드맵 | 해당 device 연동 요구 시 | §1.2 Will Not Do·§6.4.1 |
-| 35 | **중앙 Config(§7.8.4) 저장·전달 모델 미설계** — FR-CFG-01(타겟팅 원격 config)은 요구사항만 있고 **DBML에 config payload·타겟(device/그룹/리전)·버전을 담을 저장소가 없다**. 이 때문에 heartbeat `nextIntervalSeconds` 등 fleet 운영 튜닝값이 현재 사실상 `.env`/앱 정적 config 기반(재배포 필요·전역만)에 머문다. 확정 필요: (a) config 저장 스키마(스코프=device/group/region·payload 형식·버전) · (b) 전달 방식(pull=heartbeat 응답 piggyback / push) · (c) 적용 실패 시 이전값 유지·재시도(§7.8.4). **정본=중앙 config·fallback=`.env` 기본값 구조는 §7.8.1에 확정** — 저장소만 미설계 | §7.8.1·§7.8.4·design/dbml | GW+인프라 | fleet config 구현 착수 전(v1.0 전역 단일값은 `.env`로 우선 가능) | §7.8·③-C·③-P-EZ |
 | 34 | **fleet heartbeat 정본 주기·오프라인 임계값 확정** — heartbeat API(`POST /v1/fleet/heartbeat`)·메커니즘(device→GW push, GW는 edge 폴링 불가)은 **확정**(§7.8.1·OpenAPI). **미결(운영 튜닝)**: 권장 기본 주기(초안 예: 1h)·오프라인 판정 임계값(주기의 배수)·중앙 config 하달 방식(§7.8.4 연동). 10만대 규모 부하와 오프라인 감지 지연(P1이라 준실시간 아님)·kill-switch(별도 즉시 경로 §7.8.2)를 함께 고려해 확정 | §7.8.1·§7.8.4·design/openapi | GW+인프라(규모) | fleet 구현 착수 전 | §7.8·③-C·③-P-EZ |
 | 30 | **region 카탈로그 관리(생성·상태 전이) API + Console UI** — 현재 `region_catalog`는 **읽기(`GET /v1/regions`)만** 정의(§7.3.6). 리전 개통·`draining`/`planned` 전이·회수 등 **운영자 관리 API(§7.9 관리 API)** 와 **GW Console region 관리 UI(③-C)** 가 필요. v1.0=단일 리전 1행이라 시급도 낮으나 gw/1.2 멀티리전 전 필요 | §7.3.6·§7.9·§6.4 | GW(관리 API)+③-C(UI) | gw/1.2 멀티리전 착수 전 | §7.3·③-C Console Sub-SRS |
 | 1 | v1.0 목표 RPS·동시 세션(fleet 규모) | §5.1·5.2 | 인프라(규모 PL 입력) | 설계 착수 전 | §3.1·§7.1·§7.4 |
@@ -2078,3 +2105,5 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-02 | **R9 — 개인키 분실 복구 명확화(백업 미도입).** 분실·손상 복구=재-enroll 회전이 유일(백업 복원 없음), 개인키는 디바이스 비이탈·export 미도입. §7.2.7 제목/intro에 '개인키 분실 복구' 명시, §7.2.6에 at-rest 보관=③-P-EZ 책임·GW는 공개키만 보관 명시, §2.3.1(부트스트랩=라이선스 등록 시 자동 enroll 편의·키페어 bullet 분실 복구) 보강. ARD "개인키 백업 미도입"(v0.15)과 정합 | (작성자 ID 미지정) |
 | 2026-07-06 | **fleet heartbeat 메커니즘·API 명문화** — `fleet_state.last_heartbeat`는 device→GW push로만 갱신됨을 확정(GW는 병원 방화벽 뒤 edge를 폴링 불가). §7.8.1에 메커니즘 서술(주기 push·`nextIntervalSeconds`·온라인/오프라인 임계값 파생 판정·device 유휴시에도 전송)·Input/Output·device 구현 가이드 추가, **`POST /v1/fleet/heartbeat` 신설**(OpenAPI: `fleet` 태그·`FleetHeartbeat`/`FleetHeartbeatAck` 스키마), DBML `last_heartbeat` 주석 보강. **③-P-EZ onePager에 EzServer 주기 호출 구현 가이드 반영**. 정본 주기·오프라인 임계값 = Appendix B #34(운영 튜닝). 스키마 컬럼 변경 없음(주석·API 추가) | (작성자 ID 미지정) |
 | 2026-07-06 | **heartbeat `nextIntervalSeconds` 관리 계층 명시 + 중앙 config 갭 등록** — §7.8.1에 2계층(정본=중앙 config §7.8.4 resolve, fallback=`.env` 앱 기본값; resolve 순서·`.env`는 재배포/전역뿐이라 fallback 용도임) 명문화. §7.8.4 중앙 config가 요구사항만 있고 **저장·전달 모델 미설계**임을 **Appendix B #35 신설**로 등록(config 저장 스키마·전달 방식·실패 재시도). 문서만(스키마 변경 없음) | (작성자 ID 미지정) |
+| 2026-07-06 | **§7.8.4 중앙 Config 구현 수준 서술 + 데이터 모델·API 신설** — 요구사항 한 줄이던 §7.8.4를 구현 가능 수준으로 전면 서술: 정의(원격 fleet 설정 관리)·두 종류(`gw.*`/`device.*`)·SSOT=PostgreSQL·스코프(global/region/clinic/device)·실효 해석(키별 가장 구체 우선 override)·전달(pull=`GET /v1/fleet/config`+heartbeat configVersion / push-notify=역방향 MQTT)·적용/오류/drift·관리 API·보안. **DBML `config` 테이블+`config_scope` enum 신설**(13 테이블), **db-jsonb#config**(키 레지스트리·값 형식) 신설, **redis `gw:cache:config:{deviceId}`** 추가, **OpenAPI**(`GET /v1/fleet/config`·`/admin/v1/config` GET/PUT/DELETE·`FleetConfig`/`ConfigEntry` 스키마·heartbeat `configVersion`/`appliedConfigVersion`) 추가. §7.8.1 nextIntervalSeconds를 `config` 키(`gw.heartbeat.interval_seconds`)로 연결. Appendix B #35를 '설계 완료·잔여(키 레지스트리·버전 산출식·MQTT payload)'로 갱신 | (작성자 ID 미지정) |
+| 2026-07-06 | **중앙 Config 잔여 3건 확정 → #35 종결(B-2→B-1)** — (a) **키 레지스트리 = 앱 레벨 확장형 seed**(db-jsonb#config에 초기 예상 키 7종 표: heartbeat interval/threshold·log.level·upload concurrency/chunk·telemetry·feature_flags + type/범위/기본값/소비자; 새 키는 마이그레이션 없이 상수 추가, 미등록 키·범위밖 값 거부) — 전부 열거 아님·확장형임을 §7.8.4에 명시 · (b) **실효 `configVersion` = 콘텐츠 해시(SHA-256)** 확정(기여 (key,value,행version) 정렬 canonical JSON; 행 version 최댓값=값변경 누락 버그·전역 카운터=과도 재pull이라 배제; stateless·동등성 비교) — OpenAPI 3곳 타입 integer→string, DBML version 주석·db-jsonb 버전 규칙 정합 · (c) **push-notify payload = `{type:config.changed, deviceId, configVersion, at}`**(트리거만·본문 미포함·at-most-once, 유실 시 heartbeat로 복구) §7.8.4 명시. Appendix B #35 B-2→B-1(완료) | (작성자 ID 미지정) |
