@@ -27,6 +27,7 @@
 | `gw:cache:compat` | hash | 분 | 호환성 매트릭스/well-known(§7.7) | `compat_matrix` |
 | `gw:cache:webhook-provider:{provider}` | hash | 분 | 유연 수신 검증·라우팅 config(§4.1.3) | `webhook_provider` |
 | `gw:cache:conn-token:{connector}` | string | 토큰 만료 전(선제 갱신) | **아웃바운드 OAuth2 access token** 캐시(§7.1.3) — GW가 external(C) 호출에 쓰는 토큰. **만료 전 자동 갱신**(만료 후 아님) | provider 토큰 엔드포인트(자격=`connector.credential_ref`, KMS) |
+| `gw:cache:config:{deviceId}` | hash/json | 초~분 | device **실효 config** 캐시(§7.8.4) — 키별 device>clinic>region>global 병합 결과 + `configVersion`. pull(`GET /v1/fleet/config`)·heartbeat 응답에 사용 | `config`(기여 스코프 행 병합) |
 
 > cache 무효화: 원본 변경 시 `mapping_version`/버전 키 증가 → 캐시 미스 시 강한 일관성 경로로 재적재(§7.3.1).
 >

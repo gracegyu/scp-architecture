@@ -278,6 +278,24 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  # --- Fleet config pull (§7.8.4) — device가 자기 실효 config 조회(GW는 edge 폴링 불가) ---
+  /v1/fleet/config:
+    get:
+      tags: [ fleet ]
+      summary: device 실효 중앙 config 조회 (FR-CFG-01)
+      description: >-
+        device(EzServer)가 자신에게 적용될 **실효 중앙 config**를 pull한다(§7.8.4). device_id는 인증 토큰 subject에서 취득하며, device는 **자기 스코프의 실효 config만** 조회한다(타 device 노출 금지). 실효값은 키별 가장 구체 스코프 우선(device > clinic > region > global, override 병합)으로 GW가 해석한다. heartbeat 응답의 configVersion이 device의 appliedConfigVersion과 다를 때 이 API를 호출하면 된다.
+      responses:
+        '200':
+          description: device 실효 config(+ 버전)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FleetConfig'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   # --- 클리닉/클라이언트 온보딩·등록 (§2.3.1) — 매핑 자가 생성, Admin은 교정만 ---
   /v1/clinics:
     post:
@@ -583,6 +601,64 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  # --- 중앙 Config 관리 (§7.8.4, Console ③-C 호출) — (scope,key,value) CRUD ---
+  /admin/v1/config:
+    get:
+      tags: [ admin ]
+      summary: 중앙 config 항목 조회 (FR-CFG-01)
+      description: 스코프·키로 필터. device에 실제 적용되는 실효값은 device의 GET /v1/fleet/config
+      parameters:
+      - { name: scopeType, in: query, schema: { type: string, enum: [ global, region, clinic, device ] } }
+      - { name: scopeId, in: query, schema: { type: string } }
+      - { name: configKey, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: config 항목 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConfigEntry'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    put:
+      tags: [ admin ]
+      summary: 중앙 config 항목 upsert(등록/갱신) — (scopeType, scopeId, configKey) 단위 (FR-CFG-01)
+      description: 값 변경 시 version 증가. 감사 action=config.publish(§7.9.3)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigEntry'
+      responses:
+        '200':
+          description: upsert됨(갱신 후 항목)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigEntry'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      tags: [ admin ]
+      summary: 중앙 config 항목 삭제 — (scopeType, scopeId, configKey) 지정 (FR-CFG-01)
+      parameters:
+      - { name: scopeType, in: query, required: true, schema: { type: string, enum: [ global, region, clinic, device ] } }
+      - { name: scopeId, in: query, schema: { type: string } }
+      - { name: configKey, in: query, required: true, schema: { type: string } }
+      responses:
+        '204':
+          description: 삭제됨
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -846,6 +922,9 @@ components:
             diskFreeBytes: { type: integer, format: int64, description: '가용 디스크(바이트)' }
             queueDepth: { type: integer, description: '미전송 큐 적체(업로드·이벤트)' }
             successRate: { type: number, description: '관측 성공률 0~1(직전 윈도우)' }
+        appliedConfigVersion:
+          type: string
+          description: 'device가 현재 적용 중인 중앙 config 실효 버전 = 콘텐츠 해시(§7.8.4). GW가 실효 버전과 동등성 비교해 drift(미반영) 판정'
     FleetHeartbeatAck:
       type: object
       required: [ receivedAt, nextIntervalSeconds ]
@@ -856,7 +935,53 @@ components:
           description: 'GW 수신 시각(Unix ms) — fleet_state.last_heartbeat에 기록됨'
         nextIntervalSeconds:
           type: integer
-          description: '다음 heartbeat까지 권장 간격(초). 중앙 config(§7.8.4)로 조정 — device는 이 값에 맞춰 다음 호출 주기를 갱신한다'
+          description: '다음 heartbeat까지 권장 간격(초). 정본=중앙 config(§7.8.4 gw.heartbeat.interval_seconds)에서 device 스코프 resolve, 없으면 .env 기본값(§7.8.1). device는 이 값에 맞춰 다음 호출 주기를 갱신한다'
+        configVersion:
+          type: string
+          description: '현재 device 실효 중앙 config 버전 = 콘텐츠 해시(§7.8.4). device의 appliedConfigVersion과 다르면 GET /v1/fleet/config로 다시 pull하라는 신호'
+
+    # 중앙 Config (§7.8.4)
+    FleetConfig:
+      type: object
+      required: [ config, configVersion ]
+      description: >-
+        device의 실효 중앙 config(§7.8.4). GW가 키별 가장 구체 스코프 우선(device > clinic > region > global, override 병합)으로 해석한 결과.
+      properties:
+        config:
+          type: object
+          additionalProperties: true
+          description: '실효 config 맵 — 키(gw.*/device.*)→값(스칼라/객체). 형식·키 레지스트리=design/db-jsonb-fields.md#config'
+        configVersion:
+          type: string
+          description: '실효 config 버전 = 콘텐츠 해시(기여 (config_key,config_value,행 version) 정렬·canonical JSON의 SHA-256 hex, §7.8.4). device는 이를 appliedConfigVersion으로 보고(drift 판정)'
+    ConfigEntry:
+      type: object
+      required: [ scopeType, configKey, configValue ]
+      description: '중앙 config 1항목 = (scope, key) → value(§7.8.4·config 테이블). 관리 API 입출력 단위.'
+      properties:
+        scopeType:
+          type: string
+          enum: [ global, region, clinic, device ]
+          description: '부착 스코프. 실효값은 키별 device>clinic>region>global 우선'
+        scopeId:
+          type: string
+          description: 'global=생략 / region=regionId / clinic=clinicId / device=deviceId (다형 참조·하드 FK 없음)'
+        configKey:
+          type: string
+          description: '점 구분 소문자 키. gw.*(GW 소비)/device.*(전달). 예 gw.heartbeat.interval_seconds'
+        configValue:
+          description: '값(스칼라 또는 객체). 키 레지스트리 스키마로 타입·범위 검증(PHI 금지)'
+        version:
+          type: integer
+          format: int64
+          description: '행 버전(변경 시 증가) — 읽기 시 반환, 쓰기 시 GW가 증가시킴'
+        updatedAt:
+          type: integer
+          format: int64
+          description: '수정 시각(Unix ms)'
+        updatedBy:
+          type: string
+          description: '변경 주체(audit actor, 예 user:oneid-…)'
 
     # Webhook
     WebhookEnvelope:

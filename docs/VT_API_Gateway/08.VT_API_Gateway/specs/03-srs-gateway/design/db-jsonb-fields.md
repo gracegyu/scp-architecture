@@ -87,6 +87,47 @@ GW는 upstream으로 verbatim 프록시하므로(§4.1.2), **정책은 (method +
 
 ---
 
+## `config` (중앙 Config 값 — jsonb + 키 레지스트리, §7.8.4)
+
+`config` 테이블 1행 = `(scope_type, scope_id, config_key)` → `config_value`(jsonb). `config_value`는 구조가 코드로 강제되지 않으므로, **키별 값 타입·허용범위를 앱 레벨 키 레지스트리(스키마)** 로 검증한다. device 실효 config는 **키별 가장 구체 스코프 우선**(device > clinic > region > global, override 병합).
+
+### `config_key` — 네임스페이스 규약
+```
+gw.heartbeat.interval_seconds        gw.heartbeat.offline_threshold_multiplier        device.upload.max_concurrency
+```
+- **형식**: `^(gw|device)\.[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$` (점 구분 소문자·언더스코어).
+- **네임스페이스**: `gw.*` = **GW가 소비**(GW 동작·응답에 반영) · `device.*` = **device로 전달**(GW 비해석, device가 적용).
+- **키 레지스트리(초기 seed — 앱 레벨 상수, 확장 가능·비열거적)**: 아래는 **현재 예상되는 항목의 예시**이며 **완전한 목록이 아니다**. 새 설정은 개발 시 이 표(=앱 레벨 상수)에 한 줄씩 추가하면 되고, `config_key`가 DB enum이 아니라 **마이그레이션 없이** 늘어난다. 각 키는 `type`·허용범위·기본값(fallback)·소비자를 명시한다.
+
+  | config_key | 타입 | 허용범위/enum | 기본값(fallback) | 소비자 | 비고 |
+  | --- | --- | --- | --- | --- | --- |
+  | `gw.heartbeat.interval_seconds` | integer(초) | 60~86400 | `.env` `DEFAULT_HEARTBEAT_INTERVAL_SECONDS`(정본 기본=Appendix B #34) | GW | heartbeat 응답 `nextIntervalSeconds`로 하달(§7.8.1) |
+  | `gw.heartbeat.offline_threshold_multiplier` | number | 1.5~10 | 3 | GW | `now-last_heartbeat > interval×배수`면 offline 판정 |
+  | `device.log.level` | string(enum) | `error\|warn\|info\|debug` | `info` | device | 로그 상세도 원격 조정 |
+  | `device.upload.max_concurrency` | integer | 1~8 | 2 | device | 동시 업로드 수 |
+  | `device.upload.chunk_size_bytes` | integer | 1048576~67108864 | 8388608(8MiB) | device | 멀티파트 청크 크기 |
+  | `device.telemetry.metrics_enabled` | boolean | true/false | true | device | heartbeat metrics 전송 on/off |
+  | `device.feature_flags` | object(bool 맵) | `{ "<flag>": true\|false }` | `{}` | device | 확장형 기능 토글(개별 flag는 device측 정의) |
+
+- **DB enum이 아니다** — 신규 키는 기능 추가로 계속 늘어, 앱 레벨 상수 집합 + 위 정규식으로 검증하고 신규 키는 상수만 추가한다. 등록되지 않은 키·범위 밖 값은 관리 API(`PUT /admin/v1/config`)에서 거부한다.
+
+### `config_value` — 값 형식
+```json
+3600
+```
+```json
+{ "maxConcurrency": 4, "chunkSizeBytes": 8388608 }
+```
+- **타입**: jsonb 스칼라(number/string/boolean) 또는 객체. 키 레지스트리가 키별 기대 타입을 정의.
+- **검증**: 해당 `config_key`의 레지스트리 스키마와 타입·범위 일치. **PHI 금지**(§6.4).
+- **버전**: 행의 `version`(bigint)은 변경 시 증가. 한편 device에 주는 **실효 `configVersion`은 콘텐츠 해시**(string) — 기여 항목을 `(config_key, config_value, 기여 행 version)`로 정렬·canonical JSON 직렬화 후 SHA-256 hex. 값·기여 스코프·행 version 중 하나라도 바뀌면 해시가 바뀌고 아니면 안정적이다. device는 `appliedConfigVersion`과 **동등성만 비교**해 drift 판정. (행 version 최댓값·전역 카운터는 쓰지 않음 — §7.8.4.)
+
+### 스코프·해석
+- **`scope_type`(global | region | clinic | device) + `scope_id`** — global=NULL / region=`region_id` / clinic=`clinic_id` / device=`device_id`. **다형 참조·하드 FK 없음**(policy와 동일 방식).
+- **실효 config**: 각 키를 **가장 구체 스코프 값으로 확정**(device > clinic > region > global). 정책의 deny-by-default와 달리 **override 병합**(키 단위 최우선 승자).
+
+---
+
 ## `audit_log` (문자열 규약 — jsonb 아님, 필드 형식 SSOT)
 
 `action`·`actor`는 자유 문자열이지만 **일관 조회·감사 리포트를 위해 명명 규약을 강제**한다(앱 레벨 검증, DB enum 아님 — 확장성). `result`는 값이 한정적이라 **DB enum**(`audit_result`, DBML)이다.
@@ -121,3 +162,4 @@ user:oneid-8f3a…      system:token-refresh      device:0192abcd-…
 | 2026-07-06 | `policy` 키를 `(tenant=clinic)` → **`(scope_type{global\|clinic\|device}, scope_id, connector)`** 로 일반화 — 주체=device·clinic=선택적 그룹(§1.2·§6.4.1), 실효정책 device→clinic→global. jsonb 필드(allowed_endpoints·scopes) 형식은 불변 |
 | 2026-07-06 (#31) | **egress SSOT 일원화** — `connector.egress_allowlist` 단일 SSOT(+requireStaticEgressIp 이관). `policy.egress`·`upstream_registry.egress_allowlist` 섹션·컬럼 제거. egress=외부(C) 대상 속성(per-tenant authz 아님), OPA/네트워크가 connector 참조 |
 | 2026-07-06 | **`audit_log` 문자열 규약 신설** — `action`=`resource.verb` 명명 규약(free string·정규식·표준 목록·앱 레벨 상수, DB enum 아님) · `actor`=`type:id`(user/system/device) · `result`=DB enum `audit_result`(success/denied/failure). §7.9.3에서 참조 |
+| 2026-07-06 | **`config` 값 계약 신설(§7.8.4 중앙 Config)** — `config_key` 네임스페이스 규약(`gw.*` GW 소비 / `device.*` 전달·정규식·**키 레지스트리 seed 7종**: heartbeat interval/threshold·log.level·upload concurrency/chunk·telemetry·feature_flags, type/범위/기본값/소비자·확장형·미등록/범위밖 거부) · `config_value` jsonb 형식·검증(PHI 금지) · **실효 `configVersion`=콘텐츠 해시(SHA-256, 행 version 최댓값 아님)** · 스코프(global/region/clinic/device)·실효 해석(키별 가장 구체 우선 override). DBML `config` 테이블 신설과 정합 |
