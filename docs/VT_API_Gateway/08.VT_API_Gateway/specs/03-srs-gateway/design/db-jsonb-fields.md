@@ -10,10 +10,10 @@ DBML(`vt-api-gateway.dbml`)의 `jsonb` 컬럼은 구조가 코드로 강제되�
 
 ## `policy` (OPA 입력, FR-INT-03)
 
-`(scope_type, scope_id, provider)` 1행이 그 스코프가 해당 provider로 호출할 때의 **허용 규칙**을 담는다. **주체 = device**(§1.2). 요청 시 OPA가 `(target, method, path, scope, 목적지)`를 실효 정책과 대조해 allow/deny.
+`(scope_type, scope_id, target_id)` 1행이 그 스코프가 해당 upstream(target_id)으로 호출할 때의 **허용 규칙**을 담는다. **주체 = device**(§1.2). 요청 시 OPA가 `(target, method, path, scope, 목적지)`를 실효 정책과 대조해 allow/deny.
 
 - **`scope_type`(global | clinic | device) + `scope_id`** — 정책 부착 스코프. global=`scope_id` NULL / clinic=`clinic_id` / device=`device_id`. **다형 참조라 하드 FK 없음**(discriminator + 앱레벨 무결성). 구 `tenant`(clinic 하드 FK)를 device-중심으로 일반화(clinic-less device 수용, §6.4.1).
-- **`provider`** = 아웃바운드 연동 대상(= `provider.provider` FK, 예 `axs`). 통합 `provider` 테이블(라우팅+자격+webhook)을 참조한다(구 connector/webhook_provider 분리 → 병합, §6.4.1).
+- **`target_id`** = 아웃바운드 연동 대상(= `upstream.target_id` FK, 예 `axs`). 통합 `upstream` 테이블(라우팅+자격+webhook)을 참조한다(구 connector/webhook_provider 분리 → 병합, §6.4.1).
 - **평가 순서(주체 device 기준)**: `device` → 그 device의 `clinic` → `global` 순으로 판정(deny-by-default). **clinic = clinic-bound device의 상한(ceiling)**, `device`는 그 안에서 narrowing, `global`=전역 기본. 규칙=**SRS §7.5.3**, 차원별 병합=OPA(Rego)/LLD. **v1.0은 clinic+global 행만 사용**(모든 device가 clinic-bound).
 - 적용대상(스코프)마다 다를 수 있어 **관리 UI(③-C)+관리 API(§7.9)** 필요 — Appendix B #32.
 
@@ -47,12 +47,12 @@ GW는 upstream으로 verbatim 프록시하므로(§4.1.2), **정책은 (method +
 
 ---
 
-## `provider` (연동 대상 통합 — jsonb 필드)
+## `upstream` (연동 대상 통합 — jsonb 필드)
 
-`provider` 테이블(구 upstream_registry·connector·webhook_provider 병합)의 jsonb 컬럼은 **`egress_allowlist`(아웃바운드 자격 그룹)** 와 **`source_ip_allowlist`(인바운드 webhook 그룹)** 둘이다. 라우팅 그룹(host·profile·timeout)은 스칼라라 여기 없다(재시도·서킷은 istio egress·§7.5.4).
+`upstream` 테이블(구 upstream_registry·connector·webhook_provider 병합)의 jsonb 컬럼은 **`egress_allowlist`(아웃바운드 자격 그룹)** 와 **`source_ip_allowlist`(인바운드 webhook 그룹)** 둘이다. 라우팅 그룹(host·profile·timeout)은 스칼라라 여기 없다(재시도·서킷은 istio egress·§7.5.4).
 
 ### `egress_allowlist` — 아웃바운드 목적지·고정 IP 규칙 (**egress SSOT #31**)
-외부(C) provider 호출의 네트워크 제약(§7.5.3). **egress의 단일 SSOT** — `policy`에 중복 두지 않는다(2026-07-06, #31 해소). OPA egress 판정과 네트워크(고정 EIP whitelist·SG)가 모두 이 값을 참조. **외부(C) provider에만** 채움(내부 B는 내부망이라 불요·null, §4.1.1).
+외부(C) upstream 호출의 네트워크 제약(§7.5.3). **egress의 단일 SSOT** — `policy`에 중복 두지 않는다(2026-07-06, #31 해소). OPA egress 판정과 네트워크(고정 EIP whitelist·SG)가 모두 이 값을 참조. **외부(C) upstream에만** 채움(내부 B는 내부망이라 불요·null, §4.1.1).
 
 ```json
 {
@@ -131,7 +131,7 @@ gw.heartbeat.interval_seconds        gw.heartbeat.offline_threshold_multiplier  
 region.change   device.approve   credential.rotate   policy.update
 ```
 - **형식**: `^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$` (소문자 `resource`.`verb`, 최소 1개 점).
-- **표준 목록(초기 — 앱 레벨 상수, 확장 가능)**: `region.change` · `device.approve` · `device.suspend` · `device.revoke` · `enroll.rotate` · `credential.issue` · `credential.rotate` · `policy.create` · `policy.update` · `policy.delete` · `orgmapping.upsert` · `provider.upsert` · `provider.delete` · `killswitch.toggle` · `config.publish`.
+- **표준 목록(초기 — 앱 레벨 상수, 확장 가능)**: `region.change` · `device.approve` · `device.suspend` · `device.revoke` · `enroll.rotate` · `credential.issue` · `credential.rotate` · `policy.create` · `policy.update` · `policy.delete` · `orgmapping.upsert` · `upstream.upsert` · `upstream.delete` · `killswitch.toggle` · `config.publish`.
 - **DB enum이 아니다** — 감사 동작은 기능 추가로 계속 늘어 enum이면 매번 마이그레이션이 필요하다. 대신 **앱 레벨 상수 집합**으로 관리하고 위 정규식으로 검증하며, 신규 action은 상수만 추가한다. **자유 오타 문자열(예 `리전변경`)은 금지**.
 
 ### `actor` — `type:id`
@@ -155,6 +155,6 @@ user:oneid-8f3a…      system:token-refresh      device:0192abcd-…
 | 2026-07-02 (R4) | `upstream_registry.retry_policy` 형식 섹션 제거 — **재시도·서킷=service mesh(istio) 담당**(GW 미소유). **단 GW→provider 연결 timeout(connect/response/total_deadline)은 GW 책임이라 스칼라 컬럼 유지**(D1~D3, §7.5.4). jsonb 대상은 egress_allowlist만 |
 | 2026-07-06 | `policy` 키를 `(tenant=clinic)` → **`(scope_type{global\|clinic\|device}, scope_id, connector)`** 로 일반화 — 주체=device·clinic=선택적 그룹(§1.2·§6.4.1), 실효정책 device→clinic→global. jsonb 필드(allowed_endpoints·scopes) 형식은 불변 |
 | 2026-07-06 (#31) | **egress SSOT 일원화** — `connector.egress_allowlist` 단일 SSOT(+requireStaticEgressIp 이관). `policy.egress`·`upstream_registry.egress_allowlist` 섹션·컬럼 제거. egress=외부(C) 대상 속성(per-tenant authz 아님), OPA/네트워크가 connector 참조 |
-| 2026-07-06 | **connector·upstream_registry·webhook_provider → `provider` 병합** — jsonb 섹션 `#connector`·`#webhook_provider`·`#upstream_registry`를 **`#provider`** 하나로 통합(egress_allowlist=아웃바운드 그룹·source_ip_allowlist=인바운드 그룹). `#policy`의 `connector`→`provider`(FK). audit action `upstream.register`·`connector.update`→`provider.upsert`·`provider.delete` |
+| 2026-07-06 | **connector·upstream_registry·webhook_provider → `upstream` 병합** — jsonb 섹션 `#connector`·`#webhook_provider`·`#upstream_registry`를 **`#upstream`** 하나로 통합(egress_allowlist=아웃바운드 그룹·source_ip_allowlist=인바운드 그룹). `#policy`의 connector→**target_id**(FK→upstream). audit action → `upstream.upsert`·`upstream.delete`. 표명 upstream·PK target_id 확정(Agenda R3) |
 | 2026-07-06 | **`audit_log` 문자열 규약 신설** — `action`=`resource.verb` 명명 규약(free string·정규식·표준 목록·앱 레벨 상수, DB enum 아님) · `actor`=`type:id`(user/system/device) · `result`=DB enum `audit_result`(success/denied/failure). §7.9.3에서 참조 |
 | 2026-07-06 | **`config` 값 계약 신설(§7.8.4 중앙 Config)** — `config_key` 네임스페이스 규약(`gw.*` GW 소비 / `device.*` 전달·정규식·**키 레지스트리 seed 7종**: heartbeat interval/threshold·log.level·upload concurrency/chunk·telemetry·feature_flags, type/범위/기본값/소비자·확장형·미등록/범위밖 거부) · `config_value` jsonb 형식·검증(PHI 금지) · **실효 `configVersion`=콘텐츠 해시(SHA-256, 행 version 최댓값 아님)** · 스코프(global/region/clinic/device)·실효 해석(키별 가장 구체 우선 override). DBML `config` 테이블 신설과 정합 |

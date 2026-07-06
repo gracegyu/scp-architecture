@@ -405,7 +405,7 @@ paths:
   # apex gw.vatech.com 호출만 아래 GW 고유 API(A)로 처리된다. Vatech-Target 헤더는 CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환).
   #
   # 프록시 에러·복원력 계약 (정본 §7.5.4·§7.7.4 — 경로가 아니라 전 프록시 공통이므로 여기 주석으로 기술):
-  #   - GW→provider 연결 timeout(connect/response/total_deadline, Provider)=GW 책임(7/2 R4·D1~D3): GW가 provider에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound. total_deadline < 클라이언트 타임아웃.
+  #   - GW→upstream 연결 timeout(connect/response/total_deadline, Upstream)=GW 책임(7/2 R4·D1~D3): GW가 upstream에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound. total_deadline < 클라이언트 타임아웃.
   #   - 클라이언트 타임아웃 인지(D10): 프록시 호출 시 클라이언트가 선택적 요청 헤더 Vatech-Timeout-Ms(상대값 ms) 전송 가능 → GW가 내부 deadline=now+min(헤더, total_deadline)로 클램프(gRPC grpc-timeout 선례). 미전송 시 계약값(EzServer 30s, D4) 사용. 프록시는 verbatim이라 본 헤더는 upstream에 전달 안 함.
   #   - 재시도·서킷 브레이커=service mesh(istio) egress 담당(GW 미구현, D5~D8).
   #   - GW 정규화 오류 = ProxyError 스키마: 502 연결실패(UPSTREAM_UNREACHABLE) / 504 timeout·deadline(UPSTREAM_TIMEOUT, GW 자기 timeout) / 503 서킷·일시불가(UPSTREAM_UNAVAILABLE, mesh). 헤더 Vatech-Error-Origin: gateway.
@@ -533,33 +533,33 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  # --- 연동 대상(provider) 통합 관리 (§7.5·§7.6·§7.1.3, Console ③-C) — 라우팅+자격+webhook 수신 한 레코드 ---
-  /admin/v1/providers:
+  # --- 연동 대상(upstream) 통합 관리 (§7.5·§7.6·§7.1.3, Console ③-C) — 라우팅+자격+webhook 수신 한 레코드 ---
+  /admin/v1/upstreams:
     get:
       tags: [ admin ]
-      summary: 연동 대상(provider) 조회 (라우팅·자격·webhook 수신 통합) (FR-INT-01/02·FR-WH-01/02)
+      summary: 연동 대상(upstream) 조회 (라우팅·자격·webhook 수신 통합) (FR-INT-01/02·FR-WH-01/02)
       description: credential_ref·secret_ref는 KMS 참조만 반환(시크릿 원문 미노출)
       responses:
         '200':
-          description: provider 목록
+          description: upstream 목록
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Provider'
+                  $ref: '#/components/schemas/Upstream'
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       tags: [ admin ]
-      summary: provider 등록/갱신(upsert) — **연동 하나=1 레코드**(라우팅+자격+webhook 수신). 감사 action=provider.upsert
+      summary: upstream 등록/갱신(upsert) — **연동 하나=1 레코드**(라우팅+자격+webhook 수신). 감사 action=upstream.upsert
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Provider'
+              $ref: '#/components/schemas/Upstream'
       responses:
         '201':
           description: 등록됨
@@ -568,12 +568,12 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
-  /admin/v1/providers/{provider}:
+  /admin/v1/upstreams/{targetId}:
     parameters:
-    - { name: provider, in: path, required: true, schema: { type: string } }
+    - { name: targetId, in: path, required: true, schema: { type: string } }
     delete:
       tags: [ admin ]
-      summary: provider 삭제 — 해당 연동 전체(라우팅·자격·webhook 수신) 제거. 감사 action=provider.delete
+      summary: upstream 삭제 — 해당 연동 전체(라우팅·자격·webhook 수신) 제거. 감사 action=upstream.delete
       responses:
         '204': { description: 삭제됨 }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -963,26 +963,26 @@ components:
           type: string
           description: '변경 주체(audit actor, 예 user:oneid-…)'
 
-    # 연동 대상(provider) 통합 (§7.5·§7.6·§7.1.3) — 라우팅+아웃바운드 자격+인바운드 webhook 수신
-    Provider:
+    # 연동 대상(upstream) 통합 (§7.5·§7.6·§7.1.3) — 라우팅+아웃바운드 자격+인바운드 webhook 수신
+    Upstream:
       type: object
-      required: [ provider, profile ]
+      required: [ targetId, profile ]
       description: >-
-        연동 대상(외부 provider·내부 backend) **통합 레코드** — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드에(구 upstream_registry·connector·webhook_provider 병합). **provider 하나 등록=1 레코드**. credential_ref·secret_ref는 KMS 참조만(원문 미노출). org_mapping·webhook_event·policy가 provider를 참조. AXS=①②③ 다 채움 / 내부(cleverspace·oneid)=① 라우팅만.
+        연동 대상(외부 provider·내부 backend) **통합 레코드**(엔터티=upstream) — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드에(구 upstream_registry·connector·webhook_provider 병합). **upstream 하나 등록=1 레코드**. credential_ref·secret_ref는 KMS 참조만(원문 미노출). org_mapping·webhook_event·policy가 targetId를 참조. AXS=①②③ 다 채움 / 내부(cleverspace·oneid)=① 라우팅만.
       properties:
-        provider: { type: string, description: '연동 대상 토큰 = 서브도메인 라벨 = PK. 예 axs·cleverspace·oneid' }
+        targetId: { type: string, description: '연동 대상 ID = Vatech-Target 값 = 서브도메인 라벨 = PK. 예 axs·cleverspace·oneid' }
         # ── ① 라우팅 (모든 대상) ──
         host: { type: string, description: '내부 매핑 host(클라이언트 비노출)·아웃바운드 base=https://{host}. 예 api.eu.axs.straumann.com' }
         profile: { type: string, enum: [ internal, external ], description: 'internal=B(내부) / external=C(외부)' }
-        connectTimeoutMs: { type: integer, description: 'GW→provider 연결 대기 — GW 책임(D1, §7.5.4·R4). 예 3000' }
-        responseTimeoutMs: { type: integer, description: 'GW→provider 응답 대기·초과 504(D2). 예 10000' }
+        connectTimeoutMs: { type: integer, description: 'GW→upstream 연결 대기 — GW 책임(D1, §7.5.4·R4). 예 3000' }
+        responseTimeoutMs: { type: integer, description: 'GW→upstream 응답 대기·초과 504(D2). 예 10000' }
         totalDeadlineMs: { type: integer, description: '프록시 총 예산(D3, < 클라이언트 타임아웃). 예 12000' }
         enabled: { type: boolean }
         # ── ② 아웃바운드 자격 (외부 C만·nullable) ──
         credentialRef: { type: string, description: 'OAuth2 client 자격 KMS 참조(access token 아님·원문 미저장, §7.1.3). 내부(B)는 생략. 예 kms://alias/axs-oauth-client' }
         egressAllowlist:
           type: object
-          description: 'egress SSOT(#31) — hosts·cidrs 둘 다 비면 fail-closed(전면 거부). 외부 C만. 형식=design/db-jsonb-fields.md#provider'
+          description: 'egress SSOT(#31) — hosts·cidrs 둘 다 비면 fail-closed(전면 거부). 외부 C만. 형식=design/db-jsonb-fields.md#upstream'
           properties:
             hosts: { type: array, items: { type: string }, description: '허용 FQDN. 예 ["api.eu.axs.straumann.com"]' }
             cidrs: { type: array, items: { type: string } }
@@ -990,7 +990,7 @@ components:
             requireStaticEgressIp: { type: boolean, description: 'true면 고정 egress IP(NAT) 경유 강제' }
         # ── ③ 인바운드 webhook (webhook 발신 대상만·nullable) ──
         inboundHost: { type: string, description: '전용 수신 호스트(Host/SNI 발신자 식별, §7.6.2). 예 axs.webhook.gw.vatech.com. 미발신이면 생략' }
-        inboundRoute: { type: string, description: '등록 수신 경로(유연·provider 규약 수용). 예 /v1/webhooks/axs' }
+        inboundRoute: { type: string, description: '등록 수신 경로(유연·발신 규약 수용). 예 /v1/webhooks/axs' }
         sigScheme: { type: string, description: '서명 검증 스킴(인증). 예 hmac-sha512(헤더 Signature·hex·서명대상 minified JSON body)' }
         secretRef: { type: string, description: 'HMAC 검증 시크릿 KMS 참조(원문 미저장)' }
         sourceIpAllowlist: { type: array, items: { type: string, description: 'CIDR(예 203.0.113.0/24)' }, description: '허용 소스 CIDR(옵션·방어심층·Host가 1차 식별)' }
@@ -1040,13 +1040,13 @@ components:
     # 라우팅·분배 레지스트리 (DB가 보관하는 "어디로 분배" 지식)
     OrgMapping:
       type: object
-      required: [ provider, externalOrgId, clinicId ]
+      required: [ targetId, externalOrgId, clinicId ]
       properties:
-        provider: { type: string, description: '예 axs' }
-        externalOrgId: { type: string, description: 'provider 식별자(예 AXS Organization-ID)' }
+        targetId: { type: string, description: '연동 대상(upstream) ID. 예 axs' }
+        externalOrgId: { type: string, description: 'upstream(발신)의 org 식별자(예 AXS Organization-ID)' }
         clinicId: { type: string }
         mappingVersion: { type: integer }
-      description: 'webhook 라우팅 키 — (provider, externalOrgId) → clinicId → region'
+      description: 'webhook 라우팅 키 — (targetId, externalOrgId) → clinicId → region'
     ClinicRegistration:
       type: object
       required: [ clinicId, region ]
@@ -1056,11 +1056,11 @@ components:
       description: '운영자(OneID) 클리닉 교정·예외적 수동 등록 입력 — 주 생성 경로는 enroll(§2.3.1)'
     OrgBinding:
       type: object
-      required: [ provider, externalOrgId ]
+      required: [ targetId, externalOrgId ]
       properties:
-        provider: { type: string, description: '예 axs' }
-        externalOrgId: { type: string, description: 'provider Org-ID(예 AXS Organization-ID)' }
-      description: '외부 연동 연결 시 provider별 Org-ID 등록 → org_mapping(webhook 라우팅 키)'
+        targetId: { type: string, description: '연동 대상(upstream) ID. 예 axs' }
+        externalOrgId: { type: string, description: 'upstream(발신) Org-ID(예 AXS Organization-ID)' }
+      description: '외부 연동 연결 시 upstream별 Org-ID 등록 → org_mapping(webhook 라우팅 키)'
     Region:
       type: object
       required: [ regionId, status ]
