@@ -164,6 +164,12 @@
     - **DBML·OpenAPI 반영 완료** — 회의에서 관계·카디널리티 **확인/승인** 요청.
     - **org_mapping 경계(확인)**: org_mapping = **얇은 식별자 매핑**(공통 조각)일 뿐, provider별 인증·webhook·payload는 이미 분리(connector·webhook_provider·④). **구조 다른 provider = 전용 테이블+로직(설계된 분기)** — "만능 표" 아님.
     - **미결(확인 요청)**: ① EzServer=클리닉당 1개 확정?(Device 1:N 유지 vs 1:1 UNIQUE 강제) · ③ clinic-less device(미래) region 처리 · ⑤ **policy.tenant 범위**(clinic 단위+전역기본 NULL·device 배제 확인).
+    - **→ 해소·갱신(2026-07-06 · device-중심 정체성 정립)**: SRS §1.2에 **GW=범용 API GW · 호출 주체=device · clinic=device의 선택적 그룹**을 정의(현재 EzServer/AXS/CleverSpace + 미래 다수 provider·비-EzServer·clinic-less 확장성). 이로써 위 미결이 다음으로 정리됨:
+      - **① Device 1:N 모델 유지**(1:1 UNIQUE 강제 안 함) — device=주체, clinic 선택적. 현 EzServer=클리닉당 1개는 운영 사실일 뿐, 모델 제약 아님.
+      - **③ clinic-less device region = 미래 확장점 확정**(지금 미정의 — 등장 시 자체 region/global, §1.2 Will Not Do·Appendix B #33).
+      - **⑤ policy 스코프 = device-중심 확정(device→clinic→global)** — 구 'device 배제'를 **대체**. `policy.tenant`(clinic 하드 FK) → **`scope_type{global\|clinic\|device}+scope_id`**. clinic=clinic-bound device의 **상한(ceiling)**, device는 그 안에서 narrowing(§7.5.3, deny-by-default). *device 단위 policy는 clinic-less/예외용 — v1.0은 clinic+global만 사용.*
+      - **org_mapping 경계**: 얇은 식별자 매핑(clinic-키) 유지, device-스코프는 미래 확장점(#33). region A안(②③ SSOT=clinic)·nullable·1:N는 **불변**.
+      - 반영 완료: SRS §1.2·§1.4·§6.4.1·§7.5.3·Appendix B #32/#33 · DBML(`policy_scope`)·db-jsonb · ARD v0.25.
     - **해결됨(보고)**: ② 전용 `clinic` 테이블 = **`clinic_region_mapping`을 `clinic`으로 승격 확정**(C안, 2026-07-01) · ④ **`connector`(아웃바운드)/`provider`(인바운드) 분리 유지 확정**(통합 안 함); `provider` 표기는 정규 토큰·enum 금지(레지스트리 FK는 선택).
 
   - **R9. 온보딩/enrollment 모델 확인 (대부분 "확인만" · ⑤ 인증방식만 CCB/보안 sign-off 권장)** — 이번 주 SRS 정합화에서 온보딩·enrollment을 아래로 구체화·통합했다. 회의에서는 **"이렇게 하면 되냐" 확인**(변경 없으면 확정). ⑤ private_key_jwt는 인증 아키텍처 결정이라 보안/CCB 승인이 좋다.

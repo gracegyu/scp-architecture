@@ -739,8 +739,8 @@ components:
     Device:
       type: object
       description: >-
-        디바이스 = EzServer(§1.4). 인증 자격도 여기에 통합 — 별도 Credential 스키마 없음(2026-07-01).
-        인증=private_key_jwt(비대칭, ADR-13): clientId + clientPublicKey(공개키)로 검증, 공유 secret 없음.
+        디바이스 = GW 호출 주체(머신 클라이언트, §1.2·§1.4) — v1.0 유일 종류=EzServer(clinic-bound); 미래 비-EzServer/clinic-less 가능(§1.2 Will Not Do). clinicId nullable.
+        인증 자격도 여기에 통합 — 별도 Credential 스키마 없음(2026-07-01). 인증=private_key_jwt(비대칭, ADR-13): clientId + clientPublicKey(공개키)로 검증, 공유 secret 없음.
       properties:
         deviceId:
           type: string
@@ -873,12 +873,11 @@ components:
         targetId: { type: string, description: 'target 서브도메인 라벨 = 논리 ID(예 cleverspace, axs) — GW edge가 {targetId}.gw.vatech.com Host로 라우팅(ADR-11, 7/2 R1). CleverOne→EzServer Vatech-Target 헤더값과 동일(EzServer가 서브도메인 변환)' }
         host: { type: string, description: '내부 매핑 host(클라이언트 비노출)' }
         profile: { type: string, enum: [ internal, external ] }
-        egressAllowlist: { type: array, items: { type: string } }
         connectTimeoutMs: { type: integer, description: 'GW→provider 연결(TCP+TLS) 대기 — GW 자기 아웃바운드 timeout(D1, 추천 3s). §7.5.4·R4' }
         responseTimeoutMs: { type: integer, description: 'GW→provider 응답 대기(초과 504) — GW 자기 timeout(D2, 추천 10s·외부 AXS는 SLA 개별값)' }
         totalDeadlineMs: { type: integer, description: '프록시 호출 총 예산 — GW total_deadline < 클라이언트 타임아웃 불변식(D3, ≤80%)' }
         enabled: { type: boolean }
-      description: 'target-routed proxy 라우팅(ADR-11, 7/2 R1 — edge=서브도메인). 신규 upstream = 1행(*.gw.vatech.com 와일드카드라 DNS·cert 추가 0). **연결 timeout(connect/response/total_deadline)=GW 책임**(GW가 provider에 직접 연결하는 HTTP 클라이언트, §7.5.4). **재시도·서킷 브레이커=service mesh(istio) egress 담당(7/2 R4)** — 본 스키마 미포함, GW 미소유. GW 앱레벨=오류 정규화·멱등·취소'
+      description: 'target-routed proxy 라우팅(ADR-11, 7/2 R1 — edge=서브도메인). 신규 upstream = 1행(*.gw.vatech.com 와일드카드라 DNS·cert 추가 0). **연결 timeout(connect/response/total_deadline)=GW 책임**(§7.5.4). **재시도·서킷 브레이커=service mesh(istio) egress(7/2 R4)**, **egress allowlist=connector.egress_allowlist(SSOT, #31)** — 모두 본 스키마 미포함. GW 앱레벨=오류 정규화·멱등·취소'
     DeliveryChannel:
       type: object
       required: [ clinicId, channelType ]
