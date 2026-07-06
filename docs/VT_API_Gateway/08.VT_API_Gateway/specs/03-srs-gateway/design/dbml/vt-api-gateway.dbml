@@ -5,11 +5,11 @@
 //
 // 시드 출처: "VT API Gateway - API 명세·데이터 모델·주권" §2 데이터 모델.
 // GW의 핵심 역할 = 발신자 식별→올바른 client로 분배(GW는 payload 비해석). 본 DB는 '어디로 분배할지'의 지식을 보관:
-//   라우팅 키(org_mapping)·provider 수신 config(webhook_provider)·target→host(upstream_registry). (분배 채널은 clinic→MQTT 토픽 규약으로 도출·테이블 없음, §7.6.6)
+//   라우팅 키(org_mapping)·연동 대상 통합 config(provider: 라우팅+아웃바운드 자격+인바운드 webhook 수신). (분배 채널은 clinic→MQTT 토픽 규약으로 도출·테이블 없음, §7.6.6)
 // 컬럼은 snake_case(PostgreSQL 관례), API DTO는 camelCase(SRS §1.3)로 매핑.
 // 시간은 Unix Timestamp(ms) bigint. PHI 본문 미저장(presigned 직결, SRS §6.4).
 // 타입·인덱스·정밀 relation은 LLD(dev-chain-design)에서 확정.
-// jsonb 컬럼(policy.allowed_endpoints·policy.scopes·connector.egress_allowlist·webhook_provider.source_ip_allowlist·config.config_value)의 형식·예시·검증 = design/db-jsonb-fields.md(구현 계약 SSOT). 컬럼 주석엔 shape 요약만. (upstream_registry.retry_policy는 R4로 제거 — 재시도=istio)
+// jsonb 컬럼(policy.allowed_endpoints·policy.scopes·provider.egress_allowlist·provider.source_ip_allowlist·config.config_value)의 형식·예시·검증 = design/db-jsonb-fields.md(구현 계약 SSOT). 컬럼 주석엔 shape 요약만. (upstream_registry.retry_policy는 R4로 제거 — 재시도=istio)
 // 2026-06-29 PR 정합 보강: upstream_registry 복원력 컬럼·enum화·created_at/updated_at·webhook_event 보강.
 // 2026-07-01: region A안(device.region·region_mapping 제거·device.clinic_id 추가) · compat_matrix 제거 · 전 필드 주석.
 // 2026-07-01: enrollment_token 제거 — 부트스트랩=LM 라이선스·Clinic-ID + C/S 사람 승인(사전 발급 토큰 없음). 승인 대기=device.pending(§2.3.1·§7.2.5).
@@ -29,6 +29,7 @@
 // 2026-07-06: MQTT 하행 토픽 규약 확정(§7.6.6) — clinic-scoped `gw/clinic/{clinicId}/{stream}`(stream=webhook/config), 리전 미포함. delivery_channel.endpoint(mqtt_edge)·webhook_event.dispatch_target 예시를 이 규약으로 구체화. 브로커 제품·문법 매핑만 #4 잔여.
 // 2026-07-06 (정합성 점검): webhook_event.target → dispatch_target 리네이밍·정의 명확화 — upstream_registry.target_id(아웃바운드 프록시 provider)와 이름 충돌 제거. 의미=실제 발행한 구체적 분배 목적지(delivery_channel 해석 스냅샷 {channel_type}:{endpoint}), clinic_id·region('어디')과 별개('어떤 채널·주소로'). Note의 "target에 저장"(clinic/region이 target에 들어간다는 모순) 수정.
 // 2026-07-06 (정합성 점검): webhook_provider.event_id_path 추가 — 멱등 키(event_id) 추출도 provider별 경로 config(예 AXS messageId), §7.6.1 "eventId 레지스트리 추출"과 정합(누락 보정). config.created_at 추가(policy·connector와 대칭). 헤더 jsonb 목록에 config.config_value 반영. org_mapping.provider → webhook_provider FK 통일(webhook_event.provider와 동일 인바운드 축·R8 검토 해소). (config.updated_by 중복·surrogate id 생성 규칙은 LLD)
+// 2026-07-06: **connector·upstream_registry·webhook_provider → provider 1표로 병합(12→10 테이블)** — 셋은 한 연동 party(예 axs)의 1:1 facet(라우팅/아웃바운드 자격/인바운드 webhook)이라 provider 한 행에 통합. 중복 필드 정리: connector.endpoint 제거(provider.host와 중복·base=https://{host}), enabled·created/updated_at 1쌍으로. provider 하나 등록=1 insert. org_mapping·webhook_event.provider·policy.provider(구 connector 컬럼 개명)가 provider FK 참조. §6.4.1 "connector/provider 분리 유지" 결정 정정(병합). jsonb 앵커 db-jsonb#connector·#webhook_provider → #provider.
 // 2026-07-06: delivery_channel 테이블·Enum delivery_channel_type 삭제(12 테이블) — v1.0 전 클리닉 edge(mqtt_edge)·토픽 결정적(clinic_id→gw/clinic/{clinicId}/webhook, §7.6.6)이라 저장 정보 0. 분배=org_mapping→clinic(→region 브로커)→MQTT 토픽 도출. 비-edge/클라우드 수신은 Appendix B #37(갈래B) 도입 시.
 // 2026-07-06: config 테이블 신설(13 테이블) — 중앙 Config(FR-CFG-01·§7.8.4) 구현 모델. Enum config_scope{global|region|clinic|device} + (scope_type,scope_id,config_key)당 1행·config_value jsonb·version(drift/캐시 무효화). 실효=키별 가장 구체 우선(override). 전달=pull(GET /v1/fleet/config·heartbeat configVersion)/push-notify(역방향 MQTT). 값 형식=db-jsonb#config.
 // 2026-07-01: 디바이스 인증=비대칭 private_key_jwt(개인키 서명→device.fingerprint 공개키 검증), 공유 secret 폐지(ADR-13·§7.1.1).
@@ -142,7 +143,7 @@ Table region_catalog {
 // 정책 (OPA 입력, FR-INT-03)
 // 정책 부착 스코프 — 주체=device, 해석 device→clinic→global (§1.2·§6.4.1)
 Enum policy_scope {
-  global   // connector 전역 기본(scope_id NULL)
+  global   // provider 전역 기본(scope_id NULL)
   clinic   // 특정 클리닉(scope_id=clinic_id) — 소속 device 공유 기본
   device   // 특정 device(scope_id=device_id) — clinic-less/예외
 }
@@ -158,29 +159,20 @@ Table policy {
   id                varchar [pk]  // 정책 식별자. 예 `pol_axs_clinic0040`
   scope_type        policy_scope [not null]  // 부착 스코프 global|clinic|device. 주체=device, 실효정책=device→clinic(소속 시)→global 합성(§1.2·§6.4.1). 예 `clinic`
   scope_id          varchar       // 부착 대상 id — global=NULL / clinic=clinic_id / device=device_id. **다형 참조라 하드 FK 없음**(scope_type discriminator + 앱레벨 무결성). 예 `CLINIC-0040694997`(clinic) / global이면 NULL
-  connector         varchar       // 적용 대상 = connector.name = upstream_registry.target_id(아웃바운드 대상 토큰). 인바운드 webhook provider와 통합 안 함(§6.4.1). 예 `axs`
+  provider          varchar [ref: > provider.provider]  // 적용 대상 = provider.provider(아웃바운드 연동 대상, FK). 예 `axs` (global 스코프여도 어느 provider 호출을 허용하는지 지정)
   allowed_endpoints jsonb         // 허용 (method,path) 목록. 예 `[{"methods":["GET"],"pathPattern":"/v1/patients/**"}]`. 형식·매칭=design/db-jsonb-fields.md#policy
   scopes            jsonb         // 허용 scope 집합. 예 `["axs:patient.read","axs:study.write"]`. 형식=design/db-jsonb-fields.md#policy
   created_at        bigint        // 생성 시각(Unix ms). 예 `1720137600000`
   updated_at        bigint        // 수정 시각(Unix ms). 예 `1720224000000`
 
-  Note: '**정책 결정점(OPA)의 입력 데이터**다(FR-INT-03). 주체는 device이며(§1.2), 정책은 `scope_type`(global|clinic|device)+`scope_id`로 붙는다. 요청 device의 **실효 정책 = device → clinic(소속 시) → global** 순으로 합성하고 기본은 deny(fail-closed)다(규칙 §7.5.3). v1.0에서는 clinic·global 행만 쓰며(모든 device가 clinic-bound), device 행은 스키마상 수용하되 clinic-less/예외가 등장할 때 사용한다. `connector`는 아웃바운드 대상 토큰이다(=connector.name=upstream_registry.target_id). **본 표는 "무엇을 허용하는가"(endpoint·scope)만** 담는다 — egress는 `connector.egress_allowlist`(SSOT, #31)가 담당하므로 여기 중복하지 않는다. 스코프마다 정책이 달라 관리 API+UI가 필요하다(③-C, Appendix B #32). jsonb 형식=design/db-jsonb-fields.md#policy.'
+  Note: '**정책 결정점(OPA)의 입력 데이터**다(FR-INT-03). 주체는 device이며(§1.2), 정책은 `scope_type`(global|clinic|device)+`scope_id`로 붙는다. 요청 device의 **실효 정책 = device → clinic(소속 시) → global** 순으로 합성하고 기본은 deny(fail-closed)다(규칙 §7.5.3). v1.0에서는 clinic·global 행만 쓰며(모든 device가 clinic-bound), device 행은 스키마상 수용하되 clinic-less/예외가 등장할 때 사용한다. `provider`는 아웃바운드 연동 대상이다(=provider.provider·FK). **본 표는 "무엇을 허용하는가"(endpoint·scope)만** 담는다 — egress는 `provider.egress_allowlist`(SSOT, #31)가 담당하므로 여기 중복하지 않는다. 스코프마다 정책이 달라 관리 API+UI가 필요하다(③-C, Appendix B #32). jsonb 형식=design/db-jsonb-fields.md#policy.'
   Indexes {
-    (scope_type, scope_id, connector)  // 스코프·connector 조합 조회
+    (scope_type, scope_id, provider)  // 스코프·provider 조합 조회
   }
 }
 
-// 외부 connector (FR-INT-01/02)
-Table connector {
-  name             varchar [pk]  // connector 이름 — upstream_registry.target_id와 대응. 예 `axs`
-  endpoint         varchar       // 외부 서비스 endpoint(base URL). 예 `https://api.eu.axs.straumann.com`
-  credential_ref   varchar       // 장수명 OAuth2 client 자격(secret/개인키)의 **KMS 참조** — **access token 아님**, DB 평문 미저장(§6.2). access token은 이 자격으로 발급받아 캐시(`gw:cache:conn-token`)에 두고 만료 전 선제 갱신(§7.1.3). 예 `kms://alias/axs-oauth-client`
-  egress_allowlist jsonb         // **egress SSOT(#31)** — 외부(C) 호출 허용 대상(아웃바운드 GW→외부). 예 `{"hosts":["api.eu.axs.straumann.com"],"cidrs":[],"ports":[443],"requireStaticEgressIp":true}`. **hosts·cidrs 둘 다 비면 egress 전면 거부(fail-closed·FR-INT-03)**. 형식=design/db-jsonb-fields.md#connector
-  created_at       bigint        // 생성 시각(Unix ms). 예 `1720137600000`
-  updated_at       bigint        // 수정 시각(Unix ms). 예 `1720224000000`
-
-  Note: '**외부(C) connector의 자격·엔드포인트**다(FR-INT-01/02). 제3자 서비스(예 axs)를 호출할 때 필요한 OAuth2 자격(원문은 저장하지 않고 KMS 참조), base URL, egress 허용 목록을 담는다. 라우팅(target 서브도메인→host)은 `upstream_registry`가, 정책 판정은 `policy`가 맡고, **본 표는 "그 external을 실제로 호출할 때 쓰는 자격·주소"** 만 담당한다. `name`은 `upstream_registry.target_id`·`policy.connector`와 대응한다(예 axs).'
-}
+// (병합·2026-07-06) connector 테이블은 provider로 통합 — 아웃바운드 자격(credential_ref·egress_allowlist)은
+//   provider의 ② 그룹 컬럼으로 이관. endpoint는 provider.host와 중복이라 제거(base=https://{host}). 아래 Table provider 참조.
 
 // 감사 로그 (FR-AUD-01)
 // 감사 결과(§7.9.3)
@@ -240,15 +232,15 @@ Table config {
 
 // 외부 이벤트 (FR-WH-*)
 Table webhook_event {
-  event_id        varchar [pk]                                        // 이벤트 식별자 = 멱등 키(중복 수신 dedup, §7.6.4). webhook_provider.event_id_path로 payload에서 추출(예 AXS messageId) — provider별 필드명 상이. 예 `c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545`
-  provider        varchar [not null, ref: > webhook_provider.provider] // 발신 provider(FK). 예 `axs`
-  event_type      varchar                                             // provider 이벤트 유형 — webhook_provider.event_type_path로 payload에서 **verbatim 추출**. **provider-owned free string·GW enum 아님**, 의미=(provider,event_type), 미추출 시 null. PHI-free. 용도=Console 필터·관측. **목적지 라우팅은 org_mapping(별개)**. 예 `patient.created`
+  event_id        varchar [pk]                                        // 이벤트 식별자 = 멱등 키(중복 수신 dedup, §7.6.4). provider.event_id_path로 payload에서 추출(예 AXS messageId) — provider별 필드명 상이. 예 `c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545`
+  provider        varchar [not null, ref: > provider.provider] // 발신 provider(FK → provider 통합 테이블). 예 `axs`
+  event_type      varchar                                             // provider 이벤트 유형 — provider.event_type_path로 payload에서 **verbatim 추출**. **provider-owned free string·GW enum 아님**, 의미=(provider,event_type), 미추출 시 null. PHI-free. 용도=Console 필터·관측. **목적지 라우팅은 org_mapping(별개)**. 예 `patient.created`
   external_org_id varchar                                             // provider의 org 식별자 — 분배 대상 역조회 키. 예 `0040694997`(AXS Org-ID)
   clinic_id       varchar [ref: > clinic.clinic_id]    // 해석된 대상 클리닉(FK, org_mapping 조회 결과). 예 `CLINIC-0040694997`
   region          varchar [ref: > region_catalog.region_id]          // 해석된 대상 리전(FK, clinic 파생). 예 `apne2`
   payload_ref     varchar                                            // 본문 보관 참조(claim-check). 본문=리전 로컬 S3(SSE·짧은 TTL, R2)·in-flight는 SQS. **관계형 DB에 본문 미저장**(payload는 opaque·환자 PHI 포함 가능·복제 금지, §6.4·§7.6.3). 외부 스키마 ④. 예 `s3://gw-webhook-payload-apne2/axs/c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545.json`
   state           webhook_state [not null, default: 'received']      // 처리 상태(received|dispatched|dead_letter). 예 `dispatched`
-  dispatch_target varchar                                            // 실제 발행한 **구체적 분배 목적지** — 형식 `{channel_type}:{endpoint}`. v1.0은 clinic에서 도출한 MQTT 토픽(§7.6.6). **clinic_id·region('어디')과 별개로 '어떤 채널·주소로' 보냈나**(감사·디버깅). 발행 전 null. ※ upstream_registry.target_id와 **무관**(이름 충돌 주의). 예 `mqtt_edge:gw/clinic/CLINIC-0040694997/webhook`
+  dispatch_target varchar                                            // 실제 발행한 **구체적 분배 목적지** — 형식 `{channel_type}:{endpoint}`. v1.0은 clinic에서 도출한 MQTT 토픽(§7.6.6). **clinic_id·region('어디')과 별개로 '어떤 채널·주소로' 보냈나**(감사·디버깅). 발행 전 null. ※ provider(아웃바운드 라우팅 대상)와 **무관**(분배 목적지 ≠ 호출 대상). 예 `mqtt_edge:gw/clinic/CLINIC-0040694997/webhook`
   attempts        integer [not null, default: 0]                     // 분배 시도 횟수(N회 실패 → dead_letter·DLQ, §7.6.3). 예 `1`
   last_error      varchar                                            // 마지막 분배 실패 사유(관측·DLQ 진단). 예 `mqtt publish timeout` (성공 시 null)
   received_at     bigint                                             // 수신 시각(Unix ms). 예 `1720137600123`
@@ -268,51 +260,50 @@ Table webhook_event {
 
 // Org-ID ↔ ClinicID 매핑 (webhook/inbound 라우팅 키)
 Table org_mapping {
-  provider        varchar [not null, ref: > webhook_provider.provider] // 외부 provider(FK → webhook_provider) — 인바운드 축 통일(webhook_event.provider와 동일 FK). 예 `axs`
+  provider        varchar [not null, ref: > provider.provider] // 외부 provider(FK → provider 통합 테이블). 예 `axs`
   external_org_id varchar [not null]                                  // provider 식별자. 예 `0040694997`(AXS Organization-ID)
   clinic_id       varchar [not null, ref: > clinic.clinic_id]  // 대응 클리닉(FK). 예 `CLINIC-0040694997`
   mapping_version integer [not null, default: 1]                      // 매핑 버전 — 변경마다 +1(단조). 캐시 무효화·CAS·drift 감지(§7.3.2). 값 이력=audit_log. 예 `2`
   created_at      bigint                                              // 생성 시각(Unix ms). 예 `1720137600000`
   updated_at      bigint                                              // 수정 시각(Unix ms). 예 `1720224000000`
 
-  Note: '**webhook 분배의 1차 라우팅 키**(§4.1.3·§7.6). 외부 provider가 보내는 이벤트에는 그쪽 org 식별자(예 AXS Organization-ID)만 들어 있고 우리 clinic_id는 없다. 이 표는 그 **(provider, external_org_id) → 우리 clinic_id** 를 이어 주어, 수신 이벤트가 어느 클리닉으로 갈지(→ clinic으로 region → 그 클리닉 MQTT 토픽·§7.6.6) 역조회하게 한다. 예컨대 AXS가 `organizationId=0040694997` 이벤트를 보내면 GW는 이 표에서 `clinic_id=CLINIC-0040694997` 을 찾아 분배 대상을 정한다. 레코드는 **외부 연동 연결 시 provider별로 자가 등록**되고(§2.3.5, Straumann 온보딩 Org-ID), 오설정은 Admin이 교정한다(`/admin/v1/org-mappings`). `(provider, external_org_id)` 복합 PK에 `clinic_id` 역인덱스를 두어 양방향 조회가 가능하다(복구·감사). 본 표는 어디까지나 **얇은 식별자 대응표**다 — provider별 인증·OAuth(→`connector`)나 webhook 검증·payload 해석(→`webhook_provider`)은 여기 담지 않으며(§6.4.1 경계), 구조가 크게 다른 provider는 전용 테이블·별도 개발로 다룬다. `provider` 는 `webhook_provider` FK로 인바운드 축을 통일한다(webhook_event.provider와 동일 참조).'
+  Note: '**webhook 분배의 1차 라우팅 키**(§4.1.3·§7.6). 외부 provider가 보내는 이벤트에는 그쪽 org 식별자(예 AXS Organization-ID)만 들어 있고 우리 clinic_id는 없다. 이 표는 그 **(provider, external_org_id) → 우리 clinic_id** 를 이어 주어, 수신 이벤트가 어느 클리닉으로 갈지(→ clinic으로 region → 그 클리닉 MQTT 토픽·§7.6.6) 역조회하게 한다. 예컨대 AXS가 `organizationId=0040694997` 이벤트를 보내면 GW는 이 표에서 `clinic_id=CLINIC-0040694997` 을 찾아 분배 대상을 정한다. 레코드는 **외부 연동 연결 시 provider별로 자가 등록**되고(§2.3.5, Straumann 온보딩 Org-ID), 오설정은 Admin이 교정한다(`/admin/v1/org-mappings`). `(provider, external_org_id)` 복합 PK에 `clinic_id` 역인덱스를 두어 양방향 조회가 가능하다(복구·감사). 본 표는 어디까지나 **얇은 식별자 대응표**다 — provider별 인증·OAuth·webhook 검증·payload 해석은 **`provider` 테이블**이 담고 여기(org_mapping)엔 담지 않으며(§6.4.1 경계), 구조가 크게 다른 provider는 전용 테이블·별도 개발로 다룬다. `provider`는 **`provider` 테이블 FK**다(webhook_event.provider와 동일 참조).'
   Indexes {
     (provider, external_org_id) [pk]  // 복합 PK — (provider, 외부 org id) 유일
     clinic_id                         // 클리닉→외부 id 역조회
   }
 }
 
-// Webhook provider 레지스트리 (유연 수신·발신자 검증·라우팅 키 추출 config) FR-WH-01/02
-Table webhook_provider {
-  provider            varchar [pk]                        // provider 정규 토큰(소문자 ^[a-z0-9_]+$). 예 `axs`. 아웃바운드 connector.name과 같은 party여도 인바운드 축이라 별개(§6.4.1)
-  inbound_host        varchar [unique]                    // **1차 식별 키** — 우리가 provider에 발급한 전용 수신 호스트. 예 `axs.webhook.gw.vatech.com`. Host/SNI로 발신자 식별(우리 통제·source IP 비의존, §7.6.1·§7.6.2)
-  inbound_route       varchar                             // GW가 이 provider 이벤트를 받는 **경로(path)** = provider에 등록한 callback URL의 path 부분. 예 AXS엔 callback `https://axs.webhook.gw.vatech.com/v1/webhooks/axs` 등록 → inbound_route=`/v1/webhooks/axs`. Host/SNI로 이미 provider를 식별하므로 경로는 **확정 계약이 아니라 등록 기반·유연**(provider 규약 수용, §4.1.3)
-  sig_scheme          varchar                             // 발신자 **서명 검증 스킴**(인증/신뢰 근거, §7.6.2) — 알고리즘+서명 헤더+인코딩+서명대상을 규정하는 식별자. 예 AXS `hmac-sha512`(HMAC-SHA512·서명 헤더 `Signature`·hex 인코딩·서명대상=minified JSON body) / 타 provider 예 `hmac-sha256`(헤더 `X-Hub-Signature-256`·base64). 스킴별 세부 파라미터는 앱 레벨 스킴 정의(LLD)
-  secret_ref          varchar                             // HMAC 검증 **공유 시크릿의 KMS 참조**(원문 DB 미저장, §6.2). 예 `kms://alias/axs-webhook-hmac`. AXS 구독 등록 시 우리가 제공한 shared secret — Host로 provider 선택 후 이 시크릿으로 sig_scheme 서명 검증
-  source_ip_allowlist jsonb                               // 허용 소스 **CIDR 목록**(문자열 배열). 예 `["203.0.113.0/24"]`. **옵션·방어심층**(식별 용도 아님·Host가 대체, 비면 IP 체크 생략). 형식=design/db-jsonb-fields.md#webhook_provider. UI=③-C
-  event_id_path       varchar                             // payload에서 event_id(멱등 키) 추출 경로(JSONPath). 예 AXS `$.messageId`. provider마다 필드명 상이(messageId/eventId/id)라 config로 지정(§7.6.1·§7.6.4)
-  org_id_path         varchar                             // payload에서 external_org_id(분배 대상 역조회 키) 추출 경로(JSONPath). 예 AXS `$.organizationId`
-  event_type_path     varchar                             // payload에서 event_type 추출 경로(JSONPath). 예 AXS `$.eventType`. provider-owned 어휘를 verbatim 추출 — GW enum 아님. 미설정 시 event_type=null
-  enabled             boolean [not null, default: true]   // 활성 여부(수신 on/off). 예 `true`
-  created_at          bigint                              // 생성 시각(Unix ms)
-  updated_at          bigint                              // 수정 시각(Unix ms)
-
-  Note: '**범용 유연 수신 레지스트리**(FR-WH-01/02) — **AXS를 1차 provider로 참고**했으나 AXS 전용 하드코딩이 아니라 **어떤 provider든 1행 등록으로 수용**(신규 연동=코드변경 0). 파이프라인: ① **식별** = inbound_host(Host/SNI)로 provider·시크릿 선택 → ② **인증** = sig_scheme+secret_ref로 서명 검증(+timestamp; 호스트명은 식별이지 인증 아님·source_ip는 옵션 방어심층) → ③ **추출** = event_id_path·org_id_path·event_type_path로 필요한 식별자만 뽑음(payload 본문은 비해석·§4.1.3·§7.6.2). 경로/형식은 provider 규약 수용. 와일드카드 DNS 미사용 — provider별 명시 호스트(연단위 추가). AXS 예시 근거: references/Straumann연동/AXS_docs/webhooks.md'
-}
-
-// target 서브도메인 → upstream host 레지스트리 (target-routed proxy, ADR-11 · 7/2 R1 edge=서브도메인)
-Table upstream_registry {
-  target_id           varchar [pk]                         // target 서브도메인 라벨 = 논리 ID — GW edge가 {target_id}.gw.vatech.com Host로 라우팅. CleverOne→EzServer Vatech-Target 헤더값과 동일. 예 `axs`(→ axs.gw.vatech.com) / `cleverspace`
-  host                varchar [not null]                   // 내부 매핑 host(클라이언트엔 비노출). 예 `api.eu.axs.straumann.com`
-  profile             upstream_profile [not null]          // trust profile(internal=B / external=C). 예 `external`(axs) / `internal`(cleverspace)
-  connect_timeout_ms  bigint                               // GW→provider 연결(TCP+TLS) 대기 — GW 자기 아웃바운드 timeout(D1, §7.5.4·R4). 예 `3000`(3s)
-  response_timeout_ms bigint                               // GW→provider 응답 대기, 초과 시 504 — GW 자기 timeout(D2, 외부 AXS는 SLA 개별값). 예 `10000`(10s)
-  total_deadline_ms   bigint                               // 프록시 호출 총 예산 — GW total_deadline < 클라이언트 타임아웃 불변식(D3, ≤80%). 예 `12000`
-  enabled             boolean [not null, default: true]    // 활성 여부(라우팅 on/off). 예 `true`
+// 연동 대상(provider) 통합 레지스트리 — 라우팅 + 아웃바운드 자격 + 인바운드 webhook 수신을 한 행에 (ADR-11·FR-INT-*·FR-WH-01/02)
+// 병합(2026-07-06): 구 upstream_registry(라우팅) + connector(자격·egress) + webhook_provider(수신)를 provider 1표로. 한 연동 party=1행.
+Table provider {
+  provider            varchar [pk]                         // 연동 대상 정규 토큰(소문자 `^[a-z0-9_]+$`) = **서브도메인 라벨 = PK**. 예 `axs`·`cleverspace`·`oneid`. org_mapping·webhook_event·policy가 이 값을 FK로 참조
+  // ── ① 라우팅 (모든 대상) — GW edge `{provider}.gw.vatech.com` → host ──
+  host                varchar                              // 내부 매핑 host(클라이언트 비노출)·아웃바운드 base=`https://{host}`. 예 `api.eu.axs.straumann.com` (라우팅 대상이면 필수·v1.0 전부)
+  profile             upstream_profile [not null]          // trust profile(internal=B / external=C). 예 `external`(axs) / `internal`(cleverspace·oneid)
+  connect_timeout_ms  bigint                               // GW→provider 연결(TCP+TLS) 대기 — GW 자기 아웃바운드 timeout(D1·§7.5.4·R4). 예 `3000`(3s)
+  response_timeout_ms bigint                               // GW→provider 응답 대기, 초과 시 504 — GW 자기 timeout(D2·외부 AXS는 SLA 개별값). 예 `10000`
+  total_deadline_ms   bigint                               // 프록시 호출 총 예산 — GW total_deadline < 클라이언트 타임아웃(D3, ≤80%). 예 `12000`
+  enabled             boolean [not null, default: true]    // 활성 여부(라우팅·수신 on/off). 예 `true`
+  // ── ② 아웃바운드 자격 (외부 C만·nullable) ──
+  credential_ref      varchar                              // 장수명 OAuth2 client 자격의 **KMS 참조**(access token 아님·DB 평문 미저장, §6.2). access token은 이 자격으로 발급해 `gw:cache:conn-token` 캐시·만료 전 선제 갱신(§7.1.3). 내부(B)면 null. 예 `kms://alias/axs-oauth-client`
+  egress_allowlist    jsonb                                // **egress SSOT(#31)** {hosts,cidrs,ports,requireStaticEgressIp}. **hosts·cidrs 둘 다 비면 egress 전면 거부(fail-closed·FR-INT-03)**. 외부(C)만·내부는 null. 형식=design/db-jsonb-fields.md#provider
+  // ── ③ 인바운드 webhook (webhook 발신 대상만·nullable) ──
+  inbound_host        varchar [unique]                     // provider 전용 **수신 호스트**(Host/SNI 발신자 식별, §7.6.1·§7.6.2). 예 `axs.webhook.gw.vatech.com`. webhook 안 보내는 대상이면 null(nullable unique)
+  inbound_route       varchar                              // 등록된 수신 경로(path·유연, provider 규약 수용·§4.1.3). 예 `/v1/webhooks/axs`
+  sig_scheme          varchar                              // 발신자 **서명 검증 스킴**(인증, §7.6.2) — 알고리즘+서명헤더+인코딩+서명대상. 예 AXS `hmac-sha512`(헤더 `Signature`·hex·서명대상 minified JSON body). 세부 파라미터는 앱 레벨 스킴 정의(LLD)
+  secret_ref          varchar                              // HMAC 검증 시크릿의 **KMS 참조**(원문 미저장, §6.2). 예 `kms://alias/axs-webhook-hmac`
+  source_ip_allowlist jsonb                                // 허용 소스 CIDR(문자열 배열·**옵션 방어심층**·Host가 1차 식별·비면 IP 체크 생략). 예 `["203.0.113.0/24"]`. 형식=design/db-jsonb-fields.md#provider
+  event_id_path       varchar                              // payload에서 event_id(멱등 키) 추출 경로(JSONPath). 예 AXS `$.messageId`(provider마다 필드명 상이·§7.6.4)
+  org_id_path         varchar                              // payload에서 external_org_id 추출 경로(JSONPath). 예 AXS `$.organizationId`
+  event_type_path     varchar                              // payload에서 event_type 추출 경로(JSONPath). 예 AXS `$.eventType`(provider 어휘 verbatim·GW enum 아님·미설정 시 null)
   created_at          bigint                               // 생성 시각(Unix ms). 예 `1720137600000`
   updated_at          bigint                               // 수정 시각(Unix ms). 예 `1720224000000`
 
-  Note: '**프록시 라우팅 레지스트리**(target-routed proxy, ADR-11·§4.1.2). GW는 요청의 호스트 `{target_id}.gw.vatech.com` 로 프록시 대상을 정하는데, 이 표가 그 **서브도메인 라벨(target_id) → 실제 host·신뢰프로파일·연결 timeout** 매핑을 보관한다. 예컨대 `axs.gw.vatech.com` 요청이 오면 GW는 `target_id=axs` 행을 찾아 `host`로 요청을 그대로(verbatim) 프록시하고, 그 행의 `profile`(internal/external)과 timeout을 적용한다. **한 행 = 프록시 대상 하나**다. **v1.0에도 행이 여러 개**다 — `axs`(외부 C·Straumann) · `cleverspace`(내부 B·presigned 백엔드) · `oneid`(내부 B·인증 연계); axs 하나가 아니다. 신규 연동은 **행 1개 추가**로 끝난다(`*.gw.vatech.com` 와일드카드 DNS·cert라 인프라·코드 추가 0). 역할 분담: 외부(C)의 OAuth 자격·egress allowlist는 `connector`가, 정책 판정은 `policy`가 맡고, **본 표는 "어느 host로 보내고 얼마나 기다리나"(라우팅+연결 timeout)만** 담당한다. 연결 timeout(connect/response/total_deadline)은 GW가 provider에 직접 연결하는 HTTP 클라이언트라 **GW 책임**(D1~D3·§7.5.4)이고, **재시도·서킷 브레이커는 service mesh(istio) egress**가 담당한다(GW 미소유·컬럼 없음). GW 앱레벨은 오류 정규화·멱등·취소만 맡는다.'
+  Note: '**연동 대상(provider) 통합 레지스트리** — 한 연동 party(외부 provider·내부 backend)의 **라우팅 + 아웃바운드 자격 + 인바운드 webhook 수신 config를 한 행**에 담는다(구 `upstream_registry`·`connector`·`webhook_provider` 3표 병합, 2026-07-06). PK=대상 토큰(=서브도메인 라벨)이라 **provider 하나 등록=1행**(중복 토큰·미연결 해소). 세 그룹: ① **라우팅**(모든 대상)=GW edge `{provider}.gw.vatech.com`→host·profile·연결 timeout(D1~D3=GW 책임·재시도/서킷은 istio egress·§7.5.4) · ② **아웃바운드 자격**(외부 C만·nullable)=OAuth cred(KMS)·egress SSOT(#31·fail-closed) · ③ **인바운드 webhook**(발신 대상만·nullable)=수신 host/route·sig_scheme+secret 검증·`*_path`로 event_id/org_id/event_type 추출(payload 비해석·§7.6·§4.1.3). **AXS=①②③ 다 채움 / cleverspace·oneid(내부 B)=①만·②③ null / call-only 외부=①②만**. org_mapping·webhook_event·policy가 `provider`를 FK 참조. 신규 연동=행 1개(`*.gw.vatech.com` 와일드카드라 DNS·cert·코드 0). jsonb 형식=design/db-jsonb-fields.md#provider. AXS 근거: references/Straumann연동/AXS_docs/webhooks.md'
+  Indexes {
+    profile   // 내부(B)/외부(C)별 조회
+  }
 }
 
 // (제거·2026-07-06) delivery_channel 테이블 삭제 — v1.0은 전 클리닉이 EzServer(edge)라 분배 방식이
