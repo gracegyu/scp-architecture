@@ -87,6 +87,32 @@ GW는 upstream으로 verbatim 프록시하므로(§4.1.2), **정책은 (method +
 
 ---
 
+## `audit_log` (문자열 규약 — jsonb 아님, 필드 형식 SSOT)
+
+`action`·`actor`는 자유 문자열이지만 **일관 조회·감사 리포트를 위해 명명 규약을 강제**한다(앱 레벨 검증, DB enum 아님 — 확장성). `result`는 값이 한정적이라 **DB enum**(`audit_result`, DBML)이다.
+
+### `action` — `resource.verb` (소문자·점 구분)
+```
+region.change   device.approve   credential.rotate   policy.update
+```
+- **형식**: `^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$` (소문자 `resource`.`verb`, 최소 1개 점).
+- **표준 목록(초기 — 앱 레벨 상수, 확장 가능)**: `region.change` · `device.approve` · `device.suspend` · `device.revoke` · `enroll.rotate` · `credential.issue` · `credential.rotate` · `policy.create` · `policy.update` · `policy.delete` · `orgmapping.upsert` · `upstream.register` · `connector.update` · `killswitch.toggle` · `config.publish`.
+- **DB enum이 아니다** — 감사 동작은 기능 추가로 계속 늘어 enum이면 매번 마이그레이션이 필요하다. 대신 **앱 레벨 상수 집합**으로 관리하고 위 정규식으로 검증하며, 신규 action은 상수만 추가한다. **자유 오타 문자열(예 `리전변경`)은 금지**.
+
+### `actor` — `type:id`
+```
+user:oneid-8f3a…      system:token-refresh      device:0192abcd-…
+```
+- **형식**: `^(user|system|device):.+$` — 모호한 "운영자/시스템"을 접두사로 구분한다.
+  - `user:{oneidSub}` — 사람(운영자/Admin/C-S). OneID subject.
+  - `system:{component}` — 자동 주체(예 `system:token-refresh` · `system:webhook-dispatcher` · `system:enroll`).
+  - `device:{deviceId}` — 디바이스 개시 동작.
+
+### `result` — enum (`audit_result`, DBML)
+- `success`(수행됨) · `denied`(권한·정책 거부) · `failure`(시도했으나 실패). 값 확장은 DBML enum 수정으로만.
+
+---
+
 ## 변경 이력
 | 일시 | 내용 |
 | --- | --- |
@@ -94,3 +120,4 @@ GW는 upstream으로 verbatim 프록시하므로(§4.1.2), **정책은 (method +
 | 2026-07-02 (R4) | `upstream_registry.retry_policy` 형식 섹션 제거 — **재시도·서킷=service mesh(istio) 담당**(GW 미소유). **단 GW→provider 연결 timeout(connect/response/total_deadline)은 GW 책임이라 스칼라 컬럼 유지**(D1~D3, §7.5.4). jsonb 대상은 egress_allowlist만 |
 | 2026-07-06 | `policy` 키를 `(tenant=clinic)` → **`(scope_type{global\|clinic\|device}, scope_id, connector)`** 로 일반화 — 주체=device·clinic=선택적 그룹(§1.2·§6.4.1), 실효정책 device→clinic→global. jsonb 필드(allowed_endpoints·scopes) 형식은 불변 |
 | 2026-07-06 (#31) | **egress SSOT 일원화** — `connector.egress_allowlist` 단일 SSOT(+requireStaticEgressIp 이관). `policy.egress`·`upstream_registry.egress_allowlist` 섹션·컬럼 제거. egress=외부(C) 대상 속성(per-tenant authz 아님), OPA/네트워크가 connector 참조 |
+| 2026-07-06 | **`audit_log` 문자열 규약 신설** — `action`=`resource.verb` 명명 규약(free string·정규식·표준 목록·앱 레벨 상수, DB enum 아님) · `actor`=`type:id`(user/system/device) · `result`=DB enum `audit_result`(success/denied/failure). §7.9.3에서 참조 |
