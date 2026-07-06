@@ -58,7 +58,7 @@
 | AuditLog | ts, actor, action, result | append-only |
 | FleetState | device_id, last_heartbeat, success_rate | 관측 |
 | CompatMatrix | api/feature, min_client_version, error_code, fallback | 호환성 단일 소스 |
-| WebhookEvent | event_id, provider, event_type, external_org_id, clinic_id, region, payload_ref, state, target | 멱등·분배 상태·해석된 대상(GW payload 비해석). **PHI-free 메타데이터**(Console 검색/필터). **본문은 관계형 DB 미저장** — 환자 PHI 포함 가능해 리전 로컬 S3(SSE·짧은 TTL)+`payload_ref` claim-check(in-flight=SQS, R2·§7.6.3) |
+| WebhookEvent | event_id, provider, event_type, external_org_id, clinic_id, region, payload_ref, state, dispatch_target | 멱등·분배 상태·해석된 대상(GW payload 비해석). clinic_id·region='어디', **dispatch_target**='어떤 채널·주소로 발행'(delivery_channel 스냅샷 `{channel_type}:{endpoint}` — upstream target_id와 무관). **PHI-free 메타데이터**(Console 검색/필터). **본문은 관계형 DB 미저장** — 환자 PHI 포함 가능해 리전 로컬 S3(SSE·짧은 TTL)+`payload_ref` claim-check(in-flight=SQS, R2·§7.6.3) |
 | Clinic | clinic_id, region, mapping_version | device의 **선택적 그룹**(clinic-종속 정보 홈: region·policy 기본·provider-org) · 라우팅 키 통합(device↔clinic) |
 | **RegionCatalog** | region_id, display_name, endpoint, status(active/draining/planned), is_default | **GW 운영 리전 목록**(region list API SSOT, §7.3.6) |
 | **OrgMapping** | provider, external_org_id, clinic_id, mapping_version | **webhook 라우팅 키** — (provider·Org-ID)→clinic→region |
