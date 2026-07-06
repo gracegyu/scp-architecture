@@ -38,6 +38,8 @@ tags:
   description: 외부 이벤트 수신·분배 (SRS §7.6)
 - name: compatibility
   description: API 버전 호환성 공시 (SRS §7.7)
+- name: fleet
+  description: 디바이스 heartbeat·상태 보고 (device→GW 능동 보고, SRS §7.8.1)
 - name: admin
   description: 관리·감사 API (SRS §7.8·§7.9, ③-C Console이 호출)
 
@@ -250,6 +252,30 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  # --- Fleet heartbeat (§7.8.1) — device가 GW로 능동 보고(GW는 edge 폴링 불가) ---
+  /v1/fleet/heartbeat:
+    post:
+      tags: [ fleet ]
+      summary: 디바이스 heartbeat 보고 (FR-FLEET-01)
+      description: >-
+        device(EzServer)가 주기적으로 호출해 생존·health를 GW에 보고한다. GW는 병원 방화벽 뒤의 edge를 능동 폴링할 수 없으므로 liveness 신호는 device→GW push가 유일하다(§7.8.1). device_id는 인증 토큰 subject에서 취득하므로 본문에 넣지 않는다. GW는 수신 시각을 `fleet_state.last_heartbeat`에 기록하고, 응답으로 권장 다음 주기(nextIntervalSeconds)를 돌려준다(중앙 config §7.8.4로 조정 가능). 온라인/오프라인은 GW가 last_heartbeat의 임계값(권장 주기의 배수) 초과 여부로 파생 판정한다.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FleetHeartbeat'
+      responses:
+        '200':
+          description: 수신됨(다음 heartbeat 주기 지시 포함)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FleetHeartbeatAck'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # --- 클리닉/클라이언트 온보딩·등록 (§2.3.1) — 매핑 자가 생성, Admin은 교정만 ---
@@ -803,6 +829,34 @@ components:
                 hostedBy: { type: string, description: '항상 provider — PHI 바이트는 provider storage에 presigned 직결(GW 비경유)' }
                 kind: { type: string, description: 'AWS 리전=S3, AWS 미지원국=provider MinIO 등(provider가 결정·리전 주권 충족)' }
                 regionBound: { type: boolean, description: 'provider storage가 dataResidencyRegion 안에 있어야 함(항상 true)' }
+
+    # Fleet heartbeat (§7.8.1)
+    FleetHeartbeat:
+      type: object
+      description: >-
+        device가 GW로 보고하는 heartbeat 본문. 모든 필드 선택 — 본문이 비어도 수신 시각만으로 liveness가 성립한다. device_id는 인증 토큰 subject에서 취득(본문 불요).
+      properties:
+        appVersion:
+          type: string
+          description: 'device(EzServer) 소프트웨어 버전 — 호환성·롤아웃 가시성(§7.7·§7.8.4)'
+        metrics:
+          type: object
+          description: 'health 관측 지표(선택). fleet_state.success_rate 등 대시보드·이상탐지 입력(§7.8.1·§7.8.3)'
+          properties:
+            diskFreeBytes: { type: integer, format: int64, description: '가용 디스크(바이트)' }
+            queueDepth: { type: integer, description: '미전송 큐 적체(업로드·이벤트)' }
+            successRate: { type: number, description: '관측 성공률 0~1(직전 윈도우)' }
+    FleetHeartbeatAck:
+      type: object
+      required: [ receivedAt, nextIntervalSeconds ]
+      properties:
+        receivedAt:
+          type: integer
+          format: int64
+          description: 'GW 수신 시각(Unix ms) — fleet_state.last_heartbeat에 기록됨'
+        nextIntervalSeconds:
+          type: integer
+          description: '다음 heartbeat까지 권장 간격(초). 중앙 config(§7.8.4)로 조정 — device는 이 값에 맞춰 다음 호출 주기를 갱신한다'
 
     # Webhook
     WebhookEnvelope:

@@ -19,6 +19,7 @@
 // 2026-07-06: audit_log 필드 규약 — result를 **enum(audit_result: success|denied|failure)** 로, action/actor는 명명 규약(action=`resource.verb` free string·앱 상수, actor=`type:id` user/system/device) + not null·action 인덱스. 형식=db-jsonb#audit_log·§7.9.3.
 // 2026-07-06: connector.credential_ref 의미 명확화 — access token이 아니라 장수명 client 자격의 KMS 참조(DB 평문 미저장). access token은 gw:cache:conn-token(redis-keyspace)에 캐시·만료 전 선제 갱신(§7.1.3). 스키마 불변(주석만).
 // 2026-07-06 (#31): egress SSOT 일원화 — **connector.egress_allowlist = 단일 SSOT**(+requireStaticEgressIp). **policy.egress·upstream_registry.egress_allowlist 제거**(3중복 해소). egress는 외부(C) 대상 속성이지 per-tenant authz 아님 — OPA/네트워크 모두 connector 참조.
+// 2026-07-06: fleet_state.last_heartbeat 의미 명확화 — device→GW push(POST /v1/fleet/heartbeat)로만 갱신(GW는 edge 폴링 불가). 온라인/오프라인=임계값 초과 파생 판정(§7.8.1). 주석만(스키마 불변).
 // 2026-07-01: 디바이스 인증=비대칭 private_key_jwt(개인키 서명→device.fingerprint 공개키 검증), 공유 secret 폐지(ADR-13·§7.1.1).
 // 2026-07-01: credential 테이블 삭제 → device로 통합(client_id를 device.client_id nullable로 이관, secret_ref 폐기, hw_key_bound는 gw/1.1 attestation으로 이관). 13 테이블.
 // 2026-07-01: token 테이블 삭제 — 무상태 JWT(서명 검증)·디바이스 단위 폐기라 발급 토큰 저장 불필요, 이력은 audit_log. 12 테이블.
@@ -195,7 +196,7 @@ Table audit_log {
 // fleet 상태 (FR-FLEET-01/03)
 Table fleet_state {
   device_id      varchar [pk, ref: - device.device_id]  // PK·FK → device(디바이스당 1개)
-  last_heartbeat bigint                                 // 마지막 heartbeat 수신 시각(Unix ms)
+  last_heartbeat bigint                                 // device가 주기 보고한 마지막 heartbeat 수신 시각(Unix ms). GW는 edge를 폴링 못 함 — device→GW push(POST /v1/fleet/heartbeat)가 갱신(§7.8.1). 온라인/오프라인=임계값 초과 파생 판정
   success_rate   decimal                                // 성공률(관측 지표)
 
   Note: '**fleet(디바이스 함대) 관측 상태**(FR-FLEET-01/03). device와 1:1(device_id PK 겸 FK). 디바이스별 마지막 heartbeat·성공률을 캐시해 온라인/오프라인·건강도 판단(콘솔 대시보드·이상탐지 입력). 원천 지표는 관측 파이프라인(§6.3.2), 본 표는 최신 상태 스냅샷'
