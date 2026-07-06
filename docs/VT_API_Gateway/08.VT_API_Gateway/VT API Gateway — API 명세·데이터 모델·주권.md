@@ -3,7 +3,7 @@
 | 항목        | 내용                                         |
 | --- | --- |
 | 문서 ID | ESIP-GW-API |
-| 문서 버전 | v0.2 (Roadmap 흡수) |
+| 문서 버전 | v0.4 |
 | 적용 제품 버전 | gw/1.0.0.0 |
 | 분류 | 통제 문서 (Controlled · IEC 62304 / ISO 13485) |
 | 상태 | Draft |
@@ -15,6 +15,7 @@
 | v0.1 | 2026-06-08 | Scott | API 표면·데이터 모델·주권 매핑 초안 |
 | v0.2 | 2026-06-15 | Scott | Roadmap 흡수 — well-known·Webhook·OneID 엔드포인트, 호환성·이벤트·클리닉매핑 엔터티 추가 |
 | v0.3 | 2026-07-06 | (SRS 동기화) | 데이터 모델 표를 device-중심 정체성·policy scope·egress SSOT로 정합 — Device=주체(clinic_id nullable)·Clinic=선택적 그룹, **Policy `tenant`→`scope_type/scope_id`·egress 제거**(§7.5.3), **Connector=egress SSOT(#31)**, UpstreamRegistry=target 서브도메인+연결 timeout(egress·재시도·서킷 제외, R1/R4). 정본=SRS §1.2·§6.4.1·§7.5.3·DBML |
+| v0.4 | 2026-07-06 | (SRS 동기화) | WebhookEvent 데이터 모델 정합(R2 추천안) — `event_type` 추가·**본문은 관계형 DB 미저장**(환자 PHI 포함 가능 → 리전 로컬 S3·SSE·짧은 TTL + `payload_ref` claim-check, in-flight=SQS). WebhookEvent=PHI-free 메타데이터(Console 검색/필터). 정본=SRS §7.6.3·§6.4·DBML |
 
 출처: [PRD](<VT API Gateway — PRD (v2).md>) · [ARD](<VT API Gateway — ARD (아키텍처).md>) · [요구사항 명세](<VT API Gateway — 요구사항 명세 (Requirements).md>). 상세 OpenAPI는 LLD에서 확정.
 
@@ -57,11 +58,11 @@
 | AuditLog | ts, actor, action, result | append-only |
 | FleetState | device_id, last_heartbeat, success_rate | 관측 |
 | CompatMatrix | api/feature, min_client_version, error_code, fallback | 호환성 단일 소스 |
-| WebhookEvent | event_id, provider, external_org_id, clinic_id, region, payload_ref, state, target | 멱등·분배 상태·해석된 대상(GW payload 비해석) |
+| WebhookEvent | event_id, provider, event_type, external_org_id, clinic_id, region, payload_ref, state, target | 멱등·분배 상태·해석된 대상(GW payload 비해석). **PHI-free 메타데이터**(Console 검색/필터). **본문은 관계형 DB 미저장** — 환자 PHI 포함 가능해 리전 로컬 S3(SSE·짧은 TTL)+`payload_ref` claim-check(in-flight=SQS, R2·§7.6.3) |
 | Clinic | clinic_id, region, mapping_version | device의 **선택적 그룹**(clinic-종속 정보 홈: region·policy 기본·provider-org) · 라우팅 키 통합(device↔clinic) |
 | **RegionCatalog** | region_id, display_name, endpoint, status(active/draining/planned), is_default | **GW 운영 리전 목록**(region list API SSOT, §7.3.6) |
 | **OrgMapping** | provider, external_org_id, clinic_id, mapping_version | **webhook 라우팅 키** — (provider·Org-ID)→clinic→region |
-| **WebhookProvider** | provider, inbound_route, sig_scheme, secret_ref, source_ip_allowlist, org_id_path | **유연 수신 config** — 발신자 검증·라우팅 키 추출(GW 비해석) |
+| **WebhookProvider** | provider, inbound_route, sig_scheme, secret_ref, source_ip_allowlist, org_id_path, event_type_path | **유연 수신 config** — 발신자 검증·식별자 추출(org_id·event_type = provider 어휘 verbatim, GW 비해석·enum 아님) |
 | **UpstreamRegistry** | target_id(=target 서브도메인 라벨), host, profile(internal/external), connect/response/total_deadline_ms, enabled | **target 서브도메인 proxy 라우팅**(ADR-11·7/2 R1) · GW 연결 timeout(D1~D3) · egress=Connector, 재시도·서킷=istio |
 | **DeliveryChannel** | clinic_id, channel_type(mqtt_edge/http_cloud), endpoint | webhook 분배 채널(Edge MQTT/Cloud HTTP) |
 

@@ -332,7 +332,7 @@ flowchart TD
 - **멀티 리전 = 데이터 부류를 나눈다.**
   - **(전역 일관) 라우팅·식별 데이터** — device/clinic↔region 매핑·레지스트리·Org-ID↔ClinicID·정책(OPA)·compat matrix·JWKS. **모든 리전이 같은 답을 내야** 한다(예: B 리전에 떨어진 Webhook이 "클리닉 X는 A 리전 소속"임을 알아야 분배 가능). 따라서 **전역 일관**으로 둔다 — soft-state 캐시 + 변경 시 strong-consistency 경로·`mapping_version`(ADR-02·§7.3.1·§7.3.2).
   - **(리전 로컬) 운영 데이터** — audit log(발생 리전)·in-flight webhook/queue. **리전마다 다르며** 합쳐서 전체다.
-  - **PHI는 어느 store에도 미저장**(§6.4) — 데이터 주권은 "PHI **바이트**를 매핑된 리전 storage로 라우팅"의 문제이지 GW DB 내용 분리가 아니다(§7.3.3). 전역 데이터는 PHI 미포함 control-plane 메타라 **리전 간 복제 가능**.
+  - **PHI 영상 본문은 어느 store에도 미저장**(§6.4) — 데이터 주권은 "PHI **바이트**를 매핑된 리전 storage로 라우팅"의 문제이지 GW DB 내용 분리가 아니다(§7.3.3). 전역 데이터는 PHI 미포함 control-plane 메타라 **리전 간 복제 가능**. **예외 — webhook payload**: AXS 등 인바운드 이벤트 본문은 환자정보(PHI)를 포함할 수 있어, GW가 store-and-forward로 **전이(transient) 경유**한다. 이 본문은 **리전 로컬(SQS in-flight·짧은 TTL S3)에만·복제 없이** 최소 보관하고 전역 PG에 넣지 않는다(§7.6.3·R2).
 - **저장소 역할(PostgreSQL / Redis).** **PostgreSQL = 원본(SSOT).** 전역 일관 데이터는 **리전 간 복제/sync**(원본 → 리전 복제본), 리전 로컬 데이터(audit·in-flight queue)는 리전 전용. **Redis = 빠른 조회 캐시(리전마다).** Redis끼리 직접 복제하기보다 **각 리전이 로컬 PostgreSQL에서 캐시(cache-aside)** 하고 **TTL·`mapping_version`으로 무효화**해 일관성을 맞춘다(멱등 키·nonce 같은 휘발 상태는 리전 Redis 로컬). 즉 일관성의 근거는 _PostgreSQL 복제 + 캐시 무효화_ 다.
 - **전역데이터 복제 토폴로지 세부**(원본 primary 위치·단일 vs multi-primary·충돌 처리)는 gw/1.2 설계 결정(Appendix B #15)이나, 위 **"PostgreSQL 원본+리전 복제 / Redis 리전 캐시" 모델과 "전역 일관/리전 로컬" 구분 원칙은 버전과 무관하게 고정**이다.
 
@@ -988,7 +988,7 @@ Webhook은 두 면(§4.1.1) 어느 쪽에도 깔끔히 떨어지지 않는 **하
 1. **수신 엔드포인트 = 유연·레지스트리 기반 수신기 (GW가 스키마·경로를 강제하지 않음).** GW가 소유·정의하는 것은 _수신 동작(발신자 검증→멱등→ACK→매핑 기반 분배)_ 이지 **제공자의 요청 스키마·경로가 아니다** — provider의 API 규약은 provider가 정하고, GW는 **어떤 형태의 인바운드 요청이든 수용**한다(해석 주체는 GW가 아니라 소비자).
    - **provider별 전용 호스트로 식별**(`{provider}.webhook.gw.vatech.com`, §4.5.1) — Host/SNI로 발신자를 판정한다(source IP 비의존). 그 아래 **경로/형식은 provider 규약을 수용해 유연**하게 둔다(GW 비강제). 기본 관례 `…/<provider 규약 경로>`는 예시일 뿐 확정 계약이 아니다.
    - **식별 vs 인증 분리**: **식별 = Host/SNI**(레지스트리 `inbound_host` 조회) → 그 provider의 검증 시크릿 선택. **인증(신뢰) = HMAC 서명 + timestamp**(replay 방지). **source IP allowlist는 옵션**(방어심층). **Host는 식별이지 인증이 아니다.** 미등록 Host/검증 실패 → 거부(`401`/`404`).
-   - **payload는 GW가 해석하지 않는다** — 검증·라우팅에 필요한 **최상위 식별자(provider·eventId·org 식별자 등)만** 추출하고 본문은 그대로 통과(opaque). 본문 스키마를 GW가 정의/재정의하지 않는다.
+   - **payload는 GW가 해석하지 않는다** — 검증·라우팅·관측에 필요한 **최상위 식별자(provider·eventId·org 식별자·event_type 등)만** 레지스트리 경로 config로 추출하고 본문은 그대로 통과(opaque). 추출값(특히 event_type)은 **provider 어휘를 verbatim** 저장하며 GW enum 아님(§7.6.1). 본문 스키마를 GW가 정의/재정의하지 않는다.
    - **응답**: 즉시 `2xx` ACK(§7.6.3). 에러 `400`(형식)·`401`(서명·IP·timestamp).
    - OpenAPI에는 _수신·ACK envelope_ 만 최소 표기하고, 경로는 기본 관례로 **예시**하되 provider별로 가변임을 명시한다(payload는 opaque/`$ref`).
 
@@ -1324,7 +1324,7 @@ flowchart TB
 
 > **인증·온보딩은 별도 테이블이 없다** — 자격은 `device`(client_id·client_public_key)에 통합, 발급 access token은 **무상태 JWT**(서명 검증·저장 안 함, §7.1.1·ADR-02), enrollment 부트스트랩·승인 대기는 `device.status`(pending), 이력은 `audit_log`.
 
-- 저장 정보 유형: 디바이스 레지스트리(+인증 자격 client_id·client_public_key), device/clinic↔region 매핑, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event`, 멱등·DLQ)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·upstream target 서브도메인(`upstream_registry`, 라우팅 라벨+GW 연결 timeout · egress=connector SSOT #31 · 재시도·서킷은 istio, R4)·외부(C) 자격·**egress allowlist(SSOT)**(`connector`)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 본문은 미저장**(presigned 직결). **호환성 매트릭스는 DB 미저장** — 소스 파일 → well-known JSON(§7.7.5, `compat_matrix` 테이블 폐기).
+- 저장 정보 유형: 디바이스 레지스트리(+인증 자격 client_id·client_public_key), device/clinic↔region 매핑, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event` — PHI-free 메타데이터; 본문은 리전 로컬 S3·짧은 TTL·참조, R2·§7.6.3)**, **분배 지식 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·webhook provider 수신 config(`webhook_provider`)·upstream target 서브도메인(`upstream_registry`, 라우팅 라벨+GW 연결 timeout · egress=connector SSOT #31 · 재시도·서킷은 istio, R4)·외부(C) 자격·**egress allowlist(SSOT)**(`connector`)·분배 채널(`delivery_channel`)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. **PHI 영상 본문은 미저장**(presigned 직결). **webhook payload는 관계형 DB 미저장** — 환자정보 포함 가능해 리전 로컬 S3에 짧은 TTL로 최소 보관·참조(R2·§7.6.3). **호환성 매트릭스는 DB 미저장** — 소스 파일 → well-known JSON(§7.7.5, `compat_matrix` 테이블 폐기).
 - 캐시: **Valkey**(ElastiCache for Valkey·Redis 호환, §1.4)(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS·webhook dedup). **캐시(PG 재구성 가능) + 휘발 상태(nonce·멱등·dedup·rate-limit·lock)이며 SSOT 아님.** 키 패턴·TTL·재구성 출처는 키스페이스 카탈로그 `design/redis/redis-keyspace.md`(DBML과 나란한 설계 산출물)
 - **데이터 토폴로지(멀티 서버·멀티 리전, §2.1.1)**: 리전 내 pod는 **동일 DB·Redis 공유**(무상태 앱 tier). 멀티 리전에서는 **(전역 일관) 라우팅·식별 데이터**(매핑·레지스트리·Org-ID·정책·compat·JWKS) 와 **(리전 로컬) 운영 데이터**(audit·in-flight queue)로 나눈다. 전역 데이터는 어느 리전에서도 같은 답을 내야 하며(soft-state 캐시 + strong-consistency 경로·`mapping_version`), 운영 데이터는 리전 로컬이다. **저장소 구현(전역 DB 단일 vs 리전별 복제)은 gw/1.2 TBD(Appendix B #15)**, 구분 원칙은 고정.
 - 무결성:
@@ -1659,6 +1659,8 @@ GW는 외부 이벤트의 **단일 수신·분배점**이다(ADR-09). 방화벽 
 
 FR-WH-01 (외부 이벤트 수신면 — **provider별 전용 호스트** `{provider}.webhook.gw.vatech.com`, §4.5.1). **발신자 식별은 Host/SNI**(레지스트리 `inbound_host`)로 하며 상대 source IP에 의존하지 않는다. **경로·형식은 provider 규약을 수용하는 유연·레지스트리 기반**이며 GW가 강제하지 않는다(§4.1.3). GW는 _누가 보냈는지_ 만 검증하고 payload는 소비자가 해석한다.
 
+**추출 필드(config 기반).** GW는 payload를 해석하지 않되, 검증·매핑·관측에 필요한 **최상위 식별자만** `webhook_provider` 레지스트리의 **경로 config**로 뽑는다 — `eventId`(멱등), `external_org_id`(목적지 매핑, `org_id_path`), `event_type`(관측·필터, `event_type_path`). **`event_type`은 provider가 payload에 실은 이벤트 유형 토큰을 그대로(verbatim) 저장**한다(예 AXS `patient.created`). 이는 **provider 소유 어휘라 GW enum으로 고정하지 않으며**(provider마다 다르고 새 유형이 계속 추가됨 — `audit_log.action`·config_key와 동일 원칙), 의미는 **`(provider, event_type)` 조합**으로만 성립한다. `event_type_path` 미설정·미추출이면 `null`이며(관측용 부가 정보이지 처리 필수 아님), **목적지 라우팅은 `event_type`이 아니라 `org_mapping`** 이 결정한다.
+
 - **Input**: 외부(AXS 등) 이벤트 — HTTPS POST
 - **Output**: 즉시 `2xx` ACK(§7.6.3)
 - **에러**: 미지원 provider → 404, 페이로드 형식 오류 → 400
@@ -1674,7 +1676,13 @@ FR-WH-02 (**식별** = Host/SNI → 레지스트리 `inbound_host`로 provider·
 
 FR-WH-04 (검증 직후 `2xx` 즉시 응답, 처리는 **내부 비동기 큐(A)** 로 위임 — 재시도·백오프·DLQ). **내부 큐 기본 = Amazon SQS**(서버리스·IRSA·DLQ 내장, 순서/dedup 필요 시 SQS FIFO; 대안 Amazon MQ, §3.1.2). 이 큐는 **GW 내부 버퍼**이며, 클리닉으로의 마지막 구간 전달은 §7.6.6 엣지(B·MQTT)가 담당한다 — **둘은 별개 레그**다. **큐에서 꺼내(consume) 대상으로 발행하는 주체는 Webhook Dispatcher(§7.6.7)** 다 — 큐는 스스로 push하지 않는다.
 
-- **Side Effect**: 큐(SQS) 적재. 처리 실패 N회 → DLQ 이동·알람
+**payload 보관(R2 추천안).** 이벤트 본문(payload)은 provider가 소유하는 **opaque**(GW 비해석)이며 **환자정보(PHI)를 포함할 수 있다**(예: AXS `patient.created`의 이름·생년월일). 따라서 본문은 **관계형 DB(`webhook_event`)에 저장하지 않고**, 다음과 같이 **리전 로컬로만·복제 없이** 최소 보관한다:
+- **in-flight** = SQS 메시지(리전 로컬·SSE). 분배 완료까지 버퍼.
+- **디버깅·재생·감사용 보관** = **리전 로컬 S3**(SSE 암호화·**짧은 TTL** lifecycle로 자동 만료). `webhook_event.payload_ref`는 이 객체를 가리키는 **claim-check 참조**다.
+- `webhook_event` 자체는 **PHI-free 운영 메타데이터**(provider·event_type·org·clinic·region·state·시각)만 담아 **Console 검색/필터** 대상이 된다. 본문 내부(환자 신원)로는 검색하지 않는다.
+- **Console 상세 조회**: payload 열람은 **역할 기반 접근통제**를 적용하고 화면 표시 시 환자정보를 **redact(마스킹)** 한다(전달 본문은 verbatim 불변; §6.4 최소화). payload TTL·이벤트 메타 보존기간은 Appendix B.
+
+- **Side Effect**: 큐(SQS) 적재 + 본문 리전 S3 보관(짧은 TTL). 처리 실패 N회 → DLQ 이동·알람
 
 ### 7.6.4 멱등 처리 (P1)
 
@@ -1905,6 +1913,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | --- | --- | --- | --- | --- | --- |
 | 32 | **정책(policy) 관리 API + Console UI** — 정책은 `(scope_type, scope_id, connector)` 스코프(**global\|clinic\|device**)마다 다르게 적용되므로(허용 endpoint·scope; egress는 connector SSOT #31) 운영자가 **CRUD·검토**할 **관리 API(§7.9)+GW Console UI(③-C)** 가 필요. 현재 스키마·jsonb 형식만 정의(design/db-jsonb-fields.md), 관리 인터페이스 미정의. **정책 스코프 = device-중심(device→clinic→global) 확정**(2026-07-06, §1.2·§6.4.1 — 구 'clinic 단위·device 배제'를 대체). **스코프 평가 규칙(deny-by-default·clinic=상한) = §7.5.3 확정**; 차원별 병합(교집합/우선)만 OPA(Rego)/LLD 잔여 | §7.5.3·§7.9·§6.4·design/db-jsonb-fields.md | GW(관리 API)+③-C(UI) | 정책 구현 착수 전 | §7.1·③-C Console Sub-SRS |
 | 33 | **비-EzServer·clinic-less device 구체화(미래 확장점)** — v1.0 device=EzServer(clinic-bound)뿐. 모델은 device-중심으로 clinic-less/비-EzServer를 **수용하도록 설계**(§1.2 Will Not Do)하되 구체 정체는 미정의. 실제 등장 시 확정: (a) clinic-less device의 **region 출처**(자체 지정/global) · (b) **provider-org 신원**(`org_mapping`은 현재 clinic-키 → device-스코프 확장) · (c) **인증 부트스트랩**(EzServer=LM 라이선스·Clinic-ID; clinic-less는 다른 신뢰 앵커) · (d) policy `device` 스코프 실사용 | §1.2·§6.4.1·§7.2·§7.3 | GW(설계)+제품 로드맵 | 해당 device 연동 요구 시 | §1.2 Will Not Do·§6.4.1 |
+| 36 | **webhook payload 보존기간(TTL)·이벤트 메타 보존 확정** — 저장 방식은 **R2 추천안 채택**(본문=리전 로컬 S3·SSE·claim-check 참조, 관계형 DB 미저장; in-flight=SQS; Console redact+접근통제 — §7.6.3). **미결(운영·컴플라이언스)**: (a) payload S3 **TTL**(디버깅·재생용, 초안 7~30일) · (b) `webhook_event` 메타데이터 보존기간 · (c) redact 대상 필드 목록. 감사·consent 보존정책(#5)과 함께 확정. **7/9 R2 확정 전 provisional**(회의 결정 시 조정) | §7.6.3·§6.4·design/dbml | GW+품질/법무 | webhook 구현 착수 전 | §7.6·§6.4·③-C·④ |
 | 34 | **fleet heartbeat 정본 주기·오프라인 임계값 확정** — heartbeat API(`POST /v1/fleet/heartbeat`)·메커니즘(device→GW push, GW는 edge 폴링 불가)은 **확정**(§7.8.1·OpenAPI). **미결(운영 튜닝)**: 권장 기본 주기(초안 예: 1h)·오프라인 판정 임계값(주기의 배수)·중앙 config 하달 방식(§7.8.4 연동). 10만대 규모 부하와 오프라인 감지 지연(P1이라 준실시간 아님)·kill-switch(별도 즉시 경로 §7.8.2)를 함께 고려해 확정 | §7.8.1·§7.8.4·design/openapi | GW+인프라(규모) | fleet 구현 착수 전 | §7.8·③-C·③-P-EZ |
 | 30 | **region 카탈로그 관리(생성·상태 전이) API + Console UI** — 현재 `region_catalog`는 **읽기(`GET /v1/regions`)만** 정의(§7.3.6). 리전 개통·`draining`/`planned` 전이·회수 등 **운영자 관리 API(§7.9 관리 API)** 와 **GW Console region 관리 UI(③-C)** 가 필요. v1.0=단일 리전 1행이라 시급도 낮으나 gw/1.2 멀티리전 전 필요 | §7.3.6·§7.9·§6.4 | GW(관리 API)+③-C(UI) | gw/1.2 멀티리전 착수 전 | §7.3·③-C Console Sub-SRS |
 | 1 | v1.0 목표 RPS·동시 세션(fleet 규모) | §5.1·5.2 | 인프라(규모 PL 입력) | 설계 착수 전 | §3.1·§7.1·§7.4 |
@@ -2106,4 +2115,6 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-06 | **fleet heartbeat 메커니즘·API 명문화** — `fleet_state.last_heartbeat`는 device→GW push로만 갱신됨을 확정(GW는 병원 방화벽 뒤 edge를 폴링 불가). §7.8.1에 메커니즘 서술(주기 push·`nextIntervalSeconds`·온라인/오프라인 임계값 파생 판정·device 유휴시에도 전송)·Input/Output·device 구현 가이드 추가, **`POST /v1/fleet/heartbeat` 신설**(OpenAPI: `fleet` 태그·`FleetHeartbeat`/`FleetHeartbeatAck` 스키마), DBML `last_heartbeat` 주석 보강. **③-P-EZ onePager에 EzServer 주기 호출 구현 가이드 반영**. 정본 주기·오프라인 임계값 = Appendix B #34(운영 튜닝). 스키마 컬럼 변경 없음(주석·API 추가) | (작성자 ID 미지정) |
 | 2026-07-06 | **heartbeat `nextIntervalSeconds` 관리 계층 명시 + 중앙 config 갭 등록** — §7.8.1에 2계층(정본=중앙 config §7.8.4 resolve, fallback=`.env` 앱 기본값; resolve 순서·`.env`는 재배포/전역뿐이라 fallback 용도임) 명문화. §7.8.4 중앙 config가 요구사항만 있고 **저장·전달 모델 미설계**임을 **Appendix B #35 신설**로 등록(config 저장 스키마·전달 방식·실패 재시도). 문서만(스키마 변경 없음) | (작성자 ID 미지정) |
 | 2026-07-06 | **§7.8.4 중앙 Config 구현 수준 서술 + 데이터 모델·API 신설** — 요구사항 한 줄이던 §7.8.4를 구현 가능 수준으로 전면 서술: 정의(원격 fleet 설정 관리)·두 종류(`gw.*`/`device.*`)·SSOT=PostgreSQL·스코프(global/region/clinic/device)·실효 해석(키별 가장 구체 우선 override)·전달(pull=`GET /v1/fleet/config`+heartbeat configVersion / push-notify=역방향 MQTT)·적용/오류/drift·관리 API·보안. **DBML `config` 테이블+`config_scope` enum 신설**(13 테이블), **db-jsonb#config**(키 레지스트리·값 형식) 신설, **redis `gw:cache:config:{deviceId}`** 추가, **OpenAPI**(`GET /v1/fleet/config`·`/admin/v1/config` GET/PUT/DELETE·`FleetConfig`/`ConfigEntry` 스키마·heartbeat `configVersion`/`appliedConfigVersion`) 추가. §7.8.1 nextIntervalSeconds를 `config` 키(`gw.heartbeat.interval_seconds`)로 연결. Appendix B #35를 '설계 완료·잔여(키 레지스트리·버전 산출식·MQTT payload)'로 갱신 | (작성자 ID 미지정) |
+| 2026-07-06 | **webhook `event_type` 규칙 명확화** — receiver가 임의 생성이 아니라 **`webhook_provider.event_type_path`(신설)로 payload에서 verbatim 추출**. **provider-owned free string·GW enum 아님**(provider별 어휘·증가 — audit action·config_key 원칙), 의미=`(provider, event_type)`, 미추출 시 null. 용도=Console 필터·관측이고 **목적지 라우팅은 org_mapping**(별개). §7.6.1에 추출 필드 규칙(eventId·org_id·event_type = 레지스트리 경로 config), §4.1.3 추출 목록에 event_type 추가, DBML `webhook_provider.event_type_path`+`webhook_event.event_type` 주석 정합 | (작성자 ID 미지정) |
+| 2026-07-06 | **(R2 추천안 반영) webhook payload 저장 방식** — 본문(opaque·환자 PHI 포함 가능)은 **관계형 DB 미저장**, 리전 로컬 S3(SSE·짧은 TTL)+`payload_ref` claim-check(in-flight=SQS)로 최소 보관. `webhook_event`=PHI-free 메타데이터(Console 검색/필터). §6.4 "PHI 미저장"을 'PHI 영상 본문 미저장 + webhook payload 전이·리전 최소 persist'로 정교화, §7.6.3에 payload 보관·Console redact+접근통제 규격 추가. DBML `webhook_event`에 **`event_type` 컬럼+인덱스** 추가·`payload_ref`/Note 갱신. Appendix B **#36 신설**(payload TTL·메타 보존·redact 필드 — 7/9 R2 확정 전 provisional). Agenda 7/9 R2 상정 | (작성자 ID 미지정) |
 | 2026-07-06 | **중앙 Config 잔여 3건 확정 → #35 종결(B-2→B-1)** — (a) **키 레지스트리 = 앱 레벨 확장형 seed**(db-jsonb#config에 초기 예상 키 7종 표: heartbeat interval/threshold·log.level·upload concurrency/chunk·telemetry·feature_flags + type/범위/기본값/소비자; 새 키는 마이그레이션 없이 상수 추가, 미등록 키·범위밖 값 거부) — 전부 열거 아님·확장형임을 §7.8.4에 명시 · (b) **실효 `configVersion` = 콘텐츠 해시(SHA-256)** 확정(기여 (key,value,행version) 정렬 canonical JSON; 행 version 최댓값=값변경 누락 버그·전역 카운터=과도 재pull이라 배제; stateless·동등성 비교) — OpenAPI 3곳 타입 integer→string, DBML version 주석·db-jsonb 버전 규칙 정합 · (c) **push-notify payload = `{type:config.changed, deviceId, configVersion, at}`**(트리거만·본문 미포함·at-most-once, 유실 시 heartbeat로 복구) §7.8.4 명시. Appendix B #35 B-2→B-1(완료) | (작성자 ID 미지정) |
