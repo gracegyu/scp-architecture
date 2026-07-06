@@ -1,5 +1,7 @@
 # ③-C Sub-SRS — GW Console (4단계, ③ 하위)
 
+> **이 파일의 역할 = 승격용 구조화 씨앗(seed).** ③ SRS 작업 중 이 문서로 갈 내용을 **최종 목차에 대응되게** 미리 정리해 둔다(발견 즉시 캡처·인사이트 유실 방지). 정식 Sub-SRS/문서 집필은 **의존하는 ③ SRS 절이 baseline된 뒤 승격**한다 — 몰아쓰기가 아니라 "옮겨 붙이고 살 붙이기". 승격 트리거: ① ③ 해당 절 동결 + ② 소유권 확정(GW 공통 아님) + ③ 레포/템플릿 존재. 근거: ③이 흔들리는 동안 자식 문서를 미리 쓰면 개명·재번호가 수십 절로 번져 유지면이 폭발한다.
+
 - 상태: 미작성 (③ SRS baseline 후)
 - 문서 유형: Sub-SRS
 - 범위: Admin 역할·권한·OneID 연계, 매핑/클리닉/상태/온보딩 화면·플로우 (관리 API는 ③ SRS/Swagger)
@@ -32,7 +34,7 @@
 
 | 테이블 | 역할 | 예시 | 생성 경로 |
 | --- | --- | --- | --- |
-| `org_mapping` | (target_id,org_id)→clinic **분배 역조회 키** | target_id=`axs`, external_org_id=`0040694997`, clinic_id=`CLINIC-0040694997` | 자가 등록(§2.3.5) + `POST /admin/v1/org-mappings`(교정) |
+| `org_mapping` | (target_id,org_id)→clinic **분배 역조회 키** | target_id=`axs`, external_org_id=`0040694997`, clinic_id=`CLINIC-0040694997` | 자가 등록(§2.3.4) + `POST /admin/v1/org-mappings`(교정) |
 
 - **분배 채널 레코드 없음**: 클리닉 분배는 clinic→MQTT 토픽(`gw/clinic/{clinicId}/webhook`·§7.6.6) 규약 도출이라 저장 테이블 없음(구 delivery_channel 삭제).
 

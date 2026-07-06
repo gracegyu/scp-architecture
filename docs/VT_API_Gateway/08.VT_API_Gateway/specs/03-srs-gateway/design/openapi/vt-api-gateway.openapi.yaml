@@ -329,7 +329,7 @@ paths:
       tags: [ clinics ]
       summary: 외부 upstream Org-ID 등록 (외부 연동 연결 시, upstream별) (FR-INT-*)
       description: >-
-        클리닉이 외부 연동(예 AXS)을 켤 때 그 upstream의 Org-ID 등록 → org_mapping((upstream, Org-ID)→clinic). webhook 분배 키. Org-ID는 upstream 온보딩에서 발급(§2.3.5·④).
+        클리닉이 외부 연동(예 AXS)을 켤 때 그 upstream의 Org-ID 등록 → org_mapping((upstream, Org-ID)→clinic). webhook 분배 키. Org-ID는 upstream 온보딩에서 발급(§2.3.4·④).
       requestBody:
         required: true
         content:

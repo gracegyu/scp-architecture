@@ -229,7 +229,7 @@ flowchart TD
 >
 > **유일하게 다른 건 Webhook(이벤트 인바운드)** — AXS는 결과 이벤트를 GW로 _밀어 보내고_, GW가 **Webhook Ingress**로 받아 방화벽 뒤 **EzServer는 MQTT(하행, 갈래 A 역방향)**·**클라우드는 HTTP push**로 분배한다(대상=Org-ID→Clinic→리전 매핑, §7.3). 클라우드 수신 대상은 **CleverLab(갈래 B·보류)뿐**이며, **CleverSpace는 webhook 수신 대상이 아니다**(내부(B) 프록시·presigned 백엔드일 뿐 — 다이어그램엔 *API 호출 대상*으로만 그린다). 대상별 시나리오는 §2.3.6. AXS의 **외부 연동(egress)은 GW core**, **Webhook(인바운드)은 Webhook Ingress**로 들어와 방향이 반대다. 멱등·교차 리전 등 분배 상세는 **§2.3.6·§7.6**.
 >
-> **본 도는 control plane(정보 경로) context다** — **대용량 데이터의 presigned 직접 업로드(EzServer→발급주체 storage, GW 미경유)·AWS 미지원국 upstream MinIO·리전별 CS 노드는 생략**했다(Roadmap §2.6은 데이터 plane까지 함께 그림). 데이터 경로는 §2.3.4(경로②)·§2.3.5(경로③)·§4.1.4, 멀티 리전·MinIO는 §2.1.1·§3.1.2 참조.
+> **본 도는 control plane(정보 경로) context다** — **대용량 데이터의 presigned 직접 업로드(EzServer→발급주체 storage, GW 미경유)·AWS 미지원국 upstream MinIO·리전별 CS 노드는 생략**했다(Roadmap §2.6은 데이터 plane까지 함께 그림). 데이터 경로는 §2.3.5(경로②)·§2.3.4(경로③)·§4.1.4, 멀티 리전·MinIO는 §2.1.1·§3.1.2 참조.
 
 ### 2.1.1 배포 토폴로지 — 멀티 서버·멀티 리전 (egress·Webhook)
 
@@ -480,7 +480,7 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 
 > **본 절 시나리오 ↔ §7 기능·§4.1.4 경로 매핑**: 온보딩(§7.2)·인증(§7.1)·리전(§7.3)·파일 업로드 경로②(§7.4·§4.1.4②)·외부 연동 경로③(§7.5·§4.1.4③)·Webhook(§7.6·§4.1.3)·버전 호환(§7.7).
 >
-> **API 호출 경로는 대상 무관 동일**(`…→GW→upstream` target-routed proxy, ADR-11): CleverSpace(B 내부)·AXS(C 외부)는 **같은 경로**이고 trust profile만 다르다(C는 OAuth·egress 추가). 그래서 **§2.3.5(외부 연동)는 CleverSpace에도 그대로 적용되는 일반 proxy 흐름**이며, AXS를 예로 들었을 뿐 GW 동작은 동일하다. CleverSpace presign(경로②)에 **별도 시나리오를 두지 않는 이유는 경로가 달라서가 아니라**, 그 계약이 GW 밖(② One Pager·CleverSpace OpenAPI)에 있고 GW는 verbatim bypass(B)만 하기 때문이다(§4.1.4②).
+> **API 호출 경로는 대상 무관 동일**(`…→GW→upstream` target-routed proxy, ADR-11): CleverSpace(B 내부)·AXS(C 외부)는 **같은 경로**이고 trust profile만 다르다(C는 OAuth·egress 추가). 그래서 **§2.3.4(외부 연동)는 CleverSpace에도 그대로 적용되는 일반 proxy 흐름**이며, AXS를 예로 들었을 뿐 GW 동작은 동일하다. CleverSpace presign(경로②)에 **별도 시나리오를 두지 않는 이유는 경로가 달라서가 아니라**, 그 계약이 GW 밖(② One Pager·CleverSpace OpenAPI)에 있고 GW는 verbatim bypass(B)만 하기 때문이다(§4.1.4②).
 
 #### 데이터 레코드 생성 시점 (provenance) — 각 표가 언제·누구에 의해 채워지나
 
@@ -501,46 +501,20 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 
 > **API 불요/미정의 정리**: 하드 삭제가 없는 것(clinic·device=status 전이 / webhook_event·audit_log=보존정책 정리)은 DELETE API 불요. GW 런타임 생성(webhook_event·audit_log)은 외부 write API 불요(조회만). **관리 API 미정의 잔여 = region_catalog(#30)·policy(#32)** — v1.0 저우선·Appendix B 추적.
 >
-> **`org_mapping` 등록은 "GW 접속 시 자동"이 아니다 — 연동 켤 때 client가 등록한다.** 매핑 키인 **외부 Org-ID는 외부 upstream(예 Straumann AXS)이 발급**하므로 **GW가 스스로 알 수 없다**(자동 도출 불가). 그래서 클리닉이 그 upstream 연동을 **켜는 시점**에 **`POST /v1/clinics/{clinicId}/org-bindings`로 자기 Org-ID를 등록**(client 자가 등록·§2.3.5)하고, 오설정은 Admin이 `/admin/v1/org-mappings`로 교정한다. 즉 EzServer가 GW에 처음 붙는다고(enroll) 자동 생성되지 않으며 **enroll·연동은 독립**(연동 안 하면 org_mapping 없음). **새 upstream이 추가되면** 그 upstream을 실제 쓰는 **클리닉마다 org-binding 1회**가 필요하다(GW가 일괄 자동 생성하지 않음). 등록된 org_mapping은 **양방향으로** 쓰인다 — **송신(outbound)**: GW가 클리닉 대신 AXS를 호출할 때 `clinic → org_id` 정조회로 Org-ID를 실어 보냄 · **수신(inbound webhook)**: 이벤트의 `org_id → (target_id, org_id) → clinic` 역조회로 분배 대상 판정(§2.3.6). 생성 시점·양방향 사용은 아래 생애주기 다이어그램 참조.
+> **`org_mapping` 등록은 "GW 접속 시 자동"이 아니다 — 연동 켤 때 client가 등록한다.** 매핑 키인 **외부 Org-ID는 외부 upstream(예 Straumann AXS)이 발급**하므로 **GW가 스스로 알 수 없다**(자동 도출 불가). 그래서 클리닉이 그 upstream 연동을 **켜는 시점**에 **`POST /v1/clinics/{clinicId}/org-bindings`로 자기 Org-ID를 등록**(client 자가 등록·§2.3.4)하고, 오설정은 Admin이 `/admin/v1/org-mappings`로 교정한다. 즉 EzServer가 GW에 처음 붙는다고(enroll) 자동 생성되지 않으며 **enroll·연동은 독립**(연동 안 하면 org_mapping 없음). **새 upstream이 추가되면** 그 upstream을 실제 쓰는 **클리닉마다 org-binding 1회**가 필요하다(GW가 일괄 자동 생성하지 않음). 등록된 org_mapping은 **양방향으로** 쓰인다 — **송신(outbound)**: GW가 클리닉 대신 AXS를 호출할 때 `clinic → org_id` 정조회로 Org-ID를 실어 보냄 · **수신(inbound webhook)**: 이벤트의 `org_id → (target_id, org_id) → clinic` 역조회로 분배 대상 판정(§2.3.6). 생성 시점·양방향 사용은 아래 생애주기 다이어그램 참조.
 
-> 핵심 구분: **클리닉 측 레코드(clinic·device)는 EzServer enroll이 자동 생성**하고(§2.3.1·연동과 무관), **연동 측 레코드(`upstream`+`policy`)는 upstream을 붙일 때 Admin/Console이 등록**하며(등록 시퀀스=§2.3.5·가이드=③-C), **org_mapping은 그 연동을 실제 쓰는 클리닉이 붙을 때** 자가 등록된다. 즉 "device 최초 접속"이 만드는 것은 클리닉 측이지 연동(upstream) 측이 아니다.
+> 핵심 구분: **클리닉 측 레코드(clinic·device)는 EzServer enroll이 자동 생성**하고(§2.3.1·연동과 무관), **연동 측 레코드(`upstream`+`policy`)는 upstream을 붙일 때 Admin/Console이 등록**하며(등록 시퀀스=§2.3.4·가이드=③-C), **org_mapping은 그 연동을 실제 쓰는 클리닉이 붙을 때** 자가 등록된다. 즉 "device 최초 접속"이 만드는 것은 클리닉 측이지 연동(upstream) 측이 아니다.
 >
 > **분배는 저장 레코드가 아니라 규약으로 도출**한다 — 대상 clinic이 정해지면 그 클리닉 EzServer의 MQTT 토픽(`gw/clinic/{clinicId}/webhook`, §7.6.6)이 결정적이라 **별도 delivery 테이블이 없다**(v1.0 전 클리닉 edge). 따라서 **등록 순서 무관**(upstream-first=AXS / clinic-first=운영 중 새 upstream 추가 둘 다 동일)이고, **새 upstream을 추가해도 기존 클리닉에 만들 delivery 레코드가 없다**(fanout 없음) — 새 upstream이 기존 클리닉에 추가하는 것은 **`org_mapping` 한 행뿐**. (예외: 어떤 upstream의 이벤트가 클리닉 EzServer가 아닌 **다른 수신자**(클라우드 등)로 가야 하면 규약 도출만으론 부족 → 수신자 모델 도입, Appendix B #37.)
 
-#### `org_mapping` 생애주기 — AXS 기준 (언제 생기고·어디서 쓰나)
+#### 시나리오 발생 순서 (lifecycle)
 
-`org_mapping`(외부 Org-ID ↔ clinic_id)이 **어느 시점에 한 행 생기는지**와 **생긴 뒤 송신·수신 양방향에서 어떻게 소비되는지**를 AXS 연동 하나를 예로 보인다. 핵심: **행 생성은 [2] 클리닉이 AXS 연동을 켜는 순간**뿐이고(enroll·upstream 등록과 별개), 나머지는 모두 그 행을 읽기만 한다.
+아래 §2.3.1~§2.3.7은 **실제 발생 순서에 맞춰 배치**했다: 온보딩(§2.3.1) → 디바이스 인증·토큰(§2.3.2) → 리전 해석·라우팅(§2.3.3) → 외부 연동 등록·호출(§2.3.4) → 파일 업로드(§2.3.5) → Webhook 수신·분배(§2.3.6) → **[횡단]** 버전 호환 게이팅(§2.3.7·모든 요청 경로에 적용).
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant OP as Admin/Console(③-C)
-    participant EZ as EzServer(클리닉)
-    participant GW as GW
-    participant DB as GW DB
-    participant AXS as AXS(외부 upstream)
+- **셋업(1회)**: 온보딩(§2.3.1)으로 클리닉·디바이스·region 확립 → *(연동 쓸 클리닉만)* 외부 연동 켜기 = (선택)AXS 링크 + `org_mapping` 등록(§2.3.4 「연동 링크·org_mapping 생애주기」). **이 '등록'은 온보딩 직후 셋업 단계**로, 아래 런타임 호출·webhook보다 먼저다.
+- **런타임(반복)**: 디바이스 인증·토큰(§2.3.2) → 리전 해석·라우팅(§2.3.3)을 전제로, 외부 연동 **호출**(§2.3.4 호출부)·파일 업로드(§2.3.5)·Webhook 분배(§2.3.6)가 요청마다 일어난다.
 
-    Note over OP,DB: [1] 사전 등록 — upstream 1행 (org_mapping 아직 없음)
-    OP->>GW: POST /admin/v1/upstreams (target_id=axs)
-    GW->>DB: upstream(axs) upsert
-
-    Note over EZ,DB: [2] 연동 켜기 — 이때 org_mapping 1행 생성 (유일한 생성 시점)
-    EZ->>GW: POST /v1/clinics/{clinicId}/org-bindings (externalOrgId=AXS Org-ID)
-    GW->>DB: org_mapping upsert (axs, 0040694997) to CLINIC-0040694997
-    Note right of DB: 행 생성은 여기뿐 — 클리닉이 AXS 연동을 켤 때
-
-    Note over EZ,AXS: [3] 송신(outbound) — clinic to org_id 정조회(읽기)
-    EZ->>GW: Vatech-Target axs, AXS API 호출
-    GW->>DB: org_mapping 정조회 clinic to org_id
-    GW->>AXS: Org-ID 실어 호출
-
-    Note over AXS,EZ: [4] 수신(inbound webhook) — org_id to clinic 역조회(읽기)
-    AXS->>GW: webhook (payload에 org_id)
-    GW->>DB: org_mapping 역조회 (axs, org_id) to clinic
-    GW->>EZ: 그 클리닉 MQTT 토픽으로 분배 gw/clinic/{clinicId}/webhook
-```
-
-> 해지 시엔 `DELETE /admin/v1/org-mappings`로 그 행만 제거한다(연동 해지·오설정 정리, §7.9.1). 다른 클리닉·다른 upstream 행에는 영향 없다.
+`org_mapping`이 정확히 언제 생기고(=[2b] 연동 켤 때) 어떻게 쓰이는지(송신·수신 양방향)는 **§2.3.4의 생애주기 다이어그램** 참조.
 
 #### 라우팅 Flow — 전 구간 (CleverOne → EzServer → GW → upstream)
 
@@ -575,7 +549,7 @@ sequenceDiagram
     Note over RT,AXS: 라우팅 신호=서브도메인(Host/SNI). 내부(B=CleverSpace)면 Proxy Router가 External Connector 없이 직접 전달 — 경로 동일, trust profile만 다름
 ```
 
-> **정리.** target 지시는 **구간마다 형태가 다르다** — CleverOne→EzServer는 **헤더(`Vatech-Target`)**, EzServer→GW(및 GW 직접 호출)는 **서브도메인(`{target}.gw.vatech.com`)**. **GW의 라우팅 신호는 오직 서브도메인**이며, 헤더는 EzServer가 서브도메인으로 바꾸기 위한 내부 hop 키일 뿐이다. `axs`를 `cleverspace`로 바꾸면 그대로 CleverSpace(내부 B) 호출 흐름이 된다(§2.3.4). Webhook(외부→GW)만 이 프록시 경로가 아니라 upstream 전용 수신 호스트로 들어오는 별개 흐름이다(§2.3.6).
+> **정리.** target 지시는 **구간마다 형태가 다르다** — CleverOne→EzServer는 **헤더(`Vatech-Target`)**, EzServer→GW(및 GW 직접 호출)는 **서브도메인(`{target}.gw.vatech.com`)**. **GW의 라우팅 신호는 오직 서브도메인**이며, 헤더는 EzServer가 서브도메인으로 바꾸기 위한 내부 hop 키일 뿐이다. `axs`를 `cleverspace`로 바꾸면 그대로 CleverSpace(내부 B) 호출 흐름이 된다(§2.3.5). Webhook(외부→GW)만 이 프록시 경로가 아니라 upstream 전용 수신 호스트로 들어오는 별개 흐름이다(§2.3.6).
 
 ### 2.3.1 온보딩 — EzServer enrollment (클리닉·region 확립 포함) — FR-ENR-\* · FR-RGN-\*
 
@@ -585,7 +559,7 @@ sequenceDiagram
 - **클리닉·region 확립(enroll 흡수).** GW는 검증 후 그 Clinic-ID의 **clinic을 없으면 생성(upsert)** 하고 디바이스를 `pending`으로 등록한다. **region 기본값 = enroll 요청이 GeoDNS로 도달한 최근접 리전**(§2.7.1; v1.0은 단일 리전이라 항상 서울). **C/S는 현장에서 `GET /v1/regions` 선택지로 다른 region을 지정**해 enroll할 수 있다(기본값 override).
 - **활성화 게이트 = C/S 승인.** enroll 완료 디바이스는 `pending`(인증 불가) → **현장 설치를 담당한 C/S가 GW Console에서 승인**(설치 확인 + region 확정/override) → `active`. 사람 승인이 부트스트랩 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 현장 검증으로 차단한다(§7.2.3·§7.9.2). 따라서 **GW Console 사용자는 Admin과 C/S**이며, **C/S는 enrollment 승인 권한을 가진다**.
 - **키페어·인증 바인딩.** EzServer가 키페어를 생성해 **nonce를 개인키로 서명(소지 증명)** 하고 **공개키(`client_public_key`)** 를 바인딩한다(§7.2.6). 이후 인증은 이 키로 **private_key_jwt**(§2.3.2·§7.1.1·ADR-13, 공유 secret 없음). **개인키는 디바이스를 떠나지 않으며 백업(export)하지 않는다** — 재설치·**개인키 분실·손상**으로 키가 바뀌면 재-enroll로 회전해 복구한다(라이선스·Clinic-ID 재검증 + C/S 승인 + 기존 revoke·제한·감사, §7.2.6·§7.2.7). 개인키 at-rest 안전 보관은 EzServer(③-P-EZ) 책임.
-- **등록 주체 = 클리닉당 1개 EzServer**(Appendix B #17). 외부 연동(AXS 등)은 **켤 때만** 그 upstream의 Org-ID(Straumann 온보딩 발급, §2.3.5·④)를 등록해 `org_mapping`((upstream, Org-ID)→clinic)을 채우며, 온보딩과 무관하다(연동 안 해도 클리닉·디바이스는 정상).
+- **등록 주체 = 클리닉당 1개 EzServer**(Appendix B #17). 외부 연동(AXS 등)은 **켤 때만** 그 upstream의 Org-ID(Straumann 온보딩 발급, §2.3.4·④)를 등록해 `org_mapping`((upstream, Org-ID)→clinic)을 채우며, 온보딩과 무관하다(연동 안 해도 클리닉·디바이스는 정상).
 
 ```mermaid
 sequenceDiagram
@@ -651,30 +625,7 @@ sequenceDiagram
     Note over C,GW: 매핑 부재 → 거부 · PHI 리전 경계 OPA 집행(§7.3.3)
 ```
 
-### 2.3.4 파일 업로드 — presigned 중계 (upstream-무관 · 발급=upstream)
-
-**GW는 presigned를 발급하지 않으며, presigned 중계는 특정 upstream에 묶이지 않는다(upstream-무관).** 대용량 파일(CT·영상)은 **발급 upstream가 발급한 presigned로 그 upstream storage에 직접** 업로드하고, GW는 발급 요청을 **해당 upstream 서브도메인(`{target}.gw.vatech.com`)으로 verbatim 중계**(target-routed proxy, ADR-11)만 한다 — body를 해석·변환·서명하지 않는다. 업로드 **세션·resumable·멱등·무결성·완료처리는 발급 upstream 책임**(GW는 소유하지 않음). **신규 upstream = 레지스트리 1행**(코드·경로 변경 0, §4.1.2).
-
-- **현재 대상 upstream**: **CleverSpace**(경로②·**B 내부** — 내부망, connector 불요) · **AXS**(경로③·**C 외부** — OAuth2·고정 egress를 **connector**가 추가, §2.3.5·§7.5). 향후 upstream도 동일.
-- **경로·중계 방식은 upstream 무관 동일**하고, **차이는 trust profile뿐**(C만 connector로 OAuth·egress 추가). 아래는 CleverSpace(B 내부) 예시이며, AXS(C 외부)는 같은 경로에 connector를 얹는다(§2.3.5). 상세 §7.4·§4.1.4.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant EZ as EzServer/디바이스
-    participant GW as GW (Proxy Router · §2.2)
-    participant CS as CleverSpace (presign 발급·storage 소유)
-    participant S3 as CleverSpace storage (S3/MinIO)
-    EZ->>GW: presigned 발급 요청 (Host cleverspace.gw.vatech.com · B bypass)
-    GW->>GW: 인증·버전 게이트·정책 (body 변환 없음)
-    GW->>CS: verbatim 중계
-    CS-->>GW: presigned URL (CleverSpace 발급)
-    GW-->>EZ: presigned URL 전달 (GW 변환 없음)
-    EZ->>S3: 파일 바이트 직접 업로드 (GW 미경유)
-    Note over EZ,S3: 세션·완료처리(콜백+ObjectCreated)·무결성은 CleverSpace 책임(② One Pager). GW는 발급 중계만, 서명·세션 없음
-```
-
-### 2.3.5 외부 연동 — 등록(Admin)·호출(presign·파일 bypass) (경로③, 갈래 A) — FR-INT-\*
+### 2.3.4 외부 연동 — 등록(Admin)·호출(presign·파일 bypass) (경로③, 갈래 A) — FR-INT-\*
 
 **§4.1.4 경로③ 전용 (외부(C) 프록시).** EzServer→AXS 외부 연동(5단계 갈래 A). 클라이언트는 **`axs.gw.vatech.com` 서브도메인**으로 AXS 경로를 **그대로** 호출하고(§4.1.2 — CleverOne→EzServer 구간은 `Vatech-Target: axs` 헤더로 지시하면 EzServer가 서브도메인으로 변환), GW는 connector로 OAuth2 토큰을 관리(§7.1.3)·egress allowlist를 집행(§7.5.3)하되 요청/응답 body는 **AXS OpenAPI 그대로 통과(verbatim bypass)** 한다 — GW가 발급하거나 해석·변환하지 않는다. 대용량은 AXS가 발급한 presigned로 **AXS S3에 직접** 업로드(GW 미경유). 연동 의미·Org-ID 매핑 상세는 **④ Sub-SRS**, 본 SRS는 프레임워크·egress까지만. 상세는 §7.5.
 
@@ -697,6 +648,54 @@ sequenceDiagram
     Note over OP,DB: 분배 채널 레코드 없음(clinic→MQTT 토픽 규약 도출·§7.6.6) · org_mapping은 클리닉이 이 upstream 쓸 때 자가 등록 · 삭제는 DELETE /admin/v1/upstreams/{targetId}
 ```
 
+#### 연동 링크·`org_mapping` 생애주기 (AXS 기준) — 언제 생기고·어디서 쓰나
+
+앞의 [1] upstream 등록(운영자·전역 1회)과 달리, **클리닉이 그 연동을 실제 켤 때** `org_mapping`(외부 Org-ID ↔ clinic_id) 한 행이 생긴다. 여기서 **두 가지를 분리**해야 한다(오해가 잦은 지점):
+
+- **(로컬) `org_mapping` 등록 = `POST /v1/clinics/{clinicId}/org-bindings`** — GW **DB에 매핑 한 행을 기록**할 뿐 **AXS를 호출하지 않는다**. GW가 라우팅/분배에 쓰는 로컬 지식이다(모든 upstream 공통).
+- **(원격) AXS 연동 링크 = AXS Organization API 호출** — AXS 쪽에 "이 조직을 우리 integrating entity와 연결"하는 것으로, **별개의 프록시 호출**(`Vatech-Target: axs` 경로③·External Connector가 OAuth 부착)이다. AXS 문서 기준 `POST /v1/organization/integration/link`(`customerNumber` + integrating entity=Client ID) → `organizationId` + **org-admin 동의**(status `PENDING`→`APPROVED`, Data Reader 동의 요건)로 완료된다. **조직 자체는 우리가 만들지 않는다**(클리닉=Straumann 고객·`customerNumber` 보유). 보조 API: `.../integration/check`(연결 확인)·`.../integration/{customerNumber}/info`(region·countryCode).
+
+따라서 클리닉은 **두 경우**로 나뉜다 — **(A) 이미 AXS에 연결돼 `organizationId`를 아는 클리닉**: 링크 생략, 바로 org-binding으로 로컬 매핑만 기록. **(B) 아직 미연결 클리닉**: 먼저 AXS 링크([2a])로 동의·`organizationId`를 얻고 → org-binding으로 매핑 기록([2b]).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant OP as Admin/Console(③-C)
+    participant EZ as EzServer(클리닉)
+    participant GW as GW
+    participant DB as GW DB
+    participant AXS as AXS(외부 upstream)
+
+    Note over OP,DB: [1] 사전 등록 — upstream(axs) 1행 (운영자·전역 1회 · org_mapping 아직 없음)
+    OP->>GW: POST /admin/v1/upstreams (target_id=axs)
+    GW->>DB: upstream(axs) upsert
+
+    Note over EZ,AXS: [2a] (경우 B만) AXS 연동 링크 — 프록시 경유(AXS 실제 호출) · 경우 A는 생략
+    EZ->>GW: POST https://axs.gw.vatech.com/v1/organization/integration/link (customerNumber)
+    GW->>AXS: verbatim 전달 + OAuth(External Connector)
+    AXS-->>GW: organizationId + status(PENDING to APPROVED · org-admin 동의)
+    GW-->>EZ: organizationId
+
+    Note over EZ,DB: [2b] org_mapping 등록 (GW 로컬 · AXS 미호출) — 유일한 매핑 생성 시점
+    EZ->>GW: POST /v1/clinics/{clinicId}/org-bindings (externalOrgId=organizationId)
+    GW->>DB: org_mapping upsert (axs, organizationId) to CLINIC-...
+
+    Note over EZ,AXS: [3] 송신(outbound) — clinic to org_id 정조회(읽기)
+    EZ->>GW: Vatech-Target axs · AXS API 호출
+    GW->>DB: org_mapping 정조회 clinic to org_id
+    GW->>AXS: Organization-ID 헤더 실어 verbatim 전달
+
+    Note over AXS,EZ: [4] 수신(inbound webhook) — org_id to clinic 역조회(읽기)
+    AXS->>GW: webhook (payload에 organizationId)
+    GW->>DB: org_mapping 역조회 (axs, org_id) to clinic
+    GW->>EZ: 그 클리닉 MQTT 토픽으로 분배 gw/clinic/{clinicId}/webhook
+```
+
+> **enroll과의 순서**: `org_mapping`은 clinic_id를 참조하므로 **[2b]는 온보딩(enroll·§2.3.1)으로 clinic이 존재한 뒤**라야 한다. 그 외 enroll과 연동은 독립이다(연동 안 하면 org_mapping 없음). 해지는 `DELETE /admin/v1/org-mappings`(로컬)로 그 행만 제거하며, AXS 쪽 해제가 필요하면 `.../integration/unlink`를 프록시로 호출한다.
+>
+> **GW 공통 vs ④ AXS Sub-SRS 분담**: 본 SRS(GW)는 **공통**만 정한다 — ① `org_mapping` 테이블 + org-bindings API(로컬 매핑) · ② AXS Organization API를 **탈 수 있는 프록시 레일**(upstream `axs` + External Connector · 특정 엔드포인트 하드코딩 없음). **AXS 고유 시퀀스**(link/check/unlink/info 절차, 동의 `PENDING`→`APPROVED` 폴링·`customerNumber` 확보·트리거 주체·organizationId→clinic 반영·region/countryCode 활용, 경우 A/B 판정)는 **④ Straumann(AXS) Sub-SRS**에서 구체화한다.
+
+
 > **경로 동일성**: 본 흐름(`EZ→GW→upstream`)은 **CleverSpace(B 내부)도 동일**하다(ADR-11 target-routed proxy). AXS(C 외부)는 GW가 **OAuth·고정 egress IP**를 추가할 뿐 경로·중계 방식은 같다. 즉 본 시나리오는 AXS를 예로 든 *일반 upstream proxy*이며, CleverSpace는 `cleverspace.gw.vatech.com`으로 같은 경로를 탄다(차이는 trust profile뿐).
 
 ```mermaid
@@ -713,6 +712,29 @@ sequenceDiagram
     GW-->>EZ: presigned URL 전달 (GW 변환 없음)
     EZ->>AS3: 대용량(영상) 직접 업로드 (GW 미경유)
     Note over GW,AXS: 미등록 서브도메인 → 404 · allowlist 외 → 거부(403) · 외부 스키마는 ④/AXS 스냅샷 정본
+```
+
+### 2.3.5 파일 업로드 — presigned 중계 (upstream-무관 · 발급=upstream)
+
+**GW는 presigned를 발급하지 않으며, presigned 중계는 특정 upstream에 묶이지 않는다(upstream-무관).** 대용량 파일(CT·영상)은 **발급 upstream가 발급한 presigned로 그 upstream storage에 직접** 업로드하고, GW는 발급 요청을 **해당 upstream 서브도메인(`{target}.gw.vatech.com`)으로 verbatim 중계**(target-routed proxy, ADR-11)만 한다 — body를 해석·변환·서명하지 않는다. 업로드 **세션·resumable·멱등·무결성·완료처리는 발급 upstream 책임**(GW는 소유하지 않음). **신규 upstream = 레지스트리 1행**(코드·경로 변경 0, §4.1.2).
+
+- **현재 대상 upstream**: **CleverSpace**(경로②·**B 내부** — 내부망, connector 불요) · **AXS**(경로③·**C 외부** — OAuth2·고정 egress를 **connector**가 추가, §2.3.4·§7.5). 향후 upstream도 동일.
+- **경로·중계 방식은 upstream 무관 동일**하고, **차이는 trust profile뿐**(C만 connector로 OAuth·egress 추가). 아래는 CleverSpace(B 내부) 예시이며, AXS(C 외부)는 같은 경로에 connector를 얹는다(§2.3.4). 상세 §7.4·§4.1.4.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant EZ as EzServer/디바이스
+    participant GW as GW (Proxy Router · §2.2)
+    participant CS as CleverSpace (presign 발급·storage 소유)
+    participant S3 as CleverSpace storage (S3/MinIO)
+    EZ->>GW: presigned 발급 요청 (Host cleverspace.gw.vatech.com · B bypass)
+    GW->>GW: 인증·버전 게이트·정책 (body 변환 없음)
+    GW->>CS: verbatim 중계
+    CS-->>GW: presigned URL (CleverSpace 발급)
+    GW-->>EZ: presigned URL 전달 (GW 변환 없음)
+    EZ->>S3: 파일 바이트 직접 업로드 (GW 미경유)
+    Note over EZ,S3: 세션·완료처리(콜백+ObjectCreated)·무결성은 CleverSpace 책임(② One Pager). GW는 발급 중계만, 서명·세션 없음
 ```
 
 ### 2.3.6 Webhook 수신·분배 — FR-WH-\*
@@ -1617,7 +1639,7 @@ FR-ENR-07 (재설치·키 변경 시 공개키 회전). EzServer **재설치·�
 
 ## 7.3 리전·라우팅·주권 (P1)
 
-GW는 모든 데이터 경로를 **단일 리전으로 고정**하여 데이터 주권(PHI 리전 밖 미이동)을 보장한다. 라우팅 키는 **device·clinic 양쪽을 동일 resolver가 수용**한다(ADR-10) — 디바이스는 클리닉에 소속되어 같은 리전으로 귀결된다. **초기 region은 EzServer enroll 시 확립**된다(§2.3.1 — enroll이 Clinic-ID로 clinic을 upsert): **기본값은 enroll 요청이 GeoDNS로 도달한 최근접 리전**(v1.0=서울)이고, **현장 C/S가 다른 region을 선택(override)** 할 수 있다. 이후 **region *변경*(relocation)은 §7.3.4(FR-RGN-04, 재동의·감사)**. Org-ID 매핑은 **외부 연동 연결 시에만 upstream별 등록**(§2.3.5)으로 채워진다 — 운영자 일괄 수기 설정이 아니라 온보딩 산물이며, 오설정은 §7.3.4로 교정한다.
+GW는 모든 데이터 경로를 **단일 리전으로 고정**하여 데이터 주권(PHI 리전 밖 미이동)을 보장한다. 라우팅 키는 **device·clinic 양쪽을 동일 resolver가 수용**한다(ADR-10) — 디바이스는 클리닉에 소속되어 같은 리전으로 귀결된다. **초기 region은 EzServer enroll 시 확립**된다(§2.3.1 — enroll이 Clinic-ID로 clinic을 upsert): **기본값은 enroll 요청이 GeoDNS로 도달한 최근접 리전**(v1.0=서울)이고, **현장 C/S가 다른 region을 선택(override)** 할 수 있다. 이후 **region *변경*(relocation)은 §7.3.4(FR-RGN-04, 재동의·감사)**. Org-ID 매핑은 **외부 연동 연결 시에만 upstream별 등록**(§2.3.4)으로 채워진다 — 운영자 일괄 수기 설정이 아니라 온보딩 산물이며, 오설정은 §7.3.4로 교정한다.
 
 ### 7.3.1 Region Resolver — device/clinic → region (P1)
 
@@ -2093,7 +2115,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-22 | 디바이스 토큰 갱신 정책 명시 — §7.1.1 Trigger/Output에 "갱신=client_credentials 재발급, refresh token 미발급"(RFC 6749 §4.4.3) 명문화 + Will Not Do에 `refresh_token` grant 미도입 사유 추가, §2.3.2 다이어그램에 재발급 loop·refresh 미사용 note 반영. 단명+즉시 revocation 모델 보존 | (작성자 ID 미지정) |
 | 2026-06-22 | §4.1.2 라우팅 규칙 보강 — 규칙 1에 handle(A)/bypass(B/C) 정적 결정 + A 예약 네임스페이스 reserved-segment 규율 추가, 규칙 2를 가드형으로 재작성(`Vatech-Target`=대안 라우터 아닌 일관성 가드: 있으면 경로 파생 target과 일치 검증·불일치 400, 없어도 경로로 라우팅 성립, per-route만 필수 가능·전역 의무화 아님) + `Vatech-Target`(라우팅 선택) vs `Vatech-*` 식별 헤더(호환 필수) 구분 명시 | (작성자 ID 미지정) |
 | 2026-06-23 | §8·§9 CCB 명단 확정 — 핵심: Scott(PM)·Raymond(GW 백엔드 리드); QA·보안·인프라는 사안별 옵저버, 필요 시 CCB 확대. Appendix B #10 완료 | (작성자 ID 미지정) |
-| 2026-06-23 | **라우팅 모델 전환(ADR-11) — target-routed proxy 채택.** §4.1.1 3버킷 → 2면(GW 고유 API / 레지스트리 라우팅 프록시, B·C=trust profile) 재구성, §4.1.2 규칙 전면 개정(`Vatech-Target` 유무로 면 구분·v1.0 proxy 필수·논리 ID enum만·SSRF 가드·verbatim 전달·정책은 path 검사·region 직교 조합). §4.1.4 경로②③를 `Vatech-Target` proxy로, §2.3.5 다이어그램·§7.5.1 connector(레지스트리 일반화)·§4.1.3 표현 갱신. Appendix A ADR-11 + Appendix B #13(ARD 기재·클라이언트 헤더 적응). 이전 "경로 네임스페이스 1차 + Vatech-Target 가드"(2026-06-22) 결정을 대체 | (작성자 ID 미지정) |
+| 2026-06-23 | **라우팅 모델 전환(ADR-11) — target-routed proxy 채택.** §4.1.1 3버킷 → 2면(GW 고유 API / 레지스트리 라우팅 프록시, B·C=trust profile) 재구성, §4.1.2 규칙 전면 개정(`Vatech-Target` 유무로 면 구분·v1.0 proxy 필수·논리 ID enum만·SSRF 가드·verbatim 전달·정책은 path 검사·region 직교 조합). §4.1.4 경로②③를 `Vatech-Target` proxy로, §2.3.4 다이어그램·§7.5.1 connector(레지스트리 일반화)·§4.1.3 표현 갱신. Appendix A ADR-11 + Appendix B #13(ARD 기재·클라이언트 헤더 적응). 이전 "경로 네임스페이스 1차 + Vatech-Target 가드"(2026-06-22) 결정을 대체 | (작성자 ID 미지정) |
 | 2026-06-23 | 2026-06 회의 결정 반영 — (1) Straumann 선행 구현 명시(§7.5.2), (2) CleverLab↔AXS 갈래 B 현 시점 제외(§1.2 Will Not Do·§2.1·④ \_status·Roadmap §3.7.2 정합) — 외부 cloud 연동 일반 역량은 유지, (3) `Vatech-*`+`User-Agent` 전 제품 강제·공용 라이브러리·originator/Via 누적(§7.7.1), (4) 로그 취합·분석 인프라 소유·로그 포맷 검토 TBD(§6.3.2·Appendix B #14) | (작성자 ID 미지정) |
 | 2026-06-23 | §2.1.1 배포 토폴로지 신설 — 멀티 서버(Multi-AZ HA) + 멀티 리전 다이어그램 추가. inbound 안정 endpoint 1개 vs outbound NAT EIP 다수 구분, AXS egress IP whitelist=고정 EIP 합집합(증설 시 협의), Webhook 멀티 인스턴스 수신(공개 호스트 1·공유 idempotency·매핑 기반 교차 리전 분배) 설명. §2.6 "고정 egress IP" → 고정 EIP 집합으로 명확화 | (작성자 ID 미지정) |
 | 2026-06-23 | 데이터 공유·토폴로지 명시 — §2.1.1에 전역 control-plane SSOT 노드 추가 + "데이터 공유·토폴로지" 절(멀티 서버=리전 내 DB/Redis 공유·무상태 pod / 멀티 리전=전역 일관 라우팅·식별 데이터 vs 리전 로컬 운영 데이터 / PHI 미저장). §6.4 데이터 토폴로지 항목 추가, Appendix B #15(저장소 구현 gw/1.2 TBD·구분 원칙 고정) | (작성자 ID 미지정) |
@@ -2106,15 +2128,15 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-23 | §2.1 맥락도에 **Webhook Receiver sub-tier 박스** 반영 — GW를 GWBOX 서브그래프(GW core + Webhook Receiver)로 분할, AXS의 외부 연동(egress)=GW core / Webhook(인바운드)=Webhook Receiver로 분리 표기(GW 내부 별도 면, 외부 서버 아님). 노트 갱신 | (작성자 ID 미지정) |
 | 2026-06-23 | §2.1 Webhook 분배 경로 명시 — `AXS → Webhook Receiver →(MQTT)→ EzServer`(하행) + `→(HTTP push)→ CleverSpace`(클라우드) 엣지 추가. 하행 MQTT를 GW core(EZ↔GW)에서 **Webhook Receiver 출발로 이동**(EZ→GW는 API 상행만). 분배 대상=매핑(§7.3), 상세 §2.3.6 | (작성자 ID 미지정) |
 | 2026-06-23 | Webhook 분배 대상별 시나리오 명시 — §2.3.6에 EzServer(갈래A 역방향)·CleverLab(갈래B 보류)·CleverSpace(**미확정 TBD**) 표 추가. 클라우드 분배 대상을 §2.1·§2.2 다이어그램에서 CleverSpace → **CleverLab(갈래B·보류)** 로 정정(CleverSpace webhook 엣지 제거 — 구체 시나리오 미확인). §7.6.5에 대상 미확정·조사 항목 TBD 명시, Appendix B #16 추가 | (작성자 ID 미지정) |
-| 2026-06-23 | API 호출 경로 동일성 명확화 — §2.1 다이어그램의 `GW→upstream` 엣지를 **모두 동일 스타일(target-routed proxy)** 로 통일(CS·OID·CLAB·AXS), AXS는 라벨만 `C·외부(OAuth·고정 egress IP)`로 구분(기존 `GW<-->외부 연동(egress)` 특이 표기 제거). Webhook(이벤트 인바운드)만 별개 흐름으로 분리. §2.1 노트·§2.3 헤더·§2.3.5에 "CleverSpace=B/AXS=C, 경로 동일·trust profile만 다름" 명시 | (작성자 ID 미지정) |
+| 2026-06-23 | API 호출 경로 동일성 명확화 — §2.1 다이어그램의 `GW→upstream` 엣지를 **모두 동일 스타일(target-routed proxy)** 로 통일(CS·OID·CLAB·AXS), AXS는 라벨만 `C·외부(OAuth·고정 egress IP)`로 구분(기존 `GW<-->외부 연동(egress)` 특이 표기 제거). Webhook(이벤트 인바운드)만 별개 흐름으로 분리. §2.1 노트·§2.3 헤더·§2.3.4에 "CleverSpace=B/AXS=C, 경로 동일·trust profile만 다름" 명시 | (작성자 ID 미지정) |
 | 2026-06-23 | §2.2·§2.1.1에 경로 동일성 적용 — §2.2 재구성: VatechAPIGateway를 **GW core + Webhook ingress 두 부분**(GW core 내부=plane 상세), 바깥(외부·엣지)은 §2.1과 동일. **Router/PEP 컴포넌트 추가** — 모든 upstream(CS·CLAB·AXS)이 `ROUTER` 동일 경유, AXS만 `CONN`(OAuth·egress) 추가(C). Webhook(AXS→WH→EZ/CLAB)만 별개. §2.1.1에 "egress whitelist·Webhook은 외부(C) 한정, 내부(B)는 동일 proxy·내부망" 명시 | (작성자 ID 미지정) |
 | 2026-06-23 | ARD 동기화 — ARD(v0.10)에 **ADR-11(target-routed proxy)** + **Router/PEP 컴포넌트** 등록(SRS §2.2·§4.1과 일치). SRS Appendix A 주석·Appendix B #13을 "ARD 기재 완료·CCB 확인 대기"로 갱신 | (작성자 ID 미지정) |
 | 2026-06-23 | §2 정합 점검 polish — §2.2 규칙에 CleverOne(EZ 경유) 예외 명시, §2.3.6 시퀀스 클라우드 par 분기에 "CleverLab 보류·CleverSpace TBD" 라벨/노트, §2.3.6 표 EzServer 역방향을 "capability=b1(WH-06)·이벤트 목록만 ④ TBD"로 정리(§7.6.6·ARD v0.9와 정합) | (작성자 ID 미지정) |
 | 2026-06-23 | **리전 구축 단계화 결정** — §2.7.1 신설(1차 단일 리전/2차 멀티 리전, v1.0부터 멀티리전-ready 설계 요건 표). §4.5.1 DNS를 apex-우선(클라이언트는 apex만, 리전 호스트 예약)으로 사전 설계, §7.3.5·§6.3.1·§2.1.1에 단계화 반영. Appendix A 결정 로그 + B#7 종결(흡수 TBD → 단일 우선 결정) | (작성자 ID 미지정) |
 | 2026-06-23 | CleverSpace webhook 혼동 정리 — **클라우드 webhook 수신=CleverLab만(갈래B 보류), CleverSpace는 webhook 대상 아님으로 확정**(TBD 해소). §2.1·§2.2·§2.3.6(표/시퀀스/정리)·§4.1.3·§7.6.5·Appendix B#16에서 "CleverSpace/CleverLab" 묶음·CleverSpace TBD 제거. Roadmap §2.7.1 다이어그램(CS 엣지 제거)·§2.7.3 표도 CleverLab 단일로 정합 | (작성자 ID 미지정) |
 | 2026-06-23 | CleverLab 방향 정합(Roadmap §2.6과 일치) — CleverLab을 **GW 프록시 대상(B)에서 제외**하고 **갈래B 클라우드 클라이언트(보류): CleverLab→GW→AXS** + webhook 수신(GW→CleverLab)으로 정정. §2.1·§2.2 다이어그램 엣지 방향 변경, §4.1.1 B목록에서 제외·주석, 외부표·노트 갱신. (이전 'GW→CleverLab 프록시 B'가 Roadmap의 'CleverLab→GW'와 방향 충돌이던 것 해소) | (작성자 ID 미지정) |
-| 2026-06-23 | 다이어그램 차이 정리(선택 2건) — §2.1에 "control plane context, 데이터plane presigned·minio·리전별CS 생략(§2.3.4/§2.3.5/§4.1.4/§2.1.1 참조)" 주석 추가. Roadmap §2.7.1 '이벤트 라우터' → 'Webhook 이벤트 라우터'(SRS Router/PEP와 명칭 충돌 제거) | (작성자 ID 미지정) |
-| 2026-06-23 | **GW presigned 직접 발급 시나리오 폐기** — 결정: 서명 주체=CleverSpace(②)·AXS(③), GW는 **중계만**. §2.3.4를 'CleverSpace presigned 중계'로 교체, §7.4를 '중계·위임(GW 비발급)'으로 재작성, §4.1.4를 2경로(②③)로 축소(경로①·Region Signer·GW Upload Session/Storage 철회·ADR-03/04 폐기). §2.2 Data Plane 컴포넌트(SES·Presign·Signer) 제거, §1.4 용어·§2.3 액터·§2.4·§2.5·§2.7·§4.4·§5.2·§6.3.3 등 산재 참조 정리. FR-SES는 삭제 않고 'GW 비소유·발급주체(②/④) 소유, GW 중계'로 재분류 | (작성자 ID 미지정) |
+| 2026-06-23 | 다이어그램 차이 정리(선택 2건) — §2.1에 "control plane context, 데이터plane presigned·minio·리전별CS 생략(§2.3.5/§2.3.4/§4.1.4/§2.1.1 참조)" 주석 추가. Roadmap §2.7.1 '이벤트 라우터' → 'Webhook 이벤트 라우터'(SRS Router/PEP와 명칭 충돌 제거) | (작성자 ID 미지정) |
+| 2026-06-23 | **GW presigned 직접 발급 시나리오 폐기** — 결정: 서명 주체=CleverSpace(②)·AXS(③), GW는 **중계만**. §2.3.5를 'CleverSpace presigned 중계'로 교체, §7.4를 '중계·위임(GW 비발급)'으로 재작성, §4.1.4를 2경로(②③)로 축소(경로①·Region Signer·GW Upload Session/Storage 철회·ADR-03/04 폐기). §2.2 Data Plane 컴포넌트(SES·Presign·Signer) 제거, §1.4 용어·§2.3 액터·§2.4·§2.5·§2.7·§4.4·§5.2·§6.3.3 등 산재 참조 정리. FR-SES는 삭제 않고 'GW 비소유·발급주체(②/④) 소유, GW 중계'로 재분류 | (작성자 ID 미지정) |
 | 2026-06-24 | Webhook 수신 엔드포인트를 **유연·레지스트리 기반**으로 재정의 — `/v1/webhooks/{provider}`를 *확정 계약*에서 **기본 관례(예시)** 로 강등. GW는 스키마·경로를 강제하지 않고 provider 규약을 수용(어떤 인바운드든), **발신자 검증·라우팅만** 하며 payload는 소비자가 해석. §4.1.3·§7.6.1·§2.1.1·§2.3.6·§4.5.1·§4.1.2-5 + API명세·OpenAPI·ARD·Roadmap 반영 | (작성자 ID 미지정) |
 | 2026-06-24 | DB·API를 '분배 지식' 모델로 보강 — DBML에 `org_mapping`(Org-ID↔ClinicID 라우팅 키)·`webhook_provider`(유연 수신 config)·`upstream_registry`(Vatech-Target proxy)·`delivery_channel`(분배 채널) 추가, `webhook_event`에 external_org_id·clinic_id·region 추가. OpenAPI에 `/admin/v1/{org-mappings,webhook-providers,upstreams}` 관리 API + 스키마 추가. API명세 §2 엔터티·SRS §6.4·§7.9.1·§4.1.3-4 반영. (GW=분배자, DB=어디로 분배할지의 지식) | (작성자 ID 미지정) |
 | 2026-06-24 | 분배 매핑은 **온보딩 자가 등록**으로 채움(Admin 교정만) — §2.3.1을 '온보딩(클리닉/클라이언트 등록 + 디바이스 enrollment)'으로 확장(클리닉 등록·리전 자가선택·OneID 인증 다이어그램 추가). OpenAPI `/v1/clinics`·`/v1/clinics/{id}/org-bindings` 신설, `/admin/v1/org-mappings`를 교정(override)으로 강등. §7.3·DBML(crm/org_mapping/delivery_channel)·API명세 반영. region UI=제품(③-P-CO), GW=등록·검증·저장 | (작성자 ID 미지정) |
@@ -2123,7 +2145,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-06-24 | Redis 키스페이스 카탈로그 신설 — `design/redis/redis-keyspace.md`(키 패턴·자료형·TTL·용도·cache/휘발 구분·PG 재구성 출처). **Redis=SSOT 아님(캐시+휘발)** 원칙 명시. §3.1.2·§6.4·design/README에서 참조 | (작성자 ID 미지정) |
 | 2026-06-24 | DNS apex 호스트명 확정 — **`gw.vatech.com`(apex)=확정(Scott)**, §4.5.1 제목 '제안' 제거·표 '확정' 표기·TBD 블록을 확정+잔여(인증서·GeoDNS 구성·리전 내부 호스트 등록=인프라)로 교체. Appendix B #2를 'apex 확정·잔여 인프라 등록'으로 갱신 | (작성자 ID 미지정) |
 | 2026-06-24 | §2.3 도입부에 스코프 노트 추가 — **운영자/Console 인증 흐름(로그인·세션·토큰 refresh·RBAC UI)은 §2.3 비정의**, Console UI=③-C Sub-SRS·인증=OneID(OIDC) 위임(ADR-08)·GW는 OneID 토큰 검증+관리 API RBAC(§7.9)만 소유 명시(기존 §1.2·§7.9·§4.1.1 경계와 정합) | (작성자 ID 미지정) |
-| 2026-06-24 | §2.3 이후 정합 점검 후속 수정 — (1) §2.1 line 181 스테일 참조 `§2.3.4(경로①)`→`(경로②)`(§2.3.4=CleverSpace presigned 중계와 일치), (2) ADR-11 2면+trust profile 재구성에 따른 잔존 용어 정리 — §2.3.6 `A버킷`→`A면(GW 고유 API)`·§4.1.1 `C버킷`→`C·외부 프로파일`·`B버킷 성격`→`B·내부 프로파일 성격`. 의미 변경 없음(라벨 A/B/C 유지) | (작성자 ID 미지정) |
+| 2026-06-24 | §2.3 이후 정합 점검 후속 수정 — (1) §2.1 line 181 스테일 참조 `§2.3.5(경로①)`→`(경로②)`(§2.3.5=CleverSpace presigned 중계와 일치), (2) ADR-11 2면+trust profile 재구성에 따른 잔존 용어 정리 — §2.3.6 `A버킷`→`A면(GW 고유 API)`·§4.1.1 `C버킷`→`C·외부 프로파일`·`B버킷 성격`→`B·내부 프로파일 성격`. 의미 변경 없음(라벨 A/B/C 유지) | (작성자 ID 미지정) |
 | 2026-06-24 | §3.1.2 SW 환경을 **EKS 정합**으로 재정리 — 'EKS 정합 원칙'(관리형 우선·IRSA 정적시크릿 미사용·§2.1.1 데이터 토폴로지 정합·포터블 대안 병기) 추가. DB→RDS/Aurora PostgreSQL(전역=Aurora Global Database), 캐시→ElastiCache(리전별·교차복제 안 함), 큐→SQS(+FIFO)/Amazon MQ, MQTT→IoT Core/Amazon MQ(주체 TBD), 시크릿→KMS·Secrets Manager+CSI/External Secrets, 이미지→ECR, **인그레스 AWS LB Controller(ALB/NLB)·egress NAT 고정EIP·관측 ADOT→CloudWatch/AMP·AMG** 항목 추가. 엔진 동일(포터블 대안 유지) | (작성자 ID 미지정) |
 | 2026-06-24 | 메시징 2-레그 명확화 — **A. 내부 비동기 큐=Amazon SQS**(GW 내부 버퍼·재시도·DLQ, §7.6.3) / **B. 엣지 전달=MQTT**(방화벽 뒤 EzServer outbound 구독·push, AWS IoT Core 후보, §7.6.6). 둘은 별개 레그임을 §3.1.2·§4.4 표(메시지 큐 'RabbitMQ 권장'→'SQS 기본'·MQTT Broker→IoT Core)·§7.6.3·§7.6.6·§2.2 다이어그램(WHQ)·§2.3 액터표·§2.3.6 시퀀스(Q 라벨)에 일괄 반영. B에 SQS 비사용 사유(inbound 불가·지속 구독·자격배포 부적합) 명시 | (작성자 ID 미지정) |
 | 2026-06-24 | §3.4.2 개발 환경 도구 — 개발 표준을 **Claude Code**로 명시(`Cursor·VS Code` → `Claude Code(개발 표준)·VS Code`) | (작성자 ID 미지정) |
@@ -2186,12 +2208,12 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-01 | **본문 가독성 정리 — 누적된 결정-과정 서술을 규격으로 흡수** — SRS를 조금씩 수정하며 본문에 쌓인 "일기성" 표기(날짜 결정 태그·`A안/C안 채택`·`승격/정명`·`반영 완료`·폐기-철회 과정 서술·`❓확인`·상단 '골격 v0.1 작성 중' 배너)를 제거하고 **현재-상태 규격**으로 흡수. §6.4.1(엔터티 관계)의 결정 박스·상태 박스 통합, §2.3.1·§4.1.4·§7.4 폐기 서술을 'GW 범위 아님'·'②③만 유효' 등 결과 문장으로 정리, 상단 배너를 '문서 상태·읽는 법'(본문=결정/Appendix B=미결/변경이력=이력)으로 교체. **의미·요구사항 변경 없음**(ADR·FR·Appendix 참조·TBD는 보존). 감사추적(변경 이력·Appendix A/B)은 그대로 유지 | (작성자 ID 미지정) |
 | 2026-07-02 | **DNS 멀티리전-ready 표현 통일 — apex·webhook 호스트 모두 v1.0부터 GeoDNS(대상 서울 1개)** — webhook 호스트(`{provider}.webhook.gw.vatech.com`)가 §2.1.1에서 "v1.0=단일 지정 → 2차 GeoDNS 전환"으로 apex와 어긋나게 서술되던 것을 **apex와 동일하게 'v1.0부터 GeoDNS 라우팅·대상=서울 1개, 2차엔 라우팅 대상만 N리전 추가(record 타입·클라이언트 변경 없음)'** 로 통일. §2.1.1 Webhook Ingress 노트·§4.5.1(webhook 행+멀티리전-ready 노트)·§2.7.1 DNS 요건 정합. 처음 배포부터 두 호스트 모두 GeoDNS로 구축하고 서울로 resolve | (작성자 ID 미지정) |
 | 2026-07-02 | **§2.3.1 온보딩 재구성 — enrollment 한 흐름으로 통합(클리닉·region 확립 흡수)** — 기존 '(1) 클리닉/리전 등록 + (2) EzServer enrollment' 2분할이 FR(ENR/RGN)·API·ARD의 분리와 어긋나고, (1)이 비-API 유령 흐름이며 '클리닉 등록 주체'(EzServer 자동 vs OneID 운영자)가 문서 간 모순이던 것을 정리. **enroll이 Clinic-ID로 clinic upsert + 초기 region 확립**(기본=GeoDNS 최근접 리전 v1.0=서울, C/S가 다른 리전 override)으로 통합 — 별도 '클리닉 등록' API·흐름 제거. §2.3.1 단일 시퀀스로 재작성, §7.3 도입부·OpenAPI(enroll/complete=clinic·region 확립 / `/v1/clinics`=운영자 교정용으로 재정의)·08 API 문서·ARD §5.1(스텝4/5·mermaid) 정합. §2.3.1(1)/(2) 하위 참조 19곳을 §2.3.1로 통일. enrollment=1회(재설치 회전), region *변경*은 §7.3.4로 분리 | (작성자 ID 미지정) |
-| 2026-07-02 | **§2.3.4 presigned 중계를 provider-무관으로 재구성** — 제목·틀이 'CleverSpace 경로②'라 CleverSpace 전용처럼 보이던 것을 **provider-무관 프록시 중계**(GW가 Vatech-Target으로 발급 provider에 verbatim 중계·발급 주체가 세션/무결성 책임)로 바로잡음. 현재 대상=CleverSpace(②·B 내부, connector 불요)·AXS(③·C 외부, connector로 OAuth·egress 추가), 신규 provider=레지스트리 1행. **아웃바운드 일반 = target-routed proxy(ADR-11), connector는 외부(C) OAuth·egress 어댑터**임을 명확화(§7.4·§4.1.4는 이미 ②③ provider 나열로 정합) | (작성자 ID 미지정) |
+| 2026-07-02 | **§2.3.5 presigned 중계를 provider-무관으로 재구성** — 제목·틀이 'CleverSpace 경로②'라 CleverSpace 전용처럼 보이던 것을 **provider-무관 프록시 중계**(GW가 Vatech-Target으로 발급 provider에 verbatim 중계·발급 주체가 세션/무결성 책임)로 바로잡음. 현재 대상=CleverSpace(②·B 내부, connector 불요)·AXS(③·C 외부, connector로 OAuth·egress 추가), 신규 provider=레지스트리 1행. **아웃바운드 일반 = target-routed proxy(ADR-11), connector는 외부(C) OAuth·egress 어댑터**임을 명확화(§7.4·§4.1.4는 이미 ②③ provider 나열로 정합) | (작성자 ID 미지정) |
 | 2026-07-02 | **§4.2 GW Console 스택 힌트 추가(권장·확정은 ③-C)** — Console이 관리 API(§7.9) 위 CRUD 백오피스라 **`react-admin`(코어 MIT) 권장**(대안 Refine) 힌트를 §4.2에 명시: dataProvider=REST/OpenAPI 매핑, authProvider=OneID(OIDC), permissions=Admin/C-S RBAC, end-to-end TS, 커서 페이지네이션 어댑터 유의. 관측(Fluent Bit+ADOT)·IaC(CDK) 힌트와 동일하게 **방향 힌트만**(UI 스택·화면 확정은 ③-C Sub-SRS). SRS 스코프(관리 API까지)는 불변 | (작성자 ID 미지정) |
 | 2026-07-02 | **IaC = Terraform 확정 + k8s Deployment 기능별 분리 (R5)** — §6.6.2의 'CDK 권장(TBD)·비교'를 폐기하고 **Terraform 확정**(조직 표준 `es-infra` 편입·별도 GW-infra 레포 불요·ARD §4.5 일치)으로 교체. **k8s 배포=기능별 Deployment 분리**(GW core·Webhook Receiver·Webhook Dispatcher 각 독립 스케일·격리, 코드 공유) 명시. §2.1.1 다이어그램 라벨('GW pods API+Webhook Ingress'→'GW Deployments core·WH Receiver·WH Dispatcher')·서브티어 노트, Appendix B #26 B-2→B-1(Terraform 확정), Agenda R5·참조 카탈로그 es-infra 정합 | (작성자 ID 미지정) |
-| 2026-07-02 | **§2.3 인트로에 '라우팅 Flow — 전 구간' 추가** — 기존 §2.3.4/§2.3.5 시퀀스가 EzServer→GW부터 시작해 **CleverOne→EzServer→GW→AXS 전 구간**(특히 CleverOne→EzServer 헤더 → EzServer가 서브도메인 변환 → GW 서브도메인 라우팅 → 외부 C connector OAuth·egress)이 한 그림에 없던 공백을 보강. 구간별 target 지시 형태(내부=헤더 `Vatech-Target` / edge=서브도메인) 시퀀스+설명 추가. 하위 번호(§2.3.1~7) 불변(무번호 h4). §4.1.2·§4.5.1·ADR-11 정합 | (작성자 ID 미지정) |
-| 2026-07-02 | **라우팅 모델 ADR-11 개정 (R1) — 라우팅 신호 header→서브도메인 edge.** 7/2 R1 재평가 결과 **GW edge 라우팅 = target 서브도메인 `{target}.gw.vatech.com`**(Host/SNI, C안) 채택, **`Vatech-Target` 헤더는 CleverOne→EzServer 내부 hop 키로 강등**(EzServer가 서브도메인 변환, A안) — A(내부)+C(edge) 조합(순정 nginx·split-horizon 불요). §4.1.1(2면 판별=Host)·§4.1.2(규칙1~3·식별헤더 노트·비교표 캡션/결론·C열 재평가)·§4.5.1(프록시 target 서브도메인 행·`*.gw.vatech.com` 와일드카드 GeoDNS+TLS cert·webhook은 와일드카드 DNS 미사용 유지)·§2.7.1/§3.1 DNS·§2.3.4/§2.3.5 시퀀스(EZ→GW=서브도메인·CO→EZ=헤더)·§4.1.4 업로드표·hardening 오류표·§6.4/§7.9 레지스트리 표기 반영. Appendix A ADR-11 결정로그·노트, Appendix B #13 개정(header→subdomain edge, 잔여=EzServer 변환·클라 부착). 이전 CCB 승인(2026-06-25 header) 대체(감사추적 보존). 구간별 3안 상세=Agenda 7/9 R1. ARD·OpenAPI·DBML 동반 개정 | (작성자 ID 미지정) |
-| 2026-07-02 | **GW 내부 컴포넌트 명칭 직관화 — `Router / PEP`→`Proxy Router`, `Connector Framework`→`External Connector`.** 직관성 위해 컴포넌트 박스 이름만 변경(PEP는 개념·용어집(§1.4)·`Proxy Router` 설명으로 유지, PEP=`Policy(OPA)`(PDP)와 짝). §2.2 다이어그램 라벨·§2.3 라우팅 Flow(참여자·prose·note)·§2.3.4/§2.3.5 GW 라벨·§4.1.1(§7.5 참조)·§2.2 액터 목록·파이프라인 주석, ARD 컴포넌트 표(§2·§3) 반영. 노드 ID(`ROUTER`/`CONN`)·`connector` 일반 개념/테이블/"AXS connector" 인스턴스·§7.5 개념은 불변 | (작성자 ID 미지정) |
+| 2026-07-02 | **§2.3 인트로에 '라우팅 Flow — 전 구간' 추가** — 기존 §2.3.5/§2.3.4 시퀀스가 EzServer→GW부터 시작해 **CleverOne→EzServer→GW→AXS 전 구간**(특히 CleverOne→EzServer 헤더 → EzServer가 서브도메인 변환 → GW 서브도메인 라우팅 → 외부 C connector OAuth·egress)이 한 그림에 없던 공백을 보강. 구간별 target 지시 형태(내부=헤더 `Vatech-Target` / edge=서브도메인) 시퀀스+설명 추가. 하위 번호(§2.3.1~7) 불변(무번호 h4). §4.1.2·§4.5.1·ADR-11 정합 | (작성자 ID 미지정) |
+| 2026-07-02 | **라우팅 모델 ADR-11 개정 (R1) — 라우팅 신호 header→서브도메인 edge.** 7/2 R1 재평가 결과 **GW edge 라우팅 = target 서브도메인 `{target}.gw.vatech.com`**(Host/SNI, C안) 채택, **`Vatech-Target` 헤더는 CleverOne→EzServer 내부 hop 키로 강등**(EzServer가 서브도메인 변환, A안) — A(내부)+C(edge) 조합(순정 nginx·split-horizon 불요). §4.1.1(2면 판별=Host)·§4.1.2(규칙1~3·식별헤더 노트·비교표 캡션/결론·C열 재평가)·§4.5.1(프록시 target 서브도메인 행·`*.gw.vatech.com` 와일드카드 GeoDNS+TLS cert·webhook은 와일드카드 DNS 미사용 유지)·§2.7.1/§3.1 DNS·§2.3.5/§2.3.4 시퀀스(EZ→GW=서브도메인·CO→EZ=헤더)·§4.1.4 업로드표·hardening 오류표·§6.4/§7.9 레지스트리 표기 반영. Appendix A ADR-11 결정로그·노트, Appendix B #13 개정(header→subdomain edge, 잔여=EzServer 변환·클라 부착). 이전 CCB 승인(2026-06-25 header) 대체(감사추적 보존). 구간별 3안 상세=Agenda 7/9 R1. ARD·OpenAPI·DBML 동반 개정 | (작성자 ID 미지정) |
+| 2026-07-02 | **GW 내부 컴포넌트 명칭 직관화 — `Router / PEP`→`Proxy Router`, `Connector Framework`→`External Connector`.** 직관성 위해 컴포넌트 박스 이름만 변경(PEP는 개념·용어집(§1.4)·`Proxy Router` 설명으로 유지, PEP=`Policy(OPA)`(PDP)와 짝). §2.2 다이어그램 라벨·§2.3 라우팅 Flow(참여자·prose·note)·§2.3.5/§2.3.4 GW 라벨·§4.1.1(§7.5 참조)·§2.2 액터 목록·파이프라인 주석, ARD 컴포넌트 표(§2·§3) 반영. 노드 ID(`ROUTER`/`CONN`)·`connector` 일반 개념/테이블/"AXS connector" 인스턴스·§7.5 개념은 불변 | (작성자 ID 미지정) |
 | 2026-07-02 | **R3 — 수집 에이전트 = Grafana Alloy 확정.** 관측 수집 에이전트를 'Fluent Bit+ADOT 권장(TBD)'에서 **Grafana Alloy(OTel 호환 통합 수집)** 로 확정. §1.4 용어(ADOT→Grafana Alloy)·§3.1.2(796)·§6.3(1171)·§6.3.2 수집층 권장 패턴 갱신. 앱 계약(stdout JSON+OTel) 불변, 백엔드는 인프라 선택. Appendix B #14=로그 포맷만 잔여 | (작성자 ID 미지정) |
 | 2026-07-02 | **R4 — 프록시 복원력 분담 정리(GW 연결 timeout vs mesh 재시도·서킷).** §7.5.4 재작성: **GW→provider 연결 timeout(connect/response/total_deadline)은 GW 책임**(GW가 provider에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound, D1~D3), **재시도·서킷 브레이커는 service mesh(istio) egress**(GW 미구현, D5~D8). GW 앱레벨=오류 정규화(`Vatech-Error-Origin`)·멱등·취소 전파(D9). §2.2 노트·§4.1.2-6·§5.5·§6.3·§6.4·§7.7.4 정합. **DBML/OpenAPI `upstream_registry`에서 retry_policy·circuit_breaker만 제거, 연결 timeout 컬럼 3종은 유지**. db-jsonb retry_policy 섹션 제거. Appendix B #25=①GW timeout 값+②istio 재시도·서킷 분담 | (작성자 ID 미지정) |
 | 2026-07-02 | **R6 — 리뷰어 목록 확정 + Scott=PM 겸임.** §9 Document Approvals에 **영역별 리뷰어 표**(아키텍처=Thomas·인프라=Jack·QA=정우혁/James·DB/API=Raymond 자체·③-P별 담당·인증보안=Scott) 추가. §8 CCB·§9 승인표·Appendix B #10을 **Scott(실장·총괄·PM 겸임)** 로 갱신('PM 미지정' 해소) | (작성자 ID 미지정) |
@@ -2210,10 +2232,10 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-06 | **fleet heartbeat 메커니즘·API 명문화** — `fleet_state.last_heartbeat`는 device→GW push로만 갱신됨을 확정(GW는 병원 방화벽 뒤 edge를 폴링 불가). §7.8.1에 메커니즘 서술(주기 push·`nextIntervalSeconds`·온라인/오프라인 임계값 파생 판정·device 유휴시에도 전송)·Input/Output·device 구현 가이드 추가, **`POST /v1/fleet/heartbeat` 신설**(OpenAPI: `fleet` 태그·`FleetHeartbeat`/`FleetHeartbeatAck` 스키마), DBML `last_heartbeat` 주석 보강. **③-P-EZ onePager에 EzServer 주기 호출 구현 가이드 반영**. 정본 주기·오프라인 임계값 = Appendix B #34(운영 튜닝). 스키마 컬럼 변경 없음(주석·API 추가) | (작성자 ID 미지정) |
 | 2026-07-06 | **heartbeat `nextIntervalSeconds` 관리 계층 명시 + 중앙 config 갭 등록** — §7.8.1에 2계층(정본=중앙 config §7.8.4 resolve, fallback=`.env` 앱 기본값; resolve 순서·`.env`는 재배포/전역뿐이라 fallback 용도임) 명문화. §7.8.4 중앙 config가 요구사항만 있고 **저장·전달 모델 미설계**임을 **Appendix B #35 신설**로 등록(config 저장 스키마·전달 방식·실패 재시도). 문서만(스키마 변경 없음) | (작성자 ID 미지정) |
 | 2026-07-06 | **§7.8.4 중앙 Config 구현 수준 서술 + 데이터 모델·API 신설** — 요구사항 한 줄이던 §7.8.4를 구현 가능 수준으로 전면 서술: 정의(원격 fleet 설정 관리)·두 종류(`gw.*`/`device.*`)·SSOT=PostgreSQL·스코프(global/region/clinic/device)·실효 해석(키별 가장 구체 우선 override)·전달(pull=`GET /v1/fleet/config`+heartbeat configVersion / push-notify=역방향 MQTT)·적용/오류/drift·관리 API·보안. **DBML `config` 테이블+`config_scope` enum 신설**(13 테이블), **db-jsonb#config**(키 레지스트리·값 형식) 신설, **redis `gw:cache:config:{deviceId}`** 추가, **OpenAPI**(`GET /v1/fleet/config`·`/admin/v1/config` GET/PUT/DELETE·`FleetConfig`/`ConfigEntry` 스키마·heartbeat `configVersion`/`appliedConfigVersion`) 추가. §7.8.1 nextIntervalSeconds를 `config` 키(`gw.heartbeat.interval_seconds`)로 연결. Appendix B #35를 '설계 완료·잔여(키 레지스트리·버전 산출식·MQTT payload)'로 갱신 | (작성자 ID 미지정) |
-| 2026-07-06 | **`delivery_channel` 테이블 삭제(13→12) — 분배 채널을 규약 도출로 전환** — v1.0 전 클리닉이 EzServer(edge)라 분배 방식이 불변(mqtt_edge)·토픽이 clinic_id에서 결정적(`gw/clinic/{clinicId}/webhook`·§7.6.6)이라 테이블에 담을 정보가 0. webhook 분배 = **org_mapping→clinic(→region 브로커)→그 클리닉 MQTT 토픽 도출**(테이블 조회 불요). DBML(Table·Enum `delivery_channel_type` 삭제·clinic/webhook_event/org_mapping Note·헤더)·SRS(§7.6.7 dispatcher·§4.1.3-4·§2.3.1 enroll 시퀀스·§2.3 provenance·§2.3.5·§6.4.1·§6.4 저장정보·ERD)·API명세(DeliveryChannel 행 삭제) 정합. 비-edge/클라우드·다중 수신자는 **Appendix B #37**(수신자 모델 도입 시점) | (작성자 ID 미지정) |
-| 2026-07-06 | **연동 등록 시퀀스 위치 정정 + provider/clinic 등록 순서·delivery_channel fanout 시나리오 설계** — 등록 시퀀스를 §2.3 intro→**§2.3.5로 이동**(제목을 "외부 연동 — 등록(Admin)·호출(presign·파일 bypass)"로 확장, 라이프사이클 한곳), provenance 표는 intro 유지. **등록 순서 무관**(provider-first=AXS / clinic-first=운영 중 새 provider 추가) 명문화. **`delivery_channel`은 per-clinic·provider-독립 → 새 provider 추가 시 기존 클리닉에 fanout 생성 안 함**(그 provider 이벤트도 클리닉 기존 채널로; 새 provider가 추가하는 건 org_mapping뿐). §2.3 provenance 노트·§2.3.5·DBML delivery_channel Note 정합. **미래 비-edge/다중 수신자(클라우드 등) = Appendix B #37 신설** | (작성자 ID 미지정) |
-| 2026-07-06 | **연동 대상 테이블명 `provider` → `upstream` 확정(+PK `target_id`)** — 이름 후보(provider/target/upstream/integration) 비교 후 **회의 어법("신규 upstream=레지스트리 1행")** 근거로 `upstream` 확정(provider는 webhook 유래·내부 backend엔 부적합). PK `provider`→**`target_id`**(=Vatech-Target 값=서브도메인 라벨), FK(org_mapping·webhook_event·policy)=`target_id`. §6.4.1·ERD·provenance·§7.5.3·§7.6.1·§7.9.1·§2.3.5·Appendix B #25/#31/#32 + DBML(Table upstream)·OpenAPI(`Upstream`·`/admin/v1/upstreams`)·db-jsonb(#upstream)·redis(`gw:cache:upstream`)·API명세·③-C·ARD. Agenda R3 상정 | (작성자 ID 미지정) |
-| 2026-07-06 | **connector·upstream_registry·webhook_provider → `provider` 병합(테이블 통합)** — 셋은 한 연동 party(예 axs)의 1:1 facet(라우팅·아웃바운드 자격·인바운드 webhook)이라 **`provider` 1테이블·1행**으로 통합(DBML 12→10). §6.4.1 "connector/provider 분리 유지" 결정을 **병합으로 정정**. 중복 필드 정리(connector.endpoint→provider.host·enabled·timestamps 1쌍), `policy.connector`→**`policy.provider`(FK)**. **provider 등록=1 레코드**(구 3 POST→`POST /admin/v1/providers` 1회). 정합: ERD·저장정보(§6.4)·§7.5.3 egress·§7.6.1 추출·§7.9.1 admin·§2.3.5 등록 시퀀스·provenance·§7.1.3 + OpenAPI(`Provider`·`/admin/v1/providers`)·db-jsonb(#provider)·redis(`gw:cache:provider`)·API명세·③-C | (작성자 ID 미지정) |
+| 2026-07-06 | **`delivery_channel` 테이블 삭제(13→12) — 분배 채널을 규약 도출로 전환** — v1.0 전 클리닉이 EzServer(edge)라 분배 방식이 불변(mqtt_edge)·토픽이 clinic_id에서 결정적(`gw/clinic/{clinicId}/webhook`·§7.6.6)이라 테이블에 담을 정보가 0. webhook 분배 = **org_mapping→clinic(→region 브로커)→그 클리닉 MQTT 토픽 도출**(테이블 조회 불요). DBML(Table·Enum `delivery_channel_type` 삭제·clinic/webhook_event/org_mapping Note·헤더)·SRS(§7.6.7 dispatcher·§4.1.3-4·§2.3.1 enroll 시퀀스·§2.3 provenance·§2.3.4·§6.4.1·§6.4 저장정보·ERD)·API명세(DeliveryChannel 행 삭제) 정합. 비-edge/클라우드·다중 수신자는 **Appendix B #37**(수신자 모델 도입 시점) | (작성자 ID 미지정) |
+| 2026-07-06 | **연동 등록 시퀀스 위치 정정 + provider/clinic 등록 순서·delivery_channel fanout 시나리오 설계** — 등록 시퀀스를 §2.3 intro→**§2.3.4로 이동**(제목을 "외부 연동 — 등록(Admin)·호출(presign·파일 bypass)"로 확장, 라이프사이클 한곳), provenance 표는 intro 유지. **등록 순서 무관**(provider-first=AXS / clinic-first=운영 중 새 provider 추가) 명문화. **`delivery_channel`은 per-clinic·provider-독립 → 새 provider 추가 시 기존 클리닉에 fanout 생성 안 함**(그 provider 이벤트도 클리닉 기존 채널로; 새 provider가 추가하는 건 org_mapping뿐). §2.3 provenance 노트·§2.3.4·DBML delivery_channel Note 정합. **미래 비-edge/다중 수신자(클라우드 등) = Appendix B #37 신설** | (작성자 ID 미지정) |
+| 2026-07-06 | **연동 대상 테이블명 `provider` → `upstream` 확정(+PK `target_id`)** — 이름 후보(provider/target/upstream/integration) 비교 후 **회의 어법("신규 upstream=레지스트리 1행")** 근거로 `upstream` 확정(provider는 webhook 유래·내부 backend엔 부적합). PK `provider`→**`target_id`**(=Vatech-Target 값=서브도메인 라벨), FK(org_mapping·webhook_event·policy)=`target_id`. §6.4.1·ERD·provenance·§7.5.3·§7.6.1·§7.9.1·§2.3.4·Appendix B #25/#31/#32 + DBML(Table upstream)·OpenAPI(`Upstream`·`/admin/v1/upstreams`)·db-jsonb(#upstream)·redis(`gw:cache:upstream`)·API명세·③-C·ARD. Agenda R3 상정 | (작성자 ID 미지정) |
+| 2026-07-06 | **connector·upstream_registry·webhook_provider → `provider` 병합(테이블 통합)** — 셋은 한 연동 party(예 axs)의 1:1 facet(라우팅·아웃바운드 자격·인바운드 webhook)이라 **`provider` 1테이블·1행**으로 통합(DBML 12→10). §6.4.1 "connector/provider 분리 유지" 결정을 **병합으로 정정**. 중복 필드 정리(connector.endpoint→provider.host·enabled·timestamps 1쌍), `policy.connector`→**`policy.provider`(FK)**. **provider 등록=1 레코드**(구 3 POST→`POST /admin/v1/providers` 1회). 정합: ERD·저장정보(§6.4)·§7.5.3 egress·§7.6.1 추출·§7.9.1 admin·§2.3.4 등록 시퀀스·provenance·§7.1.3 + OpenAPI(`Provider`·`/admin/v1/providers`)·db-jsonb(#provider)·redis(`gw:cache:provider`)·API명세·③-C | (작성자 ID 미지정) |
 | 2026-07-06 | **레코드 생성 시점(provenance) 명확화** — "각 표가 언제·누가 채우나"가 흩어져 있어 §2.3에 **provenance 표 신설**(13개 테이블·① enroll자동/② provider설정/③ 런타임/④ 운영자). **delivery_channel = EzServer enroll 시 GW 자동 생성**(mqtt_edge·토픽 결정적·**connector 무관**)임을 확정 — DBML Note 정밀화 + §2.3.1 enroll 시퀀스에 delivery_channel 자동 생성 단계 추가. 핵심: device 최초 접속이 만드는 건 클리닉 측(clinic·device·delivery_channel)이지 연동(connector) 측이 아님 | (작성자 ID 미지정) |
 | 2026-07-06 | **admin API — connector CRUD 신설 + 레지스트리 DELETE + provider 등록 가이드** — provider(예 AXS) 등록/관리/삭제가 API로 가능하도록 보강: **`/admin/v1/connectors` GET/POST + `/admin/v1/connectors/{name}` DELETE 신설**(기존 누락), `/admin/v1/upstreams/{targetId}`·`/admin/v1/webhook-providers/{provider}` **DELETE 추가**(연동 해지), OpenAPI **`Connector` 스키마 신설**. §7.9.1에 connector 포함·"provider 등록=upstream+connector+webhook_provider 코어 3행+policy+클리닉별 org_mapping 다중 쓰기·원자성 LLD" 명시. **③-C `_status.md`에 provider 등록 레코드표·Console UI 마법사·API 호출 순서 가이드 신설**(gw console 스펙 작성용). credential/secret=KMS·화면 마스킹·감사 | (작성자 ID 미지정) |
 | 2026-07-06 | **MQTT 하행을 범용 downlink 레일로 재정의 + device 원격 config를 gw/1.1+로 격하** — `{stream}`을 "config 전용"이 아니라 **범용 하행 확장점**으로 재서술(§7.6.6): GW→방화벽 뒤 EzServer 능동 전달의 최초 수단, **v1.0=`webhook`만 구현**·`announce`/`command`/`config`는 예약(미구현), EzServer는 `#` 구독+미지 stream 무시(forward-compat). **중앙 config는 v1.0에서 GW-내부(`gw.*`)가 실사용**(pod·리전 공유)이고 heartbeat 주기만 heartbeat 응답으로 device 전달 — **device 원격 config 전달(`device.*`·`GET /v1/fleet/config`·MQTT `config` push-notify·configVersion)=gw/1.1+**(§7.8.4 v1.0 범위·db-jsonb device.* 미래 표기·OpenAPI 해당 필드 gw/1.1 주석·Appendix B #35 갱신). ③-P-EZ onePager 구독 가이드·Agenda 7/9 공유(S1) 반영 | (작성자 ID 미지정) |
@@ -2221,5 +2243,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-06 | **webhook `event_type` 규칙 명확화** — receiver가 임의 생성이 아니라 **`webhook_provider.event_type_path`(신설)로 payload에서 verbatim 추출**. **provider-owned free string·GW enum 아님**(provider별 어휘·증가 — audit action·config_key 원칙), 의미=`(provider, event_type)`, 미추출 시 null. 용도=Console 필터·관측이고 **목적지 라우팅은 org_mapping**(별개). §7.6.1에 추출 필드 규칙(eventId·org_id·event_type = 레지스트리 경로 config), §4.1.3 추출 목록에 event_type 추가, DBML `webhook_provider.event_type_path`+`webhook_event.event_type` 주석 정합 | (작성자 ID 미지정) |
 | 2026-07-06 | **(R2 추천안 반영) webhook payload 저장 방식** — 본문(opaque·환자 PHI 포함 가능)은 **관계형 DB 미저장**, 리전 로컬 S3(SSE·짧은 TTL)+`payload_ref` claim-check(in-flight=SQS)로 최소 보관. `webhook_event`=PHI-free 메타데이터(Console 검색/필터). §6.4 "PHI 미저장"을 'PHI 영상 본문 미저장 + webhook payload 전이·리전 최소 persist'로 정교화, §7.6.3에 payload 보관·Console redact+접근통제 규격 추가. DBML `webhook_event`에 **`event_type` 컬럼+인덱스** 추가·`payload_ref`/Note 갱신. Appendix B **#36 신설**(payload TTL·메타 보존·redact 필드 — 7/9 R2 확정 전 provisional). Agenda 7/9 R2 상정 | (작성자 ID 미지정) |
 | 2026-07-06 | **중앙 Config 잔여 3건 확정 → #35 종결(B-2→B-1)** — (a) **키 레지스트리 = 앱 레벨 확장형 seed**(db-jsonb#config에 초기 예상 키 7종 표: heartbeat interval/threshold·log.level·upload concurrency/chunk·telemetry·feature_flags + type/범위/기본값/소비자; 새 키는 마이그레이션 없이 상수 추가, 미등록 키·범위밖 값 거부) — 전부 열거 아님·확장형임을 §7.8.4에 명시 · (b) **실효 `configVersion` = 콘텐츠 해시(SHA-256)** 확정(기여 (key,value,행version) 정렬 canonical JSON; 행 version 최댓값=값변경 누락 버그·전역 카운터=과도 재pull이라 배제; stateless·동등성 비교) — OpenAPI 3곳 타입 integer→string, DBML version 주석·db-jsonb 버전 규칙 정합 · (c) **push-notify payload = `{type:config.changed, deviceId, configVersion, at}`**(트리거만·본문 미포함·at-most-once, 유실 시 heartbeat로 복구) §7.8.4 명시. Appendix B #35 B-2→B-1(완료) | (작성자 ID 미지정) |
+| 2026-07-07 | **§2.3.x 물리 재번호 — 발생 순서 정렬(§2.3.4 파일업로드 ↔ §2.3.5 외부연동 스왑)** — 소절을 실제 발생 순서(온보딩→인증→라우팅→외부연동 등록·호출→파일업로드→webhook→[횡단]버전게이팅)로 물리 재배치. **`2.3.4`↔`2.3.5` 원자적 번호 스왑**으로 헤딩·전 교차참조 정합(SRS 37건 + Agenda·④·③-C 각 1건). 범위 표기(§2.3.1~7 등)·타 소절 불변. §2.3 머리 발생순서 개요를 새 순서에 맞게 재작성. (직전 '개요만' 방식에서 사용자 요청으로 물리 재번호로 승격) | (작성자 ID 미지정) |
+| 2026-07-07 | **본문 provider→upstream 용어 통일 + §2.3 재정리(발생순서 개요·연동 링크 생애주기) + AXS Organization 링크 반영** — (1) 살아있는 본문의 `provider` 서술을 **`upstream`으로 통일**(SRS 72줄·OpenAPI·DBML·db-jsonb·infra·Agenda), ERD 컬럼 `provider`→**`target_id`**, webhook 호스트 placeholder `{provider}`→**`{target}`**(+OpenAPI path `/v1/webhooks/{target}`·param), **역사·병합 이력(webhook_provider·upstream_registry·날짜 changelog)은 보존**. 네이밍은 upstream 유지 확정(내부 backend 포함 대상엔 provider 부적합) · (2) §2.3 머리의 org_mapping 다이어그램을 **「시나리오 발생 순서(lifecycle)」 개요**로 교체(소절 번호는 교차참조 보존 위해 불변·발생순서만 명시)하고, 다이어그램은 **§2.3.4 「연동 링크·org_mapping 생애주기」로 이동** · (3) AXS 문서 정독 반영 — **org_mapping 로컬 등록(org-bindings·AXS 미호출) vs AXS 연동 링크(프록시 `POST /organization/integration/link`·동의 PENDING→APPROVED) 분리**, 경우 A(이미 연결)/B(미연결) 명시, GW=공통(매핑+프록시 레일)·AXS 고유 시퀀스=④ Sub-SRS 분담. ④ `_status.md` 범위에 Organization Integration 링크 추가 | (작성자 ID 미지정) |
 | 2026-07-07 | **§2.3 `org_mapping` 생애주기 다이어그램 신설(AXS 기준) + 양방향 사용 명확화** — org_mapping이 "언제 한 행 생기나(=[2] 클리닉이 AXS 연동 켤 때뿐)"와 "생긴 뒤 소비 경로"를 mermaid 시퀀스([1]upstream 사전등록 → [2]org-binding 생성 → [3]송신 정조회 → [4]수신 역조회 → 해지 DELETE)로 시각화. org_mapping 노트를 **양방향**(송신 outbound `clinic→org_id` 정조회 + 수신 inbound `org_id→clinic` 역조회)으로 보정(기존 webhook 수신 전용 서술 오해 제거·§6.4.1과 정합). 겸사겸사 §2.3 산문의 잔여 `provider`→`upstream` 정리(노트·분배 규약·라우팅 Flow 헤딩/인트로). 네이밍은 **`upstream` 유지 확정**(내부 backend 포함 대상엔 provider 부적합·회의 어법 일치) | (작성자 ID 미지정) |
 | 2026-07-06 | **레코드 CRUD·API 감사 + 누락 관리 API 신설** — §2.3 provenance 표를 3열→**5열 CRUD·API 매트릭스**(테이블별 생성(C)/수정(U)/삭제(D)/관리 API)로 확장, 표 아래 **org_mapping 등록 메커니즘 명확화 노트** 추가(외부 Org-ID는 provider 발급이라 GW 자동 도출 불가 → 연동 켤 때 client가 `org-bindings`로 자가 등록·enroll과 독립·새 provider는 클리닉마다 1회). 감사로 드러난 **누락 관리 API 2건 신설**: `DELETE /admin/v1/org-mappings`(연동 해지·복합키 targetId+externalOrgId), `GET /admin/v1/webhook-events`(Console 검색/필터·PHI-free 메타·payload 미포함) + 관측 조회 `GET /admin/v1/fleet`(대시보드) 명시. OpenAPI **`WebhookEvent`·`WebhookEventState`·`FleetState` 스키마 신설**·§7.9.1 조회 API 목록 보강. **관리 API 미정의 잔여 = region_catalog(#30)·policy(#32)** 재확인 | (작성자 ID 미지정) |
