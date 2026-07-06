@@ -20,17 +20,17 @@
 | --- | --- | --- | --- | --- |
 | `gw:cache:clinic-region:{clinicId}` | string/hash | 초~분 | clinic→region 해석(§7.3.1) | `clinic`(region 컬럼) |
 | `gw:cache:device-region:{deviceId}` | string/hash | 초~분 | device→region 해석(파생) | `device.clinic_id → clinic.region`(region A안, `region_mapping` 폐기·§6.4.1) |
-| `gw:cache:org:{provider}:{externalOrgId}` | string | 초~분 | webhook 라우팅 키(org→clinic, §2.3.6) | `org_mapping` |
-| `gw:cache:provider:{provider}` | hash | 분 | 연동 대상 config(서브도메인 라벨→host·profile·timeout·webhook 수신 config, §4.1.2·§7.6) | `provider` |
+| `gw:cache:org:{targetId}:{externalOrgId}` | string | 초~분 | webhook 라우팅 키(org→clinic, §2.3.6) | `org_mapping` |
+| `gw:cache:upstream:{targetId}` | hash | 분 | 연동 대상(upstream) config(서브도메인 라벨→host·profile·timeout·webhook 수신 config, §4.1.2·§7.6) | `upstream` |
 | `gw:cache:regions` | hash/json | 분 | GW 운영 리전 목록(§7.3.6) | `region_catalog` |
 | `gw:cache:jwks` | string/json | 분 | 토큰 검증 공개키(§7.1.2) | 키 저장소(KMS)/발급기 |
 | `gw:cache:compat` | hash | 분 | 호환성 매트릭스/well-known(§7.7) | `compat_matrix` |
-| `gw:cache:conn-token:{provider}` | string | 토큰 만료 전(선제 갱신) | **아웃바운드 OAuth2 access token** 캐시(§7.1.3) — GW가 external(C) 호출에 쓰는 토큰. **만료 전 자동 갱신**(만료 후 아님) | provider 토큰 엔드포인트(자격=`provider.credential_ref`, KMS) |
+| `gw:cache:conn-token:{targetId}` | string | 토큰 만료 전(선제 갱신) | **아웃바운드 OAuth2 access token** 캐시(§7.1.3) — GW가 external(C) 호출에 쓰는 토큰. **만료 전 자동 갱신**(만료 후 아님) | upstream 토큰 엔드포인트(자격=`upstream.credential_ref`, KMS) |
 | `gw:cache:config:{deviceId}` | hash/json | 초~분 | device **실효 config** 캐시(§7.8.4) — 키별 device>clinic>region>global 병합 결과 + `configVersion`. pull(`GET /v1/fleet/config`)·heartbeat 응답에 사용 | `config`(기여 스코프 행 병합) |
 
 > cache 무효화: 원본 변경 시 `mapping_version`/버전 키 증가 → 캐시 미스 시 강한 일관성 경로로 재적재(§7.3.1).
 >
-> **`gw:cache:conn-token`은 bearer 자격이라 비밀로 다룬다** — 로그 미기록(§6.2), 네트워크 격리, 토큰 만료보다 짧은 TTL(만료 전 갱신). 크리덴셜 원문은 캐시가 아니라 KMS(`provider.credential_ref`)에만 둔다.
+> **`gw:cache:conn-token`은 bearer 자격이라 비밀로 다룬다** — 로그 미기록(§6.2), 네트워크 격리, 토큰 만료보다 짧은 TTL(만료 전 갱신). 크리덴셜 원문은 캐시가 아니라 KMS(`upstream.credential_ref`)에만 둔다.
 
 ## ② 휘발 상태 (ephemeral — PG에 없음, 재구성 불가, 짧은 TTL)
 
@@ -38,7 +38,7 @@
 | --- | --- | --- | --- | --- |
 | `gw:nonce:enroll:{challengeId}` | string | 짧음(분) | enrollment nonce challenge(§7.2.6) | 1회용·재사용 거부 |
 | `gw:idemp:{scope}:{key}` | string | 시간~일 | idempotency(업로드 commit·요청 멱등, §4.5) | 저장 결과 ref/상태 |
-| `gw:wh:dedup:{provider}:{eventId}` | string | 시간~일 | webhook eventId 중복 처리 방지(§7.6.4) | 인스턴스 공유 필수 |
+| `gw:wh:dedup:{targetId}:{eventId}` | string | 시간~일 | webhook eventId 중복 처리 방지(§7.6.4) | 인스턴스 공유 필수 |
 | `gw:rl:{subject}:{window}` | counter(string/INCR) | window 길이 | rate-limit 카운터(§7.1.1) | 윈도우 만료 시 자동 소멸 |
 | `gw:lock:{resource}` | string(SET NX) | 짧음(초) | 분산 락(선택 — 단발 작업 직렬화) | 필요 시만 |
 

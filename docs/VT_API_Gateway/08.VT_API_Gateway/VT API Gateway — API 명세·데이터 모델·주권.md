@@ -18,6 +18,7 @@
 | v0.4 | 2026-07-06 | (SRS 동기화) | WebhookEvent 데이터 모델 정합(R2 추천안) — `event_type` 추가·**본문은 관계형 DB 미저장**(환자 PHI 포함 가능 → 리전 로컬 S3·SSE·짧은 TTL + `payload_ref` claim-check, in-flight=SQS). WebhookEvent=PHI-free 메타데이터(Console 검색/필터). 정본=SRS §7.6.3·§6.4·DBML |
 | v0.5 | 2026-07-06 | (SRS 동기화) | **DeliveryChannel 데이터 모델 삭제** — v1.0 전 클리닉 edge(mqtt_edge)·토픽 결정적(clinic_id→`gw/clinic/{clinicId}/webhook`)이라 저장 정보 0. 분배=org_mapping→clinic(→region)→MQTT 토픽 규약 도출(테이블 없음). 비-edge/클라우드 수신은 SRS Appendix B #37. 정본=SRS §7.6.7·§7.6.6·DBML |
 | v0.6 | 2026-07-06 | (SRS 동기화) | **Connector·UpstreamRegistry·WebhookProvider → `Provider` 병합** — 한 연동 party의 1:1 facet(라우팅+아웃바운드 자격+인바운드 webhook)을 Provider 1행으로. Policy.connector→provider(FK). admin=`/admin/v1/providers`. 정본=SRS §6.4.1·§7.5·§7.6·DBML |
+| v0.7 | 2026-07-06 | (SRS 동기화) | **연동 대상 테이블명 `Provider` → `Upstream` 확정**(+PK `target_id`) — 이름 비교 후 회의 어법 근거로 upstream 확정. Policy.provider→target_id·OrgMapping.provider→target_id·admin `/admin/v1/upstreams`. 정본=SRS §6.4.1·DBML·OpenAPI |
 
 출처: [PRD](<VT API Gateway — PRD (v2).md>) · [ARD](<VT API Gateway — ARD (아키텍처).md>) · [요구사항 명세](<VT API Gateway — 요구사항 명세 (Requirements).md>). 상세 OpenAPI는 LLD에서 확정.
 
@@ -55,15 +56,15 @@
 | 엔터티 | 핵심 필드 | 비고 |
 | --- | --- | --- |
 | Device | device_id, client_id(nullable), client_public_key, clinic_id(nullable), status(lifecycle) | **GW 호출 주체(principal)** — v1.0=EzServer(clinic-bound), 미래 비-EzServer/clinic-less 가능(§1.2). PHI 없음 · region은 clinic 파생(A안) · **인증 자격 통합**(별도 Credential 테이블 없음): private_key_jwt(client_id+공개키(client_public_key), 공유 secret 없음) |
-| Policy | scope_type(global/clinic/device)/scope_id/**provider**(FK), allowed_endpoints, scopes | OPA · 주체=device, 실효=device→clinic→global(§7.5.3) · **egress는 Provider SSOT #31** |
+| Policy | scope_type(global/clinic/device)/scope_id/**target_id**(FK→upstream), allowed_endpoints, scopes | OPA · 주체=device, 실효=device→clinic→global(§7.5.3) · **egress는 Upstream SSOT #31** |
 | AuditLog | ts, actor, action, result | append-only |
 | FleetState | device_id, last_heartbeat, success_rate | 관측 |
 | CompatMatrix | api/feature, min_client_version, error_code, fallback | 호환성 단일 소스 |
-| WebhookEvent | event_id, provider, event_type, external_org_id, clinic_id, region, payload_ref, state, dispatch_target | 멱등·분배 상태·해석된 대상(GW payload 비해석). clinic_id·region='어디', **dispatch_target**='어떤 채널·주소로 발행'(v1.0=clinic에서 도출한 MQTT 토픽 `{channel_type}:{endpoint}` — upstream target_id와 무관). **PHI-free 메타데이터**(Console 검색/필터). **본문은 관계형 DB 미저장** — 환자 PHI 포함 가능해 리전 로컬 S3(SSE·짧은 TTL)+`payload_ref` claim-check(in-flight=SQS, R2·§7.6.3) |
+| WebhookEvent | event_id, target_id(발신 upstream), event_type, external_org_id, clinic_id, region, payload_ref, state, dispatch_target | 멱등·분배 상태·해석된 대상(GW payload 비해석). clinic_id·region='어디', **dispatch_target**='어떤 채널·주소로 발행'(v1.0=clinic에서 도출한 MQTT 토픽 `{channel_type}:{endpoint}` — upstream target_id와 무관). **PHI-free 메타데이터**(Console 검색/필터). **본문은 관계형 DB 미저장** — 환자 PHI 포함 가능해 리전 로컬 S3(SSE·짧은 TTL)+`payload_ref` claim-check(in-flight=SQS, R2·§7.6.3) |
 | Clinic | clinic_id, region, mapping_version | device의 **선택적 그룹**(clinic-종속 정보 홈: region·policy 기본·provider-org) · 라우팅 키 통합(device↔clinic) |
 | **RegionCatalog** | region_id, display_name, endpoint, status(active/draining/planned), is_default | **GW 운영 리전 목록**(region list API SSOT, §7.3.6) |
-| **OrgMapping** | provider, external_org_id, clinic_id, mapping_version | **webhook 라우팅 키** — (provider·Org-ID)→clinic→region |
-| **Provider** | provider(=서브도메인 라벨·PK), host, profile(internal/external), connect/response/total_deadline_ms, enabled, credential_ref·egress_allowlist(외부 C·**egress SSOT #31**), inbound_host·inbound_route·sig_scheme·secret_ref·source_ip_allowlist·event_id_path·org_id_path·event_type_path(webhook 발신 대상) | **연동 대상 통합**(구 upstream_registry·connector·webhook_provider 병합) — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 **1 레코드**. org_mapping·webhook_event·policy가 FK 참조. 재시도·서킷=istio |
+| **OrgMapping** | target_id, external_org_id, clinic_id, mapping_version | **webhook 라우팅 키** — (target_id=upstream·Org-ID)→clinic→region |
+| **Upstream** | target_id(=Vatech-Target 값·서브도메인 라벨·PK), host, profile(internal/external), connect/response/total_deadline_ms, enabled, credential_ref·egress_allowlist(외부 C·**egress SSOT #31**), inbound_host·inbound_route·sig_scheme·secret_ref·source_ip_allowlist·event_id_path·org_id_path·event_type_path(webhook 발신 대상) | **연동 대상(upstream) 통합**(구 upstream_registry·connector·webhook_provider 병합) — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 **1 레코드**. org_mapping·webhook_event·policy가 target_id FK 참조. 재시도·서킷=istio |
 
 > **Enrollment 모델(2026-07-01 확정)**: 부트스트랩 신뢰 = **LM 라이선스·Clinic-ID**(EzServer가 설치 시 LMP에서 수신)이며, **공장 토큰/OOB 코드·사전 발급 토큰은 미도입**(과거 `EnrollmentToken`/`token_ref` 폐기). 흐름: enroll(라이선스·Clinic-ID 검증 + nonce·공개키(client_public_key) 바인딩) → `device.status=pending` → **C/S(현장 설치 담당)의 GW Console 승인** → `active`(인증 허용). 사람 승인이 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 차단한다. 승인 대기 상태는 별도 테이블 없이 `device.pending`, 이력은 `AuditLog`. **이후 디바이스 인증 = 비대칭 `private_key_jwt`**(enroll 키페어 개인키 서명 → `client_public_key` 공개키 검증, 공유 secret 없음, ADR-13·§7.1.1). 정본: SRS §2.3.1·§7.1.1·§7.2.5·§7.9.2 · ARD §5.1.
 

@@ -389,6 +389,19 @@
     - **R2-3**: redact = Console 화면 표시 시 환자정보 **마스킹**(전달 본문은 verbatim 불변). 운영자 디버깅은 허용하되 환자 신원 불필요 노출을 막는 데이터 최소화(§6.4). 접근통제 = 역할(Admin/C-S)별 payload 열람 권한.
     - **SRS 반영 예정(확정 후)**: DBML `webhook_event.payload_ref` 주석(본문=리전 S3·claim-check 참조·관계형 DB 미저장) · **`event_type` 컬럼 추가 검토**(Console 필터) · §6.4(webhook PHI 전이·최소 persist로 정교화) · §7.6(store-and-forward 본문 보관·TTL) · Appendix B(보존기간·본 결정 로그).
 
+  - **R3. 연동 대상 테이블 병합 + 명칭 확정 (공유·명칭 승인 요청)** — AXS·CleverSpace·OneID 같은 **GW 연동 대상**의 라우팅·아웃바운드 자격·인바운드 webhook 수신을 담던 **3개 표(upstream_registry·connector·webhook_provider)를 1개 표로 병합**(1:1 facet·중복 토큰·미연결 해소, provider 등록=1 레코드). 병합 표의 **이름을 무엇으로 할지** 4개 후보를 비교했고 **일단 `upstream`으로 정했다**.
+    - **이름 후보 비교**:
+
+      | 후보 | 장점 | 단점 |
+      | --- | --- | --- |
+      | **`upstream`(채택)** | 회의 어법 그대로(*"신규 upstream=레지스트리 1행"*)·업계 표준(GW가 라우팅하는 backend)·내부/외부 backend 다 포괄·클라이언트(CleverOne) 자연 배제·컴포넌트(External Connector)와 충돌 없음 | 인바운드 webhook facet엔 살짝 아웃바운드 뉘앙스 |
+      | `target` | 문서 어휘(target-routed proxy·`Vatech-Target`)와 일치 | 회의에선 target=라우팅 키(헤더값), upstream=서버로 구분 → 엔터티엔 upstream이 정확 |
+      | `integration`(연동) | 양방향·내부/외부 다 포괄·"연동" 자연 | 회의 미사용·다소 추상적 |
+      | `provider` | 익숙(webhook에서 유래) | **webhook 유래뿐**·CleverSpace 등 내부 backend엔 부적합·OAuth "provider"와 과적재 |
+    - **확정(잠정)**: 표명=**`upstream`**(엔터티), PK=**`target_id`**(=Vatech-Target 값=서브도메인 라벨). FK(org_mapping·webhook_event·policy)=`target_id`. "CleverSpace를 등록한다 = **upstream 1 레코드 추가**"로 표현.
+    - **SRS 반영 완료**: DBML(Table `upstream`)·OpenAPI(`Upstream`·`/admin/v1/upstreams`)·db-jsonb(#upstream)·redis(`gw:cache:upstream`)·SRS §6.4·§7.5·§7.6·§7.9·§2.3.5·ERD·API명세·③-C·ARD 전부 정합.
+    - **이번 회의에서 다른 이름으로 바뀌면** 그때 일괄 재반영(단순 rename). 결정만 주면 됨.
+
 - 공유 사항 (결정 아님 · 정보 공유)
 
   - **S1. GW→각 EzServer(클리닉) 범용 하행(downlink) 레일 확보** — webhook 역방향 분배를 위해 만든 **MQTT 하행 채널**(EzServer가 방화벽 뒤에서 outbound 지속 구독, §7.6.6)은, 사실상 **중앙(GW)에서 각 클리닉 edge로 능동 전달하는 최초의 수단**이다. 토픽을 `gw/clinic/{clinicId}/{stream}` 로 두어 **`{stream}` 확장점을 예약**했다(EzServer는 `#` 구독·미지 stream 무시·forward-compat).
