@@ -396,3 +396,55 @@
     - **미래 활용 가능(예약·미구현)**: `announce`(클라이언트 새 버전 설치 안내·프로모션·공지) · `command`(kill-switch 등 즉시 명령) · `config`(원격 설정 하달) 등. 새 용도는 **발행자 추가만**으로 수용(레일·EzServer 구독 불변).
     - **의미**: 지금은 안 쓰더라도 **"중앙에서 fleet으로 뭔가 내려보내는" 다양한 미래 수요를 무구조변경으로 담을 레일**을 확보. 확장점 예약 비용≈0, 기능은 미구현(YAGNI 준수).
     - **결정 필요 없음** — 공유만. 구체 활용(공지/명령 등)은 수요 발생 시 별도 안건화. 
+
+  - **S2. 프로젝트 일정(Gantt) — 주간 참고 스냅샷** — 스펙 생애주기(작성→PR→baseline)+GW 구현 타임라인. **정본=[개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정은 그쪽 먼저). 아래는 7/9 기준 스냅샷 — 매주 최신본으로 갱신.
+    - 막대 색: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 회색=완료 · 빨강=외부 선결. **③ GW SRS PR 시작=7/9**. 구현=R7 **1안**(④ AXS baseline 후·스펙 병행)·기간 미정(SRS 확정 후 재산정). pilot 8/15는 재검토(R7).
+
+    ```mermaid
+    gantt
+        title 스펙 생애주기(작성→PR→baseline) + GW 구현 — 기간 잠정
+        dateFormat YYYY-MM-DD
+        axisFormat %m/%d
+        todayMarker stroke-width:3px,stroke:#d33,opacity:0.6
+
+        section ③ GW SRS + API/DBML + GW 구현 (계약 SSOT → 구현)
+        SRS 본문 작성            :done, srsw, 2026-06-15, 14d
+        OpenAPI·DBML 작성·정합   :active, designw, 2026-06-19, 20d
+        PR 리뷰·수정(본문+스키마) :active, srspr, 2026-07-09, 14d
+        baseline v1.0 (통합)     :milestone, srsbl, after srspr, 0d
+        GW 구현 (R7 채택=1안) — ④ AXS baseline 후·스펙 병행 :active, impl1, after axsbl, 45d
+
+        section ① API 호환성 One Pager (③ PR 시 동시 착수)
+        작성                  :op1w, 2026-07-09, 7d
+        PR 리뷰·수정          :active, op1pr, after op1w, 7d
+        baseline              :milestone, op1bl, after op1pr, 0d
+
+        section ② Presigned One Pager (③ PR 시 동시 착수)
+        작성                  :op2w, 2026-07-09, 7d
+        PR 리뷰·수정          :active, op2pr, after op2w, 7d
+        baseline              :milestone, op2bl, after op2pr, 0d
+
+        section ④ AXS Sub-SRS (③ PR 시 ①②와 동시 착수)
+        작성 (전체 Sub-SRS)    :axsw, 2026-07-09, 14d
+        PR 리뷰·수정          :active, axspr, after axsw, 14d
+        baseline              :milestone, axsbl, after axspr, 0d
+        AXS sandbox 자격 확보(E2E·pilot 선결·시점 TBD) :crit, cred, 2026-07-28, 14d
+        AXS pilot             :milestone, pilot, 2026-08-15, 0d
+
+        section ③-C GW Console Sub-SRS
+        작성                  :conw, after srsbl, 14d
+        PR 리뷰·수정          :active, conpr, after conw, 14d
+        baseline              :milestone, conbl, after conpr, 0d
+
+        section ③-P 제품 적응 (GW 초안 후 제품팀 인계)
+        EzServer 초안         :ezw, after srsbl, 14d
+        CleverSpace 초안      :csw, after ezw, 7d
+        CleverOne 초안        :cow, after csw, 7d
+        OneID 초안            :oidw, after cow, 7d
+
+        section ③-I 인프라 IaC 계획서
+        GW 담당 초안          :infw1, after srsbl, 7d
+        인프라 담당 완성       :infw2, after infw1, 14d
+        PR 리뷰·수정          :active, infpr, after infw2, 14d
+        baseline              :milestone, infbl, after infpr, 0d
+    ```
