@@ -282,9 +282,9 @@ paths:
   /v1/fleet/config:
     get:
       tags: [ fleet ]
-      summary: device 실효 중앙 config 조회 (FR-CFG-01)
+      summary: device 실효 중앙 config 조회 (FR-CFG-01) — gw/1.1+ 예약
       description: >-
-        device(EzServer)가 자신에게 적용될 **실효 중앙 config**를 pull한다(§7.8.4). device_id는 인증 토큰 subject에서 취득하며, device는 **자기 스코프의 실효 config만** 조회한다(타 device 노출 금지). 실효값은 키별 가장 구체 스코프 우선(device > clinic > region > global, override 병합)으로 GW가 해석한다. heartbeat 응답의 configVersion이 device의 appliedConfigVersion과 다를 때 이 API를 호출하면 된다.
+        **gw/1.1+ 예약(v1.0 미사용).** v1.0 중앙 config는 GW-내부(`gw.*`)가 실사용이고 device로의 원격 config 전달은 §7.6.6 하행 레일의 미래 활용이다(§7.8.4 v1.0 범위). device(EzServer)가 자신에게 적용될 **실효 중앙 config**를 pull한다(§7.8.4). device_id는 인증 토큰 subject에서 취득하며, device는 **자기 스코프의 실효 config만** 조회한다(타 device 노출 금지). 실효값은 키별 가장 구체 스코프 우선(device > clinic > region > global, override 병합)으로 GW가 해석한다. heartbeat 응답의 configVersion이 device의 appliedConfigVersion과 다를 때 이 API를 호출하면 된다.
       responses:
         '200':
           description: device 실효 config(+ 버전)
@@ -924,7 +924,7 @@ components:
             successRate: { type: number, description: '관측 성공률 0~1(직전 윈도우)' }
         appliedConfigVersion:
           type: string
-          description: 'device가 현재 적용 중인 중앙 config 실효 버전 = 콘텐츠 해시(§7.8.4). GW가 실효 버전과 동등성 비교해 drift(미반영) 판정'
+          description: '(gw/1.1+ 예약·v1.0 미사용) device가 현재 적용 중인 중앙 config 실효 버전 = 콘텐츠 해시(§7.8.4). GW가 실효 버전과 동등성 비교해 drift(미반영) 판정'
     FleetHeartbeatAck:
       type: object
       required: [ receivedAt, nextIntervalSeconds ]
@@ -938,14 +938,14 @@ components:
           description: '다음 heartbeat까지 권장 간격(초). 정본=중앙 config(§7.8.4 gw.heartbeat.interval_seconds)에서 device 스코프 resolve, 없으면 .env 기본값(§7.8.1). device는 이 값에 맞춰 다음 호출 주기를 갱신한다'
         configVersion:
           type: string
-          description: '현재 device 실효 중앙 config 버전 = 콘텐츠 해시(§7.8.4). device의 appliedConfigVersion과 다르면 GET /v1/fleet/config로 다시 pull하라는 신호'
+          description: '(gw/1.1+ 예약·v1.0 미사용) 현재 device 실효 중앙 config 버전 = 콘텐츠 해시(§7.8.4). device의 appliedConfigVersion과 다르면 GET /v1/fleet/config로 다시 pull하라는 신호'
 
     # 중앙 Config (§7.8.4)
     FleetConfig:
       type: object
       required: [ config, configVersion ]
       description: >-
-        device의 실효 중앙 config(§7.8.4). GW가 키별 가장 구체 스코프 우선(device > clinic > region > global, override 병합)으로 해석한 결과.
+        (gw/1.1+ 예약·v1.0 미사용) device의 실효 중앙 config(§7.8.4). GW가 키별 가장 구체 스코프 우선(device > clinic > region > global, override 병합)으로 해석한 결과.
       properties:
         config:
           type: object
