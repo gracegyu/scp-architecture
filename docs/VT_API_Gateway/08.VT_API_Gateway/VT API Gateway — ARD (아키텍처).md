@@ -5,7 +5,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | 항목           | 내용                                                |
 | -------------- | --------------------------------------------------- |
 | 문서 ID        | ESIP-GW-ARD                                         |
-| 문서 버전      | v0.25                                               |
+| 문서 버전      | v0.26                                               |
 | 적용 제품 버전 | gw/1.0.0.0                                          |
 | 분류           | 통제 문서 (Controlled · IEC 62304 / ISO 13485 대상) |
 | 상태           | Draft                                               |
@@ -34,6 +34,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.23 | 2026-07-02 | (SRS 동기화) | **ADR-11 개정(R1) — 라우팅 신호 header→서브도메인 edge.** GW edge 라우팅=target 서브도메인 `{target}.gw.vatech.com`(Host/SNI, 서브도메인 방식), `Vatech-Target` 헤더=CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환, 헤더 방식) = **내부구간 헤더 + edge 서브도메인**(순정 nginx·split-horizon 불요·`*.gw.vatech.com` 와일드카드로 DNS/cert 부담 해소). ADR-11 행·Router/PEP 컴포넌트·§5.3 업로드 시퀀스 갱신. SRS §4.1.1·§4.1.2·§4.5.1·ADR-11·Agenda 7/9 R1 정합. 구간별 3안 상세=Agenda | Draft |
 | v0.24 | 2026-07-02 | (SRS 동기화) | **GW 내부 컴포넌트 명칭 직관화** — `Router / PEP`→**`Proxy Router`**, `Connector Framework`→**`External Connector`**(SRS §2.2·§2.3 정합). §2 tier 표·§3 컴포넌트 표 반영. PEP는 `Proxy Router`의 정책 집행 성격 설명으로 유지(=`Policy(OPA)` PDP와 짝). `connector` 일반 개념·"AXS connector" 인스턴스는 불변 | Draft |
 | v0.25 | 2026-07-06 | (SRS 동기화) | **device/clinic 정체성 정립** — §1 용어 노트를 "device=GW 호출 주체(머신 클라이언트), v1.0 유일 종류=EzServer, 미래 비-EzServer·clinic-less 가능, clinic은 선택적 그룹"으로 정합(SRS §1.2·§1.4·§6.4.1). policy=device-중심 scope(SRS/DBML), region·org는 device-governing(clinic 상속)로 SRS 반영. ARD 시퀀스는 v1.0=EzServer로 계속 읽음(불변) | Draft |
+| v0.26 | 2026-07-06 | (SRS 동기화) | **connector·upstream_registry·webhook_provider → `provider` 병합**(데이터모델) — 한 연동 party의 1:1 facet(라우팅+아웃바운드 자격+인바운드 webhook)을 provider 1테이블로. 구 "connector/provider 분리 유지"(v0.21) 결정을 병합으로 정정. `External Connector` 컴포넌트·"AXS connector" 개념은 불변(런타임이 provider 테이블 config 사용). SRS §6.4.1·DBML·OpenAPI(`/admin/v1/providers`) 정합 | Draft |
 
 ## 1. 아키텍처 개요
 
