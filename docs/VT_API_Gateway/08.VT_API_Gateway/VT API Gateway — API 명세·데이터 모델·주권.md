@@ -14,6 +14,7 @@
 | --- | --- | --- | --- |
 | v0.1 | 2026-06-08 | Scott | API 표면·데이터 모델·주권 매핑 초안 |
 | v0.2 | 2026-06-15 | Scott | Roadmap 흡수 — well-known·Webhook·OneID 엔드포인트, 호환성·이벤트·클리닉매핑 엔터티 추가 |
+| v0.3 | 2026-07-06 | (SRS 동기화) | 데이터 모델 표를 device-중심 정체성·policy scope·egress SSOT로 정합 — Device=주체(clinic_id nullable)·Clinic=선택적 그룹, **Policy `tenant`→`scope_type/scope_id`·egress 제거**(§7.5.3), **Connector=egress SSOT(#31)**, UpstreamRegistry=target 서브도메인+연결 timeout(egress·재시도·서킷 제외, R1/R4). 정본=SRS §1.2·§6.4.1·§7.5.3·DBML |
 
 출처: [PRD](<VT API Gateway — PRD (v2).md>) · [ARD](<VT API Gateway — ARD (아키텍처).md>) · [요구사항 명세](<VT API Gateway — 요구사항 명세 (Requirements).md>). 상세 OpenAPI는 LLD에서 확정.
 
@@ -50,18 +51,18 @@
 
 | 엔터티 | 핵심 필드 | 비고 |
 | --- | --- | --- |
-| Device | device_id, client_id(nullable), client_public_key, clinic_id, status(lifecycle) | PHI 없음 · region은 clinic 파생(A안) · **인증 자격 통합**(별도 Credential 테이블 없음): private_key_jwt(client_id+공개키(client_public_key), 공유 secret 없음) |
-| Policy | tenant/connector, allowed_endpoints, scopes, egress | OPA |
-| Connector | name(axs), endpoint, credential_ref, egress_allowlist | adapter |
+| Device | device_id, client_id(nullable), client_public_key, clinic_id(nullable), status(lifecycle) | **GW 호출 주체(principal)** — v1.0=EzServer(clinic-bound), 미래 비-EzServer/clinic-less 가능(§1.2). PHI 없음 · region은 clinic 파생(A안) · **인증 자격 통합**(별도 Credential 테이블 없음): private_key_jwt(client_id+공개키(client_public_key), 공유 secret 없음) |
+| Policy | scope_type(global/clinic/device)/scope_id/connector, allowed_endpoints, scopes | OPA · 주체=device, 실효=device→clinic→global(§7.5.3) · **egress는 Connector SSOT #31** |
+| Connector | name(axs), endpoint, credential_ref, **egress_allowlist(egress SSOT #31)** | adapter · 외부(C) 자격·egress 단일 홈 |
 | AuditLog | ts, actor, action, result | append-only |
 | FleetState | device_id, last_heartbeat, success_rate | 관측 |
 | CompatMatrix | api/feature, min_client_version, error_code, fallback | 호환성 단일 소스 |
 | WebhookEvent | event_id, provider, external_org_id, clinic_id, region, payload_ref, state, target | 멱등·분배 상태·해석된 대상(GW payload 비해석) |
-| Clinic | clinic_id, region, mapping_version | 라우팅 키 통합(device↔clinic) |
+| Clinic | clinic_id, region, mapping_version | device의 **선택적 그룹**(clinic-종속 정보 홈: region·policy 기본·provider-org) · 라우팅 키 통합(device↔clinic) |
 | **RegionCatalog** | region_id, display_name, endpoint, status(active/draining/planned), is_default | **GW 운영 리전 목록**(region list API SSOT, §7.3.6) |
 | **OrgMapping** | provider, external_org_id, clinic_id, mapping_version | **webhook 라우팅 키** — (provider·Org-ID)→clinic→region |
 | **WebhookProvider** | provider, inbound_route, sig_scheme, secret_ref, source_ip_allowlist, org_id_path | **유연 수신 config** — 발신자 검증·라우팅 키 추출(GW 비해석) |
-| **UpstreamRegistry** | target_id, host, profile(internal/external), egress_allowlist | **Vatech-Target proxy 라우팅**(ADR-11) |
+| **UpstreamRegistry** | target_id(=target 서브도메인 라벨), host, profile(internal/external), connect/response/total_deadline_ms, enabled | **target 서브도메인 proxy 라우팅**(ADR-11·7/2 R1) · GW 연결 timeout(D1~D3) · egress=Connector, 재시도·서킷=istio |
 | **DeliveryChannel** | clinic_id, channel_type(mqtt_edge/http_cloud), endpoint | webhook 분배 채널(Edge MQTT/Cloud HTTP) |
 
 > **Enrollment 모델(2026-07-01 확정)**: 부트스트랩 신뢰 = **LM 라이선스·Clinic-ID**(EzServer가 설치 시 LMP에서 수신)이며, **공장 토큰/OOB 코드·사전 발급 토큰은 미도입**(과거 `EnrollmentToken`/`token_ref` 폐기). 흐름: enroll(라이선스·Clinic-ID 검증 + nonce·공개키(client_public_key) 바인딩) → `device.status=pending` → **C/S(현장 설치 담당)의 GW Console 승인** → `active`(인증 허용). 사람 승인이 신뢰 앵커라 Clinic-ID 위·변조 가짜 등록을 차단한다. 승인 대기 상태는 별도 테이블 없이 `device.pending`, 이력은 `AuditLog`. **이후 디바이스 인증 = 비대칭 `private_key_jwt`**(enroll 키페어 개인키 서명 → `client_public_key` 공개키 검증, 공유 secret 없음, ADR-13·§7.1.1). 정본: SRS §2.3.1·§7.1.1·§7.2.5·§7.9.2 · ARD §5.1.

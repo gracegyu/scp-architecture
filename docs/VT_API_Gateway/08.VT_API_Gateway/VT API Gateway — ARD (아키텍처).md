@@ -2,10 +2,10 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 
 **문서 통제**
 
-| 항목        | 내용                                         |
+| 항목           | 내용                                                |
 | -------------- | --------------------------------------------------- |
 | 문서 ID        | ESIP-GW-ARD                                         |
-| 문서 버전      | v0.24                                               |
+| 문서 버전      | v0.25                                               |
 | 적용 제품 버전 | gw/1.0.0.0                                          |
 | 분류           | 통제 문서 (Controlled · IEC 62304 / ISO 13485 대상) |
 | 상태           | Draft                                               |
@@ -33,13 +33,13 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | v0.22 | 2026-07-02 | (SRS 동기화) | **온보딩=enrollment 한 흐름 통합** — 클리닉/region 등록을 enroll에 흡수(별도 흐름·API 제거). enroll이 Clinic-ID로 clinic upsert + 초기 region 확립(기본=GeoDNS 최근접·v1.0 서울, C/S override). §5.1 스텝4/5·mermaid에 clinic upsert·region 반영. SRS §2.3.1·§7.3·OpenAPI 정합 | Draft |
 | v0.23 | 2026-07-02 | (SRS 동기화) | **ADR-11 개정(R1) — 라우팅 신호 header→서브도메인 edge.** GW edge 라우팅=target 서브도메인 `{target}.gw.vatech.com`(Host/SNI, 서브도메인 방식), `Vatech-Target` 헤더=CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환, 헤더 방식) = **내부구간 헤더 + edge 서브도메인**(순정 nginx·split-horizon 불요·`*.gw.vatech.com` 와일드카드로 DNS/cert 부담 해소). ADR-11 행·Router/PEP 컴포넌트·§5.3 업로드 시퀀스 갱신. SRS §4.1.1·§4.1.2·§4.5.1·ADR-11·Agenda 7/9 R1 정합. 구간별 3안 상세=Agenda | Draft |
 | v0.24 | 2026-07-02 | (SRS 동기화) | **GW 내부 컴포넌트 명칭 직관화** — `Router / PEP`→**`Proxy Router`**, `Connector Framework`→**`External Connector`**(SRS §2.2·§2.3 정합). §2 tier 표·§3 컴포넌트 표 반영. PEP는 `Proxy Router`의 정책 집행 성격 설명으로 유지(=`Policy(OPA)` PDP와 짝). `connector` 일반 개념·"AXS connector" 인스턴스는 불변 | Draft |
-
+| v0.25 | 2026-07-06 | (SRS 동기화) | **device/clinic 정체성 정립** — §1 용어 노트를 "device=GW 호출 주체(머신 클라이언트), v1.0 유일 종류=EzServer, 미래 비-EzServer·clinic-less 가능, clinic은 선택적 그룹"으로 정합(SRS §1.2·§1.4·§6.4.1). policy=device-중심 scope(SRS/DBML), region·org는 device-governing(clinic 상속)로 SRS 반영. ARD 시퀀스는 v1.0=EzServer로 계속 읽음(불변) | Draft |
 
 ## 1. 아키텍처 개요
 
 3-Plane(Control / Data / Integration) — 상세는 PRD §4 참조. 본 문서는 그 위의 아키텍처 결정·컴포넌트·시퀀스를 확정한다.
 
-> **용어(확정 2026-06-25): GW 관점의 "디바이스" = EzServer**(클리닉당 1개 엣지 머신). 본 ARD의 디바이스 머신 인증·enrollment·Device Registry·device→region·시퀀스의 "디바이스"는 모두 **EzServer**를 가리킨다. 물리 영상장비(CT/Xray)는 EzServer 뒤편이며 **GW 비대상**(GW에 직접 연결하지 않음 — §5 시퀀스의 "디바이스→GW"는 "EzServer→GW"로 읽는다). SRS §1.4와 정합.
+> **용어: GW 관점의 "디바이스" = GW 호출 주체(머신 클라이언트)** — 경로 `device→GW→provider`의 출발점(SRS §1.2·§1.4). **v1.0 유일 종류 = EzServer**(클리닉당 1개 엣지 머신, 확정 2026-06-25); 미래엔 비-EzServer·clinic-less device도 가능(구체 정체는 SRS §1.2 Will Not Do). device는 clinic에 **선택적으로** 속함(v1.0 100%). 본 ARD의 디바이스 머신 인증·enrollment·Device Registry·device→region·시퀀스의 "디바이스"는 v1.0 기준 **EzServer**로 읽는다. 물리 영상장비(CT/Xray)는 EzServer 뒤편·**GW 비대상**(§5 시퀀스의 "디바이스→GW"는 "EzServer→GW"). SRS §1.2·§1.4와 정합.
 
 ## 2. 주요 아키텍처 결정 (ADR)
 

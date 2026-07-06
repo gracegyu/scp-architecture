@@ -15,6 +15,8 @@
 // 2026-07-01: enrollment_token 제거 — 부트스트랩=LM 라이선스·Clinic-ID + C/S 사람 승인(사전 발급 토큰 없음). 승인 대기=device.pending(§2.3.1·§7.2.5).
 // 2026-07-02 (R1): 라우팅 신호 개정 — upstream_registry.target_id = target 서브도메인 라벨(GW edge={target_id}.gw.vatech.com, ADR-11 7/2 R1). Vatech-Target 헤더=CleverOne→EzServer 내부 hop(EzServer가 서브도메인 변환). 주석만 갱신(스키마 불변).
 // 2026-07-02 (R4): upstream_registry 복원력 컬럼 정리 — **재시도·서킷(retry_policy·circuit_breaker) 제거**(service mesh/istio egress 담당). **GW→provider 연결 timeout(connect/response/total_deadline)은 유지**(GW가 provider에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound 필수 — D1~D3, §7.5.4). GW 앱레벨=오류 정규화·멱등·취소.
+// 2026-07-06: device-중심 정체성 정합 — 주체=device·clinic=선택적 그룹(§1.2). policy.tenant(clinic 하드 FK) → **scope_type{global|clinic|device}+scope_id**(다형 참조·하드 FK 없음)로 일반화(clinic-less device 수용, 실효정책 device→clinic→global). v1.0=clinic+global만 사용. clinic Note·인덱스 갱신. device.clinic_id nullable·1:N·region A안은 불변.
+// 2026-07-06 (#31): egress SSOT 일원화 — **connector.egress_allowlist = 단일 SSOT**(+requireStaticEgressIp). **policy.egress·upstream_registry.egress_allowlist 제거**(3중복 해소). egress는 외부(C) 대상 속성이지 per-tenant authz 아님 — OPA/네트워크 모두 connector 참조.
 // 2026-07-01: 디바이스 인증=비대칭 private_key_jwt(개인키 서명→device.fingerprint 공개키 검증), 공유 secret 폐지(ADR-13·§7.1.1).
 // 2026-07-01: credential 테이블 삭제 → device로 통합(client_id를 device.client_id nullable로 이관, secret_ref 폐기, hw_key_bound는 gw/1.1 attestation으로 이관). 13 테이블.
 // 2026-07-01: token 테이블 삭제 — 무상태 JWT(서명 검증)·디바이스 단위 폐기라 발급 토큰 저장 불필요, 이력은 audit_log. 12 테이블.
@@ -76,7 +78,7 @@ Table device {
   created_at  bigint                                             // 생성(등록) 시각(Unix ms)
   updated_at  bigint                                             // 수정 시각(Unix ms)
 
-  Note: 'GW 관점의 디바이스 = EzServer(클리닉당 1개 엣지 머신, §1.4). PHI 없음. lifecycle 상태기계(§7.2). **region은 컬럼 없음 — clinic_id→clinic.region 파생**(§6.4.1 A안, region SSOT=clinic). clinic_id·client_id nullable(client_id 없음=client 자격 미발급 device). **인증=private_key_jwt**(개인키=디바이스 보유, 공개키=client_public_key로 검증, 공유 secret 없음·ADR-13) — 별도 credential 테이블 없음(2026-07-01 통합). client_public_key는 구 명칭 \'fingerprint\'을 정확화(하드웨어 지문 아님). 개인키 보관 위치(SW/HW)는 gw/1.1 attestation(FR-ENR-06·FR-AUTH-07)에서 도입'
+  Note: 'GW 관점의 디바이스 = **GW 호출 주체(머신 클라이언트)**, v1.0 유일 종류=EzServer(클리닉당 1개 엣지 머신, §1.2·§1.4); 미래 비-EzServer/clinic-less 가능. PHI 없음. lifecycle 상태기계(§7.2). **region은 컬럼 없음 — clinic_id→clinic.region 파생**(§6.4.1 A안, region SSOT=clinic). clinic_id·client_id nullable(client_id 없음=client 자격 미발급 device). **인증=private_key_jwt**(개인키=디바이스 보유, 공개키=client_public_key로 검증, 공유 secret 없음·ADR-13) — 별도 credential 테이블 없음(2026-07-01 통합). client_public_key는 구 명칭 \'fingerprint\'을 정확화(하드웨어 지문 아님). 개인키 보관 위치(SW/HW)는 gw/1.1 attestation(FR-ENR-06·FR-AUTH-07)에서 도입'
   Indexes {
     clinic_id  // 클리닉별 디바이스 조회
     status     // 상태별 조회(운영·정리)
@@ -110,7 +112,7 @@ Table clinic {
   created_at      bigint                                          // 생성(클리닉 등록) 시각(Unix ms)
   updated_at      bigint                                          // 수정 시각(Unix ms)
 
-  Note: '**클리닉 canonical 엔터티 + region 배정**(FR-RGN-06·ADR-10) — 구 `clinic_region_mapping`을 `clinic`으로 승격(2026-07-01, C안). 모든 `clinic_id` FK(device·org_mapping·webhook_event·delivery_channel·policy.tenant)의 **원본**이자 region SSOT. **생성 = EzServer enroll 시 Clinic-ID로 upsert**(별도 클리닉 등록 흐름 없음 — enroll이 흡수, §2.3.1; region 기본=GeoDNS 최근접·C/S override) · Admin은 교정(override)만(FR-RGN-04) — 일괄 수기 설정 아님. region은 1:1이라 컬럼으로 인라인(핫패스 조인 회피); relocation은 mapping_version +1(값 이력=audit_log). **클리닉 속성(이름·상태·C/S 담당자·LM 라이선스 참조·온보딩 시각 등)은 필요 시 이 표에 추가**(현재 컬럼만 정의, 미래는 ERD 점선)'
+  Note: '**clinic-종속 정보의 홈 + region 배정**(FR-RGN-06·ADR-10) — 구 `clinic_region_mapping`을 `clinic`으로 승격(2026-07-01, C안). 주체는 device이고 clinic은 device의 **선택적 그룹**(§1.2·§6.4.1). `clinic_id` FK(device·org_mapping·webhook_event·delivery_channel)의 홈이자 region SSOT(v1.0 clinic-bound 전제). policy는 clinic 하드 FK가 아니라 scope(clinic|device|global) 참조. **생성 = EzServer enroll 시 Clinic-ID로 upsert**(별도 클리닉 등록 흐름 없음 — enroll이 흡수, §2.3.1; region 기본=GeoDNS 최근접·C/S override) · Admin은 교정(override)만(FR-RGN-04) — 일괄 수기 설정 아님. region은 1:1이라 컬럼으로 인라인(핫패스 조인 회피); relocation은 mapping_version +1(값 이력=audit_log). **클리닉 속성(이름·상태·C/S 담당자·LM 라이선스 참조·온보딩 시각 등)은 필요 시 이 표에 추가**(현재 컬럼만 정의, 미래는 ERD 점선)'
 }
 
 // GW 운영 리전 카탈로그 (region list API SSOT) — §7.3.6 / FR-RGN-*
@@ -130,19 +132,26 @@ Table region_catalog {
 // 발급 주체=CleverSpace(②)/AXS(③), GW는 중계만(SRS §4.1.4·§7.4 · ADR-03/04 철회).
 
 // 정책 (OPA 입력, FR-INT-03)
+// 정책 부착 스코프 — 주체=device, 해석 device→clinic→global (§1.2·§6.4.1)
+Enum policy_scope {
+  global   // connector 전역 기본(scope_id NULL)
+  clinic   // 특정 클리닉(scope_id=clinic_id) — 소속 device 공유 기본
+  device   // 특정 device(scope_id=device_id) — clinic-less/예외
+}
+
 Table policy {
   id                varchar [pk]  // 정책 식별자
-  tenant            varchar [ref: > clinic.clinic_id]  // 정책 적용 테넌트 = clinic_id(FK). **NULL = 이 connector의 전역 기본 정책**(클리닉별 override는 별도 행). **device 단위 아님**(클리닉 단위 — 10만대 device granularity 회피). tenant 범위 최종 확인=R8
-  connector         varchar       // 적용 대상 = connector.name = upstream_registry.target_id(아웃바운드 대상 토큰, 예 axs). 인바운드 webhook의 provider와 통합 여부=R8(§6.4.1)
+  scope_type        policy_scope [not null]  // 부착 스코프 global|clinic|device. 주체=device, 실효정책=device→clinic(소속 시)→global 합성(§1.2·§6.4.1)
+  scope_id          varchar       // 부착 대상 id — global=NULL / clinic=clinic_id / device=device_id. **다형 참조라 하드 FK 없음**(scope_type discriminator + 앱레벨 무결성). 구 `tenant`(clinic 하드 FK)를 device-중심으로 일반화(clinic-less device 수용)
+  connector         varchar       // 적용 대상 = connector.name = upstream_registry.target_id(아웃바운드 대상 토큰, 예 axs). 인바운드 webhook provider와 통합 안 함(§6.4.1)
   allowed_endpoints jsonb         // 허용 (method,path) 목록 — [{methods:[..],pathPattern:"/v1/..**"}]. 형식·매칭·예시=design/db-jsonb-fields.md#policy
   scopes            jsonb         // 허용 scope 집합 — ["axs:patient.read", ..]. 형식=design/db-jsonb-fields.md#policy
-  egress            jsonb         // egress 규칙 — {allowedHosts,allowedCidrs,allowedPorts,requireStaticEgressIp}. 형식=design/db-jsonb-fields.md#policy (⚠ egress 3중복=Appendix B #31)
   created_at        bigint        // 생성 시각(Unix ms)
   updated_at        bigint        // 수정 시각(Unix ms)
 
-  Note: '**정책 결정점(OPA) 입력 데이터**(FR-INT-03). **(tenant=clinic, connector) 조합** = "클리닉 T가 connector C(예 axs)를 호출할 때" 허용 endpoint·scope·egress. 요청 시 OPA가 **(clinic, connector) 우선 → 없으면 (NULL, connector) 전역 기본** 순으로 이 행을 근거로 allow/deny. connector = 아웃바운드 대상 토큰(=connector.name=upstream_registry.target_id). 실제 자격/host는 connector·upstream_registry, 본 표는 "무엇을 허용하는가"만. **적용대상마다 다른 정책 = 관리 UI 필요(③-C, Appendix B #32)**. jsonb 형식=design/db-jsonb-fields.md#policy'
+  Note: '**정책 결정점(OPA) 입력 데이터**(FR-INT-03). **주체=device**(§1.2). 정책은 **scope_type(global|clinic|device)+scope_id**로 붙고, 요청 device의 실효 정책 = **device → clinic(소속 시) → global** 순 합성(deny-by-default; 규칙=§7.5.3). **v1.0=clinic+global 행만 사용**(모든 device clinic-bound; device 행은 스키마상 수용, clinic-less/예외 등장 시). connector=아웃바운드 대상 토큰(=connector.name=upstream_registry.target_id). 본 표는 "무엇을 허용하는가"(endpoint·scope)만 — **egress는 connector.egress_allowlist(SSOT, #31)** 참조·정책에 중복 안 둠. **관리 API+UI 필요**(③-C, Appendix B #32). jsonb 형식=design/db-jsonb-fields.md#policy'
   Indexes {
-    (tenant, connector)  // 테넌트·connector 조합 조회
+    (scope_type, scope_id, connector)  // 스코프·connector 조합 조회
   }
 }
 
@@ -151,7 +160,7 @@ Table connector {
   name             varchar [pk]  // connector 이름(예 axs, cleverspace) — upstream_registry.target_id와 대응
   endpoint         varchar       // 외부 서비스 endpoint(base URL)
   credential_ref   varchar       // OAuth2 자격의 KMS 참조(§7.1.3)
-  egress_allowlist jsonb         // egress 허용 대상 — {hosts,cidrs,ports}. 형식=design/db-jsonb-fields.md#connector (⚠ egress 3중복=Appendix B #31)
+  egress_allowlist jsonb         // **egress SSOT(#31)** — 외부(C) 호출 허용 대상 {hosts,cidrs,ports,requireStaticEgressIp}. GW egress(고정 EIP whitelist·SSRF 방어, §7.5.3)·OPA egress 판정이 참조. 형식=design/db-jsonb-fields.md#connector
   created_at       bigint        // 생성 시각(Unix ms)
   updated_at       bigint        // 수정 시각(Unix ms)
 
@@ -250,7 +259,6 @@ Table upstream_registry {
   target_id           varchar [pk]                         // target 서브도메인 라벨 = 논리 ID(예 cleverspace, axs) — GW edge가 {target_id}.gw.vatech.com Host로 라우팅. CleverOne→EzServer Vatech-Target 헤더값과 동일(EzServer가 서브도메인 변환)
   host                varchar [not null]                   // 내부 매핑 host(클라이언트엔 비노출)
   profile             upstream_profile [not null]          // trust profile(internal=B / external=C)
-  egress_allowlist    jsonb                                // external(C) egress 제한 대상 — {hosts,cidrs,ports}. 형식=design/db-jsonb-fields.md#upstream_registry (⚠ egress 3중복=Appendix B #31)
   connect_timeout_ms  bigint                               // GW→provider 연결(TCP+TLS) 대기 — GW 자기 아웃바운드 timeout(D1, 추천 3s, §7.5.4·R4)
   response_timeout_ms bigint                               // GW→provider 응답 대기, 초과 시 504 — GW 자기 timeout(D2, 추천 10s·외부 AXS는 SLA 개별값)
   total_deadline_ms   bigint                               // 프록시 호출 총 예산 — GW total_deadline < 클라이언트 타임아웃 불변식(D3, ≤80%)

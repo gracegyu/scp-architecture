@@ -10,12 +10,12 @@ DBML(`vt-api-gateway.dbml`)의 `jsonb` 컬럼은 구조가 코드로 강제되�
 
 ## `policy` (OPA 입력, FR-INT-03)
 
-`(tenant, connector)` 1행이 그 테넌트가 해당 connector로 호출할 때의 **허용 규칙**을 담는다. 요청 시 OPA가 `(target, method, path, scope, 목적지)`를 이 행과 대조해 allow/deny.
+`(scope_type, scope_id, connector)` 1행이 그 스코프가 해당 connector로 호출할 때의 **허용 규칙**을 담는다. **주체 = device**(§1.2). 요청 시 OPA가 `(target, method, path, scope, 목적지)`를 실효 정책과 대조해 allow/deny.
 
-- **`tenant` = `clinic_id`**(FK → `clinic`). 테넌트 단위는 **클리닉**이다(device 단위 아님 — 10만대 granularity 회피). **`tenant = NULL`** 은 그 connector의 **전역 기본 정책**이다.
-- **`connector`** = 아웃바운드 대상 토큰(= `connector.name` = `upstream_registry.target_id`, 예 `axs`). 인바운드 webhook의 `provider`와 동일 party이나 축이 다르며 통합 여부는 R8(§6.4.1).
-- **평가 순서**: `(clinic_id, connector)` 매칭 우선 → 없으면 `(NULL, connector)` 전역 기본. 둘 다 없으면 **deny(fail-closed)**.
-- 적용대상(클리닉)마다 다를 수 있어 **관리 UI(③-C)+관리 API(§7.9)** 필요 — Appendix B #32.
+- **`scope_type`(global | clinic | device) + `scope_id`** — 정책 부착 스코프. global=`scope_id` NULL / clinic=`clinic_id` / device=`device_id`. **다형 참조라 하드 FK 없음**(discriminator + 앱레벨 무결성). 구 `tenant`(clinic 하드 FK)를 device-중심으로 일반화(clinic-less device 수용, §6.4.1).
+- **`connector`** = 아웃바운드 대상 토큰(= `connector.name` = `upstream_registry.target_id`, 예 `axs`). 인바운드 webhook의 `provider`와 동일 party이나 축이 다르며 통합 안 함(§6.4.1).
+- **평가 순서(주체 device 기준)**: `device` → 그 device의 `clinic` → `global` 순으로 판정(deny-by-default). **clinic = clinic-bound device의 상한(ceiling)**, `device`는 그 안에서 narrowing, `global`=전역 기본. 규칙=**SRS §7.5.3**, 차원별 병합=OPA(Rego)/LLD. **v1.0은 clinic+global 행만 사용**(모든 device가 clinic-bound).
+- 적용대상(스코프)마다 다를 수 있어 **관리 UI(③-C)+관리 API(§7.9)** 필요 — Appendix B #32.
 
 ### `allowed_endpoints` — 허용 (method, path) 목록
 GW는 upstream으로 verbatim 프록시하므로(§4.1.2), **정책은 (method + path)** 로 허용 범위를 판정한다(§4.1.2 규칙3).
@@ -45,44 +45,34 @@ GW는 upstream으로 verbatim 프록시하므로(§4.1.2), **정책은 (method +
 - **검증**: 각 원소 비어있지 않은 토큰. 중복 무시.
 - **기본값**: 빈 배열 = 어떤 scope도 불허(fail-closed).
 
-### `egress` — 아웃바운드 목적지·고정 IP 규칙
-connector로 나가는 호출의 네트워크 제약(§7.5.3).
+---
+
+## `connector` (external 자격/주소) — **egress SSOT (#31)**
+
+### `egress_allowlist` — 아웃바운드 목적지·고정 IP 규칙
+외부(C) connector 호출의 네트워크 제약(§7.5.3). **egress의 단일 SSOT** — `policy`·`upstream_registry`에 중복 두지 않는다(2026-07-06, #31 해소). OPA egress 판정과 네트워크(고정 EIP whitelist·SG)가 모두 이 값을 참조.
 
 ```json
 {
-  "allowedHosts": ["api.axs.straumann.com"],
-  "allowedCidrs": ["198.51.100.0/24"],
-  "allowedPorts": [443],
+  "hosts": ["api.axs.straumann.com"],
+  "cidrs": ["198.51.100.0/24"],
+  "ports": [443],
   "requireStaticEgressIp": true
 }
 ```
 
-- `allowedHosts`: 허용 FQDN 배열(정확 일치; 와일드카드 미지원 — 필요 시 별도 결정).
-- `allowedCidrs`: 허용 목적지 CIDR 배열(IPv4/IPv6).
-- `allowedPorts`: 허용 포트 배열(정수). 생략 시 `[443]`.
-- `requireStaticEgressIp`: true면 고정 egress IP(NAT) 경유 강제.
-- **검증**: host=FQDN, cidr=유효 CIDR, port=1–65535. `allowedHosts`·`allowedCidrs` 둘 다 비면 egress deny(fail-closed).
-
-> **⚠️ egress 정의 중복(설계 정리 필요)**: 현재 egress 관련이 **3곳**에 있다 — `policy.egress`(OPA 규칙), `connector.egress_allowlist`(external 자격/주소), `upstream_registry.egress_allowlist`(프록시 라우팅). SSOT 이원화 위험 → 하나를 권위로 정하고 나머지는 참조/제거 필요. **Appendix B #31**로 추적.
-
----
-
-## `connector` (external 자격/주소)
-
-### `egress_allowlist`
-```json
-{ "hosts": ["api.axs.straumann.com"], "cidrs": ["198.51.100.0/24"], "ports": [443] }
-```
-- `policy.egress`와 동일 구조(위 ⚠️ 참조 — SSOT 정리 대상). 여기서는 connector 실제 호출 시 적용할 egress 목적지.
+- `hosts`: 허용 FQDN 배열(정확 일치; 와일드카드 미지원 — 필요 시 별도 결정).
+- `cidrs`: 허용 목적지 CIDR 배열(IPv4/IPv6).
+- `ports`: 허용 포트 배열(정수). 생략 시 `[443]`.
+- `requireStaticEgressIp`: true면 고정 egress IP(NAT) 경유 강제(구 `policy.egress`에서 이관).
+- **검증**: host=FQDN, cidr=유효 CIDR, port=1–65535. `hosts`·`cidrs` 둘 다 비면 egress deny(fail-closed).
+- **external(C) connector에만** 적용 — 내부(B)는 내부망이라 egress allowlist 불요(§4.1.1).
 
 ---
 
 ## `upstream_registry` (target-routed proxy, ADR-11)
 
-### `egress_allowlist`
-- external(C) target일 때만 사용. 구조는 `connector.egress_allowlist`와 동일(위 ⚠️).
-
-> **재시도·서킷 = istio (7/2 R4).** 재시도·서킷 브레이커는 **service mesh(istio) egress**가 담당하므로 `upstream_registry`에 `retry_policy`·`circuit_breaker`를 두지 않는다(값=istio `DestinationRule`/`VirtualService`, GitOps·인프라). **단 GW→provider 연결 timeout(`connect_timeout_ms`/`response_timeout_ms`/`total_deadline_ms`)은 GW 책임**(GW가 provider에 직접 연결하는 HTTP 클라이언트, D1~D3)이라 **스칼라 컬럼으로 유지**(jsonb 아님). 본 파일 jsonb 대상은 `egress_allowlist`만. 수치=Appendix B #25.
+> **jsonb 필드 없음.** egress는 **`connector.egress_allowlist`(SSOT, #31)** 로 이관, 재시도·서킷은 **service mesh(istio) egress**(7/2 R4·GitOps), 연결 timeout(`connect_timeout_ms`/`response_timeout_ms`/`total_deadline_ms`)은 **GW 책임 스칼라 컬럼**(D1~D3·§7.5.4). 즉 upstream_registry는 라우팅(target→host)·enabled·timeout 스칼라만(jsonb 없음). timeout 수치=Appendix B #25.
 
 ---
 
@@ -102,3 +92,5 @@ connector로 나가는 호출의 네트워크 제약(§7.5.3).
 | --- | --- |
 | 2026-07-01 | 신설 — DB jsonb 컬럼(policy 3개·connector/upstream egress·retry_policy·webhook source_ip) 형식·예시·검증 정의. egress 3중복 → Appendix B #31 |
 | 2026-07-02 (R4) | `upstream_registry.retry_policy` 형식 섹션 제거 — **재시도·서킷=service mesh(istio) 담당**(GW 미소유). **단 GW→provider 연결 timeout(connect/response/total_deadline)은 GW 책임이라 스칼라 컬럼 유지**(D1~D3, §7.5.4). jsonb 대상은 egress_allowlist만 |
+| 2026-07-06 | `policy` 키를 `(tenant=clinic)` → **`(scope_type{global\|clinic\|device}, scope_id, connector)`** 로 일반화 — 주체=device·clinic=선택적 그룹(§1.2·§6.4.1), 실효정책 device→clinic→global. jsonb 필드(allowed_endpoints·scopes) 형식은 불변 |
+| 2026-07-06 (#31) | **egress SSOT 일원화** — `connector.egress_allowlist` 단일 SSOT(+requireStaticEgressIp 이관). `policy.egress`·`upstream_registry.egress_allowlist` 섹션·컬럼 제거. egress=외부(C) 대상 속성(per-tenant authz 아님), OPA/네트워크가 connector 참조 |
