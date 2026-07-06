@@ -1449,11 +1449,12 @@ FR-AUTH-02 (EzServer·CleverOne 등 사내 서비스용 JWT 발급·서명 검�
 
 ### 7.1.3 외부 토큰 저장·갱신·secret 회전 (P1)
 
-FR-AUTH-03·04 (외부(AXS 등) 토큰 암호화 저장·만료 전 자동 갱신, secret dual-window 회전).
+FR-AUTH-03·04 (외부(AXS 등) 크리덴셜 보호·access token 만료 전 자동 갱신, secret dual-window 회전). **크리덴셜과 access token은 다른 축**이므로 나누어 다룬다.
 
-- **Output**: 외부 connector(§7.5)가 사용할 유효 토큰. 평문 미노출(KMS)
-- **Side Effect**: 만료 전 자동 갱신, secret 무중단 교체(이중 윈도우)
-- **에러**: 갱신 실패 시 백오프 재시도 후 connector 호출 차단·알람. *(이 재시도는 **앱 레벨 토큰 수명 관리**이며, 프록시 요청 경로의 재시도·서킷=mesh(istio, §7.5.4·R4)와 별개다.)*
+- **크리덴셜(장수명 secret/개인키).** GW는 자격 원문을 **KMS(Secrets Manager)에 두고 DB에는 `connector.credential_ref` 참조만** 둔다(평문 미저장, §6.2). 자격은 **dual-window로 무중단 회전**한다(신·구 두 개를 겹쳐 두고 전환).
+- **access token(단수명).** GW는 위 크리덴셜로 provider 토큰 엔드포인트에서 access token을 발급받아 **soft-state 캐시**(`gw:cache:conn-token:{connector}`, redis-keyspace)에 둔다. **만료 *전*에 선제 갱신**(proactive)하여, 프록시 호출이 만료된 토큰으로 실패하는 창을 없앤다.
+- **Output**: 외부 connector(§7.5)가 사용할 유효 access token을 제공한다. 평문은 노출하지 않는다(KMS·캐시 보호).
+- **에러**: 갱신에 실패하면 백오프 재시도하고, 계속 실패하면 해당 connector 호출을 차단하고 알람을 낸다. *(이 재시도는 **앱 레벨 토큰 수명 관리**이며, 프록시 요청 경로의 재시도·서킷=mesh(istio, §7.5.4·R4)와 별개다.)*
 
 ### 7.1.4 OneID(OIDC) 연계 — 사람·클리닉·사내 호출자 (P1)
 
@@ -1809,8 +1810,9 @@ FR-ADM-02 (권한 분리, 경량). 역할별 수행 가능 기능 제한(§6.5).
 
 FR-AUD-01 (변조 방지·보존).
 
-- **Side Effect**: 모든 관리 변경(operator id·timestamp·before/after·IP)을 append-only로 기록
-- **경계/보존**: 보존 기간은 TBD(§6.4, 책임자·마감 TBD, 영향: §6.4·§7.9.3)
+- **Side Effect**: 모든 관리 변경(operator id·timestamp·before/after·IP)을 append-only로 기록한다.
+- **필드 규약**: `action`은 **`resource.verb` 명명 규약**(free string·앱 레벨 상수·정규식 검증, 예 `device.approve`·`region.change` — DB enum 아님, 확장성)을 따르고, `actor`는 **`type:id`**(`user:{oneidSub}` | `system:{component}` | `device:{deviceId}`), `result`는 **enum**(`success`/`denied`/`failure`)이다. 정확한 형식·표준 action 목록은 `design/db-jsonb-fields.md#audit_log`.
+- **경계/보존**: 보존 기간은 TBD다(§6.4, 책임자·마감 TBD, 영향: §6.4·§7.9.3).
 
 ### 7.9.4 data classification tagging (P1)
 
@@ -2056,6 +2058,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-02 | **R6 — 리뷰어 목록 확정 + Scott=PM 겸임.** §9 Document Approvals에 **영역별 리뷰어 표**(아키텍처=Thomas·인프라=Jack·QA=정우혁/James·DB/API=Raymond 자체·③-P별 담당·인증보안=Scott) 추가. §8 CCB·§9 승인표·Appendix B #10을 **Scott(실장·총괄·PM 겸임)** 로 갱신('PM 미지정' 해소) | (작성자 ID 미지정) |
 | 2026-07-02 | **R7 — 스펙↔구현 진행 = 1안 확정.** ④ AXS baseline 직후 구현 착수 + ③-C·③-P·③-I 스펙 병행(2안=전 스펙 완료 후 반려). `specs/00-execution-allocation.md`에 '구현 착수 전략' 섹션 신설, Agenda gantt에 1안 채택 표기. 구현 기간=SRS 확정 후 재산정(SRS 본문 영향 없음·계획 문서 반영) | (작성자 ID 미지정) |
 | 2026-07-06 | **§1.2 문장 서술식 정리** — 목록은 유지하되 명사 나열(조사·서술어 누락) 항목을 **완전한 문장(주어·서술어·능동태)** 으로 다듬어 가독성 개선(spec-writing-tips §3.2/§3.6/§3.7). SRS 전반에 동일 규칙 적용 방침 | (작성자 ID 미지정) |
+| 2026-07-06 | **감사 로그 필드 규약 정립(§7.9.3)** — `audit_log.result`를 **DB enum `audit_result`(success/denied/failure)** 로, `action`은 **`resource.verb` 명명 규약**(free string·앱 레벨 상수·정규식·표준 목록, DB enum 아님·확장성), `actor`는 **`type:id`**(user/system/device)로 정의. DBML(enum 신설·컬럼 not null·action 인덱스)·db-jsonb(#audit_log 규약 섹션 신설)·§7.9.3(참조) 정합 | (작성자 ID 미지정) |
+| 2026-07-06 | **외부 토큰/크리덴셜 모델 명확화(§7.1.3)** — 크리덴셜(장수명 secret/개인키, KMS·`connector.credential_ref` 참조·dual-window 회전)과 access token(단수명, `gw:cache:conn-token` 캐시·**만료 전 선제 갱신**)을 두 축으로 분리 서술. redis-keyspace에 **아웃바운드 토큰 캐시 키 `gw:cache:conn-token:{connector}` 신설**(bearer라 로그 미기록·격리·짧은 TTL). DBML `credential_ref` 주석 명확화(토큰 아님·DB 평문 미저장). connector 스키마 불변 | (작성자 ID 미지정) |
 | 2026-07-06 | **§3~§7 서술식 다듬기(선별)** — 문장 끝 명사-drop을 완결 문장으로: §6.3.5 Scalability("확장/추가"→"확장한다/추가한다")·§6.1 핵심 안전 규칙 3항("미포함/즉시 차단/준수"→완결 문장)·§7.3.4 부수효과("별도 처리"→"별도로 처리한다")·§7.7.5 버전 게이팅("호환 판정"→"판정한다"). §7.x 구조 항목(Input/Output/Side Effect/에러)·§3~§5 표·enum·mermaid는 인터페이스 정의 형식이라 간결 표기 유지(spec-writing-tips §3.9·규칙5). 순수 명사 나열 불릿은 발견되지 않음 | (작성자 ID 미지정) |
 | 2026-07-06 | **§2 서술 블록 서술식 다듬기** — §2.6(가정·종속)·§2.8(하위 호환) 불릿의 명사-drop(제공 대기·정밀화 제약·흡수·EOS 등)을 완전한 문장으로, §2.3.1 "승인 권한 보유"→"권한을 가진다"로 정정. §2.1/§2.1.1/§2.2/§2.3.x 서술은 이미 "굵은 주제어+완결 문장" 패턴이라 유지, §2.4(§7 매핑 인덱스)·§2.5/§2.7(표)는 목록/표 특성상 유지(spec-writing-tips §3.9) | (작성자 ID 미지정) |
 | 2026-07-06 | **§1.2 가독성 개선(list화) + device/clinic 정체성 문서 전반 정합** — §1.2 Product Scope를 장문 서술 → **indented list**(배경·목표·GW 정체·귀속 원칙)로 재구성. device/clinic 정체성 정립(주체=device·clinic=선택적 그룹)에 맞춰 §6.4.2 조감도 노드 라벨(clinic 'canonical'→'선택적 그룹·clinic-종속 정보 홈')·`API 명세·데이터 모델·주권.md` 데이터 모델 표(Policy tenant→scope·egress 제거·Connector egress SSOT·UpstreamRegistry 서브도메인+timeout·Device/Clinic 정체) 갱신. 08 문서 전수 스윕(스테일 clinic-centric/tenant 서술 0) | (작성자 ID 미지정) |
