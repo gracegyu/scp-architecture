@@ -490,6 +490,12 @@
     - **결정 = private_key_jwt.** (OneID는 이론상 계정 생성+비번 저장+ROPC 활성으로 구성이야 가능하나, OneID 기능 신설·clinic-less 전제 폐기·보안 격하를 요구해 **실질 불가**. 전제를 바꿔도 공유secret·MFA·계정오염·중앙의존은 그대로라 결론 불변.) **파생**: OneID는 GW 인증에서 제거 → `oneid` upstream·③-P-OID도 데이터 경로 없는 잔재라 제거(내부 프록시 대상=CleverSpace만), OneID는 고객 로그인 제품으로만 잔존(전 문서 정리 완료).
     - **성격**: [결정·재확인] — 이견 없으면 ADR-13(private_key_jwt) 확정. 변경 시 §7.1.1·§2.3.1(enrollment)·DBML(device)·clinic-less 전제 재검토. 근거=OneID SRS §1.2·§2.5.
 
+  - **R8. Enrollment 시 수집할 LMP clinic 정보 필드 확정 (논의·결정)** — clinicId만으로 enroll은 되지만 `clinic` 테이블에 id만 있으면 Console에서 사람이 식별하기 어렵다. enroll 때 LMP가 주는 clinic 정보를 함께 받아 record를 보강한다. **회의 결정 = 어느 필드를 수집·저장할지** (저장 구조·API·DB는 이미 반영).
+    - **LMP 제공(원문 확인)**: `licenseapi.yaml` `GET /licenses` 응답 `clinic` = {`name`·`address`·`phone`·`countyCode`(국가 ISO 3166)·`website`}. EzServer가 enroll 시 전달 → GW `clinic` 저장. LMP 변경 시 `PATCH /v1/clinics/{clinicId}`(device 자가 동기화·self-only)로 갱신.
+    - **추천안 = LMP가 주는 전부 수집**(name·country_code·address·phone·website) — LMP 응답에 공짜로 함께 오고, 이름·국가=식별, 주소·전화=C/S 연락에 유용, **환자 PHI 아님(clinic 업무정보)**. *(최소안 = name + country_code, 식별만.)*
+    - **유의**: LMP `country_code`(clinic 국가) ≠ GW `region`(배포 리전) — 별개 컬럼.
+    - **성격**: [논의·결정] — **수집 필드셋만 승인**(추천=전부). DBML(clinic 5컬럼 고정 필드)·OpenAPI(`ClinicInfo`·enroll·`PATCH /v1/clinics/{clinicId}`)·§2.3.1은 **선반영 완료(필드셋 TBD)**. 저장 구조=고정 필드(오너 결정). 잔여 확인(EzServer/LMP·③-P-EZ): 신규 클리닉 시 정보 시점·실제 형식.
+
 - 공유 사항 (결정 아님 · 정보 공유)
 
   - **S1. GW→각 EzServer(클리닉) 범용 하행(downlink) 레일 확보** — webhook 역방향 분배를 위해 만든 **MQTT 하행 채널**(EzServer가 방화벽 뒤에서 outbound 지속 구독, §7.6.6)은, 사실상 **중앙(GW)에서 각 클리닉 edge로 능동 전달하는 최초의 수단**이다. 토픽을 `gw/clinic/{clinicId}/{stream}` 로 두어 **`{stream}` 확장점을 예약**했다(EzServer는 `#` 구독·미지 stream 무시·forward-compat).
