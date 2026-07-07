@@ -87,7 +87,7 @@ paths:
               $ref: '#/components/schemas/OidcVerifyRequest'
       responses:
         '200':
-          description: 검증된 신원 + 디바이스 인증면 매핑
+          description: 검증된 운영자 신원·역할
           content:
             application/json:
               schema:
@@ -1028,11 +1028,7 @@ components:
         identity:
           type: object
           description: 운영자 신원(직원 IdP subject·역할 claim Admin/CS)
-          example: { sub: entra-8f3a, role: cs, clinicId: CLINIC-0040694997 }
-        deviceBinding:
-          type: string
-          description: 디바이스 인증면과의 매핑
-          example: device:01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60
+          example: { sub: entra-8f3a, role: cs }
 
     # 온보딩
     EnrollStartRequest:

@@ -27,7 +27,7 @@
 | FR-AUTH-06 | DPoP (sender-constrained) | M | v1.1 | 타 위치 replay 차단 |
 | FR-AUTH-07 | 하드웨어 키(SE/TPM) 보관 | M | v1.1 | 키 비추출 |
 | FR-AUTH-08 | 사람 인증(OIDC) 연계 — **운영자(Console Admin·C/S)=직원 IdP(MS365/Entra)** | M | v1.0 | 직원 IdP 토큰 검증·역할 claim 성공 |
-| FR-AUTH-09 | 디바이스 머신 인증 ↔ 사람(직원 IdP) 신원 분리·매핑(2면 공존) | M | v1.0 | 두 surface 분리·매핑 검증 |
+| FR-AUTH-09 | 디바이스 머신 인증 ↔ 사람(직원 IdP) 신원 **분리·공존**(2면) — 서로 매이지 않고 감사(actor 타입)에서만 상관 | M | v1.0 | 두 surface 독립 동작 + 감사 상관(actor `user:`/`device:`) 검증 |
 
 ### **디바이스 레지스트리 (DEV)**
 

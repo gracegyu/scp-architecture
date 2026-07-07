@@ -1556,7 +1556,7 @@ None
 
 ## 7.1 인증·토큰 (P1)
 
-GW는 **두 개의 인증면(surface)을 분리·공존**시킨다(ADR-08): 무인 **EzServer(디바이스, §1.4)의 머신 인증**과 **운영자(사람)의 직원 IdP(MS365/Entra) OIDC 인증**. 두 면은 성질이 달라 단일 인증면으로 묶지 않으며, EzServer↔신원 매핑으로 연결된다.
+GW는 **두 개의 인증면(surface)을 분리·공존**시킨다(ADR-08): 무인 **EzServer(디바이스, §1.4)의 머신 인증**과 **운영자(사람)의 직원 IdP(MS365/Entra) OIDC 인증**. 두 면은 성질이 달라 단일 인증면으로 묶지 않는다 — 서로 독립이며, 면을 가로지르는 행위(예: C/S가 특정 device enrollment 승인)는 감사 로그의 actor 타입(`user:`/`device:`)으로 상관된다.
 
 ### 7.1.1 EzServer(디바이스) 머신 인증 (P1)
 
@@ -1599,12 +1599,12 @@ FR-AUTH-03·04 (외부(AXS 등) 크리덴셜 보호·access token 만료 전 자
 
 ### 7.1.4 사람 인증(OIDC 연계) — 운영자=직원 IdP (P1)
 
-FR-AUTH-08·09 (OIDC 토큰 검증·연계, 디바이스 머신 인증 ↔ 사람 신원 분리·매핑, ADR-08).
+FR-AUTH-08·09 (운영자 OIDC 토큰 검증·연계, 디바이스 인증면(§7.1.1)과 **분리·공존** — 두 면은 매이지 않고 감사(actor 타입)에서만 상관, ADR-08).
 
 - **GW Console 운영자(Admin·C/S) = 사내 직원** → **직원 IdP(MS365/Entra ID) OIDC 위임이 기본안**. GW는 **OIDC-agnostic**(verify 메커니즘 동일·issuer만 다름), 자체 비밀번호를 두지 않는 게 기본.
 - **OneID = 고객(클리닉·랩·개인) 신원 제품**(테넌트=고객)이며 **GW와 무관하다** — 인증(device·운영자)에도 upstream 라우팅에도 쓰지 않는다. v1.0엔 GW에 직접 로그인/연동하는 고객 경로가 없다(고객은 EzServer·CleverOne 등 제품을 사용). *(구 "사람 인증=OneID 위임"·`oneid` upstream·③-P-OID 서술 전면 정정 — 2026-07-07, Appendix B #38·Agenda.)*
 - **역할(Admin/C-S) = IdP claim(Entra App Role/Group)** → §7.9.2 RBAC. "누가 Admin/C-S냐"는 **IdP에서 배정**하고 GW는 claim을 신뢰한다(별도 user 테이블 불요). **C/S↔담당 클리닉 범위**가 필요할 때만 작은 GW 매핑 테이블 추가.
-- **Input**: 직원 IdP(OIDC) 토큰 / **Output**: 검증된 운영자 신원+역할·디바이스 인증면 매핑 / **에러**: 검증 실패 401·역할/매핑 부재 권한거부(§7.9 RBAC)
+- **Input**: 직원 IdP(OIDC) 토큰 / **Output**: 검증된 운영자 신원+역할 / **에러**: 검증 실패 401·역할 부재 권한거부(§7.9 RBAC)
 - **결정 대기(Agenda·Appendix B #38)**: Console 인증 = **Entra 연동(기본안) vs GW 자체 user DB**, C/S 클리닉 범위 여부. 확정 시 verify 엔드포인트(현 `/v1/auth/oidc/verify`)를 일반 OIDC로 정합.
 
 **비목표(Will Not Do)**: 소셜 로그인 미도입. 자체 비밀번호는 기본안(직원 IdP 위임)에선 없음(자체 DB 선택 시에만).
@@ -2311,4 +2311,5 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-07 | **본문 provider→upstream 용어 통일 + §2.3 재정리(발생순서 개요·연동 링크 생애주기) + AXS Organization 링크 반영** — (1) 살아있는 본문의 `provider` 서술을 **`upstream`으로 통일**(SRS 72줄·OpenAPI·DBML·db-jsonb·infra·Agenda), ERD 컬럼 `provider`→**`target_id`**, webhook 호스트 placeholder `{provider}`→**`{target}`**(+OpenAPI path `/v1/webhooks/{target}`·param), **역사·병합 이력(webhook_provider·upstream_registry·날짜 changelog)은 보존**. 네이밍은 upstream 유지 확정(내부 backend 포함 대상엔 provider 부적합) · (2) §2.3 머리의 org_mapping 다이어그램을 **「시나리오 발생 순서(lifecycle)」 개요**로 교체(소절 번호는 교차참조 보존 위해 불변·발생순서만 명시)하고, 다이어그램은 **§2.3.4 「연동 링크·org_mapping 생애주기」로 이동** · (3) AXS 문서 정독 반영 — **org_mapping 로컬 등록(org-bindings·AXS 미호출) vs AXS 연동 링크(프록시 `POST /organization/integration/link`·동의 PENDING→APPROVED) 분리**, 경우 A(이미 연결)/B(미연결) 명시, GW=공통(매핑+프록시 레일)·AXS 고유 시퀀스=④ Sub-SRS 분담. ④ `_status.md` 범위에 Organization Integration 링크 추가 | (작성자 ID 미지정) |
 | 2026-07-07 | **§2.3 `org_mapping` 생애주기 다이어그램 신설(AXS 기준) + 양방향 사용 명확화** — org_mapping이 "언제 한 행 생기나(=[2] 클리닉이 AXS 연동 켤 때뿐)"와 "생긴 뒤 소비 경로"를 mermaid 시퀀스([1]upstream 사전등록 → [2]org-binding 생성 → [3]송신 정조회 → [4]수신 역조회 → 해지 DELETE)로 시각화. org_mapping 노트를 **양방향**(송신 outbound `clinic→org_id` 정조회 + 수신 inbound `org_id→clinic` 역조회)으로 보정(기존 webhook 수신 전용 서술 오해 제거·§6.4.1과 정합). 겸사겸사 §2.3 산문의 잔여 `provider`→`upstream` 정리(노트·분배 규약·라우팅 Flow 헤딩/인트로). 네이밍은 **`upstream` 유지 확정**(내부 backend 포함 대상엔 provider 부적합·회의 어법 일치) | (작성자 ID 미지정) |
 | 2026-07-07 | **OneID GW 완전 제거 확정 — 인증(device·Console)·`oneid` upstream·③-P-OID 전면 삭제** — OneID의 GW 내 유일 역할이 인증 연동이었고(원본 80문서 ADR-08 '사람·클리닉·사내호출자 OneID(OIDC)'), 그게 사라지면 `oneid` upstream·③-P-OID 적응 스펙도 데이터 경로 없는 잔재임을 확인(OneID SRS §1.2·§2.5 정독). Device→GW=private_key_jwt(ADR-13)·운영자=직원 IdP(Entra·§7.1.4) 최종 확정. 제거: §2.1/§2.2 다이어그램 OneID·OneID Integration 노드·엣지, 외부시스템표·upstream·의존·B프록시 리스트의 OneID, env matrix OneID 행, Appendix B #10 리뷰어 'OID', §7.1.4 heading/본문·산재 '고객 OneID 아님' clarifier, audit actor 예시 oneidSub→sub. 동반: DBML(upstream enum/예시)·OpenAPI·redis·db-jsonb·③-P-OID 디렉터리·roadmap·실행할당·PRD·요구사항·ARD·API명세·인증보안. OneID는 '고객 신원 제품' 배경 서술로만 잔존(§7.1.4). 원본 80문서(-Org)도 동반 정정(승인). 근거·비교표=Agenda Share | (작성자 ID 미지정) |
+| 2026-07-07 | **운영자·device 인증면 정합 — `oidc` rename 잔재 제거 + "매핑"→"분리·공존" 정정** — `oneid→oidc` 리네이밍이 운영자(Console) 인증 스키마에 device 잔재를 남긴 것을 정리: OpenAPI `OidcVerifyResponse.deviceBinding` 삭제·identity 예시 `clinicId` 삭제(#39)·200 설명 정정. 두 인증면(device=private_key_jwt / 운영자=Entra OIDC)은 '매핑으로 연결'이 아니라 **완전 분리·공존**이고 교차 행위는 감사(actor `user:`/`device:`)에서만 상관됨을 §7.1 intro·§7.1.4(Output·FR 인용)·요구사항 FR-AUTH-09·인증보안에 반영. 경로 분리 재확인: device→GW=`/v1/auth/token`(§7.1.1)·운영자=`/v1/auth/oidc/verify`(§7.1.4) — SRS·OpenAPI·DBML 교차오염 0 | (작성자 ID 미지정) |
 | 2026-07-06 | **레코드 CRUD·API 감사 + 누락 관리 API 신설** — §2.3 provenance 표를 3열→**5열 CRUD·API 매트릭스**(테이블별 생성(C)/수정(U)/삭제(D)/관리 API)로 확장, 표 아래 **org_mapping 등록 메커니즘 명확화 노트** 추가(외부 Org-ID는 provider 발급이라 GW 자동 도출 불가 → 연동 켤 때 client가 `org-bindings`로 자가 등록·enroll과 독립·새 provider는 클리닉마다 1회). 감사로 드러난 **누락 관리 API 2건 신설**: `DELETE /admin/v1/org-mappings`(연동 해지·복합키 targetId+externalOrgId), `GET /admin/v1/webhook-events`(Console 검색/필터·PHI-free 메타·payload 미포함) + 관측 조회 `GET /admin/v1/fleet`(대시보드) 명시. OpenAPI **`WebhookEvent`·`WebhookEventState`·`FleetState` 스키마 신설**·§7.9.1 조회 API 목록 보강. **관리 API 미정의 잔여 = region_catalog(#30)·policy(#32)** 재확인 | (작성자 ID 미지정) |
