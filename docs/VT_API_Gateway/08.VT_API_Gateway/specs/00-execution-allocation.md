@@ -46,3 +46,21 @@
 | Infra | 단일 Region | — | ✓(③-I) | 고정 IP·샌드박스 |
 
 > 상태 범례: 미작성 / 초안(GW 1차) / 인계 / 리뷰 / baseline
+
+## CI/CD 파이프라인 소유 · Jack(인프라) 조율
+
+> **왜 여기 있나**: 7/9 준비 중 R6/R6.1로 Agenda에 올렸다가, "앱 CI 산출물=앱팀 소유, 인프라=기반 제공"은 **표준 결론이라 회의 논의 가치가 낮다**고 판단 → Agenda에서 빼고 **실행 트래커(본 문서)로 이관**(2026-07-07). 구현 착수(④ AXS baseline 후) 전 Jack과 협의해 확정한다.
+
+- **소유(확정)**: `vt-api-gateway` repo 내 CI 산출물은 **GW(본인)가 작성·소유**한다 — `Dockerfile`(이미지 빌드 레시피)·`azure-pipelines.yml`(① 재배포: build·test·image·배포 트리거)·`azure-pipelines-config.yml`(② 호환성 매트릭스 발행: 검증→JSON 렌더→S3). 빌드·실행·발행 내용이 앱에 종속돼 앱팀만 정의 가능. **흐름(job)별로 담당을 쪼개지 않는다**(다중 오너 방지).
+- **인프라(Jack) 선행 제공 = 필수 전제**(권한·리소스 생성이라 GW 불가): service connection(ECR/S3 인증)·ECR·**S3 버킷+IAM**(② 발행 대상·CI-only write)·**ArgoCD 앱 등록**·agent pool·*(선택)* 표준 파이프라인/`Dockerfile` 템플릿·승인 base 이미지. GW 파이프라인은 이를 **참조**한다.
+- **타이밍**: CI 골격(build·test)은 **조기**(코드 생기면), 배포 파이프라인은 **첫 E2E 배포 시점(개발 중반)** 에 세운다(구현 착수=④ AXS baseline 후·7/2 R7). **인프라 기반은 그 전에 준비돼야 함**(의존).
+
+### Jack에게 확인·요청할 것 (구현 착수 전)
+
+- [ ] **Provisioning**: service connection(ECR/S3)·ECR·S3 버킷+IAM(CI-only write)·ArgoCD 앱 등록·agent pool 생성·부여
+- [ ] **(선택) 표준 템플릿 제공?** 파이프라인/`Dockerfile` 스켈레톤·승인 base 이미지 (있으면 GW는 앱 특화 부분만 채움)
+- [ ] **배포 manifest 위치 관례**: `es-gitops`(GW는 이미지 태그·값만 PR 기여) vs `vt-api-gateway`(app chart 동봉·CI 렌더) — 어느 쪽?
+- [ ] **rollout 트리거 방식**: `es-gitops`에 태그 bump PR / ArgoCD Image Updater / API 중?
+
+> 위 manifest 위치·rollout 방식이 정해져야 `azure-pipelines.yml`의 "배포 트리거" 단계가 확정된다. (연계: SRS §7.7.5 매트릭스 발행 파이프라인·③-I 인프라.)
+> **상태**: 미착수 — 구현 착수(④ baseline 후) 전 Jack 1:1 협의.
