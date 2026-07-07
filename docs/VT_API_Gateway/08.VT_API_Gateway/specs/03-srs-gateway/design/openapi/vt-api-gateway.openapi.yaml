@@ -1430,7 +1430,7 @@ components:
       type: object
       description: >-
         LMP가 제공하는 clinic 표시·연락 정보(enroll 시 EzServer가 전달·§2.3.1, LMP 변경 시 PATCH /v1/clinics/{clinicId}로 갱신).
-        **수집 필드셋은 R8/Appendix B #41 확정 전 잠정(TBD)** — 추천안=LMP가 주는 전부. 저장 구조=고정 필드(오너 결정). 환자 PHI 아님(clinic 업무정보).
+        **수집 필드셋은 R8/Appendix B #41 확정 전 잠정(TBD)** — 추천안=LMP가 주는 전부. 저장 구조=고정 컬럼 확정(jsonb 아님). 환자 PHI 아님(clinic 업무정보).
       properties:
         name: { type: string, description: '클리닉 표시명(LMP clinic.name)·Console 식별', example: ES Clinic }
         countryCode: { type: string, description: '국가(LMP countyCode·ISO 3166 Alpha-2) — GW region(배포 리전)과 별개', example: KR }

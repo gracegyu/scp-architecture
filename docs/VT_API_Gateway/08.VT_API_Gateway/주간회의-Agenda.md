@@ -494,7 +494,7 @@
     - **LMP 제공(원문 확인)**: `licenseapi.yaml` `GET /licenses` 응답 `clinic` = {`name`·`address`·`phone`·`countyCode`(국가 ISO 3166)·`website`}. EzServer가 enroll 시 전달 → GW `clinic` 저장. LMP 변경 시 `PATCH /v1/clinics/{clinicId}`(device 자가 동기화·self-only)로 갱신.
     - **추천안 = LMP가 주는 전부 수집**(name·country_code·address·phone·website) — LMP 응답에 공짜로 함께 오고, 이름·국가=식별, 주소·전화=C/S 연락에 유용, **환자 PHI 아님(clinic 업무정보)**. *(최소안 = name + country_code, 식별만.)*
     - **유의**: LMP `country_code`(clinic 국가) ≠ GW `region`(배포 리전) — 별개 컬럼.
-    - **성격**: [논의·결정] — **수집 필드셋만 승인**(추천=전부). DBML(clinic 5컬럼 고정 필드)·OpenAPI(`ClinicInfo`·enroll·`PATCH /v1/clinics/{clinicId}`)·§2.3.1은 **선반영 완료(필드셋 TBD)**. 저장 구조=고정 필드(오너 결정). 잔여 확인(EzServer/LMP·③-P-EZ): 신규 클리닉 시 정보 시점·실제 형식.
+    - **성격**: [논의·결정] — **수집 필드셋만 승인**(추천=전부). DBML(clinic 5컬럼 고정 필드)·OpenAPI(`ClinicInfo`·enroll·`PATCH /v1/clinics/{clinicId}`)·§2.3.1은 **선반영 완료(필드셋 TBD)**. 잔여 확인(EzServer/LMP·③-P-EZ): 신규 클리닉 시 정보 시점·실제 형식.
 
 - 공유 사항 (결정 아님 · 정보 공유)
 
