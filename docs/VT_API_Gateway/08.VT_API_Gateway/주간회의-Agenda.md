@@ -464,6 +464,7 @@
     - **역할 관리(A안)**: "누가 Admin/C-S냐"는 **Entra에서 App Role/Group 배정** → 토큰 claim으로 GW RBAC(§7.9.2). **별도 user 테이블 불요.** 인증=Entra, 인가=claim.
     - **하위 결정 — C/S를 담당 클리닉에 한정하나?** 한정하면("C/S X는 클리닉 A·B만 승인") Entra가 그 매핑을 모르므로 **GW에 작은 (operator↔clinic) 매핑 테이블**만 추가(역할은 여전히 Entra). 한정 안 하면 GW 테이블 0.
     - **추천 = A(Entra)**: IdP 재구현 회피·직원 SSO·자동 오프보딩. DBML은 (클리닉 범위 한정 없으면) **무변경**.
+    - **확인 필요(Entra 선결)**: (a) **C/S 인력이 Vatech MS365/Entra 디렉터리에 있는지**(현장 설치·해외법인·협력사 직원 포함 여부) — 없으면 게스트 초대/별도 등록 필요 → A안 전제 흔들림. (b) **Entra 앱 등록·App Role/Group·admin consent·redirect URI는 tenant admin 권한**이라 **MS365/Entra 담당(IT)에 요청** 필요(담당자·절차·리드타임 확인). *이 IT 의존은 이점의 대가 — 오프보딩·MFA·비번정책을 IT가 담당.* → Appendix B #40.
     - **성격**: [논의·결정] — A/B 택일 + C/S 클리닉 범위 여부. 확정 시 §7.1.4(사람 인증 재정의)·§7.9.2(RBAC 역할 원천)·§2.3(운영자 로그인 시나리오)·verify 엔드포인트 일반 OIDC화·(조건부)DBML/API 반영. Appendix B #38. **(디바이스 인증 방식(공개키 vs OneID) 결정·OneID 전면 제거 배경은 아래 R7 참조.)**
 
   - **R7. 무인 장비(EzServer)의 GW 인증 방식 확정 — private_key_jwt(공개키) vs OneID (중요 · 결정·재확인)** — **결론: OneID에는 무인 장비용 머신 인증 수단이 없다 — 사실상 후보가 못 된다. private_key_jwt(공개키)로 확정한다.** 되돌리기 어려운 기반 결정이라 CCB 재확인을 받는다.
