@@ -9,7 +9,7 @@
 | 상태 | Draft |
 | PRD | [PRD (v2)](<VT API Gateway — PRD (v2).md>) |
 
-**원칙**: 모든 요구사항을 빠짐없이 등록하고 **목표 버전**을 배정한다(누락이 아니라 일정 배치). **v1.0(MVP)은 데모가 아니라 'v1.0 요구사항 전부 구현 + 수용 기준 통과'로 제대로 동작하는 완결 제품**이다. 현재 전체 67개 중 v1.0 배정 54개 (ESMN Roadmap 흡수 14건 추가 — COMPAT·WH·OneID·라우팅 키). 각 FR은 11장 수용 기준과 추적 연결.
+**원칙**: 모든 요구사항을 빠짐없이 등록하고 **목표 버전**을 배정한다(누락이 아니라 일정 배치). **v1.0(MVP)은 데모가 아니라 'v1.0 요구사항 전부 구현 + 수용 기준 통과'로 제대로 동작하는 완결 제품**이다. 현재 전체 67개 중 v1.0 배정 54개 (ESMN Roadmap 흡수 14건 추가 — COMPAT·WH·사람 인증·라우팅 키). 각 FR은 11장 수용 기준과 추적 연결.
 
 **심도(depth) 정책**: 총 공수 ≤ 9.5MM(목표 그 이하). 핵심 요구사항은 제대로 구현하되, **감사(AUD-01) · RBAC(ADM-02) · 관리자 UI(ADM-01) · consent(COMP-01) · 분류 태깅(COMP-02)은 v1.0에서 경량(MVP 수준)**으로 구현한다. 제외 항목(DPoP·멀티클라우드·10만대 마이그)은 post-MVP. 2단계: core(gw/1.0.0.b1) → full(gw/1.0.0.0).
 
@@ -26,8 +26,8 @@
 | FR-AUTH-05 | token claim hard binding(device/region/aud/TTL) | M | v1.0 | claim 강제·검증 |
 | FR-AUTH-06 | DPoP (sender-constrained) | M | v1.1 | 타 위치 replay 차단 |
 | FR-AUTH-07 | 하드웨어 키(SE/TPM) 보관 | M | v1.1 | 키 비추출 |
-| FR-AUTH-08 | OneID(OIDC) 연계 — 사람·클리닉·사내 호출자(EzServer/CleverOne) 인증 | M | v1.0 | OneID 토큰 검증·연계 성공 |
-| FR-AUTH-09 | 디바이스 머신 인증 ↔ OneID 신원 분리·매핑(2면 공존) | M | v1.0 | 두 surface 분리·매핑 검증 |
+| FR-AUTH-08 | 사람 인증(OIDC) 연계 — **운영자(Console Admin·C/S)=직원 IdP(MS365/Entra)** | M | v1.0 | 직원 IdP 토큰 검증·역할 claim 성공 |
+| FR-AUTH-09 | 디바이스 머신 인증 ↔ 사람(직원 IdP) 신원 분리·매핑(2면 공존) | M | v1.0 | 두 surface 분리·매핑 검증 |
 
 ### **디바이스 레지스트리 (DEV)**
 
@@ -162,4 +162,4 @@ ESMN Roadmap §2.7 흡수. GW가 외부 이벤트의 단일 수신·분배점. b
 - **v1.1**: DPoP+HW키·하드웨어 attestation·fleet 확장·2nd connector.
 - **v1.2**: 멀티 리전·멀티클라우드 presign·signer 확장.
 - **v2.0**: 레거시 10만대 마이그레이션.
-- **Roadmap 흡수 (v1.0)**: API 버전 호환성(COMPAT-01~05)·OneID 인증면(AUTH-08/09)·Webhook Receiver(WH-01~06, Edge MQTT 역방향 포함)·라우팅 키 통합(RGN-06).
+- **Roadmap 흡수 (v1.0)**: API 버전 호환성(COMPAT-01~05)·사람 인증면(AUTH-08/09)·Webhook Receiver(WH-01~06, Edge MQTT 역방향 포함)·라우팅 키 통합(RGN-06).

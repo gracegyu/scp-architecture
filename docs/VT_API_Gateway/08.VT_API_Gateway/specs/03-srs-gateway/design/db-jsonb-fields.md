@@ -136,10 +136,10 @@ region.change   device.approve   credential.rotate   policy.update
 
 ### `actor` — `type:id`
 ```
-user:oneid-8f3a…      system:token-refresh      device:0192abcd-…
+user:entra-8f3a…      system:token-refresh      device:0192abcd-…
 ```
 - **형식**: `^(user|system|device):.+$` — 모호한 "운영자/시스템"을 접두사로 구분한다.
-  - `user:{oneidSub}` — 사람(운영자/Admin/C-S). OneID subject.
+  - `user:{sub}` — 사람(운영자/Admin/C-S). **직원 IdP(MS365/Entra) subject**(§7.1.4).
   - `system:{component}` — 자동 주체(예 `system:token-refresh` · `system:webhook-dispatcher` · `system:enroll`).
   - `device:{deviceId}` — 디바이스 개시 동작.
 

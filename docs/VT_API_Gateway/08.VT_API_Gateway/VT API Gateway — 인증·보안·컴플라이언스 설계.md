@@ -23,7 +23,7 @@
 - 디바이스 무인: OAuth2 **client_credentials** → 단명 JWT(claim: device_id·region·audience·짧은 TTL).
 - 외부 토큰: 암호화 저장(at-rest)·만료 전 자동 갱신. secret **자동 회전(dual-window)**.
 - v1.1: **DPoP**(sender-constrained) + 하드웨어 키(SE/TPM). (mTLS 미채택 — ADR-01)
-- **인증 2면(ADR-08)**: 위 디바이스 머신 인증과 별개로, 사람·클리닉·사내 호출자(EzServer/CleverOne)는 **OneID(OIDC)**로 인증. 두 surface는 분리·매핑(FR-AUTH-08/09).
+- **인증 2면(ADR-08)**: 위 디바이스 머신 인증(private_key_jwt)과 별개로, **운영자(Console Admin·C/S)=사내 직원은 직원 IdP(MS365/Entra) OIDC**로 인증한다. 두 surface는 분리·매핑(FR-AUTH-08/09). (고객 IdP OneID는 GW 인증 대상 아님.)
 
 ## 2. 온보딩 (Enrollment)
 

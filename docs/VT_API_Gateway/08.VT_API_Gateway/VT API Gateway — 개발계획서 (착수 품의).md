@@ -9,7 +9,7 @@
 
 ## 1. 개발 목적
 
-VT-Straumann **공진화 전략**(Straumann AXS 연동)의 실행 기반을 확보하고, 나아가 바텍 **전사 표준 API Gateway**를 구축한다. 의료 디바이스 통신을 중앙 control plane으로 일원화하고, 데이터는 디바이스–리전 직결로 주권을 보장한다. 아울러 ESMN *VatechAPIGateway Roadmap*(2026-06-11)의 API 버전 호환성·OneID 인증면·Webhook 분배를 v1.0 범위로 흡수하여 사내 클라우드 서비스(CleverOne·EzServer·CleverSpace) 연동까지 단일 게이트웨이로 수용한다.
+VT-Straumann **공진화 전략**(Straumann AXS 연동)의 실행 기반을 확보하고, 나아가 바텍 **전사 표준 API Gateway**를 구축한다. 의료 디바이스 통신을 중앙 control plane으로 일원화하고, 데이터는 디바이스–리전 직결로 주권을 보장한다. 아울러 ESMN *VatechAPIGateway Roadmap*(2026-06-11)의 API 버전 호환성·사람 인증면·Webhook 분배를 v1.0 범위로 흡수하여 사내 클라우드 서비스(CleverOne·EzServer·CleverSpace) 연동까지 단일 게이트웨이로 수용한다.
 
 사업 동인: [VGBX-8906](https://vts.vatech.com/browse/VGBX-8906) · [VTWB-16535](https://vts.vatech.com/browse/VTWB-16535)
 
@@ -17,7 +17,7 @@ VT-Straumann **공진화 전략**(Straumann AXS 연동)의 실행 기반을 확
 
 | 구분 | 내용 |
 | --- | --- |
-| **핵심** 제대로 동작 | 디바이스 인증 · 레지스트리 · 온보딩 · 단일 리전 주권 · 업로드 세션 · AXS 연동 · Fleet 기본(heartbeat·kill-switch) · **API 버전 호환성(Vatech-* 헤더·well-known)** · OneID 연계 · Webhook 수신(forward) |
+| **핵심** 제대로 동작 | 디바이스 인증 · 레지스트리 · 온보딩 · 단일 리전 주권 · 업로드 세션 · AXS 연동 · Fleet 기본(heartbeat·kill-switch) · **API 버전 호환성(Vatech-* 헤더·well-known)** · 사람(운영자) 인증 연계 · Webhook 수신(forward) |
 | **경량** MVP 수준 | 감사 로그 · RBAC · 관리자 UI · consent · 데이터 분류 태깅 |
 | **제외** post-MVP | DPoP+HW키 · 멀티클라우드 · 리전 signer 다수 · 레거시 10만대 마이그레이션 · 추가 connector |
 

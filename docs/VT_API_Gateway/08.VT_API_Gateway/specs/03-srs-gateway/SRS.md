@@ -30,7 +30,7 @@
 - CleverOne이 EzServer를 거치지 않고 CleverSpace로 직접 연동하는 **경로 B**가 존재해, 인증·정책 통제가 두 갈래로 분산된다.
 - Straumann AXS처럼 보안상 직접 연결이 불가능한 외부 연동 수요가 늘고 있다.
 
-**목표.** GW는 모든 클라우드·디바이스 연동을 **단일 게이트웨이로 일원화**하여, 인증(OneID 연계)·버전 호환·Region 라우팅을 한 집행점에서 처리한다. 구체적으로 GW는 다음을 수행한다.
+**목표.** GW는 모든 클라우드·디바이스 연동을 **단일 게이트웨이로 일원화**하여, 인증(사람=직원 IdP·device=private_key_jwt)·버전 호환·Region 라우팅을 한 집행점에서 처리한다. 구체적으로 GW는 다음을 수행한다.
 
 - GW는 모든 통신이 경유하는 중앙 **control plane**으로서 인증·디바이스 관리·라우팅·config를 담당한다.
 - 파일은 presigned URL로 **디바이스와 리전 storage를 직접 연결해** 전송하고, GW는 그 바이트 경로에 관여하지 않는다.
@@ -40,7 +40,7 @@
 
 **GW의 정체 — 범용 API Gateway.** GW는 특정 서비스(AXS)나 특정 클라이언트(EzServer)에 종속되지 않고, VT와 외부의 여러 클라우드 서비스를 연동하는 **범용 API Gateway**이다. 모든 호출은 **`device(주체) → GW → upstream`** 경로를 따르며, GW의 호출자(client)는 GW에 인증해 upstream로 연결하는 머신 클라이언트인 **device**이다(§1.4). clinic은 이 경로에 놓인 노드가 아니라 device가 선택적으로 속하는 **그룹**이다.
 
-- **현재(v1.0).** GW는 CleverSpace와 AXS를 연동하고 인증은 OneID에 위임한다. device는 EzServer 한 종류(클리닉당 1대)뿐이므로, 모든 device가 clinic에 속한다.
+- **현재(v1.0).** GW는 CleverSpace와 AXS를 연동한다. 인증은 두 면 — device는 private_key_jwt(§7.1.1), 사람(운영자)은 직원 IdP(MS365/Entra·§7.1.4). device는 EzServer 한 종류(클리닉당 1대)뿐이므로, 모든 device가 clinic에 속한다.
 - **미래(확장성).** 본 SRS는 다음 확장 여지를 미리 보장한다. 연동 upstream는 VT·외부의 여러 클라우드 서비스로 늘어나되, **레지스트리에 한 행을 등록하는 것만으로 추가되고 코드·경로는 바뀌지 않는다**(§4.1.2·NFR-SCL). device도 EzServer 외의 종류가 생길 수 있고, clinic에 속하지 않는 device(**clinic-less**)도 있을 수 있다.
 - **귀속 원칙.** 주체는 device이고, clinic은 device가 속할 때 region·정책·upstream-org 같은 *clinic-종속 정보*를 대신 제공하는 그룹이다. 따라서 region·policy는 **device를 기준으로 해석**하되, device가 clinic에 속하면 clinic이 그 값을 상속시키고 속하지 않으면 device 자체 값이나 global 기본을 쓴다. 해석은 **device → clinic → global** 순서를 따른다(§6.4.1·§7.5.3). v1.0에서는 모든 device가 clinic에 속하므로 실제로는 clinic 단위로 해석되지만, 스키마는 device·global 스코프를 미리 수용한다.
 
@@ -149,7 +149,7 @@ None
 
 ## 2.1 Product Perspective (제품 조망)
 
-GW는 기존 제품군(CleverOne·EzServer·CleverSpace·OneID)과 외부 플랫폼(Straumann AXS) 사이의 **단일 control plane**으로 신규 구축된다.
+GW는 기존 제품군(CleverOne·EzServer·CleverSpace)과 외부 플랫폼(Straumann AXS) 사이의 **단일 control plane**으로 신규 구축된다.
 
 ```mermaid
 flowchart TD
@@ -166,7 +166,6 @@ flowchart TD
         subgraph INT["내부 — B 프로파일 (우리 서비스·내부망)"]
             CS["CleverSpace (멀티 Region)"]
             CLAB["CleverLab"]
-            OID["OneID"]
         end
         subgraph EXT["외부 — C 프로파일 (제3자·OAuth·고정 egress IP)"]
             AXS["Straumann AXS"]
@@ -180,7 +179,6 @@ flowchart TD
     DEV --> EZ
     %% API 호출은 대상 무관 동일 경로: GW → upstream (target-routed proxy, ADR-11). 차이는 trust profile뿐
     GW -->|"프록시 (B·내부)"| CS
-    GW -->|"인증 연계 (B·내부)"| OID
     GW -->|"프록시 (C·외부: OAuth·고정 egress IP)"| AXS
     %% CleverLab은 프록시 대상이 아니라 갈래B 클라우드 클라이언트(보류) — CleverLab→GW→AXS
     CLAB -.->|"클라우드↔클라우드 (갈래B·보류): CleverLab→GW→AXS"| GW
@@ -219,13 +217,12 @@ flowchart TD
 | --- | --- |
 | CleverOne / EzServer | 사내 호출자. EzServer는 Edge(방화벽 뒤, inbound 불가) |
 | CleverSpace | 멀티 Region 백엔드(데이터 경로 대상) |
-| OneID | 사람·클리닉·사내 호출자 인증(OIDC) |
 | Straumann AXS | 외부 연동 대상. Webhook 수신·presigned 연동 |
 | CleverLab | 우리 클라우드 기공소 PMS. GW의 **프록시 대상이 아니라 갈래 B 클라우드 클라이언트**(CleverLab→GW→AXS) + AXS 이벤트 webhook 수신처. **CleverLab↔AXS 직접 연동(갈래 B)은 현 시점 범위 외/보류**(§1.2·④ — 외부 cloud 연동 일반 역량은 유지) |
 | Route 53 GeoDNS | EzServer를 최근접 GW Region에 연결 |
 | GW Console | Admin Web(③-C Sub-SRS) — 관리 API 호출 |
 
-> 상세 인터페이스는 §4. **Webhook Ingress는 GW 내부의 별도 sub-tier**(외부 서버 아님 — GW 고유 API(A), §4.1.1·§7.6.1). *(Ingress = 수신(Webhook Receiver)·큐(SQS)·분배(Webhook Dispatcher)를 묶은 서브티어 — Receiver·Dispatcher는 **GW core와 별개의 Deployment**로 독립 스케일(§6.6.2·§7.6.7), §2.2)* **API 호출 경로는 대상에 무관하게 동일하다** — `CleverOne→EzServer→GW→CleverSpace` 든 `…→GW→AXS` 든 모두 **GW를 단일 경유하는 target-routed proxy**(ADR-11, 경로 B 제거). 차이는 **trust profile뿐**: 내부(B=CleverSpace·OneID, 통과+정규화 신원) vs 외부(C=AXS, GW가 OAuth·고정 egress IP 추가). 그래서 다이어그램의 `GW→upstream` 화살표는 같은 종류이고, AXS만 라벨이 `C·외부`다. **CleverLab은 GW가 호출하는 프록시 대상이 아니라**, 클라우드↔클라우드 외부 연동(갈래 B)에서 **GW를 호출하는 클라이언트**다(CleverLab→GW→AXS) — 현 시점 **보류**(§1.2).
+> 상세 인터페이스는 §4. **Webhook Ingress는 GW 내부의 별도 sub-tier**(외부 서버 아님 — GW 고유 API(A), §4.1.1·§7.6.1). *(Ingress = 수신(Webhook Receiver)·큐(SQS)·분배(Webhook Dispatcher)를 묶은 서브티어 — Receiver·Dispatcher는 **GW core와 별개의 Deployment**로 독립 스케일(§6.6.2·§7.6.7), §2.2)* **API 호출 경로는 대상에 무관하게 동일하다** — `CleverOne→EzServer→GW→CleverSpace` 든 `…→GW→AXS` 든 모두 **GW를 단일 경유하는 target-routed proxy**(ADR-11, 경로 B 제거). 차이는 **trust profile뿐**: 내부(B=CleverSpace, 통과+정규화 신원) vs 외부(C=AXS, GW가 OAuth·고정 egress IP 추가). 그래서 다이어그램의 `GW→upstream` 화살표는 같은 종류이고, AXS만 라벨이 `C·외부`다. **CleverLab은 GW가 호출하는 프록시 대상이 아니라**, 클라우드↔클라우드 외부 연동(갈래 B)에서 **GW를 호출하는 클라이언트**다(CleverLab→GW→AXS) — 현 시점 **보류**(§1.2).
 >
 > **유일하게 다른 건 Webhook(이벤트 인바운드)** — AXS는 결과 이벤트를 GW로 _밀어 보내고_, GW가 **Webhook Ingress**로 받아 방화벽 뒤 **EzServer는 MQTT(하행, 갈래 A 역방향)**·**클라우드는 HTTP push**로 분배한다(대상=Org-ID→Clinic→리전 매핑, §7.3). 클라우드 수신 대상은 **CleverLab(갈래 B·보류)뿐**이며, **CleverSpace는 webhook 수신 대상이 아니다**(내부(B) 프록시·presigned 백엔드일 뿐 — 다이어그램엔 *API 호출 대상*으로만 그린다). 대상별 시나리오는 §2.3.6. AXS의 **외부 연동(egress)은 GW core**, **Webhook(인바운드)은 Webhook Ingress**로 들어와 방향이 반대다. 멱등·교차 리전 등 분배 상세는 **§2.3.6·§7.6**.
 >
@@ -354,7 +351,6 @@ flowchart LR
         subgraph INT["내부 — B 프로파일 (우리 서비스·내부망)"]
             CS["CleverSpace (멀티 Region)"]
             CLAB["CleverLab"]
-            OID["OneID"]
         end
         subgraph EXT["외부 — C 프로파일 (제3자·OAuth·고정 egress IP)"]
             AXS["Straumann AXS"]
@@ -367,7 +363,6 @@ flowchart LR
         subgraph CORE["GW core"]
             subgraph CTRL["Control Plane (글로벌, soft-state)"]
                 AUTH["Auth Service"]
-                OIDI["OneID Integration"]
                 ROUTER["Proxy Router<br/>(target-routed proxy · 정책 집행 PEP)"]
                 RGN["Region Resolver"]
                 COMPAT["API Compatibility Gate"]
@@ -403,7 +398,6 @@ flowchart LR
     DEV --> EZ
     EZ -->|"API 요청 (상행)"| COMPAT
     EZ -.->|"머신 인증 (디바이스=EzServer)"| AUTH
-    OIDI -->|"인증 연계 (B·내부)"| OID
     ROUTER -->|"프록시 (B·내부)"| CS
     ROUTER -->|"프록시 (C·외부)"| AXS
     ROUTER -.->|"외부(C) 시 OAuth·고정 egress IP"| CONN
@@ -430,7 +424,7 @@ flowchart LR
     style INTEG fill:transparent,stroke:#90caf9
     classDef comp fill:#ffffff,stroke:#1565c0,stroke-width:1.5px,color:#0d47a1
     classDef mgd fill:#eceff1,stroke:#90a4ae,color:#37474f
-    class AUTH,OIDI,ROUTER,RGN,COMPAT,ADM,DREG,ENR,CFG,FLEET,OPA,AUD,CONN,WH,DISP comp
+    class AUTH,ROUTER,RGN,COMPAT,ADM,DREG,ENR,CFG,FLEET,OPA,AUD,CONN,WH,DISP comp
     class SQSQ,S3PL,DNOTE mgd
 ```
 
@@ -452,7 +446,7 @@ flowchart TD
 
 > **프록시 복원력의 위치(7/2 R4)**: **재시도·서킷 브레이커는 service mesh(istio) egress**가 담당한다(GW 밖·인프라 소유, §3.1·③-I) — GW에 서킷 런타임 상태 저장을 두지 않는다. **단 GW→upstream 연결 timeout(connect/response/total_deadline)은 GW 책임**이다 — GW(`External Connector`/`Proxy Router`)가 upstream에 **직접 연결하는 HTTP 클라이언트**라 자기 호출을 bound해야 한다(`upstream`에 per-대상 보유, §7.5.4·D1~D3). 그 외 GW 앱 레벨 = mesh/자기 timeout 실패를 **표준 오류 envelope로 정규화**(`Vatech-Error-Origin`)·멱등·클라이언트 취소 전파. 재시도·서킷 값만 istio 설정(GitOps)이며 `upstream`에 두지 않는다.
 
-> **그리는 규칙**: §2.2는 §2.1과 같은 그림에서 **GW 쪽만 확대**한 것이다 — **VatechAPIGateway 바깥(외부 시스템·엣지)은 §2.1과 동일**, 안쪽을 **`GW core`(Control/Data/Integration plane) + `Webhook Ingress` 두 부분**으로 펼친다. 각 외부는 GW 내부 컴포넌트와 **1개 이상 연결**(가장 깔끔하게 1개), **요청 처리 파이프라인(PEP 체인)은 연결**한다 — `COMPAT→ROUTER`(호환성 게이트 통과→라우팅), `ROUTER⇢RGN`(region 참조)·`ROUTER⇢OPA`(정책 판정)·`ROUTER⇢CONN`(외부 C). 반면 순수 **cross-cutting/관리 컴포넌트**(EzServer Registry·Enrollment·Config·Fleet·Audit)는 거의 모든 흐름이 닿아 가독성을 위해 **미연결**(외부와의 특정 연결만 표기: CONSOLE→ADM·R53→RGN). (**예외**: CleverOne은 §2.1처럼 **EzServer를 경유**해 GW에 닿으므로 GW 내부 컴포넌트에 직접 연결하지 않는다 — `CO→EZ→GW`.) **API 호출은 대상 무관 동일 경로**(`ROUTER` = target-routed proxy, ADR-11) — CleverSpace·OneID = B(내부 프록시 대상), AXS = C(외부, `ROUTER`가 `CONN`으로 OAuth·고정 egress IP 추가). **CleverLab은 프록시 대상이 아니라 갈래B 클라우드 클라이언트**(CleverLab→GW→AXS, 보류) — GW를 _호출하는_ 쪽이다. **Webhook(이벤트)만 별개** — 현재 AXS만 GW로 발신; 클라우드 수신 대상=**CleverLab만**(갈래B 보류), **CleverSpace는 webhook 대상 아님**(§2.3.6). 수신→분배 런타임은 **§2.3.6**이 정본.
+> **그리는 규칙**: §2.2는 §2.1과 같은 그림에서 **GW 쪽만 확대**한 것이다 — **VatechAPIGateway 바깥(외부 시스템·엣지)은 §2.1과 동일**, 안쪽을 **`GW core`(Control/Data/Integration plane) + `Webhook Ingress` 두 부분**으로 펼친다. 각 외부는 GW 내부 컴포넌트와 **1개 이상 연결**(가장 깔끔하게 1개), **요청 처리 파이프라인(PEP 체인)은 연결**한다 — `COMPAT→ROUTER`(호환성 게이트 통과→라우팅), `ROUTER⇢RGN`(region 참조)·`ROUTER⇢OPA`(정책 판정)·`ROUTER⇢CONN`(외부 C). 반면 순수 **cross-cutting/관리 컴포넌트**(EzServer Registry·Enrollment·Config·Fleet·Audit)는 거의 모든 흐름이 닿아 가독성을 위해 **미연결**(외부와의 특정 연결만 표기: CONSOLE→ADM·R53→RGN). (**예외**: CleverOne은 §2.1처럼 **EzServer를 경유**해 GW에 닿으므로 GW 내부 컴포넌트에 직접 연결하지 않는다 — `CO→EZ→GW`.) **API 호출은 대상 무관 동일 경로**(`ROUTER` = target-routed proxy, ADR-11) — CleverSpace = B(내부 프록시 대상), AXS = C(외부, `ROUTER`가 `CONN`으로 OAuth·고정 egress IP 추가). **CleverLab은 프록시 대상이 아니라 갈래B 클라우드 클라이언트**(CleverLab→GW→AXS, 보류) — GW를 _호출하는_ 쪽이다. **Webhook(이벤트)만 별개** — 현재 AXS만 GW로 발신; 클라우드 수신 대상=**CleverLab만**(갈래B 보류), **CleverSpace는 webhook 대상 아님**(§2.3.6). 수신→분배 런타임은 **§2.3.6**이 정본.
 
 > **🔍 대안 검토 — 디바이스 인증 방식** (ADR-01)
 >
@@ -468,13 +462,13 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 
 시퀀스의 참여자(액터)는 §2.1 외부 시스템·§2.2 컴포넌트와 일치한다.
 
-> **(스코프) 운영자/Console 인증 흐름(로그인 화면·세션·토큰 refresh·RBAC UI)은 본 절에 정의하지 않는다** — Console UI는 **③-C GW Console Sub-SRS**, 인증은 **OneID(OIDC) 위임**(§2.3.1·§7.1·ADR-08), GW는 **OneID 토큰 검증 + 관리 API RBAC**(§7.9)만 소유한다(토큰 발급·refresh의 권위는 OneID이지 GW가 아니다).
+> **(스코프) 운영자/Console 인증 흐름(로그인 화면·세션·토큰 refresh·RBAC UI)은 본 절에 정의하지 않는다** — Console UI는 **③-C GW Console Sub-SRS**, 운영자 인증 흐름 요약은 **§2.3.8**(상세 UI는 ③-C), 인증은 **직원 IdP(MS365/Entra OIDC) 위임**(§7.1.4·ADR-08), GW는 **IdP 토큰 검증 + 관리 API RBAC**(§7.9)만 소유한다(토큰 발급·refresh 권위는 IdP).
 
 | 액터 | 의미 (출처) |
 | --- | --- |
 | EzServer(Edge=GW '디바이스') / CleverOne | 사내·현장 호출자(§2.1·§2.5). EzServer는 방화벽 뒤 Edge·GW 관점의 '디바이스'(§1.4); CleverOne은 EZ 경유. 물리 영상장비는 EzServer 뒤(GW 비대상) |
 | GW | 본 SRS 대상. 내부 컴포넌트(Auth·Region Resolver·Proxy Router·External Connector·Webhook Receiver·내부 큐(A·SQS)·Webhook Dispatcher(§7.6.7)/MQTT(B))는 §2.2 |
-| OneID / CleverSpace / CleverLab | 우리 클라우드 백엔드(§2.1) |
+| CleverSpace / CleverLab | 우리 클라우드 백엔드(§2.1) |
 | Straumann AXS / AXS S3 | 외부 플랫폼·외부 스토리지(§2.1, 경로③·§4.1.4) |
 | upstream storage(S3/MinIO) | CleverSpace·AXS 등 **발급 주체 소유** 객체 스토리지 — presigned 직접 업로드 대상(§4.1.4·§7.4) |
 
@@ -820,11 +814,37 @@ sequenceDiagram
     Note over GW,S3: 매트릭스 원본=S3의 server-configuration.json(CI 발행) · GW는 그 사본을 캐시해 게이팅하고 /.well-known/{env}/server-configuration.json 로 서빙(이미지 미포함, §7.7.5)
 ```
 
+### 2.3.8 운영자·Console 인증 (직원 IdP OIDC) — FR-AUTH-08/09·FR-ADM-02
+
+GW Console 사용자(Admin·C/S)은 **사내 직원**이라 **직원 IdP(MS365/Entra ID) OIDC**로 로그인한다(§7.1.4). GW는 IdP 발급 토큰을 검증하고, **역할(Admin/C-S)은 IdP claim(App Role/Group)** 으로 RBAC 판정한다(§7.9.2). device 인증(private_key_jwt·§2.3.2)과 완전히 분리된 면이다(ADR-08). GW는 자체 비밀번호·user 저장소를 두지 않는다(§6.2).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant OP as 운영자(Admin·C/S)
+    participant CO as GW Console(③-C)
+    participant EN as 직원 IdP(MS365/Entra)
+    participant GW as GW(Auth·RBAC)
+    OP->>CO: Console 접속
+    CO->>EN: OIDC 로그인(redirect·MFA)
+    EN-->>CO: ID/Access 토큰(role claim: Admin|CS)
+    CO->>GW: /admin/v1/* 호출 (Bearer + role claim)
+    GW->>GW: IdP 토큰 검증(JWKS) · claim to RBAC(§7.9.2)
+    alt 권한 충족
+        GW-->>CO: 처리(예 device 승인 pending to active)
+    else 권한 부족
+        GW-->>CO: 403
+    end
+    Note over GW,EN: 인증=Entra(비번·MFA·오프보딩) · GW 자체 user/비번 미보유 · 역할=IdP claim(별도 테이블 없음) · C/S는 클리닉별 미한정(국가/법인별 한정은 TBD·#39)
+```
+
+> 최종 방식(Entra 연동 vs GW 자체 DB)은 Agenda R6·Appendix B #38에서 확정. 위는 기본안(Entra) 흐름이며, verify 경로(현 `/v1/auth/oidc/verify`)·claim→역할 매핑 세부는 확정 후 정합.
+
 ## 2.4 Product Functions (제품 주요 기능)
 
 > 7장 대분류와 1:1 매핑.
 
-- 7.1 인증·토큰 (EzServer 머신 인증 + OneID 연계)
+- 7.1 인증·토큰 (EzServer 머신 인증 + 사람=직원 IdP 연계)
 - 7.2 EzServer(디바이스) 레지스트리·온보딩
 - 7.3 리전·라우팅·주권 (라우팅 키 통합)
 - 7.4 파일 업로드 — presigned 중계(GW 비발급)
@@ -839,7 +859,7 @@ sequenceDiagram
 | 계층                            | 사용 빈도 | 주 사용 기능                              | 권한                 | 중요도 |
 | ------------------------------- | --------- | ----------------------------------------- | -------------------- | ------ |
 | EzServer(디바이스, §1.4)        | 상시      | 인증·파일 업로드(upstream presign)·config | 머신(디바이스 scope) | 핵심   |
-| 사내 호출자(EzServer/CleverOne) | 상시      | 인증·라우팅·Webhook 수신                  | 서비스(OneID)        | 핵심   |
+| 사내 호출자(EzServer/CleverOne) | 상시      | 인증·라우팅·Webhook 수신                  | device=private_key_jwt(§7.1.1) | 핵심   |
 | 외부 플랫폼(AXS)                | 이벤트 시 | Webhook·connector                         | 외부(OAuth2)         | 핵심   |
 | 운영자/Admin                    | 일/주     | 관리 API·매핑·kill-switch                 | RBAC                 | 중요   |
 | C/S(현장 설치 담당)             | 설치 시   | enrollment 승인(`pending→active`)·클리닉 등록 조회 | RBAC(승인 write, §7.9.2) | 핵심   |
@@ -891,7 +911,7 @@ GW 본체는 신규 구축이나, **기존 클라이언트(구버전 CleverOne/E
 
 ## 3.1 Operating Environment (운영 환경)
 
-GW는 **개발(dev) · 테스트(test/staging) · 운영(prod) 3종 환경**으로 분리한다. 본 절(§3.1.1·§3.1.2)은 **운영(프로덕션) 런타임**이 기준이고, **개발 환경은 §3.4·테스트 환경은 §3.5**가 상세를 정의한다. 핵심은 **외부 의존(AXS·EzServer·CleverSpace·OneID·LMP)을 환경별로 실서비스/sandbox/스텁 중 무엇으로 대체하느냐**이며(§3.4 에뮬레이션 전략), **PHI는 운영에서만 실데이터**이고 개발·테스트는 **더미 데이터만** 쓴다(§6.4·§6.5).
+GW는 **개발(dev) · 테스트(test/staging) · 운영(prod) 3종 환경**으로 분리한다. 본 절(§3.1.1·§3.1.2)은 **운영(프로덕션) 런타임**이 기준이고, **개발 환경은 §3.4·테스트 환경은 §3.5**가 상세를 정의한다. 핵심은 **외부 의존(AXS·EzServer·CleverSpace·LMP)을 환경별로 실서비스/sandbox/스텁 중 무엇으로 대체하느냐**이며(§3.4 에뮬레이션 전략), **PHI는 운영에서만 실데이터**이고 개발·테스트는 **더미 데이터만** 쓴다(§6.4·§6.5).
 
 > **환경 매트릭스 (차원별 dev / test / prod)**
 >
@@ -906,7 +926,6 @@ GW는 **개발(dev) · 테스트(test/staging) · 운영(prod) 3종 환경**으�
 > | **AXS** | **sandbox**(unstable, ESIP-14) / 미수령 시 mock | **sandbox** | **production** |
 > | **EzServer(=디바이스·EPI)** | **에뮬레이터/스텁**(실 EzServer는 Rust 재개발 중) | 실 EzServer(가능 시)·또는 스텁 | 실 EzServer |
 > | CleverSpace(EzCloud) | **presign 발급 스텁** | sandbox·또는 실 | 실 CleverSpace |
-> | OneID | dev 테넌트 / OIDC mock | staging 테넌트 | prod |
 > | LMP(Clinic-ID) | 스텁·시드 | staging | prod |
 > | PHI 데이터 | **더미만(PHI 금지)** | **더미만** | 실 PHI(주권·consent, §6.5·§7.3.3) |
 > | egress 고정 IP | 불요(또는 dev EIP) | sandbox용 EIP(Straumann 협의) | **prod 고정 EIP**(AXS whitelist, §2.1.1·§7.5.3) |
@@ -978,7 +997,7 @@ Azure Pipelines CI/CD → 컨테이너 레지스트리(ECR) → EKS 배포.
 
 ## 3.4 Development Environment (개발 환경)
 
-GW는 **클라이언트(EzServer/CleverOne)·upstream(AXS·CleverSpace·OneID)·LMP** 등 다수 외부에 의존하므로, 이들이 모두 준비되기 전에 개발하려면 **실 sandbox·스텁·에뮬레이터를 조합**한다. 로컬(개발 PC, 컨테이너)에서 GW core를 띄우고 의존을 대체한다.
+GW는 **클라이언트(EzServer/CleverOne)·upstream(AXS·CleverSpace)·LMP** 등 다수 외부에 의존하므로, 이들이 모두 준비되기 전에 개발하려면 **실 sandbox·스텁·에뮬레이터를 조합**한다. 로컬(개발 PC, 컨테이너)에서 GW core를 띄우고 의존을 대체한다.
 
 **개발 의존성 대체 (구축 필요 — 없으면 개발 불가)**
 
@@ -987,7 +1006,7 @@ GW는 **클라이언트(EzServer/CleverOne)·upstream(AXS·CleverSpace·OneID)·
 | **AXS** | 외부 연동(C, §7.5) | **AXS sandbox**(unstable, ESIP-14·④) — connector 1차 개발 대상. 자격증명 미수령 시(Appendix B #6) **AXS 응답 mock** |
 | **EzServer PMS Integration(EPI)** | GW 호출 클라이언트(경로 A) | **클라이언트 에뮬레이터** — target 서브도메인 호출(CleverOne→EzServer `Vatech-Target` 헤더→서브도메인 변환 포함)·presigned 중계 요청·머신 인증(client_credentials + private_key_jwt, 키페어 서명)·역방향 MQTT 구독을 흉내(실 EzServer는 Rust 재개발 중) |
 | **CleverSpace(EzCloud)** | presigned 발급 주체(②) | **발급 스텁** — presigned URL 발급 응답 mock + storage=MinIO/S3 dev (GW는 중계만이라 발급 응답만 필요) |
-| **OneID** | 사람·클리닉 인증(OIDC) | dev 테넌트(실) 또는 **OIDC mock** |
+| **직원 IdP(Entra)** | 운영자(Console) 인증(OIDC) | dev 테넌트 또는 **OIDC mock** |
 | **LMP** | Clinic-ID 발급원(온보딩, §2.3.1) | **스텁/시드** — Clinic-ID 발급 흉내로 자동 등록 테스트 |
 | **Webhook 송신** | AXS→GW 이벤트(§7.6) | AXS sandbox webhook **또는** upstream 호스트로 HMAC 서명 POST하는 **simulator** |
 
@@ -1006,7 +1025,7 @@ Node.js / NestJS / Prisma / PostgreSQL(local) / Docker / **Claude Code(개발 �
 테스트(staging)는 **운영 유사·축소** AWS 환경으로, 통합·E2E·부하·인수 검증을 수행한다(§3.1 매트릭스). 개발(로컬·스텁 위주)과 달리 **가능한 한 실서비스/sandbox에 가깝게** 구성한다.
 
 - **구성**: 운영과 동일 스택(EKS·Aurora·ElastiCache for Valkey·SQS·IoT Core)을 **소형**으로. 단일 리전(멀티 리전은 gw/1.2 검증 시).
-- **외부 의존**: **AXS sandbox**(unstable, ESIP-14) · EzServer는 **실 EzServer(가능 시)** 또는 에뮬레이터 · OneID staging 테넌트 · CleverSpace sandbox/실 · LMP staging.
+- **외부 의존**: **AXS sandbox**(unstable, ESIP-14) · EzServer는 **실 EzServer(가능 시)** 또는 에뮬레이터 · CleverSpace sandbox/실 · LMP staging.
 - **데이터**: **더미만(PHI 금지)** — 운영 PHI를 테스트에 반입하지 않는다(§6.5).
 - **egress**: AXS sandbox용 **고정 EIP**를 Straumann과 협의해 whitelist(운영과 별개, §7.5.3).
 - **검증·게이트**: 단위(Jest)·E2E·부하. CI(§3.6.2)에서 **테스트 통과를 baseline 게이트**로. 부하 목표치는 §5(규모 확정 후, Appendix B #1).
@@ -1048,7 +1067,7 @@ None
 - API: [OpenAPI — `vt-api-gateway.openapi.yaml`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/openapi/vt-api-gateway.openapi.yaml)
 - ERD: [DBML — `vt-api-gateway.dbml`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/dbml/vt-api-gateway.dbml)
 
-연동 시스템: OneID(OIDC), CleverSpace, Straumann AXS(④), CleverLab, EzServer(MQTT). 상세 계약은 §7 + Swagger.
+연동 시스템: CleverSpace, Straumann AXS(④), CleverLab, EzServer(MQTT). 상세 계약은 §7 + Swagger.
 
 ### 4.1.1 API 정의 전략 — GW 고유 API vs 레지스트리 라우팅 프록시 (2면)
 
@@ -1062,7 +1081,7 @@ GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의
 | 면 | 무엇 | 라우팅 키(GW 앞단) | GW 역할 | 정본(SSOT) |
 | --- | --- | --- | --- | --- |
 | **A. GW 고유 API** | §7 전부 — 인증·enrollment·디바이스 레지스트리·region resolve·Webhook 수신·**관리 API(③-C Console이 호출하는 Backoffice/관리 API 포함, §7.9·§7.8)**. UI 자체는 ③-C | **apex `gw.vatech.com`** (target 서브도메인 없음 · GW-own) | GW가 직접 처리·OpenAPI 정의(NestJS code-first `@nestjs/swagger`, §1.7.1) | 본 SRS §7 + [OpenAPI](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/design/openapi/vt-api-gateway.openapi.yaml) |
-| **B. 프록시(internal)** | **우리 소유** 백엔드(CleverSpace·OneID) | **서브도메인 `cleverspace.gw.vatech.com`**(라벨 = 논리 ID) | **verbatim bypass** + 정규화 신원 전달 + 정책 체인. 내부망 trusted — 백엔드가 GW 신뢰 | 각 백엔드 제품의 OpenAPI |
+| **B. 프록시(internal)** | **우리 소유** 백엔드(CleverSpace) | **서브도메인 `cleverspace.gw.vatech.com`**(라벨 = 논리 ID) | **verbatim bypass** + 정규화 신원 전달 + 정책 체인. 내부망 trusted — 백엔드가 GW 신뢰 | 각 백엔드 제품의 OpenAPI |
 | **C. 프록시(external)** | **외부 제3자**(Straumann AXS, 향후 DS Core/3Shape) | **서브도메인 `axs.gw.vatech.com`**(라벨 = 논리 ID) | **verbatim bypass** + OAuth2 인증·토큰/secret 관리(§7.1.3)·고정 egress IP·egress allowlist(§7.5)·Webhook 역수신(§7.6). 경계 밖 untrusted | ④ Sub-SRS + 외부 OpenAPI 스냅샷 |
 
 - **GW 고유 API(A) vs 프록시(내부 B·외부 C) 판별 = Host(서브도메인)**(배타). apex = GW 고유 API, 등록된 `{target}.gw.vatech.com` = 프록시, **미등록 서브도메인 → 거부(`404`)**. 상세 불변식은 §4.1.2.
@@ -1153,7 +1172,7 @@ presigned URL을 **Client가 받은 뒤**, 파일 **바이트**는 **발급 주�
 
 GW 본체는 무인 control plane. Admin UI는 **③-C GW Console Sub-SRS**에서 정의(본 SRS는 관리 API §7.9까지). 따라서 본 절은 `N/A(③-C에서 정의)`.
 
-> **Console 스택 힌트(권장 · 확정은 ③-C).** GW Console은 **관리 API(§7.9)를 소비하는 CRUD 백오피스**(디바이스·클리닉·region·org-mapping·upstream·policy·감사 조회 + C/S enrollment 승인)라, **CRUD-admin 프레임워크가 자연스럽다 — `react-admin`(코어 MIT) 권장**(대안: Refine). 근거: 관리 API가 REST CRUD·OpenAPI(§1.7.1) 계약이라 dataupstream로 바로 매핑, `authupstream`로 **OneID(OIDC) 위임**(§7.1.4)·`permissions`로 **Admin/C-S RBAC**(§7.9.2) 게이팅, GW=NestJS/TS와 **end-to-end TS**. 유의: GW는 **커서 페이지네이션**(§7.2.1)이라 커서 dataupstream 어댑터 필요. **최종 UI 스택·화면·컴포넌트는 ③-C 결정**이며 본 SRS는 방향 힌트만 준다.
+> **Console 스택 힌트(권장 · 확정은 ③-C).** GW Console은 **관리 API(§7.9)를 소비하는 CRUD 백오피스**(디바이스·클리닉·region·org-mapping·upstream·policy·감사 조회 + C/S enrollment 승인)라, **CRUD-admin 프레임워크가 자연스럽다 — `react-admin`(코어 MIT) 권장**(대안: Refine). 근거: 관리 API가 REST CRUD·OpenAPI(§1.7.1) 계약이라 dataProvider로 바로 매핑, `authProvider`로 **직원 IdP(Entra OIDC) 위임**(§7.1.4)·`permissions`로 **Admin/C-S RBAC**(§7.9.2) 게이팅, GW=NestJS/TS와 **end-to-end TS**. 유의: GW는 **커서 페이지네이션**(§7.2.1)이라 커서 dataProvider 어댑터 필요. **최종 UI 스택·화면·컴포넌트는 ③-C 결정**이며 본 SRS는 방향 힌트만 준다.
 
 ## 4.3 Hardware Interface (하드웨어 인터페이스)
 
@@ -1163,7 +1182,7 @@ EzServer(디바이스, §1.4)와는 네트워크(REST/TLS) 인터페이스만. �
 
 | 구성요소 | 버전 | 용도 |
 | --- | --- | --- |
-| OneID (OIDC) | TBD | 사람·클리닉·사내 호출자 인증 |
+| 직원 IdP(MS365/Entra, OIDC) | TBD | 운영자(Console Admin·C/S) 인증 |
 | Straumann AXS API | OpenAPI 스냅샷(2026-06-16) | 외부 연동(④) |
 | PostgreSQL | 15.x | 레지스트리·매핑·토큰메타·정책·감사 |
 | Redis | TBD | region 캐시·nonce·rate-limit·idempotency·JWKS |
@@ -1287,7 +1306,7 @@ GW는 의료 데이터(PHI) 경로의 control plane이므로, 데이터 보호·
 
 | #   | 항목                | GW 적용                                                                                         |
 | --- | ------------------- | ----------------------------------------------------------------------------------------------- |
-| 1   | Authentication      | 디바이스 OAuth2 cc + claim 바인딩(§7.1.1), 사내·사람 OneID OIDC(§7.1.4). DPoP+HW키 v1.1(ADR-01) |
+| 1   | Authentication      | 디바이스 OAuth2 cc + private_key_jwt(§7.1.1), **운영자/Console = 직원 IdP(MS365/Entra OIDC, §7.1.4)**. DPoP+HW키 v1.1(ADR-01) |
 | 2   | Authorization       | 운영자 RBAC(§7.9.2), scope 기반 디바이스 권한                                                   |
 | 3   | Access control      | OPA allowlist(미등록 디바이스 차단 §7.2.2), egress endpoint allowlist(§7.5.3)                   |
 | 4   | Non-repudiation     | append-only 감사(operator·timestamp·before/after·IP, §7.9.3)                                    |
@@ -1297,6 +1316,8 @@ GW는 의료 데이터(PHI) 경로의 control plane이므로, 데이터 보호·
 | 8   | Web vulnerabilities | 입력 검증(class-validator), 표준 오류 매핑(§7.7.4)                                              |
 
 > 보안과 편리의 트레이드오프: 디바이스는 머신 인증(무인 자동), 운영자 관리 변경에만 RBAC·감사 강화 — 행위별 보안 강도 분리.
+>
+> **운영자·Console 인증 보안(§7.1.4·§7.9.2).** GW Console 사용자(Admin·C/S)는 **사내 직원**이라 **직원 IdP(MS365/Entra ID)에 OIDC 위임**한다 — GW는 **자체 비밀번호·user 저장소를 두지 않아**(credential 유출면 제거), 비밀번호 정책·MFA·리셋·**퇴사 오프보딩을 IdP가 담당**한다. **인가는 IdP claim(App Role/Group)→RBAC**(§7.9.2·별도 user 테이블 없음). device 인증(private_key_jwt)과 분리 면(ADR-08). 최종 방식(Entra 연동 vs GW 자체 DB)은 Agenda R6·Appendix B #38.
 
 ## 6.3 Software System Attributes (소프트웨어 시스템 특성)
 
@@ -1535,7 +1556,7 @@ None
 
 ## 7.1 인증·토큰 (P1)
 
-GW는 **두 개의 인증면(surface)을 분리·공존**시킨다(ADR-08): 무인 **EzServer(디바이스, §1.4)의 머신 인증**과 사람·클리닉·사내 호출자의 **OneID(OIDC) 인증**. 두 면은 성질이 달라 단일 인증면으로 묶지 않으며, EzServer↔신원 매핑으로 연결된다.
+GW는 **두 개의 인증면(surface)을 분리·공존**시킨다(ADR-08): 무인 **EzServer(디바이스, §1.4)의 머신 인증**과 **운영자(사람)의 직원 IdP(MS365/Entra) OIDC 인증**. 두 면은 성질이 달라 단일 인증면으로 묶지 않으며, EzServer↔신원 매핑으로 연결된다.
 
 ### 7.1.1 EzServer(디바이스) 머신 인증 (P1)
 
@@ -1546,7 +1567,7 @@ FR-AUTH-01·05 (OAuth2 `client_credentials` + **비대칭 `private_key_jwt` 클�
 > 2. **인증(토큰 발급, 만료마다)** — EzServer가 **개인키로 assertion(JWT)을 서명**해 제시 → GW가 **공개키(client_public_key)로 서명 검증** → **단명 access token(JWT) 발급**. (`client_credentials` 그랜트 + `private_key_jwt` 클라이언트 인증.)
 > 3. **API 호출(상시)** — 발급받은 access token을 **Bearer로 첨부**해 통신. 만료 시 2를 반복(개인키 재서명).
 >
-> **핵심:** 개인키 보유자만 만들 수 있는 **서명**으로 신원을 증명(암호화가 아님)하고, GW는 **공개키로 검증만** 한다. **공유 secret은 없다**(배포·회전 노출면 제거, ADR-13). 일반적으로 떠올리는 "로그인 OIDC"(사람·Authorization Code)는 §7.1.4 OneID 면이며 본 절과 분리된다(ADR-08).
+> **핵심:** 개인키 보유자만 만들 수 있는 **서명**으로 신원을 증명(암호화가 아님)하고, GW는 **공개키로 검증만** 한다. **공유 secret은 없다**(배포·회전 노출면 제거, ADR-13). 일반적으로 떠올리는 "로그인 OIDC"(사람·Authorization Code)는 §7.1.4 사람 인증 면(직원 IdP)이며 본 절과 분리된다(ADR-08).
 
 - **인증 방식 = 비대칭(공유 secret 없음, ADR-13).** 디바이스 인증은 **OAuth2 `client_credentials` 그랜트 + `private_key_jwt` 클라이언트 인증**(RFC 7521/7523)이다. 디바이스가 **enrollment에서 만든 키페어의 개인키로 JWT assertion을 서명**해 제시하고, GW는 **`device.client_public_key`(그 키페어의 공개키)로 검증**한다. **공유 `client_secret`을 발급·배포·저장하지 않는다** — 개인키는 디바이스를 떠나지 않으므로 secret 하향 전달·회전 문제가 원천 제거된다(enroll 자동 완결, §2.3.1·§7.2.5). `client_public_key`(공개키)가 SSOT라 별도 secret 저장소가 없고, **자격 데이터는 `device.client_id`(nullable)+`device.client_public_key`로 통합**(별도 `credential` 테이블 폐기, §6.4.1). `client_id`가 없는 device = client 자격 미발급 상태.
 - **Input**: `client_id` + **`client_assertion`(디바이스 개인키로 서명한 JWT, `client_assertion_type=jwt-bearer`)**, 요청 scope(**선택** — RFC 6749 client_credentials에서 optional; **v1.0 미사용·예약**, 세분화 인가는 §7.5.3 gw/1.1+. v1.0은 AXS+Org-ID가 데이터·작업 격리)
@@ -1555,7 +1576,7 @@ FR-AUTH-01·05 (OAuth2 `client_credentials` + **비대칭 `private_key_jwt` 클�
 - **Side Effect**: 토큰 발급 이력 기록(§7.9 감사), Redis에 JWKS·rate-limit 카운터 갱신
 - **에러**: 미등록/revoked/pending 디바이스 → 거부(§7.2 lifecycle 연계), **assertion 서명 검증 실패(공개키 불일치·만료·nonce/aud 불일치)** → 401, scope 초과 → 403
 - **비목표(Will Not Do)**:
-  - **refresh token / `refresh_token` grant 미도입** — 디바이스 머신 인증은 개인키 재서명(assertion 재발급)으로만 갱신한다. refresh token은 장수명 자격이라 별도 revocation·회전 관리가 필요해 단명+즉시차단 모델과 상충하므로 도입하지 않는다. (사람·조직의 OIDC refresh 수명주기는 §7.1.4 OneID 도메인이며 디바이스 면과 분리, ADR-08.)
+  - **refresh token / `refresh_token` grant 미도입** — 디바이스 머신 인증은 개인키 재서명(assertion 재발급)으로만 갱신한다. refresh token은 장수명 자격이라 별도 revocation·회전 관리가 필요해 단명+즉시차단 모델과 상충하므로 도입하지 않는다. (사람·조직의 OIDC refresh 수명주기는 §7.1.4 사람 인증(직원 IdP) 도메인이며 디바이스 면과 분리, ADR-08.)
   - **공유 `client_secret` 미도입**(ADR-13) — 대칭 secret은 하향 전달·보관·회전 노출면이 있어 비대칭(private_key_jwt)으로 대체한다.
   - DPoP(sender-constrained)·**하드웨어 키(SE/TPM) 비추출은 gw/1.1**(FR-AUTH-06/07) — v1.0은 SW 보관 개인키, gw/1.1에서 같은 키를 TPM/SE 비추출로 이관(+hardware attestation, FR-ENR-06·ADR-01). 즉 v1.0부터 비대칭이며 gw/1.1은 키 보관을 하드웨어로 강화하는 것. **개인키 보관 위치(SW/HW) 속성은 attestation과 함께 gw/1.1에서 도입**(v1.0은 검증 불가라 스키마 미보유).
 
@@ -1563,7 +1584,7 @@ FR-AUTH-01·05 (OAuth2 `client_credentials` + **비대칭 `private_key_jwt` 클�
 
 FR-AUTH-02 (EzServer·CleverOne 등 사내 서비스용 JWT 발급·서명 검증).
 
-- **Input**: 사내 호출자 신원(OneID 연계, §7.1.4), 대상 scope
+- **Input**: 사내 서비스 호출자 신원(직원 IdP/서비스 자격; 사람 운영자 인증은 §7.1.4), 대상 scope
 - **Output**: 서명된 JWT. control plane 전 노드가 무상태 검증(soft-state, ADR-02)
 - **에러**: 서명 검증 실패 → 401, 만료 → 401(갱신 유도)
 
@@ -1576,15 +1597,17 @@ FR-AUTH-03·04 (외부(AXS 등) 크리덴셜 보호·access token 만료 전 자
 - **Output**: 외부 upstream(§7.5)가 사용할 유효 access token을 제공한다. 평문은 노출하지 않는다(KMS·캐시 보호).
 - **에러**: 갱신에 실패하면 백오프 재시도하고, 계속 실패하면 해당 upstream 호출을 차단하고 알람을 낸다. *(이 재시도는 **앱 레벨 토큰 수명 관리**이며, 프록시 요청 경로의 재시도·서킷=mesh(istio, §7.5.4·R4)와 별개다.)*
 
-### 7.1.4 OneID(OIDC) 연계 — 사람·클리닉·사내 호출자 (P1)
+### 7.1.4 사람 인증(OIDC 연계) — 운영자=직원 IdP (P1)
 
-FR-AUTH-08·09 (OneID 토큰 검증·연계, 디바이스 머신 인증 ↔ OneID 신원 분리·매핑, ADR-08).
+FR-AUTH-08·09 (OIDC 토큰 검증·연계, 디바이스 머신 인증 ↔ 사람 신원 분리·매핑, ADR-08).
 
-- **Input**: OneID(OIDC) 토큰
-- **Output**: 검증된 사람/클리닉/사내 호출자 신원 + 디바이스 인증면과의 매핑
-- **에러**: OneID 검증 실패 → 401. 매핑 부재 → 권한 거부(§7.9 RBAC)
+- **GW Console 운영자(Admin·C/S) = 사내 직원** → **직원 IdP(MS365/Entra ID) OIDC 위임이 기본안**. GW는 **OIDC-agnostic**(verify 메커니즘 동일·issuer만 다름), 자체 비밀번호를 두지 않는 게 기본.
+- **OneID = 고객(클리닉·랩·개인) 신원 제품**(테넌트=고객)이며 **GW와 무관하다** — 인증(device·운영자)에도 upstream 라우팅에도 쓰지 않는다. v1.0엔 GW에 직접 로그인/연동하는 고객 경로가 없다(고객은 EzServer·CleverOne 등 제품을 사용). *(구 "사람 인증=OneID 위임"·`oneid` upstream·③-P-OID 서술 전면 정정 — 2026-07-07, Appendix B #38·Agenda.)*
+- **역할(Admin/C-S) = IdP claim(Entra App Role/Group)** → §7.9.2 RBAC. "누가 Admin/C-S냐"는 **IdP에서 배정**하고 GW는 claim을 신뢰한다(별도 user 테이블 불요). **C/S↔담당 클리닉 범위**가 필요할 때만 작은 GW 매핑 테이블 추가.
+- **Input**: 직원 IdP(OIDC) 토큰 / **Output**: 검증된 운영자 신원+역할·디바이스 인증면 매핑 / **에러**: 검증 실패 401·역할/매핑 부재 권한거부(§7.9 RBAC)
+- **결정 대기(Agenda·Appendix B #38)**: Console 인증 = **Entra 연동(기본안) vs GW 자체 user DB**, C/S 클리닉 범위 여부. 확정 시 verify 엔드포인트(현 `/v1/auth/oidc/verify`)를 일반 OIDC로 정합.
 
-**비목표(Will Not Do)**: 자체 비밀번호·소셜 로그인은 도입하지 않는다 — 사람/조직 인증은 OneID 단일 위임.
+**비목표(Will Not Do)**: 소셜 로그인 미도입. 자체 비밀번호는 기본안(직원 IdP 위임)에선 없음(자체 DB 선택 시에만).
 
 ## 7.2 EzServer(디바이스) 레지스트리·온보딩 (P1)
 
@@ -1982,10 +2005,10 @@ FR-ADM-01 (CRUD API, MVP 경량). Console(③-C)이 호출. 테넌트·키·디�
 
 ### 7.9.2 운영자 RBAC (P1)
 
-FR-ADM-02 (권한 분리, 경량). 역할별 수행 가능 기능 제한(§6.5). 운영자 인증=OneID(§7.1.4).
+FR-ADM-02 (권한 분리, 경량). 역할별 수행 가능 기능 제한(§6.5). **운영자 인증 = 직원 IdP(MS365/Entra OIDC, §7.1.4).** 역할(Admin/C-S)은 **IdP claim(App Role/Group)** 으로 판정하며 **GW는 자체 user 테이블을 두지 않는다**(claim 신뢰·§6.2).
 
 - **Console 사용자 역할 = Admin + C/S.** **Admin**=전체 관리·매핑 교정(override). **C/S(현장 설치 담당)**=설치 후 **디바이스 enrollment 승인**(`pending → active` 활성화 게이트, §2.3.1·§7.2.3·§7.2.5) + 클리닉 GW 등록 조회. 이 승인이 부트스트랩 신뢰 앵커라 C/S에게 **승인 권한(write)** 을 부여한다(단순 조회 아님).
-- **모든 C/S를 Console 사용자로 등록(요구).** 현장 설치를 수행하는 **C/S 인력은 전원 GW Console 사용자로 사전 등록**(OneID 계정 + C/S 역할 부여)돼 있어야 enrollment 승인이 공백 없이 가능하다 — 설치자가 곧 승인자이므로 설치 담당 C/S가 미등록이면 승인이 막힌다. **C/S 사용자 프로비저닝(계정 생성·역할 부여·오프보딩)·승인 UI·세부 권한은 ③-C GW Console Sub-SRS**에서 설계·확정 — 본 SRS는 관리 API·역할·승인 게이트·C/S 전원 등록 요구까지.
+- **모든 C/S를 Console 사용자로 등록(요구).** 현장 설치 C/S는 **전원 직원 IdP(Entra)에 C/S 역할(App Role/Group) 부여**돼 있어야 enrollment 승인이 공백 없이 가능하다 — 설치자가 곧 승인자라 미부여 시 승인이 막힌다. **C/S는 클리닉별로 한정하지 않는다**(어느 C/S나 어느 pending device든 승인 — 클리닉↔C/S 매핑 테이블 불요). **단 국가/법인별 승인 범위 한정 여부는 미확정**(Appendix B #39 — 확정 시 IdP claim 또는 최소 매핑으로). 계정·역할 부여는 IdP(Entra)에서 하고, **승인 UI·세부 권한은 ③-C GW Console Sub-SRS**. 본 SRS는 관리 API·역할·승인 게이트·전원 등록 요구까지.
 - **에러**: 권한 외 호출 → 403
 
 ### 7.9.3 감사 로그 — append-only (P1)
@@ -1993,7 +2016,7 @@ FR-ADM-02 (권한 분리, 경량). 역할별 수행 가능 기능 제한(§6.5).
 FR-AUD-01 (변조 방지·보존).
 
 - **Side Effect**: 모든 관리 변경(operator id·timestamp·before/after·IP)을 append-only로 기록한다.
-- **필드 규약**: `action`은 **`resource.verb` 명명 규약**(free string·앱 레벨 상수·정규식 검증, 예 `device.approve`·`region.change` — DB enum 아님, 확장성)을 따르고, `actor`는 **`type:id`**(`user:{oneidSub}` | `system:{component}` | `device:{deviceId}`), `result`는 **enum**(`success`/`denied`/`failure`)이다. 정확한 형식·표준 action 목록은 `design/db-jsonb-fields.md#audit_log`.
+- **필드 규약**: `action`은 **`resource.verb` 명명 규약**(free string·앱 레벨 상수·정규식 검증, 예 `device.approve`·`region.change` — DB enum 아님, 확장성)을 따르고, `actor`는 **`type:id`**(`user:{sub}` | `system:{component}` | `device:{deviceId}`), `result`는 **enum**(`success`/`denied`/`failure`)이다. 정확한 형식·표준 action 목록은 `design/db-jsonb-fields.md#audit_log`.
 - **경계/보존**: 보존 기간은 TBD다(§6.4, 책임자·마감 TBD, 영향: §6.4·§7.9.3).
 
 ### 7.9.4 data classification tagging (P1)
@@ -2034,7 +2057,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | # | 항목 | 결정 | 본문 |
 | --- | --- | --- | --- |
 | 7 | 멀티 Region·멀티클라우드 gw/1.0 흡수 | **1차 단일 / 2차(gw/1.2) 멀티 리전, v1.0 멀티리전-ready**(2026-06-23). 잔여=2차 구축 *시점*만 | §2.7.1 |
-| 10 | CCB 명단·승인자 + 영역별 리뷰어 | **승인=Scott(실장·총괄·PM 겸임)·Raymond(GW 리드) 확정**(7/2 R6); QA·보안·인프라 사안별 옵저버. **영역별 리뷰어 목록 확정(7/2 R6 — §9)**: 아키텍처=Thomas·인프라=Jack·QA=정우혁/James·③-P별 담당(CS 고형용/CO 탁수용/OID 서유진) | §8·§9 |
+| 10 | CCB 명단·승인자 + 영역별 리뷰어 | **승인=Scott(실장·총괄·PM 겸임)·Raymond(GW 리드) 확정**(7/2 R6); QA·보안·인프라 사안별 옵저버. **영역별 리뷰어 목록 확정(7/2 R6 — §9)**: 아키텍처=Thomas·인프라=Jack·QA=정우혁/James·③-P별 담당(CS 고형용/CO 탁수용) | §8·§9 |
 | 17 | 클리닉 GW 등록 주체 | **확정(2026-06-25): EzServer(클리닉당 1개)가 LMP Clinic-ID 수신 시 자동·무조건 GW 등록**(연동 무관). CleverOne 대안 폐기 | §2.3.1·§7.3 |
 | 19 | 디바이스 정의·연결 모델 | **확정(2026-06-25): GW 관점 디바이스=EzServer**(물리 영상장비는 EzServer 뒤·GW 비대상, 직접 연결 없음). **명확화(2026-07-06): 이 결정의 논점은 'EzServer vs 물리 영상장비'였고, device의 본질=GW 호출 주체(머신 클라이언트)·EzServer=v1.0 유일 종류·미래 비-EzServer/clinic-less 가능**(§1.2·§1.4·§6.4.1). Agenda #1 종결 | §1.2·§1.4·§2.3.2·§7.1·§7.2·ADR-08 |
 | 20 | GW 배포 클라우드 | **확정(2026-06-25): AWS 전용**(비AWS GW 없음·AWS 미지원국은 가까운 AWS GW 접속, 주권 storage=upstream MinIO 중계). 비AWS 포터블 배포(§2.1.2 초안) 폐기 | §2.1.1·§3.1.2 |
@@ -2054,6 +2077,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 
 | # | 항목 | 본문 | 책임자 | 마감 | 영향 |
 | --- | --- | --- | --- | --- | --- |
+| 38 | **GW Console 사용자 인증·역할 관리 방식** — **OneID=고객(클리닉/랩) IdP라 대상 아님**; Console 사용자=사내 직원(Admin·C/S). **기본안=MS365/Entra OIDC 연동**(자체 비번 없음·직원 SSO·퇴사 자동 오프보딩), 대안=GW 자체 user DB. 역할(Admin/C-S)=**Entra App Role/Group claim→RBAC**(별도 테이블 불요)이 기본; **C/S↔담당 클리닉 범위** 필요 시만 작은 GW 매핑 테이블. Agenda 상정 | §7.1.4·§7.9.2·§2.3 | GW+IT(Entra) | Console 구현 착수 전 | §7.9·③-C |
+| 39 | **C/S 승인 범위 — 국가/법인(entity)별 한정 여부** — C/S는 **클리닉별로는 한정 안 함 확정**(어느 C/S나 승인). 미확정: **국가/법인별로 C/S 승인 범위를 나눌지**(예 KR 법인 C/S는 KR 클리닉만). 확정 시 IdP claim(예 country/entity) 또는 최소 매핑으로 집행. 미정이라 v1.0은 범위 무한정. **참고: OneID 스펙의 "영업 지역(Sales Area)=바텍 해외 법인별 국가 그룹"(OneID SRS §2.5)이 동일 개념** — 국가/법인 스코핑 시 Entra의 country/법인 claim으로 같은 모델 적용 가능 | §7.9.2·§2.3.8 | GW+운영조직 | Console 정책 확정 시 | §7.9·③-C |
 | 33 | **비-EzServer·clinic-less device 구체화(미래 확장점)** — v1.0 device=EzServer(clinic-bound)뿐. 모델은 device-중심으로 clinic-less/비-EzServer를 **수용하도록 설계**(§1.2 Will Not Do)하되 구체 정체는 미정의. 실제 등장 시 확정: (a) clinic-less device의 **region 출처**(자체 지정/global) · (b) **upstream-org 신원**(`org_mapping`은 현재 clinic-키 → device-스코프 확장) · (c) **인증 부트스트랩**(EzServer=LM 라이선스·Clinic-ID; clinic-less는 다른 신뢰 앵커) · (d) policy `device` 스코프 실사용 | §1.2·§6.4.1·§7.2·§7.3 | GW(설계)+제품 로드맵 | 해당 device 연동 요구 시 | §1.2 Will Not Do·§6.4.1 |
 | 37 | **분배 수신자(delivery) 모델 도입 — 비-edge/클라우드·다중 수신자** — v1.0은 전 클리닉이 EzServer(edge)라 분배 방식이 불변·토픽이 clinic_id에서 결정적(`gw/clinic/{clinicId}/webhook`, §7.6.6)이라 **저장 테이블 없이 규약으로 도출**한다(구 `delivery_channel` 테이블은 정보 0이라 **삭제**). **미래에** 어떤 upstream의 이벤트가 **클리닉 EzServer가 아닌 다른 수신자**(클라우드 CleverLab=갈래B / 한 클리닉 복수 수신자 / upstream·event_type별 상이 목적지)로 가야 하면 규약 도출만으론 부족 → **수신자 모델 도입**(예: `(clinic, recipient)` 또는 라우팅 규칙 테이블). 트리거=갈래B(CleverLab 클라우드 수신) 활성화 또는 비-edge 수신 upstream 등장 | §7.6.5/6·§2.3·design/dbml | GW+제품 | 갈래B 활성화/비-edge 수신 요구 시 | §7.6·④ |
 | 36 | **webhook payload 보존기간(TTL)·이벤트 메타 보존 확정** — 저장 방식은 **R2 추천안 채택**(본문=리전 로컬 S3·SSE·claim-check 참조, 관계형 DB 미저장; in-flight=SQS; Console redact+접근통제 — §7.6.3). **미결(운영·컴플라이언스)**: (a) payload S3 **TTL**(디버깅·재생용, 초안 7~30일) · (b) `webhook_event` 메타데이터 보존기간 · (c) redact 대상 필드 목록. 감사·consent 보존정책(#5)과 함께 확정. **7/9 R2 확정 전 provisional**(회의 결정 시 조정) | §7.6.3·§6.4·design/dbml | GW+품질/법무 | webhook 구현 착수 전 | §7.6·§6.4·③-C·④ |
@@ -2072,7 +2097,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 15 | 전역데이터 복제 토폴로지 세부(primary 위치·단일 vs multi-primary·충돌) — "PostgreSQL 원본+리전 복제 / Redis 캐시" 모델·구분 원칙은 고정, 복제 세부만 미정 | §2.1.1·§6.4 | PM/아키텍트+인프라 | gw/1.2 설계 | §7.3·§6.4·§6.3.1 |
 | 16 | Webhook 클라우드 분배 — **CleverLab 갈래 B 활성화 여부·시점**(CleverSpace=대상 아님 확정). EzServer(갈래 A) 역방향 대상 이벤트 목록 | §2.3.6·§7.6.5·§7.6.6 | PM/제품+GW(④) | ④ 상세설계 | §7.6·④·§2.1·§2.2 |
 | 18 | 관계형 DB 관리형 제품 — **엔진=PostgreSQL 확정·제품=Aurora PostgreSQL 권장**(처음부터; RDS-first 비권장, 비용 델타 ~20%·저QPS라 작음). **인프라 비준만 남음** | §3.1.2·§2.1.1 | 인프라/아키텍트 | v1.0 배포 구성 착수 전 | §2.1.1·§6.3·§7.3 |
-| 24 | **개발·테스트·운영 환경 구축** — dev 에뮬레이터/스텁(EPI·CleverSpace presign·OneID·LMP)·AXS sandbox 자격(↔#6)·staging(운영 유사 축소)·dev/staging AWS 계정·sandbox egress EIP. 책임·일정 | §3.1·§3.4·§3.5 | 인프라/개발 | **dev: AXS 개발 착수 전** · staging: pilot 전 | §3·§7.5·④ |
+| 24 | **개발·테스트·운영 환경 구축** — dev 에뮬레이터/스텁(EPI·CleverSpace presign·LMP)·AXS sandbox 자격(↔#6)·staging(운영 유사 축소)·dev/staging AWS 계정·sandbox egress EIP. 책임·일정 | §3.1·§3.4·§3.5 | 인프라/개발 | **dev: AXS 개발 착수 전** · staging: pilot 전 | §3·§7.5·④ |
 | 25 | **프록시 복원력 분담(7/2 R4)** — **① GW→upstream 연결 timeout = GW `upstream`**(D1 connect 추천 3s · D2 response 10s/AXS는 SLA 개별값 · D3 total_deadline < 클라이언트 ≤80%; GW가 upstream에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound). **② 재시도·서킷 = istio egress**(`DestinationRule`/`VirtualService`, 인프라 소유). 잔여=①의 수치 확정(AXS SLA)·②의 istio 정책·클라이언트(EzServer) 타임아웃 30s(D4)·인지 방식(계약값/`Vatech-Timeout-Ms` D10) | §7.5.4·§7.7.4·§3.1 | GW(①연결 timeout)+인프라(②재시도·서킷·+AXS SLA) | 프록시 구현 착수 전 | §7.5·§6.3.4·④ |
 | 27 | **공개키(client_public_key) 회전(재설치) 정책 수치·crypto 확정** — 정책 골격은 §7.2.7 확정(라이선스/Clinic-ID 재검증·C/S 승인·기존 revoke·개인키 백업 미도입). **미결**: 회전 속도·횟수 상한, 빈발 시 Admin 에스컬레이션 임계, 키페어 알고리즘·key-id 산출·서명 스킴(nonce), revoke 전파 방식 | §7.2.6·§7.2.7·§2.3.1 | GW+보안 | enrollment 구현 착수 전 | §2.3·§7.2·보안설계·LLD |
 
@@ -2112,7 +2137,6 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | ③-P-EZ (EzServer) | 클라이언트·클리닉 등록 주체 영향 | **Thomas** (담당 1인 이상) |
 | ③-P-CS (CleverSpace) | presigned·내부(B) 프록시 영향 | **고형용/Larry** |
 | ③-P-CO (CleverOne) | 경유(EzServer) 전환 영향 | **탁수용/Nick** |
-| ③-P-OID (OneID) | 인증 연계 영향 | **서유진/Jin** |
 | QA·검증 | §3.6·테스트·호환성 매트릭스 | **정우혁/James_ES** |
 
 ---
@@ -2276,6 +2300,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-07 | **호환성 매트릭스 배포 lifecycle 분리 — 런타임 S3 로딩+path-scoped 발행(앱 재배포 회피)** — 매트릭스를 이미지에 굽지 않고 GW가 **리전 로컬 S3에서 런타임 read+cache**, 발행은 **`config/**` 경로 전용 파이프라인**(스키마 검증→S3 push)이 담당하고 **앱 build/deploy는 `config/**` path-filter 제외** → 매트릭스만 바뀌면 앱 재배포 0. S3=**CI-only write**(GW·admin read-only)로 "런타임 임의 변경 금지" 유지. **전용 config repo 불요**(소스=`vt-api-gateway` `config/compat-matrix.yaml`·앱 태그 baseline과 config 커밋 별개). §7.7.5 보강, Appendix B #8 lifecycle 확정. Agenda 7/9 공유(well-known 샘플) | (작성자 ID 미지정) |
 | 2026-07-07 | **호환성 매트릭스 관리 방식 명확화 — git/CI 저작·Console 뷰어** — §7.7.5에 매트릭스는 안전 크리티컬·릴리스 결합이라 **레포 소스 파일(YAML)+PR+CI**로만 저작하고 **GW Console엔 편집 UI·임의 업로드 저작면을 두지 않으며 읽기 전용 뷰어**(+선택 검증/미리보기)만 제공함을 명시(런타임 가변 저장소 재도입 금지=DB 폐기 원칙과 일관). **소스 파일 git 레포 위치는 결정 대상**(추천 `vt-api-gateway`·`config/compat-matrix.yaml`)으로 Appendix B #8 확장. ③-C `_status.md`에 매트릭스 편집 UI 없음=뷰어만 씨앗 | (작성자 ID 미지정) |
 | 2026-07-07 | **§7.7.3 버전 불일치 반응 = semver 3단계 정책 반영(선례)** — 호환 게이트 반응을 이분법(통과/차단)에서 **major=차단 / minor=경고 통과(degrade·`Vatech-Compat-Warning` advisory) / patch=무시** 3단계로 명시. 근거=출하된 CleverOne↔EzServer 게이팅(참조-카탈로그 §3에 신규 등록한 [C1]·DTKS 버전표 2종). 자리별 정책·헤더명·API↔제품 버전 매핑은 ① One Pager 확정 대상(Appendix B #8 확장). 참조-카탈로그 §3 등록·미확보 #96을 🟡 부분으로 갱신, ① `_status.md`에 씨앗(반응 정책+매트릭스 형식) 심음. ※ 제품 버전 호환 선례→API 게이트로 의미론·형식만 차용 | (작성자 ID 미지정) |
+| 2026-07-07 | **GW Console 인증/인가 전면 추가 + OneID 오해 전 문서 정정** — (1) C/S=**클리닉별 미한정 확정**(매핑 테이블 불요), 국가/법인별 한정=미정(Appendix B #39 신설) · (2) **§2.3.8 운영자·Console 인증 Flow 신설**(직원 IdP OIDC 로그인→role claim→RBAC 시퀀스) · **§6.2 운영자 인증 보안 단락**(자체 비번·user 저장소 없음·오프보딩=IdP·claim→RBAC) · §7.9.2(역할=IdP claim·user 테이블 불요·C/S 미한정)·§7.1.2(고객 OneID 참조 제거) · (3) **OneID 오해 전 문서 정정**(사람 면=직원 IdP·OneID=고객 제품): SRS §1.4/§2.1/§2.3/§7.1/§7.9·OpenAPI(oneid/verify→oidc/verify·OidcVerify 스키마)·db-jsonb(actor=Entra sub)·redis(jwks=직원 IdP)·ARD(ADR-08 정정·컴포넌트)·인증보안·API명세·PRD·요구사항. `oneid` upstream·③-P-OID 제품은 보존 · (4) 부수: 오염된 `dataupstream`/`authupstream`→`dataProvider`/`authProvider` 복구 | (작성자 ID 미지정) |
+| 2026-07-07 | **GW Console 사람 인증 오매핑 정정 — OneID(고객)→직원 IdP(MS365/Entra)** — §7.1.4가 운영자 인증을 OneID로 위임한 것을 정정: **OneID=고객(클리닉·랩·개인) 신원 제품**(OneID SRS 확인)이라 **GW Console 운영자(Admin·C/S=사내 직원)** 대상이 아님. §7.1.4 재정의(운영자=직원 IdP OIDC·기본안 MS365/Entra·역할=IdP claim→RBAC·자체 user 테이블 불요·C/S 클리닉 범위 시만 매핑). **자체 DB vs Entra 결정 + C/S 클리닉 범위 = Appendix B #38·Agenda R6 상정**. verify 엔드포인트 일반 OIDC화는 확정 후 | (작성자 ID 미지정) |
 | 2026-07-07 | **Appendix B 정리 — #30·#32 B-2(미결)→B-1(완료·확정) 이동** — region 카탈로그 관리 API(#30)·정책 관리 API+v1.0 coarse 인가(#32)가 이번 세션에 신설·확정돼 닫힌 결정이므로 B-1으로 이동(번호 보존). 잔여(Console UI=③-C·OPA 병합=LLD)는 SRS-level TBD 아니라 하위 산출물이라 B-2에 남기지 않음 | (작성자 ID 미지정) |
 | 2026-07-07 | **인가(authz) 세분화 수준 = coarse(v1.0)·scope 예약 확정** — AXS가 `Organization-ID`로 데이터 격리·consent로 작업 권한을 이미 집행하므로, **v1.0 GW 인가는 upstream 단위(coarse)**(사용 허용+egress+인증+region/PHI)까지만 하고 operation·데이터 격리는 AXS+Org-ID에 위임(OAuth scope 과설계 회피). 토큰 `scope`·`allowed_endpoints`·`scopes`는 **optional·예약**(비파괴 확장점)으로 유지하고 gw/1.1+에서 세분화 활성화(클리닉 차등·침해 blast-radius·다중 upstream). 반영: §7.5.3(coarse 단락)·§7.1.1(scope 선택·예약)·OpenAPI(TokenRequest.scope required 제거·"v1.0 미사용" 설명·Policy coarse)·DBML policy Note·Appendix B #32. scope 값 카탈로그는 GW SRS 아닌 ④ AXS Sub-SRS | (작성자 ID 미지정) |
 | 2026-07-07 | **OpenAPI Swagger 가독성 보강(B안)** — 전 스키마 property에 `example`(현실값)·nullable 필드 `nullable: true`·표준 `format`(int64/uuid류)·확정 제약만 `pattern`(targetId `^[a-z0-9_]+$`) 추가. **전 오퍼레이션 `operationId` 36개** 부여(codegen·Swagger 네비·lint 경고 41→5, 잔여 5=의도된 프록시 bypass no-unused-components). 오퍼레이션 full example은 필드 example로 Swagger가 자동 합성돼 생략. pattern/min·max는 SRS/DBML 확정분만(임의 범위 배제). code-first(@nestjs/swagger) 착수 시 데코레이터로 이관될 템플릿 | (작성자 ID 미지정) |
@@ -2283,4 +2309,5 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-07 | **§2.3.x 물리 재번호 — 발생 순서 정렬(§2.3.4 파일업로드 ↔ §2.3.5 외부연동 스왑)** — 소절을 실제 발생 순서(온보딩→인증→라우팅→외부연동 등록·호출→파일업로드→webhook→[횡단]버전게이팅)로 물리 재배치. **`2.3.4`↔`2.3.5` 원자적 번호 스왑**으로 헤딩·전 교차참조 정합(SRS 37건 + Agenda·④·③-C 각 1건). 범위 표기(§2.3.1~7 등)·타 소절 불변. §2.3 머리 발생순서 개요를 새 순서에 맞게 재작성. (직전 '개요만' 방식에서 사용자 요청으로 물리 재번호로 승격) | (작성자 ID 미지정) |
 | 2026-07-07 | **본문 provider→upstream 용어 통일 + §2.3 재정리(발생순서 개요·연동 링크 생애주기) + AXS Organization 링크 반영** — (1) 살아있는 본문의 `provider` 서술을 **`upstream`으로 통일**(SRS 72줄·OpenAPI·DBML·db-jsonb·infra·Agenda), ERD 컬럼 `provider`→**`target_id`**, webhook 호스트 placeholder `{provider}`→**`{target}`**(+OpenAPI path `/v1/webhooks/{target}`·param), **역사·병합 이력(webhook_provider·upstream_registry·날짜 changelog)은 보존**. 네이밍은 upstream 유지 확정(내부 backend 포함 대상엔 provider 부적합) · (2) §2.3 머리의 org_mapping 다이어그램을 **「시나리오 발생 순서(lifecycle)」 개요**로 교체(소절 번호는 교차참조 보존 위해 불변·발생순서만 명시)하고, 다이어그램은 **§2.3.4 「연동 링크·org_mapping 생애주기」로 이동** · (3) AXS 문서 정독 반영 — **org_mapping 로컬 등록(org-bindings·AXS 미호출) vs AXS 연동 링크(프록시 `POST /organization/integration/link`·동의 PENDING→APPROVED) 분리**, 경우 A(이미 연결)/B(미연결) 명시, GW=공통(매핑+프록시 레일)·AXS 고유 시퀀스=④ Sub-SRS 분담. ④ `_status.md` 범위에 Organization Integration 링크 추가 | (작성자 ID 미지정) |
 | 2026-07-07 | **§2.3 `org_mapping` 생애주기 다이어그램 신설(AXS 기준) + 양방향 사용 명확화** — org_mapping이 "언제 한 행 생기나(=[2] 클리닉이 AXS 연동 켤 때뿐)"와 "생긴 뒤 소비 경로"를 mermaid 시퀀스([1]upstream 사전등록 → [2]org-binding 생성 → [3]송신 정조회 → [4]수신 역조회 → 해지 DELETE)로 시각화. org_mapping 노트를 **양방향**(송신 outbound `clinic→org_id` 정조회 + 수신 inbound `org_id→clinic` 역조회)으로 보정(기존 webhook 수신 전용 서술 오해 제거·§6.4.1과 정합). 겸사겸사 §2.3 산문의 잔여 `provider`→`upstream` 정리(노트·분배 규약·라우팅 Flow 헤딩/인트로). 네이밍은 **`upstream` 유지 확정**(내부 backend 포함 대상엔 provider 부적합·회의 어법 일치) | (작성자 ID 미지정) |
+| 2026-07-07 | **OneID GW 완전 제거 확정 — 인증(device·Console)·`oneid` upstream·③-P-OID 전면 삭제** — OneID의 GW 내 유일 역할이 인증 연동이었고(원본 80문서 ADR-08 '사람·클리닉·사내호출자 OneID(OIDC)'), 그게 사라지면 `oneid` upstream·③-P-OID 적응 스펙도 데이터 경로 없는 잔재임을 확인(OneID SRS §1.2·§2.5 정독). Device→GW=private_key_jwt(ADR-13)·운영자=직원 IdP(Entra·§7.1.4) 최종 확정. 제거: §2.1/§2.2 다이어그램 OneID·OneID Integration 노드·엣지, 외부시스템표·upstream·의존·B프록시 리스트의 OneID, env matrix OneID 행, Appendix B #10 리뷰어 'OID', §7.1.4 heading/본문·산재 '고객 OneID 아님' clarifier, audit actor 예시 oneidSub→sub. 동반: DBML(upstream enum/예시)·OpenAPI·redis·db-jsonb·③-P-OID 디렉터리·roadmap·실행할당·PRD·요구사항·ARD·API명세·인증보안. OneID는 '고객 신원 제품' 배경 서술로만 잔존(§7.1.4). 원본 80문서(-Org)도 동반 정정(승인). 근거·비교표=Agenda Share | (작성자 ID 미지정) |
 | 2026-07-06 | **레코드 CRUD·API 감사 + 누락 관리 API 신설** — §2.3 provenance 표를 3열→**5열 CRUD·API 매트릭스**(테이블별 생성(C)/수정(U)/삭제(D)/관리 API)로 확장, 표 아래 **org_mapping 등록 메커니즘 명확화 노트** 추가(외부 Org-ID는 provider 발급이라 GW 자동 도출 불가 → 연동 켤 때 client가 `org-bindings`로 자가 등록·enroll과 독립·새 provider는 클리닉마다 1회). 감사로 드러난 **누락 관리 API 2건 신설**: `DELETE /admin/v1/org-mappings`(연동 해지·복합키 targetId+externalOrgId), `GET /admin/v1/webhook-events`(Console 검색/필터·PHI-free 메타·payload 미포함) + 관측 조회 `GET /admin/v1/fleet`(대시보드) 명시. OpenAPI **`WebhookEvent`·`WebhookEventState`·`FleetState` 스키마 신설**·§7.9.1 조회 API 목록 보강. **관리 API 미정의 잔여 = region_catalog(#30)·policy(#32)** 재확인 | (작성자 ID 미지정) |

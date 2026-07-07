@@ -54,7 +54,7 @@ Controlled document. Confluence page history = 변경 원장, 아래 개정 이�
 | 마케팅전략팀  | 전략 오너, 제휴 정의 (박지웅 팀장)                                  |
 | 개발실 (ES)   | 설계·개발 (김성훈 / Scott 실장)                                     |
 | 외부 플랫폼사 | Straumann (1차), DS Core / Envista / 3Shape (후속)                  |
-| 사내 시스템   | Clever One / Clever Lab / CleverSpace / EzServer · 인증 OneID(OIDC) |
+| 사내 시스템   | Clever One / Clever Lab / CleverSpace / EzServer |
 | 운영자        | 테넌트·키·로그·fleet 관리 (관리자 UI)                               |
 
 ## 4. 아키텍처 — 3-Plane
@@ -159,7 +159,7 @@ v2 견적 **6,940만 원으로 확정**(2026-06-08). 범위: control/data/integ
 | 흡수 | 내용 | 위치 |
 | --- | --- | --- |
 | ① API 버전 호환성 | Vatech-\* 식별 헤더 · well-known 런타임 공시 · 오류코드 매핑/fallback · 호환성 매트릭스. GW 신설 전에도 즉시 적용(CleverSpace v1.3.0 대응) | ARD ADR-07 · FR-COMPAT |
-| ② OneID 인증면 | 무인 디바이스 머신 인증(OAuth2 cc·enrollment)과 별개로, 사람·클리닉·사내 호출자는 OneID(OIDC)로 인증 — 2면 공존 | ARD ADR-08 · FR-AUTH-08/09 |
+| ② 사람 인증면 | 무인 디바이스 머신 인증(private_key_jwt·enrollment)과 별개로, **운영자(Console Admin·C/S)=사내 직원은 직원 IdP(MS365/Entra OIDC)로 인증** — 2면 공존 | ARD ADR-08 · FR-AUTH-08/09 |
 | ③ Webhook Receiver | 외부 이벤트(AXS 등) 단일 수신·검증·분배. 클라우드=HTTP push, Edge(EzServer)=MQTT(QoS1) | ARD ADR-09 · FR-WH |
 | ④ 라우팅 키 통합 | device→region(08)과 ClinicID→region(서비스 연동)을 device↔clinic↔region 단일 체계로 통합 | ARD ADR-10 · FR-RGN-06 |
 

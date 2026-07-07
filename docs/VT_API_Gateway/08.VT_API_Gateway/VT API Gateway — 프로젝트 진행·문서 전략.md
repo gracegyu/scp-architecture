@@ -67,7 +67,7 @@ README에만 링크한다. VKS 허브에는 두지 않는다.
 
 ### 3.2 ③-C Sub-SRS에 넣을 것 (GW Console 전용)
 
-- Admin 역할·권한·인증(OneID 연계)
+- Admin 역할·권한·인증(직원 IdP 연계)
 - 화면·플로우: 클리닉·매핑(ClinicID↔Region·Org-ID)·연동 상태·온보딩
 - ③ 관리 API 호출 계약(본문 중복 금지 — API 상세는 ③ Swagger)
 - 별도 레포(이름 TBD) · 배포·K8s 노출(인프라 담당과 인터페이스만)
