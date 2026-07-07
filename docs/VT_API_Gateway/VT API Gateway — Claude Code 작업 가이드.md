@@ -109,7 +109,7 @@ docs/VT_API_Gateway/                         ← Claude Code 실행 루트
 **④ AXS Sub-SRS 작성 시 추가:**
 
 - [`references/Straumann연동/AXS_docs/`](references/Straumann연동/AXS_docs/)
-- `vt-api-gateway/docs/specs/references/axs-openapi/` (Azure placeholder)
+- `vt-api-gateway/docs/specs/references/axs-docs/` (복사 완료 2026-07-07 · 커밋 대기 — scp `references/Straumann연동/AXS_docs/`와 동일 스냅샷)
 - [AXS Developer Portal](https://developer.axs.straumann.com/api)
 
 ---
@@ -128,7 +128,7 @@ vt-api-gateway/
     ├── README.md · SRS.md
     ├── 03c-subsrs-gw-console/Sub-SRS.md · 04-subsrs-straumann-axs/Sub-SRS.md
     ├── design/openapi/vt-api-gateway.openapi.yaml · design/dbml/vt-api-gateway.dbml
-    └── references/axs-openapi/
+    └── references/axs-docs/
 ```
 
 ### 6.1 Jira (VTS)

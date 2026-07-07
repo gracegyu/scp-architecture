@@ -59,7 +59,7 @@ VT API Gateway 프로젝트를 시작 하기 위한 정리를 했습니다.
 | 자료 | 공식 URL | 비고 |
 | --- | --- | --- |
 | AXS OpenAPI (외부 정본) | https://developer.axs.straumann.com/api | Straumann API Explorer · 스펙 인덱스 `https://developer.axs.straumann.com/specs/index.json` |
-| AXS OpenAPI 스냅샷 (사내) | https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/references/axs-openapi/README.md | 외부 정본에서 취득(2026-06-16) · Confidential |
+| AXS OpenAPI 스냅샷 (사내) | https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/references/axs-docs/README.md | 외부 정본에서 취득(2026-06-16) · Confidential |
 | VT API Gateway — ESMN 진척 (MeetingNotes) | https://vks.vatech.com/spaces/ESMN/pages/311608221/VT+API+Gateway+platform+api-gateway | PM용 · README 기존 링크 |
 | Jira ESIP (작업) | https://vts.vatech.com/browse/ESIP-2 | Epic v1.0 |
 
