@@ -73,25 +73,25 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /v1/auth/oneid/verify:
+  /v1/auth/oidc/verify:
     post:
-      operationId: postAuthOneidVerify
+      operationId: postAuthOidcVerify
       tags: [ auth ]
-      summary: OneID(OIDC) 토큰 검증·연계 — 사람·클리닉·사내 호출자 (FR-AUTH-08)
+      summary: 운영자(Console) OIDC 토큰 검증·연계 — 직원 IdP(MS365/Entra) (FR-AUTH-08)
       security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OneIdVerifyRequest'
+              $ref: '#/components/schemas/OidcVerifyRequest'
       responses:
         '200':
           description: 검증된 신원 + 디바이스 인증면 매핑
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OneIdVerifyResponse'
+                $ref: '#/components/schemas/OidcVerifyResponse'
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
@@ -314,7 +314,7 @@ paths:
       tags: [ clinics ]
       summary: 클리닉 관리 — 운영자 교정·예외적 수동 등록 (주 생성 경로는 enroll) (FR-RGN-*)
       description: >-
-        **클리닉 존재·초기 region은 EzServer enroll이 자동 확립한다**(§2.3.1 — enroll이 Clinic-ID로 clinic upsert, region 기본=GeoDNS 최근접·C/S가 override). 본 엔드포인트는 **운영자(Admin/C-S, OneID 인증)의 예외적 수동 등록·교정용**이며 일상 경로가 아니다. region 변경은 `PUT /v1/clinics/{clinicId}/region`(§7.3.4·FR-RGN-04).
+        **클리닉 존재·초기 region은 EzServer enroll이 자동 확립한다**(§2.3.1 — enroll이 Clinic-ID로 clinic upsert, region 기본=GeoDNS 최근접·C/S가 override). 본 엔드포인트는 **운영자(Admin/C-S, 직원 IdP 인증)의 예외적 수동 등록·교정용**이며 일상 경로가 아니다. region 변경은 `PUT /v1/clinics/{clinicId}/region`(§7.3.4·FR-RGN-04).
       requestBody:
         required: true
         content:
@@ -882,7 +882,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: 디바이스/사람 JWT(FR-AUTH·§7.1). 공개 엔드포인트(auth·enroll·webhook·well-known)는 op별 security 재정의. 프록시 호출은 target 서브도메인({target}.gw.vatech.com)으로 라우팅(§4.1.2; CleverOne→EzServer 구간은 Vatech-Target 헤더→EzServer가 서브도메인 변환)
+      description: 디바이스 JWT(private_key_jwt·§7.1.1) 또는 운영자 JWT(직원 IdP=MS365/Entra OIDC·§7.1.4). 공개 엔드포인트(auth·enroll·webhook·well-known)는 op별 security 재정의. 프록시 호출은 target 서브도메인({target}.gw.vatech.com)으로 라우팅(§4.1.2; CleverOne→EzServer 구간은 Vatech-Target 헤더→EzServer가 서브도메인 변환)
 
   headers:
     VatechErrorOrigin:
@@ -1013,20 +1013,22 @@ components:
           type: object
           description: device_id·region·aud·TTL 강제 바인딩(§7.1.1)
           example: { deviceId: 01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60, region: apne2, aud: axs.gw.vatech.com }
-    OneIdVerifyRequest:
+    OidcVerifyRequest:
       type: object
-      required: [ oneIdToken ]
+      description: '운영자(Console) 인증 — 직원 IdP(MS365/Entra) OIDC 토큰 검증(§7.1.4).'
+      required: [ idpToken ]
       properties:
-        oneIdToken:
+        idpToken:
           type: string
+          description: 직원 IdP(Entra) OIDC 토큰
           example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
-    OneIdVerifyResponse:
+    OidcVerifyResponse:
       type: object
       properties:
         identity:
           type: object
-          description: 사람/클리닉/사내 호출자 신원
-          example: { sub: oneid-8f3a, role: cs_engineer, clinicId: CLINIC-0040694997 }
+          description: 운영자 신원(직원 IdP subject·역할 claim Admin/CS)
+          example: { sub: entra-8f3a, role: cs, clinicId: CLINIC-0040694997 }
         deviceBinding:
           type: string
           description: 디바이스 인증면과의 매핑
@@ -1249,17 +1251,17 @@ components:
           example: 1720224000000
         updatedBy:
           type: string
-          description: '변경 주체(audit actor, 예 user:oneid-…)'
-          example: user:oneid-8f3a
+          description: '변경 주체(audit actor, 예 user:entra-…)'
+          example: user:entra-8f3a
 
     # 연동 대상(upstream) 통합 (§7.5·§7.6·§7.1.3) — 라우팅+아웃바운드 자격+인바운드 webhook 수신
     Upstream:
       type: object
       required: [ targetId, profile ]
       description: >-
-        연동 대상(외부 서비스·내부 backend) **통합 레코드**(엔터티=upstream) — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드에(구 upstream_registry·connector·webhook_provider 병합). **upstream 하나 등록=1 레코드**. credential_ref·secret_ref는 KMS 참조만(원문 미노출). org_mapping·webhook_event·policy가 targetId를 참조. AXS=①②③ 다 채움 / 내부(cleverspace·oneid)=① 라우팅만.
+        연동 대상(외부 서비스·내부 backend) **통합 레코드**(엔터티=upstream) — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드에(구 upstream_registry·connector·webhook_provider 병합). **upstream 하나 등록=1 레코드**. credential_ref·secret_ref는 KMS 참조만(원문 미노출). org_mapping·webhook_event·policy가 targetId를 참조. AXS=①②③ 다 채움 / 내부(cleverspace)=① 라우팅만.
       properties:
-        targetId: { type: string, pattern: '^[a-z0-9_]+$', description: '연동 대상 ID = Vatech-Target 값 = 서브도메인 라벨 = PK(정규 토큰 소문자). 예 axs·cleverspace·oneid', example: axs }
+        targetId: { type: string, pattern: '^[a-z0-9_]+$', description: '연동 대상 ID = Vatech-Target 값 = 서브도메인 라벨 = PK(정규 토큰 소문자). 예 axs·cleverspace', example: axs }
         # ── ① 라우팅 (모든 대상) ──
         host: { type: string, description: '내부 매핑 host(클라이언트 비노출)·아웃바운드 base=https://{host}', example: api.eu.axs.straumann.com }
         profile: { type: string, enum: [ internal, external ], description: 'internal=B(내부) / external=C(외부)', example: external }
@@ -1358,7 +1360,7 @@ components:
       properties:
         id: { type: integer, format: int64, description: '감사 항목 식별자(자동 증가·페이지네이션/참조용)', example: 100237 }
         ts: { type: integer, format: int64, description: '발생 시각(Unix ms)', example: 1720137600123 }
-        actor: { type: string, description: '행위자 — `type:id`(user/system/device)', example: user:oneid-8f3a }
+        actor: { type: string, description: '행위자 — `type:id`(user/system/device)', example: user:entra-8f3a }
         action: { type: string, description: '수행 동작 — `resource.verb` 규약(free string·GW enum 아님)', example: region.change }
         result: { type: string, description: 'success | denied | failure (DBML audit_result enum)', example: success }
 
@@ -1397,7 +1399,7 @@ components:
       properties:
         clinicId: { type: string, example: CLINIC-0040694997 }
         region: { type: string, description: 'region(GW가 검증). 초기 region은 보통 enroll이 확립(GeoDNS 기본·C/S override); 본 입력은 운영자 교정 시 사용', example: apne2 }
-      description: '운영자(OneID) 클리닉 교정·예외적 수동 등록 입력 — 주 생성 경로는 enroll(§2.3.1)'
+      description: '운영자(직원 IdP) 클리닉 교정·예외적 수동 등록 입력 — 주 생성 경로는 enroll(§2.3.1)'
     OrgBinding:
       type: object
       required: [ targetId, externalOrgId ]

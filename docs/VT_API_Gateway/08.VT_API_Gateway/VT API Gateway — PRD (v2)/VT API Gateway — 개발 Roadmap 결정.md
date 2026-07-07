@@ -17,14 +17,14 @@
 
 **현재 문제(AS-IS).**
 
-- CleverOne·EzServer가 CleverSpace/OneID로 **여러 경로로 직접 연동**(EzServer 경유 경로 A + 직접 경로 B)되어 인증·정책 통제가 분산된다.
+- CleverOne·EzServer가 CleverSpace로 **여러 경로로 직접 연동**(EzServer 경유 경로 A + 직접 경로 B)되어 인증·정책 통제가 분산된다.
 - 클라이언트가 **제품 버전을 전달하지 않아**, 구버전이 신규 API·오류 코드를 인식하지 못하고 **원인 불명 실패**가 발생한다.
 
 > Straumann(AXS) 연동은 위와 같은 "문제"가 아니라, **GW가 만들어지면 그 위에서 자연히 수용되는 신규 연동 대상**이다. 본 프로젝트에서 **공식 5단계로 진행**하며, 두 갈래를 포함한다 — ① EzServer → AXS(온프레미스→클라우드), ② CleverLab ↔ AXS(클라우드↔클라우드, 기공소 주문 연동). 두 경우 모두 **VatechAPIGateway를 경유**하고 대용량은 **presigned**를 쓴다. 상세는 §3.7.
 
 **목표(TO-BE).**
 
-- **모든 연동은 GW를 단일 경유**한다. 온프레미스는 `EZ → GW → 대상 서버`, 클라우드 서비스(CleverLab 등)의 외부 연동도 `우리 클라우드 → GW → 외부 클라우드`로 **예외 없이 GW를 지난다**. GW가 **인증(OneID 연계)·버전 호환·Region 라우팅의 단일 집행점**이 된다.
+- **모든 연동은 GW를 단일 경유**한다. 온프레미스는 `EZ → GW → 대상 서버`, 클라우드 서비스(CleverLab 등)의 외부 연동도 `우리 클라우드 → GW → 외부 클라우드`로 **예외 없이 GW를 지난다**. GW가 **인증(디바이스 머신·운영자)·버전 호환·Region 라우팅의 단일 집행점**이 된다.
 - **정보(메타데이터)는 GW**를 지나고, **대용량 데이터(CT·이미지·디자인 파일)는 presigned URL로 스토리지에 직접 전송**한다(온프레미스·클라우드 동일 원리).
 - **직접 연동 경로 B는 GW로 흡수하며 Deprecated**된다(3단계). 구버전 호환 종료 후 **EOS(End of Service) 예정**이다.
 - CleverSpace를 **여러 Region에 두고**, GW가 **ClinicID 기준으로 분배**하며, EzServer는 **Route 53 GeoDNS로 가장 가까운 GW**에 연결된다.
@@ -156,7 +156,7 @@ flowchart LR
 
 ## 1. 배경과 목적
 
-세 제품(CleverOne, EzServer, CleverSpace)과 인증(OneID)은 현재 **두 갈래 경로**로 연동된다. EzServer가 중계하는 기능은 경로 A(`CleverOne → EzServer → CleverSpace`), EzServer가 중계하지 않는 기능은 경로 B(`CleverOne → CleverSpace/OneID` 직접)다.
+세 제품(CleverOne, EzServer, CleverSpace)은 현재 **두 갈래 경로**로 연동된다. EzServer가 중계하는 기능은 경로 A(`CleverOne → EzServer → CleverSpace`), EzServer가 중계하지 않는 기능은 경로 B(`CleverOne → CleverSpace` 직접)다.
 
 이 구조의 문제는 세 가지다.
 
@@ -175,14 +175,12 @@ flowchart LR
         EZ["EzServer / EPI<br/>Server + Client 이중 역할"]
     end
     subgraph CLOUD["CleverSpace Cloud (단일 Region)"]
-        OID["OneID (인증)"]
         CS["CleverSpace API"]
     end
 
     CO -->|"경로A: 업로드/공유"| EZ
     EZ -->|"HTTP/OAuth (client 버전 미전달)"| CS
     EZ -.->|"MQTT 결과 (error relay)"| CO
-    CO -->|"경로B Direct: OAuth"| OID
     CO -->|"경로B Direct: limit/member 조회"| CS
 
     classDef gap fill:#fdecea,stroke:#c0392b,color:#000;
@@ -199,7 +197,7 @@ flowchart LR
 
 - **명칭: VatechAPIGateway(GW).** 앞으로 모든 GW는 이것을 가리킨다.
 - 모든 연동은 **`EZ → GW → 대상 서버`** 경로를 따른다. 대상은 CleverSpace, Straumann(AXS), 그 외 어떤 서버든 **예외 없이 GW를 경유**한다.
-- GW는 **인증(OneID 연계)·버전 호환·Region 라우팅을 집행하는 단일 지점**이다.
+- GW는 **인증(디바이스·운영자)·버전 호환·Region 라우팅을 집행하는 단일 지점**이다.
 
 ### 2.2 구성요소
 
@@ -208,7 +206,6 @@ flowchart LR
 | **EzServer(EZ)**                | 클리닉 현장의 **Edge**. 장비·PMS·대용량 데이터를 현장에서 처리하고, 모든 클라우드 연동을 GW로 보낸다. (Edge로 유지 확정) |
 | **VatechAPIGateway(GW)**        | 모든 연동의 단일 경유점. 인증 검증, 버전 호환 판정, Region 분배, 외부 API 중계, **외부 Webhook 수신·분배**(§2.7)         |
 | **GW Console**                  | Admin이 GW를 관리하는 Web client(매핑·클리닉·상태 관리). 스펙: **③-C Sub-SRS**                                           |
-| **OneID(AuthServer)**           | 인증. GW가 토큰 검증 등에서 연계(연계 범위는 설계에서 확장 가능)                                                         |
 | **CleverSpace**                 | 클라우드 API. **여러 Region**에 구축                                                                                     |
 | **CleverLab**                   | 치과 기공소용 PMS(우리 클라우드 서비스). 외부 AXS와의 연동(기공소 주문·상태·확정)도 **GW를 경유**한다                    |
 | **외부 서버(Straumann AXS 등)** | GW를 통해서만 연동. 온프레미스(EZ)·클라우드(CleverLab) 양쪽의 외부 연동 모두 GW 경유                                     |
@@ -257,7 +254,6 @@ flowchart LR
     end
 
     subgraph CLOUD["우리 클라우드 백엔드 (멀티 Region)"]
-        OID["OneID"]
         CS1["CleverSpace Region A"]
         CS2["CleverSpace Region B"]
         CLAB["CleverLab<br/>(기공소 PMS, 우리 클라우드)"]
@@ -267,7 +263,6 @@ flowchart LR
     AXSS3["외부: AXS S3"]
 
     EDGE ==>|"모든 API(정보)<br/>Route 53 GeoDNS로 가까운 GW"| GW
-    GW -->|"인증 검증"| OID
     GW -->|"ClinicID 기준 분배"| CS1
     GW -->|"ClinicID 기준 분배"| CS2
     GW -->|"비-AWS 라우팅"| MINIO
@@ -375,7 +370,7 @@ CleverOne은 이미 결과 중계에 **MQTT**를 쓰고 있다(§1 AS-IS의 EZ�
 | --- | --- | --- | --- |
 | **1단계** | API 호환성(즉시) | Vatech-\* 식별 헤더(제품·버전·OS)·서버 버전 체크(validate-limits)·well-known 런타임 버전 공시·오류코드 매핑/fallback·호환성 매트릭스 | GW 없이 기존 경로에서 버전 호환 해결, 원인불명 실패 제거 |
 | **2단계** | presigned 데이터 경로 | CleverSpace presigned 발급 신규 개발·EZ 전송 로직 변경(Direct→presigned 직접) | 대용량 데이터 직접 업로드 경로 완성(GW 선행 요건) |
-| **3단계** | GW 신설·일원화 | GW 본체·EZ→GW 전환·OneID 인증 연계·경로 B 흡수(Deprecated)·presigned 발급 GW 경유 전환 | `EZ → GW → 대상` 단일 경유 + 인증 일원화(단일 Region) |
+| **3단계** | GW 신설·일원화 | GW 본체·EZ→GW 전환·경로 B 흡수(Deprecated)·presigned 발급 GW 경유 전환 | `EZ → GW → 대상` 단일 경유 + 인증 일원화(단일 Region) |
 | **4단계** | 멀티리전·운영 | 멀티 Region·Region 분배(Postgres)·Route 53 GeoDNS·CleverOne Region UI·GW HA(K8s)·GW Console·minio | VatechAPIGateway 완성 |
 | **5단계** | Straumann(AXS) 외부 연동 | EzServer→AXS(온프레미스) + CleverLab↔AXS(클라우드↔클라우드) 연동, OAuth 중계·Org-ID 매핑·온보딩 | 외부 생태계 연동을 GW·presigned로 수용 |
 | (후속) | 별도 트랙 | EzServer 전면 재개발(PHP → Rust) | 5단계 이후 장기 과제 |
@@ -423,13 +418,11 @@ flowchart LR
         CO --> EZ
     end
     subgraph CLOUD["CleverSpace Cloud (단일 Region)"]
-        OID["OneID"]
         CS["CleverSpace API<br/>+ 서버 버전 체크 · well-known 공시"]
     end
 
     EZ -->|"경로A (+헤더)"| CS
     CO -->|"경로B Direct (+헤더)"| CS
-    CO -->|"경로B Direct"| OID
     CS -.->|"well-known: API별 지원버전"| CO
 
     classDef new fill:#eafaf1,stroke:#1e8449,color:#000;
@@ -475,7 +468,7 @@ flowchart LR
 
 ### 3.5 3단계 — GW 신설·일원화
 
-**목표.** **VatechAPIGateway를 세워 모든 연동을 `EZ → GW → 대상`으로 일원화**한다. 인증(OneID 연계)을 GW로 모으고, **경로 B(직접 연동)를 GW로 흡수**하며, 2단계에서 만든 **presigned 발급도 GW 경유로 전환**한다. (단일 Region으로 시작.)
+**목표.** **VatechAPIGateway를 세워 모든 연동을 `EZ → GW → 대상`으로 일원화**한다. 인증(디바이스 머신·운영자)을 GW로 모으고, **경로 B(직접 연동)를 GW로 흡수**하며, 2단계에서 만든 **presigned 발급도 GW 경유로 전환**한다. (단일 Region으로 시작.)
 
 > **경로 B는 이 시점부터 Deprecated**다. GW 경유 경로로 대체되며, 구버전 클라이언트 호환 종료 후 **EOS(End of Service)** 한다. 신규 개발은 경로 B를 쓰지 않는다.
 
@@ -485,9 +478,8 @@ flowchart LR
 
 | 제품 | 개발 항목 |
 | --- | --- |
-| VatechAPIGateway | GW 본체(모든 연동 단일 경유), 라우팅/스로틀링, OneID 인증 검증 연계, 버전 호환 집행(1단계 자산 이관), presigned **발급 중계**, 경로 B 흡수 |
-| OneID | GW 연계 토큰 검증 인터페이스 |
-| EzServer(EZ) | CleverSpace/OneID 연동을 **GW 경유로 전환**, presigned 발급 요청도 GW로 |
+| VatechAPIGateway | GW 본체(모든 연동 단일 경유), 라우팅/스로틀링, 버전 호환 집행(1단계 자산 이관), presigned **발급 중계**, 경로 B 흡수 |
+| EzServer(EZ) | CleverSpace 연동을 **GW 경유로 전환**, presigned 발급 요청도 GW로 |
 | CleverOne | Direct 호출을 **GW 경유로 전환**(경로 B 흡수) |
 | CleverSpace | GW 경유 호출 수신·검증 정합 |
 
@@ -502,13 +494,11 @@ flowchart LR
         GW["GW<br/>인증·버전 호환·presigned 발급 중계"]
     end
     subgraph CLOUD["CleverSpace Cloud (단일 Region)"]
-        OID["OneID"]
         CS["CleverSpace API<br/>+ presigned 발급"]
         S3["스토리지 (S3)"]
     end
 
     EZ ==>|"모든 연동(정보)·완료 콜백 GW 경유"| GW
-    GW -->|"인증 검증"| OID
     GW -->|"검증 후 호출 · presigned 발급 중계 · 완료 통지"| CS
     EZ -.->|"대용량: presigned 직접 업로드"| S3
     S3 -.->|"ObjectCreated 이벤트"| CS
@@ -690,7 +680,7 @@ flowchart LR
 | 1 | **① 호환성 / ② Presigned** One Pager | ③ PR 시 동시 착수 | **GW SRS PR 시작(7/9)** | ②는 GW 선행 요건. ③ baseline 비종속(병행) |
 | 2 | **④ Straumann(AXS) Sub-SRS** | ③ PR 시 ①②와 동시 착수 | **GW SRS PR 시작(7/9)** (AXS sandbox 자격 B-2 #6 = E2E·pilot 선결, _작성_ 엔 불요) | **최우선 후속**. **전체 Sub-SRS 2주 작성** → pilot(2026-08-15·개발계획서 내부 목표) 전 완료. ③ baseline 대기 없이 병행 |
 | 3 | **③-C GW Console Sub-SRS** | 작성 대기(2주) | ③ baseline(관리 API) | 중복 금지. **Console 인프라는 *요구*만 정의**(호스팅·인증·API 접근 등) — *구축*은 ③-I가 담당 |
-| 4 | **③-P 제품 적응**(EZ→CS·CO·OID) | GW 초안 → 제품팀 인계 | ③ baseline | **GW 단일 작성자 순차**: EzServer 2주(가장 복잡) → CleverSpace·CleverOne·OneID 각 1주(병행 아님). 초안 후 제품팀이 완성·PR |
+| 4 | **③-P 제품 적응**(EZ→CS·CO) | GW 초안 → 제품팀 인계 | ③ baseline | **GW 단일 작성자 순차**: EzServer 2주(가장 복잡) → CleverSpace·CleverOne 각 1주(병행 아님). 초안 후 제품팀이 완성·PR |
 | 5 | **③-I 인프라 IaC 계획서** | GW 초안 → 인프라 완성 | ③ baseline | **GW 1주 초안 → 인프라 담당 완성(2주)·PR·baseline**. **GW 플랫폼 + 제품(③-C Console 등) 인프라를 단일 소유로 구축** — ③-C가 요구 확정하면 ③-I에 흡수·보강. IaC 도구(CDK 권장·7/2 R5) 반영 |
 
 ```mermaid
@@ -705,8 +695,7 @@ gantt
     OpenAPI·DBML 작성·정합   :active, designw, 2026-06-19, 20d
     PR 리뷰·수정(본문+스키마) :active, srspr, 2026-07-09, 14d
     baseline v1.0 (통합)     :milestone, srsbl, after srspr, 0d
-    GW 구현 1안 — ④ AXS baseline 후(스펙 병행) :active, impl1, after axsbl, 45d
-    GW 구현 2안 — 전 스펙 완료 후 :active, impl2, after conbl infbl oidw, 45d
+    GW 구현 (R7 채택=1안) — ④ AXS baseline 후·스펙 병행 :active, impl1, after axsbl, 45d
 
     section ① API 호환성 One Pager (③ PR 시 동시 착수)
     작성                  :op1w, 2026-07-09, 7d
@@ -734,7 +723,6 @@ gantt
     EzServer 초안         :ezw, after srsbl, 14d
     CleverSpace 초안      :csw, after ezw, 7d
     CleverOne 초안        :cow, after csw, 7d
-    OneID 초안            :oidw, after cow, 7d
 
     section ③-I 인프라 IaC 계획서
     GW 담당 초안          :infw1, after srsbl, 7d
@@ -743,7 +731,7 @@ gantt
     baseline              :milestone, infbl, after infpr, 0d
 ```
 
-> 각 섹션 = **스펙 단위(①·②·③·③-C·④·③-P·③-I)** 1개, 막대 = `작성 / PR(리뷰·수정) / baseline` 생애주기 단계. **막대 색: 작성=기본색 · PR(리뷰·수정)=강조(밝은색) · ◆=baseline/마일스톤 · 회색=완료(done) · 빨강=외부 선결(sandbox 자격)**. **gantt는 스펙 단위 생애주기·순서만** 보이고, 제품×단계별 문서는 **[§4 표](#4-제품별-개발-항목-종합-제품--단계)** 가 정본(gantt 미표기). **날짜·기간은 순서·의존 표현용 잠정값**이며 일정 약속이 아니다 — 특히 **pilot 2026-08-15는 개발계획서(착수 품의·미승인) 내부 목표**이지 외부 확정 요구가 아니다(확정 일정은 PM/품의). **③-P·③-I는 GW가 초안만, PR·baseline은 제품팀/인프라 레포**. 핵심: **③ PR 시작(7/9)에 ①·②·④ 동시 착수(병행)**, ③ baseline이 ③-C·③-P·③-I의 선행, ④(AXS)는 **전체 Sub-SRS를 2주 작성**. **`③ GW SRS + 구현` 섹션의 `GW 구현 1안·2안` 막대 = R7 선택지(택일)** — **1안**=④ AXS baseline 후 즉시(스펙 병행) / **2안**=전 스펙 완료 후. 둘 다 **기간 미정(SRS 확정 후 재산정)**. 구현은 어느 안이든 ④ AXS 연동(첫 연동·테스트 필수) 이후. **AXS sandbox 자격(B-2 #6)은 스펙 작성엔 불요하고 E2E·pilot 직전에 필요**하므로 그 시점(7월 말~pilot 전)에 배치(확보 시점 TBD). **③-I는 GW가 1주 초안 → 인프라 담당이 완성·PR·baseline**. 단위·유형 정본 [PRD §12.1](<../VT API Gateway — PRD (v2).md>).
+> 각 섹션 = **스펙 단위(①·②·③·③-C·④·③-P·③-I)** 1개, 막대 = `작성 / PR(리뷰·수정) / baseline` 생애주기 단계. **막대 색: 작성=기본색 · PR(리뷰·수정)=강조(밝은색) · ◆=baseline/마일스톤 · 회색=완료(done) · 빨강=외부 선결(sandbox 자격)**. **gantt는 스펙 단위 생애주기·순서만** 보이고, 제품×단계별 문서는 **[§4 표](#4-제품별-개발-항목-종합-제품--단계)** 가 정본(gantt 미표기). **날짜·기간은 순서·의존 표현용 잠정값**이며 일정 약속이 아니다 — 특히 **pilot 2026-08-15는 개발계획서(착수 품의·미승인) 내부 목표**이지 외부 확정 요구가 아니다(확정 일정은 PM/품의). **③-P·③-I는 GW가 초안만, PR·baseline은 제품팀/인프라 레포**. 핵심: **③ PR 시작(7/9)에 ①·②·④ 동시 착수(병행)**, ③ baseline이 ③-C·③-P·③-I의 선행, ④(AXS)는 **전체 Sub-SRS를 2주 작성**. **`③ GW SRS + 구현` 섹션의 `GW 구현` 막대 = R7 채택=1안**(④ AXS baseline 후 즉시·스펙 병행). *(2안=전 스펙 완료 후는 반려·7/2 R7.)* **기간 미정(SRS 확정 후 재산정)**. 구현은 ④ AXS 연동(첫 연동·테스트 필수) 이후. **AXS sandbox 자격(B-2 #6)은 스펙 작성엔 불요하고 E2E·pilot 직전에 필요**하므로 그 시점(7월 말~pilot 전)에 배치(확보 시점 TBD). **③-I는 GW가 1주 초안 → 인프라 담당이 완성·PR·baseline**. 단위·유형 정본 [PRD §12.1](<../VT API Gateway — PRD (v2).md>).
 
 ---
 
@@ -759,7 +747,6 @@ gantt
 | **CleverLab** | — | — | — | — | **AXS 오더·상태·확정 연동(갈래 B)**·presigned | — | ④ Sub-SRS(갈래 B) |
 | **VatechAPIGateway** | — | — | 본체·라우팅·인증 연계·호환 집행·presigned 발급 중계·경로 B 흡수 | Region 분배·HA(K8s)·Route 53·저장소(Postgres) | AXS OAuth 중계·Org-ID 매핑·온보딩·인바운드 중계·고정 egress IP | — | ③ SRS (계약 SSOT) · ④는 그 위 connector |
 | **GW Console** | — | — | — | Admin Web Console (**③-C Sub-SRS**) | 온보딩·Org-ID 관리 화면 | — | ③-C Sub-SRS |
-| **OneID** | (경로 B 인증 유지) | — | GW 연계 토큰 검증 | (멀티 Region 인증 고려) | — | — | ③-P-OID 티켓/경량 One Pager |
 | **인프라** | 단일 Region | — | 단일 Region GW | Route 53·K8s·비-AWS minio | AXS whitelist용 고정 IP·샌드박스 | — | ③-I IaC 구축 계획서 |
 | **외부(Straumann AXS)** | — | — | — | — | API 스펙·OAuth·샌드박스·자격증명 제공(선결) | — | ④ Sub-SRS 입력(외부 제공물) |
 
@@ -787,7 +774,7 @@ User-Agent: EzServer/6.5.0   # 직전 송신자(로그·관측·하위호환)
 - **ClinicID를 같은 체계에 포함** → Region 분배(§2.4)와 한 번에 해결.
 - **집행 주체는 단계에 따라 다르다.** 1단계에서는 **CleverSpace(서버)가 직접** 헤더를 읽어 버전·한도를 판정하고, **3단계부터는 GW가 단일 집행점**으로 헤더를 읽어 라우팅·호환·한도 판정 후 다운스트림에 정규화 전달한다. 헤더 자체는 1단계부터 동일하게 쓰므로 추가 변경이 없다.
 - **외부(Straumann 등)로는 내부 헤더를 보내지 않는다.**
-- 적용 지점(기존 소스): CleverOne `CleverOneInitializer.cpp`·`EzCloudController.cpp`, ESLinkageCloudPlatform `EzCloudLinker.cpp`·`OneIdLinker.cpp`(`strAgent` 확장), EzServer(EPI) 대리 전달.
+- 적용 지점(기존 소스): CleverOne `CleverOneInitializer.cpp`·`EzCloudController.cpp`, ESLinkageCloudPlatform `EzCloudLinker.cpp`(`strAgent` 확장), EzServer(EPI) 대리 전달.
 
 #### 5.1 중계 경로(CleverOne → EzServer → GW)의 식별 규칙
 
@@ -821,7 +808,6 @@ User-Agent: EzServer/6.5.0   # 직전 송신자(로그·관측·하위호환)
 | Webhook 다운스트림 채널       | 클라우드=HTTP push, EzServer=MQTT(QoS1·persistent) 확정, 토픽·오프라인 버퍼 정책      | 3단계 / 5단계 상세설계 |
 | CleverLab 인바운드 방식       | AXS → CleverLab(오더·확정 결과) 수신을 GW Webhook 경유로 확정(Webhook vs 폴링 세부)   | 5단계 상세설계         |
 | 경로 B EOS 시점               | 구버전 호환 종료 시점과 연계한 경로 B 서비스 종료 일정                                | 3단계 이후             |
-| OneID 연계 범위               | 인증 Verify 외 토큰 발급·권한 조회 등 추가 연계                                       | 설계 중 구체화         |
 | Region 확장                   | 서울·미주 외 추가 Region 계획                                                         | 운영 단계              |
 | **EzServer Rust 재개발 방식** | **기존 API 포팅 vs API 재설계 — 계속 열린 장기 숙제**                                 | 후속 트랙              |
 

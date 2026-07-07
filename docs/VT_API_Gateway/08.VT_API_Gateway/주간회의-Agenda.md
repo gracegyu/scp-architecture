@@ -398,7 +398,7 @@
     - **R2-3**: redact = Console 화면 표시 시 환자정보 **마스킹**(전달 본문은 verbatim 불변). 운영자 디버깅은 허용하되 환자 신원 불필요 노출을 막는 데이터 최소화(§6.4). 접근통제 = 역할(Admin/C-S)별 payload 열람 권한.
     - **SRS 반영 예정(확정 후)**: DBML `webhook_event.payload_ref` 주석(본문=리전 S3·claim-check 참조·관계형 DB 미저장) · **`event_type` 컬럼 추가 검토**(Console 필터) · §6.4(webhook PHI 전이·최소 persist로 정교화) · §7.6(store-and-forward 본문 보관·TTL) · Appendix B(보존기간·본 결정 로그).
 
-  - **R3. 연동 대상 테이블 병합 + 명칭 확정 (공유·명칭 승인 요청)** — AXS·CleverSpace·OneID 같은 **GW 연동 대상**의 라우팅·아웃바운드 자격·인바운드 webhook 수신을 담던 **3개 표(upstream_registry·connector·webhook_provider)를 1개 표로 병합**(1:1 facet·중복 토큰·미연결 해소, provider 등록=1 레코드). 병합 표의 **이름을 무엇으로 할지** 4개 후보를 비교했고 **일단 `upstream`으로 정했다**.
+  - **R3. 연동 대상 테이블 병합 + 명칭 확정 (공유·명칭 승인 요청)** — AXS·CleverSpace 같은 **GW 연동 대상**의 라우팅·아웃바운드 자격·인바운드 webhook 수신을 담던 **3개 표(upstream_registry·connector·webhook_provider)를 1개 표로 병합**(1:1 facet·중복 토큰·미연결 해소, provider 등록=1 레코드). 병합 표의 **이름을 무엇으로 할지** 4개 후보를 비교했고 **일단 `upstream`으로 정했다**.
     - **이름 후보 비교**:
 
       | 후보 | 장점 | 단점 |
@@ -447,6 +447,24 @@
       | 서빙본과 형태 | 다름(컴파일) | 거의 같음 |
       - **추천 근거**: 매트릭스는 "왜 이 버전이 하한인가"를 주석으로 남기는 가치가 크고, §7.7.3 3단계 정책 등 **풍부한 저작 모델**을 담기 좋아 **YAML**. 단일 포맷을 선호하면 JSON 원본도 유효(생성 단계는 동일하게 필요).
     - **성격/산출**: [논의·결정 요청] — 결정 1=방향(단일 repo) 승인(최종 토폴로지는 ③-I) · 결정 2=택일. 확정 시 §7.7.5·Appendix B #8 반영. *(값·3단계 스키마 확정은 ① One Pager 소관, 별개.)*
+
+  - **R6. GW Console 사용자 인증·역할 관리 — MS365/Entra 연동(기본안) vs 자체 DB (결정 요청)** — Console 로그인 사용자 관리 방식을 확정한다.
+    - **전제(오해 정정 공유)**: **OneID = 고객(클리닉·랩·개인) 신원 제품**(테넌트=고객). **GW Console 사용자 = 우리 직원**(Admin·현장 C/S)이라 **OneID 대상이 아니다** → Console 사람 인증은 별도 IdP.
+
+      | 기준 | **A. MS365/Entra OIDC 연동 (기본안·추천)** | B. GW 자체 user DB |
+      | --- | --- | --- |
+      | 인증 | Entra OIDC(직원 SSO·MFA) | GW가 user·비밀번호 관리 |
+      | 오프보딩 | **자동**(퇴사=Entra 비활성→접근 차단) | 수동 |
+      | 비밀번호 관리 | 없음(Entra) | GW 부담(리셋·정책·보안) |
+      | 역할(Admin/C-S) | Entra App Role/Group→토큰 claim | GW user 테이블 |
+      | 별도 user 테이블 | **불요** | 필요(풀 CRUD) |
+      | 의존 | Entra 앱 등록(IT 협조) | 없음(자립) |
+      | 구축량 | OIDC 연동 | user CRUD·비번·리셋·감사 풀스택 |
+
+    - **역할 관리(A안)**: "누가 Admin/C-S냐"는 **Entra에서 App Role/Group 배정** → 토큰 claim으로 GW RBAC(§7.9.2). **별도 user 테이블 불요.** 인증=Entra, 인가=claim.
+    - **하위 결정 — C/S를 담당 클리닉에 한정하나?** 한정하면("C/S X는 클리닉 A·B만 승인") Entra가 그 매핑을 모르므로 **GW에 작은 (operator↔clinic) 매핑 테이블**만 추가(역할은 여전히 Entra). 한정 안 하면 GW 테이블 0.
+    - **추천 = A(Entra)**: IdP 재구현 회피·직원 SSO·자동 오프보딩. DBML은 (클리닉 범위 한정 없으면) **무변경**.
+    - **성격**: [논의·결정] — A/B 택일 + C/S 클리닉 범위 여부. 확정 시 §7.1.4(사람 인증 재정의)·§7.9.2(RBAC 역할 원천)·§2.3(운영자 로그인 시나리오)·verify 엔드포인트 일반 OIDC화·(조건부)DBML/API 반영. Appendix B #38. **(OneID를 GW 전 범위(device·upstream·③-P-OID 포함)에서 제거한 배경·근거는 아래 S4 공유.)**
 
 - 공유 사항 (결정 아님 · 정보 공유)
 
@@ -499,7 +517,6 @@
         EzServer 초안         :ezw, after srsbl, 14d
         CleverSpace 초안      :csw, after ezw, 7d
         CleverOne 초안        :cow, after csw, 7d
-        OneID 초안            :oidw, after cow, 7d
 
         section ③-I 인프라 IaC 계획서
         GW 담당 초안          :infw1, after srsbl, 7d
@@ -559,6 +576,12 @@
     - **관리 방식(§7.7.5)**: 서빙 JSON은 **손편집 아님**(원본→CI 생성→S3). GW는 런타임 read+cache라 **매트릭스만 바뀌면 앱 재배포 0**(`config/**` path-scoped 발행 파이프라인). S3는 **CI만 쓰기**, Console은 **읽기 전용 뷰어**.
     - **논의 씨앗**: 현재 스키마는 `minClientVersion` 이분법(미만=거부)만 표현 → **§7.7.3의 3단계 반응(major=차단/minor=경고/patch=무시)은 아직 스키마에 없음** → 값 확정(① One Pager) 시 tier/경고 필드 도입 검토. **이번 주는 형식·구조 공유가 목적**(값·스키마 확정은 ①).
 
+
+  - **S4. OneID는 GW 어디에도 쓰지 않음 — 전면 제거 확정 (결정 아님 · 정보 공유)** — **OneID = 고객(클리닉·랩·개인) 신원 제품**이라 GW와 무관함을 확정하고 관련 서술을 전 문서(현행 08 + 원본 80)에서 제거했다.
+    - **인증 두 면 모두 OneID 아님**: device→GW = **private_key_jwt**(ADR-13·§7.1.1), 운영자/Console = **직원 IdP(MS365/Entra) OIDC**(§7.1.4·R6).
+    - **`oneid` upstream·③-P-OID 적응 스펙도 제거** — OneID의 GW 내 유일 역할이 인증 연동이었고(원본 80문서 ADR-08 '사람·클리닉·사내호출자 OneID(OIDC)'), 그게 빠지면 upstream·적응 스펙은 **데이터 경로 없는 잔재**라 함께 삭제. GW가 프록시하는 내부(B) 대상 = CleverSpace만 남음.
+    - **왜 device 인증에도 OneID를 안 쓰나(재검토 결론)**: OneID는 **client_credentials를 제품에만 발급**(10만 대 머신 클라이언트용 아님)이라 device엔 **user-credential(ROPC)** 뿐인데 → **1계정=1테넌트**(clinic-less device 불가)·**v1.0 MFA 없음**·**ROPC 안티패턴**·OneID 중앙 가용성 종속이라, private_key_jwt가 전 축에서 우월. 근거 = OneID SRS §1.2·§2.5 정독.
+    - **결정 필요 없음** — 근거로 닫힌 결론. Console 인증 방식(Entra vs 자체 DB)만 R6에서 택일.
 
 - 이월 논의 사항 (6/25·7/2 미결 — 계속)
   | # | 항목 | 타입 | 상태 |

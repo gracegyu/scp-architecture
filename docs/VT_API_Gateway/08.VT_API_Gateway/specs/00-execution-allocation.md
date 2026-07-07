@@ -6,7 +6,7 @@
 ## 원칙 (계약 vs 적응)
 
 - **③ [GW SRS](03-srs-gateway/SRS.md)가 계약(contract)의 단일 SSOT**다. GW가 노출하는 외부 인터페이스(§4)·기능 동작(§7)만 정의한다.
-- 다른 제품(CleverSpace·CleverOne·EzServer·OneID·Infra)의 변경은 **계약을 소비하는 적응(adaptation)** 이며, 각 제품 소유자가 자기 산출물로 책임진다.
+- 다른 제품(CleverSpace·CleverOne·EzServer·Infra)의 변경은 **계약을 소비하는 적응(adaptation)** 이며, 각 제품 소유자가 자기 산출물로 책임진다.
 - **드리프트 방지**: 제품 산출물은 GW 계약을 *재정의하지 않고* GW SRS의 §앵커를 *참조*만 한다.
 - **작성 모델**: GW 소유자가 각 제품 산출물의 **1차 초안**을 작성한 뒤 해당 제품 담당자에게 **인계**하여 확정한다. (소유권은 인계 후 담당자에게 이전)
 
@@ -21,10 +21,9 @@
 | ③-P-CS | CleverSpace | Sub-SRS(멀티Region 큼) 또는 One Pager | CleverSpace 팀 | §4.5·§7.3·§7.6.5 | 미작성 |
 | ③-P-CO | CleverOne | One Pager | CleverOne(Nick) | §4.5·§7.1·§7.3 | 미작성 |
 | ③-P-EZ | EzServer | One Pager | EzServer 팀 | §4.5·§7.3·§7.6.6 | 미작성 |
-| ③-P-OID | OneID | 티켓 또는 경량 One Pager | OneID 팀 | §7.1.4 | 미작성 |
 | ③-I | Infra | IaC 구축 계획서(기능 스펙 아님) | 인프라 담당 | §3.1·§4.5.1·§7.3.5 | 미작성 |
 
-> 형식은 변경 크기로 결정한다(일률 One Pager 아님): CleverSpace 멀티 Region은 Sub-SRS급일 수 있고, OneID는 티켓으로 충분할 수 있다.
+> 형식은 변경 크기로 결정한다(일률 One Pager 아님): CleverSpace 멀티 Region은 Sub-SRS급일 수 있고, 단순 적응은 티켓으로 충분할 수 있다.
 
 ## 구현 착수 전략 (7/2 R7 = 1안 확정)
 
@@ -42,7 +41,6 @@
 | CleverSpace | ✓(well-known) | ✓(발급 신규) | ✓(③-P-CS) | — |
 | CleverOne | ✓(헤더·fallback) | ✓(업로드 연계) | ✓(③-P-CO) | — |
 | EzServer | ✓(헤더 대리) | ✓(전송 로직) | ✓(③-P-EZ) | ✓(갈래 A) |
-| OneID | (경로 B 유지) | — | ✓(③-P-OID) | — |
 | Infra | 단일 Region | — | ✓(③-I) | 고정 IP·샌드박스 |
 
 > 상태 범례: 미작성 / 초안(GW 1차) / 인계 / 리뷰 / baseline

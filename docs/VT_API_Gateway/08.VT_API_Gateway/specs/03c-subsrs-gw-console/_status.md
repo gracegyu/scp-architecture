@@ -4,7 +4,7 @@
 
 - 상태: 미작성 (③ SRS baseline 후)
 - 문서 유형: Sub-SRS
-- 범위: Admin 역할·권한·OneID 연계, 매핑/클리닉/상태/온보딩 화면·플로우 (관리 API는 ③ SRS/Swagger)
+- 범위: Admin 역할·권한·직원 IdP(Entra) 연계, 매핑/클리닉/상태/온보딩 화면·플로우 (관리 API는 ③ SRS/Swagger)
 - 레포(추천): vt-api-gateway-console (미생성)
 - 공식 등록처: console repo 생성 시 그 repo, 미생성 시 vt-api-gateway `docs/`
 
@@ -24,7 +24,7 @@
 | --- | --- | --- | --- |
 | `upstream` | **① 라우팅**(모든 대상)+**② 아웃바운드 자격**(외부 C·nullable)+**③ 인바운드 webhook**(발신 대상·nullable) | target_id=`axs`, host=`api.eu.axs.straumann.com`, profile=`external`, connect/response/total=`3000/10000/12000`, credentialRef=`kms://alias/axs-oauth-client`, egressAllowlist=`{hosts:[api.eu.axs…],ports:[443],requireStaticEgressIp:true}`, inboundHost=`axs.webhook.gw.vatech.com`, sigScheme=`hmac-sha512`, secretRef=`kms://alias/axs-webhook-hmac`, eventIdPath=`$.messageId`, orgIdPath=`$.organizationId`, eventTypePath=`$.eventType` | `POST /admin/v1/upstreams` |
 
-- **내부 backend**(cleverspace·oneid)는 ① 라우팅만 채우고 ②③은 비움. **call-only 외부**는 ①②만, **webhook만 받는 upstream**은 ①③(host 없으면 라우팅 생략).
+- **내부 backend**(cleverspace)는 ① 라우팅만 채우고 ②③은 비움. **call-only 외부**는 ①②만, **webhook만 받는 upstream**은 ①③(host 없으면 라우팅 생략).
 
 **B. 정책 1행 이상** — 이 upstream으로 무엇을 호출 허용할지(없으면 deny-by-default):
 

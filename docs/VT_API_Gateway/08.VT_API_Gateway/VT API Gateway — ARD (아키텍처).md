@@ -54,7 +54,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | ADR-05 | presign broker 멀티클라우드(S3·Blob·GCS·MinIO) | 리전 이종성·온프렘 수용 | 채택 |
 | ADR-06 | Fleet 운영 1급 서브시스템 | 10만대 실질 난이도 1순위 | 채택 |
 | ADR-07 | API 버전 호환성 게이트 — Vatech-\* 식별 헤더 + well-known 런타임 버전 공시 + 호환성 매트릭스 | 구버전 클라이언트 원인불명 실패 제거(CleverSpace v1.3.0 즉시 대응) / 클라이언트 버전 미전달 방치(반려) · ESMN Roadmap 1단계 흡수 | 채택 |
-| ADR-08 | 인증 2면 공존 — 디바이스 머신 인증(OAuth2 cc·enrollment) + OneID(OIDC, 사람·클리닉·사내 호출자) | 무인 디바이스와 사람/서비스 신원은 성질이 달라 단일 인증면으로 묶지 않음 / OneID 단독(무인 디바이스 부적합)·디바이스 단독(사내 서비스 미수용) 반려 | 채택 |
+| ADR-08 | 인증 2면 공존 — 디바이스 머신 인증(private_key_jwt) + **사람/운영자 인증(직원 IdP OIDC=MS365/Entra)** | 무인 디바이스와 사람 신원은 성질이 달라 단일 면으로 안 묶음. **(2026-07-07 정정: 사람 면 IdP = OneID(고객 제품)→직원 IdP(Entra). OneID는 클리닉·랩 고객용이라 사내 운영자(Console Admin·C/S) 인증엔 부적합.)** GW Console 사용자=사내 직원 | 채택(정정) |
 | ADR-09 | Webhook Receiver — 외부 이벤트 단일 수신·분배(클라우드 HTTP push / Edge(EzServer) MQTT QoS1) | 방화벽 뒤 Edge inbound 불가 + 외부 서명·IP·멱등 검증 분산 방지 / 서비스별 개별 수신(반려) · ESMN Roadmap §2.7 흡수 | 채택 |
 | ADR-10 | 라우팅 키 통합 — device↔clinic↔region (resolver가 device_id·clinic_id 모두 수용) | 디바이스 단위(08)·클리닉 단위(서비스 연동) 라우팅 이원화 제거. 디바이스는 클리닉에 소속되어 동일 리전으로 귀결 | 채택 |
 | ADR-11 | 라우팅 모델 = target-routed proxy — **GW edge 라우팅 = target 서브도메인 `{target}.gw.vatech.com`**(Host/SNI): apex `gw.vatech.com`=GW 고유 API(A), 등록 서브도메인=upstream 프록시(내부 B·외부 C), 미등록 서브도메인=`404`. 프록시는 verbatim(host만 교체). **`Vatech-Target` 헤더는 CleverOne→EzServer 내부 hop 키**(EzServer가 서브도메인으로 변환). 신규 upstream = 레지스트리 1행(`*.gw.vatech.com` 와일드카드라 DNS·cert 추가 0) | 경로 프리픽스 / 헤더-only / 클라이언트 지정 upstream(SSRF) 반려. 운영·장애대응·관례에서 host 노출이 우위이고 verbatim·SSRF 안전은 헤더와 동등, 와일드카드로 DNS/cert 부담 해소. 내부구간(CleverOne→EzServer)만 헤더 방식으로 최소변경·순정 nginx·split-horizon 불요 = **내부구간 헤더 + edge 서브도메인**. 내부(B)·외부(C) 프록시 단일 규칙, 차이는 trust profile(외부 C=OAuth·고정 egress IP)뿐 (SRS §4.1.1·§4.1.2·§4.5.1) | 채택(2026-06-23) · **CCB 승인(2026-06-25)** · **7/2 R1 개정(header→subdomain edge)** |
@@ -96,7 +96,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | Audit Service | Control | append-only 감사 로그 | 경량(MVP) |
 | Admin UI / RBAC | Control | 운영자 관리·권한 | 경량(MVP) |
 | API Compatibility Gate | Control | Vatech-\* 헤더 판정 · well-known 버전 공시 · 오류코드 매핑/fallback · 호환성 매트릭스 집행 | 핵심(즉시 · Roadmap 1단계) |
-| OneID Integration | Control | OIDC 연계 — 사람·클리닉·사내 호출자(EzServer/CleverOne) 인증. 디바이스 머신 인증과 분리 surface | 핵심 |
+| 사람 인증(OIDC) | Control | 운영자(Console Admin·C/S) OIDC 연계 — **직원 IdP(MS365/Entra)**. 디바이스 머신 인증과 분리 surface. 역할=IdP claim→RBAC | 핵심 |
 | Webhook Receiver | Integration | 외부 Webhook 수신(HMAC·IP·timestamp·멱등)·즉시 ACK·내부 큐(SQS) 적재 | 핵심(b1 · forward+역방향) |
 | Webhook Dispatcher (분배 워커) | Integration | **SQS consumer — 별도 worker Deployment(ADR-12)**. 큐 소비→대상 해석(Org-ID→Clinic→region→채널)→MQTT(Edge)/HTTP(클라우드) 발행·재시도/DLQ. API tier와 독립 스케일·격리 | 핵심(b1) |
 | MQTT Broker (Edge 분배) | Integration / Data | Edge(EzServer)로의 이벤트 전달 채널(QoS1·persistent·토픽 클리닉 단위). Webhook Dispatcher가 publish | 핵심(b1 · 역방향 포함) |
@@ -121,7 +121,7 @@ ARD = Architecture Decision/Reference Document. 상태: **스켈레톤**(상세
 | CI/CD | ◎ Azure Pipelines | TDD 게이트(테스트 통과 필수) |
 | ORM/마이그레이션 | ◎ Prisma | 스키마 마이그레이션 |
 | Edge/Ingress | ○ AWS API Gateway/ALB / Envoy | TLS·rate-limit·진입점 |
-| 사람(admin) 인증 | ○ OIDC (Keycloak 등) | 디바이스 인증과 분리 |
+| 사람(admin·C/S) 인증 | ○ OIDC (직원 IdP=MS365/Entra) | 디바이스 인증과 분리 |
 | Feature Flag | ○ OpenFeature + Unleash(OSS) | 카나리 rollout·kill-switch 토글·점진 cutover (FLEET·MIG) |
 | 로깅 | ○ 구조화 로그(Pino/nestjs-pino) + correlation/trace ID | 중앙 수집(OTel→Loki/CloudWatch) · **PHI·시크릿 미기록** |
 | 헬스/검증 | ○ @nestjs/terminus · class-validator | health·readiness · 입력 검증 |
@@ -220,7 +220,7 @@ PRD: [VT API Gateway — PRD (v2)](<VT API Gateway — PRD (v2).md>) · 작업
 | 흡수 항목                    | Roadmap 출처                   | 08 반영                                                           | ADR    |
 | ---------------------------- | ------------------------------ | ----------------------------------------------------------------- | ------ |
 | API 버전 호환성              | 1단계(즉시·CleverSpace v1.3.0) | API Compatibility Gate · FR-COMPAT-01~05                          | ADR-07 |
-| OneID 인증면                 | OneID 단일 집행                | OneID Integration · FR-AUTH-08/09 (디바이스 머신 인증과 2면 공존) | ADR-08 |
+| 사람 인증면                 | 직원 IdP(Entra) OIDC 위임      | 사람 인증(OIDC) · FR-AUTH-08/09 (디바이스 머신 인증과 2면 공존) | ADR-08 |
 | Webhook Receiver + Edge MQTT | §2.7                           | Webhook Receiver · MQTT Broker · FR-WH-01~06                      | ADR-09 |
 | 라우팅 키 통합               | ClinicID 라우팅                | Region Resolver 확장 · FR-RGN-06                                  | ADR-10 |
 

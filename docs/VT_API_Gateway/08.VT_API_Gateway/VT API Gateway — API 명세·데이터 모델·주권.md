@@ -32,7 +32,7 @@
 | POST | /v1/enroll/start | enrollment 시작 → nonce challenge | ENR-01/03 |
 | POST | /v1/enroll/complete | 서명+공개키(clientPublicKey) 검증 → device 등록(pending) + **clinic·region 확립**(Clinic-ID로 upsert, region 기본=GeoDNS 최근접·C/S override) | ENR-01/04·RGN-\* |
 | GET | /v1/region/resolve | device→region 해석(mapping_version) | RGN-01/02 |
-| POST | /v1/clinics | 클리닉 관리 — 운영자(OneID) 교정·예외적 수동 등록 (**주 생성 경로는 enroll**) | RGN-\* |
+| POST | /v1/clinics | 클리닉 관리 — 운영자(직원 IdP) 교정·예외적 수동 등록 (**주 생성 경로는 enroll**) | RGN-\* |
 | POST | /v1/clinics/{clinicId}/org-bindings | 외부 provider Org-ID 등록(연동 연결 시·provider별) | INT-\* |
 | GET | /v1/regions | GW 운영 리전 목록 조회(클라이언트 region 선택지) | RGN-\* |
 | PUT | /v1/clinics/{clinicId}/region | 클리닉 접속 리전 **운영 중 변경**(재동의·감사) | RGN-04 |
@@ -41,7 +41,7 @@
 | GET | /admin/v1/... | 관리자·감사 조회(경량) | ADM/AUD |
 | GET | /.well-known/<env>/server-configuration.json | 런타임 버전·호환성 공시(API/기능별 최소 클라이언트 버전) | COMPAT-02 |
 | POST | `…/webhooks/<provider>` (provider별 등록·유연) | 외부 이벤트 수신(발신자 검증 HMAC·IP·timestamp·멱등) → 매핑 분배. **경로/형식은 provider 규약 수용, GW 비강제·payload 비해석** | WH-01~05 |
-| POST | /v1/auth/oneid/verify | OneID(OIDC) 토큰 검증·연계(사람·클리닉·사내 호출자) | AUTH-08 |
+| POST | /v1/auth/oidc/verify | 운영자(Console) OIDC 토큰 검증·연계 — 직원 IdP(MS365/Entra) | AUTH-08 |
 
 ※ 모든 클라이언트 요청에 **Vatech-\* 식별 헤더**(Product·Version·OS·Clinic-Id·Via)를 부착 — API Compatibility Gate가 버전 호환을 판정(COMPAT-01). originator 권위 소스는 전용 헤더(`Vatech-Product`/`Version`/`OS`)이고, 경유 중계 홉은 `Vatech-Via`에 누적한다(`User-Agent`는 직전 송신자). **모든 제품의 모든 요청에 `Vatech-*` 식별 헤더 + 표준화 `User-Agent` 부착을 강제**하며 **공용 라이브러리**로 표준화한다(2026-06 회의 — 전 제품 필수). 상세는 SRS §7.7.1·Roadmap §5.1.
 
