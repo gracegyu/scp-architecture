@@ -496,6 +496,15 @@
     - **유의**: LMP `country_code`(clinic 국가) ≠ GW `region`(배포 리전) — 별개 컬럼.
     - **성격**: [논의·결정] — **수집 필드셋만 승인**(추천=전부). DBML(clinic 5컬럼 고정 필드)·OpenAPI(`ClinicInfo`·enroll·`PATCH /v1/clinics/{clinicId}`)·§2.3.1은 **선반영 완료(필드셋 TBD)**. 잔여 확인(EzServer/LMP·③-P-EZ): 신규 클리닉 시 정보 시점·실제 형식.
 
+  - **R9. Enrollment 무인증 abuse 방지 · bootstrap 검증 강도 (논의·결정)** — `/enroll/start`는 bearer가 없다(디바이스 신원이 아직 없어 정상 — OAuth DCR·ACME류). **escalation은 불가**(C/S 승인 게이트·pending은 토큰 발급 불가)이나, 무인증이라 **abuse**(pending 스팸·C/S 승인 큐 오염·Clinic-ID enumeration = DoS·잡음) 여지가 있다.
+    - **이미 반영된 방어**: ① enroll **rate-limit**(IP/서브넷) · ② 미승인 **pending TTL 자동 만료** · ③ **C/S 승인 게이트**(잡건 절대 active 불가) · ④ nonce 핸드셰이크(§7.2.6).
+    - **결정할 것 — bootstrap 검증 강도**:
+      1. **(추천) LMP-서명 라이선스 토큰을 GW가 검증** — EzServer가 LMP에서 받은 서명 토큰을 enroll에 실어 보내고 GW는 **LMP 공개키(JWKS)만으로 검증**(풀 LMP API 연동 불요) → "유효 라이선스 보유자만 pending 생성" = 강한 최소 인증.
+      2. EzServer가 LMP 조회한 결과(clinicId 등)를 **형식 검증 후 신뢰**(GW-LMP 직접 검증 없음).
+      3. **형식만 + C/S 게이트 의존**(가장 약함).
+    - **부수 결정**: rate-limit 임계값 · pending TTL 값 · enumeration 방지(유효/무효 응답 동일화).
+    - **성격**: [논의·결정] — R8(clinic 필드 수집)과 **별개 보안 주제**. 확정 시 §7.2.5·§7.1.1·OpenAPI(enroll)·Appendix B #42 반영. **확인 경로**: LMP가 서명 토큰을 제공하는지(EzServer/LMP·③-P-EZ).
+
 - 공유 사항 (결정 아님 · 정보 공유)
 
   - **S1. GW→각 EzServer(클리닉) 범용 하행(downlink) 레일 확보** — webhook 역방향 분배를 위해 만든 **MQTT 하행 채널**(EzServer가 방화벽 뒤에서 outbound 지속 구독, §7.6.6)은, 사실상 **중앙(GW)에서 각 클리닉 edge로 능동 전달하는 최초의 수단**이다. 토픽을 `gw/clinic/{clinicId}/{stream}` 로 두어 **`{stream}` 확장점을 예약**했다(EzServer는 `#` 구독·미지 stream 무시·forward-compat).

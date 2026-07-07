@@ -44,7 +44,7 @@
 | `gw:nonce:enroll:{challengeId}` | string | 짧음(분) | enrollment nonce challenge(§7.2.6) | 1회용·재사용 거부 |
 | `gw:idemp:{scope}:{key}` | string | 시간~일 | idempotency(업로드 commit·요청 멱등, §4.5) | 저장 결과 ref/상태 |
 | `gw:wh:dedup:{targetId}:{eventId}` | string | 시간~일 | webhook eventId 중복 처리 방지(§7.6.4) | 인스턴스 공유 필수 |
-| `gw:rl:{subject}:{window}` | counter(string/INCR) | window 길이 | rate-limit 카운터(§7.1.1) | 윈도우 만료 시 자동 소멸 |
+| `gw:rl:{subject}:{window}` | counter(string/INCR) | window 길이 | rate-limit 카운터(§7.1.1 토큰·**무인증 enroll은 IP/서브넷 subject**·§7.2 R9) | 윈도우 만료 시 자동 소멸 |
 | `gw:revoked:{deviceId}` | string(SET) | ≈ access token 최대 수명 | **폐기 디바이스 denylist**(kill/revoke 즉시 전파·§7.2.4) — 이미 발급된 **단명 토큰을 만료 전 차단**(그 후엔 토큰이 자연 만료라 키 불요) | 출처=`device.status=revoked`(PG)·멀티 pod 공유 필수 |
 | `gw:lock:{resource}` | string(SET NX) | 짧음(초) | 분산 락(선택 — 단발 작업 직렬화) | 필요 시만 |
 
