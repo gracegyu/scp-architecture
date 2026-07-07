@@ -464,7 +464,30 @@
     - **역할 관리(A안)**: "누가 Admin/C-S냐"는 **Entra에서 App Role/Group 배정** → 토큰 claim으로 GW RBAC(§7.9.2). **별도 user 테이블 불요.** 인증=Entra, 인가=claim.
     - **하위 결정 — C/S를 담당 클리닉에 한정하나?** 한정하면("C/S X는 클리닉 A·B만 승인") Entra가 그 매핑을 모르므로 **GW에 작은 (operator↔clinic) 매핑 테이블**만 추가(역할은 여전히 Entra). 한정 안 하면 GW 테이블 0.
     - **추천 = A(Entra)**: IdP 재구현 회피·직원 SSO·자동 오프보딩. DBML은 (클리닉 범위 한정 없으면) **무변경**.
-    - **성격**: [논의·결정] — A/B 택일 + C/S 클리닉 범위 여부. 확정 시 §7.1.4(사람 인증 재정의)·§7.9.2(RBAC 역할 원천)·§2.3(운영자 로그인 시나리오)·verify 엔드포인트 일반 OIDC화·(조건부)DBML/API 반영. Appendix B #38. **(OneID를 GW 전 범위(device·upstream·③-P-OID 포함)에서 제거한 배경·근거는 아래 S4 공유.)**
+    - **성격**: [논의·결정] — A/B 택일 + C/S 클리닉 범위 여부. 확정 시 §7.1.4(사람 인증 재정의)·§7.9.2(RBAC 역할 원천)·§2.3(운영자 로그인 시나리오)·verify 엔드포인트 일반 OIDC화·(조건부)DBML/API 반영. Appendix B #38. **(디바이스 인증 방식(공개키 vs OneID) 결정·OneID 전면 제거 배경은 아래 R7 참조.)**
+
+  - **R7. 무인 장비(EzServer)의 GW 인증 방식 확정 — private_key_jwt(공개키) vs OneID (중요 · 결정·재확인)** — **결론: OneID에는 무인 장비용 머신 인증 수단이 없다 — 사실상 후보가 못 된다. private_key_jwt(공개키)로 확정한다.** 되돌리기 어려운 기반 결정이라 CCB 재확인을 받는다.
+    - **왜 OneID로는 안 되나** — 무인 장비가 OneID에서 토큰을 받을 grant는 **ROPC(user id/pw를 토큰 엔드포인트로 직접 전송)** 뿐이다(Authorization Code=브라우저·사람 필요, client_credentials=OneID가 제품에만 발급). 그런데 OneID v1.0은 **외부 머신에 ROPC를 제공하지도 않고**(사용자·제품용 IdP), 설령 켠다 해도 **EzServer가 id/pw(=공유 secret)를 저장해두고 자동 로그인**하는 편법이 된다:
+      - 10만 대에 **공유 secret 상주·매 로그인 전송** → private_key_jwt가 없애려던 유출면 부활.
+      - **ROPC는 MFA 불가**(OAuth 2.1에서 제거된 grant).
+      - 고객 IdP에 **device를 사용자 계정으로 등록**(계정계 오염) + OneID **1계정=1테넌트**라 **clinic-less device 불가**(현 전제와 충돌).
+    - **private_key_jwt** — enrollment 때 device가 키페어를 생성해 **공개키만 GW에 등록**(개인키 비반출), 이후 서명한 JWT assertion으로 인증. 공유 secret이 없고, 폐기는 GW denylist로 즉시, SE/TPM·DPoP로 v1.1 확장(ADR-01).
+    - **비교**:
+
+      | 기준 | **private_key_jwt (추천)** | OneID (ROPC) |
+      | --- | --- | --- |
+      | 자격 성격 | 비대칭 키페어·개인키 비반출·GW엔 공개키만 | 공유 secret(id/pw)을 device에 저장·전송 |
+      | 최초 주입 | enrollment 온디바이스 키생성(비밀 배포 0) | 10만 대에 비번 배포·관리 |
+      | MFA | 해당없음(서명 기반) | 불가(ROPC) |
+      | 계정 모델 | device=머신 신원 | 고객 IdP에 device 계정(오염)·1계정=1테넌트 |
+      | clinic-less device | 가능(현 전제 유지) | 불가(전제 변경 필요) |
+      | 폐기(kill-switch) | GW denylist 즉시(§7.2.4) | OneID 계정 정지 왕복 |
+      | 리전 주권/장애격리 | GW 리전 로컬 검증 | OneID 중앙 가용성 종속 |
+      | 표준·미래 | RFC 7523·SE/TPM·DPoP(ADR-01) | ROPC=OAuth 2.1 삭제·확장 경로 없음 |
+
+    - **"OneID 재사용이 더 싸지 않나"** — 아니다. OneID에 device용 grant/서비스계정을 신설하고 10만 대 비번 배포·계정계 오염을 감수해야 한다. private_key_jwt verify는 GW 설계(§7.1.1)에 이미 반영·외부 의존 0.
+    - **결정 = private_key_jwt.** (OneID는 이론상 계정 생성+비번 저장+ROPC 활성으로 구성이야 가능하나, OneID 기능 신설·clinic-less 전제 폐기·보안 격하를 요구해 **실질 불가**. 전제를 바꿔도 공유secret·MFA·계정오염·중앙의존은 그대로라 결론 불변.) **파생**: OneID는 GW 인증에서 제거 → `oneid` upstream·③-P-OID도 데이터 경로 없는 잔재라 제거(내부 프록시 대상=CleverSpace만), OneID는 고객 로그인 제품으로만 잔존(전 문서 정리 완료).
+    - **성격**: [결정·재확인] — 이견 없으면 ADR-13(private_key_jwt) 확정. 변경 시 §7.1.1·§2.3.1(enrollment)·DBML(device)·clinic-less 전제 재검토. 근거=OneID SRS §1.2·§2.5.
 
 - 공유 사항 (결정 아님 · 정보 공유)
 
@@ -576,12 +599,6 @@
     - **관리 방식(§7.7.5)**: 서빙 JSON은 **손편집 아님**(원본→CI 생성→S3). GW는 런타임 read+cache라 **매트릭스만 바뀌면 앱 재배포 0**(`config/**` path-scoped 발행 파이프라인). S3는 **CI만 쓰기**, Console은 **읽기 전용 뷰어**.
     - **논의 씨앗**: 현재 스키마는 `minClientVersion` 이분법(미만=거부)만 표현 → **§7.7.3의 3단계 반응(major=차단/minor=경고/patch=무시)은 아직 스키마에 없음** → 값 확정(① One Pager) 시 tier/경고 필드 도입 검토. **이번 주는 형식·구조 공유가 목적**(값·스키마 확정은 ①).
 
-
-  - **S4. OneID는 GW 어디에도 쓰지 않음 — 전면 제거 확정 (결정 아님 · 정보 공유)** — **OneID = 고객(클리닉·랩·개인) 신원 제품**이라 GW와 무관함을 확정하고 관련 서술을 전 문서(현행 08 + 원본 80)에서 제거했다.
-    - **인증 두 면 모두 OneID 아님**: device→GW = **private_key_jwt**(ADR-13·§7.1.1), 운영자/Console = **직원 IdP(MS365/Entra) OIDC**(§7.1.4·R6).
-    - **`oneid` upstream·③-P-OID 적응 스펙도 제거** — OneID의 GW 내 유일 역할이 인증 연동이었고(원본 80문서 ADR-08 '사람·클리닉·사내호출자 OneID(OIDC)'), 그게 빠지면 upstream·적응 스펙은 **데이터 경로 없는 잔재**라 함께 삭제. GW가 프록시하는 내부(B) 대상 = CleverSpace만 남음.
-    - **왜 device 인증에도 OneID를 안 쓰나(재검토 결론)**: OneID는 **client_credentials를 제품에만 발급**(10만 대 머신 클라이언트용 아님)이라 device엔 **user-credential(ROPC)** 뿐인데 → **1계정=1테넌트**(clinic-less device 불가)·**v1.0 MFA 없음**·**ROPC 안티패턴**·OneID 중앙 가용성 종속이라, private_key_jwt가 전 축에서 우월. 근거 = OneID SRS §1.2·§2.5 정독.
-    - **결정 필요 없음** — 근거로 닫힌 결론. Console 인증 방식(Entra vs 자체 DB)만 R6에서 택일.
 
 - 이월 논의 사항 (6/25·7/2 미결 — 계속)
   | # | 항목 | 타입 | 상태 |
