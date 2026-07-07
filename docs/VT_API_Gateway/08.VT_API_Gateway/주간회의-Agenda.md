@@ -511,6 +511,7 @@
 
     - **v1.0 결정(택1)**: **A 먼저** / B 먼저 / A+B 동시. **추천 = A 먼저(v1.0) · B는 gw/1.1**(제3자 서명은 바텍 LMP 개발·크로스팀·Roadmap 추가). enroll payload에 `licenseAttestation` optional 예약 완료(B 전환 완충).
     - **abuse 방지(공통)**: rate-limit(IP/서브넷)·미승인 pending TTL 만료·nonce.
+    - **검토 후 제외 — C. OneID(클리닉 사용자) 인가**: 클리닉 고객이 OneID 로그인(Authorization Code)으로 enroll을 승인하는 방식도 검토했으나 제외 — ① 여전히 **사람(고객) 개입**이라 B의 무인 자동 이점이 없음(C/S 부담을 고객에 전가) · ② **OneID 커버리지 의존**(미가입 클리닉은 A 폴백) · ③ 라이선스 정당성이 아니라 **'고객 의도'만 증명**(약함) · ④ **'OneID는 GW 미사용' 결정을 되돌려 enroll에 OneID 통합점 부활**. → 무-C/S 순수 원격 self-service 온보딩 수요가 생기면 재검토.
     - **성격**: [논의·결정] — v1.0 우선순위. B 상세(LMP 제3자 서명 개발·claims·JWKS·EzServer 릴레이)=Appendix B #42·B안 설계 One Pager. **확인**: LMP가 제3자 서명 attestation 발급 가능한지(ES 라이선스/ELM 팀).
 
 - 공유 사항 (결정 아님 · 정보 공유)
