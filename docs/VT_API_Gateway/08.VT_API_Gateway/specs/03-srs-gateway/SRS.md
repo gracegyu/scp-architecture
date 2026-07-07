@@ -779,7 +779,23 @@ Webhook은 **외부 서비스(현재 AXS)가 보낸 이벤트**를 GW가 받아,
 
 ### 2.3.7 버전 호환 게이팅 — FR-COMPAT-\*
 
-`Vatech-*` 헤더로 originator(요청 시작 주체)와 경유 홉(`Vatech-Via`)을 분리 판정하고, well-known 공시·호환성 매트릭스와 대조해 **더 낮은 버전 기준**으로 게이팅한다. 미지원이면 표준 오류코드와 "업데이트 필요" fallback을 안내해 원인불명 실패를 제거(ADR-07)한다. 상세는 §7.7.
+`Vatech-*` 헤더로 originator(요청 시작 주체)와 경유 홉(`Vatech-Via`)을 분리 판정하고, GW가 **S3에서 읽어 캐시한 호환성 매트릭스**(§7.7.5)와 대조해 **더 낮은 버전 기준**으로 게이팅한다. 미지원이면 표준 오류코드와 "업데이트 필요" fallback을 안내해 원인불명 실패를 제거(ADR-07)한다. 상세는 §7.7. 아래는 **① 매트릭스 발행(build-time)** 과 **② 런타임 게이팅** 두 흐름이다 — 발행은 CI/ops 흐름이라 런타임 시나리오(§2.3.1~7)와 범주가 달라 별도 번호(§2.3.8)를 주지 않고 본 절에 함께 둔다.
+
+#### ① 매트릭스 발행 파이프라인 (build-time)
+
+`compat-matrix.yaml`(원본·git)을 CI가 검증·렌더해 `server-configuration.json`을 **S3에 발행**한다(§7.7.5). GW는 이미지에 굽지 않고 런타임에 S3에서 읽으므로 **매트릭스만 바뀌면 앱 재배포 0**(앱 build/deploy는 `config/**` 제외·path-scoped).
+
+```mermaid
+flowchart LR
+    DEV["개발자: compat-matrix.yaml 편집 · PR 리뷰"]
+    YAML["vt-api-gateway repo<br/>config/compat-matrix.yaml · 원본 SSOT"]
+    CI["CI · config/** path-scoped<br/>스키마 검증 → env별 JSON 렌더"]
+    S3["S3 리전 로컬<br/>server-configuration.json · CI-only write"]
+    GW["GW · 런타임 read+cache<br/>게이팅 + /.well-known 서빙"]
+    DEV --> YAML --> CI --> S3 --> GW
+```
+
+#### ② 런타임 게이팅
 
 ```mermaid
 sequenceDiagram
@@ -787,10 +803,13 @@ sequenceDiagram
     participant CO as CleverOne (originator)
     participant EZ as EzServer (경유 홉)
     participant GW as GW (Compat Gate)
+    participant S3 as S3 (well-known · 리전 로컬)
     participant CS as CleverSpace
+    GW->>S3: server-configuration.json 로드 (런타임·캐시 · §7.7.5)
+    S3-->>GW: 실효 매트릭스
     CO->>EZ: 요청 (Vatech-Product/Version/OS)
     EZ->>GW: 전달 (+ Vatech-Via: EzServer)
-    GW->>GW: originator vs Via 분리 판정 · well-known/매트릭스 대조(최저 버전 기준)
+    GW->>GW: originator vs Via 분리 판정 · 매트릭스 대조(최저 버전 기준)
     alt 지원 버전
         GW->>CS: 정규화 신원으로 통과
         CS-->>GW: 응답
@@ -798,7 +817,7 @@ sequenceDiagram
     else 미지원 버전
         GW-->>CO: 표준 오류 + "업데이트 필요" fallback
     end
-    Note over GW: 공시 경로 /.well-known/{env}/server-configuration.json (§7.7.2)
+    Note over GW,S3: 매트릭스 원본=S3의 server-configuration.json(CI 발행) · GW는 그 사본을 캐시해 게이팅하고 /.well-known/{env}/server-configuration.json 로 서빙(이미지 미포함, §7.7.5)
 ```
 
 ## 2.4 Product Functions (제품 주요 기능)
@@ -1878,6 +1897,8 @@ FR-COMPAT-04 (미지원 시 표준 오류코드 + "업데이트 필요" fallback
 FR-COMPAT-05 (매트릭스를 단일 소스로 동결, 빌드/CI 반영·검증). 매트릭스 확정본은 ① 산출물과 동기화(§2.8).
 
 > **SSOT = 소스 파일(DB 아님).** 호환성 매트릭스는 **릴리스에 묶인 정적 설정**이라 **레포 소스(① One Pager 동기화)를 SSOT로 두고, 빌드/CI로 `/.well-known/{env}/server-configuration.json` 생성·공시**한다(런타임 조회는 파일/캐시). **DB 테이블로 두지 않는다**(런타임 임의 변경이 버전 게이팅을 깨는 것 방지 — `compat_matrix` 테이블 폐기, 2026-07-01). 긴급 클라이언트 버전 차단이 필요하면 일반 테이블이 아니라 **Config push(§7.8.4)** 로 처리한다.
+>
+> **저작(authoring) = git/CI, Console = 읽기 전용 뷰어.** 매트릭스는 **안전 크리티컬**(오설정 시 전 클라이언트 잠금/부적합 통과)이고 **릴리스 결합·저빈도 변경**이라, 편집은 **레포 소스 파일(YAML 권장) + PR 리뷰 + CI 검증·배포**로만 한다 — 리뷰·이력·롤백·감사를 git이 보장. **GW Console에 매트릭스 편집 UI(한-행 편집)·임의 업로드 저작면을 만들지 않는다**(런타임 가변 저장소 재도입 = 위 원칙 위반). Console은 **현재 실효 매트릭스를 well-known에서 읽어 표시하는 뷰어**(+선택적 스키마 검증·미리보기)만 제공한다(③-C). **소스 파일 위치·배포 lifecycle**: 소스는 `vt-api-gateway` 레포 `config/compat-matrix.yaml`(YAML·SSOT·사람이 PR로 편집)에 두고, **서빙본 `server-configuration.json`은 이 원본에서 CI가 생성하는 산출물**(직접 편집·관리 안 함 — `generatedAt`·`serverVersion` 등 자동 주입·env별 생성·스키마 검증). 원본 포맷(yaml vs json)은 회의 결정 사항. **매트릭스 변경이 GW 앱 재배포를 유발하지 않도록 lifecycle을 분리**한다 — ① **GW는 매트릭스를 이미지에 굽지 않고 런타임에 리전 로컬 S3 객체에서 읽는다**(read-only + 캐시). ② **발행은 앱 배포와 별개의 config 파이프라인**: `config/**` 경로 변경 시 그 파이프라인만 트리거되어 스키마 검증 후 well-known JSON을 **S3에 발행**하고, **앱 build/deploy 파이프라인은 `config/**`를 path-filter로 제외**(매트릭스만 바뀌면 앱 재배포 0). ③ **S3 객체는 CI만 쓰기**(GW·admin은 읽기전용·IAM) — 위 "런타임 임의 변경 금지"를 지키면서 재배포 없이 갱신. 따라서 **CI 토폴로지 = `vt-api-gateway` 단일 repo + `config/**` path-scoped 발행 잡(권장·확정 방향)** — 발행 잡이 작고(검증→렌더→S3 업로드) path 분기가 CI 1급 기능이라 전용 config 레포는 불요. 강한 물리 분리가 필요하면 기존 `es-gitops` 재활용도 가능(신설 없음)하나 인프라 repo에 앱데이터가 섞여 오너십이 흐려진다. **최종 CI 토폴로지는 ③-I(인프라) 소유** — Agenda R5 상정. git 커밋이 생기지만 **앱 릴리스 baseline(태그)과 config 커밋은 별개**(매트릭스는 자기 콘텐츠 해시로 버전). ① One Pager(VKS)는 사람이 읽는 확정본으로 동기화.
 
 **비목표(Will Not Do)**: 클라이언트 자동 업데이트·강제 설치는 본 게이트 범위 밖(클라이언트 제품 영역).
 
@@ -2041,7 +2062,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 4 | 엣지(B) MQTT 브로커 제품·운영 주체 — 후보 AWS IoT Core / Amazon MQ. (내부 큐 A=SQS는 §3.1.2, 별개) **논리 토픽 규약은 §7.6.6에 확정**(`gw/clinic/{clinicId}/{stream}`, 리전 미포함)이라, 잔여=**브로커 제품·운영 주체 + 브로커별 토픽 문법 매핑·authz(cert/policy) + 브로커 endpoint 하달 필드(`RegionResolveResponse.hosts`에 추가)** | §3.1.2·§7.6.6 | 운영조직/인프라(미정) | ③-P-EZ 착수 전 | §7.6·§3.1.2·ARD |
 | 5 | 감사·consent 보존 기간 | §6.4·§7.9.3·§7.9.5 | 품질/법무 | baseline 전 | §6.5 |
 | 6 | OpenAPI·DBML (`docs/specs/design/`) | §1.5·§4.1·§6.4 | GW(본인) | dev-chain-design 작성 후 | §7 전반 |
-| 8 | 호환성 매트릭스 확정본 **+ 불일치 반응 정책**(major=차단/minor=경고 통과/patch=무시 3단계·경고 헤더명·API↔제품 버전 매핑) — 선례=CleverOne↔EzServer 게이팅(참조-카탈로그 §3) | §2.8·§7.7.3·§7.7.5 | ① One Pager | ① 확정 시 | §7.7 |
+| 8 | 호환성 매트릭스 확정본 **+ 불일치 반응 정책**(major=차단/minor=경고 통과/patch=무시 3단계·경고 헤더명·API↔제품 버전 매핑) — 선례=CleverOne↔EzServer 게이팅(참조-카탈로그 §3) · **관리 lifecycle 확정(§7.7.5)**: git/CI 저작·Console 뷰어 · 소스=`vt-api-gateway` `config/compat-matrix.yaml` · **런타임 S3 로딩(CI-only write)+path-scoped 발행 파이프라인으로 앱 재배포와 분리** · **CI 토폴로지=`vt-api-gateway` 단일 repo+path 분기 권장(Agenda R5·최종=③-I)** · ① One Pager(VKS)=사람용 확정본 동기화 · **잔여=매트릭스 값(min 버전)·반응 정책 확정값**(① 산출) | §2.8·§7.7.3·§7.7.5 | ① One Pager · GW | ① 확정 시 | §7.7 |
 | 9 | RTO/RPO·유지보수 윈도우 | §6.3.1·§6.8 | 인프라 | 설계 단계 | §6 |
 | 11 | 인증(IEC 62304/13485) 일정·준비물 | §6.13·§6.14 | 품질/마케팅 | 추후 | — |
 | 12 | 인프라·런타임 상세 버전(도구·노드) | §3·§4.4 | 인프라/개발 | 설계 단계 | §3 |
@@ -2247,6 +2268,11 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-06 | **중앙 Config 잔여 3건 확정 → #35 종결(B-2→B-1)** — (a) **키 레지스트리 = 앱 레벨 확장형 seed**(db-jsonb#config에 초기 예상 키 7종 표: heartbeat interval/threshold·log.level·upload concurrency/chunk·telemetry·feature_flags + type/범위/기본값/소비자; 새 키는 마이그레이션 없이 상수 추가, 미등록 키·범위밖 값 거부) — 전부 열거 아님·확장형임을 §7.8.4에 명시 · (b) **실효 `configVersion` = 콘텐츠 해시(SHA-256)** 확정(기여 (key,value,행version) 정렬 canonical JSON; 행 version 최댓값=값변경 누락 버그·전역 카운터=과도 재pull이라 배제; stateless·동등성 비교) — OpenAPI 3곳 타입 integer→string, DBML version 주석·db-jsonb 버전 규칙 정합 · (c) **push-notify payload = `{type:config.changed, deviceId, configVersion, at}`**(트리거만·본문 미포함·at-most-once, 유실 시 heartbeat로 복구) §7.8.4 명시. Appendix B #35 B-2→B-1(완료) | (작성자 ID 미지정) |
 | 2026-07-07 | **전 구간 라우팅 골격을 §2.3.0으로 정위치(직전 §2.3.3 임시 배치 정정)** — 라우팅 골격은 특정 시나리오가 아니라 §2.3.4~§2.3.6 프록시·분배가 공통으로 올라타는 **토대**라, §2.3.3(FR-RGN=리전 해석)에 얹은 것은 의미 stretch였음. **`### 2.3.0 전 구간 라우팅 골격 — ADR-11` 신설**(§2.3.1 앞)로 옮기고 §2.3.3은 리전 해석 단독으로 복원. §2.3.1~7 **재번호 없음**(참조 무손상·2.3.0 추가만). 발생순서 개요에 §2.3.0=토대 명시. 내용·시퀀스 불변 | (작성자 ID 미지정) |
 | 2026-07-07 | **§2.3 '라우팅 Flow — 전 구간' 블록을 §2.3.3로 이동(무번호 h4→소절 내 정리)** — §2.3 머리에 떠 있던 전-구간 라우팅 골격(CleverOne→EzServer→GW→upstream)을 **§2.3.3 리전 해석·라우팅** 안으로 이동(같은 '라우팅' 축). §2.3.3을 **두 직교 축**(전 구간 라우팅 골격=target/서브도메인 · 리전 해석=clinic/region)으로 재구성, 각각 `#### 전 구간 라우팅 골격`·`#### 리전 해석` 소제목. 인트로를 '§2.3.4~§2.3.6 프록시·분배가 이 골격 위' 로 조정. 내용·시퀀스 불변(위치·틀만). 7/2에 재번호 회피 위해 무번호 h4로 둔 것을 재번호 완료 후 정위치로 | (작성자 ID 미지정) |
+| 2026-07-07 | **§2.3.7 다이어그램 보강 — 매트릭스 발행(build-time) 흐름 추가 + 런타임 게이팅에 S3 로드 표시** — §2.3.7을 `#### ① 매트릭스 발행 파이프라인(build-time)`(compat-matrix.yaml→CI 검증·렌더→S3, flowchart)과 `#### ② 런타임 게이팅`(기존 시퀀스에 **S3 participant·server-configuration.json 로드 스텝** 추가, 매트릭스 원본=S3·GW는 캐시 서빙 명시)으로 정리. 발행은 CI/ops라 런타임 시나리오와 범주가 달라 §2.3.8 신규 번호 대신 §2.3.7 하위 #### 두 흐름으로 배치. §7.7.5와 정합 | (작성자 ID 미지정) |
+| 2026-07-07 | **호환성 매트릭스 CI 토폴로지 = vt-api-gateway 단일 repo + path-scoped 권장 확정** — 소스·발행 CI를 별 repo로 나누지 않고 **`vt-api-gateway` 단일 repo에서 `config/**` path 분기**(앱 배포는 config 제외·발행 잡만 config 반응)로 관리하는 방향 확정(발행 잡이 작고 path 분기가 CI 1급 기능·GW팀 단일 오너십). 대안 B(신규 repo)·C(es-gitops)는 비교표로 상정. **최종 토폴로지는 ③-I 소유**. §7.7.5·Appendix B #8 반영, Agenda 7/9 **R5**(관리 구조 결정 2건: repo/CI 토폴로지·원본 포맷 YAML/JSON, 추천안+비교표) 등록·S3 포맷결정은 R5로 이관 | (작성자 ID 미지정) |
+| 2026-07-07 | **호환성 매트릭스 원본↔생성물 관계 명시 + YAML 원본 샘플 신설** — §7.7.5에 **원본=`config/compat-matrix.yaml`(사람 편집·SSOT) / `server-configuration.json`=CI 생성 서빙본**(generatedAt·serverVersion 등 자동 주입·env별 생성·검증) 관계를 명시. **2단계(원본→생성)는 필수**(서빙본 손편집 불가), **원본 포맷 yaml vs json은 회의 결정**. `design/well-known/`에 **`compat-matrix.sample.yaml`(원본 샘플) 신설**, README를 yaml-원본 모델로 수정(기존 "json 복사" 서술 정정·채우는 순서 개정). Agenda 7/9 S3에 원본 YAML+생성 JSON 두 샘플·2단계 근거·포맷 결정 요청 반영 | (작성자 ID 미지정) |
+| 2026-07-07 | **호환성 매트릭스 배포 lifecycle 분리 — 런타임 S3 로딩+path-scoped 발행(앱 재배포 회피)** — 매트릭스를 이미지에 굽지 않고 GW가 **리전 로컬 S3에서 런타임 read+cache**, 발행은 **`config/**` 경로 전용 파이프라인**(스키마 검증→S3 push)이 담당하고 **앱 build/deploy는 `config/**` path-filter 제외** → 매트릭스만 바뀌면 앱 재배포 0. S3=**CI-only write**(GW·admin read-only)로 "런타임 임의 변경 금지" 유지. **전용 config repo 불요**(소스=`vt-api-gateway` `config/compat-matrix.yaml`·앱 태그 baseline과 config 커밋 별개). §7.7.5 보강, Appendix B #8 lifecycle 확정. Agenda 7/9 공유(well-known 샘플) | (작성자 ID 미지정) |
+| 2026-07-07 | **호환성 매트릭스 관리 방식 명확화 — git/CI 저작·Console 뷰어** — §7.7.5에 매트릭스는 안전 크리티컬·릴리스 결합이라 **레포 소스 파일(YAML)+PR+CI**로만 저작하고 **GW Console엔 편집 UI·임의 업로드 저작면을 두지 않으며 읽기 전용 뷰어**(+선택 검증/미리보기)만 제공함을 명시(런타임 가변 저장소 재도입 금지=DB 폐기 원칙과 일관). **소스 파일 git 레포 위치는 결정 대상**(추천 `vt-api-gateway`·`config/compat-matrix.yaml`)으로 Appendix B #8 확장. ③-C `_status.md`에 매트릭스 편집 UI 없음=뷰어만 씨앗 | (작성자 ID 미지정) |
 | 2026-07-07 | **§7.7.3 버전 불일치 반응 = semver 3단계 정책 반영(선례)** — 호환 게이트 반응을 이분법(통과/차단)에서 **major=차단 / minor=경고 통과(degrade·`Vatech-Compat-Warning` advisory) / patch=무시** 3단계로 명시. 근거=출하된 CleverOne↔EzServer 게이팅(참조-카탈로그 §3에 신규 등록한 [C1]·DTKS 버전표 2종). 자리별 정책·헤더명·API↔제품 버전 매핑은 ① One Pager 확정 대상(Appendix B #8 확장). 참조-카탈로그 §3 등록·미확보 #96을 🟡 부분으로 갱신, ① `_status.md`에 씨앗(반응 정책+매트릭스 형식) 심음. ※ 제품 버전 호환 선례→API 게이트로 의미론·형식만 차용 | (작성자 ID 미지정) |
 | 2026-07-07 | **§2.3.x 물리 재번호 — 발생 순서 정렬(§2.3.4 파일업로드 ↔ §2.3.5 외부연동 스왑)** — 소절을 실제 발생 순서(온보딩→인증→라우팅→외부연동 등록·호출→파일업로드→webhook→[횡단]버전게이팅)로 물리 재배치. **`2.3.4`↔`2.3.5` 원자적 번호 스왑**으로 헤딩·전 교차참조 정합(SRS 37건 + Agenda·④·③-C 각 1건). 범위 표기(§2.3.1~7 등)·타 소절 불변. §2.3 머리 발생순서 개요를 새 순서에 맞게 재작성. (직전 '개요만' 방식에서 사용자 요청으로 물리 재번호로 승격) | (작성자 ID 미지정) |
 | 2026-07-07 | **본문 provider→upstream 용어 통일 + §2.3 재정리(발생순서 개요·연동 링크 생애주기) + AXS Organization 링크 반영** — (1) 살아있는 본문의 `provider` 서술을 **`upstream`으로 통일**(SRS 72줄·OpenAPI·DBML·db-jsonb·infra·Agenda), ERD 컬럼 `provider`→**`target_id`**, webhook 호스트 placeholder `{provider}`→**`{target}`**(+OpenAPI path `/v1/webhooks/{target}`·param), **역사·병합 이력(webhook_provider·upstream_registry·날짜 changelog)은 보존**. 네이밍은 upstream 유지 확정(내부 backend 포함 대상엔 provider 부적합) · (2) §2.3 머리의 org_mapping 다이어그램을 **「시나리오 발생 순서(lifecycle)」 개요**로 교체(소절 번호는 교차참조 보존 위해 불변·발생순서만 명시)하고, 다이어그램은 **§2.3.4 「연동 링크·org_mapping 생애주기」로 이동** · (3) AXS 문서 정독 반영 — **org_mapping 로컬 등록(org-bindings·AXS 미호출) vs AXS 연동 링크(프록시 `POST /organization/integration/link`·동의 PENDING→APPROVED) 분리**, 경우 A(이미 연결)/B(미연결) 명시, GW=공통(매핑+프록시 레일)·AXS 고유 시퀀스=④ Sub-SRS 분담. ④ `_status.md` 범위에 Organization Integration 링크 추가 | (작성자 ID 미지정) |
