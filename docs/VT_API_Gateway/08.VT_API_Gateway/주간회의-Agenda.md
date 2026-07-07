@@ -423,6 +423,31 @@
     - **부가 요청**: Straumann과 **계약·sandbox 제공 시 Tech support(기술 질의) 채널**도 함께 확보 요청 — 위 절차·동의 흐름·`customerNumber` 취득 방법은 Straumann에 직접 확인해야 정확하다. (AXS sandbox 자격은 이월 #6과 연계)
     - **성격/산출**: [정보·조사] — **이번 회의 확정 불요**, "알아볼 경로(누구에게·어떻게 확인할지)"만 정하면 됨. 확정 시 **④ AXS Sub-SRS**에 구체화(경우 A/B 판정·링크 트리거 주체·UI 소유). **미확정 시 차주 이월**(아래 이월 논의 사항에 등재 예정). 근거 자료: 참조-카탈로그 §3 AXS_docs `organization.yml`·Integration_guide.
 
+  - **R5. 호환성 매트릭스 관리 구조 결정 (2건 · 추천안 있음)** — GW가 공시하는 버전 호환성 매트릭스(§7.7.2·§7.7.5)의 저작·배포 구조. **2단계 파이프라인**(원본 git → CI 생성 → S3 발행 → GW 런타임 read+cache·**앱 재배포와 분리**)은 전제로 두고, 아래 **2건**을 결정한다. (매트릭스 샘플·구조 공유는 S3 참조.)
+
+    - **결정 1 — 소스 repo 위치 + CI 토폴로지** (추천 = **A. `vt-api-gateway` 단일 repo + path-scoped**)
+
+      | 기준 | **A. vt-api-gateway 단일 repo + path 분기 (추천)** | B. 신규 config 전용 repo | C. 기존 es-gitops 재활용 |
+      | --- | --- | --- | --- |
+      | 관리 부담 | 작은 발행 잡 1개 추가(검증→렌더→S3)·**path 분기는 CI 1급 기능** | repo 신설·CI 셋업 별도(한 파일 위해 과함) | 신설 없음(기존 GitOps) |
+      | 관심사 분리 | path로 논리 분리 | 물리 분리(가장 깔끔) | 물리 분리 |
+      | 오너십 | **GW팀 단일** | GW팀(새 repo) | **인프라(Jack) — 앱데이터 혼재·경계 흐림** |
+      | 앱 재배포 회피 | ◎ `config/**` 제외 | ◎ 애초 분리 | ◎ 분리 |
+      | 앱+매트릭스 동시 변경(1 PR) | ◎ 원자적 가능 | △ cross-repo | △ cross-repo |
+      | 신규 repo | 불요 | 필요 | 불요 |
+      - **추천 근거(A)**: 발행 잡이 작고(검증+렌더+S3 업로드) path 분기가 표준이라 **단일 repo가 가장 단순·저비용 + GW팀 단일 오너십**. "두 개의 대등한 CI"가 아니라 **큰 배포 파이프라인 1개 + 작은 발행 잡 1개**다. 강한 물리 분리가 꼭 필요하면 **C(es-gitops·신설 없음)** 가 차선이나 인프라 repo에 앱데이터가 섞임. **B(신규 repo)는 파일 하나 위해 과함.** 최종 CI 토폴로지는 **③-I(인프라) 소유**.
+
+    - **결정 2 — 원본 포맷 YAML vs JSON** (추천 = **YAML**) — *2단계 자체는 확정, 원본 포맷만 택일.*
+
+      | 기준 | **YAML (추천)** | JSON |
+      | --- | --- | --- |
+      | 주석("이 하한 버전인 이유") | ◎ 가능(감사·인수인계) | ✕ 불가 |
+      | 편집성 | ◎ 노이즈 적음 | △ 쉼표·괄호 |
+      | 포맷 수 | 원본 yaml / 서빙 json(2종) | 1종(json) |
+      | 서빙본과 형태 | 다름(컴파일) | 거의 같음 |
+      - **추천 근거**: 매트릭스는 "왜 이 버전이 하한인가"를 주석으로 남기는 가치가 크고, §7.7.3 3단계 정책 등 **풍부한 저작 모델**을 담기 좋아 **YAML**. 단일 포맷을 선호하면 JSON 원본도 유효(생성 단계는 동일하게 필요).
+    - **성격/산출**: [논의·결정 요청] — 결정 1=방향(단일 repo) 승인(최종 토폴로지는 ③-I) · 결정 2=택일. 확정 시 §7.7.5·Appendix B #8 반영. *(값·3단계 스키마 확정은 ① One Pager 소관, 별개.)*
+
 - 공유 사항 (결정 아님 · 정보 공유)
 
   - **S1. GW→각 EzServer(클리닉) 범용 하행(downlink) 레일 확보** — webhook 역방향 분배를 위해 만든 **MQTT 하행 채널**(EzServer가 방화벽 뒤에서 outbound 지속 구독, §7.6.6)은, 사실상 **중앙(GW)에서 각 클리닉 edge로 능동 전달하는 최초의 수단**이다. 토픽을 `gw/clinic/{clinicId}/{stream}` 로 두어 **`{stream}` 확장점을 예약**했다(EzServer는 `#` 구독·미지 stream 무시·forward-compat).
@@ -482,6 +507,58 @@
         PR 리뷰·수정          :active, infpr, after infw2, 14d
         baseline              :milestone, infbl, after infpr, 0d
     ```
+
+  - **S3. 버전 호환성 매트릭스 — 원본(YAML)·생성물(JSON) 샘플 공유** — 클라이언트가 "자기가 호환되는지 스스로 판단"하도록 API/기능별 최소 클라이언트 버전·오류코드·fallback을 공개(§7.7.2·FR-COMPAT). **2단계 구조**: 개발자는 **원본 `compat-matrix.yaml`을 편집**(PR)하고, **CI가 env별 `server-configuration.json`을 생성→S3 발행**, GW는 런타임에 S3에서 읽어 게이팅·`/.well-known/{env}/server-configuration.json` 서빙. **정본 샘플·가이드 = `specs/03-srs-gateway/design/well-known/`**(`compat-matrix.sample.yaml` + `server-configuration.sample.json` + `README.md`).
+    - **(A) 원본 — 개발자가 편집하는 것** `compat-matrix.yaml` (주석·이유 기록 가능, `Vatech-Product`별 최소 버전):
+
+      ```yaml
+      apis:
+        - id: region.change              # 안정 식별자(불변)
+          path: /v1/clinics/{clinicId}/region
+          minClientVersion: { EzServer: "2.1.0" }
+          errorCode: COMPAT_CLIENT_TOO_OLD
+          fallback: "클라이언트 업데이트가 필요합니다."
+        - id: region.resolve
+          path: /v1/region/resolve
+          minClientVersion: { CleverOne: "1.2.0" }
+          errorCode: COMPAT_CLIENT_TOO_OLD
+          fallback: "클라이언트 업데이트가 필요합니다."
+      features:
+        - id: presignedUpload
+          minClientVersion: { CleverOne: "1.3.0", EzServer: "2.1.0" }
+          errorCode: COMPAT_FEATURE_UNSUPPORTED
+          fallback: "현재 버전에서 지원하지 않는 기능입니다."
+      # schemaVersion·env·serverVersion·generatedAt 는 CI가 주입(여기 안 적음)
+      ```
+
+    - **(B) 생성물 — CI가 만들어 S3에 올리는 서빙본** `server-configuration.json`(경로 `/.well-known/<env>/server-configuration.json`·env별 분리·버전 프리픽스 없음):
+
+      ```json
+      {
+        "schemaVersion": "1.0", "env": "production", "serverVersion": "gw/1.0.0.0", "generatedAt": 1718000000000,
+        "compatibility": {
+          "apis": [
+            { "id": "region.change", "path": "/v1/clinics/{clinicId}/region",
+              "minClientVersion": { "EzServer": "2.1.0" },
+              "errorCode": "COMPAT_CLIENT_TOO_OLD", "fallback": "클라이언트 업데이트가 필요합니다." },
+            { "id": "region.resolve", "path": "/v1/region/resolve",
+              "minClientVersion": { "CleverOne": "1.2.0" },
+              "errorCode": "COMPAT_CLIENT_TOO_OLD", "fallback": "클라이언트 업데이트가 필요합니다." }
+          ],
+          "features": [
+            { "id": "presignedUpload",
+              "minClientVersion": { "CleverOne": "1.3.0", "EzServer": "2.1.0" },
+              "errorCode": "COMPAT_FEATURE_UNSUPPORTED", "fallback": "현재 버전에서 지원하지 않는 기능입니다." }
+          ]
+        }
+      }
+      ```
+
+    - **왜 2단계(원본→생성)인가**: 서빙 JSON엔 **손으로 넣으면 안 되는 자동 필드**(`generatedAt`·`serverVersion`·`schemaVersion`·해시)가 있고, **env별(production/staging/unstable) 값이 다를 수 있어** 원본 1개→env별 N개 생성 + **CI 스키마 검증**이 필요하다. 그래서 "서빙 JSON을 직접 손편집"은 안 하고 원본에서 생성한다(과설계 아님·필수).
+    - **관리 구조·포맷 결정은 → R5** (소스 repo 위치+CI 토폴로지·원본 포맷 YAML/JSON). 본 S3는 샘플·구조 공유용.
+    - **관리 방식(§7.7.5)**: 서빙 JSON은 **손편집 아님**(원본→CI 생성→S3). GW는 런타임 read+cache라 **매트릭스만 바뀌면 앱 재배포 0**(`config/**` path-scoped 발행 파이프라인). S3는 **CI만 쓰기**, Console은 **읽기 전용 뷰어**.
+    - **논의 씨앗**: 현재 스키마는 `minClientVersion` 이분법(미만=거부)만 표현 → **§7.7.3의 3단계 반응(major=차단/minor=경고/patch=무시)은 아직 스키마에 없음** → 값 확정(① One Pager) 시 tier/경고 필드 도입 검토. **이번 주는 형식·구조 공유가 목적**(값·스키마 확정은 ①).
+
 
 - 이월 논의 사항 (6/25·7/2 미결 — 계속)
   | # | 항목 | 타입 | 상태 |

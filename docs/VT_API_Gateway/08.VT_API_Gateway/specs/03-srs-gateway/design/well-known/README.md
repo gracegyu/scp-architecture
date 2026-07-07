@@ -1,6 +1,8 @@
 # well-known 서버 구성 — 작성 가이드
 
-API 버전 호환성 게이트(SRS §7.7, FR-COMPAT-02)가 런타임에 공시하는 **서버 구성 파일**의 샘플과 작성 규칙이다. 담당 개발자는 [`server-configuration.sample.json`](./server-configuration.sample.json)을 복사해 실제 값을 채운다.
+API 버전 호환성 게이트(SRS §7.7, FR-COMPAT-02)가 런타임에 공시하는 **서버 구성 파일**의 샘플과 작성 규칙이다.
+
+> **원본(SSOT) = [`compat-matrix.sample.yaml`](./compat-matrix.sample.yaml)** — 담당 개발자는 **이 YAML을 편집(PR)** 한다. **[`server-configuration.sample.json`](./server-configuration.sample.json)은 CI가 원본에서 생성하는 서빙본**(직접 편집하지 않음)이다: CI가 검증 → env별 JSON 생성 → S3 발행, GW는 런타임에 S3에서 읽어 게이팅·`/.well-known` 서빙(§7.7.5, 앱 배포와 분리). *원본 포맷(yaml vs json)은 회의 결정 사항 — Appendix B #8.*
 
 ## 1. 무엇인가
 
@@ -49,11 +51,11 @@ API 버전 호환성 게이트(SRS §7.7, FR-COMPAT-02)가 런타임에 공시�
 
 ## 5. 채우는 순서 (담당 개발자)
 
-1. `server-configuration.sample.json`을 복사한다.
-2. `env`·`serverVersion`을 대상 환경/릴리스에 맞게 설정한다.
-3. 호환성 매트릭스에서 API/기능별 `minClientVersion`을 가져와 채운다.
-4. `errorCode`·`fallback`을 §7.7.4 표준에 맞춰 지정한다.
-5. CI에서 매트릭스↔본 파일 일치를 검증(FR-COMPAT-05)하도록 파이프라인에 연결한다.
+1. **원본 `compat-matrix.sample.yaml`을 복사·편집**한다(이게 매트릭스 SSOT). `server-configuration.json`은 CI 생성물이라 **직접 편집하지 않는다.**
+2. API/기능별 `minClientVersion`을 ① One Pager 확정값에 맞춰 채운다(제품명 키 = `Vatech-Product` 헤더값).
+3. `errorCode`·`fallback`을 §7.7.4 표준에 맞춰 지정한다.
+4. `schemaVersion`·`env`·`serverVersion`·`generatedAt`은 **CI가 주입**(손으로 넣지 않음).
+5. CI 파이프라인: YAML 스키마 검증 → env별 `server-configuration.json` 생성 → **S3 발행**(§7.7.5). 앱 build/deploy와 분리(`config/**` path-scoped).
 
 ## 6. 참조
 

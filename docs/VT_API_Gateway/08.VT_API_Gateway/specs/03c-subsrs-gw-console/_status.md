@@ -8,6 +8,8 @@
 - 레포(추천): vt-api-gateway-console (미생성)
 - 공식 등록처: console repo 생성 시 그 repo, 미생성 시 vt-api-gateway `docs/`
 
+> **씨앗 — 호환성 매트릭스는 Console에서 편집하지 않는다(뷰어만).** 매트릭스 저작은 **git 레포 소스 파일 + PR + CI**(§7.7.5·안전 크리티컬·릴리스 결합)이고, **Console은 현재 실효 매트릭스를 well-known(`/.well-known/{env}/server-configuration.json`)에서 읽어 표시하는 읽기 전용 뷰어**(+선택적 스키마 검증·미리보기)만 만든다. **한-행 편집 UI·임의 JSON 업로드 저작면은 만들지 않음**(런타임 가변 저장소 재도입 금지). 긴급 클라이언트 차단은 매트릭스가 아니라 Config push(§7.8.4) UI 소관.
+
 ---
 
 ## 작성 가이드 — upstream(예: AXS) 연동 등록 (③ SRS/DBML/OpenAPI 근거)
