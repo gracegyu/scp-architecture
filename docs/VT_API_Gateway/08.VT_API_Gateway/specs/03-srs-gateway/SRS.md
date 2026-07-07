@@ -556,6 +556,10 @@ sequenceDiagram
 - **무인증 enroll abuse 방지.** `/enroll/start`는 bearer가 없다(디바이스 신원 형성 전이라 정상 — OAuth DCR·ACME류). 단 무방비가 아니다: **① rate-limit(IP/서브넷당·§7.1.1 `gw:rl`)** 폭주 차단 · **② 미승인 `pending`은 TTL 후 자동 만료**(스팸 누적·C/S 승인 큐 오염 방지) · **③ C/S 승인 게이트**(잡건은 절대 `active` 불가·토큰 발급 불가라 escalation 없음) · **④ 신뢰 앵커**(C/S 수동 승인 vs LMP 라이선스 검증 자동승인 = 별도 결정 **Agenda R9·Appendix B #42**). 최악은 DoS·잡음(pending 스팸·Clinic-ID enumeration)이며 위 방어로 억제한다.
 - **등록 주체 = 클리닉당 1개 EzServer**(Appendix B #17). 외부 연동(AXS 등)은 **켤 때만** 그 upstream의 Org-ID(Straumann 온보딩 발급, §2.3.4·④)를 등록해 `org_mapping`((upstream, Org-ID)→clinic)을 채우며, 온보딩과 무관하다(연동 안 해도 클리닉·디바이스는 정상).
 
+> **enroll 승인 flow는 두 가지가 공존한다**(R9·택일 아님): **A. C/S 수동 승인**(모든 device·v1.0 현행), **B. 제3자(LMP) 서명 자동승인**(LMP 라이선스 등록 device·gw/1.1+). **둘 다 기록**하되 v1.0 우선순위·B 지원 시점은 **R9에서 확정(TBD)**. A=보편/fallback · B=LMP 등록 device 편의.
+>
+> **(A안) C/S 수동 승인 — v1.0 현행**
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -576,6 +580,29 @@ sequenceDiagram
     Note over D,GW: region 기본=GeoDNS 최근접(v1.0=서울) · C/S가 GET /v1/regions에서 다른 리전 선택 가능(override)
     Note over D,GW: 클리닉 등록은 enroll이 흡수(별도 API 없음) · region *변경*은 이후 §7.3.4(RGN-04)
     Note over D,GW: 이후 인증=private_key_jwt(공개키 검증, §2.3.2) · 재설치=재-enroll 회전(§7.2.7) · 신뢰검증 실패·승인 거부→거부
+```
+
+> **(B안) 제3자(LMP) 서명 자동승인 — LMP 라이선스 등록 device · 지원 시점 TBD (R9·Appendix B #42)**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as EzServer (디바이스)
+    participant LMP as LMP (제3자 서명자)
+    participant GW as GW (Enrollment)
+    participant DB as clinic·device DB
+    D->>LMP: 설치 시 라이선스 검증 요청
+    LMP->>LMP: Cryptlex 라이선스 검증 · attestation JWT 서명(clinicId·licenseId·status·aud=GW·exp)
+    LMP-->>D: 서명된 licenseAttestation
+    D->>D: 키페어 생성 · nonce 개인키 서명(A안과 동일)
+    D->>GW: POST /v1/enroll/complete (nonceSignature, clientPublicKey, licenseAttestation)
+    GW->>LMP: LMP JWKS fetch (미보유·kid 불일치·만료 시)
+    GW->>GW: LMP JWKS 캐시(gw:cache:jwks) · attestation 서명 검증 + nonce·공개키 검증
+    GW->>DB: clinic upsert · device 등록 · status=active (C/S 수동 승인 생략)
+    GW-->>D: Accepted (client_id · status=active)
+    Note over GW,LMP: JWKS는 런타임 fetch+캐시(키 회전 자동 대응) · 운영자 IdP JWKS와 동일 방식(§7.1.4)
+    Note over D,GW: 유효 attestation=자동 active · LMP 경로 밖 device는 A안(C/S 수동)으로
+    Note over D,GW: region=GeoDNS 기본(사후 §7.3.4 교정)
 ```
 
 ### 2.3.2 EzServer(디바이스) 인증·토큰 발급 — FR-AUTH-01/05
@@ -2315,6 +2342,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-07 | **§2.3 `org_mapping` 생애주기 다이어그램 신설(AXS 기준) + 양방향 사용 명확화** — org_mapping이 "언제 한 행 생기나(=[2] 클리닉이 AXS 연동 켤 때뿐)"와 "생긴 뒤 소비 경로"를 mermaid 시퀀스([1]upstream 사전등록 → [2]org-binding 생성 → [3]송신 정조회 → [4]수신 역조회 → 해지 DELETE)로 시각화. org_mapping 노트를 **양방향**(송신 outbound `clinic→org_id` 정조회 + 수신 inbound `org_id→clinic` 역조회)으로 보정(기존 webhook 수신 전용 서술 오해 제거·§6.4.1과 정합). 겸사겸사 §2.3 산문의 잔여 `provider`→`upstream` 정리(노트·분배 규약·라우팅 Flow 헤딩/인트로). 네이밍은 **`upstream` 유지 확정**(내부 backend 포함 대상엔 provider 부적합·회의 어법 일치) | (작성자 ID 미지정) |
 | 2026-07-07 | **OneID GW 완전 제거 확정 — 인증(device·Console)·`oneid` upstream·③-P-OID 전면 삭제** — OneID의 GW 내 유일 역할이 인증 연동이었고(원본 80문서 ADR-08 '사람·클리닉·사내호출자 OneID(OIDC)'), 그게 사라지면 `oneid` upstream·③-P-OID 적응 스펙도 데이터 경로 없는 잔재임을 확인(OneID SRS §1.2·§2.5 정독). Device→GW=private_key_jwt(ADR-13)·운영자=직원 IdP(Entra·§7.1.4) 최종 확정. 제거: §2.1/§2.2 다이어그램 OneID·OneID Integration 노드·엣지, 외부시스템표·upstream·의존·B프록시 리스트의 OneID, env matrix OneID 행, Appendix B #10 리뷰어 'OID', §7.1.4 heading/본문·산재 '고객 OneID 아님' clarifier, audit actor 예시 oneidSub→sub. 동반: DBML(upstream enum/예시)·OpenAPI·redis·db-jsonb·③-P-OID 디렉터리·roadmap·실행할당·PRD·요구사항·ARD·API명세·인증보안. OneID는 '고객 신원 제품' 배경 서술로만 잔존(§7.1.4). 원본 80문서(-Org)도 동반 정정(승인). 근거·비교표=Agenda Share | (작성자 ID 미지정) |
 | 2026-07-07 | **운영자·device 인증면 정합 — `oidc` rename 잔재 제거 + "매핑"→"분리·공존" 정정** — `oneid→oidc` 리네이밍이 운영자(Console) 인증 스키마에 device 잔재를 남긴 것을 정리: OpenAPI `OidcVerifyResponse.deviceBinding` 삭제·identity 예시 `clinicId` 삭제(#39)·200 설명 정정. 두 인증면(device=private_key_jwt / 운영자=Entra OIDC)은 '매핑으로 연결'이 아니라 **완전 분리·공존**이고 교차 행위는 감사(actor `user:`/`device:`)에서만 상관됨을 §7.1 intro·§7.1.4(Output·FR 인용)·요구사항 FR-AUTH-09·인증보안에 반영. 경로 분리 재확인: device→GW=`/v1/auth/token`(§7.1.1)·운영자=`/v1/auth/oidc/verify`(§7.1.4) — SRS·OpenAPI·DBML 교차오염 0 | (작성자 ID 미지정) |
+| 2026-07-08 | **enroll B안 정합 — JWKS 런타임 fetch 단일화 + ③-P-LMP One Pager 신설** — (1) §2.3.1 B 다이어그램에 **GW가 LMP JWKS를 런타임 fetch+캐시(`gw:cache:jwks`)** 하는 단계 추가(pin/복사 fallback 폐기·런타임 fetch 단일·§7.1.4 방식 재사용) · (2) 다이어그램·R9의 "(Cryptlex 키 아님)" 사족 제거(간결화) — GW 검증 키=LMP JWKS로 통일 · (3) **`specs/03p-lmp-license/`(③-P-LMP) 신설** — `_status.md` 씨앗 + `OnePager.md` 초안(LMP 제3자 서명 attestation 설계: LMP 서명·EzServer 릴레이·GW JWKS 검증·claims·키 회전·A안 공존). README·실행할당표·Roadmap §4에 LMP 등록. 소유=ES 라이선스/ELM 팀(크로스팀·조건부·R9) | (작성자 ID 미지정) |
+| 2026-07-08 | **§2.3.1 온보딩 A/B flow 분리 + enroll 승인 '공존' 재정의** — enroll 승인 flow가 **택일이 아니라 공존**임을 명확화: **A. C/S 수동 승인**(모든 device·보편/fallback·v1.0) + **B. 제3자(LMP) 서명 자동승인**(LMP 등록 device·gw/1.1+·TBD). §2.3.1에 **A/B 시퀀스 2개** 기록(B=LMP가 attestation 서명→GW가 **LMP JWKS**로 검증·Cryptlex 키 아님). '제3자 서명' 용어 채택. Agenda R9=v1.0 우선순위(A먼저 추천)로 재구성. LMP를 Roadmap §4 제품표에 조건부 행으로 추가(B 채택 시 ES 라이선스팀 크로스팀·Roadmap 추가). Agenda S2에 스펙 작성 현황표(이모지) 추가. Appendix B #42 | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 서명 주체 정정 — ELM(로컬)→LMP(클라우드)** — ELM(`ezserver-license-manager`)은 클리닉마다 **로컬**(localhost·LexFloatServer 온프렘)이라 서명자로 두면 GW가 10만 로컬 키를 신뢰해야 함 → **서명 권위=중앙 LMP(클라우드)**, GW는 LMP JWKS 하나로 검증, EzServer/ELM은 릴레이만. B는 **PMS 연동(EPI)과 무관**(별개 컴포넌트). R9·#42 정정 | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 완충용 `licenseAttestation` 예약 필드 추가 + R9 비교 표** — B1(LMP 검증 자동승인) 도입 시 EzServer 버전 공존 완충을 위해 **OpenAPI `EnrollStartRequest.licenseAttestation`(nullable·v1.0 미사용·R9 확정 시 활성)** 예약. Agenda R9를 **A vs B 비교 표**(신뢰앵커·C/S부담·확장성·LMP변경·인간검증·region·난이도·현행동작·abuse)로 재구성해 회의 가독성↑ | (작성자 ID 미지정) |
 | 2026-07-07 | **R9 재구성 — enrollment 신뢰 앵커 C/S vs LMP-검증 비교(LMP 역량 정독)** — 이전 회의의 'C/S Console 수동 승인 번거로움' 우려를 반영해 **자동승인 대안**을 진지 비교로 승격. LMP/ELM=Cryptlex(LexActivator+product.dat) 확인 → 오프라인 서명 검증 역량 있으나 device측이라 **GW-검증 증명은 LMP 소폭 변경 필요**(B1=ELM-서명 attestation→GW가 JWKS 검증·추천 / B2=GW→LMP 런타임 verify). 추천 v1.0=A(C/S)·B1 병행(gw/1.1). R9·#42 재작성·§7.2 enroll 불릿(④ 신뢰 앵커)로 갱신. (앞서 'LMP-서명 추천'은 LMP 발급 여부 미확인 상태의 성급한 표현이라 정정) | (작성자 ID 미지정) |

@@ -19,6 +19,7 @@
 | `03p-cs-cleverspace/` | ③-P-CS CleverSpace 적응 | Sub-SRS 또는 One Pager | 3+4단계 |
 | `03p-co-cleverone/` | ③-P-CO CleverOne 적응 | One Pager | 3+4단계 |
 | `03p-ez-ezserver/` | ③-P-EZ EzServer 적응 | One Pager | 3+4단계 |
+| `03p-lmp-license/` | ③-P-LMP LMP 제3자 서명 attestation (enroll B안·조건부) | Engineering One Pager | gw/1.1+ (조건부·R9) |
 | `03i-infra/` | ③-I GW Infra 구축 | IaC 구축 계획서 | 3+4단계 |
 | `04-subsrs-straumann-axs/` | ④ Straumann(AXS) | Sub-SRS (③ 하위) | 5단계 |
 
