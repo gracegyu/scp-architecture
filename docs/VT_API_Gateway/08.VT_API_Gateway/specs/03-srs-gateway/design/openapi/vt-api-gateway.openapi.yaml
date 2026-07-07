@@ -330,6 +330,34 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /v1/clinics/{clinicId}:
+    parameters:
+      - name: clinicId
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      operationId: patchClinicInfo
+      tags: [ clinics ]
+      summary: clinic 정보 갱신 — device 자가 동기화(self-only) / 운영자 교정 (FR-RGN-*)
+      description: >-
+        LMP에서 clinic 정보가 바뀌면 EzServer(device)가 자기 clinic record를 갱신한다(LMP=SoT).
+        **격리: device는 자기 clinic만 수정**(토큰 device→device.clinicId == path clinicId 강제). 운영자(Admin/C-S)는 교정 가능.
+        수정 대상 = clinic 정보 필드(ClinicInfo)뿐 — **region·clinicId 제외**(region 변경=PUT /v1/clinics/{clinicId}/region). 필드셋 R8/#41 확정 전 잠정(TBD).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClinicInfo'
+      responses:
+        '200': { description: 갱신됨 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /v1/clinics/{clinicId}/org-bindings:
     parameters:
     - name: clinicId
@@ -1070,6 +1098,8 @@ components:
             -----BEGIN PUBLIC KEY-----
             MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...
             -----END PUBLIC KEY-----
+        clinic:
+          $ref: '#/components/schemas/ClinicInfo'
 
     # 디바이스
     DeviceStatus:
@@ -1396,6 +1426,17 @@ components:
         clinicId: { type: string, example: CLINIC-0040694997 }
         region: { type: string, description: 'region(GW가 검증). 초기 region은 보통 enroll이 확립(GeoDNS 기본·C/S override); 본 입력은 운영자 교정 시 사용', example: apne2 }
       description: '운영자(직원 IdP) 클리닉 교정·예외적 수동 등록 입력 — 주 생성 경로는 enroll(§2.3.1)'
+    ClinicInfo:
+      type: object
+      description: >-
+        LMP가 제공하는 clinic 표시·연락 정보(enroll 시 EzServer가 전달·§2.3.1, LMP 변경 시 PATCH /v1/clinics/{clinicId}로 갱신).
+        **수집 필드셋은 R8/Appendix B #41 확정 전 잠정(TBD)** — 추천안=LMP가 주는 전부. 저장 구조=고정 필드(오너 결정). 환자 PHI 아님(clinic 업무정보).
+      properties:
+        name: { type: string, description: '클리닉 표시명(LMP clinic.name)·Console 식별', example: ES Clinic }
+        countryCode: { type: string, description: '국가(LMP countyCode·ISO 3166 Alpha-2) — GW region(배포 리전)과 별개', example: KR }
+        address: { type: string, nullable: true, description: '주소(LMP clinic.address)', example: '13, Samsung 1-ro 2-gil, Hwaseong-si' }
+        phone: { type: string, nullable: true, description: '전화(LMP clinic.phone)', example: '02-1234-5678' }
+        website: { type: string, nullable: true, description: '웹사이트(LMP clinic.website)', example: 'https://www.ewoosoft.com/' }
     OrgBinding:
       type: object
       required: [ targetId, externalOrgId ]
