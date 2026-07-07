@@ -165,7 +165,7 @@ Table policy {
   created_at        bigint        // 생성 시각(Unix ms). 예 `1720137600000`
   updated_at        bigint        // 수정 시각(Unix ms). 예 `1720224000000`
 
-  Note: '**정책 결정점(OPA)의 입력 데이터**다(FR-INT-03). 주체는 device이며(§1.2), 정책은 `scope_type`(global|clinic|device)+`scope_id`로 붙는다. 요청 device의 **실효 정책 = device → clinic(소속 시) → global** 순으로 합성하고 기본은 deny(fail-closed)다(규칙 §7.5.3). v1.0에서는 clinic·global 행만 쓰며(모든 device가 clinic-bound), device 행은 스키마상 수용하되 clinic-less/예외가 등장할 때 사용한다. `target_id`는 아웃바운드 연동 대상(upstream)이다(=upstream.target_id·FK). **본 표는 "무엇을 허용하는가"(endpoint·scope)만** 담는다 — egress는 `upstream.egress_allowlist`(SSOT, #31)가 담당하므로 여기 중복하지 않는다. 스코프마다 정책이 달라 관리 API+UI가 필요하다(③-C, Appendix B #32). jsonb 형식=design/db-jsonb-fields.md#policy.'
+  Note: '**정책 결정점(OPA)의 입력 데이터**다(FR-INT-03). 주체는 device이며(§1.2), 정책은 `scope_type`(global|clinic|device)+`scope_id`로 붙는다. 요청 device의 **실효 정책 = device → clinic(소속 시) → global** 순으로 합성하고 기본은 deny(fail-closed)다(규칙 §7.5.3). v1.0에서는 clinic·global 행만 쓰며(모든 device가 clinic-bound), device 행은 스키마상 수용하되 clinic-less/예외가 등장할 때 사용한다. `target_id`는 아웃바운드 연동 대상(upstream)이다(=upstream.target_id·FK). **본 표는 "무엇을 허용하는가"(endpoint·scope)만** 담는다 — egress는 `upstream.egress_allowlist`(SSOT, #31)가 담당하므로 여기 중복하지 않는다. 스코프마다 정책이 달라 관리 API+UI가 필요하다(③-C, Appendix B #32). **v1.0 집행은 coarse**(upstream 사용 허용까지) — `allowed_endpoints`·`scopes` 세분화는 스키마만 두고 gw/1.1+ 예약(작업·데이터 격리는 AXS+Org-ID·§7.5.3). jsonb 형식=design/db-jsonb-fields.md#policy.'
   Indexes {
     (scope_type, scope_id, target_id)  // 스코프·upstream(target_id) 조합 조회
   }

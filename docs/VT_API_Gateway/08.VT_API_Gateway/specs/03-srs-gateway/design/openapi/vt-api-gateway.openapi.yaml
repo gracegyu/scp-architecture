@@ -976,7 +976,7 @@ components:
     # 인증
     TokenRequest:
       type: object
-      required: [ clientId, clientAssertion, scope ]
+      required: [ clientId, clientAssertion ]
       description: >-
         디바이스 머신 인증 = OAuth2 client_credentials + private_key_jwt(비대칭, ADR-13·§7.1.1).
         공유 client_secret 미사용 — 디바이스 개인키로 서명한 JWT assertion을 GW가 등록된 공개키(clientPublicKey)로 검증.
@@ -995,6 +995,8 @@ components:
           example: eyJhbGciOiJSUzI1NiIsImtpZCI6ImV6LThmM2EyYiJ9.eyJpc3MiOiJnd2Nf...
         scope:
           type: string
+          description: >-
+            요청 권한 scope(공백 구분·형식 `{target}:{resource}.{action}`). **v1.0 미사용·예약(gw/1.1+ 세분화용)** — v1.0은 AXS + Org-ID가 데이터·작업 격리를 하므로 GW는 upstream 단위로만 굵게 인가하고 scope 세분화는 하지 않는다(§7.5.3). EzServer는 v1.0에 보내지 않아도 된다. 미래 활성화 시 정책/OPA가 검증(초과 403). axs는 예시일 뿐 엔드포인트가 AXS 전용이란 뜻 아님.
           example: axs:patient.read axs:study.write
     TokenResponse:
       type: object
@@ -1373,7 +1375,7 @@ components:
     Policy:
       type: object
       required: [ scopeType, targetId ]
-      description: '정책(OPA 입력·policy 테이블 매핑, §7.5.3·FR-INT-03). GW deny-by-default라 허용을 명시. 실효=device→clinic→global 합성. egress는 여기 아님(upstream.egressAllowlist, #31)'
+      description: '정책(OPA 입력·policy 테이블 매핑, §7.5.3·FR-INT-03). GW deny-by-default라 허용을 명시. 실효=device→clinic→global 합성. egress는 여기 아님(upstream.egressAllowlist, #31). **v1.0 집행=coarse(upstream 사용 허용까지)** — allowedEndpoints·scopes 세분화는 gw/1.1+ 예약(작업·데이터 격리는 AXS+Org-ID)'
       properties:
         id: { type: string, description: '정책 id', example: pol_axs_clinic0040 }
         scopeType: { type: string, enum: [ global, clinic, device ], description: '부착 스코프. v1.0=clinic+global 사용', example: clinic }
