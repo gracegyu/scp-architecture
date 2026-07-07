@@ -51,6 +51,7 @@ paths:
   # --- 인증·토큰 (§7.1) ---
   /v1/auth/token:
     post:
+      operationId: postAuthToken
       tags: [ auth ]
       summary: 디바이스 client_credentials → JWT 발급 (FR-AUTH-01/02)
       security: []
@@ -74,6 +75,7 @@ paths:
 
   /v1/auth/oneid/verify:
     post:
+      operationId: postAuthOneidVerify
       tags: [ auth ]
       summary: OneID(OIDC) 토큰 검증·연계 — 사람·클리닉·사내 호출자 (FR-AUTH-08)
       security: []
@@ -97,6 +99,7 @@ paths:
   # --- 온보딩 (§7.2) ---
   /v1/enroll/start:
     post:
+      operationId: postEnrollStart
       tags: [ enrollment ]
       summary: enrollment 시작(LM 라이선스·Clinic-ID 부트스트랩) → nonce challenge (FR-ENR-01/03)
       security: []
@@ -119,6 +122,7 @@ paths:
 
   /v1/enroll/complete:
     post:
+      operationId: postEnrollComplete
       tags: [ enrollment ]
       summary: 서명+공개키 검증 → 디바이스 등록(pending) + 클리닉·region 확립 (FR-ENR-01/04·FR-RGN-*)
       description: >-
@@ -153,6 +157,7 @@ paths:
   # --- 디바이스 레지스트리 (§7.2) ---
   /v1/devices:
     get:
+      operationId: getDevices
       tags: [ devices ]
       summary: 디바이스 목록 조회 (FR-DEV-01)
       responses:
@@ -168,6 +173,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
+      operationId: postDevices
       tags: [ devices ]
       summary: 디바이스 등록 (FR-DEV-01)
       requestBody:
@@ -189,6 +195,7 @@ paths:
     parameters:
     - $ref: '#/components/parameters/DeviceId'
     get:
+      operationId: getDevicesById
       tags: [ devices ]
       summary: 디바이스 조회 (FR-DEV-01)
       responses:
@@ -203,6 +210,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     patch:
+      operationId: patchDevicesById
       tags: [ devices ]
       summary: lifecycle 상태 전이 (FR-DEV-03, pending→active→suspended→revoked)
       description: >-
@@ -231,6 +239,7 @@ paths:
   # --- 리전 해석 (§7.3) ---
   /v1/region/resolve:
     get:
+      operationId: getRegionResolve
       tags: [ region ]
       summary: device/clinic → region 해석 (FR-RGN-01/02/06)
       parameters:
@@ -257,6 +266,7 @@ paths:
   # --- Fleet heartbeat (§7.8.1) — device가 GW로 능동 보고(GW는 edge 폴링 불가) ---
   /v1/fleet/heartbeat:
     post:
+      operationId: postFleetHeartbeat
       tags: [ fleet ]
       summary: 디바이스 heartbeat 보고 (FR-FLEET-01)
       description: >-
@@ -281,6 +291,7 @@ paths:
   # --- Fleet config pull (§7.8.4) — device가 자기 실효 config 조회(GW는 edge 폴링 불가) ---
   /v1/fleet/config:
     get:
+      operationId: getFleetConfig
       tags: [ fleet ]
       summary: device 실효 중앙 config 조회 (FR-CFG-01) — gw/1.1+ 예약
       description: >-
@@ -299,6 +310,7 @@ paths:
   # --- 클리닉/클라이언트 온보딩·등록 (§2.3.1) — 매핑 자가 생성, Admin은 교정만 ---
   /v1/clinics:
     post:
+      operationId: postClinics
       tags: [ clinics ]
       summary: 클리닉 관리 — 운영자 교정·예외적 수동 등록 (주 생성 경로는 enroll) (FR-RGN-*)
       description: >-
@@ -326,6 +338,7 @@ paths:
       schema:
         type: string
     post:
+      operationId: postClinicsByClinicIdOrgBindings
       tags: [ clinics ]
       summary: 외부 upstream Org-ID 등록 (외부 연동 연결 시, upstream별) (FR-INT-*)
       description: >-
@@ -349,6 +362,7 @@ paths:
   # --- GW 리전 카탈로그·조회 + 운영 중 리전 변경 (§7.3.6·§7.3.4) ---
   /v1/regions:
     get:
+      operationId: getRegions
       tags: [ regions ]
       summary: GW 운영 리전 목록 조회 — 클라이언트 region 선택지 (§7.3.6)
       description: EzServer Console 등이 온보딩·운영 중 region 선택을 위해 조회. v1.0=1개, gw/1.2=N개.
@@ -372,6 +386,7 @@ paths:
       schema:
         type: string
     put:
+      operationId: putClinicsByClinicIdRegion
       tags: [ clinics ]
       summary: 클리닉 접속 리전 변경 (운영 중 자가 변경, FR-RGN-04)
       description: >-
@@ -416,6 +431,7 @@ paths:
   # --- Webhook 수신 (§7.6 / §4.1.3) — upstream별 전용 호스트({target}.webhook.gw.vatech.com)로 식별(Host/SNI). 경로/스키마는 upstream 규약 수용·유연(아래는 예시). GW는 발신자 검증·라우팅만, payload 비해석 ---
   /v1/webhooks/{target}:
     post:
+      operationId: postWebhooksByTarget
       tags: [ webhooks ]
       security: []
       summary: 외부 이벤트 Webhook 수신 (FR-WH-01~05) — upstream별 전용 호스트로 식별, 경로/형식 유연(예시)
@@ -457,6 +473,7 @@ paths:
       schema:
         type: string
     get:
+      operationId: getWellKnownByEnvServerConfiguration
       tags: [ compatibility ]
       summary: 런타임 버전·호환성 공시 (FR-COMPAT-02)
       description: 스키마·샘플은 design/well-known/ 참조. 버전 프리픽스 없이 표준 관례로 노출(§4.1.2-5)
@@ -472,6 +489,7 @@ paths:
     parameters:
     - $ref: '#/components/parameters/DeviceId'
     post:
+      operationId: postAdminDevicesByIdKill
       tags: [ admin ]
       summary: kill-switch(긴급 정지) (FR-FLEET-02)
       responses:
@@ -484,6 +502,7 @@ paths:
 
   /admin/v1/audit:
     get:
+      operationId: getAdminAudit
       tags: [ admin ]
       summary: 감사 로그 조회(경량) (FR-AUD-01)
       description: 그 외 관리자 조회(/admin/v1/*)는 LLD에서 확장. UI는 ③-C
@@ -503,6 +522,7 @@ paths:
   # --- 라우팅·분배 지식 관리 (Console ③-C 호출) — DB가 보관하는 "어디로 분배" 정보 ---
   /admin/v1/org-mappings:
     get:
+      operationId: getAdminOrgMappings
       tags: [ admin ]
       summary: Org-ID↔ClinicID 매핑 조회 (webhook 라우팅 키)
       responses:
@@ -518,6 +538,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
+      operationId: postAdminOrgMappings
       tags: [ admin ]
       summary: Org-ID↔ClinicID 매핑 **교정(override)** — 1차 입력은 클라이언트 온보딩(자가 등록), 본 API는 오설정 수정용 (FR-RGN-04)
       requestBody:
@@ -535,6 +556,7 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     delete:
+      operationId: deleteAdminOrgMappings
       tags: [ admin ]
       summary: Org-ID↔ClinicID 매핑 삭제 — 연동 해지·오설정 제거 (복합키 targetId+externalOrgId)
       parameters:
@@ -558,6 +580,7 @@ paths:
   # --- webhook 이벤트 조회 (Console 검색/필터, §7.6·§7.9.1) — GW 런타임 생성, write API 없음(조회 전용) ---
   /admin/v1/webhook-events:
     get:
+      operationId: getAdminWebhookEvents
       tags: [ admin ]
       summary: webhook 이벤트(메타) 검색/조회 — Console 운영·감사용 (PHI-free, payload는 payload_ref로 참조)
       parameters:
@@ -606,6 +629,7 @@ paths:
   # --- fleet 상태 조회 (§7.8, 대시보드) — device push heartbeat로 갱신, 조회 전용 ---
   /admin/v1/fleet:
     get:
+      operationId: getAdminFleet
       tags: [ admin ]
       summary: fleet 상태(디바이스 heartbeat·버전) 조회 — 운영 대시보드 (fleet_state)
       parameters:
@@ -639,6 +663,7 @@ paths:
   # --- 연동 대상(upstream) 통합 관리 (§7.5·§7.6·§7.1.3, Console ③-C) — 라우팅+자격+webhook 수신 한 레코드 ---
   /admin/v1/upstreams:
     get:
+      operationId: getAdminUpstreams
       tags: [ admin ]
       summary: 연동 대상(upstream) 조회 (라우팅·자격·webhook 수신 통합) (FR-INT-01/02·FR-WH-01/02)
       description: credential_ref·secret_ref는 KMS 참조만 반환(시크릿 원문 미노출)
@@ -655,6 +680,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
+      operationId: postAdminUpstreams
       tags: [ admin ]
       summary: upstream 등록/갱신(upsert) — **연동 하나=1 레코드**(라우팅+자격+webhook 수신). 감사 action=upstream.upsert
       requestBody:
@@ -675,6 +701,7 @@ paths:
     parameters:
     - { name: targetId, in: path, required: true, schema: { type: string } }
     delete:
+      operationId: deleteAdminUpstreamsByTargetId
       tags: [ admin ]
       summary: upstream 삭제 — 해당 연동 전체(라우팅·자격·webhook 수신) 제거. 감사 action=upstream.delete
       responses:
@@ -687,6 +714,7 @@ paths:
   # --- 중앙 Config 관리 (§7.8.4, Console ③-C 호출) — (scope,key,value) CRUD ---
   /admin/v1/config:
     get:
+      operationId: getAdminConfig
       tags: [ admin ]
       summary: 중앙 config 항목 조회 (FR-CFG-01)
       description: 스코프·키로 필터. device에 실제 적용되는 실효값은 device의 GET /v1/fleet/config
@@ -707,6 +735,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     put:
+      operationId: putAdminConfig
       tags: [ admin ]
       summary: 중앙 config 항목 upsert(등록/갱신) — (scopeType, scopeId, configKey) 단위 (FR-CFG-01)
       description: 값 변경 시 version 증가. 감사 action=config.publish(§7.9.3)
@@ -728,6 +757,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     delete:
+      operationId: deleteAdminConfig
       tags: [ admin ]
       summary: 중앙 config 항목 삭제 — (scopeType, scopeId, configKey) 지정 (FR-CFG-01)
       parameters:
@@ -745,6 +775,7 @@ paths:
   # --- 정책 관리 (§7.5.3·FR-INT-03, Console ③-C) — GW는 deny-by-default라 v1.0 필수(허용 정책 없으면 프록시 전면 거부) ---
   /admin/v1/policies:
     get:
+      operationId: getAdminPolicies
       tags: [ admin ]
       summary: 정책 조회 (scope·target 필터) (FR-INT-03)
       parameters:
@@ -764,6 +795,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
+      operationId: postAdminPolicies
       tags: [ admin ]
       summary: 정책 등록/갱신(upsert) — allowed_endpoints·scopes. 감사 action=policy.update (FR-INT-03)
       requestBody:
@@ -783,6 +815,7 @@ paths:
     parameters:
     - { name: id, in: path, required: true, schema: { type: string } }
     delete:
+      operationId: deleteAdminPoliciesById
       tags: [ admin ]
       summary: 정책 삭제. 감사 action=policy.delete
       responses:
@@ -795,6 +828,7 @@ paths:
   # --- GW 운영 리전 카탈로그 관리 (§7.3.6·FR-RGN-06, 운영자) — 조회는 GET /v1/regions. v1.0=1행(시드 가능)·gw/1.2 다행 ---
   /admin/v1/regions:
     post:
+      operationId: postAdminRegions
       tags: [ admin ]
       summary: 리전 카탈로그 등록 (region 개통) (FR-RGN-06)
       requestBody:
@@ -814,6 +848,7 @@ paths:
     parameters:
     - { name: regionId, in: path, required: true, schema: { type: string } }
     put:
+      operationId: putAdminRegionsByRegionId
       tags: [ admin ]
       summary: 리전 상태·속성 변경 (active/draining/planned 전이 등) (FR-RGN-06)
       requestBody:
@@ -830,6 +865,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     delete:
+      operationId: deleteAdminRegionsByRegionId
       tags: [ admin ]
       summary: 리전 회수(드묾 — draining 후) (FR-RGN-06)
       responses:
@@ -932,10 +968,10 @@ components:
       type: object
       required: [ errorCode ]
       properties:
-        errorCode: { type: string, description: '표준 오류코드(§7.7.4)' }
-        message: { type: string }
-        requestId: { type: string, description: '상관 추적용 ID(§6.3.2)' }
-        details: { type: object, description: '필드 검증 오류 등 부가 정보' }
+        errorCode: { type: string, description: '표준 오류코드(§7.7.4)', example: COMPAT_CLIENT_TOO_OLD }
+        message: { type: string, example: '클라이언트 업데이트가 필요합니다.' }
+        requestId: { type: string, description: '상관 추적용 ID(§6.3.2)', example: req_9f2a7c1b3d }
+        details: { type: object, description: '필드 검증 오류 등 부가 정보', example: { field: clientId, reason: required } }
       description: 'GW 표준 오류 응답 본문(§7.7.4)'
     # 인증
     TokenRequest:
@@ -947,42 +983,52 @@ components:
       properties:
         clientId:
           type: string
+          example: gwc_Qk9y3Zx1aB2cD3eF4gH5iJ
         clientAssertionType:
           type: string
           description: RFC 7523 고정값
           default: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
+          example: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
         clientAssertion:
           type: string
           description: 디바이스 개인키로 서명한 JWT assertion(소지 증명). GW가 등록된 공개키(clientPublicKey)로 검증(§7.1.1)
+          example: eyJhbGciOiJSUzI1NiIsImtpZCI6ImV6LThmM2EyYiJ9.eyJpc3MiOiJnd2Nf...
         scope:
           type: string
+          example: axs:patient.read axs:study.write
     TokenResponse:
       type: object
       properties:
         accessToken:
           type: string
+          example: eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIwMTkyMGE3Yi...
         expiresAt:
           type: integer
           format: int64
           description: Unix ms
+          example: 1720224000000
         claims:
           type: object
           description: device_id·region·aud·TTL 강제 바인딩(§7.1.1)
+          example: { deviceId: 01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60, region: apne2, aud: axs.gw.vatech.com }
     OneIdVerifyRequest:
       type: object
       required: [ oneIdToken ]
       properties:
         oneIdToken:
           type: string
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
     OneIdVerifyResponse:
       type: object
       properties:
         identity:
           type: object
           description: 사람/클리닉/사내 호출자 신원
+          example: { sub: oneid-8f3a, role: cs_engineer, clinicId: CLINIC-0040694997 }
         deviceBinding:
           type: string
           description: 디바이스 인증면과의 매핑
+          example: device:01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60
 
     # 온보딩
     EnrollStartRequest:
@@ -994,17 +1040,21 @@ components:
           description: >-
             부트스트랩 신뢰 = LM 라이선스·Clinic-ID(EzServer가 설치 시 LMP에서 수신).
             공장 토큰/OOB 코드는 미도입(GW 사전 발급 토큰 없음). 최종 활성화는 C/S Console 승인(§2.3.1·§7.2.5)
+          example: 'LM-LIC-8f3a2b1c:CLINIC-0040694997'
         serial:
           type: string
           description: 대상 디바이스 시리얼(부트스트랩 식별)
+          example: EZ-SN-2024-012345
     EnrollChallenge:
       type: object
       properties:
         nonce:
           type: string
+          example: n_7f3a2b1c9d8e4f5a
         expiresAt:
           type: integer
           format: int64
+          example: 1720137900000
     EnrollCompleteRequest:
       type: object
       required: [ nonceSignature, clientPublicKey ]
@@ -1012,14 +1062,20 @@ components:
         nonceSignature:
           type: string
           description: EzServer 개인키로 nonce 서명(소지 증명, §7.2.6)
+          example: MEUCIQDf3a...base64sig...cQ==
         clientPublicKey:
           type: string
           description: EzServer 생성 키페어의 공개키(또는 key-id) = 디바이스 공개키(clientPublicKey). 물리 머신 지문 아님. 재설치 시 새 키→재-enroll로 회전(§7.2.6·7.2.7)
+          example: |-
+            -----BEGIN PUBLIC KEY-----
+            MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...
+            -----END PUBLIC KEY-----
 
     # 디바이스
     DeviceStatus:
       type: string
       enum: [ pending, active, suspended, revoked ]
+      example: active
     Device:
       type: object
       description: >-
@@ -1028,15 +1084,22 @@ components:
       properties:
         deviceId:
           type: string
+          example: 01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60
         clinicId:
           type: string
+          nullable: true
           description: 소속 클리닉(등록 시 포함). nullable — 미래 클리닉 비소속(비-EzServer) 디바이스. region은 clinic에서 파생(§6.4.1 A안, region 컬럼 없음)
+          example: CLINIC-0040694997
         clientId:
           type: string
+          nullable: true
           description: OAuth2 client id — GW가 enroll 시 발급한 불투명 식별자(RFC 6749 §2.2·§7.2.5, 내부 식별자 비파생·비밀 아님). nullable — client 자격 미발급 device(enroll 전·미래 비인증). 토큰 요청 시 이 값 + 개인키 서명(private_key_jwt)으로 인증(§7.1.1)
+          example: gwc_Qk9y3Zx1aB2cD3eF4gH5iJ
         clientPublicKey:
           type: string
+          nullable: true
           description: enrollment 키페어의 공개키(또는 key-id) = 디바이스 공개키(clientPublicKey). 인증 assertion 서명 검증에 사용(§7.1.1). 물리 머신 지문 아님
+          example: ez-8f3a2b
         status:
           $ref: '#/components/schemas/DeviceStatus'
 
@@ -1048,45 +1111,52 @@ components:
         region:
           type: string
           description: '해석된 리전 ID(= region_catalog.regionId, 예 apne2). deviceId·clinicId 어느 입력이든 동일 리전으로 귀결(ADR-10)'
+          example: apne2
         regionDisplayName:
           type: string
           description: '리전 표시명(예 서울) — region_catalog.displayName'
+          example: 서울
         endpoint:
           type: string
           description: '리전 endpoint(§4.5.1). 클라이언트는 평소 apex GeoDNS(gw.vatech.com)만 사용하고 본 값은 참고·진단용'
+          example: https://apne2.internal.gw.vatech.com
         status:
           type: string
           enum: [ active, draining, planned ]
           description: '리전 운영 상태 — draining이면 신규 배정 중단(기존 유지), 클라이언트가 인지(§7.3.6)'
+          example: active
         clinicId:
           type: string
           description: '해석된 소속 클리닉(region SSOT=clinic, §6.4.1). deviceId로 물었을 때 어느 클리닉으로 귀결됐는지 echo'
+          example: CLINIC-0040694997
         mappingVersion:
           type: integer
           description: 'clinic.mapping_version — 캐시 무효화·drift 감지(§7.3.2). 클라이언트 캐시 시 이 값으로 stale 판정'
+          example: 3
         cacheTtlSeconds:
           type: integer
           description: '이 해석 결과를 클라이언트가 캐시해도 되는 시간(초). 만료 후 재해석 권장(§7.3.1 soft-state)'
+          example: 60
         hosts:
           type: object
           description: '클라이언트가 실제 호출하는 공개 호스트 — 모두 GeoDNS라 **리전 불변**(리전별로 다르지 않음·참고용, §4.5.1). endpoint(리전 내부 진단용)와 구분'
           properties:
-            apex: { type: string, description: 'GW 고유 API·프록시 apex(예 gw.vatech.com, GeoDNS). 프록시 target은 {target}.gw.vatech.com' }
-            webhookHostPattern: { type: string, description: 'upstream 웹훅 수신 호스트 관례({target}.webhook.gw.vatech.com) — 외부 upstream가 이 리전 클리닉 이벤트를 push할 때 쓰는 호스트(GeoDNS, §4.5.1·§7.6.1)' }
+            apex: { type: string, description: 'GW 고유 API·프록시 apex(예 gw.vatech.com, GeoDNS). 프록시 target은 {target}.gw.vatech.com', example: gw.vatech.com }
+            webhookHostPattern: { type: string, description: 'upstream 웹훅 수신 호스트 관례({target}.webhook.gw.vatech.com) — 외부 upstream가 이 리전 클리닉 이벤트를 push할 때 쓰는 호스트(GeoDNS, §4.5.1·§7.6.1)', example: '{target}.webhook.gw.vatech.com' }
         sovereigntyPolicy:
           type: object
           description: 'PHI 데이터 주권 정책(§7.3.3) — PHI 바이트가 이 리전을 벗어나지 못함(OPA 집행)'
           properties:
-            dataResidencyRegion: { type: string, description: 'PHI가 머물러야 하는 리전(보통 region과 동일)' }
-            phiEgressAllowed: { type: boolean, description: '리전 밖 PHI 유출 허용 여부(항상 false)' }
-            crossBorder: { type: boolean, description: 'true면 국경 간 — 재동의·주권 재평가(FR-COMP-02)' }
+            dataResidencyRegion: { type: string, description: 'PHI가 머물러야 하는 리전(보통 region과 동일)', example: apne2 }
+            phiEgressAllowed: { type: boolean, description: '리전 밖 PHI 유출 허용 여부(항상 false)', example: false }
+            crossBorder: { type: boolean, description: 'true면 국경 간 — 재동의·주권 재평가(FR-COMP-02)', example: false }
             storage:
               type: object
               description: 'PHI storage 주권 — GW는 storage 비호스팅, 발급 upstream(CleverSpace/AXS) 소유(§7.4·§3.1.2)'
               properties:
-                hostedBy: { type: string, description: '항상 upstream — PHI 바이트는 upstream storage에 presigned 직결(GW 비경유)' }
-                kind: { type: string, description: 'AWS 리전=S3, AWS 미지원국=upstream MinIO 등(upstream가 결정·리전 주권 충족)' }
-                regionBound: { type: boolean, description: 'upstream storage가 dataResidencyRegion 안에 있어야 함(항상 true)' }
+                hostedBy: { type: string, description: '항상 upstream — PHI 바이트는 upstream storage에 presigned 직결(GW 비경유)', example: upstream }
+                kind: { type: string, description: 'AWS 리전=S3, AWS 미지원국=upstream MinIO 등(upstream가 결정·리전 주권 충족)', example: S3 }
+                regionBound: { type: boolean, description: 'upstream storage가 dataResidencyRegion 안에 있어야 함(항상 true)', example: true }
 
     # Fleet heartbeat (§7.8.1)
     FleetHeartbeat:
@@ -1097,16 +1167,18 @@ components:
         appVersion:
           type: string
           description: 'device(EzServer) 소프트웨어 버전 — 호환성·롤아웃 가시성(§7.7·§7.8.4)'
+          example: 6.3.1.3
         metrics:
           type: object
           description: 'health 관측 지표(선택). fleet_state.success_rate 등 대시보드·이상탐지 입력(§7.8.1·§7.8.3)'
           properties:
-            diskFreeBytes: { type: integer, format: int64, description: '가용 디스크(바이트)' }
-            queueDepth: { type: integer, description: '미전송 큐 적체(업로드·이벤트)' }
-            successRate: { type: number, description: '관측 성공률 0~1(직전 윈도우)' }
+            diskFreeBytes: { type: integer, format: int64, description: '가용 디스크(바이트)', example: 214748364800 }
+            queueDepth: { type: integer, description: '미전송 큐 적체(업로드·이벤트)', example: 3 }
+            successRate: { type: number, description: '관측 성공률 0~1(직전 윈도우)', example: 0.987 }
         appliedConfigVersion:
           type: string
           description: '(gw/1.1+ 예약·v1.0 미사용) device가 현재 적용 중인 중앙 config 실효 버전 = 콘텐츠 해시(§7.8.4). GW가 실효 버전과 동등성 비교해 drift(미반영) 판정'
+          example: sha256:9f2a7c1b3d8e...
     FleetHeartbeatAck:
       type: object
       required: [ receivedAt, nextIntervalSeconds ]
@@ -1115,12 +1187,15 @@ components:
           type: integer
           format: int64
           description: 'GW 수신 시각(Unix ms) — fleet_state.last_heartbeat에 기록됨'
+          example: 1720224000123
         nextIntervalSeconds:
           type: integer
           description: '다음 heartbeat까지 권장 간격(초). 정본=중앙 config(§7.8.4 gw.heartbeat.interval_seconds)에서 device 스코프 resolve, 없으면 .env 기본값(§7.8.1). device는 이 값에 맞춰 다음 호출 주기를 갱신한다'
+          example: 3600
         configVersion:
           type: string
           description: '(gw/1.1+ 예약·v1.0 미사용) 현재 device 실효 중앙 config 버전 = 콘텐츠 해시(§7.8.4). device의 appliedConfigVersion과 다르면 GET /v1/fleet/config로 다시 pull하라는 신호'
+          example: sha256:9f2a7c1b3d8e...
 
     # 중앙 Config (§7.8.4)
     FleetConfig:
@@ -1133,9 +1208,11 @@ components:
           type: object
           additionalProperties: true
           description: '실효 config 맵 — 키(gw.*/device.*)→값(스칼라/객체). 형식·키 레지스트리=design/db-jsonb-fields.md#config'
+          example: { gw.heartbeat.interval_seconds: 3600, gw.log.level: info }
         configVersion:
           type: string
           description: '실효 config 버전 = 콘텐츠 해시(기여 (config_key,config_value,행 version) 정렬·canonical JSON의 SHA-256 hex, §7.8.4). device는 이를 appliedConfigVersion으로 보고(drift 판정)'
+          example: sha256:9f2a7c1b3d8e...
     ConfigEntry:
       type: object
       required: [ scopeType, configKey, configValue ]
@@ -1145,25 +1222,33 @@ components:
           type: string
           enum: [ global, region, clinic, device ]
           description: '부착 스코프. 실효값은 키별 device>clinic>region>global 우선'
+          example: global
         scopeId:
           type: string
-          description: 'global=생략 / region=regionId / clinic=clinicId / device=deviceId (다형 참조·하드 FK 없음)'
+          nullable: true
+          description: 'global=생략(null) / region=regionId / clinic=clinicId / device=deviceId (다형 참조·하드 FK 없음)'
+          example: null
         configKey:
           type: string
           description: '점 구분 소문자 키. gw.*(GW 소비)/device.*(전달). 예 gw.heartbeat.interval_seconds'
+          example: gw.heartbeat.interval_seconds
         configValue:
           description: '값(스칼라 또는 객체). 키 레지스트리 스키마로 타입·범위 검증(PHI 금지)'
+          example: 3600
         version:
           type: integer
           format: int64
           description: '행 버전(변경 시 증가) — 읽기 시 반환, 쓰기 시 GW가 증가시킴'
+          example: 7
         updatedAt:
           type: integer
           format: int64
           description: '수정 시각(Unix ms)'
+          example: 1720224000000
         updatedBy:
           type: string
           description: '변경 주체(audit actor, 예 user:oneid-…)'
+          example: user:oneid-8f3a
 
     # 연동 대상(upstream) 통합 (§7.5·§7.6·§7.1.3) — 라우팅+아웃바운드 자격+인바운드 webhook 수신
     Upstream:
@@ -1172,33 +1257,34 @@ components:
       description: >-
         연동 대상(외부 서비스·내부 backend) **통합 레코드**(엔터티=upstream) — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드에(구 upstream_registry·connector·webhook_provider 병합). **upstream 하나 등록=1 레코드**. credential_ref·secret_ref는 KMS 참조만(원문 미노출). org_mapping·webhook_event·policy가 targetId를 참조. AXS=①②③ 다 채움 / 내부(cleverspace·oneid)=① 라우팅만.
       properties:
-        targetId: { type: string, description: '연동 대상 ID = Vatech-Target 값 = 서브도메인 라벨 = PK. 예 axs·cleverspace·oneid' }
+        targetId: { type: string, pattern: '^[a-z0-9_]+$', description: '연동 대상 ID = Vatech-Target 값 = 서브도메인 라벨 = PK(정규 토큰 소문자). 예 axs·cleverspace·oneid', example: axs }
         # ── ① 라우팅 (모든 대상) ──
-        host: { type: string, description: '내부 매핑 host(클라이언트 비노출)·아웃바운드 base=https://{host}. 예 api.eu.axs.straumann.com' }
-        profile: { type: string, enum: [ internal, external ], description: 'internal=B(내부) / external=C(외부)' }
-        connectTimeoutMs: { type: integer, description: 'GW→upstream 연결 대기 — GW 책임(D1, §7.5.4·R4). 예 3000' }
-        responseTimeoutMs: { type: integer, description: 'GW→upstream 응답 대기·초과 504(D2). 예 10000' }
-        totalDeadlineMs: { type: integer, description: '프록시 총 예산(D3, < 클라이언트 타임아웃). 예 12000' }
-        enabled: { type: boolean }
+        host: { type: string, description: '내부 매핑 host(클라이언트 비노출)·아웃바운드 base=https://{host}', example: api.eu.axs.straumann.com }
+        profile: { type: string, enum: [ internal, external ], description: 'internal=B(내부) / external=C(외부)', example: external }
+        connectTimeoutMs: { type: integer, description: 'GW→upstream 연결 대기 — GW 책임(D1, §7.5.4·R4)', example: 3000 }
+        responseTimeoutMs: { type: integer, description: 'GW→upstream 응답 대기·초과 504(D2)', example: 10000 }
+        totalDeadlineMs: { type: integer, description: '프록시 총 예산(D3, < 클라이언트 타임아웃)', example: 12000 }
+        enabled: { type: boolean, example: true }
         # ── ② 아웃바운드 자격 (외부 C만·nullable) ──
-        credentialRef: { type: string, description: 'OAuth2 client 자격 KMS 참조(access token 아님·원문 미저장, §7.1.3). 내부(B)는 생략. 예 kms://alias/axs-oauth-client' }
+        credentialRef: { type: string, nullable: true, description: 'OAuth2 client 자격 KMS 참조(access token 아님·원문 미저장, §7.1.3). 내부(B)는 생략', example: kms://alias/axs-oauth-client }
         egressAllowlist:
           type: object
+          nullable: true
           description: 'egress SSOT(#31) — hosts·cidrs 둘 다 비면 fail-closed(전면 거부). 외부 C만. 형식=design/db-jsonb-fields.md#upstream'
           properties:
-            hosts: { type: array, items: { type: string }, description: '허용 FQDN. 예 ["api.eu.axs.straumann.com"]' }
-            cidrs: { type: array, items: { type: string } }
-            ports: { type: array, items: { type: integer }, description: '생략 시 [443]' }
-            requireStaticEgressIp: { type: boolean, description: 'true면 고정 egress IP(NAT) 경유 강제' }
+            hosts: { type: array, items: { type: string }, description: '허용 FQDN', example: [ api.eu.axs.straumann.com ] }
+            cidrs: { type: array, items: { type: string }, example: [] }
+            ports: { type: array, items: { type: integer }, description: '생략 시 [443]', example: [ 443 ] }
+            requireStaticEgressIp: { type: boolean, description: 'true면 고정 egress IP(NAT) 경유 강제', example: true }
         # ── ③ 인바운드 webhook (webhook 발신 대상만·nullable) ──
-        inboundHost: { type: string, description: '전용 수신 호스트(Host/SNI 발신자 식별, §7.6.2). 예 axs.webhook.gw.vatech.com. 미발신이면 생략' }
-        inboundRoute: { type: string, description: '등록 수신 경로(유연·발신 규약 수용). 예 /v1/webhooks/axs' }
-        sigScheme: { type: string, description: '서명 검증 스킴(인증). 예 hmac-sha512(헤더 Signature·hex·서명대상 minified JSON body)' }
-        secretRef: { type: string, description: 'HMAC 검증 시크릿 KMS 참조(원문 미저장)' }
-        sourceIpAllowlist: { type: array, items: { type: string, description: 'CIDR(예 203.0.113.0/24)' }, description: '허용 소스 CIDR(옵션·방어심층·Host가 1차 식별)' }
-        eventIdPath: { type: string, description: 'payload에서 event_id(멱등) 추출 경로. 예 $.messageId' }
-        orgIdPath: { type: string, description: 'payload에서 externalOrgId 추출 경로. 예 $.organizationId' }
-        eventTypePath: { type: string, description: 'payload에서 event_type 추출 경로. 예 $.eventType(upstream 어휘 verbatim·GW enum 아님)' }
+        inboundHost: { type: string, nullable: true, description: '전용 수신 호스트(Host/SNI 발신자 식별, §7.6.2). 미발신이면 생략', example: axs.webhook.gw.vatech.com }
+        inboundRoute: { type: string, nullable: true, description: '등록 수신 경로(유연·발신 규약 수용)', example: /v1/webhooks/axs }
+        sigScheme: { type: string, nullable: true, description: '서명 검증 스킴(인증). 알고리즘+서명헤더+인코딩+서명대상', example: 'hmac-sha512' }
+        secretRef: { type: string, nullable: true, description: 'HMAC 검증 시크릿 KMS 참조(원문 미저장)', example: kms://alias/axs-webhook-hmac }
+        sourceIpAllowlist: { type: array, nullable: true, items: { type: string, description: 'CIDR' }, description: '허용 소스 CIDR(옵션·방어심층·Host가 1차 식별)', example: [ 203.0.113.0/24 ] }
+        eventIdPath: { type: string, nullable: true, description: 'payload에서 event_id(멱등) 추출 경로', example: $.messageId }
+        orgIdPath: { type: string, nullable: true, description: 'payload에서 externalOrgId 추출 경로', example: $.organizationId }
+        eventTypePath: { type: string, nullable: true, description: 'payload에서 event_type 추출 경로(upstream 어휘 verbatim·GW enum 아님)', example: $.eventType }
 
     # Webhook
     WebhookEnvelope:
@@ -1210,127 +1296,122 @@ components:
         eventId:
           type: string
           description: 멱등 키(중복 수신 dedup, §7.6.4)
+          example: c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545
         eventType:
           type: string
           description: 이벤트 유형(분배 라우팅 키)
+          example: patient.created
         payload:
           type: object
           description: upstream별 외부 스키마(④/AXS 스냅샷 참조). GW 재정의 금지.
+          example: { organizationId: '0040694997', patient: { id: a5437cb7-fffd-4cb2-8fdd-4063b5e43dae } }
     WebhookAck:
       type: object
       properties:
         received:
           type: boolean
+          example: true
         eventId:
           type: string
+          example: c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545
 
     WebhookEventState:
       type: string
       enum: [ received, dispatched, dead_letter ]
       description: 'webhook 처리 상태(DBML webhook_state). received=수신·미분배, dispatched=분배 완료, dead_letter=N회 실패·DLQ'
+      example: dispatched
     WebhookEvent:
       type: object
       description: >-
         webhook 이벤트 **PHI-free 운영 메타데이터**(webhook_event 테이블 매핑, §7.6). payload 본문은 리전 로컬 S3에만 두고 payloadRef로 참조(claim-check, R2). 관계형 DB·본 응답에 본문 미포함.
       required: [ eventId, targetId, state ]
       properties:
-        eventId: { type: string, description: '이벤트 식별자 = 멱등 키(dedup). 예 c2f8aaf5-…' }
-        targetId: { type: string, description: '발신 upstream 라벨. 예 axs' }
-        eventType: { type: string, description: 'upstream 원어 event_type(verbatim·GW enum 아님·null 가능). 예 patient.created' }
-        externalOrgId: { type: string, description: '발신 org 식별자(분배 역조회 키). 예 0040694997' }
-        clinicId: { type: string, description: '해석된 대상 clinic(org_mapping 조회 결과). null 가능' }
-        region: { type: string, description: '해석된 대상 region(clinic 파생)' }
-        payloadRef: { type: string, description: '본문 claim-check 참조(리전 로컬 S3). 예 s3://gw-webhook-payload-apne2/axs/…json' }
+        eventId: { type: string, description: '이벤트 식별자 = 멱등 키(dedup)', example: c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545 }
+        targetId: { type: string, description: '발신 upstream 라벨', example: axs }
+        eventType: { type: string, nullable: true, description: 'upstream 원어 event_type(verbatim·GW enum 아님·null 가능)', example: patient.created }
+        externalOrgId: { type: string, description: '발신 org 식별자(분배 역조회 키)', example: '0040694997' }
+        clinicId: { type: string, nullable: true, description: '해석된 대상 clinic(org_mapping 조회 결과)', example: CLINIC-0040694997 }
+        region: { type: string, description: '해석된 대상 region(clinic 파생)', example: apne2 }
+        payloadRef: { type: string, description: '본문 claim-check 참조(리전 로컬 S3)', example: 's3://gw-webhook-payload-apne2/axs/c2f8aaf5.json' }
         state: { $ref: '#/components/schemas/WebhookEventState' }
-        dispatchTarget: { type: string, description: "구체적 분배 목적지 스냅샷 {channel}:{endpoint}. 예 mqtt_edge:gw/clinic/CLINIC-0040694997/webhook" }
-        attempts: { type: integer, description: '분배 시도 횟수' }
-        lastError: { type: string, description: '마지막 분배 실패 사유(성공 시 null)' }
-        receivedAt: { type: integer, format: int64, description: '수신 시각(Unix ms)' }
-        dispatchedAt: { type: integer, format: int64, description: '분배 완료 시각(Unix ms·미분배 시 null)' }
+        dispatchTarget: { type: string, nullable: true, description: "구체적 분배 목적지 스냅샷 {channel}:{endpoint}", example: 'mqtt_edge:gw/clinic/CLINIC-0040694997/webhook' }
+        attempts: { type: integer, description: '분배 시도 횟수', example: 1 }
+        lastError: { type: string, nullable: true, description: '마지막 분배 실패 사유(성공 시 null)', example: null }
+        receivedAt: { type: integer, format: int64, description: '수신 시각(Unix ms)', example: 1720137600123 }
+        dispatchedAt: { type: integer, format: int64, nullable: true, description: '분배 완료 시각(Unix ms·미분배 시 null)', example: 1720137600456 }
 
     FleetState:
       type: object
       description: 'device별 관측 상태 스냅샷(fleet_state 테이블, §7.8). device push heartbeat로 갱신, 온라인/오프라인은 last_heartbeat 임계 초과 파생.'
       required: [ deviceId ]
       properties:
-        deviceId: { type: string, description: 'device_id(PK·FK). 예 01920a7b-…' }
-        lastHeartbeat: { type: integer, format: int64, description: '마지막 heartbeat 수신 시각(Unix ms). device→GW push(§7.8.1)' }
-        successRate: { type: number, format: double, description: '성공률(0~1) 관측 지표. 예 0.987' }
+        deviceId: { type: string, description: 'device_id(PK·FK)', example: 01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60 }
+        lastHeartbeat: { type: integer, format: int64, description: '마지막 heartbeat 수신 시각(Unix ms). device→GW push(§7.8.1)', example: 1720224000000 }
+        successRate: { type: number, format: double, description: '성공률(0~1) 관측 지표', example: 0.987 }
 
     # 감사
     AuditLog:
       type: object
       description: 'append-only 감사 항목(audit_log 테이블 매핑, §7.9.3·FR-AUD-01). 조회 전용(write API 없음).'
       properties:
-        id:
-          type: integer
-          format: int64
-          description: '감사 항목 식별자(자동 증가·페이지네이션/참조용). 예 100237'
-        ts:
-          type: integer
-          format: int64
-          description: '발생 시각(Unix ms)'
-        actor:
-          type: string
-          description: '행위자 — `type:id`(user/system/device). 예 user:oneid-8f3a'
-        action:
-          type: string
-          description: '수행 동작 — `resource.verb` 규약(free string·GW enum 아님). 예 region.change·upstream.upsert'
-        result:
-          type: string
-          description: 'success | denied | failure (DBML audit_result enum)'
+        id: { type: integer, format: int64, description: '감사 항목 식별자(자동 증가·페이지네이션/참조용)', example: 100237 }
+        ts: { type: integer, format: int64, description: '발생 시각(Unix ms)', example: 1720137600123 }
+        actor: { type: string, description: '행위자 — `type:id`(user/system/device)', example: user:oneid-8f3a }
+        action: { type: string, description: '수행 동작 — `resource.verb` 규약(free string·GW enum 아님)', example: region.change }
+        result: { type: string, description: 'success | denied | failure (DBML audit_result enum)', example: success }
 
     # 라우팅·분배 레지스트리 (DB가 보관하는 "어디로 분배" 지식)
     OrgMapping:
       type: object
       required: [ targetId, externalOrgId, clinicId ]
       properties:
-        targetId: { type: string, description: '연동 대상(upstream) ID. 예 axs' }
-        externalOrgId: { type: string, description: 'upstream(발신)의 org 식별자(예 AXS Organization-ID)' }
-        clinicId: { type: string }
-        mappingVersion: { type: integer }
+        targetId: { type: string, description: '연동 대상(upstream) ID', example: axs }
+        externalOrgId: { type: string, description: 'upstream(발신)의 org 식별자(예 AXS Organization-ID)', example: '0040694997' }
+        clinicId: { type: string, example: CLINIC-0040694997 }
+        mappingVersion: { type: integer, example: 2 }
       description: 'webhook 라우팅 키 — (targetId, externalOrgId) → clinicId → region'
     Policy:
       type: object
       required: [ scopeType, targetId ]
       description: '정책(OPA 입력·policy 테이블 매핑, §7.5.3·FR-INT-03). GW deny-by-default라 허용을 명시. 실효=device→clinic→global 합성. egress는 여기 아님(upstream.egressAllowlist, #31)'
       properties:
-        id: { type: string, description: '정책 id. 예 pol_axs_clinic0040' }
-        scopeType: { type: string, enum: [ global, clinic, device ], description: '부착 스코프. v1.0=clinic+global 사용' }
-        scopeId: { type: string, description: 'global=생략 / clinic=clinicId / device=deviceId (다형 참조·하드 FK 없음)' }
-        targetId: { type: string, description: '적용 대상 upstream(=upstream.targetId). 예 axs' }
+        id: { type: string, description: '정책 id', example: pol_axs_clinic0040 }
+        scopeType: { type: string, enum: [ global, clinic, device ], description: '부착 스코프. v1.0=clinic+global 사용', example: clinic }
+        scopeId: { type: string, nullable: true, description: 'global=생략(null) / clinic=clinicId / device=deviceId (다형 참조·하드 FK 없음)', example: CLINIC-0040694997 }
+        targetId: { type: string, description: '적용 대상 upstream(=upstream.targetId)', example: axs }
         allowedEndpoints:
           type: array
           description: '허용 (method,path) 목록. 형식=design/db-jsonb-fields.md#policy'
+          example: [ { methods: [ GET ], pathPattern: /v1/patients/** } ]
           items:
             type: object
             properties:
               methods: { type: array, items: { type: string } }
               pathPattern: { type: string }
-        scopes: { type: array, items: { type: string }, description: '허용 scope. 예 ["axs:patient.read"]' }
+        scopes: { type: array, items: { type: string }, description: '허용 scope', example: [ axs:patient.read, axs:study.write ] }
     ClinicRegistration:
       type: object
       required: [ clinicId, region ]
       properties:
-        clinicId: { type: string }
-        region: { type: string, description: 'region(GW가 검증). 초기 region은 보통 enroll이 확립(GeoDNS 기본·C/S override); 본 입력은 운영자 교정 시 사용' }
+        clinicId: { type: string, example: CLINIC-0040694997 }
+        region: { type: string, description: 'region(GW가 검증). 초기 region은 보통 enroll이 확립(GeoDNS 기본·C/S override); 본 입력은 운영자 교정 시 사용', example: apne2 }
       description: '운영자(OneID) 클리닉 교정·예외적 수동 등록 입력 — 주 생성 경로는 enroll(§2.3.1)'
     OrgBinding:
       type: object
       required: [ targetId, externalOrgId ]
       properties:
-        targetId: { type: string, description: '연동 대상(upstream) ID. 예 axs' }
-        externalOrgId: { type: string, description: 'upstream(발신) Org-ID(예 AXS Organization-ID)' }
+        targetId: { type: string, description: '연동 대상(upstream) ID', example: axs }
+        externalOrgId: { type: string, description: 'upstream(발신) Org-ID(예 AXS Organization-ID)', example: '0040694997' }
       description: '외부 연동 연결 시 upstream별 Org-ID 등록 → org_mapping(webhook 라우팅 키)'
     Region:
       type: object
       required: [ regionId, status ]
       properties:
-        regionId: { type: string, description: '예 apne2(서울), use1(미주)' }
-        displayName: { type: string }
-        endpoint: { type: string }
-        status: { type: string, enum: [ active, draining, planned ] }
-        isDefault: { type: boolean }
+        regionId: { type: string, description: '예 apne2(서울), use1(미주)', example: apne2 }
+        displayName: { type: string, example: 서울 }
+        endpoint: { type: string, example: https://apne2.internal.gw.vatech.com }
+        status: { type: string, enum: [ active, draining, planned ], example: active }
+        isDefault: { type: boolean, example: true }
       description: 'GW 운영 리전(GET /v1/regions). region_catalog 테이블 매핑'
     ProxyError:
       type: object
@@ -1340,11 +1421,13 @@ components:
           type: string
           enum: [ UPSTREAM_UNREACHABLE, UPSTREAM_TIMEOUT, UPSTREAM_UNAVAILABLE ]
           description: '502 연결 실패 / 504 deadline 초과 / 503 서킷·일시불가(§7.7.4)'
+          example: UPSTREAM_TIMEOUT
         origin:
           type: string
           enum: [ gateway ]
           description: 'GW가 생성한 오류임을 표시(헤더 Vatech-Error-Origin: gateway와 동일). upstream 자체 4xx/5xx는 본 스키마를 쓰지 않고 원응답을 verbatim 통과(origin: upstream)'
-        targetId: { type: string, description: '실패한 target 서브도메인 라벨(논리 ID)' }
-        retryAfter: { type: integer, description: '503 시 재시도 권고(초)' }
-        message: { type: string }
+          example: gateway
+        targetId: { type: string, description: '실패한 target 서브도메인 라벨(논리 ID)', example: axs }
+        retryAfter: { type: integer, description: '503 시 재시도 권고(초)', example: 30 }
+        message: { type: string, example: upstream response deadline exceeded }
       description: 'GW 생성 프록시 오류 본문(502/503/504). upstream 응답은 verbatim 통과라 이 스키마 미적용(§7.5.4·§7.7.4)'
