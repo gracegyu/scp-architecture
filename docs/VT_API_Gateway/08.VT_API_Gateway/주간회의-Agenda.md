@@ -496,14 +496,28 @@
     - **유의**: LMP `country_code`(clinic 국가) ≠ GW `region`(배포 리전) — 별개 컬럼.
     - **성격**: [논의·결정] — **수집 필드셋만 승인**(추천=전부). DBML(clinic 5컬럼 고정 필드)·OpenAPI(`ClinicInfo`·enroll·`PATCH /v1/clinics/{clinicId}`)·§2.3.1은 **선반영 완료(필드셋 TBD)**. 잔여 확인(EzServer/LMP·③-P-EZ): 신규 클리닉 시 정보 시점·실제 형식.
 
-  - **R9. Enrollment 무인증 abuse 방지 · bootstrap 검증 강도 (논의·결정)** — `/enroll/start`는 bearer가 없다(디바이스 신원이 아직 없어 정상 — OAuth DCR·ACME류). **escalation은 불가**(C/S 승인 게이트·pending은 토큰 발급 불가)이나, 무인증이라 **abuse**(pending 스팸·C/S 승인 큐 오염·Clinic-ID enumeration = DoS·잡음) 여지가 있다.
-    - **이미 반영된 방어**: ① enroll **rate-limit**(IP/서브넷) · ② 미승인 **pending TTL 자동 만료** · ③ **C/S 승인 게이트**(잡건 절대 active 불가) · ④ nonce 핸드셰이크(§7.2.6).
-    - **결정할 것 — bootstrap 검증 강도**:
-      1. **(추천) LMP-서명 라이선스 토큰을 GW가 검증** — EzServer가 LMP에서 받은 서명 토큰을 enroll에 실어 보내고 GW는 **LMP 공개키(JWKS)만으로 검증**(풀 LMP API 연동 불요) → "유효 라이선스 보유자만 pending 생성" = 강한 최소 인증.
-      2. EzServer가 LMP 조회한 결과(clinicId 등)를 **형식 검증 후 신뢰**(GW-LMP 직접 검증 없음).
-      3. **형식만 + C/S 게이트 의존**(가장 약함).
-    - **부수 결정**: rate-limit 임계값 · pending TTL 값 · enumeration 방지(유효/무효 응답 동일화).
-    - **성격**: [논의·결정] — R8(clinic 필드 수집)과 **별개 보안 주제**. 확정 시 §7.2.5·§7.1.1·OpenAPI(enroll)·Appendix B #42 반영. **확인 경로**: LMP가 서명 토큰을 제공하는지(EzServer/LMP·③-P-EZ).
+  - **R9. Enrollment 신뢰 앵커 — C/S 수동 승인 vs LMP 라이선스 검증 자동승인 (논의·결정)** — **배경**: 이전 회의에서 **현장 C/S가 GW Console 들어가 승인하는 게 번거롭다**는 우려. 라이선스 검증으로 **자동승인**되면 큰 편의. `pending→active`의 신뢰 앵커를 A/B 중 택일한다(얹으면 중복).
+    - **LMP 역량(문서 정독)**: LMP/ELM은 **Cryptlex**(`@cryptlex/lexactivator`+`product.dat` product public key) 기반 → 오프라인 서명 검증 역량 있음. 단 **device측 LexActivator**가 검증하고 **GW가 검증할 포터블 증명은 현 API에 없음** → **B는 LMP 소폭 변경 필요**(불가 아님). **LMP는 바텍(ES) 자체 클라우드**(Cryptlex 위 구축·운영)라 수정 가능하나, **LMP/ELM 팀의 별도 개발·일정**이 들고(GW팀 아님·AXS처럼 크로스팀 조율) **현 개발 Roadmap엔 미포함** — B의 실질 비용.
+
+      | 기준 | **A. C/S 수동 승인 (v1.0 현행 · 추천)** | **B. LMP 라이선스 검증 자동승인** |
+      | --- | --- | --- |
+      | 신뢰 앵커 | 사람(현장 C/S) | 라이선스(Cryptlex 검증) |
+      | **C/S 부담** | 설치마다 수동 승인 — **번거로움**(이전 회의 우려) | **없음**(자동 active) |
+      | 확장성(10만 대) | 낮음(수동 병목) | **높음**(무인) |
+      | LMP 변경 | **불요** | **필요**(바텍 LMP/ELM 팀 개발·크로스팀·Roadmap 외) |
+      | 인간 물리검증 | **있음**(설치 확인) | 상실(대체=아래 region 처리) |
+      | region 확정 | 승인 시 C/S가 확정·override | GeoDNS 기본 → 사후 교정(§7.3.4) |
+      | 구현 난이도 | 낮음(현행) | 중(B1 ELM 서명 / B2 런타임 verify) |
+      | 지금 동작 | ✅ | ❌(LMP 변경 후) |
+      | abuse 방지 | rate-limit·pending TTL·nonce (A/B 공통) | 좌동 + 유효 라이선스 게이트 |
+
+    - **B 구현 경로 (택1)**: **B1(추천)** = **LMP(클라우드)** 가 Cryptlex 검증 결과로 "license valid for clinicId"를 **자기 키로 서명(JWT attestation)** → **EzServer/ELM(로컬)이 받아** enroll에 실어 전달 → GW는 **LMP 공개키(JWKS) 하나로 검증**(런타임 GW→LMP 결합 없음). *서명 권위는 중앙 LMP여야 함 — ELM은 클리닉마다 로컬(localhost)이라 서명자로 부적합(키 배포 문제).* / **B2** = GW가 enroll 시 **LMP REST 런타임 verify**(crypto 불요이나 GW→LMP 가용성 결합·OAuth 필요).
+    - **B 채택 시 LMP/ELM 추가 개발** (회의 판단용):
+      - **공통**: 증명을 **device에 귀속 바인딩**(license key + clinicId, 가능하면 machineSN/fingerprint로 replay·전용(轉用) 방지) · 응답에 **clinicId 포함**(현 API 有).
+      - **B1(서명 attestation) — 주체=LMP(클라우드)**: ① LMP **비대칭 서명 키페어** 생성·보관(private=LMP/KMS) · ② **JWKS(공개키) 공개 엔드포인트**(GW가 검증용 fetch, 또는 OOB 배포) · ③ Cryptlex 검증 결과로 **attestation JWT 발급**(claims: clinicId·licenseId·status·aud=GW·짧은 exp·serial 바인딩 — LMP 신규 엔드포인트 또는 activate 응답 확장) · ④ **서명 키 회전** 정책. **EzServer/ELM(로컬)** = LMP-서명 attestation을 받아 GW로 **릴레이**(자체 서명 안 함).
+      - **B2(런타임 verify)**: ① GW→LMP **verify 엔드포인트**(valid/invalid + clinicId · `getLicensesByKey` 재사용 또는 전용 신설) · ② GW용 **서비스 자격(EAP OAuth client) 프로비저닝**(LMP API가 `x-access-token`로 보호됨) · ③ LMP **cloud→cloud 접근성·rate-limit** 확보.
+    - **추천 = A (v1.0 baseline)** — 지금 동작·LMP 무변경. **비교는 유지**(B의 편의가 크니 열어둠). **B로 결정하면**: ① LMP 수정 필요 + ② **별도 추가 설계 필요**(attestation 계약·서명 키/JWKS·claims·EzServer 릴레이·GW 검증 = LMP/ELM 팀과 **공동 설계·별도 티켓/One Pager**, 현 GW SRS 범위 밖) + ③ **Roadmap 일정 추가**. **B1은 gw/1.1 목표로 병행 검토**·enroll payload에 `licenseAttestation` optional 예약 완료(전환 완충).
+    - **성격**: [논의·결정] — 신뢰 앵커 방향(v1.0=A · B1 추진 여부·시점). 확정 시 §7.2.3·§7.2.5·OpenAPI(enroll)·Appendix B #42 반영. **확인 경로**: LMP/ELM이 GW-검증 가능 서명 attestation을 발급할 수 있는지(EzServer/LMP·③-P-EZ).
 
 - 공유 사항 (결정 아님 · 정보 공유)
 
