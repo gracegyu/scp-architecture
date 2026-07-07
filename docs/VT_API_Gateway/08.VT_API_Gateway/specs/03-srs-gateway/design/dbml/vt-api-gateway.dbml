@@ -220,7 +220,7 @@ Table config {
 
   Note: '**중앙 Config**로, 운영자가 fleet 설정을 재배포 없이 원격 관리하는 표다(FR-CFG-01·§7.8.4). `(scope_type, scope_id, config_key)`당 1행이며, device의 실효 config는 키별로 가장 구체적인 스코프가 이긴다(device>clinic>region>global·override 병합). PHI는 담지 않는다(§6.4). **v1.0의 실사용은 GW-내부 설정(`gw.*`)** 이고(pod·리전이 공유), device로의 원격 전달(pull=GET /v1/fleet/config·push-notify)과 `device.*` 키는 gw/1.1+다(§7.8.4 v1.0 범위·§7.6.6 하행 레일의 미래 활용). 관리는 admin API+③-C, 값 형식은 design/db-jsonb-fields.md#config. rollout·카나리·명명 그룹(FR-FLEET-04)은 gw/1.1이다.'
   Indexes {
-    (scope_type, scope_id, config_key) [unique] // 스코프·키당 유일
+    (scope_type, scope_id, config_key) [unique] // 스코프·키당 유일. **LLD 주의: global 행은 scope_id=NULL이라 표준 UNIQUE로는 중복 미차단**(PG는 NULL을 distinct 취급) → global의 config_key 유일성 보장을 위해 `NULLS NOT DISTINCT`(PG15+) 또는 부분 유니크(WHERE scope_id IS NULL) 또는 sentinel로 확정. (device.client_id·upstream.inbound_host의 nullable UNIQUE는 NULL 다중 허용이 의도라 해당 없음)
     config_key                                   // 키별 조회
   }
 }
