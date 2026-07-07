@@ -509,6 +509,51 @@
       | 검증 키 | — | GW가 **LMP JWKS**(런타임 fetch+캐시)로 검증 |
       | 지금 동작 | ✅ | ❌(LMP 개발 후) |
 
+    - **A/B enroll 승인 시퀀스** (참석자용 · 정본 §2.3.1):
+
+      **A. C/S 수동 승인 (v1.0)**
+
+      ```mermaid
+      sequenceDiagram
+          autonumber
+          participant D as EzServer (디바이스)
+          participant GW as GW (Enrollment)
+          participant CS as C/S (Console)
+          participant DB as clinic·device DB
+          D->>GW: POST /v1/enroll/start (LM 라이선스 · Clinic-ID)
+          GW->>GW: 부트스트랩 검증 · nonce 발급
+          GW-->>D: nonce challenge
+          D->>D: 키페어 생성 · nonce 개인키 서명 · 공개키
+          D->>GW: POST /v1/enroll/complete (nonceSignature, clientPublicKey)
+          GW->>GW: 서명·공개키 검증
+          GW->>DB: clinic upsert · device 등록 (status=pending)
+          GW-->>D: Accepted (status=pending · 승인 대기)
+          CS->>GW: GW Console 승인 (설치 확인 · region 확정)
+          GW->>DB: status pending→active
+          Note over CS,GW: C/S 수동 승인 = 신뢰 게이트 · 모든 device 커버
+      ```
+
+      **B. 제3자(LMP) 서명 자동승인 (gw/1.1+ · 조건부)**
+
+      ```mermaid
+      sequenceDiagram
+          autonumber
+          participant D as EzServer (디바이스)
+          participant LMP as LMP (제3자 서명자)
+          participant GW as GW (Enrollment)
+          participant DB as clinic·device DB
+          D->>LMP: 설치 시 라이선스 검증 요청
+          LMP->>LMP: Cryptlex 검증 · attestation JWT 서명(clinicId·exp·aud=GW)
+          LMP-->>D: 서명된 licenseAttestation
+          D->>D: 키페어 생성 · nonce 개인키 서명
+          D->>GW: POST /v1/enroll/complete (+ licenseAttestation)
+          GW->>LMP: LMP JWKS fetch (미보유·만료 시)
+          GW->>GW: JWKS 캐시 · attestation 검증 + 서명·공개키 검증
+          GW->>DB: clinic upsert · device 등록 (status=active)
+          GW-->>D: Accepted (status=active · C/S 승인 생략)
+          Note over GW,LMP: LMP JWKS로 검증(런타임 fetch+캐시) · LMP 경로 밖 device는 A안
+      ```
+
     - **v1.0 결정(택1)**: **A 먼저** / B 먼저 / A+B 동시. **추천 = A 먼저(v1.0) · B는 gw/1.1**(제3자 서명은 바텍 LMP 개발·크로스팀·Roadmap 추가). enroll payload에 `licenseAttestation` optional 예약 완료(B 전환 완충).
     - **abuse 방지(공통)**: rate-limit(IP/서브넷)·미승인 pending TTL 만료·nonce.
     - **검토 후 제외 — C. OneID(클리닉 사용자) 인가**: 클리닉 고객이 OneID 로그인(Authorization Code)으로 enroll을 승인하는 방식도 검토했으나 제외 — ① 여전히 **사람(고객) 개입**이라 B의 무인 자동 이점이 없음(C/S 부담을 고객에 전가) · ② **OneID 커버리지 의존**(미가입 클리닉은 A 폴백) · ③ 라이선스 정당성이 아니라 **'고객 의도'만 증명**(약함) · ④ **'OneID는 GW 미사용' 결정을 되돌려 enroll에 OneID 통합점 부활**. → 무-C/S 순수 원격 self-service 온보딩 수요가 생기면 재검토.
