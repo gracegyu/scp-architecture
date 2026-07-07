@@ -742,6 +742,104 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  # --- 정책 관리 (§7.5.3·FR-INT-03, Console ③-C) — GW는 deny-by-default라 v1.0 필수(허용 정책 없으면 프록시 전면 거부) ---
+  /admin/v1/policies:
+    get:
+      tags: [ admin ]
+      summary: 정책 조회 (scope·target 필터) (FR-INT-03)
+      parameters:
+      - { name: scopeType, in: query, schema: { type: string, enum: [ global, clinic, device ] } }
+      - { name: scopeId, in: query, schema: { type: string } }
+      - { name: targetId, in: query, schema: { type: string }, description: 'upstream 대상' }
+      responses:
+        '200':
+          description: 정책 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Policy'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      tags: [ admin ]
+      summary: 정책 등록/갱신(upsert) — allowed_endpoints·scopes. 감사 action=policy.update (FR-INT-03)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Policy'
+      responses:
+        '201': { description: 등록됨 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /admin/v1/policies/{id}:
+    parameters:
+    - { name: id, in: path, required: true, schema: { type: string } }
+    delete:
+      tags: [ admin ]
+      summary: 정책 삭제. 감사 action=policy.delete
+      responses:
+        '204': { description: 삭제됨 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  # --- GW 운영 리전 카탈로그 관리 (§7.3.6·FR-RGN-06, 운영자) — 조회는 GET /v1/regions. v1.0=1행(시드 가능)·gw/1.2 다행 ---
+  /admin/v1/regions:
+    post:
+      tags: [ admin ]
+      summary: 리전 카탈로그 등록 (region 개통) (FR-RGN-06)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Region'
+      responses:
+        '201': { description: 등록됨 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /admin/v1/regions/{regionId}:
+    parameters:
+    - { name: regionId, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [ admin ]
+      summary: 리전 상태·속성 변경 (active/draining/planned 전이 등) (FR-RGN-06)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Region'
+      responses:
+        '200': { description: 변경됨 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      tags: [ admin ]
+      summary: 리전 회수(드묾 — draining 후) (FR-RGN-06)
+      responses:
+        '204': { description: 삭제됨 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1192,6 +1290,24 @@ components:
         clinicId: { type: string }
         mappingVersion: { type: integer }
       description: 'webhook 라우팅 키 — (targetId, externalOrgId) → clinicId → region'
+    Policy:
+      type: object
+      required: [ scopeType, targetId ]
+      description: '정책(OPA 입력·policy 테이블 매핑, §7.5.3·FR-INT-03). GW deny-by-default라 허용을 명시. 실효=device→clinic→global 합성. egress는 여기 아님(upstream.egressAllowlist, #31)'
+      properties:
+        id: { type: string, description: '정책 id. 예 pol_axs_clinic0040' }
+        scopeType: { type: string, enum: [ global, clinic, device ], description: '부착 스코프. v1.0=clinic+global 사용' }
+        scopeId: { type: string, description: 'global=생략 / clinic=clinicId / device=deviceId (다형 참조·하드 FK 없음)' }
+        targetId: { type: string, description: '적용 대상 upstream(=upstream.targetId). 예 axs' }
+        allowedEndpoints:
+          type: array
+          description: '허용 (method,path) 목록. 형식=design/db-jsonb-fields.md#policy'
+          items:
+            type: object
+            properties:
+              methods: { type: array, items: { type: string } }
+              pathPattern: { type: string }
+        scopes: { type: array, items: { type: string }, description: '허용 scope. 예 ["axs:patient.read"]' }
     ClinicRegistration:
       type: object
       required: [ clinicId, region ]
