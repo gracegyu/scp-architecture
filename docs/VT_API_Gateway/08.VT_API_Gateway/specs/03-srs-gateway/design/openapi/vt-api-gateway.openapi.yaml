@@ -425,9 +425,11 @@ paths:
       - name: target
         in: path
         required: true
+        description: 'upstream 라벨(=Vatech-Target·서브도메인). **레지스트리(`upstream.inbound_host`) 기반 검증 — enum/하드코딩 금지·런타임 등록**(§7.6.1). 미등록 라벨=404. axs는 예시일 뿐 고정 목록 아님(cleverspace 등 확장)'
         schema:
           type: string
-          enum: [ axs ]
+          pattern: '^[a-z0-9_]+$'
+          example: axs
       requestBody:
         required: true
         content:
@@ -794,6 +796,7 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
     # --- 프록시(B/C) 전용 — GW 생성 오류. 특정 경로가 아니라 target 서브도메인 proxy 공통(§7.5.4·§7.7.4). ---
     # --- upstream 자체 4xx/5xx는 본 응답을 쓰지 않고 원응답을 verbatim 통과(Vatech-Error-Origin: upstream). ---
+    # --- ※ 아래 Upstream* 응답·ProxyError 스키마·Vatech* 헤더는 프록시 경로가 OpenAPI에 정의되지 않아(bypass, §4.1.1) '정의만·미참조'다 → redocly `no-unused-components` 경고는 **의도된 것**(프록시 핸들러 구현 계약 참조용). ---
     UpstreamUnreachable:
       description: upstream 연결 실패(거부·DNS·TLS) — GW 연결 timeout·GW 정규화 (502)
       headers:
@@ -1159,17 +1162,25 @@ components:
     # 감사
     AuditLog:
       type: object
-      description: append-only
+      description: 'append-only 감사 항목(audit_log 테이블 매핑, §7.9.3·FR-AUD-01). 조회 전용(write API 없음).'
       properties:
+        id:
+          type: integer
+          format: int64
+          description: '감사 항목 식별자(자동 증가·페이지네이션/참조용). 예 100237'
         ts:
           type: integer
           format: int64
+          description: '발생 시각(Unix ms)'
         actor:
           type: string
+          description: '행위자 — `type:id`(user/system/device). 예 user:oneid-8f3a'
         action:
           type: string
+          description: '수행 동작 — `resource.verb` 규약(free string·GW enum 아님). 예 region.change·upstream.upsert'
         result:
           type: string
+          description: 'success | denied | failure (DBML audit_result enum)'
 
     # 라우팅·분배 레지스트리 (DB가 보관하는 "어디로 분배" 지식)
     OrgMapping:
