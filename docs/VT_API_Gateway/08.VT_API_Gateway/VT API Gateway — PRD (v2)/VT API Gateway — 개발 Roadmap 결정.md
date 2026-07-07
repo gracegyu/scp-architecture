@@ -749,6 +749,7 @@ gantt
 | **GW Console** | — | — | — | Admin Web Console (**③-C Sub-SRS**) | 온보딩·Org-ID 관리 화면 | — | ③-C Sub-SRS |
 | **인프라** | 단일 Region | — | 단일 Region GW | Route 53·K8s·비-AWS minio | AXS whitelist용 고정 IP·샌드박스 | — | ③-I IaC 구축 계획서 |
 | **외부(Straumann AXS)** | — | — | — | — | API 스펙·OAuth·샌드박스·자격증명 제공(선결) | — | ④ Sub-SRS 입력(외부 제공물) |
+| **LMP (License Portal, 바텍)** | — | — | — | — | — | (조건부) 제3자 서명 attestation 발급 | **enroll B안(제3자 서명 자동승인) 채택 시만** — 서명 키·JWKS·attestation 발급 개발(ES 라이선스/ELM 팀·크로스팀·Roadmap 추가). v1.0=A안(C/S 승인)이면 무변경. 상세=Agenda R9·Appendix B #42 |
 
 > **클리닉 GW 등록 주체(TBD)**: 클리닉 = **CleverOne 다수 + EzServer 1개**. 따라서 클리닉당 1회의 GW 등록(region 선택·Clinic-ID, 이후 외부 연동 시 Org-ID)은 **EzServer의 Console에서 하는 것을 잠정안**으로 한다(클리닉당 단일). **각 CleverOne(PC)에서 하는 대안도 가능 — 주체 확정은 ③-P-EZ(잠정)/③-P-CO(대안)** 에서. region 선택 UI도 이 주체에 따른다. 매핑은 온보딩 자가 등록이며 Admin은 교정만(SRS §2.3.1·§7.3·Appendix B #17).
 

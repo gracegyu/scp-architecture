@@ -496,28 +496,22 @@
     - **유의**: LMP `country_code`(clinic 국가) ≠ GW `region`(배포 리전) — 별개 컬럼.
     - **성격**: [논의·결정] — **수집 필드셋만 승인**(추천=전부). DBML(clinic 5컬럼 고정 필드)·OpenAPI(`ClinicInfo`·enroll·`PATCH /v1/clinics/{clinicId}`)·§2.3.1은 **선반영 완료(필드셋 TBD)**. 잔여 확인(EzServer/LMP·③-P-EZ): 신규 클리닉 시 정보 시점·실제 형식.
 
-  - **R9. Enrollment 신뢰 앵커 — C/S 수동 승인 vs LMP 라이선스 검증 자동승인 (논의·결정)** — **배경**: 이전 회의에서 **현장 C/S가 GW Console 들어가 승인하는 게 번거롭다**는 우려. 라이선스 검증으로 **자동승인**되면 큰 편의. `pending→active`의 신뢰 앵커를 A/B 중 택일한다(얹으면 중복).
-    - **LMP 역량(문서 정독)**: LMP/ELM은 **Cryptlex**(`@cryptlex/lexactivator`+`product.dat` product public key) 기반 → 오프라인 서명 검증 역량 있음. 단 **device측 LexActivator**가 검증하고 **GW가 검증할 포터블 증명은 현 API에 없음** → **B는 LMP 소폭 변경 필요**(불가 아님). **LMP는 바텍(ES) 자체 클라우드**(Cryptlex 위 구축·운영)라 수정 가능하나, **LMP/ELM 팀의 별도 개발·일정**이 들고(GW팀 아님·AXS처럼 크로스팀 조율) **현 개발 Roadmap엔 미포함** — B의 실질 비용.
+  - **R9. Enrollment 승인 flow — v1.0 우선순위 (논의·결정)** — enroll 승인에는 **두 flow가 공존**한다(택일 아님 — 둘 다 장기적으로 필요). v1.0에 **무엇을 먼저** 넣을지 정한다.
+    - **A. C/S 수동 승인** — C/S가 Console에서 승인. **모든 device 커버**(LMP 미등록·비-EzServer 포함) → **항상 필요(보편·fallback)**. LMP 변경 0·지금 동작. 단 설치마다 수동(현장 번거로움 — 이전 회의 우려).
+    - **B. 제3자(LMP) 서명 검증 자동승인** — **LMP가 라이선스 검증 후 attestation을 서명("제3자 서명")** → EzServer가 enroll에 실어 전달 → GW가 **LMP 공개키(JWKS)로 검증** → 자동 active(C/S 수동 생략·확장성↑). 단 **LMP 라이선스 등록 device만** 대상.
+    - **왜 둘 다**: B가 있어도 **LMP 경로 밖 device**는 A로 승인해야 함 → **A=보편/fallback · B=LMP 등록 device 편의**. 그래서 §2.3.1에 **두 flow 모두 기록**(지원 시점만 TBD).
 
-      | 기준 | **A. C/S 수동 승인 (v1.0 현행 · 추천)** | **B. LMP 라이선스 검증 자동승인** |
+      | 기준 | **A. C/S 수동 승인** | **B. 제3자(LMP) 서명 자동승인** |
       | --- | --- | --- |
-      | 신뢰 앵커 | 사람(현장 C/S) | 라이선스(Cryptlex 검증) |
-      | **C/S 부담** | 설치마다 수동 승인 — **번거로움**(이전 회의 우려) | **없음**(자동 active) |
-      | 확장성(10만 대) | 낮음(수동 병목) | **높음**(무인) |
-      | LMP 변경 | **불요** | **필요**(바텍 LMP/ELM 팀 개발·크로스팀·Roadmap 외) |
-      | 인간 물리검증 | **있음**(설치 확인) | 상실(대체=아래 region 처리) |
-      | region 확정 | 승인 시 C/S가 확정·override | GeoDNS 기본 → 사후 교정(§7.3.4) |
-      | 구현 난이도 | 낮음(현행) | 중(B1 ELM 서명 / B2 런타임 verify) |
-      | 지금 동작 | ✅ | ❌(LMP 변경 후) |
-      | abuse 방지 | rate-limit·pending TTL·nonce (A/B 공통) | 좌동 + 유효 라이선스 게이트 |
+      | 커버 범위 | **모든 device** | LMP 라이선스 등록 device만 |
+      | C/S 부담 | 설치마다 수동 | 없음(자동) |
+      | LMP 변경 | 불요 | **필요**(제3자 서명 발급·크로스팀·Roadmap 추가·별도 설계) |
+      | 검증 키 | — | GW가 **LMP JWKS**(런타임 fetch+캐시)로 검증 |
+      | 지금 동작 | ✅ | ❌(LMP 개발 후) |
 
-    - **B 구현 경로 (택1)**: **B1(추천)** = **LMP(클라우드)** 가 Cryptlex 검증 결과로 "license valid for clinicId"를 **자기 키로 서명(JWT attestation)** → **EzServer/ELM(로컬)이 받아** enroll에 실어 전달 → GW는 **LMP 공개키(JWKS) 하나로 검증**(런타임 GW→LMP 결합 없음). *서명 권위는 중앙 LMP여야 함 — ELM은 클리닉마다 로컬(localhost)이라 서명자로 부적합(키 배포 문제).* / **B2** = GW가 enroll 시 **LMP REST 런타임 verify**(crypto 불요이나 GW→LMP 가용성 결합·OAuth 필요).
-    - **B 채택 시 LMP/ELM 추가 개발** (회의 판단용):
-      - **공통**: 증명을 **device에 귀속 바인딩**(license key + clinicId, 가능하면 machineSN/fingerprint로 replay·전용(轉用) 방지) · 응답에 **clinicId 포함**(현 API 有).
-      - **B1(서명 attestation) — 주체=LMP(클라우드)**: ① LMP **비대칭 서명 키페어** 생성·보관(private=LMP/KMS) · ② **JWKS(공개키) 공개 엔드포인트**(GW가 검증용 fetch, 또는 OOB 배포) · ③ Cryptlex 검증 결과로 **attestation JWT 발급**(claims: clinicId·licenseId·status·aud=GW·짧은 exp·serial 바인딩 — LMP 신규 엔드포인트 또는 activate 응답 확장) · ④ **서명 키 회전** 정책. **EzServer/ELM(로컬)** = LMP-서명 attestation을 받아 GW로 **릴레이**(자체 서명 안 함).
-      - **B2(런타임 verify)**: ① GW→LMP **verify 엔드포인트**(valid/invalid + clinicId · `getLicensesByKey` 재사용 또는 전용 신설) · ② GW용 **서비스 자격(EAP OAuth client) 프로비저닝**(LMP API가 `x-access-token`로 보호됨) · ③ LMP **cloud→cloud 접근성·rate-limit** 확보.
-    - **추천 = A (v1.0 baseline)** — 지금 동작·LMP 무변경. **비교는 유지**(B의 편의가 크니 열어둠). **B로 결정하면**: ① LMP 수정 필요 + ② **별도 추가 설계 필요**(attestation 계약·서명 키/JWKS·claims·EzServer 릴레이·GW 검증 = LMP/ELM 팀과 **공동 설계·별도 티켓/One Pager**, 현 GW SRS 범위 밖) + ③ **Roadmap 일정 추가**. **B1은 gw/1.1 목표로 병행 검토**·enroll payload에 `licenseAttestation` optional 예약 완료(전환 완충).
-    - **성격**: [논의·결정] — 신뢰 앵커 방향(v1.0=A · B1 추진 여부·시점). 확정 시 §7.2.3·§7.2.5·OpenAPI(enroll)·Appendix B #42 반영. **확인 경로**: LMP/ELM이 GW-검증 가능 서명 attestation을 발급할 수 있는지(EzServer/LMP·③-P-EZ).
+    - **v1.0 결정(택1)**: **A 먼저** / B 먼저 / A+B 동시. **추천 = A 먼저(v1.0) · B는 gw/1.1**(제3자 서명은 바텍 LMP 개발·크로스팀·Roadmap 추가). enroll payload에 `licenseAttestation` optional 예약 완료(B 전환 완충).
+    - **abuse 방지(공통)**: rate-limit(IP/서브넷)·미승인 pending TTL 만료·nonce.
+    - **성격**: [논의·결정] — v1.0 우선순위. B 상세(LMP 제3자 서명 개발·claims·JWKS·EzServer 릴레이)=Appendix B #42·B안 설계 One Pager. **확인**: LMP가 제3자 서명 attestation 발급 가능한지(ES 라이선스/ELM 팀).
 
 - 공유 사항 (결정 아님 · 정보 공유)
 
@@ -577,6 +571,23 @@
         PR 리뷰·수정          :active, infpr, after infw2, 14d
         baseline              :milestone, infbl, after infpr, 0d
     ```
+
+    - **스펙 작성 테이블 — 제품별 개발 항목 종합 (제품 × 단계)** · 정본=[Roadmap §4](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>) (수정은 그쪽 먼저)
+      - **각 셀 앞 이모지 = 그 항목을 다루는 스펙의 작성 진행**: ✅ baseline · 🟢 PR · 🟡 작성중 · ⬜ 미작성 (— = 해당 없음)
+
+      | 제품 | 1단계(호환성) | 2단계(presigned) | 3단계(GW 일원화) | 4단계(멀티리전) | 5단계(Straumann) | 후속 | 스펙 산출물(단위·유형) |
+      | --- | --- | --- | --- | --- | --- | --- | --- |
+      | **CleverSpace** | ⬜ 서버 버전 체크·well-known·오류코드 | ⬜ presigned 발급 신규 | ⬜ GW 경유 수신 정합 | ⬜ 멀티 Region 구축 | — | — | ① OnePager · ② OnePager · ③-P-CS |
+      | **CleverOne** | ⬜ Vatech-* 헤더·well-known·fallback | ⬜ 업로드 흐름 연계 | ⬜ Direct→GW 경유 | ⬜ Region 선택 UI(대안)·ClinicID | — | — | ① · ② · ③-P-CO OnePager |
+      | **EzServer(EZ)** | ⬜ 헤더 대리 전달 | ⬜ 전송 로직(presigned 직접) | ⬜ GW 경유 전환 | ⬜ ClinicID·Region·클리닉 등록(잠정) | ⬜ AXS 연동(갈래A)·presigned 직접 | ⬜ Rust 재개발 | ①·②·③-P-EZ·④(갈래A) |
+      | **CleverLab** | — | — | — | — | ⬜ AXS 오더·상태·확정(갈래B)·presigned | — | ④ Sub-SRS(갈래B) |
+      | **VatechAPIGateway** | — | — | 🟡 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟡 Region 분배·HA(K8s)·Route53·Postgres | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS 🟡** · ④ connector ⬜ |
+      | **GW Console** | — | — | — | ⬜ Admin Web Console(③-C) | ⬜ 온보딩·Org-ID 관리 화면 | — | ③-C Sub-SRS |
+      | **인프라** | ⬜ 단일 Region | — | ⬜ 단일 Region GW | ⬜ Route53·K8s·비-AWS minio | ⬜ AXS 고정IP·샌드박스 | — | ③-I IaC 계획서 |
+      | **외부(Straumann AXS)** | — | — | — | — | ⬜ API·OAuth·샌드박스·자격증명(선결) | — | ④ 입력(외부 제공) |
+      | **LMP(License Portal, 바텍)** | — | — | — | — | — | ⬜ (조건부) 제3자 서명 attestation | **enroll B안 시만**·ES 라이선스팀(R9·#42) |
+
+      > 현재 착수된 스펙은 **③ VatechAPIGateway SRS + OpenAPI/DBML(🟡·PR 7/9 목표)** 뿐 — 그래서 GW의 3·4단계 셀만 🟡. 나머지는 ③ PR/baseline 후 착수(순서·의존=[Roadmap §3.9]).
 
   - **S3. 버전 호환성 매트릭스 — 원본(YAML)·생성물(JSON) 샘플 공유** — 클라이언트가 "자기가 호환되는지 스스로 판단"하도록 API/기능별 최소 클라이언트 버전·오류코드·fallback을 공개(§7.7.2·FR-COMPAT). **2단계 구조**: 개발자는 **원본 `compat-matrix.yaml`을 편집**(PR)하고, **CI가 env별 `server-configuration.json`을 생성→S3 발행**, GW는 런타임에 S3에서 읽어 게이팅·`/.well-known/{env}/server-configuration.json` 서빙. **정본 샘플·가이드 = `specs/03-srs-gateway/design/well-known/`**(`compat-matrix.sample.yaml` + `server-configuration.sample.json` + `README.md`).
     - **(A) 원본 — 개발자가 편집하는 것** `compat-matrix.yaml` (주석·이유 기록 가능, `Vatech-Product`별 최소 버전):

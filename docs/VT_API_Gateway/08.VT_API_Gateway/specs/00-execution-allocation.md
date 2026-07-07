@@ -21,6 +21,7 @@
 | ③-P-CS | CleverSpace | Sub-SRS(멀티Region 큼) 또는 One Pager | CleverSpace 팀 | §4.5·§7.3·§7.6.5 | 미작성 |
 | ③-P-CO | CleverOne | One Pager | CleverOne(Nick) | §4.5·§7.1·§7.3 | 미작성 |
 | ③-P-EZ | EzServer | One Pager | EzServer 팀 | §4.5·§7.3·§7.6.6 | 미작성 |
+| ③-P-LMP | LMP (License Portal) | One Pager (조건부) | LMP/ELM 팀(ES)→이관 | §2.3.1 B·§7.1.1·§7.1.4 | **초안**(조건부·R9서 B 채택 시) |
 | ③-I | Infra | IaC 구축 계획서(기능 스펙 아님) | 인프라 담당 | §3.1·§4.5.1·§7.3.5 | 미작성 |
 
 > 형식은 변경 크기로 결정한다(일률 One Pager 아님): CleverSpace 멀티 Region은 Sub-SRS급일 수 있고, 단순 적응은 티켓으로 충분할 수 있다.
