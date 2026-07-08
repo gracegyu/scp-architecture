@@ -122,9 +122,9 @@ gw.heartbeat.interval_seconds        gw.heartbeat.offline_threshold_multiplier  
 
 ---
 
-## `audit_log` (문자열 규약 — jsonb 아님, 필드 형식 SSOT)
+## `audit_log` (필드 형식 SSOT — 문자열 규약 + before/after jsonb)
 
-`action`·`actor`는 자유 문자열이지만 **일관 조회·감사 리포트를 위해 명명 규약을 강제**한다(앱 레벨 검증, DB enum 아님 — 확장성). `result`는 값이 한정적이라 **DB enum**(`audit_result`, DBML)이다.
+`action`·`actor`는 자유 문자열이지만 **일관 조회·감사 리포트를 위해 명명 규약을 강제**한다(앱 레벨 검증, DB enum 아님 — 확장성). `result`는 값이 한정적이라 **DB enum**(`audit_result`, DBML)이다. `before_state`/`after_state`는 변경 전/후 부분 스냅샷 **jsonb**, `source_ip`는 행위자 IP다.
 
 ### `action` — `resource.verb` (소문자·점 구분)
 ```
@@ -146,6 +146,18 @@ user:entra-8f3a…      system:token-refresh      device:0192abcd-…
 ### `result` — enum (`audit_result`, DBML)
 - `success`(수행됨) · `denied`(권한·정책 거부) · `failure`(시도했으나 실패). 값 확장은 DBML enum 수정으로만.
 
+### `before_state` / `after_state` — 변경 전/후 부분 스냅샷 (jsonb·nullable)
+```
+region.change  → before {"region":"apne2"}   after {"region":"use1"}
+device.approve → before {"status":"pending"} after {"status":"active"}
+```
+- 변경된 리소스의 **관련 필드만** 담는 부분 스냅샷(전체 행 아님). **update**=before+after 둘 다 · **create**=after만 · **delete**=before만 · **상태 없는 action**(조회성 등)=둘 다 null.
+- **PHI·원문 secret 금지(§6.4)**: 환자정보·원문 secret/키/토큰은 담지 않는다 — 참조/마스킹만(예 `credential.rotate` → `{"credentialRef":"kms://…"}` 또는 지문, 원문 아님).
+- 구현: 서비스가 변경 직전/직후 리소스의 화이트리스트 필드만 직렬화. before==after인 no-op은 기록 안 함(또는 result로만).
+
+### `source_ip` — 행위자 IP (varchar·nullable)
+- 요청 유입 source IP(IPv4/IPv6). `user:` 주체는 대부분 존재, `system:` 내부 주체는 null 가능. 프록시 뒤면 신뢰된 XFF 최좌측 등 유입단 정책으로 결정(LLD).
+
 ---
 
 ## 변경 이력
@@ -156,5 +168,6 @@ user:entra-8f3a…      system:token-refresh      device:0192abcd-…
 | 2026-07-06 | `policy` 키를 `(tenant=clinic)` → **`(scope_type{global\|clinic\|device}, scope_id, connector)`** 로 일반화 — 주체=device·clinic=선택적 그룹(§1.2·§6.4.1), 실효정책 device→clinic→global. jsonb 필드(allowed_endpoints·scopes) 형식은 불변 |
 | 2026-07-06 (#31) | **egress SSOT 일원화** — `connector.egress_allowlist` 단일 SSOT(+requireStaticEgressIp 이관). `policy.egress`·`upstream_registry.egress_allowlist` 섹션·컬럼 제거. egress=외부(C) 대상 속성(per-tenant authz 아님), OPA/네트워크가 connector 참조 |
 | 2026-07-06 | **connector·upstream_registry·webhook_provider → `upstream` 병합** — jsonb 섹션 `#connector`·`#webhook_provider`·`#upstream_registry`를 **`#upstream`** 하나로 통합(egress_allowlist=아웃바운드 그룹·source_ip_allowlist=인바운드 그룹). `#policy`의 connector→**target_id**(FK→upstream). audit action → `upstream.upsert`·`upstream.delete`. 표명 upstream·PK target_id 확정(Agenda R3) |
+| 2026-07-08 | **`audit_log`에 `before_state`/`after_state`(jsonb·부분 스냅샷)·`source_ip` 추가** — §7.9.3이 요구하던 변경 전/후·IP를 실제 필드로 뒷받침(SRS↔DBML 불일치 해소·A안). 부분 스냅샷(관련 필드만)·**PHI·원문 secret 금지**(참조/마스킹)·create=after/delete=before/no-op 미기록. 섹션 성격이 "문자열 규약"→"문자열+jsonb"로 확장. DBML·OpenAPI `AuditLog`·§7.9.3 정합 |
 | 2026-07-06 | **`audit_log` 문자열 규약 신설** — `action`=`resource.verb` 명명 규약(free string·정규식·표준 목록·앱 레벨 상수, DB enum 아님) · `actor`=`type:id`(user/system/device) · `result`=DB enum `audit_result`(success/denied/failure). §7.9.3에서 참조 |
 | 2026-07-06 | **`config` 값 계약 신설(§7.8.4 중앙 Config)** — `config_key` 네임스페이스 규약(`gw.*` GW 소비 / `device.*` 전달·정규식·**키 레지스트리 seed 7종**: heartbeat interval/threshold·log.level·upload concurrency/chunk·telemetry·feature_flags, type/범위/기본값/소비자·확장형·미등록/범위밖 거부) · `config_value` jsonb 형식·검증(PHI 금지) · **실효 `configVersion`=콘텐츠 해시(SHA-256, 행 version 최댓값 아님)** · 스코프(global/region/clinic/device)·실효 해석(키별 가장 구체 우선 override). DBML `config` 테이블 신설과 정합 |

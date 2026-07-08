@@ -1886,6 +1886,23 @@ components:
             수행 동작 — `resource.verb` 규약(free string·GW enum 아님)
           example: region.change
         result: { type: string, enum: [ success, denied, failure ], description: 'DBML audit_result enum', example: success }
+        beforeState:
+          type: object
+          nullable: true
+          description: >-
+            변경 전 상태(부분 스냅샷·전체 행 아님). update/delete 시 존재·create/상태없는 action은 null. **PHI·원문 secret 금지**(관리 리소스 값만·참조/마스킹·§6.4). 형식=db-jsonb#audit_log
+          example: { region: apne2 }
+        afterState:
+          type: object
+          nullable: true
+          description: >-
+            변경 후 상태(부분 스냅샷). create/update 시 존재·delete/상태없는 action은 null. **PHI·원문 secret 금지**(§6.4). 형식=db-jsonb#audit_log
+          example: { region: use1 }
+        sourceIp:
+          type: string
+          nullable: true
+          description: '행위자 source IP(IPv4/IPv6·요청 유입 IP). system 주체는 null 가능'
+          example: 203.0.113.7
 
     # 라우팅·분배 레지스트리 (DB가 보관하는 "어디로 분배" 지식)
     OrgMapping:
