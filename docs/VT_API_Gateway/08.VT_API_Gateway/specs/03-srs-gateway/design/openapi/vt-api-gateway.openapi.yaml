@@ -134,7 +134,7 @@ paths:
         **enroll 요청의 Clinic-ID로 clinic을 upsert(없으면 생성)하며, region 기본값은 요청이 GeoDNS로 도달한 최근접 리전**(v1.0=서울, §2.3.1·§2.7.1) — 별도 클리닉 등록 API 불요.
         active 활성화(=인증 허용)는 C/S가 GW Console에서 승인(설치 확인 + region 확정/다른 리전 override)해야 하며,
         승인은 PATCH /v1/admin/devices/{id}(status: active) [+ region override 시 PUT /v1/admin/clinics/{clinicId}/region]로 수행된다(§2.3.1·§7.2.3·§7.2.5·§7.9.2).
-        **enroll B안(R9)**: 유효 `licenseAttestation`(LMP 제3자 서명) 제시 시 GW가 **LMP JWKS**로 검증해 **status=active 자동 승인**(C/S 수동 생략); attestation 없거나 검증 실패면 위 A안(pending→C/S 승인). 두 flow 공존.
+        **enroll B안(7/9 R4)**: 유효 `licenseAttestation`(LMP 제3자 서명) 제시 시 GW가 **LMP JWKS**로 검증해 **status=active 자동 승인**(C/S 수동 생략); attestation 없거나 검증 실패면 위 A안(pending→C/S 승인). 두 flow 공존.
       security: []
       requestBody:
         required: true
@@ -257,7 +257,7 @@ paths:
       summary: 내 clinic 정보 갱신 — device self(LMP 정보 동기화) (FR-RGN-*) [v1.0]
       description: >-
         LMP에서 clinic 정보가 바뀌면 EzServer가 자기 clinic의 표시·연락 정보(ClinicInfo)를 갱신한다(LMP=SoT·§2.3.1).
-        region·clinicId 제외(region=PUT /v1/clinics/me/region). 토큰 기준 self. 필드셋 R8/#41 TBD.
+        region·clinicId 제외(region=PUT /v1/clinics/me/region). 토큰 기준 self. 필드셋 7/9 R3/#41 TBD.
       requestBody:
         required: true
         content:
@@ -331,7 +331,7 @@ paths:
       description: >-
         운영자(Console Admin·C/S)가 직원 IdP(MS365/Entra) OIDC 토큰을 제시하면 GW가 검증하고
         신원+역할(claim→RBAC·§7.9.2)을 반환한다(§7.1.4). 고객 OneID 아님. 최종 방식(Entra vs 자체 DB)은 Agenda
-        R6·Appendix B #38. 공개 엔드포인트(security:[]).
+        7/9 R2·Appendix B #38. 공개 엔드포인트(security:[]).
       security: []
       requestBody:
         required: true
@@ -1508,7 +1508,7 @@ components:
     WebhookEvent:
       type: object
       description: >-
-        webhook 이벤트 **PHI-free 운영 메타데이터**(webhook_event 테이블 매핑, §7.6). payload 본문은 리전 로컬 S3에만 두고 payloadRef로 참조(claim-check, R2). 관계형 DB·본 응답에 본문 미포함.
+        webhook 이벤트 **PHI-free 운영 메타데이터**(webhook_event 테이블 매핑, §7.6). payload 본문은 리전 로컬 S3에만 두고 payloadRef로 참조(claim-check, 7/9 R7). 관계형 DB·본 응답에 본문 미포함.
       required: [ eventId, targetId, state ]
       properties:
         eventId: { type: string, description: '이벤트 식별자 = 멱등 키(dedup)', example: c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545 }
@@ -1603,7 +1603,7 @@ components:
       type: object
       description: >-
         LMP가 제공하는 clinic 표시·연락 정보(enroll 시 EzServer가 전달·§2.3.1, LMP 변경 시 PATCH /v1/clinics/me로 갱신).
-        **수집 필드셋은 R8/Appendix B #41 확정 전 잠정(TBD)** — 추천안=LMP가 주는 전부. 저장 구조=고정 컬럼 확정(jsonb 아님). 환자 PHI 아님(clinic 업무정보).
+        **수집 필드셋은 7/9 R3/Appendix B #41 확정 전 잠정(TBD)** — 추천안=LMP가 주는 전부. 저장 구조=고정 컬럼 확정(jsonb 아님). 환자 PHI 아님(clinic 업무정보).
       properties:
         name: { type: string, description: '클리닉 표시명(LMP clinic.name)·Console 식별', example: ES Clinic }
         countryCode: { type: string, description: '국가(LMP countyCode·ISO 3166 Alpha-2) — GW region(배포 리전)과 별개', example: KR }
