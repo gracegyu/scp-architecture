@@ -8,6 +8,8 @@
 - 레포(추천): vt-api-gateway-console (미생성)
 - 공식 등록처: console repo 생성 시 그 repo, 미생성 시 vt-api-gateway `docs/`
 
+> **씨앗 — webhook payload 열람은 GW 중개만(직접 S3 금지).** Console은 webhook 본문(payload·PHI 포함 가능)을 **S3에서 직접 가져오지 않는다**(브라우저 IAM 불가·RBAC/감사/리전 주권/redact 우회). 열람은 **`GET /v1/admin/webhook-events/{eventId}/payload`(break-glass)** 로만 — GW가 리전 로컬 S3에서 읽어 **redact 후** 반환하고 전량 감사(action=`webhook.payload.view`). Console UI는 이 API 응답만 표시하며 마스킹된 필드를 그대로 노출(재-마스킹 해제 UI 금지). 목록·단건 **메타**는 payload 미포함. 근거=③ §7.6.3·Appendix B #36(redact 필드·TTL).
+
 > **씨앗 — 호환성 매트릭스는 Console에서 편집하지 않는다(뷰어만).** 매트릭스 저작은 **git 레포 소스 파일 + PR + CI**(§7.7.5·안전 크리티컬·릴리스 결합)이고, **Console은 현재 실효 매트릭스를 well-known(`/.well-known/{env}/server-configuration.json`)에서 읽어 표시하는 읽기 전용 뷰어**(+선택적 스키마 검증·미리보기)만 만든다. **한-행 편집 UI·임의 JSON 업로드 저작면은 만들지 않음**(런타임 가변 저장소 재도입 금지). 긴급 클라이언트 차단은 매트릭스가 아니라 Config push(§7.8.4) UI 소관.
 
 ---
