@@ -884,17 +884,20 @@ sequenceDiagram
     OP->>CO: Console 접속
     CO->>EN: OIDC 로그인(redirect·MFA)
     EN-->>CO: ID/Access 토큰(role claim: Admin|CS)
-    CO->>GW: /v1/admin/* 호출 (Bearer + role claim)
-    GW->>GW: IdP 토큰 검증(JWKS) · claim to RBAC(§7.9.2)
+    CO->>GW: GET /v1/admin/me (Bearer)
+    GW->>GW: 토큰 claim 파싱(IdP 재호출·DB 조회 없음)
+    GW-->>CO: {subject, roles} = 토큰 claim + claim→RBAC 결과
+    CO->>GW: /v1/admin/* 호출 (Bearer)
+    GW->>GW: 요청마다 operatorAuth — Entra JWKS 검증 · claim to RBAC(§7.9.2)
     alt 권한 충족
         GW-->>CO: 처리(예 device 승인 pending to active)
     else 권한 부족
         GW-->>CO: 403
     end
-    Note over GW,EN: 인증=Entra(비번·MFA·오프보딩) · GW 자체 user/비번 미보유 · 역할=IdP claim(별도 테이블 없음) · C/S는 클리닉별 미한정(국가/법인별 한정은 TBD·#39)
+    Note over GW,EN: **GW 무상태** — 운영자 user 테이블·세션 없음·IdP 재호출 없음. 신원·역할은 **제시된 Bearer 토큰(JWT) claim**에서 파싱. 인증=매 요청 operatorAuth(Entra JWKS). /me=토큰 claim+GW 역할해석 에코(UI용). C/S 클리닉 미한정(#39 확정)
 ```
 
-> 최종 방식(Entra 연동 vs GW 자체 DB)은 Agenda 7/9 R2·Appendix B #38에서 확정. 위는 기본안(Entra) 흐름이며, verify 경로(현 `/v1/auth/oidc/verify`)·claim→역할 매핑 세부는 확정 후 정합.
+> **스펙은 Entra 연동(7/9 R2 기본안)으로 작성**한다(7/9 R2 최종 확정 전 잠정·Appendix B #38). **OIDC 토큰 검증은 별도 endpoint가 아니라 모든 `/v1/admin/*` 요청의 `operatorAuth`(Entra JWKS)** 로 이뤄지므로 전용 verify 경로를 두지 않는다 — Console UI가 로그인 후 신원·역할이 필요하면 `GET /v1/admin/me`. *(대안 자체 DB로 확정되면: 검증 소스가 GW 자체 토큰으로 바뀌고 `POST /v1/auth/login`(id/pw) 신설·본 flow 재정합 — OIDC 자체가 없어 verify 경로는 부활하지 않는다.)*
 
 ## 2.4 Product Functions (제품 주요 기능)
 
@@ -1660,8 +1663,10 @@ FR-AUTH-08·09 (운영자 OIDC 토큰 검증·연계, 디바이스 인증면(§7
 - **GW Console 운영자(Admin·C/S) = 사내 직원** → **직원 IdP(MS365/Entra ID) OIDC 위임이 기본안**. GW는 **OIDC-agnostic**(verify 메커니즘 동일·issuer만 다름), 자체 비밀번호를 두지 않는 게 기본.
 - **OneID = 고객(클리닉·랩·개인) 신원 제품**(테넌트=고객)이며 **GW와 무관하다** — 인증(device·운영자)에도 upstream 라우팅에도 쓰지 않는다. v1.0엔 GW에 직접 로그인/연동하는 고객 경로가 없다(고객은 EzServer·CleverOne 등 제품을 사용). *(구 "사람 인증=OneID 위임"·`oneid` upstream·③-P-OID 서술 전면 정정 — 2026-07-07, Appendix B #38·Agenda.)*
 - **역할(Admin/C-S) = IdP claim(Entra App Role/Group)** → §7.9.2 RBAC. "누가 Admin/C-S냐"는 **IdP에서 배정**하고 GW는 claim을 신뢰한다(별도 user 테이블 불요). **C/S↔담당 클리닉 범위**가 필요할 때만 작은 GW 매핑 테이블 추가.
-- **Input**: 직원 IdP(OIDC) 토큰 / **Output**: 검증된 운영자 신원+역할 / **에러**: 검증 실패 401·역할 부재 권한거부(§7.9 RBAC)
-- **결정 대기(Agenda·Appendix B #38)**: Console 인증 = **Entra 연동(기본안) vs GW 자체 user DB**, C/S 클리닉 범위 여부. 확정 시 verify 엔드포인트(현 `/v1/auth/oidc/verify`)를 일반 OIDC로 정합.
+- **검증 = 요청별(operatorAuth), 전용 endpoint 없음.** Console은 Entra에서 받은 OIDC **Bearer 토큰을 모든 `/v1/admin/*` 요청에 실어** 보내고, GW가 **요청마다 Entra JWKS로 검증**(§7.9.2 claim→RBAC). 별도 "토큰 verify" endpoint를 두지 않는다. Console UI가 로그인 직후 신원·역할이 필요하면 **`GET /v1/admin/me`**(operatorAuth·`OperatorMe` 반환)로 조회한다 — **GW는 무상태**라 이 응답도 **제시된 Bearer 토큰 claim을 파싱한 에코**(운영자 user 테이블·세션 없음·IdP 재호출 없음)이며, GW의 claim→RBAC 해석을 단일 출처로 줄 뿐이다(v1.0 매핑 자명 시 선택적).
+- **Input**: 요청별 직원 IdP(OIDC) Bearer 토큰 / **Output**: 검증된 운영자 신원+역할(RBAC) / **에러**: 검증 실패 401·역할 부재 권한거부(§7.9 RBAC)
+- **스펙 전제 = Entra 연동(7/9 R2 기본안).** 본 스펙은 Entra OIDC로 작성한다(7/9 R2 최종 확정 전 잠정·**Appendix B #38** · C/S 클리닉 범위는 #39=무한정 확정).
+- **대안(B) — GW 자체 user DB** *(7/9 R2에서 Entra 대신 택할 경우·간단 메모)*: 운영자 id/pw를 **GW `user` 테이블**에 보관·검증하고 **GW 자체 토큰을 발급**한다(`POST /v1/auth/login` 신설). **OIDC가 없으므로 `oidc/verify`는 부활하지 않는다.** 바뀌는 것은 (1) `operatorAuth` 검증 소스 = Entra JWKS → **GW 서명 토큰**, (2) `GET /v1/admin/me`는 **유지하되** 응답 출처가 토큰 claim 에코 → **`user` 테이블 조회**. **§7.9.2 RBAC·역할 개념은 동일**. **비용**: 비밀번호 관리·직원 오프보딩을 GW가 수동 부담(Entra의 SSO·자동 오프보딩 이점 상실) — 그래서 기본안은 Entra.
 
 **비목표(Will Not Do)**: 소셜 로그인 미도입. 자체 비밀번호는 기본안(직원 IdP 위임)에선 없음(자체 DB 선택 시에만).
 
@@ -2136,7 +2141,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 
 | # | 항목 | 본문 | 책임자 | 마감 | 영향 |
 | --- | --- | --- | --- | --- | --- |
-| 38 | **GW Console 사용자 인증·역할 관리 방식** — **OneID=고객(클리닉/랩) IdP라 대상 아님**; Console 사용자=사내 직원(Admin·C/S). **기본안=MS365/Entra OIDC 연동**(자체 비번 없음·직원 SSO·퇴사 자동 오프보딩), 대안=GW 자체 user DB. 역할(Admin/C-S)=**Entra App Role/Group claim→RBAC**(별도 테이블 불요)이 기본; **C/S↔담당 클리닉 범위** 필요 시만 작은 GW 매핑 테이블. Agenda 상정 | §7.1.4·§7.9.2·§2.3 | GW+IT(Entra) | Console 구현 착수 전 | §7.9·③-C |
+| 38 | **GW Console 사용자 인증·역할 관리 방식** — **OneID=고객(클리닉/랩) IdP라 대상 아님**; Console 사용자=사내 직원(Admin·C/S). **기본안=MS365/Entra OIDC 연동**(자체 비번 없음·직원 SSO·퇴사 자동 오프보딩), 대안=GW 자체 user DB. 역할(Admin/C-S)=**Entra App Role/Group claim→RBAC**(별도 테이블 불요)이 기본; **C/S↔담당 클리닉 범위** 필요 시만 작은 GW 매핑 테이블. **스펙은 Entra 기본안 전제로 작성**(검증=요청별 `operatorAuth`·전용 verify endpoint 없음·UI 신원=`GET /v1/admin/me`·§7.1.4). 7/9 R2 최종 확정 시 대안(자체 DB=`POST /v1/auth/login`) 반영. Agenda 7/9 R2 | §7.1.4·§7.9.2·§2.3 | GW+IT(Entra) | Console 구현 착수 전 | §7.9·③-C |
 | 42 | **Enrollment 신뢰 앵커(C/S 승인 vs LMP 라이선스 검증 자동승인) + 무인증 abuse 방지** — 배경=C/S Console 수동 승인이 현장 번거로움(이전 회의). LMP/ELM=Cryptlex(LexActivator+`product.dat` public key) 기반이라 오프라인 서명 검증 역량은 있으나 **device측 검증**이고 **GW-검증 포터블 증명은 현 API에 없음** → B는 LMP 소폭 변경 필요(불가 아님). **LMP=바텍(ES) 자체 클라우드**(Cryptlex 위)라 수정 가능하나 **LMP/ELM 팀 별도 개발·일정·현 Roadmap 외**(크로스팀) — B의 실질 비용. **A. C/S 수동(v1.0·LMP 무변경·인간검증·단 수동부담)** vs **B. 자동승인**: B1=**LMP(클라우드)-서명** attestation(EzServer/ELM 릴레이→GW가 LMP JWKS 검증·런타임 결합 없음·추천) / B2=GW→LMP 런타임 verify(가용성 결합). **B 채택 시 LMP/ELM 개발**: 공통=증명 device 바인딩(license key+clinicId±serial)·clinicId 포함 / B1=**LMP** 서명 키페어+JWKS 공개+attestation JWT 발급(LMP 신규 ep or activate 확장)+키 회전(ELM/EzServer는 릴레이만·로컬이라 서명자 부적합) / B2=GW용 verify 엔드포인트+GW 서비스자격(EAP OAuth)+cloud→cloud 접근성. 공통 단점=인간검증 상실·EzServer 버전 공존. **추천 v1.0=A**(LMP 무변경) + B1 병행 검토(gw/1.1). **B 결정 시**: LMP 수정 + **별도 추가 설계**(attestation 계약·JWKS·claims — LMP/ELM 팀 공동·별도 티켓/One Pager·현 SRS 밖) + Roadmap 일정 추가 필요. **B1 완충용 `EnrollStartRequest.licenseAttestation` optional 필드 예약 완료**(OpenAPI·v1.0 미사용). abuse=rate-limit·pending TTL·nonce(반영). 확인: LMP가 GW-검증 서명 attestation 발급 가능? | §7.2.3·§7.2.5·§7.1.1 | GW+EzServer/LMP(③-P-EZ) | enroll 구현 착수 전 | Agenda 7/9 R4 |
 | 41 | **Enrollment clinic record 보강 (LMP clinic 정보) — 수집 필드셋 확정 대기(7/9 R3)** — clinicId는 LMP `POST /licenses` 반환(확인 완료). LMP `GET /licenses`가 clinic 정보(`ClinicWithoutIdType`={name·address·phone·countyCode(국가 ISO3166)·website}) 제공 → Console 식별성 위해 clinic record 보강. **DB/API에 고정 필드로 선반영(TBD)**: DBML `clinic`(name·country_code·address·phone·website nullable)·OpenAPI(`ClinicInfo`·`EnrollCompleteRequest.clinic`·`PATCH /v1/clinics/me`(device)·`PATCH /v1/admin/clinics/{clinicId}`(operator)). **저장 구조=고정 컬럼 확정**(jsonb 아님·회의 안건 아님). **미결(7/9 R3 회의)=수집·저장 필드셋만**(추천=LMP 전부·최소=name+country_code). 잔여: 신규 클리닉 정보 시점·실제 형식(clinic_id 평문)·PII 범위 | §2.3.1·§7.3·§7.9·§6.4.1 | EzServer(③-P-EZ)+GW | enroll 구현 착수 전 | §2.3.1·Agenda 7/9 R3 |
 | 27 | **공개키(client_public_key) 회전(재설치) 정책 수치·crypto 확정** — 정책 골격은 §7.2.7 확정(라이선스/Clinic-ID 재검증·C/S 승인·기존 revoke·개인키 백업 미도입). **미결**: 회전 속도·횟수 상한, 빈발 시 Admin 에스컬레이션 임계, 키페어 알고리즘·key-id 산출·서명 스킴(nonce), revoke 전파 방식 | §7.2.6·§7.2.7·§2.3.1 | GW+보안 | enrollment 구현 착수 전 | §2.3·§7.2·보안설계·LLD |
@@ -2391,6 +2396,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-08 | **7/9 Agenda R 항목 재번호(논의 순서 정렬) + 7/9-지시 참조 전수 갱신** — 7/9 회의를 기반·의존성·묶음 순으로 재배치 후 **R1~R9를 논의 순서대로 재매김**(7/2·6/25 주차 불변). 매핑(구 7/9→신): **R7→R1**(장비 인증)·**R6→R2**(Console 인증)·**R8→R3**(enroll clinic 필드)·**R9→R4**(enroll 승인)·**R1→R5**(라우팅)·**R3→R6**(upstream 병합)·**R2→R7**(webhook payload)·**R4→R8**(AXS 조사·앞서 R10→R4로 통합했던 것)·**R5→R9**(호환성 매트릭스). SRS 살아있는 참조(Appendix B #36·#40·#41·#42·#43·#45·#8·본문)·DBML·OpenAPI·redis·④ `_status`의 **7/9-지시 R# 25+건 전수 갱신**(bare `R#`가 7/2를 가리키는 프록시(§7.5.4 R4)·Alloy(§6.3.2 R3)·Terraform(IaC R5)은 주제로 식별해 **보존**). **날짜 changelog 이력 행은 당시 번호 그대로 유지**(감사 추적). R번호=주차별 일련번호(의미 없음)·타 문서 앵커라 참조만 동기화. **추가 정합: 전 7/9 참조에 주차 태그 `7/9 R#` 부여**(bare `R#`는 7/2 R3(Alloy)·R4(프록시)·R5(Terraform)와 헷갈려 — `7/2 R#` 컨벤션과 일치시켜 disambiguation). **안정 앵커=Appendix B #NN**(재사용·재번호 안 됨), 주차 태그=보조 식별. redocly valid·DBML 컴파일 OK | (작성자 ID 미지정) |
 | 2026-07-08 | **Appendix B 미결 항목 스펙/비-스펙 분리 — B-2(스펙 8) + B-3(비-스펙 20) 신설** — 미결 TBD가 28건으로 비대해 스펙이 너저분 → `spec-standard` §2.2 결정트리(외부 동작·계약·스키마·아키텍처·타 개발자 제약·법/인증에 영향?)로 재분류. **B-2=진짜 스펙 결정만 8건**: #38 Console 인증·#42 enroll 신뢰앵커·#41 clinic 필드셋·#27 키회전 crypto·#1 성능·#8 호환 반응정책·#33 clinic-less·#37 delivery 모델. **B-3=비-스펙 20건**(운영 값·일정·인프라 선택·컴플라이언스·외부조직·조사)은 **삭제 아니라 소유 이전**(운영/인프라/PM/법무·감사 추적 보존)·**# 번호 유지**해 교차참조 무손상. 판정 예: '경로 B EOS 시점'(#3)=제품 일정 · 'pending TTL 값'(#43)/'heartbeat 주기'(#34)=config·튜닝 값(**메커니즘은 스펙 확정**) · 'DB 제품 Aurora'(#18)/'MQTT 브로커'(#4)=인프라 선택 · '보존기간'(#5·#36)=법·컴플라이언스 · 'AXS 실태'(#45)=GW 비차단 조사. 스펙 자체 불변(재분류만) | (작성자 ID 미지정) |
 | 2026-07-08 | **Appendix B 미결 완료분 정리 — #6·#39 → B-1(완료)** — 미결 재검토에서 이미 끝난 항목 이동. **#6 설계 산출물**=OpenAPI(41 ops redocly valid)·DBML(10 테이블 compile OK)·redis·well-known **작성·검증 완료**(잔여=baseline 후 code-first 정본 승계뿐). **#39 C/S 승인 범위**=본문상 **v1.0 무한정 확정**·열린 부분은 국가/법인 스코핑(후속 optional)뿐이라 미결 아님. 나머지 B-3(#18 비준·#25 값·#14 포맷·#43/#34/#36 값·#40 선결·#2 인프라 등)은 **잔여 실재**(값·인프라·설계·액션 대기)라 유지. 겸사 #6 오참조(L§2.1 'AXS 자격증명 미수령 시 #6')→**#24**(AXS sandbox 자격) 교정 | (작성자 ID 미지정) |
+| 2026-07-08 | **운영자 인증 = 7/9 R2 Entra 확정 전제로 스펙 정합 — `oidc/verify` 제거·`GET /v1/admin/me` 신설** — 7/9 R2를 **Entra 연동(기본안)**으로 두고 스펙을 온전화. 문제: `POST /v1/auth/oidc/verify`가 §2.3.8 flow에 없고(모순)·용도 불명. 정정: **OIDC 토큰 검증은 전용 endpoint가 아니라 매 `/v1/admin/*` 요청의 `operatorAuth`(Entra JWKS)** 로 이뤄지므로 verify endpoint **불필요→제거**. Console UI 로그인 직후 신원·역할 조회용 **`GET /v1/admin/me`(operatorAuth·`OperatorMe`)** 신설. OpenAPI(op 41 유지·`OidcVerify*` 스키마→`OperatorMe`·plane 헤더·상단 주석)·§2.3.8 flow(+/me 스텝·검증=요청별 명시)·§7.1.4·Appendix B #38 정합. **자체 DB(대안) 확정 시**: 검증 소스=GW 토큰·`POST /v1/auth/login` 신설(OIDC 없음 — verify 부활 안 함)·`/me` 유지. redocly valid | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 서명 주체 정정 — ELM(로컬)→LMP(클라우드)** — ELM(`ezserver-license-manager`)은 클리닉마다 **로컬**(localhost·LexFloatServer 온프렘)이라 서명자로 두면 GW가 10만 로컬 키를 신뢰해야 함 → **서명 권위=중앙 LMP(클라우드)**, GW는 LMP JWKS 하나로 검증, EzServer/ELM은 릴레이만. B는 **PMS 연동(EPI)과 무관**(별개 컴포넌트). R9·#42 정정 | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 완충용 `licenseAttestation` 예약 필드 추가 + R9 비교 표** — B1(LMP 검증 자동승인) 도입 시 EzServer 버전 공존 완충을 위해 **OpenAPI `EnrollStartRequest.licenseAttestation`(nullable·v1.0 미사용·R9 확정 시 활성)** 예약. Agenda R9를 **A vs B 비교 표**(신뢰앵커·C/S부담·확장성·LMP변경·인간검증·region·난이도·현행동작·abuse)로 재구성해 회의 가독성↑ | (작성자 ID 미지정) |
 | 2026-07-07 | **R9 재구성 — enrollment 신뢰 앵커 C/S vs LMP-검증 비교(LMP 역량 정독)** — 이전 회의의 'C/S Console 수동 승인 번거로움' 우려를 반영해 **자동승인 대안**을 진지 비교로 승격. LMP/ELM=Cryptlex(LexActivator+product.dat) 확인 → 오프라인 서명 검증 역량 있으나 device측이라 **GW-검증 증명은 LMP 소폭 변경 필요**(B1=ELM-서명 attestation→GW가 JWKS 검증·추천 / B2=GW→LMP 런타임 verify). 추천 v1.0=A(C/S)·B1 병행(gw/1.1). R9·#42 재작성·§7.2 enroll 불릿(④ 신뢰 앵커)로 갱신. (앞서 'LMP-서명 추천'은 LMP 발급 여부 미확인 상태의 성급한 표현이라 정정) | (작성자 ID 미지정) |
