@@ -54,7 +54,8 @@ paths:
     post:
       operationId: postAuthToken
       tags: [ auth ]
-      summary: 디바이스 client_credentials → JWT 발급 (FR-AUTH-01/02)
+      summary: 디바이스 client_credentials → JWT 발급 (FR-AUTH-01/02) [v1.0]
+      description: 'EzServer(디바이스)가 enrollment에서 등록한 개인키로 서명한 client_assertion(private_key_jwt·§7.1.1)을 제시하면, GW가 등록 공개키(client_public_key)로 검증하고 claim(deviceId·region·aud·TTL) 바인딩된 단명 access token을 발급한다. 공유 secret 없음(ADR-13)·refresh token 미발급(만료 시 개인키 재서명 재발급). 공개 엔드포인트(security:[]).'
       security: []
       requestBody:
         required: true
@@ -78,7 +79,8 @@ paths:
     post:
       operationId: postEnrollStart
       tags: [ enrollment ]
-      summary: enrollment 시작(LM 라이선스·Clinic-ID 부트스트랩) → nonce challenge (FR-ENR-01/03)
+      summary: enrollment 시작(LM 라이선스·Clinic-ID 부트스트랩) → nonce challenge (FR-ENR-01/03) [v1.0]
+      description: 'EzServer 설치 시 부트스트랩(LM 라이선스·Clinic-ID)을 제시해 enrollment를 시작하고 GW가 nonce challenge를 발급한다(§2.3.1). GeoDNS 최근접 리전에 도달. 디바이스 신원 형성 전이라 공개 엔드포인트(security:[])·rate-limit로 보호.'
       security: []
       requestBody:
         required: true
@@ -101,12 +103,12 @@ paths:
     post:
       operationId: postEnrollComplete
       tags: [ enrollment ]
-      summary: 서명+공개키 검증 → 디바이스 등록 (A안 pending·C/S 승인 / B안 유효 attestation 시 active 자동) + 클리닉·region 확립 (FR-ENR-01/04·FR-RGN-*)
+      summary: 서명+공개키 검증 → 디바이스 등록 (A안 pending·C/S 승인 / B안 유효 attestation 시 active 자동) + 클리닉·region 확립 (FR-ENR-01/04·FR-RGN-*) [v1.0]
       description: >-
         nonce 서명·공개키(clientPublicKey)를 검증하고 디바이스를 status=pending으로 등록한다.
         **enroll 요청의 Clinic-ID로 clinic을 upsert(없으면 생성)하며, region 기본값은 요청이 GeoDNS로 도달한 최근접 리전**(v1.0=서울, §2.3.1·§2.7.1) — 별도 클리닉 등록 API 불요.
         active 활성화(=인증 허용)는 C/S가 GW Console에서 승인(설치 확인 + region 확정/다른 리전 override)해야 하며,
-        승인은 PATCH /v1/devices/{id}(status: active) [+ region override 시 PUT /v1/clinics/{clinicId}/region]로 수행된다(§2.3.1·§7.2.3·§7.2.5·§7.9.2).
+        승인은 PATCH /v1/admin/devices/{id}(status: active) [+ region override 시 PUT /v1/admin/clinics/{clinicId}/region]로 수행된다(§2.3.1·§7.2.3·§7.2.5·§7.9.2).
         **enroll B안(R9)**: 유효 `licenseAttestation`(LMP 제3자 서명) 제시 시 GW가 **LMP JWKS**로 검증해 **status=active 자동 승인**(C/S 수동 생략); attestation 없거나 검증 실패면 위 A안(pending→C/S 승인). 두 flow 공존.
       security: []
       requestBody:
@@ -140,7 +142,7 @@ paths:
       security:
       - deviceAuth: []
       tags: [ fleet ]
-      summary: 디바이스 heartbeat 보고 (FR-FLEET-01)
+      summary: 디바이스 heartbeat 보고 (FR-FLEET-01) [v1.0]
       description: >-
         device(EzServer)가 주기적으로 호출해 생존·health를 GW에 보고한다. GW는 병원 방화벽 뒤의 edge를 능동 폴링할 수 없으므로 liveness 신호는 device→GW push가 유일하다(§7.8.1). device_id는 인증 토큰 subject에서 취득하므로 본문에 넣지 않는다. GW는 수신 시각을 `fleet_state.last_heartbeat`에 기록하고, 응답으로 권장 다음 주기(nextIntervalSeconds)를 돌려준다(중앙 config §7.8.4로 조정 가능). 온라인/오프라인은 GW가 last_heartbeat의 임계값(권장 주기의 배수) 초과 여부로 파생 판정한다.
       requestBody:
@@ -168,7 +170,7 @@ paths:
       security:
       - deviceAuth: []
       tags: [ fleet ]
-      summary: device 실효 중앙 config 조회 (FR-CFG-01) — gw/1.1+ 예약
+      summary: device 실효 중앙 config 조회 (FR-CFG-01) — gw/1.1+ 예약 [gw/1.1+]
       description: >-
         **gw/1.1+ 예약(v1.0 미사용).** v1.0 중앙 config는 GW-내부(`gw.*`)가 실사용이고 device로의 원격 config 전달은 §7.6.6 하행 레일의 미래 활용이다(§7.8.4 v1.0 범위). device(EzServer)가 자신에게 적용될 **실효 중앙 config**를 pull한다(§7.8.4). device_id는 인증 토큰 subject에서 취득하며, device는 **자기 스코프의 실효 config만** 조회한다(타 device 노출 금지). 실효값은 키별 가장 구체 스코프 우선(device > clinic > region > global, override 병합)으로 GW가 해석한다. heartbeat 응답의 configVersion이 device의 appliedConfigVersion과 다를 때 이 API를 호출하면 된다.
       responses:
@@ -184,43 +186,13 @@ paths:
 
   # --- 클리닉/클라이언트 온보딩·등록 (§2.3.1) — 매핑 자가 생성, Admin은 교정만 ---
 
-  /v1/region/resolve:
-    get:
-      operationId: getRegionResolve
-      security:
-      - deviceAuth: []
-      tags: [ region ]
-      summary: device/clinic → region 해석 (FR-RGN-01/02/06)
-      parameters:
-      - name: deviceId
-        in: query
-        schema:
-          type: string
-      - name: clinicId
-        in: query
-        schema:
-          type: string
-      responses:
-        '200':
-          description: 해석된 리전(ID·표시명·endpoint·상태)·귀결 clinicId·mappingVersion·cacheTtl·주권 정책
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RegionResolveResponse'
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '429': { $ref: '#/components/responses/TooManyRequests' }
-
-  # --- Fleet heartbeat (§7.8.1) — device가 GW로 능동 보고(GW는 edge 폴링 불가) ---
-
   /v1/regions:
     get:
       operationId: getRegions
       security:
       - deviceAuth: []
       tags: [ regions ]
-      summary: GW 운영 리전 목록 조회 — 클라이언트 region 선택지 (§7.3.6)
+      summary: GW 운영 리전 목록 조회 — 클라이언트 region 선택지 (§7.3.6) [v1.0 · gw/1.2 확장]
       description: EzServer Console 등이 온보딩·운영 중 region 선택을 위해 조회. v1.0=1개, gw/1.2=N개.
       responses:
         '200':
@@ -234,65 +206,81 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /v1/clinics/{clinicId}:
-    parameters:
-      - name: clinicId
-        in: path
-        required: true
-        schema: { type: string }
-    patch:
-      operationId: patchClinicInfo
+  /v1/clinics/me:
+    get:
+      operationId: getClinicMe
       security:
       - deviceAuth: []
-      - operatorAuth: []
       tags: [ clinics ]
-      summary: clinic 정보 갱신 — device 자가 동기화(self-only) / 운영자 교정 (FR-RGN-*)
-      description: >-
-        LMP에서 clinic 정보가 바뀌면 EzServer(device)가 자기 clinic record를 갱신한다(LMP=SoT).
-        **격리: device는 자기 clinic만 수정**(토큰 device→device.clinicId == path clinicId 강제). 운영자(Admin/C-S)는 교정 가능.
-        수정 대상 = clinic 정보 필드(ClinicInfo)뿐 — **region·clinicId 제외**(region 변경=PUT /v1/clinics/{clinicId}/region). 필드셋 R8/#41 확정 전 잠정(TBD).
+      summary: 내 clinic 조회 — device self(region·정보 read-back) (FR-RGN-*) [v1.0]
+      description: 'EzServer(device)가 자기 clinic(토큰 device→clinic)의 현재 상태를 읽는다 — region(자가 설정 후 확인)·이름·국가·status·mappingVersion. clinicId를 path에 받지 않는다(토큰 기준 self·격리 자명). 운영자 조회는 GET /v1/admin/clinics/{clinicId}.'
+      responses:
+        '200':
+          description: 내 clinic 레코드
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Clinic' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    patch:
+      operationId: patchClinicMe
+      security:
+      - deviceAuth: []
+      tags: [ clinics ]
+      summary: 내 clinic 정보 갱신 — device self(LMP 정보 동기화) (FR-RGN-*) [v1.0]
+      description: 'LMP에서 clinic 정보가 바뀌면 EzServer가 자기 clinic의 표시·연락 정보(ClinicInfo)를 갱신한다(LMP=SoT·§2.3.1). region·clinicId 제외(region=PUT /v1/clinics/me/region). 토큰 기준 self. 필드셋 R8/#41 TBD.'
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/ClinicInfo'
+            schema: { $ref: '#/components/schemas/ClinicInfo' }
       responses:
         '200': { description: 갱신됨 }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /v1/clinics/{clinicId}/org-bindings:
-    parameters:
-    - name: clinicId
-      in: path
-      required: true
-      schema:
-        type: string
-    post:
-      operationId: postClinicsByClinicIdOrgBindings
+  /v1/clinics/me/region:
+    put:
+      operationId: putClinicMeRegion
       security:
       - deviceAuth: []
       tags: [ clinics ]
-      summary: 외부 upstream Org-ID 등록 (외부 연동 연결 시, upstream별) (FR-INT-*)
-      description: >-
-        클리닉이 외부 연동(예 AXS)을 켤 때 그 upstream의 Org-ID 등록 → org_mapping((upstream, Org-ID)→clinic). webhook 분배 키. Org-ID는 upstream 온보딩에서 발급(§2.3.4·④).
+      summary: 내 clinic 접속 리전 설정 — device self(EzServer Console) (FR-RGN-04) [v1.0 · gw/1.2 확장]
+      description: 'EzServer Console에서 자기 clinic의 접속 GW 리전을 설정/변경(현장에선 사실상 C/S 조작). mapping_version++·전건 감사. v1.0: 단일 리전이라 실질 no-op. gw/1.2: 다중 리전에서 유효 — 국경 간 변경은 재동의·주권 재평가(FR-COMP-02) 가드레일 TBD(Appendix B). 기존 PHI는 옛 리전 잔류(자동 이관 없음).'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OrgBinding'
+              type: object
+              required: [ region ]
+              properties:
+                region: { type: string, example: apne2 }
       responses:
-        '201':
-          description: 등록됨
+        '200': { description: 변경됨(감사 동반) }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /v1/clinics/me/org-bindings:
+    post:
+      operationId: postClinicMeOrgBindings
+      security:
+      - deviceAuth: []
+      tags: [ clinics ]
+      summary: 내 clinic 외부 upstream Org-ID 자가 등록 — device self(연동 켤 때) (FR-INT-*) [v1.0]
+      description: '클리닉(자기)이 외부 연동(예 AXS)을 켤 때 그 upstream의 Org-ID를 등록 → org_mapping((upstream, Org-ID)→clinic·webhook 분배 키). Org-ID는 upstream 온보딩에서 발급(§2.3.4·④). 토큰 기준 self. 운영자 교정은 POST /v1/admin/org-mappings.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OrgBinding' }
+      responses:
+        '201': { description: 등록됨 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
@@ -304,7 +292,8 @@ paths:
     post:
       operationId: postAuthOidcVerify
       tags: [ auth ]
-      summary: 운영자(Console) OIDC 토큰 검증·연계 — 직원 IdP(MS365/Entra) (FR-AUTH-08)
+      summary: 운영자(Console) OIDC 토큰 검증·연계 — 직원 IdP(MS365/Entra) (FR-AUTH-08) [v1.0]
+      description: '운영자(Console Admin·C/S)가 직원 IdP(MS365/Entra) OIDC 토큰을 제시하면 GW가 검증하고 신원+역할(claim→RBAC·§7.9.2)을 반환한다(§7.1.4). 고객 OneID 아님. 최종 방식(Entra vs 자체 DB)은 Agenda R6·Appendix B #38. 공개 엔드포인트(security:[]).'
       security: []
       requestBody:
         required: true
@@ -325,13 +314,14 @@ paths:
 
   # --- 온보딩 (§7.2) ---
 
-  /v1/devices:
+  /v1/admin/devices:
     get:
-      operationId: getDevices
+      operationId: getAdminDevices
       security:
       - operatorAuth: []
       tags: [ devices ]
-      summary: 디바이스 목록 조회 (FR-DEV-01)
+      summary: 디바이스 목록 조회 (FR-DEV-01) [v1.0]
+      description: '운영자(Console)가 디바이스 목록을 조회한다(상태·클리닉 필터·커서 페이지네이션·§7.2.1). 디바이스 레지스트리·lifecycle 운영·감사용.'
       responses:
         '200':
           description: 디바이스 목록
@@ -345,11 +335,12 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
-      operationId: postDevices
+      operationId: postAdminDevices
       security:
       - operatorAuth: []
       tags: [ devices ]
-      summary: 디바이스 등록 (FR-DEV-01)
+      summary: 디바이스 등록 (FR-DEV-01) [v1.0]
+      description: '운영자가 디바이스를 수동 등록한다 — **예외 경로**이며 주 생성은 EzServer enroll이 흡수한다(§2.3.1). 일상 경로 아님.'
       requestBody:
         required: true
         content:
@@ -365,15 +356,16 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /v1/devices/{id}:
+  /v1/admin/devices/{id}:
     parameters:
     - $ref: '#/components/parameters/DeviceId'
     get:
-      operationId: getDevicesById
+      operationId: getAdminDevicesById
       security:
       - operatorAuth: []
       tags: [ devices ]
-      summary: 디바이스 조회 (FR-DEV-01)
+      summary: 디바이스 조회 (FR-DEV-01) [v1.0]
+      description: '운영자가 단일 디바이스의 상세(상태·clinic·client_id·시각)를 조회한다.'
       responses:
         '200':
           description: 디바이스
@@ -386,11 +378,11 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     patch:
-      operationId: patchDevicesById
+      operationId: patchAdminDevicesById
       security:
       - operatorAuth: []
       tags: [ devices ]
-      summary: lifecycle 상태 전이 (FR-DEV-03, pending→active→suspended→revoked)
+      summary: lifecycle 상태 전이 (FR-DEV-03, pending→active→suspended→revoked) [v1.0]
       description: >-
         디바이스 lifecycle 전이. **pending→active는 C/S enrollment 승인 게이트**
         (현장 설치 담당 C/S만 승인 = 부트스트랩 신뢰 앵커, §2.3.1·§7.2.5·§7.9.2).
@@ -416,31 +408,87 @@ paths:
 
   # --- 리전 해석 (§7.3) ---
 
-  /v1/clinics:
-    post:
-      operationId: postClinics
+  /v1/admin/clinics:
+    get:
+      operationId: getAdminClinics
       security:
       - operatorAuth: []
       tags: [ clinics ]
-      summary: 클리닉 관리 — 운영자 교정·예외적 수동 등록 (주 생성 경로는 enroll) (FR-RGN-*)
-      description: >-
-        **클리닉 존재·초기 region은 EzServer enroll이 자동 확립한다**(§2.3.1 — enroll이 Clinic-ID로 clinic upsert, region 기본=GeoDNS 최근접·C/S가 override). 본 엔드포인트는 **운영자(Admin/C-S, 직원 IdP 인증)의 예외적 수동 등록·교정용**이며 일상 경로가 아니다. region 변경은 `PUT /v1/clinics/{clinicId}/region`(§7.3.4·FR-RGN-04).
+      summary: 클리닉 목록 조회 — 운영자(커서 페이지네이션) (FR-RGN-*) [v1.0]
+      description: '운영자(Console)가 클리닉 목록을 조회한다(region·상태 필터·커서 페이지네이션·§7.2.1). fleet 클리닉 관리·검색용.'
+      responses:
+        '200':
+          description: 클리닉 목록
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Clinic' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      operationId: postAdminClinics
+      security:
+      - operatorAuth: []
+      tags: [ clinics ]
+      summary: 클리닉 수동 등록·교정 — 운영자(예외 경로·주=enroll) (FR-RGN-*) [v1.0]
+      description: '클리닉 존재·초기 region은 EzServer enroll이 자동 확립(§2.3.1). 본 엔드포인트는 운영자의 예외적 수동 등록·교정용(일상 경로 아님). region 변경은 PUT /v1/admin/clinics/{clinicId}/region.'
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/ClinicRegistration'
+            schema: { $ref: '#/components/schemas/ClinicRegistration' }
       responses:
-        '201':
-          description: 등록됨 (이 클리닉 = 해당 region)
+        '201': { description: 등록됨 }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /v1/clinics/{clinicId}/region:
+  /v1/admin/clinics/{clinicId}:
+    parameters:
+      - name: clinicId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: getAdminClinicsById
+      security:
+      - operatorAuth: []
+      tags: [ clinics ]
+      summary: 클리닉 단건 조회 — 운영자 (FR-RGN-*) [v1.0]
+      description: '운영자가 단일 클리닉의 상세(region·이름·국가·status·mappingVersion)를 조회한다.'
+      responses:
+        '200':
+          description: 클리닉 레코드
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Clinic' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    patch:
+      operationId: patchAdminClinicsById
+      security:
+      - operatorAuth: []
+      tags: [ clinics ]
+      summary: 클리닉 정보 교정 — 운영자 (FR-RGN-*) [v1.0]
+      description: '운영자가 클리닉 표시·연락 정보(ClinicInfo)를 교정한다. region 변경은 PUT /v1/admin/clinics/{clinicId}/region. device 자가 동기화는 PATCH /v1/clinics/me.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ClinicInfo' }
+      responses:
+        '200': { description: 갱신됨 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /v1/admin/clinics/{clinicId}/region:
     parameters:
     - name: clinicId
       in: path
@@ -448,13 +496,12 @@ paths:
       schema:
         type: string
     put:
-      operationId: putClinicsByClinicIdRegion
+      operationId: putAdminClinicsByClinicIdRegion
       security:
       - operatorAuth: []
       tags: [ clinics ]
-      summary: 클리닉 접속 리전 변경 (운영 중 자가 변경, FR-RGN-04)
-      description: >-
-        EzServer Console 등에서 운영 중 접속 GW 리전을 변경. mapping_version++ · 재동의(FR-COMP-02) · 감사 강제. 기존 PHI는 옛 리전 잔류(자동 이관 없음), 전환은 신규부터(§7.3.4).
+      summary: 클리닉 접속 리전 교정 — 운영자 (FR-RGN-04) [v1.0 · gw/1.2 확장]
+      description: '운영자가 클리닉의 접속 GW 리전을 교정한다. mapping_version++·감사. device 자가 설정은 PUT /v1/clinics/me/region. v1.0 단일 리전이라 실질 no-op·gw/1.2 다중 리전에서 유효(국경 간=재동의·주권 재평가 TBD·FR-COMP-02). 기존 PHI 옛 리전 잔류.'
       requestBody:
         required: true
         content:
@@ -463,10 +510,9 @@ paths:
               type: object
               required: [ region ]
               properties:
-                region: { type: string }
+                region: { type: string, example: apne2 }
       responses:
-        '200':
-          description: 변경됨(재동의·감사 동반)
+        '200': { description: 변경됨(감사 동반) }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -494,7 +540,7 @@ paths:
 
   # --- Webhook 수신 (§7.6 / §4.1.3) — upstream별 전용 호스트({target}.webhook.gw.vatech.com)로 식별(Host/SNI). 경로/스키마는 upstream 규약 수용·유연(아래는 예시). GW는 발신자 검증·라우팅만, payload 비해석 ---
 
-  /admin/v1/devices/{id}/kill:
+  /v1/admin/devices/{id}/kill:
     parameters:
     - $ref: '#/components/parameters/DeviceId'
     post:
@@ -502,7 +548,8 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: kill-switch(긴급 정지) (FR-FLEET-02)
+      summary: kill-switch(긴급 정지) (FR-FLEET-02) [v1.0]
+      description: '운영자가 디바이스를 긴급 정지한다(kill-switch·FR-FLEET-02) — status=revoked + denylist 즉시 전파(§7.2.4)로 이미 발급된 단명 토큰도 만료 전 차단. 승인자·시각 감사(§7.9.3).'
       responses:
         '200':
           description: 즉시 정지됨
@@ -511,14 +558,14 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /admin/v1/audit:
+  /v1/admin/audit:
     get:
       operationId: getAdminAudit
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 감사 로그 조회(경량) (FR-AUD-01)
-      description: 그 외 관리자 조회(/admin/v1/*)는 LLD에서 확장. UI는 ③-C
+      summary: 감사 로그 조회(경량) (FR-AUD-01) [v1.0]
+      description: 그 외 관리자 조회(/v1/admin/*)는 LLD에서 확장. UI는 ③-C
       responses:
         '200':
           description: 감사 로그 목록
@@ -534,13 +581,14 @@ paths:
 
   # --- 라우팅·분배 지식 관리 (Console ③-C 호출) — DB가 보관하는 "어디로 분배" 정보 ---
 
-  /admin/v1/org-mappings:
+  /v1/admin/org-mappings:
     get:
       operationId: getAdminOrgMappings
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: Org-ID↔ClinicID 매핑 조회 (webhook 라우팅 키)
+      summary: Org-ID↔ClinicID 매핑 조회 (webhook 라우팅 키) [v1.0]
+      description: '운영자가 (target_id, external_org_id)→clinic 매핑 목록을 조회한다(webhook 분배 1차 라우팅 키·§7.6). 1차 입력은 클라이언트 자가 등록(§2.3.4).'
       responses:
         '200':
           description: 매핑 목록
@@ -558,7 +606,8 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: Org-ID↔ClinicID 매핑 **교정(override)** — 1차 입력은 클라이언트 온보딩(자가 등록), 본 API는 오설정 수정용 (FR-RGN-04)
+      summary: Org-ID↔ClinicID 매핑 **교정(override)** — 1차 입력은 클라이언트 온보딩(자가 등록), 본 API는 오설정 수정용 (FR-RGN-04) [v1.0]
+      description: '운영자가 Org-ID↔ClinicID 매핑을 교정(override)한다 — 1차 입력은 클라이언트 온보딩 자가 등록(§2.3.4)이고 본 API는 오설정 교정용. 감사 기록.'
       requestBody:
         required: true
         content:
@@ -578,7 +627,8 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: Org-ID↔ClinicID 매핑 삭제 — 연동 해지·오설정 제거 (복합키 targetId+externalOrgId)
+      summary: Org-ID↔ClinicID 매핑 삭제 — 연동 해지·오설정 제거 (복합키 targetId+externalOrgId) [v1.0]
+      description: '운영자가 Org-ID↔ClinicID 매핑을 삭제한다(연동 해지·오설정 제거·복합키 targetId+externalOrgId).'
       parameters:
         - name: targetId
           in: query
@@ -599,13 +649,14 @@ paths:
 
   # --- webhook 이벤트 조회 (Console 검색/필터, §7.6·§7.9.1) — GW 런타임 생성, write API 없음(조회 전용) ---
 
-  /admin/v1/webhook-events:
+  /v1/admin/webhook-events:
     get:
       operationId: getAdminWebhookEvents
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: webhook 이벤트(메타) 검색/조회 — Console 운영·감사용 (PHI-free, payload는 payload_ref로 참조)
+      summary: webhook 이벤트(메타) 검색/조회 — Console 운영·감사용 (PHI-free, payload는 payload_ref로 참조) [v1.0]
+      description: '운영자가 webhook 이벤트 메타(PHI-free: target·event_type·org·clinic·region·state·시각)를 검색·조회한다(Console 운영·감사·§7.6). 본문(payload)은 미포함 — payload_ref로 리전 S3 별도(claim-check).'
       parameters:
         - name: targetId
           in: query
@@ -651,13 +702,14 @@ paths:
 
   # --- fleet 상태 조회 (§7.8, 대시보드) — device push heartbeat로 갱신, 조회 전용 ---
 
-  /admin/v1/fleet:
+  /v1/admin/fleet:
     get:
       operationId: getAdminFleet
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: fleet 상태(디바이스 heartbeat·버전) 조회 — 운영 대시보드 (fleet_state)
+      summary: fleet 상태(디바이스 heartbeat·버전) 조회 — 운영 대시보드 (fleet_state) [v1.0]
+      description: '운영자가 fleet 상태(디바이스 마지막 heartbeat·성공률·버전)를 조회한다(운영 대시보드·fleet_state·FR-FLEET-01/03).'
       parameters:
         - name: clinicId
           in: query
@@ -688,13 +740,13 @@ paths:
 
   # --- 연동 대상(upstream) 통합 관리 (§7.5·§7.6·§7.1.3, Console ③-C) — 라우팅+자격+webhook 수신 한 레코드 ---
 
-  /admin/v1/upstreams:
+  /v1/admin/upstreams:
     get:
       operationId: getAdminUpstreams
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 연동 대상(upstream) 조회 (라우팅·자격·webhook 수신 통합) (FR-INT-01/02·FR-WH-01/02)
+      summary: 연동 대상(upstream) 조회 (라우팅·자격·webhook 수신 통합) (FR-INT-01/02·FR-WH-01/02) [v1.0]
       description: credential_ref·secret_ref는 KMS 참조만 반환(시크릿 원문 미노출)
       responses:
         '200':
@@ -713,7 +765,8 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: upstream 등록/갱신(upsert) — **연동 하나=1 레코드**(라우팅+자격+webhook 수신). 감사 action=upstream.upsert
+      summary: upstream 등록/갱신(upsert) — **연동 하나=1 레코드**(라우팅+자격+webhook 수신). 감사 action=upstream.upsert [v1.0]
+      description: '운영자가 연동 대상(upstream)을 등록/갱신(upsert)한다 — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드로(구 3표 병합·§7.5·§7.6). credential·secret은 KMS 저장(원문 미노출·§6.2). 감사 action=upstream.upsert.'
       requestBody:
         required: true
         content:
@@ -729,7 +782,7 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /admin/v1/upstreams/{targetId}:
+  /v1/admin/upstreams/{targetId}:
     parameters:
     - { name: targetId, in: path, required: true, schema: { type: string } }
     delete:
@@ -737,7 +790,8 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: upstream 삭제 — 해당 연동 전체(라우팅·자격·webhook 수신) 제거. 감사 action=upstream.delete
+      summary: upstream 삭제 — 해당 연동 전체(라우팅·자격·webhook 수신) 제거. 감사 action=upstream.delete [v1.0]
+      description: '운영자가 upstream을 삭제한다 — 해당 연동 전체(라우팅·자격·webhook 수신) 제거. 감사 action=upstream.delete.'
       responses:
         '204': { description: 삭제됨 }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -747,13 +801,13 @@ paths:
 
   # --- 중앙 Config 관리 (§7.8.4, Console ③-C 호출) — (scope,key,value) CRUD ---
 
-  /admin/v1/config:
+  /v1/admin/config:
     get:
       operationId: getAdminConfig
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 중앙 config 항목 조회 (FR-CFG-01)
+      summary: 중앙 config 항목 조회 (FR-CFG-01) [v1.0]
       description: 스코프·키로 필터. device에 실제 적용되는 실효값은 device의 GET /v1/fleet/config
       parameters:
       - { name: scopeType, in: query, schema: { type: string, enum: [ global, region, clinic, device ] } }
@@ -776,7 +830,7 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 중앙 config 항목 upsert(등록/갱신) — (scopeType, scopeId, configKey) 단위 (FR-CFG-01)
+      summary: 중앙 config 항목 upsert(등록/갱신) — (scopeType, scopeId, configKey) 단위 (FR-CFG-01) [v1.0]
       description: 값 변경 시 version 증가. 감사 action=config.publish(§7.9.3)
       requestBody:
         required: true
@@ -800,7 +854,8 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 중앙 config 항목 삭제 — (scopeType, scopeId, configKey) 지정 (FR-CFG-01)
+      summary: 중앙 config 항목 삭제 — (scopeType, scopeId, configKey) 지정 (FR-CFG-01) [v1.0]
+      description: '운영자가 중앙 config 항목을 삭제한다((scopeType, scopeId, configKey) 지정·FR-CFG-01·§7.8.4).'
       parameters:
       - { name: scopeType, in: query, required: true, schema: { type: string, enum: [ global, region, clinic, device ] } }
       - { name: scopeId, in: query, schema: { type: string } }
@@ -815,13 +870,14 @@ paths:
 
   # --- 정책 관리 (§7.5.3·FR-INT-03, Console ③-C) — GW는 deny-by-default라 v1.0 필수(허용 정책 없으면 프록시 전면 거부) ---
 
-  /admin/v1/policies:
+  /v1/admin/policies:
     get:
       operationId: getAdminPolicies
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 정책 조회 (scope·target 필터) (FR-INT-03)
+      summary: 정책 조회 (scope·target 필터) (FR-INT-03) [v1.0]
+      description: '운영자가 정책을 조회한다(scope·target 필터·FR-INT-03). GW는 deny-by-default라 본 표가 허용 정책의 SSOT.'
       parameters:
       - { name: scopeType, in: query, schema: { type: string, enum: [ global, clinic, device ] } }
       - { name: scopeId, in: query, schema: { type: string } }
@@ -843,7 +899,8 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 정책 등록/갱신(upsert) — allowed_endpoints·scopes. 감사 action=policy.update (FR-INT-03)
+      summary: 정책 등록/갱신(upsert) — allowed_endpoints·scopes. 감사 action=policy.update (FR-INT-03) [v1.0]
+      description: '운영자가 정책을 등록/갱신(upsert)한다(allowed_endpoints·scopes). deny-by-default라 v1.0 필수(허용 정책 없으면 프록시 전면 거부). v1.0 집행=coarse(upstream 사용 허용까지·§7.5.3). 감사 action=policy.update.'
       requestBody:
         required: true
         content:
@@ -858,7 +915,7 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /admin/v1/policies/{id}:
+  /v1/admin/policies/{id}:
     parameters:
     - { name: id, in: path, required: true, schema: { type: string } }
     delete:
@@ -866,7 +923,8 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 정책 삭제. 감사 action=policy.delete
+      summary: 정책 삭제. 감사 action=policy.delete [v1.0]
+      description: '운영자가 정책을 삭제한다 — 삭제 시 그 대상은 deny-by-default로 회귀. 감사 action=policy.delete.'
       responses:
         '204': { description: 삭제됨 }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -876,13 +934,14 @@ paths:
 
   # --- GW 운영 리전 카탈로그 관리 (§7.3.6·FR-RGN-06, 운영자) — 조회는 GET /v1/regions. v1.0=1행(시드 가능)·gw/1.2 다행 ---
 
-  /admin/v1/regions:
+  /v1/admin/regions:
     post:
       operationId: postAdminRegions
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 리전 카탈로그 등록 (region 개통) (FR-RGN-06)
+      summary: 리전 카탈로그 등록 (region 개통) (FR-RGN-06) [v1.0 · gw/1.2 확장]
+      description: '운영자가 리전 카탈로그에 리전을 개통(등록)한다(FR-RGN-06·§7.3.6). **v1.0**: 1행 시드(예 서울) — 실질적 다중 리전 개통은 **gw/1.2**.'
       requestBody:
         required: true
         content:
@@ -897,7 +956,7 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /admin/v1/regions/{regionId}:
+  /v1/admin/regions/{regionId}:
     parameters:
     - { name: regionId, in: path, required: true, schema: { type: string } }
     put:
@@ -905,7 +964,8 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 리전 상태·속성 변경 (active/draining/planned 전이 등) (FR-RGN-06)
+      summary: 리전 상태·속성 변경 (active/draining/planned 전이 등) (FR-RGN-06) [v1.0 · gw/1.2 확장]
+      description: '운영자가 리전 상태·속성을 변경한다(active/draining/planned 전이 등·FR-RGN-06). draining=신규 배정 중단·기존 유지. **다중 리전 운영은 gw/1.2**.'
       requestBody:
         required: true
         content:
@@ -924,7 +984,8 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 리전 회수(드묾 — draining 후) (FR-RGN-06)
+      summary: 리전 회수(드묾 — draining 후) (FR-RGN-06) [gw/1.2]
+      description: '운영자가 리전을 회수한다(드묾·draining 후). **다중 리전(gw/1.2)** 운영 맥락 — v1.0 단일 리전에선 사실상 미사용.'
       responses:
         '204': { description: 삭제됨 }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -941,7 +1002,7 @@ paths:
       tags: [ webhooks ]
       security:
       - webhookHmac: []
-      summary: 외부 이벤트 Webhook 수신 (FR-WH-01~05) — upstream별 전용 호스트로 식별, 경로/형식 유연(예시)
+      summary: 외부 이벤트 Webhook 수신 (FR-WH-01~05) — upstream별 전용 호스트로 식별, 경로/형식 유연(예시) [v1.0]
       description: >-
         **발신자 식별 = upstream별 전용 호스트**(`{target}.webhook.gw.vatech.com`, Host/SNI → 레지스트리 inbound_host, §7.6.2) — source IP 비의존. 아래 경로 `/v1/webhooks/{target}`와 스키마는 **예시**이며 확정 계약이 아니다(upstream 규약 수용·유연, §4.1.3). **신뢰(인증) = HMAC + timestamp**(호스트명은 식별이지 인증 아님); source IP allowlist는 옵션. GW는 멱등(eventId)·라우팅만 하며 payload는 소비자가 해석한다(opaque, ④/AXS 스냅샷 참조).
       parameters:
@@ -983,7 +1044,7 @@ paths:
     get:
       operationId: getWellKnownByEnvServerConfiguration
       tags: [ compatibility ]
-      summary: 런타임 버전·호환성 공시 (FR-COMPAT-02)
+      summary: 런타임 버전·호환성 공시 (FR-COMPAT-02) [v1.0]
       description: 스키마·샘플은 design/well-known/ 참조. 버전 프리픽스 없이 표준 관례로 노출(§4.1.2-5)
       security: []
       responses:
@@ -1240,60 +1301,6 @@ components:
           $ref: '#/components/schemas/DeviceStatus'
 
     # 리전
-    RegionResolveResponse:
-      type: object
-      required: [ region, endpoint, status, mappingVersion ]
-      properties:
-        region:
-          type: string
-          description: '해석된 리전 ID(= region_catalog.regionId, 예 apne2). deviceId·clinicId 어느 입력이든 동일 리전으로 귀결(ADR-10)'
-          example: apne2
-        regionDisplayName:
-          type: string
-          description: '리전 표시명(예 서울) — region_catalog.displayName'
-          example: 서울
-        endpoint:
-          type: string
-          description: '리전 endpoint(§4.5.1). 클라이언트는 평소 apex GeoDNS(gw.vatech.com)만 사용하고 본 값은 참고·진단용'
-          example: https://apne2.internal.gw.vatech.com
-        status:
-          type: string
-          enum: [ active, draining, planned ]
-          description: '리전 운영 상태 — draining이면 신규 배정 중단(기존 유지), 클라이언트가 인지(§7.3.6)'
-          example: active
-        clinicId:
-          type: string
-          description: '해석된 소속 클리닉(region SSOT=clinic, §6.4.1). deviceId로 물었을 때 어느 클리닉으로 귀결됐는지 echo'
-          example: CLINIC-0040694997
-        mappingVersion:
-          type: integer
-          description: 'clinic.mapping_version — 캐시 무효화·drift 감지(§7.3.2). 클라이언트 캐시 시 이 값으로 stale 판정'
-          example: 3
-        cacheTtlSeconds:
-          type: integer
-          description: '이 해석 결과를 클라이언트가 캐시해도 되는 시간(초). 만료 후 재해석 권장(§7.3.1 soft-state)'
-          example: 60
-        hosts:
-          type: object
-          description: '클라이언트가 실제 호출하는 공개 호스트 — 모두 GeoDNS라 **리전 불변**(리전별로 다르지 않음·참고용, §4.5.1). endpoint(리전 내부 진단용)와 구분'
-          properties:
-            apex: { type: string, description: 'GW 고유 API·프록시 apex(예 gw.vatech.com, GeoDNS). 프록시 target은 {target}.gw.vatech.com', example: gw.vatech.com }
-            webhookHostPattern: { type: string, description: 'upstream 웹훅 수신 호스트 관례({target}.webhook.gw.vatech.com) — 외부 upstream가 이 리전 클리닉 이벤트를 push할 때 쓰는 호스트(GeoDNS, §4.5.1·§7.6.1)', example: '{target}.webhook.gw.vatech.com' }
-        sovereigntyPolicy:
-          type: object
-          description: 'PHI 데이터 주권 정책(§7.3.3) — PHI 바이트가 이 리전을 벗어나지 못함(OPA 집행)'
-          properties:
-            dataResidencyRegion: { type: string, description: 'PHI가 머물러야 하는 리전(보통 region과 동일)', example: apne2 }
-            phiEgressAllowed: { type: boolean, description: '리전 밖 PHI 유출 허용 여부(항상 false)', example: false }
-            crossBorder: { type: boolean, description: 'true면 국경 간 — 재동의·주권 재평가(FR-COMP-02)', example: false }
-            storage:
-              type: object
-              description: 'PHI storage 주권 — GW는 storage 비호스팅, 발급 upstream(CleverSpace/AXS) 소유(§7.4·§3.1.2)'
-              properties:
-                hostedBy: { type: string, description: '항상 upstream — PHI 바이트는 upstream storage에 presigned 직결(GW 비경유)', example: upstream }
-                kind: { type: string, description: 'AWS 리전=S3, AWS 미지원국=upstream MinIO 등(upstream가 결정·리전 주권 충족)', example: S3 }
-                regionBound: { type: boolean, description: 'upstream storage가 dataResidencyRegion 안에 있어야 함(항상 true)', example: true }
-
     # Fleet heartbeat (§7.8.1)
     FleetHeartbeat:
       type: object
@@ -1525,6 +1532,20 @@ components:
               methods: { type: array, items: { type: string } }
               pathPattern: { type: string }
         scopes: { type: array, items: { type: string }, description: '허용 scope', example: [ axs:patient.read, axs:study.write ] }
+    Clinic:
+      type: object
+      description: 'clinic 레코드(region SSOT·§6.4.1). GET /v1/clinics/me(device self)·GET /v1/admin/clinics/{clinicId}(operator) 응답.'
+      properties:
+        clinicId: { type: string, description: 'LMP 발급 Clinic-ID(§1.4)', example: CLINIC-0040694997 }
+        region: { type: string, description: '배정 리전(region_catalog.regionId)', example: apne2 }
+        name: { type: string, nullable: true, example: ES Clinic }
+        countryCode: { type: string, nullable: true, description: 'ISO 3166 Alpha-2(GW region과 별개)', example: KR }
+        address: { type: string, nullable: true, example: '13, Samsung 1-ro 2-gil, Hwaseong-si' }
+        phone: { type: string, nullable: true, example: '02-1234-5678' }
+        website: { type: string, nullable: true, example: 'https://www.ewoosoft.com/' }
+        mappingVersion: { type: integer, description: '캐시 무효화·drift 감지(§7.3.2)', example: 3 }
+        createdAt: { type: integer, format: int64, example: 1720137600000 }
+        updatedAt: { type: integer, format: int64, example: 1720224000000 }
     ClinicRegistration:
       type: object
       required: [ clinicId, region ]
@@ -1535,7 +1556,7 @@ components:
     ClinicInfo:
       type: object
       description: >-
-        LMP가 제공하는 clinic 표시·연락 정보(enroll 시 EzServer가 전달·§2.3.1, LMP 변경 시 PATCH /v1/clinics/{clinicId}로 갱신).
+        LMP가 제공하는 clinic 표시·연락 정보(enroll 시 EzServer가 전달·§2.3.1, LMP 변경 시 PATCH /v1/clinics/me로 갱신).
         **수집 필드셋은 R8/Appendix B #41 확정 전 잠정(TBD)** — 추천안=LMP가 주는 전부. 저장 구조=고정 컬럼 확정(jsonb 아님). 환자 PHI 아님(clinic 업무정보).
       properties:
         name: { type: string, description: '클리닉 표시명(LMP clinic.name)·Console 식별', example: ES Clinic }

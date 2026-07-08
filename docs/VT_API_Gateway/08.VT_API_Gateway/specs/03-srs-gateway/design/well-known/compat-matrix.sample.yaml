@@ -17,8 +17,8 @@ apis:
     errorCode: COMPAT_CLIENT_TOO_OLD
     fallback: "클라이언트 업데이트가 필요합니다."
 
-  - id: region.resolve
-    path: /v1/region/resolve
+  - id: region.set
+    path: /v1/clinics/me/region
     minClientVersion:
       CleverOne: "1.2.0"
     errorCode: COMPAT_CLIENT_TOO_OLD

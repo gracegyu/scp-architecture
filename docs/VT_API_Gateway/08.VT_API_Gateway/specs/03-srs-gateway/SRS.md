@@ -482,20 +482,20 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 
 | 테이블 | 생성(C) | 수정(U) | 삭제(D) | 관리 API |
 | --- | --- | --- | --- | --- |
-| `region_catalog` | 운영자 리전 개통 `POST /admin/v1/regions` | `PUT /admin/v1/regions/{regionId}`(active/draining 전이) | `DELETE`(드묾) | GET `/v1/regions`(공개 조회) + **admin CRUD**(§7.9.1·#30 해소). v1.0=1행 시드 |
-| `clinic` | **enroll 자동 upsert + LMP clinic 정보(name·country 등) 포착**(§2.3.1) | region 변경 `PUT /v1/clinics/{id}/region` · **clinic 정보 갱신 `PATCH /v1/clinics/{id}`**(device 자가 동기화 self-only·LMP 변경 반영 / 운영자 교정) · Admin 등록 `POST /v1/clinics` | 하드 삭제 미지원 | ✓ (§7.9·수집 필드셋 R8/#41 TBD) |
-| `device` | **enroll** `POST /v1/enroll/complete` | `PATCH /v1/devices/{id}`(pending→active 승인·suspend 등)·kill `POST /admin/v1/devices/{id}/kill` | 하드 삭제 없음(status=revoked) | ✓ GET/POST/PATCH `/v1/devices` |
-| `upstream` | Admin `POST /admin/v1/upstreams`(upsert·1 레코드) | 동 POST(upsert) | `DELETE /admin/v1/upstreams/{targetId}` | ✓ full |
-| `policy` | Admin `POST /admin/v1/policies`(upsert) | 동 POST | `DELETE /admin/v1/policies/{id}` | ✓ full (#32 해소). deny-by-default라 v1.0 필수 |
-| `org_mapping` | **연동 켤 때 자가 등록** `POST /v1/clinics/{id}/org-bindings`(client) + Admin 교정 `POST /admin/v1/org-mappings` | 동(upsert) | **`DELETE /admin/v1/org-mappings`**(연동 해지·오설정 제거) | ✓ (DELETE 포함) |
-| `config` | Admin `PUT /admin/v1/config` | 동 PUT | `DELETE /admin/v1/config` | ✓ full |
-| `fleet_state` | **최초 heartbeat upsert** `POST /v1/fleet/heartbeat` | 동 heartbeat | TTL/정리 | 조회 `GET /admin/v1/fleet`(대시보드) |
-| `webhook_event` | **GW 런타임**(수신 시 생성) | GW 런타임(dispatch 상태 갱신) | 보존정책 정리(Appendix B #36) | **조회 `GET /admin/v1/webhook-events`**(Console 검색/필터)·write API 불요 |
-| `audit_log` | **GW 런타임**(감사 대상 동작마다) | append-only(수정 없음) | 보존정책 정리 | GET `/admin/v1/audit`·write API 불요 |
+| `region_catalog` | 운영자 리전 개통 `POST /v1/admin/regions` | `PUT /v1/admin/regions/{regionId}`(active/draining 전이) | `DELETE`(드묾) | GET `/v1/regions`(공개 조회) + **admin CRUD**(§7.9.1·#30 해소). v1.0=1행 시드 |
+| `clinic` | **enroll 자동 upsert + LMP clinic 정보 포착**(§2.3.1) · 운영자 `POST /v1/admin/clinics`(예외) | device 자가 `PATCH /v1/clinics/me`(정보)·`PUT /v1/clinics/me/region` / 운영자 `PATCH /v1/admin/clinics/{clinicId}`·`PUT /v1/admin/clinics/{clinicId}/region` | 하드 삭제 미지원 | 조회: device `GET /v1/clinics/me` · 운영자 `GET /v1/admin/clinics`(list)·`/{clinicId}` (§7.9·필드셋 R8/#41 TBD) |
+| `device` | **enroll** `POST /v1/enroll/complete` | `PATCH /v1/admin/devices/{id}`(pending→active 승인·suspend 등)·kill `POST /v1/admin/devices/{id}/kill` | 하드 삭제 없음(status=revoked) | ✓ GET/POST/PATCH `/v1/admin/devices` |
+| `upstream` | Admin `POST /v1/admin/upstreams`(upsert·1 레코드) | 동 POST(upsert) | `DELETE /v1/admin/upstreams/{targetId}` | ✓ full |
+| `policy` | Admin `POST /v1/admin/policies`(upsert) | 동 POST | `DELETE /v1/admin/policies/{id}` | ✓ full (#32 해소). deny-by-default라 v1.0 필수 |
+| `org_mapping` | **연동 켤 때 자가 등록** `POST /v1/clinics/me/org-bindings`(client) + Admin 교정 `POST /v1/admin/org-mappings` | 동(upsert) | **`DELETE /v1/admin/org-mappings`**(연동 해지·오설정 제거) | ✓ (DELETE 포함) |
+| `config` | Admin `PUT /v1/admin/config` | 동 PUT | `DELETE /v1/admin/config` | ✓ full |
+| `fleet_state` | **최초 heartbeat upsert** `POST /v1/fleet/heartbeat` | 동 heartbeat | TTL/정리 | 조회 `GET /v1/admin/fleet`(대시보드) |
+| `webhook_event` | **GW 런타임**(수신 시 생성) | GW 런타임(dispatch 상태 갱신) | 보존정책 정리(Appendix B #36) | **조회 `GET /v1/admin/webhook-events`**(Console 검색/필터)·write API 불요 |
+| `audit_log` | **GW 런타임**(감사 대상 동작마다) | append-only(수정 없음) | 보존정책 정리 | GET `/v1/admin/audit`·write API 불요 |
 
-> **API 불요/미정의 정리**: 하드 삭제가 없는 것(clinic·device=status 전이 / webhook_event·audit_log=보존정책 정리)은 DELETE API 불요. GW 런타임 생성(webhook_event·audit_log)은 외부 write API 불요(조회만). **관리 API 잔여 없음** — policy(`/admin/v1/policies`·#32 해소)·region_catalog(`/admin/v1/regions`·#30 해소) 관리 API 신설로 전 테이블 관리 수단 확보.
+> **API 불요/미정의 정리**: 하드 삭제가 없는 것(clinic·device=status 전이 / webhook_event·audit_log=보존정책 정리)은 DELETE API 불요. GW 런타임 생성(webhook_event·audit_log)은 외부 write API 불요(조회만). **관리 API 잔여 없음** — policy(`/v1/admin/policies`·#32 해소)·region_catalog(`/v1/admin/regions`·#30 해소) 관리 API 신설로 전 테이블 관리 수단 확보.
 >
-> **`org_mapping` 등록은 "GW 접속 시 자동"이 아니다 — 연동 켤 때 client가 등록한다.** 매핑 키인 **외부 Org-ID는 외부 upstream(예 Straumann AXS)이 발급**하므로 **GW가 스스로 알 수 없다**(자동 도출 불가). 그래서 클리닉이 그 upstream 연동을 **켜는 시점**에 **`POST /v1/clinics/{clinicId}/org-bindings`로 자기 Org-ID를 등록**(client 자가 등록·§2.3.4)하고, 오설정은 Admin이 `/admin/v1/org-mappings`로 교정한다. 즉 EzServer가 GW에 처음 붙는다고(enroll) 자동 생성되지 않으며 **enroll·연동은 독립**(연동 안 하면 org_mapping 없음). **새 upstream이 추가되면** 그 upstream을 실제 쓰는 **클리닉마다 org-binding 1회**가 필요하다(GW가 일괄 자동 생성하지 않음). 등록된 org_mapping은 **양방향으로** 쓰인다 — **송신(outbound)**: GW가 클리닉 대신 AXS를 호출할 때 `clinic → org_id` 정조회로 Org-ID를 실어 보냄 · **수신(inbound webhook)**: 이벤트의 `org_id → (target_id, org_id) → clinic` 역조회로 분배 대상 판정(§2.3.6). 생성 시점·양방향 사용은 아래 생애주기 다이어그램 참조.
+> **`org_mapping` 등록은 "GW 접속 시 자동"이 아니다 — 연동 켤 때 client가 등록한다.** 매핑 키인 **외부 Org-ID는 외부 upstream(예 Straumann AXS)이 발급**하므로 **GW가 스스로 알 수 없다**(자동 도출 불가). 그래서 클리닉이 그 upstream 연동을 **켜는 시점**에 **`POST /v1/clinics/me/org-bindings`로 자기 Org-ID를 등록**(client 자가 등록·§2.3.4)하고, 오설정은 Admin이 `/v1/admin/org-mappings`로 교정한다. 즉 EzServer가 GW에 처음 붙는다고(enroll) 자동 생성되지 않으며 **enroll·연동은 독립**(연동 안 하면 org_mapping 없음). **새 upstream이 추가되면** 그 upstream을 실제 쓰는 **클리닉마다 org-binding 1회**가 필요하다(GW가 일괄 자동 생성하지 않음). 등록된 org_mapping은 **양방향으로** 쓰인다 — **송신(outbound)**: GW가 클리닉 대신 AXS를 호출할 때 `clinic → org_id` 정조회로 Org-ID를 실어 보냄 · **수신(inbound webhook)**: 이벤트의 `org_id → (target_id, org_id) → clinic` 역조회로 분배 대상 판정(§2.3.6). 생성 시점·양방향 사용은 아래 생애주기 다이어그램 참조.
 
 > 핵심 구분: **클리닉 측 레코드(clinic·device)는 EzServer enroll이 자동 생성**하고(§2.3.1·연동과 무관), **연동 측 레코드(`upstream`+`policy`)는 upstream을 붙일 때 Admin/Console이 등록**하며(등록 시퀀스=§2.3.4·가이드=③-C), **org_mapping은 그 연동을 실제 쓰는 클리닉이 붙을 때** 자가 등록된다. 즉 "device 최초 접속"이 만드는 것은 클리닉 측이지 연동(upstream) 측이 아니다.
 >
@@ -628,7 +628,7 @@ sequenceDiagram
 
 ### 2.3.3 리전 해석·라우팅 — FR-RGN-\*
 
-인증된 호출자가 작업(업로드·연동) 직전 device/clinic→region을 해석해 **리전 ID·표시명·endpoint·운영상태·귀결 clinicId·mappingVersion·캐시 TTL·주권 정책**을 받는다(`RegionResolveResponse`). `deviceId`·`clinicId`는 동일 resolver가 같은 리전으로 귀결(ADR-10)한다. PHI는 해석된 리전 밖으로 이동하지 않는다(OPA, §7.3.3). 상세는 §7.3, 흐름은 ARD §5.2.
+인증된 호출자가 작업(업로드·연동) 직전 device/clinic→region을 해석해 **리전 ID·표시명·endpoint·운영상태·귀결 clinicId·mappingVersion·캐시 TTL·주권 정책**을 받는다(`Clinic`). `deviceId`·`clinicId`는 동일 resolver가 같은 리전으로 귀결(ADR-10)한다. PHI는 해석된 리전 밖으로 이동하지 않는다(OPA, §7.3.3). 상세는 §7.3, 흐름은 ARD §5.2.
 
 ```mermaid
 sequenceDiagram
@@ -636,7 +636,7 @@ sequenceDiagram
     participant C as 호출자 (Device/EZ)
     participant GW as GW (Region Resolver)
     participant R as Redis 캐시
-    C->>GW: GET /v1/region/resolve?deviceId|clinicId
+    C->>GW: GET /v1/clinics/me
     GW->>R: 매핑 조회 (TTL)
     alt 캐시 히트
         R-->>GW: region · mappingVersion
@@ -661,20 +661,20 @@ sequenceDiagram
     participant KMS as KMS
     participant DB as GW DB
     Note over OP,DB: upstream(예 AXS) 연동 등록 — upstream 1 레코드(라우팅+자격+webhook 수신) · 런타임 호출 이전 1회 · 클리닉 enroll과 순서 무관
-    OP->>GW: POST /admin/v1/upstreams (target_id=axs · host · profile=external · timeout · [egress·OAuth 자격] · [inbound_host·sig_scheme·secret·*_path])
+    OP->>GW: POST /v1/admin/upstreams (target_id=axs · host · profile=external · timeout · [egress·OAuth 자격] · [inbound_host·sig_scheme·secret·*_path])
     GW->>KMS: 자격·시크릿 저장(credential_ref·secret_ref)
     KMS-->>GW: KMS 참조
     GW->>DB: upstream upsert (1행 — KMS 참조만·원문 미저장)
     OP->>GW: 정책 설정 (upstream=axs 허용 endpoint·scope)
     GW->>DB: policy insert
-    Note over OP,DB: 분배 채널 레코드 없음(clinic→MQTT 토픽 규약 도출·§7.6.6) · org_mapping은 클리닉이 이 upstream 쓸 때 자가 등록 · 삭제는 DELETE /admin/v1/upstreams/{targetId}
+    Note over OP,DB: 분배 채널 레코드 없음(clinic→MQTT 토픽 규약 도출·§7.6.6) · org_mapping은 클리닉이 이 upstream 쓸 때 자가 등록 · 삭제는 DELETE /v1/admin/upstreams/{targetId}
 ```
 
 #### 연동 링크·`org_mapping` 생애주기 (AXS 기준) — 언제 생기고·어디서 쓰나
 
 앞의 [1] upstream 등록(운영자·전역 1회)과 달리, **클리닉이 그 연동을 실제 켤 때** `org_mapping`(외부 Org-ID ↔ clinic_id) 한 행이 생긴다. 여기서 **두 가지를 분리**해야 한다(오해가 잦은 지점):
 
-- **(로컬) `org_mapping` 등록 = `POST /v1/clinics/{clinicId}/org-bindings`** — GW **DB에 매핑 한 행을 기록**할 뿐 **AXS를 호출하지 않는다**. GW가 라우팅/분배에 쓰는 로컬 지식이다(모든 upstream 공통).
+- **(로컬) `org_mapping` 등록 = `POST /v1/clinics/me/org-bindings`** — GW **DB에 매핑 한 행을 기록**할 뿐 **AXS를 호출하지 않는다**. GW가 라우팅/분배에 쓰는 로컬 지식이다(모든 upstream 공통).
 - **(원격) AXS 연동 링크 = AXS Organization API 호출** — AXS 쪽에 "이 조직을 우리 integrating entity와 연결"하는 것으로, **별개의 프록시 호출**(`Vatech-Target: axs` 경로③·External Connector가 OAuth 부착)이다. AXS 문서 기준 `POST /v1/organization/integration/link`(`customerNumber` + integrating entity=Client ID) → `organizationId` + **org-admin 동의**(status `PENDING`→`APPROVED`, Data Reader 동의 요건)로 완료된다. **조직 자체는 우리가 만들지 않는다**(클리닉=Straumann 고객·`customerNumber` 보유). 보조 API: `.../integration/check`(연결 확인)·`.../integration/{customerNumber}/info`(region·countryCode).
 
 따라서 클리닉은 **두 경우**로 나뉜다 — **(A) 이미 AXS에 연결돼 `organizationId`를 아는 클리닉**: 링크 생략, 바로 org-binding으로 로컬 매핑만 기록. **(B) 아직 미연결 클리닉**: 먼저 AXS 링크([2a])로 동의·`organizationId`를 얻고 → org-binding으로 매핑 기록([2b]).
@@ -689,7 +689,7 @@ sequenceDiagram
     participant AXS as AXS(외부 upstream)
 
     Note over OP,DB: [1] 사전 등록 — upstream(axs) 1행 (운영자·전역 1회 · org_mapping 아직 없음)
-    OP->>GW: POST /admin/v1/upstreams (target_id=axs)
+    OP->>GW: POST /v1/admin/upstreams (target_id=axs)
     GW->>DB: upstream(axs) upsert
 
     Note over EZ,AXS: [2a] (경우 B만) AXS 연동 링크 — 프록시 경유(AXS 실제 호출) · 경우 A는 생략
@@ -699,7 +699,7 @@ sequenceDiagram
     GW-->>EZ: organizationId
 
     Note over EZ,DB: [2b] org_mapping 등록 (GW 로컬 · AXS 미호출) — 유일한 매핑 생성 시점
-    EZ->>GW: POST /v1/clinics/{clinicId}/org-bindings (externalOrgId=organizationId)
+    EZ->>GW: POST /v1/clinics/me/org-bindings (externalOrgId=organizationId)
     GW->>DB: org_mapping upsert (axs, organizationId) to CLINIC-...
 
     Note over EZ,AXS: [3] 송신(outbound) — clinic to org_id 정조회(읽기)
@@ -713,7 +713,7 @@ sequenceDiagram
     GW->>EZ: 그 클리닉 MQTT 토픽으로 분배 gw/clinic/{clinicId}/webhook
 ```
 
-> **enroll과의 순서**: `org_mapping`은 clinic_id를 참조하므로 **[2b]는 온보딩(enroll·§2.3.1)으로 clinic이 존재한 뒤**라야 한다. 그 외 enroll과 연동은 독립이다(연동 안 하면 org_mapping 없음). 해지는 `DELETE /admin/v1/org-mappings`(로컬)로 그 행만 제거하며, AXS 쪽 해제가 필요하면 `.../integration/unlink`를 프록시로 호출한다.
+> **enroll과의 순서**: `org_mapping`은 clinic_id를 참조하므로 **[2b]는 온보딩(enroll·§2.3.1)으로 clinic이 존재한 뒤**라야 한다. 그 외 enroll과 연동은 독립이다(연동 안 하면 org_mapping 없음). 해지는 `DELETE /v1/admin/org-mappings`(로컬)로 그 행만 제거하며, AXS 쪽 해제가 필요하면 `.../integration/unlink`를 프록시로 호출한다.
 >
 > **GW 공통 vs ④ AXS Sub-SRS 분담**: 본 SRS(GW)는 **공통**만 정한다 — ① `org_mapping` 테이블 + org-bindings API(로컬 매핑) · ② AXS Organization API를 **탈 수 있는 프록시 레일**(upstream `axs` + External Connector · 특정 엔드포인트 하드코딩 없음). **AXS 고유 시퀀스**(link/check/unlink/info 절차, 동의 `PENDING`→`APPROVED` 폴링·`customerNumber` 확보·트리거 주체·organizationId→clinic 반영·region/countryCode 활용, 경우 A/B 판정)는 **④ Straumann(AXS) Sub-SRS**에서 구체화한다.
 
@@ -856,7 +856,7 @@ sequenceDiagram
     OP->>CO: Console 접속
     CO->>EN: OIDC 로그인(redirect·MFA)
     EN-->>CO: ID/Access 토큰(role claim: Admin|CS)
-    CO->>GW: /admin/v1/* 호출 (Bearer + role claim)
+    CO->>GW: /v1/admin/* 호출 (Bearer + role claim)
     GW->>GW: IdP 토큰 검증(JWKS) · claim to RBAC(§7.9.2)
     alt 권한 충족
         GW-->>CO: 처리(예 device 승인 pending to active)
@@ -1127,7 +1127,7 @@ GW는 **두 면(surface)** 만 노출한다. 백엔드 API를 GW에서 재정의
 
 > **서브도메인(GW 라우팅) · `Vatech-Target`(EzServer 앞단 hop 키) ≠ `Vatech-*` 식별 헤더(§7.7.1).** 식별·버전·리전 헤더는 `Vatech-*` 표준(`Product`·`Version`·`OS`·`Clinic-Id`·`Via`)만 쓰며 **버전 호환 판정용 필수**(FR-COMPAT-01)다 — "누가·어떤 버전·어느 클리닉"을 싣는다. **GW 앞단 라우팅은 Host(서브도메인)** 로 정하고, `Vatech-Target`은 **CleverOne→EzServer 구간에서만** "어느 논리 서비스로"를 지시하는 키다(EzServer가 서브도메인으로 변환). 이름이 비슷하나 역할이 다르다(식별 vs 라우팅 hop 지시).
 
-5. **GW 고유 API 컨벤션**: REST/JSON, **경로 버전 프리픽스 `/v1`**(예 `/v1/auth/token`, 관리 API는 `/admin/v1/*`; Webhook 수신 경로는 유연·upstream별 등록이라 본 컨벤션 예외 — §4.1.3·§7.6.1), camelCase 필드, 시간 Unix ms(§1.3), 표준 오류코드(§7.7.4), idempotency key(§4.5). 단 `/.well-known/*`은 표준 관례상 버전 프리픽스 없이 노출(§7.7.2). 스키마 정본은 Swagger(code-first). **인증 스킴을 전 오퍼레이션에 명시**(상속 없음): 디바이스 API=`deviceAuth`(private_key_jwt·§7.1.1), 운영자·콘솔/관리 API=`operatorAuth`(직원 IdP OIDC·§7.1.4·RBAC §7.9.2), webhook 수신=`webhookHmac`(발신자 HMAC 서명·§7.6.2). 토큰 발급/검증·enroll·well-known만 `security:[]`(무인증). OpenAPI는 **디바이스/운영자·콘솔/외부·공개 3청중으로 섹션 분리 배치**(단일 spec 유지). enrollment 승인=운영자 API `PATCH /v1/devices/{id}`(operatorAuth·C/S).
+5. **GW 고유 API 컨벤션**: REST/JSON, **경로 버전 프리픽스 `/v1`**(예 `/v1/auth/token`, 관리 API는 `/v1/admin/*`; Webhook 수신 경로는 유연·upstream별 등록이라 본 컨벤션 예외 — §4.1.3·§7.6.1), camelCase 필드, 시간 Unix ms(§1.3), 표준 오류코드(§7.7.4), idempotency key(§4.5). 단 `/.well-known/*`은 표준 관례상 버전 프리픽스 없이 노출(§7.7.2). 스키마 정본은 Swagger(code-first). **인증 스킴을 전 오퍼레이션에 명시**(상속 없음): 디바이스 API=`deviceAuth`(private_key_jwt·§7.1.1), 운영자·콘솔/관리 API=`operatorAuth`(직원 IdP OIDC·§7.1.4·RBAC §7.9.2), webhook 수신=`webhookHmac`(발신자 HMAC 서명·§7.6.2). 토큰 발급/검증·enroll·well-known만 `security:[]`(무인증). OpenAPI는 **디바이스/운영자·콘솔/외부·공개 3청중으로 섹션 분리 배치**(단일 spec 유지). enrollment 승인=운영자 API `PATCH /v1/admin/devices/{id}`(operatorAuth·C/S).
 
 6. **프록시 실패·업스트림 오류 의미론.** **GW→upstream 연결 timeout(connect/response/total_deadline)은 GW 책임**(GW가 직접 연결하는 HTTP 클라이언트, 7/2 R4·§7.5.4·D1~D3), **재시도·서킷 브레이커는 service mesh(istio) egress**가 담당(GW 미구현). GW는 **자기 timeout·연결 실패, mesh 기인 오류**(연결 실패=`502` / timeout·deadline 초과=`504` / 서킷·일시불가=`503`)를 **표준 error envelope**로 정규화하고, **upstream 자체 4xx/5xx는 verbatim 통과**(body 미변형)하되 **`Vatech-Error-Origin`(`gateway`|`upstream`)** 마커로 책임을 구분한다(§7.7.4). 클라이언트 조기 절단 시 GW는 upstream 호출을 **취소**한다(cancellation 전파). 재시도·서킷 값은 GW가 소유·저장하지 않는다(istio 설정).
 
@@ -1717,7 +1717,7 @@ FR-RGN-01·06 (단일 리전 resolver, resolver가 `device_id`·`clinic_id` 모�
 
 - **Input**: `device_id` 또는 `clinic_id`(인증된 호출자)
 - **Trigger**: 작업(업로드·연동) 직전 region 해석 요청
-- **Output** (`RegionResolveResponse`, OpenAPI): 해석된 `region`(ID)·`regionDisplayName`(표시명)·`endpoint`·`status`(active/draining/planned)·귀결 `clinicId`(region SSOT=clinic)·`mappingVersion`(drift·캐시 stale 판정)·`cacheTtlSeconds`(클라 캐시 허용 시간)·`hosts`(공개 호스트 참고 — `apex`·`webhookHostPattern`, 모두 GeoDNS라 **리전 불변**)·`sovereigntyPolicy`(`dataResidencyRegion`·`phiEgressAllowed`=false·`crossBorder`·`storage`{`hostedBy`=upstream·`kind`(S3/MinIO)·`regionBound`=true} — GW storage 비호스팅·upstream 소유 §7.4). 두 키(device/clinic) 모두 **동일 리전**으로 해석(ADR-10)
+- **Output** (`Clinic`, OpenAPI): 해석된 `region`(ID)·`regionDisplayName`(표시명)·`endpoint`·`status`(active/draining/planned)·귀결 `clinicId`(region SSOT=clinic)·`mappingVersion`(drift·캐시 stale 판정)·`cacheTtlSeconds`(클라 캐시 허용 시간)·`hosts`(공개 호스트 참고 — `apex`·`webhookHostPattern`, 모두 GeoDNS라 **리전 불변**)·`sovereigntyPolicy`(`dataResidencyRegion`·`phiEgressAllowed`=false·`crossBorder`·`storage`{`hostedBy`=upstream·`kind`(S3/MinIO)·`regionBound`=true} — GW storage 비호스팅·upstream 소유 §7.4). 두 키(device/clinic) 모두 **동일 리전**으로 해석(ADR-10)
 - **Side Effect**: Redis 매핑 캐시(TTL 초 단위) 조회·갱신
 - **에러**: 매핑 부재 → 거부, 캐시 미스 → strong-consistency 경로 폴백
 - 상세 흐름: ARD §5.2
@@ -1843,7 +1843,7 @@ FR-WH-01 (외부 이벤트 수신면 — **upstream별 전용 호스트** `{targ
 FR-WH-02 (**식별** = Host/SNI → 레지스트리 `inbound_host`로 upstream·검증 시크릿 선택; **인증** = HMAC 서명 + timestamp replay 방지; source IP allowlist는 **옵션·방어심층**). **호스트명은 식별이지 인증이 아니다** — 신뢰는 HMAC으로 보장한다.
 
 - **에러**: 미등록 Host/서명 불일치/timestamp 만료 → 401·거부(부정 호출 차단). IP allowlist 사용 시 미허용 → 거부(옵션)
-- **검증 config 관리**: upstream별 `inbound_host`·`sig_scheme`·`secret_ref`(KMS 참조)·`source_ip_allowlist`(**CIDR 목록**, 옵션)는 **관리 API `/admin/v1/upstreams`(§7.9.1)로 등록·갱신**한다. **편리한 입력 UI(CIDR 검증·일괄 입력 등)는 ③-C Console**(GW는 API 계약까지).
+- **검증 config 관리**: upstream별 `inbound_host`·`sig_scheme`·`secret_ref`(KMS 참조)·`source_ip_allowlist`(**CIDR 목록**, 옵션)는 **관리 API `/v1/admin/upstreams`(§7.9.1)로 등록·갱신**한다. **편리한 입력 UI(CIDR 검증·일괄 입력 등)는 ③-C Console**(GW는 API 계약까지).
 
 ### 7.6.3 빠른 ACK + 내부 큐 (A · SQS) (P1)
 
@@ -1880,7 +1880,7 @@ gw/clinic/{clinicId}/{stream}        # {clinicId}=LMP 발급 Clinic-ID(전역 �
 ```
 
 - **리전은 토픽에 넣지 않는다.** `clinicId`가 전역 유일이라 그 자체로 클리닉/EzServer를 특정하고, **리전은 EzServer가 접속하는 브로커 endpoint 선택으로 이미 결정**된다(토픽 중복 불요·교차리전은 대상 리전 브로커로 발행).
-- **브로커 endpoint 획득(EzServer 측)**: EzServer는 **자기 클리닉 리전의 브로커 endpoint**에 접속해야 하며, 이 endpoint는 **region resolution(`GET /v1/region/resolve`)·enrollment config로 GW가 하달**한다(브로커 endpoint 필드는 #4 확정 시 `RegionResolveResponse.hosts`에 추가) — EzServer는 받은 endpoint에 붙어 자기 토픽만 구독한다. 클리닉 relocation(리전 변경) 시 EzServer는 **새 리전 브로커로 재접속**하며 토픽은 불변. (구체 endpoint 필드·브로커 문법은 브로커 제품 #4 확정 후.)
+- **브로커 endpoint 획득(EzServer 측)**: EzServer는 **자기 클리닉 리전의 브로커 endpoint**에 접속해야 하며, 이 endpoint는 **region resolution(`GET /v1/clinics/me`)·enrollment config로 GW가 하달**한다(브로커 endpoint 필드는 #4 확정 시 `Clinic`/config 응답에 추가) — EzServer는 받은 endpoint에 붙어 자기 토픽만 구독한다. 클리닉 relocation(리전 변경) 시 EzServer는 **새 리전 브로커로 재접속**하며 토픽은 불변. (구체 endpoint 필드·브로커 문법은 브로커 제품 #4 확정 후.)
 - **`{stream}` = 범용 하행 레일(예약 확장점)**: 이 MQTT 하행은 **GW→방화벽 뒤 EzServer로 능동 전달하는 최초의 수단**이라, 토픽에 `{stream}` 축을 두어 미래 다양한 하행 용도를 무구조변경으로 수용한다. **v1.0 구현 = `webhook`(이벤트 분배) 하나뿐**이며, `announce`(공지·클라이언트 업데이트 안내)·`command`(kill-switch 등)·`config`(원격 설정, §7.8.4)·`promo` 등은 **예약된 미래 확장점(미구현)** 이다. 새 용도는 **발행자만 추가**하면 되고 레일·구독은 불변(확장점 예약 비용≈0, 기능은 미구현).
 - **구독·격리**: EzServer는 **자기 클리닉 프리픽스 전체를 구독**(`gw/clinic/{clinicId}/#`)하고 **모르는 stream은 무시**한다(미래 stream 추가 시 재구독·재배포 불요·forward-compat; v1.0은 `webhook`만 처리). 브로커 authz(cert/IoT policy)로 **타 클리닉 토픽 접근을 차단**한다. (EzServer=클리닉당 1대·ADR-08이라 clinic-scope = 그 device.)
 - **QoS·전달**: 모든 하행 **QoS1·persistent**(오프라인 버퍼 후 재전달). 따라서 `webhook_event.dispatch_target` = `mqtt_edge:gw/clinic/{clinicId}/webhook`.
@@ -2013,9 +2013,9 @@ push-notify 메시지(gw/1.1+)는 **트리거일 뿐 config 본문을 싣지 않
 
 **적용·오류·drift(gw/1.1+).** device는 받은 config를 **원자적으로 적용**하고, 실패 시 **이전 config를 유지**한 채 다음 pull에서 재시도한다. device는 적용한 버전(`appliedConfigVersion`)을 heartbeat 본문에 실어 보고하고, GW는 이를 실효 버전과 비교해 **미반영(drift) device를 대시보드에 노출**한다(관리 API §7.9 / ③-C).
 
-**관리·보안.** 운영자는 `GET/PUT/DELETE /admin/v1/config`(design/openapi, `admin` 태그)로 (스코프, 키, 값)을 CRUD하며, 모든 변경은 감사된다(action=`config.publish`, §7.9.3). config에 **PHI를 넣지 않는다**(§6.4). device pull은 인증 필수이며 device는 **자기 스코프의 실효 config만** 조회한다(타 device config 노출 금지). 값은 키 레지스트리 스키마로 검증해 잘못된 타입·범위를 거부한다.
+**관리·보안.** 운영자는 `GET/PUT/DELETE /v1/admin/config`(design/openapi, `admin` 태그)로 (스코프, 키, 값)을 CRUD하며, 모든 변경은 감사된다(action=`config.publish`, §7.9.3). config에 **PHI를 넣지 않는다**(§6.4). device pull은 인증 필수이며 device는 **자기 스코프의 실효 config만** 조회한다(타 device config 노출 금지). 값은 키 레지스트리 스키마로 검증해 잘못된 타입·범위를 거부한다.
 
-- **Input**: config 페이로드((스코프, 키, 값)) + 타겟 스코프(global/region/clinic/device) — 운영자 `PUT /admin/v1/config`
+- **Input**: config 페이로드((스코프, 키, 값)) + 타겟 스코프(global/region/clinic/device) — 운영자 `PUT /v1/admin/config`
 - **Output**: device별 실효 config 원격 적용 — device는 pull(`GET /v1/fleet/config` · heartbeat `configVersion` 신호) 또는 push-notify(역방향 MQTT) 수신
 - **에러**: 적용 실패 시 device가 이전 config 유지·다음 pull 재시도. GW는 drift(미반영) device를 가시화
 
@@ -2029,7 +2029,7 @@ push-notify 메시지(gw/1.1+)는 **트리거일 뿐 config 본문을 싣지 않
 
 ### 7.9.1 테넌트·키·디바이스 관리 API (P1)
 
-FR-ADM-01 (CRUD API, MVP 경량). Console(③-C)이 호출. 테넌트·키·디바이스에 더해 **분배 지식·연동 레지스트리 관리** 포함 — Org-ID↔ClinicID 매핑(`/admin/v1/org-mappings`, GET/POST/**DELETE**)·**연동 대상 통합(`/admin/v1/upstreams` — 라우팅+아웃바운드 자격+인바운드 webhook 수신)**. 각 레지스트리는 GET(조회)+POST(등록/갱신 upsert)+DELETE(연동 해지) 제공. **관측·감사 조회(GW 런타임 생성 데이터, write API 없음)**: webhook 이벤트 메타 검색 `GET /admin/v1/webhook-events`(target/clinic/event_type/state/기간 필터·payload 본문 미포함·§7.6), fleet 상태 `GET /admin/v1/fleet`(heartbeat·성공률 대시보드·§7.8), 감사 `GET /admin/v1/audit`. **정책 관리**(`/admin/v1/policies` GET/POST/DELETE·FR-INT-03·deny-by-default라 v1.0 필수)·**리전 카탈로그 관리**(`/admin/v1/regions` POST/PUT/DELETE·§7.3.6, 조회는 `GET /v1/regions`)도 제공(#32·#30 해소). **upstream(예: AXS) 하나 등록 = `upstream` 1 레코드**(+정책·클리닉별 org_mapping)이므로 Console이 등록하고 credential/secret은 KMS 저장(원문 미노출)·감사(action=`upstream.upsert`) — 등록 레코드·화면 가이드는 **③-C `_status.md`(작성 가이드)** 참조. 전체 스키마는 Swagger.
+FR-ADM-01 (CRUD API, MVP 경량). Console(③-C)이 호출. 테넌트·키·디바이스에 더해 **분배 지식·연동 레지스트리 관리** 포함 — Org-ID↔ClinicID 매핑(`/v1/admin/org-mappings`, GET/POST/**DELETE**)·**연동 대상 통합(`/v1/admin/upstreams` — 라우팅+아웃바운드 자격+인바운드 webhook 수신)**. 각 레지스트리는 GET(조회)+POST(등록/갱신 upsert)+DELETE(연동 해지) 제공. **관측·감사 조회(GW 런타임 생성 데이터, write API 없음)**: webhook 이벤트 메타 검색 `GET /v1/admin/webhook-events`(target/clinic/event_type/state/기간 필터·payload 본문 미포함·§7.6), fleet 상태 `GET /v1/admin/fleet`(heartbeat·성공률 대시보드·§7.8), 감사 `GET /v1/admin/audit`. **정책 관리**(`/v1/admin/policies` GET/POST/DELETE·FR-INT-03·deny-by-default라 v1.0 필수)·**리전 카탈로그 관리**(`/v1/admin/regions` POST/PUT/DELETE·§7.3.6, 조회는 `GET /v1/regions`)도 제공(#32·#30 해소). **upstream(예: AXS) 하나 등록 = `upstream` 1 레코드**(+정책·클리닉별 org_mapping)이므로 Console이 등록하고 credential/secret은 KMS 저장(원문 미노출)·감사(action=`upstream.upsert`) — 등록 레코드·화면 가이드는 **③-C `_status.md`(작성 가이드)** 참조. 전체 스키마는 Swagger.
 
 ### 7.9.2 운영자 RBAC (P1)
 
@@ -2097,9 +2097,9 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 28 | `client_id` 발급 형식 | **확정(2026-07-01): `client_id` = `gwc_` + base64url(128비트 CSPRNG)**(패딩 없음, 총 26자, 불투명·내부 식별자 비파생·비밀 아님). UNIQUE 충돌 시 재생성(무시할 확률). 재설치·키 회전 시 재발급 | §7.2.5·§7.1.1 |
 | 26 | IaC 도구 | **확정(2026-07-02, R5): Terraform** — 조직 표준 `es-infra`(Terraform)에 편입, 별도 IaC 도구 없음(ARD §4.5 일치). k8s 배포=기능별 Deployment 분리(GW core·Webhook Receiver·Webhook Dispatcher) | §6.6.2·§2.1.1·§7.6 |
 | 31 | egress 규칙 SSOT 일원화 | **확정(2026-07-06): egress_allowlist 단일 SSOT**(+`requireStaticEgressIp` 이관·이후 `upstream.egress_allowlist`로 병합). `policy.egress` 등 중복 **제거**(3중복 해소). egress=외부(C) 대상 속성이지 per-tenant authz 아님 — OPA·네트워크 모두 upstream 참조 | §7.5.3·§6.4·design/db-jsonb-fields.md |
-| 35 | 중앙 Config(§7.8.4) 저장·전달·버전 모델 | **확정(2026-07-06)**: SSOT=PostgreSQL `config` 테이블(`config_scope` global/region/clinic/device·다형 참조), 실효=키별 가장 구체 우선(override 병합), 실효 `configVersion`=**콘텐츠 해시(SHA-256)**, 키 레지스트리=**앱 레벨 확장형 seed**(db-jsonb#config·DB enum 아님), 관리=`/admin/v1/config` CRUD(감사 `config.publish`). **v1.0 실사용 = GW-내부 config(`gw.*`, pod·리전 공유)** + heartbeat 주기(`gw.heartbeat.interval_seconds`)를 heartbeat 응답으로 device 전달. **device로의 원격 config 전달(`device.*`·`GET /v1/fleet/config` pull·MQTT `config` stream push-notify·configVersion drift)=gw/1.1+**(§7.6.6 범용 하행 레일의 미래 활용). Console UI=③-C. 기타 비목표(gw/1.1↑): rollout/카나리·명명 그룹(FR-FLEET-04) | §7.8.4·§7.8.1·§7.6.6·design/dbml·design/db-jsonb-fields.md#config·design/openapi |
-| 30 | region 카탈로그 관리 API | **확정(2026-07-07)**: **`/admin/v1/regions` POST(개통)·`/{regionId}` PUT(active/draining/planned 전이)·DELETE(회수) 신설**, 조회=`GET /v1/regions`. v1.0=1행 시드로 충분·gw/1.2 다행. 잔여(비-SRS)=Console region 관리 UI(③-C) | §7.3.6·§7.9.1 |
-| 32 | 정책(policy) 관리 API + 인가 세분화 수준 | **확정(2026-07-07)**: 관리 API **`/admin/v1/policies` GET/POST/DELETE 신설**(deny-by-default라 v1.0 필수). **v1.0 인가=coarse**(device/clinic이 upstream 사용 가능까지 + egress + 인증 + region/PHI) — operation·데이터 격리는 **AXS+Org-ID 위임**. `allowed_endpoints`·`scopes`·토큰 `scope` 세분화는 **optional·예약**(gw/1.1+ 활성화·비파괴). 정책 스코프=device→clinic→global(deny-by-default·clinic 상한). scope 값 카탈로그=④. 잔여(비-SRS)=Console UI(③-C)·차원별 병합 OPA/Rego(LLD) | §7.5.3·§7.9.1·§7.1.1·§6.4 |
+| 35 | 중앙 Config(§7.8.4) 저장·전달·버전 모델 | **확정(2026-07-06)**: SSOT=PostgreSQL `config` 테이블(`config_scope` global/region/clinic/device·다형 참조), 실효=키별 가장 구체 우선(override 병합), 실효 `configVersion`=**콘텐츠 해시(SHA-256)**, 키 레지스트리=**앱 레벨 확장형 seed**(db-jsonb#config·DB enum 아님), 관리=`/v1/admin/config` CRUD(감사 `config.publish`). **v1.0 실사용 = GW-내부 config(`gw.*`, pod·리전 공유)** + heartbeat 주기(`gw.heartbeat.interval_seconds`)를 heartbeat 응답으로 device 전달. **device로의 원격 config 전달(`device.*`·`GET /v1/fleet/config` pull·MQTT `config` stream push-notify·configVersion drift)=gw/1.1+**(§7.6.6 범용 하행 레일의 미래 활용). Console UI=③-C. 기타 비목표(gw/1.1↑): rollout/카나리·명명 그룹(FR-FLEET-04) | §7.8.4·§7.8.1·§7.6.6·design/dbml·design/db-jsonb-fields.md#config·design/openapi |
+| 30 | region 카탈로그 관리 API | **확정(2026-07-07)**: **`/v1/admin/regions` POST(개통)·`/{regionId}` PUT(active/draining/planned 전이)·DELETE(회수) 신설**, 조회=`GET /v1/regions`. v1.0=1행 시드로 충분·gw/1.2 다행. 잔여(비-SRS)=Console region 관리 UI(③-C) | §7.3.6·§7.9.1 |
+| 32 | 정책(policy) 관리 API + 인가 세분화 수준 | **확정(2026-07-07)**: 관리 API **`/v1/admin/policies` GET/POST/DELETE 신설**(deny-by-default라 v1.0 필수). **v1.0 인가=coarse**(device/clinic이 upstream 사용 가능까지 + egress + 인증 + region/PHI) — operation·데이터 격리는 **AXS+Org-ID 위임**. `allowed_endpoints`·`scopes`·토큰 `scope` 세분화는 **optional·예약**(gw/1.1+ 활성화·비파괴). 정책 스코프=device→clinic→global(deny-by-default·clinic 상한). scope 값 카탈로그=④. 잔여(비-SRS)=Console UI(③-C)·차원별 병합 OPA/Rego(LLD) | §7.5.3·§7.9.1·§7.1.1·§6.4 |
 
 ### B-2. 미결 (열린 TBD — baseline 전/설계 단계에 닫을 항목)
 
@@ -2108,7 +2108,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 38 | **GW Console 사용자 인증·역할 관리 방식** — **OneID=고객(클리닉/랩) IdP라 대상 아님**; Console 사용자=사내 직원(Admin·C/S). **기본안=MS365/Entra OIDC 연동**(자체 비번 없음·직원 SSO·퇴사 자동 오프보딩), 대안=GW 자체 user DB. 역할(Admin/C-S)=**Entra App Role/Group claim→RBAC**(별도 테이블 불요)이 기본; **C/S↔담당 클리닉 범위** 필요 시만 작은 GW 매핑 테이블. Agenda 상정 | §7.1.4·§7.9.2·§2.3 | GW+IT(Entra) | Console 구현 착수 전 | §7.9·③-C |
 | 39 | **C/S 승인 범위 — 국가/법인(entity)별 한정 여부** — C/S는 **클리닉별로는 한정 안 함 확정**(어느 C/S나 승인). 미확정: **국가/법인별로 C/S 승인 범위를 나눌지**(예 KR 법인 C/S는 KR 클리닉만). 확정 시 IdP claim(예 country/entity) 또는 최소 매핑으로 집행. 미정이라 v1.0은 범위 무한정. **참고: OneID 스펙의 "영업 지역(Sales Area)=바텍 해외 법인별 국가 그룹"(OneID SRS §2.5)이 동일 개념** — 국가/법인 스코핑 시 Entra의 country/법인 claim으로 같은 모델 적용 가능 | §7.9.2·§2.3.8 | GW+운영조직 | Console 정책 확정 시 | §7.9·③-C |
 | 40 | **Entra(MS365) 연동 선결 확인 (R6=Entra 채택의 전제)** — (a) **C/S 인력이 Vatech MS365/Entra 디렉터리에 존재하는지** 확인 — 현장 설치·해외법인(바텍네트웍스)·협력사 직원 포함 여부. 없으면 게스트 초대/별도 등록이 필요해 '자체 user 테이블 0' 전제가 흔들림. (b) **Entra 앱 등록·App Role/Group·admin consent·redirect URI는 tenant admin 권한**이라 **MS365/Entra 담당(IT)에 요청** 필요 — 담당자·절차·리드타임 확인 | §7.1.4·§7.9.2 | GW+IT(Entra 담당) | Console 구현 착수 전 | §7.9·③-C |
-| 41 | **Enrollment clinic record 보강 (LMP clinic 정보) — 수집 필드셋 확정 대기(R8)** — clinicId는 LMP `POST /licenses` 반환(확인 완료). LMP `GET /licenses`가 clinic 정보(`ClinicWithoutIdType`={name·address·phone·countyCode(국가 ISO3166)·website}) 제공 → Console 식별성 위해 clinic record 보강. **DB/API에 고정 필드로 선반영(TBD)**: DBML `clinic`(name·country_code·address·phone·website nullable)·OpenAPI(`ClinicInfo`·`EnrollCompleteRequest.clinic`·`PATCH /v1/clinics/{clinicId}` device self-only). **저장 구조=고정 컬럼 확정**(jsonb 아님·회의 안건 아님). **미결(R8 회의)=수집·저장 필드셋만**(추천=LMP 전부·최소=name+country_code). 잔여: 신규 클리닉 정보 시점·실제 형식(clinic_id 평문)·PII 범위 | §2.3.1·§7.3·§7.9·§6.4.1 | EzServer(③-P-EZ)+GW | enroll 구현 착수 전 | §2.3.1·Agenda R8 |
+| 41 | **Enrollment clinic record 보강 (LMP clinic 정보) — 수집 필드셋 확정 대기(R8)** — clinicId는 LMP `POST /licenses` 반환(확인 완료). LMP `GET /licenses`가 clinic 정보(`ClinicWithoutIdType`={name·address·phone·countyCode(국가 ISO3166)·website}) 제공 → Console 식별성 위해 clinic record 보강. **DB/API에 고정 필드로 선반영(TBD)**: DBML `clinic`(name·country_code·address·phone·website nullable)·OpenAPI(`ClinicInfo`·`EnrollCompleteRequest.clinic`·`PATCH /v1/clinics/me`(device)·`PATCH /v1/admin/clinics/{clinicId}`(operator)). **저장 구조=고정 컬럼 확정**(jsonb 아님·회의 안건 아님). **미결(R8 회의)=수집·저장 필드셋만**(추천=LMP 전부·최소=name+country_code). 잔여: 신규 클리닉 정보 시점·실제 형식(clinic_id 평문)·PII 범위 | §2.3.1·§7.3·§7.9·§6.4.1 | EzServer(③-P-EZ)+GW | enroll 구현 착수 전 | §2.3.1·Agenda R8 |
 | 42 | **Enrollment 신뢰 앵커(C/S 승인 vs LMP 라이선스 검증 자동승인) + 무인증 abuse 방지** — 배경=C/S Console 수동 승인이 현장 번거로움(이전 회의). LMP/ELM=Cryptlex(LexActivator+`product.dat` public key) 기반이라 오프라인 서명 검증 역량은 있으나 **device측 검증**이고 **GW-검증 포터블 증명은 현 API에 없음** → B는 LMP 소폭 변경 필요(불가 아님). **LMP=바텍(ES) 자체 클라우드**(Cryptlex 위)라 수정 가능하나 **LMP/ELM 팀 별도 개발·일정·현 Roadmap 외**(크로스팀) — B의 실질 비용. **A. C/S 수동(v1.0·LMP 무변경·인간검증·단 수동부담)** vs **B. 자동승인**: B1=**LMP(클라우드)-서명** attestation(EzServer/ELM 릴레이→GW가 LMP JWKS 검증·런타임 결합 없음·추천) / B2=GW→LMP 런타임 verify(가용성 결합). **B 채택 시 LMP/ELM 개발**: 공통=증명 device 바인딩(license key+clinicId±serial)·clinicId 포함 / B1=**LMP** 서명 키페어+JWKS 공개+attestation JWT 발급(LMP 신규 ep or activate 확장)+키 회전(ELM/EzServer는 릴레이만·로컬이라 서명자 부적합) / B2=GW용 verify 엔드포인트+GW 서비스자격(EAP OAuth)+cloud→cloud 접근성. 공통 단점=인간검증 상실·EzServer 버전 공존. **추천 v1.0=A**(LMP 무변경) + B1 병행 검토(gw/1.1). **B 결정 시**: LMP 수정 + **별도 추가 설계**(attestation 계약·JWKS·claims — LMP/ELM 팀 공동·별도 티켓/One Pager·현 SRS 밖) + Roadmap 일정 추가 필요. **B1 완충용 `EnrollStartRequest.licenseAttestation` optional 필드 예약 완료**(OpenAPI·v1.0 미사용). abuse=rate-limit·pending TTL·nonce(반영). 확인: LMP가 GW-검증 서명 attestation 발급 가능? | §7.2.3·§7.2.5·§7.1.1 | GW+EzServer/LMP(③-P-EZ) | enroll 구현 착수 전 | Agenda R9 |
 | 43 | **미승인 pending device 자동 만료 TTL 값 확정** — 무인증 enroll의 미승인 `pending`을 자동 만료(스팸·stale 정리·§7.2). **단위=일**(C/S 승인이 당일~익영업일 지연 가능). **추천 기본=7일**(설치-후-지연 승인 커버 + 누적 억제 · 만료돼도 재-enroll 가능이라 비파괴). 정확값은 **C/S 승인 SLA** 확인 후 config로 확정(너무 짧으면 정상 pending 조기 만료 · 너무 길면 stale 잔존). nonce challenge TTL(분·§7.2.6)과 별개 | §7.2·§7.2.6 | GW+운영조직 | enroll 구현 착수 전 | §7.2·Agenda R9 |
 | 33 | **비-EzServer·clinic-less device 구체화(미래 확장점)** — v1.0 device=EzServer(clinic-bound)뿐. 모델은 device-중심으로 clinic-less/비-EzServer를 **수용하도록 설계**(§1.2 Will Not Do)하되 구체 정체는 미정의. 실제 등장 시 확정: (a) clinic-less device의 **region 출처**(자체 지정/global) · (b) **upstream-org 신원**(`org_mapping`은 현재 clinic-키 → device-스코프 확장) · (c) **인증 부트스트랩**(EzServer=LM 라이선스·Clinic-ID; clinic-less는 다른 신뢰 앵커) · (d) policy `device` 스코프 실사용 | §1.2·§6.4.1·§7.2·§7.3 | GW(설계)+제품 로드맵 | 해당 device 연동 요구 시 | §1.2 Will Not Do·§6.4.1 |
@@ -2118,7 +2118,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 1 | v1.0 목표 RPS·동시 세션(fleet 규모) | §5.1·5.2 | 인프라(규모 PL 입력) | 설계 착수 전 | §3.1·§7.1·§7.4 |
 | 2 | 공개 엔드포인트 DNS 잔여 — apex는 확정(#23). 인증서·GeoDNS 구성·리전 내부 호스트 + **Webhook upstream별 호스트 `{target}.webhook.gw.vatech.com` 명시 등록**(와일드카드 DNS 미사용, TLS는 `*.webhook…` 와일드카드 cert 가능) | §4.5.1·§7.6.1·§7.6.2 | 인프라/플랫폼팀 | 배포 구성 착수 전 | §1.7.1·§3.1·§7.3.5·§7.6.1·①②④·③-C |
 | 3 | 경로 B EOS 시점 | §2.8·§7.6 | PM(제품) | ① One Pager 확정 시 | §7.6·① |
-| 4 | 엣지(B) MQTT 브로커 제품·운영 주체 — 후보 AWS IoT Core / Amazon MQ. (내부 큐 A=SQS는 §3.1.2, 별개) **논리 토픽 규약은 §7.6.6에 확정**(`gw/clinic/{clinicId}/{stream}`, 리전 미포함)이라, 잔여=**브로커 제품·운영 주체 + 브로커별 토픽 문법 매핑·authz(cert/policy) + 브로커 endpoint 하달 필드(`RegionResolveResponse.hosts`에 추가)** | §3.1.2·§7.6.6 | 운영조직/인프라(미정) | ③-P-EZ 착수 전 | §7.6·§3.1.2·ARD |
+| 4 | 엣지(B) MQTT 브로커 제품·운영 주체 — 후보 AWS IoT Core / Amazon MQ. (내부 큐 A=SQS는 §3.1.2, 별개) **논리 토픽 규약은 §7.6.6에 확정**(`gw/clinic/{clinicId}/{stream}`, 리전 미포함)이라, 잔여=**브로커 제품·운영 주체 + 브로커별 토픽 문법 매핑·authz(cert/policy) + 브로커 endpoint 하달 필드(`Clinic`/config 응답에 추가)** | §3.1.2·§7.6.6 | 운영조직/인프라(미정) | ③-P-EZ 착수 전 | §7.6·§3.1.2·ARD |
 | 5 | 감사·consent 보존 기간 | §6.4·§7.9.3·§7.9.5 | 품질/법무 | baseline 전 | §6.5 |
 | 6 | OpenAPI·DBML (`docs/specs/design/`) | §1.5·§4.1·§6.4 | GW(본인) | dev-chain-design 작성 후 | §7 전반 |
 | 8 | 호환성 매트릭스 확정본 **+ 불일치 반응 정책**(major=차단/minor=경고 통과/patch=무시 3단계·경고 헤더명·API↔제품 버전 매핑) — 선례=CleverOne↔EzServer 게이팅(참조-카탈로그 §3) · **관리 lifecycle 확정(§7.7.5)**: git/CI 저작·Console 뷰어 · 소스=`vt-api-gateway` `config/compat-matrix.yaml` · **런타임 S3 로딩(CI-only write)+path-scoped 발행 파이프라인으로 앱 재배포와 분리** · **CI 토폴로지=`vt-api-gateway` 단일 repo+path 분기 권장(Agenda R5·최종=③-I)** · ① One Pager(VKS)=사람용 확정본 동기화 · **잔여=매트릭스 값(min 버전)·반응 정책 확정값**(① 산출) | §2.8·§7.7.3·§7.7.5 | ① One Pager · GW | ① 확정 시 | §7.7 |
@@ -2343,11 +2343,13 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-07 | **§2.3 `org_mapping` 생애주기 다이어그램 신설(AXS 기준) + 양방향 사용 명확화** — org_mapping이 "언제 한 행 생기나(=[2] 클리닉이 AXS 연동 켤 때뿐)"와 "생긴 뒤 소비 경로"를 mermaid 시퀀스([1]upstream 사전등록 → [2]org-binding 생성 → [3]송신 정조회 → [4]수신 역조회 → 해지 DELETE)로 시각화. org_mapping 노트를 **양방향**(송신 outbound `clinic→org_id` 정조회 + 수신 inbound `org_id→clinic` 역조회)으로 보정(기존 webhook 수신 전용 서술 오해 제거·§6.4.1과 정합). 겸사겸사 §2.3 산문의 잔여 `provider`→`upstream` 정리(노트·분배 규약·라우팅 Flow 헤딩/인트로). 네이밍은 **`upstream` 유지 확정**(내부 backend 포함 대상엔 provider 부적합·회의 어법 일치) | (작성자 ID 미지정) |
 | 2026-07-07 | **OneID GW 완전 제거 확정 — 인증(device·Console)·`oneid` upstream·③-P-OID 전면 삭제** — OneID의 GW 내 유일 역할이 인증 연동이었고(원본 80문서 ADR-08 '사람·클리닉·사내호출자 OneID(OIDC)'), 그게 사라지면 `oneid` upstream·③-P-OID 적응 스펙도 데이터 경로 없는 잔재임을 확인(OneID SRS §1.2·§2.5 정독). Device→GW=private_key_jwt(ADR-13)·운영자=직원 IdP(Entra·§7.1.4) 최종 확정. 제거: §2.1/§2.2 다이어그램 OneID·OneID Integration 노드·엣지, 외부시스템표·upstream·의존·B프록시 리스트의 OneID, env matrix OneID 행, Appendix B #10 리뷰어 'OID', §7.1.4 heading/본문·산재 '고객 OneID 아님' clarifier, audit actor 예시 oneidSub→sub. 동반: DBML(upstream enum/예시)·OpenAPI·redis·db-jsonb·③-P-OID 디렉터리·roadmap·실행할당·PRD·요구사항·ARD·API명세·인증보안. OneID는 '고객 신원 제품' 배경 서술로만 잔존(§7.1.4). 원본 80문서(-Org)도 동반 정정(승인). 근거·비교표=Agenda Share | (작성자 ID 미지정) |
 | 2026-07-07 | **운영자·device 인증면 정합 — `oidc` rename 잔재 제거 + "매핑"→"분리·공존" 정정** — `oneid→oidc` 리네이밍이 운영자(Console) 인증 스키마에 device 잔재를 남긴 것을 정리: OpenAPI `OidcVerifyResponse.deviceBinding` 삭제·identity 예시 `clinicId` 삭제(#39)·200 설명 정정. 두 인증면(device=private_key_jwt / 운영자=Entra OIDC)은 '매핑으로 연결'이 아니라 **완전 분리·공존**이고 교차 행위는 감사(actor `user:`/`device:`)에서만 상관됨을 §7.1 intro·§7.1.4(Output·FR 인용)·요구사항 FR-AUTH-09·인증보안에 반영. 경로 분리 재확인: device→GW=`/v1/auth/token`(§7.1.1)·운영자=`/v1/auth/oidc/verify`(§7.1.4) — SRS·OpenAPI·DBML 교차오염 0 | (작성자 ID 미지정) |
+| 2026-07-08 | **OpenAPI 전 오퍼레이션 summary·description·버전 표기 정비** — 37개 op 전부에 **버전 태그**(`[v1.0]`/`[gw/1.1+]`/`[v1.0 · gw/1.2 확장]`/`[gw/1.2]`) 부여, description 없던 22개 신설(호출자·동작·버전 동작 명시). `/v1/region/resolve`는 **v1.0=단일 리전 자기 확인·mappingVersion·주권 조회(endpoint/hosts=진단용)·gw/1.2=다중 리전 해석**으로 버전 동작 명확화 + authz self-only 권장 명시(임의 clinicId 교차 조회는 operator 전용·Appendix B). 멀티리전 관련(getRegions·region/resolve·regions admin·clinic region 변경)은 v1.0·gw/1.2 구분 표기. redocly valid | (작성자 ID 미지정) |
 | 2026-07-08 | **미승인 pending 자동 만료 TTL 기본값 = 7일(config)** — enroll 미승인 pending 정리 TTL을 **일 단위·기본 7일**로 권고 반영(시간 단위면 바쁜 C/S 승인 전 정상 pending 조기 만료 위험·만료돼도 재-enroll 비파괴). §7.2 abuse 불릿·DBML device Note에 '기본 7일·config' 명시, 정확값 확정(C/S 승인 SLA)=Appendix B #43 신설. nonce TTL(분·§7.2.6)과 별개 | (작성자 ID 미지정) |
 | 2026-07-08 | **enroll B안 GW-side API 정합 (DBML 무변경 확인)** — B(제3자 서명 자동승인)의 GW 계약 반영: **`licenseAttestation`를 `EnrollStartRequest`→`EnrollCompleteRequest`로 이동**(status 결정 지점·§2.3.1 B 다이어그램 일치). enroll/complete 응답은 이미 `status`(DeviceStatus)라 **active(B)/pending(A) 둘 다 표현** — summary·description·202 desc를 A/B 공존으로 정합. redis `gw:cache:jwks`→**`{issuer}` 발급기별**(운영자 IdP + LMP). **DBML 구조 변경 불요**: 신규 테이블 없음·LMP issuer/JWKS URL=infra/env config(운영자 IdP와 동일)·attestation 비영속(enroll 시 transient 검증)·승인 방식(A/B)=audit_log actor로 추적(device 컬럼 불요). device Note에 승인 경로 A/B 명시. LMP측 개발=③-P-LMP OnePager | (작성자 ID 미지정) |
 | 2026-07-08 | **enroll 승인 C안(OneID 클리닉 사용자 인가) 검토 후 제외** — A(C/S)·B(LMP 제3자 서명) 외에 **클리닉 고객이 OneID 로그인으로 enroll 승인**하는 방식 검토. 제외 사유: 여전히 사람(고객) 개입(B 무인 자동 이점 없음)·OneID 커버리지 의존·라이선스 아닌 '의도'만 증명·**'OneID GW 미사용' 결정 되돌림**. 무-C/S 원격 self-service 온보딩 수요 시 재검토. Agenda R9에 '검토 후 제외' 기록(재부상 방지) | (작성자 ID 미지정) |
 | 2026-07-08 | **enroll B안 정합 — JWKS 런타임 fetch 단일화 + ③-P-LMP One Pager 신설** — (1) §2.3.1 B 다이어그램에 **GW가 LMP JWKS를 런타임 fetch+캐시(`gw:cache:jwks`)** 하는 단계 추가(pin/복사 fallback 폐기·런타임 fetch 단일·§7.1.4 방식 재사용) · (2) 다이어그램·R9의 "(Cryptlex 키 아님)" 사족 제거(간결화) — GW 검증 키=LMP JWKS로 통일 · (3) **`specs/03p-lmp-license/`(③-P-LMP) 신설** — `_status.md` 씨앗 + `OnePager.md` 초안(LMP 제3자 서명 attestation 설계: LMP 서명·EzServer 릴레이·GW JWKS 검증·claims·키 회전·A안 공존). README·실행할당표·Roadmap §4에 LMP 등록. 소유=ES 라이선스/ELM 팀(크로스팀·조건부·R9) | (작성자 ID 미지정) |
 | 2026-07-08 | **§2.3.1 온보딩 A/B flow 분리 + enroll 승인 '공존' 재정의** — enroll 승인 flow가 **택일이 아니라 공존**임을 명확화: **A. C/S 수동 승인**(모든 device·보편/fallback·v1.0) + **B. 제3자(LMP) 서명 자동승인**(LMP 등록 device·gw/1.1+·TBD). §2.3.1에 **A/B 시퀀스 2개** 기록(B=LMP가 attestation 서명→GW가 **LMP JWKS**로 검증·Cryptlex 키 아님). '제3자 서명' 용어 채택. Agenda R9=v1.0 우선순위(A먼저 추천)로 재구성. LMP를 Roadmap §4 제품표에 조건부 행으로 추가(B 채택 시 ES 라이선스팀 크로스팀·Roadmap 추가). Agenda S2에 스펙 작성 현황표(이모지) 추가. Appendix B #42 | (작성자 ID 미지정) |
+| 2026-07-08 | **API 네임스페이스·clinic 표면 재구성(#4 확정 실행)** — (1) **operator 전부 `/v1/admin/*`**(버전 우선·업계 관행 대조 후 `/admin/v1/*`에서 확정, #4b) — device·clinics·upstreams·policies·org-mappings·regions·config·webhook-events·fleet·audit 이동 · (2) **clinic device-self/operator 분리** — 기존 dual-auth `PATCH /v1/clinics/{clinicId}` 폐기 → device-self `GET·PATCH /v1/clinics/me`·`PUT /v1/clinics/me/region`·`POST /v1/clinics/me/org-bindings`(id 없음·격리 자명) + operator `GET /v1/admin/clinics`(list+pagination)·`GET·POST·PATCH /v1/admin/clinics/{clinicId}`·`PUT …/region` · (3) **`/v1/region/resolve` 제거** — device read-back=`GET /v1/clinics/me`로 대체(내부 resolver FR-RGN-01은 §7.3 유지), `RegionResolveResponse`→**`Clinic` 스키마** 신설(operator GET/list 응답 겸용) · (4) **#4a 리전 자가변경** v1.0 device-self 허용(단일 리전·전건 감사, 국경 간 가드레일=gw/1.2 TBD). OpenAPI 41 ops·redocly valid, `design/api-surface-matrix.md`·redis·db-jsonb·well-known 샘플·SRS 리빙 콘텐츠 동기화(구경로 0 확인) | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 서명 주체 정정 — ELM(로컬)→LMP(클라우드)** — ELM(`ezserver-license-manager`)은 클리닉마다 **로컬**(localhost·LexFloatServer 온프렘)이라 서명자로 두면 GW가 10만 로컬 키를 신뢰해야 함 → **서명 권위=중앙 LMP(클라우드)**, GW는 LMP JWKS 하나로 검증, EzServer/ELM은 릴레이만. B는 **PMS 연동(EPI)과 무관**(별개 컴포넌트). R9·#42 정정 | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 완충용 `licenseAttestation` 예약 필드 추가 + R9 비교 표** — B1(LMP 검증 자동승인) 도입 시 EzServer 버전 공존 완충을 위해 **OpenAPI `EnrollStartRequest.licenseAttestation`(nullable·v1.0 미사용·R9 확정 시 활성)** 예약. Agenda R9를 **A vs B 비교 표**(신뢰앵커·C/S부담·확장성·LMP변경·인간검증·region·난이도·현행동작·abuse)로 재구성해 회의 가독성↑ | (작성자 ID 미지정) |
 | 2026-07-07 | **R9 재구성 — enrollment 신뢰 앵커 C/S vs LMP-검증 비교(LMP 역량 정독)** — 이전 회의의 'C/S Console 수동 승인 번거로움' 우려를 반영해 **자동승인 대안**을 진지 비교로 승격. LMP/ELM=Cryptlex(LexActivator+product.dat) 확인 → 오프라인 서명 검증 역량 있으나 device측이라 **GW-검증 증명은 LMP 소폭 변경 필요**(B1=ELM-서명 attestation→GW가 JWKS 검증·추천 / B2=GW→LMP 런타임 verify). 추천 v1.0=A(C/S)·B1 병행(gw/1.1). R9·#42 재작성·§7.2 enroll 불릿(④ 신뢰 앵커)로 갱신. (앞서 'LMP-서명 추천'은 LMP 발급 여부 미확인 상태의 성급한 표현이라 정정) | (작성자 ID 미지정) |
