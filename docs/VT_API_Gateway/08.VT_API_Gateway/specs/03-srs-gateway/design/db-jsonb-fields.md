@@ -103,7 +103,7 @@ gw.heartbeat.interval_seconds        gw.heartbeat.offline_threshold_multiplier  
   | `device.telemetry.metrics_enabled` | boolean | true/false | true | device | heartbeat metrics 전송 on/off |
   | `device.feature_flags` | object(bool 맵) | `{ "<flag>": true\|false }` | `{}` | device | 확장형 기능 토글(개별 flag는 device측 정의) |
 
-- **DB enum이 아니다** — 신규 키는 기능 추가로 계속 늘어, 앱 레벨 상수 집합 + 위 정규식으로 검증하고 신규 키는 상수만 추가한다. 등록되지 않은 키·범위 밖 값은 관리 API(`PUT /admin/v1/config`)에서 거부한다.
+- **DB enum이 아니다** — 신규 키는 기능 추가로 계속 늘어, 앱 레벨 상수 집합 + 위 정규식으로 검증하고 신규 키는 상수만 추가한다. 등록되지 않은 키·범위 밖 값은 관리 API(`PUT /v1/admin/config`)에서 거부한다.
 
 ### `config_value` — 값 형식
 ```json
