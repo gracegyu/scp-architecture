@@ -617,6 +617,26 @@
     - **추천 = 4-way(admin 분리)**. 대가는 **Deployment +1(운영 항목 소폭↑) + 전용 파드 소액 컴퓨트 비용**인데, **같은 코드베이스·이미지**라 한계비용이 작고(admin 저QPS라 파드도 저사양), **인프라가 작은 단위를 선호**하며, **나중 분리 시의 재검증 비용을 회피**한다. 핵심 근거는 스케일·비용이 아니라 **보안 노출면·블라스트 반경·재검증 회피**이고, 비용 델타는 이 이점을 뒤집을 만큼 크지 않다.
     - **성격/산출**: [논의·결정 요청] — 4-way 승인 시 §2.1.1 서술·다이어그램·Appendix B #26(배포 단위)·③-I IaC(Deployment/ingress/NetworkPolicy)에 반영. **최종 배포 토폴로지는 ③-I(인프라) 소유**(R9 CI 토폴로지와 동일 원칙).
 
+  - **R11. [신규 기능] 클라이언트 SW 인벤토리 — 클리닉별 설치 SW 버전·OS 가시성 (기능 추가 확인 + `Vatech-Instance-Id` 도입 여부 결정)** — "각 클리닉에 어떤 제품·버전이 깔려 있는지" 파악난이 **오랜 숙원**이었다. GW가 이미 **전 요청 필수로 받는 `Vatech-*` 헤더**(FR-COMPAT-01·§7.7.1: `Vatech-Product`·`Version`·`OS`·`Clinic-Id`)를 **영속(persist)** 하면 **추가 수집 없이** 클리닉별 SW 인벤토리를 만들 수 있다. **이미 ③ SRS(§7.8.5·FR-FLEET-06)·DBML(`client_inventory`)·API(`GET /v1/admin/clinics/{clinicId}/clients`)에 반영**했고, 본 안건은 (1) 기능 추가 확인 + (2) 미래 정밀 식별 헤더 결정이다.
+
+    - **동작**: `CleverOne → EzServer → GW` 체인에서 GW가 보는 **originator SW**(CleverOne 등)를 관측·기록. EzServer 자신은 device(heartbeat 버전·OS). **Console**: Clinic 선택 → EzServer 정보 + **앞단 클라 목록(버전·OS)**.
+    - **식별 id 없음 전제**: 앞단 클라는 안정 식별자가 없다(헤더에 instance-id 없음·GW의 peer는 EzServer라 클라 IP 미가시). → **(clinic, product, version, os) 튜플 + last_seen**. 버전 업 = 새 튜플·옛 튜플 정체(업그레이드/제거 추정). **버전 presence는 얻지만 설치 대수는 못 센다.**
+    - **비용**: 헤더는 이미 오므로 캡처가 저렴(요청마다 쓰지 않게 Redis seen-set throttle). 클라 주장값이라 **관측용(authz 아님)**·PHI/PII 없음.
+
+    - **결정 2건**:
+      1. **기능 추가 승인** — 위 v1.0 캡처 + 조회 API 포함(리치 Console 대시보드는 ③-C). *(반대·범위 조정 의견 수렴.)*
+      2. **미래 표준 헤더 `Vatech-Instance-Id` 도입 여부** — 클라가 생성하는 **안정 install GUID**를 헤더 표준에 추가할지. 도입 시 per-instance 인벤토리·**정확한 설치 대수**·정밀 업그레이드 추적이 가능하나 **전 제품 클라이언트 변경**(공용 라이브러리·① One Pager·③-P)이 필요. **도입 안 함도 유효**(튜플 presence로 충분하면).
+
+      | 관점 | 튜플 모델 (현재·id 없음) | +`Vatech-Instance-Id` (미래) |
+      | --- | --- | --- |
+      | 얻는 것 | 클리닉별 **버전 presence**·구버전 잔존 여부 | + **정확 설치 대수**·per-instance 추적 |
+      | 정확도 | last_seen recency(제거 추정) | 인스턴스 확정(정밀) |
+      | 클라 변경 | 없음(기존 헤더 재사용) | **전 제품 클라 변경**(헤더 부착) |
+      | 프라이버시 | product/version/os만 | install GUID 추가(단말 식별성↑·정책 검토) |
+      | 비용·시점 | v1.0 즉시 | gw/1.1+·표준 협의 |
+
+    - **성격/산출**: [기능 추가 확인 + 결정] — (1) 승인 시 현행 반영 유지(§7.8.5·`client_inventory`·조회 API·③-C UI) · (2) `Vatech-Instance-Id` **도입/미도입** 결정 → 도입 시 ① One Pager 헤더 표준·③-P 클라 반영·gw/1.1 인벤토리 확장, 미도입 시 튜플 모델 확정(§7.8.5에 결론 기록). Appendix B #48.
+
 - 공유 사항 (결정 아님 · 정보 공유)
 
   - **S1. GW→각 EzServer(클리닉) 범용 하행(downlink) 레일 확보** — webhook 역방향 분배를 위해 만든 **MQTT 하행 채널**(EzServer가 방화벽 뒤에서 outbound 지속 구독, §7.6.6)은, 사실상 **중앙(GW)에서 각 클리닉 edge로 능동 전달하는 최초의 수단**이다. 토픽을 `gw/clinic/{clinicId}/{stream}` 로 두어 **`{stream}` 확장점을 예약**했다(EzServer는 `#` 구독·미지 stream 무시·forward-compat).

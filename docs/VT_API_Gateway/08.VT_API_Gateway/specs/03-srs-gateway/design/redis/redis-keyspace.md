@@ -45,6 +45,7 @@
 | `gw:idemp:{scope}:{key}` | string | 시간~일 | idempotency(업로드 commit·요청 멱등, §4.5) | 저장 결과 ref/상태 |
 | `gw:wh:dedup:{targetId}:{eventId}` | string | 시간~일 | webhook eventId 중복 처리 방지(§7.6.4) | 인스턴스 공유 필수 |
 | `gw:rl:{subject}:{window}` | counter(string/INCR) | window 길이 | rate-limit 카운터(§7.1.1 토큰·**무인증 enroll은 IP/서브넷 subject**·§7.2 7/9 R4) | 윈도우 만료 시 자동 소멸 |
+| `gw:seen:client:{clinicId}:{tupleHash}` | string(SET NX) | 반영 주기(기본 예 6~24h·운영값) | **클라 SW 인벤토리 flush throttle**(§7.8.5) — `{tupleHash}`=hash(product·version·os). `SET NX EX` **성공(부재)=신규/주기 경과 → GW core가 `client_inventory` async upsert(last_seen 갱신)+키 세팅**, **실패(존재)=최근 반영됨 → skip**. 요청마다 PG 쓰기 방지 | 출처=관측(Vatech-* 헤더)·멀티 pod 공유 필수(무상태 pod 교체에도 게이트 유지) |
 | `gw:revoked:{deviceId}` | string(SET) | ≈ access token 최대 수명 | **폐기 디바이스 denylist**(kill/revoke 즉시 전파·§7.2.4) — 이미 발급된 **단명 토큰을 만료 전 차단**(그 후엔 토큰이 자연 만료라 키 불요) | 출처=`device.status=revoked`(PG)·멀티 pod 공유 필수 |
 | `gw:lock:{resource}` | string(SET NX) | 짧음(초) | 분산 락(선택 — 단발 작업 직렬화) | 필요 시만 |
 
