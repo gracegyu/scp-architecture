@@ -1531,6 +1531,11 @@ components:
           format: int64
           description: '행 버전(변경 시 증가) — 읽기 시 반환, 쓰기 시 GW가 증가시킴'
           example: 7
+        createdAt:
+          type: integer
+          format: int64
+          description: '생성 시각(Unix ms·서버 설정·읽기 전용)'
+          example: 1720224000000
         updatedAt:
           type: integer
           format: int64
@@ -1633,6 +1638,8 @@ components:
           description: >-
             payload에서 event_type 추출 경로(upstream 어휘 verbatim·GW enum 아님)
           example: $.eventType
+        createdAt: { type: integer, format: int64, description: '생성 시각(Unix ms·서버 설정·읽기 전용)', example: 1720224000000 }
+        updatedAt: { type: integer, format: int64, description: '수정 시각(Unix ms·서버 설정·읽기 전용)', example: 1720310400000 }
 
     # Webhook
     WebhookEnvelope:
@@ -1769,7 +1776,7 @@ components:
         집행=coarse(upstream 사용 허용까지)** — allowedEndpoints·scopes 세분화는 gw/1.1+ 예약(작업·데이터 격리는
         AXS+Org-ID)
       properties:
-        id: { type: string, description: '정책 id', example: pol_axs_clinic0040 }
+        id: { type: string, description: '정책 id(GW 생성·불투명 surrogate)', example: pol_7f3a2b1c }
         scopeType:
           type: string
           enum: [ global, clinic, device ]
@@ -1798,6 +1805,8 @@ components:
           description: >-
             허용 scope
           example: [ axs:patient.read, axs:study.write ]
+        createdAt: { type: integer, format: int64, description: '생성 시각(Unix ms·서버 설정·읽기 전용)', example: 1720224000000 }
+        updatedAt: { type: integer, format: int64, description: '수정 시각(Unix ms·서버 설정·읽기 전용)', example: 1720310400000 }
     Clinic:
       type: object
       description: >-
@@ -1870,6 +1879,8 @@ components:
         endpoint: { type: string, example: https://apne2.internal.gw.vatech.com }
         status: { type: string, enum: [ active, draining, planned ], example: active }
         isDefault: { type: boolean, example: true }
+        createdAt: { type: integer, format: int64, description: '생성 시각(Unix ms·서버 설정·읽기 전용)', example: 1720224000000 }
+        updatedAt: { type: integer, format: int64, description: '수정 시각(Unix ms·서버 설정·읽기 전용)', example: 1720310400000 }
       description: 'GW 운영 리전(GET /v1/regions). region_catalog 테이블 매핑'
     ProxyError:
       type: object
