@@ -501,6 +501,34 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 >
 > **분배는 저장 레코드가 아니라 규약으로 도출**한다 — 대상 clinic이 정해지면 그 클리닉 EzServer의 MQTT 토픽(`gw/clinic/{clinicId}/webhook`, §7.6.6)이 결정적이라 **별도 delivery 테이블이 없다**(v1.0 전 클리닉 edge). 따라서 **등록 순서 무관**(upstream-first=AXS / clinic-first=운영 중 새 upstream 추가 둘 다 동일)이고, **새 upstream을 추가해도 기존 클리닉에 만들 delivery 레코드가 없다**(fanout 없음) — 새 upstream이 기존 클리닉에 추가하는 것은 **`org_mapping` 한 행뿐**. (예외: 어떤 upstream의 이벤트가 클리닉 EzServer가 아닌 **다른 수신자**(클라우드 등)로 가야 하면 규약 도출만으론 부족 → 수신자 모델 도입, Appendix B #37.)
 
+#### 클리닉 온보딩 end-to-end 여정 (설치 → 라이선스 → 온보딩 → 연동)
+
+개별 기술 flow(§2.3.1~§2.3.6)를 **클리닉·C/S 관점의 한 여정**으로 꿴다 — 현장은 아래 순서로 진행된다. 여러 제품을 가로지르므로 각 단계의 상세·정본은 **소유 문서로 위임**하고, 본 절은 **GW 관점의 뼈대·순서·분기**만 조망한다.
+
+- **[0] EzServer 설치** (클리닉 현장) — 아직 GW 미접속. 정본 = **③-P-EZ**.
+- **[1] LMP 라이선스 등록** — 클리닉이 LM 라이선스를 활성화하고 **Clinic-ID**를 받는다. 정본 = **LMP/③-P-LMP**. 이 라이선스·Clinic-ID가 [2] enroll의 **부트스트랩 신뢰 앵커**(§2.3.1)다.
+- **[2] GW 온보딩 (EzServer Console → enroll)** — LMP Clinic-ID를 실어 `/v1/enroll/*` → clinic·device·region 확립 → **활성화**: (A안) C/S가 Console 승인(v1.0 현행) 또는 (B안) LMP 제3자 서명 자동승인(gw/1.1+·R9). 정본 = **§2.3.1**. (라이선스 등록 흐름에 enroll을 태워 설치자 개입 최소화 — 7/2 R9)
+- **[3] (선택·opt-in) AXS 외부 연동** — 연동을 켜는 클리닉만(사전 upstream `axs` 등록·운영자 1회 전제, §2.3.4 [1]). **Straumann/AXS 가맹이어도 연동을 안 하면 이 단계 생략**(org_mapping 없음·enroll 등 나머지 정상 — 새 처리 불요). 켠 경우, **처리는 `organizationId` 보유 여부**로 갈린다:
+  - **연동 완료**(그 AXS 조직에 `organizationId` 확보·승인): AXS 링크 **생략**, org-binding 로컬 매핑만.
+  - **미연동**(`link` 필요): AXS `link(customerNumber)`로 `organizationId` 획득 + org-admin **동의(`PENDING`→`APPROVED`)** 후 org-binding.
+  - 이는 **클리닉 가입 상태 A/B/C**(A=Straumann+AXS · B=Straumann만·AXS org 없음 · **C=비-Straumann=범위 밖·가입 시 B 수렴**)와 대응되며, **현장 분포·전제(`customerNumber` 사전 보유 등)는 R4 조사 대상**. 상세·판정 로직=**④ Sub-SRS 정본**, GW 공통 레일(org_mapping·프록시)만 §2.3.4. (근거: AXS Organization API `references/Straumann연동/AXS_docs/openapi/organization.yml`)
+
+**여정은 상위 단계·분기만** 보인다(상세 시퀀스는 각 소유 절 — 재작도하지 않는다).
+
+```mermaid
+flowchart LR
+    S0["[0] EzServer 설치<br/>(③-P-EZ)"] --> S1["[1] LMP 라이선스 등록<br/>Clinic-ID 수신<br/>(LMP/③-P-LMP)"]
+    S1 --> S2["[2] GW 온보딩·enroll<br/>clinic·device·region 확립<br/>+ 승인 A안 C/S · B안 LMP서명<br/>(§2.3.1·§2.3.2)"]
+    S2 --> Q{"[3] AXS 연동?<br/>(켜는 클리닉만)"}
+    Q -->|"연동 완료<br/>(organizationId 보유)"| OB["org-binding 로컬 기록<br/>(§2.3.4)"]
+    Q -->|"미연동<br/>(link 필요)"| LK["AXS link → organizationId<br/>동의 PENDING→APPROVED<br/>(정본 ④)"]
+    Q -->|"연동 안 함"| DONE([셋업 완료 → 런타임 §2.3.2~6])
+    LK --> OB
+    OB --> DONE
+```
+
+> **소유(정본) 분담**: [0] 설치=③-P-EZ · [1] 라이선스=LMP/③-P-LMP · [2] enroll·승인=§2.3.1 · [3] 연동 공통 레일(org_mapping·프록시)=§2.3.4 · **[3] AXS 내부 가입/구독 절차(상태 A/B/C 판정·동의 폴링·`customerNumber` 확보)=④ [Straumann AXS Sub-SRS](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/docs/specs/04-subsrs-straumann-axs/Sub-SRS.md)**. 본 여정은 GW 관점 조망이며, 각 단계 상세는 링크된 정본을 따른다. 아래 「시나리오 발생 순서」는 이 여정을 GW 내부 기술 flow(§2.3.X) 관점으로 다시 편성한 것이다.
+
 #### 시나리오 발생 순서 (lifecycle)
 
 먼저 **§2.3.0(전 구간 라우팅 골격)** 이 이후 프록시·분배 시나리오가 공통으로 올라타는 토대다. 이어지는 §2.3.1~§2.3.7은 **실제 발생 순서에 맞춰 배치**했다: 온보딩(§2.3.1) → 디바이스 인증·토큰(§2.3.2) → 리전 해석·라우팅(§2.3.3) → 외부 연동 등록·호출(§2.3.4) → 파일 업로드(§2.3.5) → Webhook 수신·분배(§2.3.6) → **[횡단]** 버전 호환 게이팅(§2.3.7·모든 요청 경로에 적용).
@@ -677,7 +705,7 @@ sequenceDiagram
 - **(로컬) `org_mapping` 등록 = `POST /v1/clinics/me/org-bindings`** — GW **DB에 매핑 한 행을 기록**할 뿐 **AXS를 호출하지 않는다**. GW가 라우팅/분배에 쓰는 로컬 지식이다(모든 upstream 공통).
 - **(원격) AXS 연동 링크 = AXS Organization API 호출** — AXS 쪽에 "이 조직을 우리 integrating entity와 연결"하는 것으로, **별개의 프록시 호출**(`Vatech-Target: axs` 경로③·External Connector가 OAuth 부착)이다. AXS 문서 기준 `POST /v1/organization/integration/link`(`customerNumber` + integrating entity=Client ID) → `organizationId` + **org-admin 동의**(status `PENDING`→`APPROVED`, Data Reader 동의 요건)로 완료된다. **조직 자체는 우리가 만들지 않는다**(클리닉=Straumann 고객·`customerNumber` 보유). 보조 API: `.../integration/check`(연결 확인)·`.../integration/{customerNumber}/info`(region·countryCode).
 
-따라서 클리닉은 **두 경우**로 나뉜다 — **(A) 이미 AXS에 연결돼 `organizationId`를 아는 클리닉**: 링크 생략, 바로 org-binding으로 로컬 매핑만 기록. **(B) 아직 미연결 클리닉**: 먼저 AXS 링크([2a])로 동의·`organizationId`를 얻고 → org-binding으로 매핑 기록([2b]).
+따라서 처리는 **`organizationId` 보유 여부**로 나뉜다 — **연동 완료**(이미 AXS 조직에 연결돼 `organizationId` 보유): 링크 생략, 바로 org-binding으로 로컬 매핑만 기록. **미연동**: 먼저 AXS 링크([2a])로 동의·`organizationId`를 얻고 → org-binding으로 매핑 기록([2b]). (클리닉 **가입 상태 A/B/C**·현장 분포=주간회의 R4·④.)
 
 ```mermaid
 sequenceDiagram
@@ -692,7 +720,7 @@ sequenceDiagram
     OP->>GW: POST /v1/admin/upstreams (target_id=axs)
     GW->>DB: upstream(axs) upsert
 
-    Note over EZ,AXS: [2a] (경우 B만) AXS 연동 링크 — 프록시 경유(AXS 실제 호출) · 경우 A는 생략
+    Note over EZ,AXS: [2a] (미연동만) AXS 연동 링크 — 프록시 경유(AXS 실제 호출) · 이미 연동이면 생략
     EZ->>GW: POST https://axs.gw.vatech.com/v1/organization/integration/link (customerNumber)
     GW->>AXS: verbatim 전달 + OAuth(External Connector)
     AXS-->>GW: organizationId + status(PENDING to APPROVED · org-admin 동의)
@@ -715,7 +743,7 @@ sequenceDiagram
 
 > **enroll과의 순서**: `org_mapping`은 clinic_id를 참조하므로 **[2b]는 온보딩(enroll·§2.3.1)으로 clinic이 존재한 뒤**라야 한다. 그 외 enroll과 연동은 독립이다(연동 안 하면 org_mapping 없음). 해지는 `DELETE /v1/admin/org-mappings`(로컬)로 그 행만 제거하며, AXS 쪽 해제가 필요하면 `.../integration/unlink`를 프록시로 호출한다.
 >
-> **GW 공통 vs ④ AXS Sub-SRS 분담**: 본 SRS(GW)는 **공통**만 정한다 — ① `org_mapping` 테이블 + org-bindings API(로컬 매핑) · ② AXS Organization API를 **탈 수 있는 프록시 레일**(upstream `axs` + External Connector · 특정 엔드포인트 하드코딩 없음). **AXS 고유 시퀀스**(link/check/unlink/info 절차, 동의 `PENDING`→`APPROVED` 폴링·`customerNumber` 확보·트리거 주체·organizationId→clinic 반영·region/countryCode 활용, 경우 A/B 판정)는 **④ Straumann(AXS) Sub-SRS**에서 구체화한다.
+> **GW 공통 vs ④ AXS Sub-SRS 분담**: 본 SRS(GW)는 **공통**만 정한다 — ① `org_mapping` 테이블 + org-bindings API(로컬 매핑) · ② AXS Organization API를 **탈 수 있는 프록시 레일**(upstream `axs` + External Connector · 특정 엔드포인트 하드코딩 없음). **AXS 고유 시퀀스**(link/check/unlink/info 절차, 동의 `PENDING`→`APPROVED` 폴링·`customerNumber` 확보·트리거 주체·organizationId→clinic 반영·region/countryCode 활용, 상태 A/B/C 판정)는 **④ Straumann(AXS) Sub-SRS**에서 구체화한다.
 
 
 > **경로 동일성**: 본 흐름(`EZ→GW→upstream`)은 **CleverSpace(B 내부)도 동일**하다(ADR-11 target-routed proxy). AXS(C 외부)는 GW가 **OAuth·고정 egress IP**를 추가할 뿐 경로·중계 방식은 같다. 즉 본 시나리오는 AXS를 예로 든 *일반 upstream proxy*이며, CleverSpace는 `cleverspace.gw.vatech.com`으로 같은 경로를 탄다(차이는 trust profile뿐).
@@ -2100,11 +2128,13 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 35 | 중앙 Config(§7.8.4) 저장·전달·버전 모델 | **확정(2026-07-06)**: SSOT=PostgreSQL `config` 테이블(`config_scope` global/region/clinic/device·다형 참조), 실효=키별 가장 구체 우선(override 병합), 실효 `configVersion`=**콘텐츠 해시(SHA-256)**, 키 레지스트리=**앱 레벨 확장형 seed**(db-jsonb#config·DB enum 아님), 관리=`/v1/admin/config` CRUD(감사 `config.publish`). **v1.0 실사용 = GW-내부 config(`gw.*`, pod·리전 공유)** + heartbeat 주기(`gw.heartbeat.interval_seconds`)를 heartbeat 응답으로 device 전달. **device로의 원격 config 전달(`device.*`·`GET /v1/fleet/config` pull·MQTT `config` stream push-notify·configVersion drift)=gw/1.1+**(§7.6.6 범용 하행 레일의 미래 활용). Console UI=③-C. 기타 비목표(gw/1.1↑): rollout/카나리·명명 그룹(FR-FLEET-04) | §7.8.4·§7.8.1·§7.6.6·design/dbml·design/db-jsonb-fields.md#config·design/openapi |
 | 30 | region 카탈로그 관리 API | **확정(2026-07-07)**: **`/v1/admin/regions` POST(개통)·`/{regionId}` PUT(active/draining/planned 전이)·DELETE(회수) 신설**, 조회=`GET /v1/regions`. v1.0=1행 시드로 충분·gw/1.2 다행. 잔여(비-SRS)=Console region 관리 UI(③-C) | §7.3.6·§7.9.1 |
 | 32 | 정책(policy) 관리 API + 인가 세분화 수준 | **확정(2026-07-07)**: 관리 API **`/v1/admin/policies` GET/POST/DELETE 신설**(deny-by-default라 v1.0 필수). **v1.0 인가=coarse**(device/clinic이 upstream 사용 가능까지 + egress + 인증 + region/PHI) — operation·데이터 격리는 **AXS+Org-ID 위임**. `allowed_endpoints`·`scopes`·토큰 `scope` 세분화는 **optional·예약**(gw/1.1+ 활성화·비파괴). 정책 스코프=device→clinic→global(deny-by-default·clinic 상한). scope 값 카탈로그=④. 잔여(비-SRS)=Console UI(③-C)·차원별 병합 OPA/Rego(LLD) | §7.5.3·§7.9.1·§7.1.1·§6.4 |
+| 44 | 클리닉 온보딩 end-to-end 여정 문서화 위치·분담 | **확정(2026-07-08): 상위 여정(설치→LMP→enroll→AXS·상태 A/B/C 분기)=③ §2.3 개요(신설·mermaid)로 GW 관점 조망 / AXS 내부 가입·구독 절차(link·check·unlink·동의 `PENDING`→`APPROVED` 폴링·`customerNumber` 확보·상태 A/B/C 판정)=④ Sub-SRS 정본**. 레이어 분리(오케스트레이션 vs AXS 계약)로 SSOT 비중복. 단계별 상세=소유 문서(③-P-EZ 설치·LMP/③-P-LMP 라이선스·§2.3.1 enroll·§2.3.4 연동 공통 레일). 잔여=④ Sub-SRS 집필(baseline 후 승격·④ `_status` 씨앗) | §2.3·§2.3.4 |
 
 ### B-2. 미결 (열린 TBD — baseline 전/설계 단계에 닫을 항목)
 
 | # | 항목 | 본문 | 책임자 | 마감 | 영향 |
 | --- | --- | --- | --- | --- | --- |
+| 45 | **[조사] 호주 AXS 연동 실태 — 어떤 시나리오가 실제 존재하나** — 클리닉 **가입 상태 A(Straumann+AXS)/B(Straumann만·AXS org 없음)/C(비-Straumann·범위 밖·가입 시 B 수렴)**. 조사 질문: A/B/C 분포 · **B의 AXS org 확보 방식**(link 자동 생성 vs Straumann 별도 개통) · A의 Vatech 기연동 여부 · `customerNumber` 취득 경로(**가정 — 확인 대상**) · consent 주체·소요. **GW 고유 API는 이미 case-agnostic**(A/B 모두 `POST /v1/clinics/me/org-bindings` 수렴 + 경우 B의 link=프록시 레일·신규 ep 불요) → **GW 비차단**; 막히는 것=EzServer AXS flow(③-P-EZ)·④ 집필. 결정 아님(조사·보고). **주간회의 R4**(Raymond 드라이브·입력원 호주 영업/Straumann·EzServer) · 회신처=④ `_status` TBD | §2.3·§2.3.4 | Raymond+호주 영업/Straumann·EzServer/④ | ④ 집필·EzServer AXS 착수 전(pilot 8/15 역산) | §2.3.4·④·③-P-EZ |
 | 38 | **GW Console 사용자 인증·역할 관리 방식** — **OneID=고객(클리닉/랩) IdP라 대상 아님**; Console 사용자=사내 직원(Admin·C/S). **기본안=MS365/Entra OIDC 연동**(자체 비번 없음·직원 SSO·퇴사 자동 오프보딩), 대안=GW 자체 user DB. 역할(Admin/C-S)=**Entra App Role/Group claim→RBAC**(별도 테이블 불요)이 기본; **C/S↔담당 클리닉 범위** 필요 시만 작은 GW 매핑 테이블. Agenda 상정 | §7.1.4·§7.9.2·§2.3 | GW+IT(Entra) | Console 구현 착수 전 | §7.9·③-C |
 | 39 | **C/S 승인 범위 — 국가/법인(entity)별 한정 여부** — C/S는 **클리닉별로는 한정 안 함 확정**(어느 C/S나 승인). 미확정: **국가/법인별로 C/S 승인 범위를 나눌지**(예 KR 법인 C/S는 KR 클리닉만). 확정 시 IdP claim(예 country/entity) 또는 최소 매핑으로 집행. 미정이라 v1.0은 범위 무한정. **참고: OneID 스펙의 "영업 지역(Sales Area)=바텍 해외 법인별 국가 그룹"(OneID SRS §2.5)이 동일 개념** — 국가/법인 스코핑 시 Entra의 country/법인 claim으로 같은 모델 적용 가능 | §7.9.2·§2.3.8 | GW+운영조직 | Console 정책 확정 시 | §7.9·③-C |
 | 40 | **Entra(MS365) 연동 선결 확인 (R6=Entra 채택의 전제)** — (a) **C/S 인력이 Vatech MS365/Entra 디렉터리에 존재하는지** 확인 — 현장 설치·해외법인(바텍네트웍스)·협력사 직원 포함 여부. 없으면 게스트 초대/별도 등록이 필요해 '자체 user 테이블 0' 전제가 흔들림. (b) **Entra 앱 등록·App Role/Group·admin consent·redirect URI는 tenant admin 권한**이라 **MS365/Entra 담당(IT)에 요청** 필요 — 담당자·절차·리드타임 확인 | §7.1.4·§7.9.2 | GW+IT(Entra 담당) | Console 구현 착수 전 | §7.9·③-C |
@@ -2350,6 +2380,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-08 | **enroll B안 정합 — JWKS 런타임 fetch 단일화 + ③-P-LMP One Pager 신설** — (1) §2.3.1 B 다이어그램에 **GW가 LMP JWKS를 런타임 fetch+캐시(`gw:cache:jwks`)** 하는 단계 추가(pin/복사 fallback 폐기·런타임 fetch 단일·§7.1.4 방식 재사용) · (2) 다이어그램·R9의 "(Cryptlex 키 아님)" 사족 제거(간결화) — GW 검증 키=LMP JWKS로 통일 · (3) **`specs/03p-lmp-license/`(③-P-LMP) 신설** — `_status.md` 씨앗 + `OnePager.md` 초안(LMP 제3자 서명 attestation 설계: LMP 서명·EzServer 릴레이·GW JWKS 검증·claims·키 회전·A안 공존). README·실행할당표·Roadmap §4에 LMP 등록. 소유=ES 라이선스/ELM 팀(크로스팀·조건부·R9) | (작성자 ID 미지정) |
 | 2026-07-08 | **§2.3.1 온보딩 A/B flow 분리 + enroll 승인 '공존' 재정의** — enroll 승인 flow가 **택일이 아니라 공존**임을 명확화: **A. C/S 수동 승인**(모든 device·보편/fallback·v1.0) + **B. 제3자(LMP) 서명 자동승인**(LMP 등록 device·gw/1.1+·TBD). §2.3.1에 **A/B 시퀀스 2개** 기록(B=LMP가 attestation 서명→GW가 **LMP JWKS**로 검증·Cryptlex 키 아님). '제3자 서명' 용어 채택. Agenda R9=v1.0 우선순위(A먼저 추천)로 재구성. LMP를 Roadmap §4 제품표에 조건부 행으로 추가(B 채택 시 ES 라이선스팀 크로스팀·Roadmap 추가). Agenda S2에 스펙 작성 현황표(이모지) 추가. Appendix B #42 | (작성자 ID 미지정) |
 | 2026-07-08 | **API 네임스페이스·clinic 표면 재구성(#4 확정 실행)** — (1) **operator 전부 `/v1/admin/*`**(버전 우선·업계 관행 대조 후 `/admin/v1/*`에서 확정, #4b) — device·clinics·upstreams·policies·org-mappings·regions·config·webhook-events·fleet·audit 이동 · (2) **clinic device-self/operator 분리** — 기존 dual-auth `PATCH /v1/clinics/{clinicId}` 폐기 → device-self `GET·PATCH /v1/clinics/me`·`PUT /v1/clinics/me/region`·`POST /v1/clinics/me/org-bindings`(id 없음·격리 자명) + operator `GET /v1/admin/clinics`(list+pagination)·`GET·POST·PATCH /v1/admin/clinics/{clinicId}`·`PUT …/region` · (3) **`/v1/region/resolve` 제거** — device read-back=`GET /v1/clinics/me`로 대체(내부 resolver FR-RGN-01은 §7.3 유지), `RegionResolveResponse`→**`Clinic` 스키마** 신설(operator GET/list 응답 겸용) · (4) **#4a 리전 자가변경** v1.0 device-self 허용(단일 리전·전건 감사, 국경 간 가드레일=gw/1.2 TBD). OpenAPI 41 ops·redocly valid, `design/api-surface-matrix.md`·redis·db-jsonb·well-known 샘플·SRS 리빙 콘텐츠 동기화(구경로 0 확인) | (작성자 ID 미지정) |
+| 2026-07-08 | **클리닉 온보딩 end-to-end 여정 개요 신설(§2.3) — 상위 절차 갭 해소** — 개별 flow(§2.3.1 enroll·§2.3.4 연동)만 있고 **설치→LMP 라이선스→GW enroll→AXS 연동**을 꿴 클리닉 관점 상위 여정이 없던 갭 해소. §2.3 도입부에 **「클리닉 온보딩 end-to-end 여정」**(단계 [0]설치=③-P-EZ·[1]라이선스=LMP/③-P-LMP·[2]enroll·승인=§2.3.1·[3]AXS 연동=§2.3.4) + **고수준 flowchart**(설치→라이선스→enroll→연동·승인 A/B·**AXS 연동 경우 A 이미 연동 / B 미연동** 분기 — 상세 시퀀스는 §2.3.X 비중복). **경우 A/B는 AXS API상 구조적으로 실재**(상상 아님): AXS Organization API 정독(`references/…/organization.yml`) — `link(customerNumber)`→`organizationId`+consent(PENDING→APPROVED)·`check`(orgId 입력). **단 현장 분포·`customerNumber` 사전 보유는 가정 → R4 조사**(AXS=호주 요구·기존 계약 클리닉 존재 추정). **레이어 분리 확정**: 여정 뼈대·순서·GW 역할·A/B 분기 존재=③ / **AXS 내부 가입·구독 절차(link·동의 폴링·customerNumber·상태 A/B/C 판정)=④ Sub-SRS**(④ `_status`에 이미 스코프·역참조 추가). 기존 「시나리오 발생 순서」(GW 기술 flow 관점)와 병존. Appendix B #44 | (작성자 ID 미지정) |
+| 2026-07-08 | **AXS 연동 시나리오 A/B/C 정리 + 중복 R10을 R4로 통합** — 클리닉 전제 상태를 **A(Straumann+AXS)/B(Straumann만·AXS org 없음)/C(비-Straumann=범위 밖·가입 시 B 수렴)**로 명확화(C=경계만 명시·flow 아님). `customerNumber` 사전 보유는 **단언→가정**으로 정정(R4 조사 대상). **신설했던 Agenda R10이 기존 R4(AXS Org-ID 취득 경로)와 중복** 확인 → **R4로 통합**(A/B/C 표·비차단·마감·회신처 보강)·R10 제거·전 R10 참조 R4로 repoint. 용어 정합: 연동여부 축 `경우 A/B`→`연동 완료/미연동`, 시나리오 축=`상태 A/B/C`(SRS 여정·§2.3.4·④ `_status`·Appendix B #45). **GW API는 이미 case-agnostic**(둘 다 org-bindings 수렴·미연동 link=프록시 레일)이라 GW 비차단; 조사 회신처=④ `_status` TBD | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 서명 주체 정정 — ELM(로컬)→LMP(클라우드)** — ELM(`ezserver-license-manager`)은 클리닉마다 **로컬**(localhost·LexFloatServer 온프렘)이라 서명자로 두면 GW가 10만 로컬 키를 신뢰해야 함 → **서명 권위=중앙 LMP(클라우드)**, GW는 LMP JWKS 하나로 검증, EzServer/ELM은 릴레이만. B는 **PMS 연동(EPI)과 무관**(별개 컴포넌트). R9·#42 정정 | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 완충용 `licenseAttestation` 예약 필드 추가 + R9 비교 표** — B1(LMP 검증 자동승인) 도입 시 EzServer 버전 공존 완충을 위해 **OpenAPI `EnrollStartRequest.licenseAttestation`(nullable·v1.0 미사용·R9 확정 시 활성)** 예약. Agenda R9를 **A vs B 비교 표**(신뢰앵커·C/S부담·확장성·LMP변경·인간검증·region·난이도·현행동작·abuse)로 재구성해 회의 가독성↑ | (작성자 ID 미지정) |
 | 2026-07-07 | **R9 재구성 — enrollment 신뢰 앵커 C/S vs LMP-검증 비교(LMP 역량 정독)** — 이전 회의의 'C/S Console 수동 승인 번거로움' 우려를 반영해 **자동승인 대안**을 진지 비교로 승격. LMP/ELM=Cryptlex(LexActivator+product.dat) 확인 → 오프라인 서명 검증 역량 있으나 device측이라 **GW-검증 증명은 LMP 소폭 변경 필요**(B1=ELM-서명 attestation→GW가 JWKS 검증·추천 / B2=GW→LMP 런타임 verify). 추천 v1.0=A(C/S)·B1 병행(gw/1.1). R9·#42 재작성·§7.2 enroll 불릿(④ 신뢰 앵커)로 갱신. (앞서 'LMP-서명 추천'은 LMP 발급 여부 미확인 상태의 성급한 표현이라 정정) | (작성자 ID 미지정) |

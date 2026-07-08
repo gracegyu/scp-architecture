@@ -75,7 +75,10 @@ paths:
       operationId: postAuthToken
       tags: [ auth ]
       summary: 디바이스 client_credentials → JWT 발급 (FR-AUTH-01/02) [v1.0]
-      description: 'EzServer(디바이스)가 enrollment에서 등록한 개인키로 서명한 client_assertion(private_key_jwt·§7.1.1)을 제시하면, GW가 등록 공개키(client_public_key)로 검증하고 claim(deviceId·region·aud·TTL) 바인딩된 단명 access token을 발급한다. 공유 secret 없음(ADR-13)·refresh token 미발급(만료 시 개인키 재서명 재발급). 공개 엔드포인트(security:[]).'
+      description: >-
+        EzServer(디바이스)가 enrollment에서 등록한 개인키로 서명한 client_assertion(private_key_jwt·§7.1.1)을 제시하면,
+        GW가 등록 공개키(client_public_key)로 검증하고 claim(deviceId·region·aud·TTL) 바인딩된 단명 access token을
+        발급한다. 공유 secret 없음(ADR-13)·refresh token 미발급(만료 시 개인키 재서명 재발급). 공개 엔드포인트(security:[]).
       security: []
       requestBody:
         required: true
@@ -100,7 +103,9 @@ paths:
       operationId: postEnrollStart
       tags: [ enrollment ]
       summary: enrollment 시작(LM 라이선스·Clinic-ID 부트스트랩) → nonce challenge (FR-ENR-01/03) [v1.0]
-      description: 'EzServer 설치 시 부트스트랩(LM 라이선스·Clinic-ID)을 제시해 enrollment를 시작하고 GW가 nonce challenge를 발급한다(§2.3.1). GeoDNS 최근접 리전에 도달. 디바이스 신원 형성 전이라 공개 엔드포인트(security:[])·rate-limit로 보호.'
+      description: >-
+        EzServer 설치 시 부트스트랩(LM 라이선스·Clinic-ID)을 제시해 enrollment를 시작하고 GW가 nonce challenge를
+        발급한다(§2.3.1). GeoDNS 최근접 리전에 도달. 디바이스 신원 형성 전이라 공개 엔드포인트(security:[])·rate-limit로 보호.
       security: []
       requestBody:
         required: true
@@ -231,7 +236,10 @@ paths:
       - deviceAuth: []
       tags: [ clinics ]
       summary: 내 clinic 조회 — device self(region·정보 read-back) (FR-RGN-*) [v1.0]
-      description: 'EzServer(device)가 자기 clinic(토큰 device→clinic)의 현재 상태를 읽는다 — region(자가 설정 후 확인)·이름·국가·status·mappingVersion. clinicId를 path에 받지 않는다(토큰 기준 self·격리 자명). 운영자 조회는 GET /v1/admin/clinics/{clinicId}.'
+      description: >-
+        EzServer(device)가 자기 clinic(토큰 device→clinic)의 현재 상태를 읽는다 — region(자가 설정 후
+        확인)·이름·국가·status·mappingVersion. clinicId를 path에 받지 않는다(토큰 기준 self·격리 자명). 운영자 조회는 GET
+        /v1/admin/clinics/{clinicId}.
       responses:
         '200':
           description: 내 clinic 레코드
@@ -247,7 +255,9 @@ paths:
       - deviceAuth: []
       tags: [ clinics ]
       summary: 내 clinic 정보 갱신 — device self(LMP 정보 동기화) (FR-RGN-*) [v1.0]
-      description: 'LMP에서 clinic 정보가 바뀌면 EzServer가 자기 clinic의 표시·연락 정보(ClinicInfo)를 갱신한다(LMP=SoT·§2.3.1). region·clinicId 제외(region=PUT /v1/clinics/me/region). 토큰 기준 self. 필드셋 R8/#41 TBD.'
+      description: >-
+        LMP에서 clinic 정보가 바뀌면 EzServer가 자기 clinic의 표시·연락 정보(ClinicInfo)를 갱신한다(LMP=SoT·§2.3.1).
+        region·clinicId 제외(region=PUT /v1/clinics/me/region). 토큰 기준 self. 필드셋 R8/#41 TBD.
       requestBody:
         required: true
         content:
@@ -266,7 +276,10 @@ paths:
       - deviceAuth: []
       tags: [ clinics ]
       summary: 내 clinic 접속 리전 설정 — device self(EzServer Console) (FR-RGN-04) [v1.0 · gw/1.2 확장]
-      description: 'EzServer Console에서 자기 clinic의 접속 GW 리전을 설정/변경(현장에선 사실상 C/S 조작). mapping_version++·전건 감사. v1.0: 단일 리전이라 실질 no-op. gw/1.2: 다중 리전에서 유효 — 국경 간 변경은 재동의·주권 재평가(FR-COMP-02) 가드레일 TBD(Appendix B). 기존 PHI는 옛 리전 잔류(자동 이관 없음).'
+      description: >-
+        EzServer Console에서 자기 clinic의 접속 GW 리전을 설정/변경(현장에선 사실상 C/S 조작). mapping_version++·전건 감사.
+        v1.0: 단일 리전이라 실질 no-op. gw/1.2: 다중 리전에서 유효 — 국경 간 변경은 재동의·주권 재평가(FR-COMP-02) 가드레일
+        TBD(Appendix B). 기존 PHI는 옛 리전 잔류(자동 이관 없음).
       requestBody:
         required: true
         content:
@@ -289,7 +302,11 @@ paths:
       - deviceAuth: []
       tags: [ clinics ]
       summary: 내 clinic 외부 upstream Org-ID 자가 등록 — device self(연동 켤 때) (FR-INT-*) [v1.0]
-      description: '클리닉(자기)이 외부 연동(예 AXS)을 켤 때 그 upstream의 Org-ID를 등록 → org_mapping((upstream, Org-ID)→clinic·webhook 분배 키). Org-ID는 upstream 온보딩에서 발급(§2.3.4·④). 토큰 기준 self. 운영자 교정은 POST /v1/admin/org-mappings.'
+      description: >-
+        클리닉(자기)이 외부 연동(예 AXS)을 켤 때 그 upstream의 Org-ID를 등록 → org_mapping((upstream,
+        Org-ID)→clinic·webhook 분배 키). Org-ID는 upstream 온보딩에서 발급(§2.3.4·④). **경우 A(이미 연동)=보유
+        Org-ID로 즉시 등록 / 경우 B(미연동)=AXS link 프록시로 Org-ID 획득 후 등록 — 두 경우 모두 본 엔드포인트로 수렴**(GW 고유 API는
+        Org-ID만 필요·case-agnostic; link는 프록시 레일). 토큰 기준 self. 운영자 교정은 POST /v1/admin/org-mappings.
       requestBody:
         required: true
         content:
@@ -311,7 +328,10 @@ paths:
       operationId: postAuthOidcVerify
       tags: [ auth ]
       summary: 운영자(Console) OIDC 토큰 검증·연계 — 직원 IdP(MS365/Entra) (FR-AUTH-08) [v1.0]
-      description: '운영자(Console Admin·C/S)가 직원 IdP(MS365/Entra) OIDC 토큰을 제시하면 GW가 검증하고 신원+역할(claim→RBAC·§7.9.2)을 반환한다(§7.1.4). 고객 OneID 아님. 최종 방식(Entra vs 자체 DB)은 Agenda R6·Appendix B #38. 공개 엔드포인트(security:[]).'
+      description: >-
+        운영자(Console Admin·C/S)가 직원 IdP(MS365/Entra) OIDC 토큰을 제시하면 GW가 검증하고
+        신원+역할(claim→RBAC·§7.9.2)을 반환한다(§7.1.4). 고객 OneID 아님. 최종 방식(Entra vs 자체 DB)은 Agenda
+        R6·Appendix B #38. 공개 엔드포인트(security:[]).
       security: []
       requestBody:
         required: true
@@ -519,7 +539,9 @@ paths:
       - operatorAuth: []
       tags: [ clinics ]
       summary: 클리닉 접속 리전 교정 — 운영자 (FR-RGN-04) [v1.0 · gw/1.2 확장]
-      description: '운영자가 클리닉의 접속 GW 리전을 교정한다. mapping_version++·감사. device 자가 설정은 PUT /v1/clinics/me/region. v1.0 단일 리전이라 실질 no-op·gw/1.2 다중 리전에서 유효(국경 간=재동의·주권 재평가 TBD·FR-COMP-02). 기존 PHI 옛 리전 잔류.'
+      description: >-
+        운영자가 클리닉의 접속 GW 리전을 교정한다. mapping_version++·감사. device 자가 설정은 PUT /v1/clinics/me/region.
+        v1.0 단일 리전이라 실질 no-op·gw/1.2 다중 리전에서 유효(국경 간=재동의·주권 재평가 TBD·FR-COMP-02). 기존 PHI 옛 리전 잔류.
       requestBody:
         required: true
         content:
@@ -655,7 +677,9 @@ paths:
       - operatorAuth: []
       tags: [ admin ]
       summary: webhook 이벤트(메타) 검색/조회 — Console 운영·감사용 (PHI-free, payload는 payload_ref로 참조) [v1.0]
-      description: '운영자가 webhook 이벤트 메타(PHI-free: target·event_type·org·clinic·region·state·시각)를 검색·조회한다(Console 운영·감사·§7.6). 본문(payload)은 미포함 — payload_ref로 리전 S3 별도(claim-check).'
+      description: >-
+        운영자가 webhook 이벤트 메타(PHI-free: target·event_type·org·clinic·region·state·시각)를
+        검색·조회한다(Console 운영·감사·§7.6). 본문(payload)은 미포함 — payload_ref로 리전 S3 별도(claim-check).
       parameters:
         - name: targetId
           in: query
@@ -765,7 +789,9 @@ paths:
       - operatorAuth: []
       tags: [ admin ]
       summary: upstream 등록/갱신(upsert) — **연동 하나=1 레코드**(라우팅+자격+webhook 수신). 감사 action=upstream.upsert [v1.0]
-      description: '운영자가 연동 대상(upstream)을 등록/갱신(upsert)한다 — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드로(구 3표 병합·§7.5·§7.6). credential·secret은 KMS 저장(원문 미노출·§6.2). 감사 action=upstream.upsert.'
+      description: >-
+        운영자가 연동 대상(upstream)을 등록/갱신(upsert)한다 — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드로(구 3표
+        병합·§7.5·§7.6). credential·secret은 KMS 저장(원문 미노출·§6.2). 감사 action=upstream.upsert.
       requestBody:
         required: true
         content:
@@ -899,7 +925,9 @@ paths:
       - operatorAuth: []
       tags: [ admin ]
       summary: 정책 등록/갱신(upsert) — allowed_endpoints·scopes. 감사 action=policy.update (FR-INT-03) [v1.0]
-      description: '운영자가 정책을 등록/갱신(upsert)한다(allowed_endpoints·scopes). deny-by-default라 v1.0 필수(허용 정책 없으면 프록시 전면 거부). v1.0 집행=coarse(upstream 사용 허용까지·§7.5.3). 감사 action=policy.update.'
+      description: >-
+        운영자가 정책을 등록/갱신(upsert)한다(allowed_endpoints·scopes). deny-by-default라 v1.0 필수(허용 정책 없으면 프록시
+        전면 거부). v1.0 집행=coarse(upstream 사용 허용까지·§7.5.3). 감사 action=policy.update.
       requestBody:
         required: true
         content:
@@ -1010,7 +1038,9 @@ paths:
       - name: target
         in: path
         required: true
-        description: 'upstream 라벨(=Vatech-Target·서브도메인). **레지스트리(`upstream.inbound_host`) 기반 검증 — enum/하드코딩 금지·런타임 등록**(§7.6.1). 미등록 라벨=404. axs는 예시일 뿐 고정 목록 아님(cleverspace 등 확장)'
+        description: >-
+          upstream 라벨(=Vatech-Target·서브도메인). **레지스트리(`upstream.inbound_host`) 기반 검증 — enum/하드코딩
+          금지·런타임 등록**(§7.6.1). 미등록 라벨=404. axs는 예시일 뿐 고정 목록 아님(cleverspace 등 확장)
         schema:
           type: string
           pattern: '^[a-z0-9_]+$'
@@ -1060,7 +1090,9 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: '**디바이스 인증(데이터 플레인)** — EzServer가 private_key_jwt로 `/v1/auth/token`에서 발급받은 단명 access token(§7.1.1·ADR-13). 디바이스가 호출하는 API에 사용. 프록시 호출은 target 서브도메인 라우팅(§4.1.2).'
+      description: >-
+        **디바이스 인증(데이터 플레인)** — EzServer가 private_key_jwt로 `/v1/auth/token`에서 발급받은 단명 access
+        token(§7.1.1·ADR-13). 디바이스가 호출하는 API에 사용. 프록시 호출은 target 서브도메인 라우팅(§4.1.2).
     operatorAuth:
       type: http
       scheme: bearer
@@ -1070,7 +1102,11 @@ components:
       type: apiKey
       in: header
       name: X-Signature
-      description: '**Webhook HMAC 서명 검증(발신자 인증)** — 외부 발신자(v1.0=AXS)가 payload를 upstream별 시크릿으로 HMAC 서명(§7.6.2). GW가 `upstream.secret_ref`(KMS)로 검증 + timestamp replay 방지. **실제 서명 헤더명·알고리즘은 upstream 규약(`sig_scheme`)** 이라 발신자별로 다름(여기 `X-Signature`는 예시). source IP allowlist는 옵션. bearer 토큰 아님.'
+      description: >-
+        **Webhook HMAC 서명 검증(발신자 인증)** — 외부 발신자(v1.0=AXS)가 payload를 upstream별 시크릿으로 HMAC
+        서명(§7.6.2). GW가 `upstream.secret_ref`(KMS)로 검증 + timestamp replay 방지. **실제 서명 헤더명·알고리즘은
+        upstream 규약(`sig_scheme`)** 이라 발신자별로 다름(여기 `X-Signature`는 예시). source IP allowlist는 옵션.
+        bearer 토큰 아님.
 
   headers:
     VatechErrorOrigin:
@@ -1289,7 +1325,10 @@ components:
         clientId:
           type: string
           nullable: true
-          description: OAuth2 client id — GW가 enroll 시 발급한 불투명 식별자(RFC 6749 §2.2·§7.2.5, 내부 식별자 비파생·비밀 아님). nullable — client 자격 미발급 device(enroll 전·미래 비인증). 토큰 요청 시 이 값 + 개인키 서명(private_key_jwt)으로 인증(§7.1.1)
+          description: >-
+            OAuth2 client id — GW가 enroll 시 발급한 불투명 식별자(RFC 6749 §2.2·§7.2.5, 내부 식별자 비파생·비밀 아님).
+            nullable — client 자격 미발급 device(enroll 전·미래 비인증). 토큰 요청 시 이 값 + 개인키 서명(private_key_jwt)으로
+            인증(§7.1.1)
           example: gwc_Qk9y3Zx1aB2cD3eF4gH5iJ
         clientPublicKey:
           type: string
@@ -1332,7 +1371,9 @@ components:
           example: 1720224000123
         nextIntervalSeconds:
           type: integer
-          description: '다음 heartbeat까지 권장 간격(초). 정본=중앙 config(§7.8.4 gw.heartbeat.interval_seconds)에서 device 스코프 resolve, 없으면 .env 기본값(§7.8.1). device는 이 값에 맞춰 다음 호출 주기를 갱신한다'
+          description: >-
+            다음 heartbeat까지 권장 간격(초). 정본=중앙 config(§7.8.4 gw.heartbeat.interval_seconds)에서 device 스코프
+            resolve, 없으면 .env 기본값(§7.8.1). device는 이 값에 맞춰 다음 호출 주기를 갱신한다
           example: 3600
         configVersion:
           type: string
@@ -1353,7 +1394,9 @@ components:
           example: { gw.heartbeat.interval_seconds: 3600, gw.log.level: info }
         configVersion:
           type: string
-          description: '실효 config 버전 = 콘텐츠 해시(기여 (config_key,config_value,행 version) 정렬·canonical JSON의 SHA-256 hex, §7.8.4). device는 이를 appliedConfigVersion으로 보고(drift 판정)'
+          description: >-
+            실효 config 버전 = 콘텐츠 해시(기여 (config_key,config_value,행 version) 정렬·canonical JSON의 SHA-256
+            hex, §7.8.4). device는 이를 appliedConfigVersion으로 보고(drift 판정)
           example: sha256:9f2a7c1b3d8e...
     ConfigEntry:
       type: object
@@ -1515,7 +1558,11 @@ components:
     Policy:
       type: object
       required: [ scopeType, targetId ]
-      description: '정책(OPA 입력·policy 테이블 매핑, §7.5.3·FR-INT-03). GW deny-by-default라 허용을 명시. 실효=device→clinic→global 합성. egress는 여기 아님(upstream.egressAllowlist, #31). **v1.0 집행=coarse(upstream 사용 허용까지)** — allowedEndpoints·scopes 세분화는 gw/1.1+ 예약(작업·데이터 격리는 AXS+Org-ID)'
+      description: >-
+        정책(OPA 입력·policy 테이블 매핑, §7.5.3·FR-INT-03). GW deny-by-default라 허용을 명시.
+        실효=device→clinic→global 합성. egress는 여기 아님(upstream.egressAllowlist, #31). **v1.0
+        집행=coarse(upstream 사용 허용까지)** — allowedEndpoints·scopes 세분화는 gw/1.1+ 예약(작업·데이터 격리는
+        AXS+Org-ID)
       properties:
         id: { type: string, description: '정책 id', example: pol_axs_clinic0040 }
         scopeType: { type: string, enum: [ global, clinic, device ], description: '부착 스코프. v1.0=clinic+global 사용', example: clinic }
