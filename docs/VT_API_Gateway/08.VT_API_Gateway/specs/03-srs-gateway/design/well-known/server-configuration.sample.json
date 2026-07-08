@@ -7,7 +7,7 @@
     "apis": [
       {
         "id": "region.change",
-        "path": "/v1/clinics/{clinicId}/region",
+        "path": "/v1/admin/clinics/{clinicId}/region",
         "minClientVersion": {
           "EzServer": "2.1.0"
         },

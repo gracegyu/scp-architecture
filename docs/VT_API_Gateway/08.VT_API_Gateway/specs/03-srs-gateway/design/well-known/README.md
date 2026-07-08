@@ -33,8 +33,8 @@ API 버전 호환성 게이트(SRS §7.7, FR-COMPAT-02)가 런타임에 공시�
 
 | 필드 | 타입 | 의미 |
 | --- | --- | --- |
-| `id` | string | 안정적 식별자(API는 `리소스.동작`, 기능은 기능명). 변경 금지 |
-| `path` | string | (apis만) 해당 엔드포인트 경로. `features`에는 없음 |
+| `id` | string | **매칭 키**(계약). 안정적 식별자 — API는 `리소스.동작`(예 `region.change`), 기능은 기능명. **변경 금지**. 동작(`.동작`)이 오퍼레이션을 유일 식별하므로 HTTP method 필드는 두지 않는다(method는 id에 함의) |
+| `path` | string | (apis만) 해당 엔드포인트 경로. **비계약·주석**(사람 가독용) — 판정에 쓰지 않으며 경로 재구성 시 바뀔 수 있다. `features`에는 없음 |
 | `minClientVersion` | object | **제품(`Vatech-Product`)별** 최소 버전. 키=제품명, 값=semver 문자열 |
 | `errorCode` | string | 미충족 시 반환할 표준 오류코드(SRS §7.7.4) |
 | `fallback` | string | 사용자 안내 문구(예 "업데이트 필요") |
@@ -45,6 +45,7 @@ API 버전 호환성 게이트(SRS §7.7, FR-COMPAT-02)가 런타임에 공시�
 2. **제품명 키**는 `Vatech-Product` 헤더 값과 정확히 일치시킨다(예 `CleverOne`·`EzServer`·`CleverSpace`).
 3. **버전 표기**는 semver(`major.minor.patch`). 클라이언트 버전 비교는 semver 규칙을 따른다.
 4. **`id`는 불변**으로 둔다. 경로(`path`)나 버전은 바뀌어도 `id`는 유지해 클라이언트 캐시·로깅 추적성을 보장한다.
+   - **매칭 키 = `id`(계약), `path`/method = 비계약(주석).** 게이팅 판정은 `id`(`리소스.동작`)로 하고, `path`는 사람 가독용 주석이라 판정에 쓰지 않는다(그래서 경로 재구성에도 계약이 안 흔들린다). **method 필드를 두지 않는 이유**: `id`의 `.동작`이 이미 오퍼레이션(=동작)을 유일 식별하기 때문. 같은 경로의 서로 다른 동작이 버전 요구가 다르면 **method 필드가 아니라 별도 `id`로 분리**한다(예 `clinic.read` vs `clinic.update`).
 5. **`errorCode`**는 §7.7.4 표준 오류코드 집합에서만 선택한다(임의 신설 금지).
 6. **env별 분리**: `production`과 `staging`/`unstable`의 값이 다를 수 있으므로 환경마다 별도 파일을 생성한다.
 7. **시간은 Unix ms**(SRS §1.3). 사람이 직접 넣지 말고 생성 시점에 자동 기입.
