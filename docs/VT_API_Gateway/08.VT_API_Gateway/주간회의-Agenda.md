@@ -568,6 +568,54 @@
       - **추천 근거**: 매트릭스는 "왜 이 버전이 하한인가"를 주석으로 남기는 가치가 크고, §7.7.3 3단계 정책 등 **풍부한 저작 모델**을 담기 좋아 **YAML**. 단일 포맷을 선호하면 JSON 원본도 유효(생성 단계는 동일하게 필요).
     - **성격/산출**: [논의·결정 요청] — 결정 1=방향(단일 repo) 승인(최종 토폴로지는 ③-I) · 결정 2=택일. 확정 시 §7.7.5·Appendix B #8 반영. *(값·3단계 스키마 확정은 ① One Pager 소관, 별개.)*
 
+  - **R10. GW 배포 토폴로지 — 관리(admin) API를 별도 Deployment로 분리할지 (3-way → 4-way) (결정 요청 · 추천 = 4-way)** — 7/2 R5에서 GW 소프트웨어(**단일 코드베이스**)를 **기능별 Deployment**로 쪼개기로 확정했다(현 **3-way**: `GW core` · `WH Receiver` · `WH Dispatcher`). 그런데 **운영자·Console용 관리 API(`/v1/admin/*`)가 지금은 `GW core` 안에 포함**돼 있다. 이 admin API를 **별도 Deployment(`Admin API`)로 떼어 4-way로 갈지** 정한다. **이는 배포/네트워크 토폴로지 결정이며, API 계약(`/v1/admin/*` 경로)은 어느 쪽이든 불변**이다(데이터도 PostgreSQL을 공유 — 서비스·데이터 분리가 아니라 배포·노출면 분리).
+
+    - **왜 admin이 다른가**: 트래픽 = 운영자 **일/주**(사람·저볼륨) · 노출면 = **내부/Console 전용**(공개 device edge·webhook 호스트에서 도달 금지) · 권한 = **kill-switch·config publish·payload break-glass(PHI 열람)** 등 최고위험. device 인증·target proxy hot path(머신·대량·공개)와 프로파일이 근본적으로 다르다 → **제어평면(admin) / 데이터평면(proxy·webhook) 분리**는 게이트웨이 표준 패턴.
+
+    - **회의 입력(중요)**:
+      - **인프라 담당 의견**: K8s에서 **Deployment 단위는 작을수록 좋다**(독립 스케일·롤링 업데이트·리소스 격리·블라스트 반경 축소) → **4-way 유리**.
+      - **되돌리기 비용(lock-in)**: 지금 3-way로 합쳐 두고 **나중에 4-way로 쪼개면**, 그때는 **코드 결합 해소 + 배포 토폴로지 재검증(IEC 62304 통제 소프트웨어)** 비용이 든다. 계약은 안 바뀌어도 프로세스·검증은 다시 해야 하므로 **처음부터 4-way가 안전·저렴**.
+
+    - **제안 토폴로지(4-way)** — admin을 내부 전용 노출면으로 격리:
+
+    ```mermaid
+    flowchart TB
+        subgraph PUB["공개 노출면 (외부 도달)"]
+          CORE["GW core<br/>device 인증·target proxy·enroll·well-known"]
+          WHR["WH Receiver<br/>webhook 수신·HMAC·ACK"]
+        end
+        subgraph INT["내부 전용 노출면 (Console·VPC 내부)"]
+          ADM["Admin API (← 분리 대상)<br/>/v1/admin/* · operator(Entra) · kill·config·break-glass"]
+          WHD["WH Dispatcher<br/>SQS consumer·클리닉 분배"]
+        end
+        DEV["EzServer 디바이스<br/>100k·머신"] --> CORE
+        UP["AXS 등 upstream"] -->|webhook| WHR
+        OPR["운영자 Console<br/>일/주·사람"] --> ADM
+        WHR --> Q[("SQS")] --> WHD
+        CORE --- DB[("PostgreSQL · 공유")]
+        ADM --- DB
+        WHR --- DB
+        WHD --- DB
+    ```
+    - *현재 3-way*: 위 `Admin API` 박스가 **`GW core` 안에 포함**(admin이 device/proxy와 같은 **공개 노출면·같은 프로세스**). *4-way*: `Admin API`를 떼어 **내부 전용**으로.
+
+    - **항목별 비교 (3-way vs 4-way)**:
+
+      | 항목 | 3-way (admin ⊂ core) | 4-way (admin 분리) | 유리 |
+      | --- | --- | --- | --- |
+      | 스케일 | admin 저볼륨이라 무방 | admin 최소 파드 상주 | — (스케일은 결정 근거 약함) |
+      | 노출면·보안 | admin이 공개 core와 동거 → 내부전용 격리 어려움 | admin **내부전용 ingress·NetworkPolicy** 분리 | **4-way** |
+      | 블라스트 반경 | device hot path 장애·공격이 admin에 파급 | 특권 admin 격리(상호 차단) | **4-way** |
+      | 배포 케이던스 | Console 기능 변경마다 core 재배포 | admin 독립 배포(core 안정 불교란) | **4-way** |
+      | 운영 무빙파츠 | Deployment 3개 | 4개(같은 이미지·한계비용 소소) | ○ 3-way(소폭) |
+      | 인프라 선호(작은 단위) | 큰 단위 | **작은 단위**(인프라 권장) | **4-way** |
+      | 향후 변경 용이성 | 나중 분리 시 결합 해소+재검증 필요 | 이미 분리(전환 비용 0) | **4-way** |
+      | IEC 62304 재검증 | 3→4 전환 시 토폴로지 재검증 1회 발생 | 지금 1회로 끝 | **4-way** |
+      | API 계약 영향 | 없음 | 없음 | — |
+
+    - **추천 = 4-way(admin 분리)**. 유일한 대가는 Deployment +1(운영 항목 소폭↑)인데, **같은 코드베이스·이미지**라 한계비용이 작고, **인프라가 작은 단위를 선호**하며, **나중 분리 시의 재검증 비용을 회피**한다. 핵심 근거는 스케일이 아니라 **보안 노출면·블라스트 반경·재검증 회피**다.
+    - **성격/산출**: [논의·결정 요청] — 4-way 승인 시 §2.1.1 서술·다이어그램·Appendix B #26(배포 단위)·③-I IaC(Deployment/ingress/NetworkPolicy)에 반영. **최종 배포 토폴로지는 ③-I(인프라) 소유**(R9 CI 토폴로지와 동일 원칙).
+
 - 공유 사항 (결정 아님 · 정보 공유)
 
   - **S1. GW→각 EzServer(클리닉) 범용 하행(downlink) 레일 확보** — webhook 역방향 분배를 위해 만든 **MQTT 하행 채널**(EzServer가 방화벽 뒤에서 outbound 지속 구독, §7.6.6)은, 사실상 **중앙(GW)에서 각 클리닉 edge로 능동 전달하는 최초의 수단**이다. 토픽을 `gw/clinic/{clinicId}/{stream}` 로 두어 **`{stream}` 확장점을 예약**했다(EzServer는 `#` 구독·미지 stream 무시·forward-compat).
