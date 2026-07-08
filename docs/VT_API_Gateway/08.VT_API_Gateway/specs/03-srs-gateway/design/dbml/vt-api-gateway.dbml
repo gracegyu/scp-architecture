@@ -247,8 +247,36 @@ Table fleet_state {
   device_id      varchar [pk, ref: - device.device_id]  // PK·FK → device(디바이스당 1개). 예 `01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60`
   last_heartbeat bigint                                 // device가 주기 보고한 마지막 heartbeat 수신 시각(Unix ms). GW는 edge를 폴링 못 함 — device→GW push(POST /v1/fleet/heartbeat)가 갱신(§7.8.1). 온라인/오프라인=임계값 초과 파생 판정. 예 `1720224000000`
   app_version    varchar                                // device가 heartbeat로 보고한 마지막 SW 버전(호환성·롤아웃 가시성·§7.7·§7.8.4). heartbeat마다 갱신·nullable(미보고 시). 예 `6.3.1.3`. (online=last_heartbeat 임계 파생·컬럼 아님 / 성공률·오류분포=관측 metric §7.8.3·§6.3.2·DB 미저장)
+  os             varchar                                // EzServer OS(heartbeat 보고·verbatim·§7.8.5). nullable. 예 `Windows/11`. (앞단 클라 OS는 client_inventory)
 
-  Note: 'fleet liveness/rollout 스냅샷(FR-FLEET-01) — device와 1:1, 마지막 heartbeat·보고 SW 버전. 온라인=last_heartbeat 임계 파생. 성공률·오류분포(FR-FLEET-03·P2)=관측 metric(§7.8.3)·DB 아님. 상세는 테이블 위 주석 참조.'
+  Note: 'fleet liveness/rollout 스냅샷(FR-FLEET-01) — device와 1:1, 마지막 heartbeat·보고 SW 버전·OS. 온라인=last_heartbeat 임계 파생. 성공률·오류분포(FR-FLEET-03·P2)=관측 metric(§7.8.3)·DB 아님. 상세는 테이블 위 주석 참조.'
+}
+
+// ── client_inventory — 앞단 클라이언트 SW 인벤토리 (FR-FLEET-06·§7.8.5) ──
+//  • CleverOne→EzServer→GW 체인에서 GW가 보는 originator(요청 시작 주체) SW를 관측·기록. clinic별 "어떤 product·버전·OS가 살아있나" 가시성(오랜 숙원).
+//  • 데이터 원천 = FR-COMPAT-01 헤더(Vatech-Product/Version/OS·Clinic-Id) — 전 제품·전 요청 필수(§7.7.1)라 이미 파싱됨. 여기선 그걸 영속만.
+//  • **식별 id 없음 전제**: 앞단 클라는 안정 식별자가 없다(헤더에 instance-id 없음·GW peer=EzServer라 클라 IP 미가시·source-IP 식별 회피·IP는 동적/PII). → 식별 단위 = (clinic, product, version, os) 튜플. 버전 업=새 튜플·옛 튜플 last_seen 정체(업그레이드/제거 추정).
+//  • **얻는 것= 버전 presence+recency**(대수 아님·같은 버전 여러 PC는 한 튜플로 합쳐짐). last_seen 정체=recency proxy(반드시 제거는 아님). 정밀 대수/인스턴스는 미래 `Vatech-Instance-Id`(전 제품 클라 변경·gw/1.1+·Agenda 결정).
+//  • **쓰기 폭증 방지(throttle)**: 요청마다 안 씀 — Redis `gw:seen:client:{clinic}:{hash}`를 SET-NX EX(반영주기·기본 6~24h·운영값)하여 **성공(신규/주기경과)만 GW core가 async upsert(ON CONFLICT DO UPDATE last_seen)**, 실패는 skip. 쓰기≈distinct 튜플/주기(요청량 무관). 별도 배치 불요·키스페이스=design/redis·§7.8.5.
+//  • **신뢰**: 클라 주장값(비인증) → 인벤토리·관측용, authz 금지(compat 게이팅과 동일 취급). product/version/os/UA=PHI·PII 없음(hostname·user·IP 미저장).
+//  • EzServer 자기 SW/OS는 여기 아님 — device(신원)+fleet_state(app_version·os·heartbeat authoritative).
+Table client_inventory {
+  id            varchar [pk]                            // surrogate(GW 생성). 예 `ci_7f3a2b1c`. (식별 규약=LLD)
+  clinic_id     varchar [not null, ref: > clinic.clinic_id]  // Vatech-Clinic-Id(originator 소속 클리닉). 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`
+  product       varchar [not null]                      // Vatech-Product(originator). 예 `CleverOne`
+  sw_version    varchar [not null]                      // Vatech-Version(semver). 예 `1.5.5`
+  os            varchar                                 // Vatech-OS 원문 그대로(파싱 안 함·nullable). 예 `Windows/11`
+  user_agent    varchar                                 // User-Agent 원문(최근 관측). 예 `EzServer/6.5.0`
+  via_device_id varchar [ref: > device.device_id]       // 관측 경로 EzServer(Vatech-Via·최근·v1.0은 clinic device와 1:1이라 파생값)·nullable
+  first_seen    bigint [not null]                       // 이 튜플 최초 관측 시각(Unix ms)
+  last_seen     bigint [not null]                       // 이 튜플 최근 관측 시각(Unix ms). 정체=업그레이드/제거 추정
+
+  Note: '앞단 클라 SW 인벤토리(FR-FLEET-06·§7.8.5) — Vatech-* 헤더 관측·clinic별 product/버전/OS presence. 식별 id 없음→(clinic,product,version,os) 튜플·last_seen. 대수 아님. 상세는 테이블 위 주석 참조.'
+  Indexes {
+    (clinic_id, product, sw_version, os) [unique]  // 튜플=식별키(식별 id 없음)·upsert 단위
+    clinic_id                                      // clinic별 인벤토리 조회
+    last_seen                                      // staleness(구버전 잔존) 조회
+  }
 }
 
 // ── config — 중앙 Config(원격 fleet 설정, 재배포 없이 관리) (FR-CFG-01·§7.8.4) ──

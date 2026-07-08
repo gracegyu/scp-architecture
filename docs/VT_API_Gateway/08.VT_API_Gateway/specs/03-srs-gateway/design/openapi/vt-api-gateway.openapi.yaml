@@ -644,6 +644,52 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /v1/admin/clinics/{clinicId}/clients:
+    parameters:
+    - name: clinicId
+      in: path
+      required: true
+      schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
+    get:
+      operationId: getAdminClinicClients
+      security:
+      - operatorAuth: []
+      tags: [ clinics ]
+      summary: 클리닉 앞단 클라이언트 SW 인벤토리 조회 — 운영자 (FR-FLEET-06) [v1.0]
+      description: >-
+        운영자가 해당 클리닉에서 관측된 앞단 클라이언트(CleverOne 등)의 **SW 버전·OS 인벤토리**를 조회한다(§7.8.5) — 오랜 숙원인 "각 클리닉에 깔린 SW 버전" 가시성.
+        `Vatech-*` 헤더 관측이며 **식별 id 없음**이라 (product, version, os) **튜플 단위**·`lastSeen` 정체=업그레이드/제거 추정이다(대수 아님·버전 presence). product 필터·staleOnly(오래 안 보인 것)·커서 페이지네이션. EzServer 자신은 GET /v1/admin/fleet(버전·OS).
+      parameters:
+      - name: product
+        in: query
+        description: product 필터 — 정확 일치(예 CleverOne)
+        schema: { type: string, example: CleverOne }
+      - name: staleOnly
+        in: query
+        description: lastSeen 임계 초과(정체·구버전 잔존 추정)만 (boolean 토글·필터 아님)
+        schema: { type: boolean, default: false, example: true }
+      - name: limit
+        in: query
+        description: 페이지 크기(커서 페이지네이션·§7.9.1)
+        schema: { type: integer, default: 50, maximum: 200, example: 20 }
+      - name: cursor
+        in: query
+        description: 다음 페이지 커서 — 불투명 토큰(직전 응답의 nextCursor 값을 그대로 전달·클라이언트가 직접 만들지 않음)
+        schema: { type: string, example: eyJkIjoiMDE5MjBhN2IifQ }
+      responses:
+        '200':
+          description: 클라이언트 SW 인벤토리 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClientInventory'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /v1/admin/devices/{id}/kill:
     parameters:
     - $ref: '#/components/parameters/DeviceId'
@@ -1661,6 +1707,10 @@ components:
           type: string
           description: 'device(EzServer) 소프트웨어 버전 — 호환성·롤아웃 가시성(§7.7·§7.8.4)'
           example: 6.3.1.3
+        os:
+          type: string
+          description: 'device(EzServer) OS(verbatim·미파싱). fleet_state.os에 기록(§7.8.5)'
+          example: Windows/11
         metrics:
           type: object
           description: >-
@@ -1967,12 +2017,28 @@ components:
             마지막 heartbeat 수신 시각(Unix ms). device→GW push(§7.8.1)
           example: 1720224000000
         appVersion: { type: string, nullable: true, description: 'device가 heartbeat로 보고한 마지막 SW 버전(fleet_state.app_version·롤아웃/호환성 가시성). 미보고 시 null', example: 6.3.1.3 }
+        os: { type: string, nullable: true, description: 'device(EzServer) OS(fleet_state.os·heartbeat 보고·verbatim). 미보고 시 null', example: Windows/11 }
         clinicId: { type: string, nullable: true, description: '소속 clinic(device.clinic_id 조인·파생·저장 컬럼 아님). clinic-less면 null', example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
         online:
           type: boolean
           description: >-
             파생 상태 — last_heartbeat이 임계(권장 주기 × gw.heartbeat.offline_threshold_multiplier·§7.8.1) 내면 true. staleOnly 필터는 online=false(정체) 대상
           example: true
+
+    ClientInventory:
+      type: object
+      required: [ clinicId, product, swVersion, firstSeen, lastSeen ]
+      description: >-
+        앞단 클라이언트 SW 인벤토리 항목(client_inventory·§7.8.5·FR-FLEET-06). GW가 요청의 `Vatech-*` 헤더에서 관측한 **originator** SW(CleverOne 등). **식별 id 없음** → (clinicId, product, swVersion, os) 튜플이 식별키다. **대수가 아니라 버전 presence + recency**(lastSeen 정체=업그레이드/제거 추정·같은 버전 여러 PC는 한 항목으로 합쳐짐). 클라 주장값(비인증·관측용·authz 아님). EzServer 자기 SW/OS는 fleet_state(§7.8.1).
+      properties:
+        clinicId: { type: string, description: 'Vatech-Clinic-Id(소속 클리닉)', example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
+        product: { type: string, description: 'Vatech-Product(originator)', example: CleverOne }
+        swVersion: { type: string, description: 'Vatech-Version(semver)', example: 1.5.5 }
+        os: { type: string, nullable: true, description: 'Vatech-OS 원문 그대로(미파싱). 미보고 시 null', example: Windows/11 }
+        userAgent: { type: string, nullable: true, description: 'User-Agent 원문(최근 관측)', example: EzServer/6.5.0 }
+        viaDeviceId: { type: string, nullable: true, description: '관측 경로 EzServer(Vatech-Via·최근·v1.0은 clinic device와 1:1이라 파생)', example: 01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60 }
+        firstSeen: { type: integer, format: int64, description: '이 튜플 최초 관측(Unix ms)', example: 1720137600000 }
+        lastSeen: { type: integer, format: int64, description: '이 튜플 최근 관측(Unix ms)·정체=구버전 잔존/제거 추정', example: 1720224000000 }
 
     # 감사
     AuditLog:
