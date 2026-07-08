@@ -411,17 +411,26 @@
     - **SRS 반영 완료**: DBML(Table `upstream`)·OpenAPI(`Upstream`·`/admin/v1/upstreams`)·db-jsonb(#upstream)·redis(`gw:cache:upstream`)·SRS §6.4·§7.5·§7.6·§7.9·§2.3.4·ERD·API명세·③-C·ARD 전부 정합.
     - **이번 회의에서 다른 이름으로 바뀌면** 그때 일괄 재반영(단순 rename). 결정만 주면 됨.
 
-  - **R4. AXS Org-ID 취득 경로·절차 (조사 — 이번 회의 확정 불요)** — AXS webhook 분배·아웃바운드 호출의 라우팅 키인 **외부 Org-ID(Straumann Organization-ID)를 각 클리닉이 어떻게 갖게 되는가**를 확인한다. GW는 `org_mapping`(로컬 매핑)만 채우지만, 그 전에 "그 클리닉의 AXS 조직이 우리 연동과 연결돼 Org-ID가 존재"해야 하는데 그 취득 경로가 미확인이다(§2.3.4 「연동 링크·org_mapping 생애주기」는 GW 공통 레일만 규정).
-    - **묻는 것 (핵심 3택)**:
-      1. 클리닉이 **이미 Straumann에 등록**돼 Org-ID를 보유하고 있나? (경우 A — 기존 AXS 고객)
-      2. 아니면 EzServer 설치 시 **우리가 Straumann 등록/연결 절차를 대행**해 Org-ID를 발급·연결받아야 하나? (경우 B — 신규)
-      3. **두 경우가 다 존재**하나? (일부 기존 고객 / 일부 신규 → GW는 양쪽 다 수용해야)
-    - **경우 B라면 절차는? (어디서·누가·어떤 UI)**:
+  - **R4. [조사] 호주 AXS 연동 실태 — 시나리오(A/B/C)·Org-ID 취득 경로 (이번 회의 확정 불요)** — AXS webhook 분배·아웃바운드 호출의 라우팅 키인 **외부 Org-ID(Straumann Organization-ID)를 각 클리닉이 어떻게 갖게 되는가**와, 호주 현장에 **어떤 시나리오가 실제 존재하는가**를 확인한다. GW는 `org_mapping`(로컬 매핑)만 채우지만, 그 전에 "그 클리닉의 AXS 조직이 우리 연동과 연결돼 Org-ID가 존재"해야 하는데 그 취득 경로가 미확인이다(§2.3.4 「연동 링크·org_mapping 생애주기」는 GW 공통 레일만 규정).
+    - **① 시나리오 (클리닉 전제 상태)**:
+
+      | 상태 | Straumann 가입(`customerNumber`) | AXS org 존재 | 온보딩이 해야 할 일 |
+      | :---: | :---: | :---: | --- |
+      | **A** | ✓ | ✓ | Vatech 이미 연동이면 **org-binding만** / 아니면 `link`→동의→org-binding |
+      | **B** | ✓ | ✗ | **AXS org 확보**(생성·개통 방식=확인 대상) → `link` → org-binding |
+      | **C** | ✗ | ✗ | **범위 밖** — Straumann 가입은 클리닉↔Straumann 영업 과정(우리 SW 무관) · 가입하면 B로 합류 |
+
+      - **C 취급(권고)**: 전제 미충족이라 AXS 연동 자체 불가(AXS=Straumann 플랫폼). flow로 만들지 않되 **"범위 밖·가입 시 B 수렴"으로 경계만 명시**(추후 "비고객은?" 재질문 차단).
+      - **opt-in 전제(중요)**: AXS 연동은 **선택** — **가맹(A/B)이어도 연동 안 하는 클리닉은 `[3]` 자체를 건너뜀**(org_mapping 없음·enroll 등 정상·새 처리 불요). 위 A/B/C는 *연동하는* 클리닉의 전제 상태다. 조사 시 **"연동 안 함" 비율**도 함께 파악하면 EzServer가 link flow를 얼마나 자주 타는지 가늠에 도움.
+    - **② 묻는 것 (조사 질문)**: A/B/C **분포**(대부분 A? B 상당? C 무시 가능?) · **B의 AXS org 확보 방식**(`link`가 자동 생성/개통 vs Straumann 별도 개통 — 핵심 미지) · A의 **Vatech 기연동 여부** · `customerNumber` **취득 경로**(설치 입력/LMP/포털·*“Straumann 고객이면 있다”는 가정*) · consent 주체·타이밍.
+    - **③ 상태 B(연결 필요) 절차는? (어디서·누가·어떤 UI)**:
       - AXS **별도 콘솔/포털**에서 조직 담당자가 발급·동의하는가? (out-of-band)
       - **GW가 AXS API로** 대행하는가? — *우리 조사(AXS Organization API)*: `POST /v1/organization/integration/link`(`customerNumber` + 우리 Client ID) → `organizationId` + **조직 관리자 동의**(status `PENDING`→`APPROVED`). 즉 **조직 자체는 Straumann 고객**이고 우리는 그 조직에 우리 연동을 **"연결(link)"** 만 한다(생성 아님). 보조 API `.../check`(연결 확인)·`.../unlink`(해제)·`.../{customerNumber}/info`(region·country).
       - **EzServer Console에서** 그 연결을 트리거하는 **UI를 제공**해야 하나? (customerNumber 입력·동의 상태 표시·완료 시 org-binding 자동 등록 등)
     - **부가 요청**: Straumann과 **계약·sandbox 제공 시 Tech support(기술 질의) 채널**도 함께 확보 요청 — 위 절차·동의 흐름·`customerNumber` 취득 방법은 Straumann에 직접 확인해야 정확하다. (AXS sandbox 자격은 이월 #6과 연계)
-    - **성격/산출**: [정보·조사] — **이번 회의 확정 불요**, "알아볼 경로(누구에게·어떻게 확인할지)"만 정하면 됨. 확정 시 **④ AXS Sub-SRS**에 구체화(경우 A/B 판정·링크 트리거 주체·UI 소유). **미확정 시 차주 이월**(아래 이월 논의 사항에 등재 예정). 근거 자료: 참조-카탈로그 §3 AXS_docs `organization.yml`·Integration_guide.
+    - **④ 누가·언제까지·회신처**: **드라이브=Raymond(GW 리드)** · 입력원=**호주 영업/현장·Straumann 파트너십 담당**(계약·연동 실태)+**EzServer팀(③-P-EZ)**(customerNumber 취득). **회신처=④ `_status` TBD**.
+    - **⑤ 비차단·기한**: **GW API는 이미 A/B 모두 수용**(org-bindings 수렴 + 미연동의 `link`=프록시 레일·**신규 GW 엔드포인트 불요**) → **GW baseline 안 막힘**; 막히는 것 = **EzServer AXS flow(③-P-EZ)·④ 집필**. 따라서 **④ 집필·EzServer AXS 착수 전(= AXS pilot 8/15 역산·7월 말 sandbox 자격 확보 전)** 회신.
+    - **성격/산출**: [정보·조사] — **이번 회의 확정 불요**, 정할 것은 **"누가·언제까지 알아오나"**. 확정 시 **④ AXS Sub-SRS**에 구체화(상태 A/B/C 판정·링크 트리거 주체·UI 소유). **미확정 시 차주 이월**(아래 이월 논의 사항에 등재 예정). 근거: 참조-카탈로그 §3 AXS_docs `organization.yml`·Integration_guide + `references/Straumann연동/AXS_docs/openapi/organization.yml`(link/check/unlink/info·consent PENDING→APPROVED).
 
   - **R5. 호환성 매트릭스 관리 구조 결정 (2건 · 추천안 있음)** — GW가 공시하는 버전 호환성 매트릭스(§7.7.2·§7.7.5)의 저작·배포 구조. **2단계 파이프라인**(원본 git → CI 생성 → S3 발행 → GW 런타임 read+cache·**앱 재배포와 분리**)은 전제로 두고, 아래 **2건**을 결정한다. (매트릭스 샘플·구조 공유는 S3 참조.)
 
