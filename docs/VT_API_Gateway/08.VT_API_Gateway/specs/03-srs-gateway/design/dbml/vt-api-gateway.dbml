@@ -241,14 +241,14 @@ Table audit_log {
 }
 
 // ── fleet_state — fleet(디바이스 함대) 관측 상태 스냅샷 (FR-FLEET-01/03) ──
-//  • device와 1:1(device_id=PK 겸 FK). 디바이스별 마지막 heartbeat·성공률 캐시 → 온라인/오프라인·건강도 판단(콘솔 대시보드·이상탐지)
+//  • device와 1:1(device_id=PK 겸 FK). 디바이스별 마지막 heartbeat·보고 SW 버전 → 온라인/오프라인·롤아웃 가시성(콘솔 대시보드). 성공률·오류분포는 관측 metric(§7.8.3·§6.3.2)로 분리(rate=분자/분모·시간창·다중인스턴스 집계라 DB 스칼라 부적합)
 //  • 원천 지표=관측 파이프라인(§6.3.2), 본 표는 최신 상태 스냅샷만
 Table fleet_state {
   device_id      varchar [pk, ref: - device.device_id]  // PK·FK → device(디바이스당 1개). 예 `01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60`
   last_heartbeat bigint                                 // device가 주기 보고한 마지막 heartbeat 수신 시각(Unix ms). GW는 edge를 폴링 못 함 — device→GW push(POST /v1/fleet/heartbeat)가 갱신(§7.8.1). 온라인/오프라인=임계값 초과 파생 판정. 예 `1720224000000`
-  success_rate   decimal                                // 성공률(관측 지표, 0~1). 예 `0.987`
+  app_version    varchar                                // device가 heartbeat로 보고한 마지막 SW 버전(호환성·롤아웃 가시성·§7.7·§7.8.4). heartbeat마다 갱신·nullable(미보고 시). 예 `6.3.1.3`. (online=last_heartbeat 임계 파생·컬럼 아님 / 성공률·오류분포=관측 metric §7.8.3·§6.3.2·DB 미저장)
 
-  Note: 'fleet 관측 상태 스냅샷(FR-FLEET-01/03) — device와 1:1, 마지막 heartbeat·성공률. 상세는 테이블 위 주석 참조.'
+  Note: 'fleet liveness/rollout 스냅샷(FR-FLEET-01) — device와 1:1, 마지막 heartbeat·보고 SW 버전. 온라인=last_heartbeat 임계 파생. 성공률·오류분포(FR-FLEET-03·P2)=관측 metric(§7.8.3)·DB 아님. 상세는 테이블 위 주석 참조.'
 }
 
 // ── config — 중앙 Config(원격 fleet 설정, 재배포 없이 관리) (FR-CFG-01·§7.8.4) ──
