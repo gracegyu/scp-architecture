@@ -821,7 +821,7 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: webhook 이벤트(메타) 검색/조회 — Console 운영·감사용 (PHI-free, payload는 payload_ref로 참조) [v1.0]
+      summary: webhook 이벤트(메타) 검색/조회 — Console 운영·감사용 (PHI-free·payload는 payloadRef 참조·FR-WH-*) [v1.0]
       description: >-
         운영자가 webhook 이벤트 메타(PHI-free: target·event_type·org·clinic·region·state·시각)를
         검색·조회한다(Console 운영·감사·§7.6). 본문(payload)은 미포함 — payload_ref로 리전 S3 별도(claim-check).
@@ -1835,7 +1835,7 @@ components:
       type: object
       description: >-
         webhook 이벤트 **PHI-free 운영 메타데이터**(webhook_event 테이블 매핑, §7.6). payload 본문은 리전 로컬 S3에만 두고 payloadRef로 참조(claim-check, 7/9 R7). 관계형 DB·본 응답에 본문 미포함.
-      required: [ eventId, targetId, state ]
+      required: [ eventId, targetId, state, attempts, receivedAt ]
       properties:
         eventId: { type: string, description: '이벤트 식별자 = 멱등 키(dedup)', example: c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545 }
         targetId: { type: string, description: '발신 upstream 라벨', example: axs }
@@ -1845,18 +1845,19 @@ components:
           description: >-
             upstream 원어 event_type(verbatim·GW enum 아님·null 가능)
           example: patient.created
-        externalOrgId: { type: string, description: '발신 org 식별자(분배 역조회 키·AXS=organizationId UUID)', example: e407b34d-c4b0-4db3-bbcd-cc11770eae7b }
+        externalOrgId: { type: string, nullable: true, description: '발신 org 식별자(분배 역조회 키·AXS=organizationId UUID). 추출 실패 시 null', example: e407b34d-c4b0-4db3-bbcd-cc11770eae7b }
         clinicId:
           type: string
           nullable: true
           description: >-
-            해석된 대상 clinic(org_mapping 조회 결과)
+            해석된 대상 clinic(org_mapping 조회 결과·미해석 시 null)
           example: d3f1a9c07b6e4258af31c9d2e0b4a687
-        region: { type: string, description: '해석된 대상 region(clinic 파생)', example: apne2 }
+        region: { type: string, nullable: true, description: '해석된 대상 region(clinic 파생·미해석 시 null)', example: apne2 }
         payloadRef:
           type: string
+          nullable: true
           description: >-
-            본문 claim-check 참조(리전 로컬 S3)
+            본문 claim-check 참조(리전 로컬 S3·미보관 시 null)
           example: 's3://gw-webhook-payload-apne2/axs/c2f8aaf5.json'
         state: { $ref: '#/components/schemas/WebhookEventState' }
         dispatchTarget:
@@ -1867,7 +1868,7 @@ components:
           example: 'mqtt_edge:gw/clinic/d3f1a9c07b6e4258af31c9d2e0b4a687/webhook'
         attempts: { type: integer, description: '분배 시도 횟수', example: 1 }
         lastError: { type: string, nullable: true, description: '마지막 분배 실패 사유(성공 시 null)', example: null }
-        receivedAt: { type: integer, format: int64, description: '수신 시각(Unix ms)', example: 1720137600123 }
+        receivedAt: { type: integer, format: int64, description: '수신 시각(Unix ms·항상 존재)', example: 1720137600123 }
         dispatchedAt:
           type: integer
           format: int64
