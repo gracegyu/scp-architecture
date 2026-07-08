@@ -313,13 +313,6 @@
 
 - 논의 사항 (7/2 결정 → 적용 방법 확정 · 신규 결정 요청)
 
-  - **▶ 진행 순서·묶음** — 항목을 **논의 순서대로 번호를 매겼다(R1→R9)**. 되돌리기 어려운 기반을 앞에, 종속 항목을 뒤에, 관련끼리 묶었다:
-    - **① 인증 기반**(온보딩 전제·되돌리기 어려움): **R1** 장비 인증(private_key_jwt·CCB) → **R2** Console/운영자 인증
-    - **② 온보딩/Enrollment**(R1 위): **R3** enroll clinic 정보 필드 → **R4** enroll 승인 flow 우선순위
-    - **③ 라우팅·연동**(R5 위 프록시·연동): **R5** 라우팅 확정(재확인) → **R6** 연동 대상 `upstream` 병합·명칭 → **R7** webhook payload 저장 → **R8** AXS 실태 *조사*(담당만 지정)
-    - **④ 인프라**: **R9** 호환성 매트릭스 CI 구조
-    - 원칙: 결정 항목 우선 · 조사(R8)는 연동 문맥에서 · 독립 인프라(R9)는 마무리. 항목 상세는 아래 순서대로 이어짐.
-
   - **R1. 무인 장비(EzServer)의 GW 인증 방식 확정 — private_key_jwt(공개키) vs OneID (중요 · 결정·재확인)** — **결론: OneID에는 무인 장비용 머신 인증 수단이 없다 — 사실상 후보가 못 된다. private_key_jwt(공개키)로 확정한다.** 되돌리기 어려운 기반 결정이라 CCB 재확인을 받는다.
     - **왜 OneID로는 안 되나** — 무인 장비가 OneID에서 토큰을 받을 grant는 **ROPC(user id/pw를 토큰 엔드포인트로 직접 전송)** 뿐이다(Authorization Code=브라우저·사람 필요, client_credentials=OneID가 제품에만 발급). 그런데 OneID v1.0은 **외부 머신에 ROPC를 제공하지도 않고**(사용자·제품용 IdP), 설령 켠다 해도 **EzServer가 id/pw(=공유 secret)를 저장해두고 자동 로그인**하는 편법이 된다:
       - 10만 대에 **공유 secret 상주·매 로그인 전송** → private_key_jwt가 없애려던 유출면 부활.
@@ -485,7 +478,7 @@
       - **보안**: 평문 LAN 구간에 토큰/PHI가 실리면 노출 — 민감 트래픽은 그 구간 HTTPS 권장(기존 운영 자세라 별도 판단).
     - **SRS 반영 예정(확정 후)**: ADR-11(라우팅 = **edge 서브도메인** · `Vatech-Target`은 내부 hop 변환 키로 유지) · §4.5.1(`{target}.gw.vatech.com` + `*.gw.vatech.com` 와일드카드 cert + GeoDNS 와일드카드) · §4.1.2(라우팅 방식) · §4.1.4(업로드 target 지정) · webhook 서브도메인과 일관성 명시.
 
-  - **R6. 연동 대상 테이블 병합 + 명칭 확정 (공유·명칭 승인 요청)** — AXS·CleverSpace 같은 **GW 연동 대상**의 라우팅·아웃바운드 자격·인바운드 webhook 수신을 담던 **3개 표(upstream_registry·connector·webhook_provider)를 1개 표로 병합**(1:1 facet·중복 토큰·미연결 해소, provider 등록=1 레코드). 병합 표의 **이름을 무엇으로 할지** 4개 후보를 비교했고 **일단 `upstream`으로 정했다**.
+  - **R6. 외부 연동 대상(AXS·CleverSpace 등)의 공식 명칭 확정 — DB·API·Console·커뮤니케이션 공통 용어 (명칭 승인)** — **결정 = GW가 대신 호출·수신하는 외부 연동 서버(예 AXS·CleverSpace)를 부르는 공식 용어**를 정한다. 이 명칭은 **DB 테이블·API 필드·GW Console UI·앞으로의 팀 커뮤니케이션에서 모두 동일하게** 쓰이므로 한번 정하면 파급이 크다(그래서 지금 못박는다). **계기**: 이 대상의 라우팅·아웃바운드 자격·인바운드 webhook 수신을 담던 **3개 표(upstream_registry·connector·webhook_provider)를 1개로 병합**(1:1 facet·중복 토큰·미연결 해소, 등록=1 레코드)하며 **엔터티/용어 이름**을 확정해야 했다. 4개 후보 비교 후 **일단 `upstream`으로 정했다** — 회의에서 최종 승인 또는 변경.
     - **이름 후보 비교**:
 
       | 후보 | 장점 | 단점 |
