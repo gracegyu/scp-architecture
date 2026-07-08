@@ -58,3 +58,33 @@
 - 등록: **`POST /admin/v1/upstreams`(1회)** → (정책) → (클리닉 붙을 때 `POST /admin/v1/org-mappings`).
 - 삭제: `DELETE /admin/v1/upstreams/{targetId}`.
 - **원자성**: upstream 등록은 이제 **단일 레코드 upsert**라 원자적(구 3표 다중 쓰기 문제 해소). credential·secret은 KMS 저장 후 참조만 DB에 — KMS 쓰기+DB 쓰기 2단계라 실패 처리(보상)만 LLD.
+
+---
+
+## 작성 가이드 — clinic·device 화면 구성 (2 리소스 유지·통합 안 함)
+
+> 정본 결정 = ③ Appendix B **#47**(clinic·device API 분리 유지·통합 기각). 아래는 "왜 두 화면이고, Console에서 어떻게 정리해 중복감을 없애는가"의 UI 씨앗. **API는 두 리소스 그대로**(`/v1/admin/devices`·`/v1/admin/clinics`), 정리는 **표현 계층에서만**.
+
+### 배경 — 왜 통합 안 하나 (요약)
+- device·clinic은 **다른 엔터티**: SoT(clinic=LMP 32자 / device=GW UUIDv7)·생성경로·**lifecycle(device만)**·관계역할(clinic=정책/config scope 앵커·org_mapping 라우팅 키·region 원천)이 상이.
+- **현 1:1은 배포 우연**이지 모델 제약 아님(모델=device 주체·clinic 선택적 그룹·**1:N**·clinic-less). 통합하면 clinic-less device·device 0/N개 clinic·두 키스페이스 혼재가 깨짐.
+- 겹쳐 보이는 건 "한 물리 박스를 두 곳에서 본다"는 것뿐 — **오퍼레이션은 거의 안 겹침**.
+
+### UI 원칙 (중복감 해소의 핵심)
+1. **주 워크스페이스 = Fleet/Device 뷰**(device가 주체). 목록 컬럼: device·**clinic(이름/id)**·region·status. 1:1인 지금 운영자는 주로 여기 머묾.
+2. **보조 워크스페이스 = Clinic 뷰**(그룹·라우팅 관점). 목록 컬럼: clinic·**device 수**·region·**AXS org-binding 상태**. 1:N이 오면 여기서 자연 확장.
+3. **편집면 단일화(가장 중요)** — 같은 필드를 두 화면에서 고치지 않는다:
+   - **region·org-binding·clinic 정보 교정 = Clinic 화면에서만** (`PATCH /admin/clinics/{id}`·`PUT …/region`·org-binding).
+   - **device lifecycle·kill·키 = Device 화면에서만** (`PATCH /admin/devices/{id}`·`…/kill`).
+4. **양방향 드릴스루**: Device 상세에 **소속 clinic 카드**(region·org-binding·정책 스코프 요약 + "clinic 관리로 이동" 링크) / Clinic 상세에 **소속 device 목록**(1:N).
+
+### 화면 스케치
+- **Device 상세** 탭: [상태·lifecycle] · [인증·키] · [소속 clinic 카드(읽기+링크)].
+- **Clinic 상세** 탭: [clinic 정보·region] · [org-bindings] · [소속 device 목록] · [clinic-scope 정책·config].
+
+### 선택 후속 (③ API 다듬기 — 통합 아님·관계 일급화)
+- device 상세 응답에 **clinic 요약 임베드**(clinicId·name·region) → 화면 2콜 회피.
+- **`GET /v1/admin/clinics/{clinicId}/devices`**(clinic의 device 하위목록) 신설 → 1:N 표현. (③ SRS/OpenAPI 소관·미결정, 콘솔 스펙 시 함께 확정.)
+
+### device-self 층 유의 (섞지 말 것)
+- `/v1/clinics/me/*`(device가 자기 clinic read-back·region·org-binding 자가 등록)는 **디바이스 self 평면**이고 위 operator 화면과 **actor가 다름**. Console(operator)과 EzServer Console(device-self)을 혼동해 한 화면에 합치지 않는다.
