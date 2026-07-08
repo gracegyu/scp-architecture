@@ -843,7 +843,10 @@ paths:
 
   /v1/admin/upstreams/{targetId}:
     parameters:
-    - { name: targetId, in: path, required: true, schema: { type: string, example: axs } }
+    - name: targetId
+      in: path
+      required: true
+      schema: { type: string, example: axs }
     delete:
       operationId: deleteAdminUpstreamsByTargetId
       security:
@@ -870,9 +873,17 @@ paths:
       summary: 중앙 config 항목 조회 (FR-CFG-01) [v1.0]
       description: 스코프·키로 필터. device에 실제 적용되는 실효값은 device의 GET /v1/fleet/config
       parameters:
-      - { name: scopeType, in: query, schema: { type: string, enum: [ global, region, clinic, device ] } }
-      - { name: scopeId, in: query, description: 스코프 id(정확 일치), schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 } }
-      - { name: configKey, in: query, description: config 키(정확 일치), schema: { type: string, example: gw.heartbeat.interval_seconds } }
+      - name: scopeType
+        in: query
+        schema: { type: string, enum: [ global, region, clinic, device ] }
+      - name: scopeId
+        in: query
+        description: 스코프 id(정확 일치)
+        schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
+      - name: configKey
+        in: query
+        description: config 키(정확 일치)
+        schema: { type: string, example: gw.heartbeat.interval_seconds }
       responses:
         '200':
           description: config 항목 목록
@@ -917,9 +928,18 @@ paths:
       summary: 중앙 config 항목 삭제 — (scopeType, scopeId, configKey) 지정 (FR-CFG-01) [v1.0]
       description: '운영자가 중앙 config 항목을 삭제한다((scopeType, scopeId, configKey) 지정·FR-CFG-01·§7.8.4).'
       parameters:
-      - { name: scopeType, in: query, required: true, schema: { type: string, enum: [ global, region, clinic, device ] } }
-      - { name: scopeId, in: query, description: 스코프 id(정확 일치), schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 } }
-      - { name: configKey, in: query, required: true, schema: { type: string, example: gw.heartbeat.interval_seconds } }
+      - name: scopeType
+        in: query
+        required: true
+        schema: { type: string, enum: [ global, region, clinic, device ] }
+      - name: scopeId
+        in: query
+        description: 스코프 id(정확 일치)
+        schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
+      - name: configKey
+        in: query
+        required: true
+        schema: { type: string, example: gw.heartbeat.interval_seconds }
       responses:
         '204':
           description: 삭제됨
@@ -940,9 +960,17 @@ paths:
       description: >-
         운영자가 정책을 조회한다(scope·target 필터·FR-INT-03). GW는 deny-by-default라 본 표가 허용 정책의 SSOT.
       parameters:
-      - { name: scopeType, in: query, schema: { type: string, enum: [ global, clinic, device ] } }
-      - { name: scopeId, in: query, description: 스코프 id(정확 일치), schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 } }
-      - { name: targetId, in: query, schema: { type: string, example: axs }, description: 'upstream 대상(정확 일치)' }
+      - name: scopeType
+        in: query
+        schema: { type: string, enum: [ global, clinic, device ] }
+      - name: scopeId
+        in: query
+        description: 스코프 id(정확 일치)
+        schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
+      - name: targetId
+        in: query
+        schema: { type: string, example: axs }
+        description: 'upstream 대상(정확 일치)'
       responses:
         '200':
           description: 정책 목록
@@ -980,7 +1008,11 @@ paths:
 
   /v1/admin/policies/{id}:
     parameters:
-    - { name: id, in: path, required: true, description: 정책 id, schema: { type: string, example: pol_7f3a2b1c } }
+    - name: id
+      in: path
+      required: true
+      description: 정책 id
+      schema: { type: string, example: pol_7f3a2b1c }
     delete:
       operationId: deleteAdminPoliciesById
       security:
@@ -1023,7 +1055,10 @@ paths:
 
   /v1/admin/regions/{regionId}:
     parameters:
-    - { name: regionId, in: path, required: true, schema: { type: string, example: apne2 } }
+    - name: regionId
+      in: path
+      required: true
+      schema: { type: string, example: apne2 }
     put:
       operationId: putAdminRegionsByRegionId
       security:
