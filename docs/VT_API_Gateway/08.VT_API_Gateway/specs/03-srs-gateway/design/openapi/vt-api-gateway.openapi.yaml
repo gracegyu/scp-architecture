@@ -639,10 +639,15 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: kill-switch(긴급 정지) (FR-FLEET-02) [v1.0]
+      summary: kill-switch(긴급·영구 정지 → revoked) (FR-FLEET-02) [v1.0]
       description: >-
-        운영자가 디바이스를 긴급 정지한다(kill-switch·FR-FLEET-02) — status=revoked + denylist 즉시 전파(§7.2.4)로 이미
-        발급된 단명 토큰도 만료 전 차단. 승인자·시각 감사(§7.9.3).
+        운영자가 디바이스를 **긴급·영구 정지**한다(kill-switch·FR-FLEET-02).
+
+        1. **GW 서비스 거부**: status=**revoked** 전이 + denylist 즉시 전파(강한 일관성·§7.2.4)로 **이미 발급된 단명 토큰도 만료 전 차단**하고, 이후 토큰 발급·API 호출을 전면 거부한다.
+
+        2. **되돌릴 수 없다(revoked=종단·복구 불가·§7.2.3)**: 다시 서비스하려면 kill 해제가 아니라 **재-enroll**(§7.2.7 — device_id 유지·새 client_id 발급·C/S 재승인)이다. **잠깐 막았다 재개할 목적이면 kill이 아니라 suspend**(PATCH /v1/admin/devices/{id} → status=suspended·복구 가능)를 쓴다.
+
+        승인자·시각 감사(§7.9.3).
       responses:
         '200':
           description: 즉시 정지됨
@@ -1455,6 +1460,14 @@ components:
     DeviceStatus:
       type: string
       enum: [ pending, active, suspended, revoked ]
+      description: >-
+        디바이스 lifecycle 상태(§7.2.3 상태기계).
+        **pending**=enroll 완료·C/S 승인 대기(인증 불가) /
+        **active**=정상 운영(C/S 승인 후·인증·호출 허용) /
+        **suspended**=일시 정지(운영자/정책·**복구 가능**) /
+        **revoked**=폐기·자격 무효(**종단·복구 불가**·kill-switch 결과).
+        허용 전이: pending→active(C/S 승인) · active↔suspended(정지·재개) · active|suspended→revoked(폐기).
+        revoked에서 재서비스는 되돌리기가 아니라 재-enroll(§7.2.7).
       example: active
     Device:
       type: object

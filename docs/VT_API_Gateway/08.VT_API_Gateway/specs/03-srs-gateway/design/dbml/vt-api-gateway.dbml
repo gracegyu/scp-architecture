@@ -54,8 +54,8 @@ Project vt_api_gateway {
 Enum device_status {
   pending    // enroll 완료·C/S 승인 대기(인증 불가). pending→active는 C/S 승인 게이트(§7.2.3·§7.2.5)
   active     // 정상 운영(인증·호출 허용) — C/S 승인 후
-  suspended  // 일시 정지(운영자/정책)
-  revoked    // 폐기(자격 무효, 복구 불가)
+  suspended  // 일시 정지(운영자/정책) — 복구 가능(active↔suspended·§7.2.3)
+  revoked    // 폐기(자격 무효, 복구 불가·종단). kill-switch 결과(§7.8.2)·재서비스는 재-enroll(§7.2.7)
 }
 
 // webhook 이벤트 처리 상태(§7.6)

@@ -82,6 +82,12 @@
 - **Device 상세** 탭: [상태·lifecycle] · [인증·키] · [소속 clinic 카드(읽기+링크)].
 - **Clinic 상세** 탭: [clinic 정보·region] · [org-bindings] · [소속 device 목록] · [clinic-scope 정책·config].
 
+### Device lifecycle 액션 UI (필수)
+Device 상세 [상태·lifecycle] 탭에서 상태 전이 액션을 제공(정본=③ §7.2.3·API `PATCH /v1/admin/devices/{id}`·`POST /v1/admin/devices/{id}/kill`):
+- **승인**(pending→active·C/S) · **suspend / resume**(active↔suspended·복구 가능) · **kill-switch**(→revoked).
+- **kill = 파괴적·비가역 액션** → **가드 필수**: 확인 다이얼로그(device 식별·영향 명시)·2차 확인 또는 사유 입력, 권한 제한(§7.9.2), 실행 시 승인자·시각 감사(§7.9.3) 노출. revoked는 **되돌리기 버튼 없음**(재서비스=재-enroll 안내 문구).
+- **suspend와 시각적 분리**: "잠깐 막기=suspend / 완전 차단=kill"을 UI 카피·색상(kill=위험색)으로 구분해 오조작 방지.
+
 ### 관계 일급화 (③ API — 반영 완료 2026-07-08)
 - ✅ `Device` 응답에 **`clinic` 요약 임베드**(clinicId·name·region·nullable·읽기전용) → device 화면이 clinic 2차 조회 없이 카드 렌더. clinic-less면 null.
 - ✅ **`GET /v1/admin/clinics/{clinicId}/devices`**(clinic의 device 하위목록·1:N) 신설 → Clinic 상세의 "소속 device 목록" 탭이 이 엔드포인트를 사용. (OpenAPI op 42·redocly valid.)
