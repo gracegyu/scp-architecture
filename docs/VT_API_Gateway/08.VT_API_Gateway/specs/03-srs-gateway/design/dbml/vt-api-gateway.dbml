@@ -299,7 +299,7 @@ Table webhook_event {
   dispatch_target varchar                                            // 실제 발행한 **구체적 분배 목적지** — 형식 `{channel_type}:{endpoint}`. v1.0은 clinic에서 도출한 MQTT 토픽(§7.6.6). **clinic_id·region('어디')과 별개로 '어떤 채널·주소로' 보냈나**(감사·디버깅). 발행 전 null. ※ upstream(아웃바운드 라우팅 대상)와 **무관**(분배 목적지 ≠ 호출 대상). 예 `mqtt_edge:gw/clinic/d3f1a9c07b6e4258af31c9d2e0b4a687/webhook`
   attempts        integer [not null, default: 0]                     // 분배 시도 횟수(N회 실패 → dead_letter·DLQ, §7.6.3). 예 `1`
   last_error      varchar                                            // 마지막 분배 실패 사유(관측·DLQ 진단). 예 `mqtt publish timeout` (성공 시 null)
-  received_at     bigint                                             // 수신 시각(Unix ms). 예 `1720137600123`
+  received_at     bigint [not null]                                  // 수신 시각(Unix ms·insert 시 항상 설정). 예 `1720137600123`
   dispatched_at   bigint                                             // 분배 완료 시각(Unix ms). 예 `1720137600456` (미분배 시 null)
 
   Note: '외부 webhook 수신·분배 상태(FR-WH-*·§7.6) — PHI-free 운영 메타(Console 필터). 본문은 DB 미저장(리전 S3 claim-check). 상세는 테이블 위 주석 참조.'
