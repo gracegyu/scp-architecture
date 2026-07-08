@@ -993,7 +993,7 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: upstream 등록/갱신(upsert) — **연동 하나=1 레코드**(라우팅+자격+webhook 수신). 감사 action=upstream.upsert [v1.0]
+      summary: upstream 등록/갱신( 리) — **연동 하나=1 레코드**(라우팅+자격+webhook 수신). 감사 action=upstream.upsert [v1.0]
       description: >-
         운영자가 연동 대상(upstream)을 등록/갱신(upsert)한다 — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드로(구 3표
         병합·§7.5·§7.6). credential·secret은 KMS 저장(원문 미노출·§6.2). 감사 action=upstream.upsert.
