@@ -10,8 +10,8 @@
 # - errorCode 는 SRS 7.7.4 표준 집합에서만 선택(임의 신설 금지).
 
 apis:
-  - id: region.change                       # 리전 변경 API (안정 식별자·불변)
-    path: /v1/clinics/{clinicId}/region
+  - id: region.change                       # 리전 변경 API (안정 식별자·불변) — path는 비계약 주석(매칭 키=id)
+    path: /v1/admin/clinics/{clinicId}/region
     minClientVersion:
       EzServer: "2.1.0"                      # 이 API는 EzServer 2.1.0+ 필요
     errorCode: COMPAT_CLIENT_TOO_OLD
