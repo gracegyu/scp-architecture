@@ -676,7 +676,38 @@ paths:
       - operatorAuth: []
       tags: [ admin ]
       summary: 감사 로그 조회(경량) (FR-AUD-01) [v1.0]
-      description: 그 외 관리자 조회(/v1/admin/*)는 LLD에서 확장. UI는 ③-C
+      description: >-
+        운영자가 append-only 감사 로그(audit_log·§7.9.3·IEC 62304/ISO 13485)를 조회한다 — 행위자·동작·결과·시각 범위 필터 +
+        커서 페이지네이션(§7.9.1). 쓰기 API 없음(조회 전용). 필터 축은 DBML 인덱스(ts·actor·action)와 정합. 고급 분석·집계·리포트는 LLD/③-C에서 확장.
+      parameters:
+      - name: actor
+        in: query
+        description: 행위자 필터 — `type:id`(user/system/device) 정확 일치(exact)
+        schema: { type: string, example: user:entra-8f3a }
+      - name: action
+        in: query
+        description: 동작 필터 — `resource.verb` 정확 일치(exact)
+        schema: { type: string, example: region.change }
+      - name: result
+        in: query
+        description: 결과 필터(정확 일치)
+        schema: { type: string, enum: [ success, denied, failure ] }
+      - name: from
+        in: query
+        description: 이 시각 이후(Unix ms·시각 범위 하한)
+        schema: { type: integer, format: int64, example: 1720137600000 }
+      - name: to
+        in: query
+        description: 이 시각 이전(Unix ms·시각 범위 상한)
+        schema: { type: integer, format: int64, example: 1720224000000 }
+      - name: limit
+        in: query
+        description: 페이지 크기(커서 페이지네이션·§7.9.1)
+        schema: { type: integer, default: 50, maximum: 200, example: 20 }
+      - name: cursor
+        in: query
+        description: 다음 페이지 커서 — 불투명 토큰(직전 응답의 nextCursor 값을 그대로 전달·클라이언트가 직접 만들지 않음)
+        schema: { type: string, example: eyJkIjoiMDE5MjBhN2IifQ }
       responses:
         '200':
           description: 감사 로그 목록
@@ -1854,7 +1885,7 @@ components:
           description: >-
             수행 동작 — `resource.verb` 규약(free string·GW enum 아님)
           example: region.change
-        result: { type: string, description: 'success | denied | failure (DBML audit_result enum)', example: success }
+        result: { type: string, enum: [ success, denied, failure ], description: 'DBML audit_result enum', example: success }
 
     # 라우팅·분배 레지스트리 (DB가 보관하는 "어디로 분배" 지식)
     OrgMapping:
