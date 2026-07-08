@@ -191,7 +191,7 @@ Enum config_scope {
 //  • v1.0 집행=coarse(upstream 사용 허용까지) · allowed_endpoints·scopes 세분화는 스키마만·gw/1.1+ 예약(작업/데이터 격리=AXS+Org-ID·§7.5.3)
 //  • 스코프별 정책 관리 API+UI 필요(③-C·Appendix B #32) · jsonb 형식=db-jsonb#policy
 Table policy {
-  id                varchar [pk]  // 정책 식별자. 예 `pol_axs_clinic0040`
+  id                varchar [pk]  // 정책 식별자 = GW 생성 불투명 surrogate(스코프 비파생). 예시 `pol_7f3a2b1c`는 형식 illustrative — prefix·생성 규칙 LLD 확정(#46). scope는 scope_type/scope_id가 표현(id에 인코딩 아님)
   scope_type        policy_scope [not null]  // 부착 스코프 global|clinic|device. 주체=device, 실효정책=device→clinic(소속 시)→global 합성(§1.2·§6.4.1). 예 `clinic`
   scope_id          varchar       // 부착 대상 id — global=NULL / clinic=clinic_id / device=device_id. **다형 참조라 하드 FK 없음**(scope_type discriminator + 앱레벨 무결성). 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`(clinic) / global이면 NULL
   target_id         varchar [ref: > upstream.target_id]  // 적용 대상 = upstream.target_id(아웃바운드 연동 대상, FK). 예 `axs` (global 스코프여도 어느 upstream 호출을 허용하는지 지정)
@@ -254,7 +254,7 @@ Table fleet_state {
 //  • v1.0 실사용=GW-내부 설정(gw.*·pod·리전 공유). device 원격 전달(pull=GET /v1/fleet/config·push-notify)·device.* 키는 gw/1.1+(§7.8.4·§7.6.6)
 //  • 관리=admin API+③-C · 값 형식=db-jsonb#config · rollout·카나리·명명 그룹(FR-FLEET-04)=gw/1.1
 Table config {
-  id           varchar [pk]                    // config 항목 식별자. 예 `cfg_gw_hb_interval_global`
+  id           varchar [pk]                    // config 항목 식별자 = GW 생성 불투명 surrogate(자연키=(scope_type,scope_id,config_key)). 예시 `cfg_7f3a2b1c`는 형식 illustrative — prefix·생성 규칙 LLD 확정(#46). key/scope는 id에 인코딩 아님
   scope_type   config_scope [not null]         // 부착 스코프 global|region|clinic|device. 실효 config=키별 device>clinic>region>global(가장 구체 우선, override 병합·§7.8.4). 예 `global`
   scope_id     varchar                         // 부착 대상 id — global=NULL / region=region_id / clinic=clinic_id / device=device_id. **다형 참조·하드 FK 없음**(scope_type discriminator + 앱레벨 무결성). 예 global이면 NULL / `apne2`(region)
   config_key   varchar [not null]              // 점 구분 소문자 키. gw.*(GW 소비) / device.*(gw/1.1+ 예약). 예 `gw.heartbeat.interval_seconds`. 키별 값 타입=앱 레벨 레지스트리(design/db-jsonb-fields.md#config)
@@ -288,7 +288,7 @@ Table webhook_event {
   event_id        varchar [pk]                                        // 이벤트 식별자 = 멱등 키(중복 수신 dedup, §7.6.4). upstream.event_id_path로 payload에서 추출(예 AXS messageId) — upstream별 필드명 상이. 예 `c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545`
   target_id       varchar [not null, ref: > upstream.target_id] // 발신 upstream(FK → upstream, target_id로 식별). 예 `axs`
   event_type      varchar                                             // 발신 이벤트 유형 — upstream.event_type_path로 payload에서 **verbatim 추출**. **발신 어휘 free string·GW enum 아님**, 의미=(target_id,event_type), 미추출 시 null. PHI-free. 용도=Console 필터·관측. **목적지 라우팅은 org_mapping(별개)**. 예 `patient.created`
-  external_org_id varchar                                             // upstream(발신)의 org 식별자 — 분배 대상 역조회 키. 예 `0040694997`(AXS Org-ID)
+  external_org_id varchar                                             // upstream(발신)의 org 식별자 — 분배 대상 역조회 키. AXS=organizationId·UUID(organization.yml). 예 `e407b34d-c4b0-4db3-bbcd-cc11770eae7b`. 실제 값 7/9 R4 확정(#46)
   clinic_id       varchar [ref: > clinic.clinic_id]    // 해석된 대상 클리닉(FK, org_mapping 조회 결과). 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`
   region          varchar [ref: > region_catalog.region_id]          // 해석된 대상 리전(FK, clinic 파생). 예 `apne2`
   payload_ref     varchar                                            // 본문 보관 참조(claim-check). 본문=리전 로컬 S3(SSE·짧은 TTL, 7/9 R7)·in-flight는 SQS. **관계형 DB에 본문 미저장**(payload는 opaque·환자 PHI 포함 가능·복제 금지, §6.4·§7.6.3). 외부 스키마 ④. 예 `s3://gw-webhook-payload-apne2/axs/c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545.json`
@@ -314,13 +314,13 @@ Table webhook_event {
 // ── org_mapping — Org-ID↔ClinicID 매핑 · webhook 분배 1차 라우팅 키 (§4.1.3·§7.6) ──
 //  • 외부 upstream 이벤트엔 그쪽 org 식별자(예 AXS Organization-ID)만 있고 우리 clinic_id 없음
 //  • (target_id, external_org_id) → clinic_id 를 이어 수신 이벤트의 대상 클리닉 역조회(→ clinic으로 region → MQTT 토픽·§7.6.6)
-//  • 예: AXS organizationId=0040694997 → clinic_id=d3f1a9c07b6e4258af31c9d2e0b4a687
+//  • 예: AXS organizationId=e407b34d-c4b0-4db3-bbcd-cc11770eae7b(UUID) → clinic_id=d3f1a9c07b6e4258af31c9d2e0b4a687
 //  • 레코드: 외부 연동 연결 시 upstream별 자가 등록(§2.3.4) · 오설정은 Admin 교정(/admin/v1/org-mappings)
 //  • (target_id, external_org_id) 복합 PK + clinic_id 역인덱스 → 양방향 조회(복구·감사)
 //  • 얇은 식별자 대응표일 뿐 — 인증·OAuth·webhook 검증·payload 해석은 upstream 테이블 담당(§6.4.1 경계). target_id=upstream FK
 Table org_mapping {
   target_id       varchar [not null, ref: > upstream.target_id] // 연동 대상 upstream(FK, target_id). 예 `axs`
-  external_org_id varchar [not null]                                  // upstream(발신)의 org 식별자. 예 `0040694997`(AXS Organization-ID)
+  external_org_id varchar [not null]                                  // upstream(발신)의 org 식별자. AXS=organizationId·UUID(organization.yml). 예 `e407b34d-c4b0-4db3-bbcd-cc11770eae7b`. 실제 값 7/9 R4 확정(#46)
   clinic_id       varchar [not null, ref: > clinic.clinic_id]  // 대응 클리닉(FK). 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`
   mapping_version integer [not null, default: 1]                      // 매핑 버전 — 변경마다 +1(단조). 캐시 무효화·CAS·drift 감지(§7.3.2). 값 이력=audit_log. 예 `2`
   created_at      bigint                                              // 생성 시각(Unix ms). 예 `1720137600000`

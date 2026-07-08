@@ -36,7 +36,7 @@
 
 | 테이블 | 역할 | 예시 | 생성 경로 |
 | --- | --- | --- | --- |
-| `org_mapping` | (target_id,org_id)→clinic **분배 역조회 키** | target_id=`axs`, external_org_id=`0040694997`, clinic_id=`CLINIC-0040694997` | 자가 등록(§2.3.4) + `POST /admin/v1/org-mappings`(교정) |
+| `org_mapping` | (target_id,org_id)→clinic **분배 역조회 키** | target_id=`axs`, external_org_id=`e407b34d-c4b0-4db3-bbcd-cc11770eae7b`(AXS organizationId·UUID), clinic_id=`d3f1a9c07b6e4258af31c9d2e0b4a687`(LMP 32자) | 자가 등록(§2.3.4) + `POST /admin/v1/org-mappings`(교정) |
 
 - **분배 채널 레코드 없음**: 클리닉 분배는 clinic→MQTT 토픽(`gw/clinic/{clinicId}/webhook`·§7.6.6) 규약 도출이라 저장 테이블 없음(구 delivery_channel 삭제).
 
