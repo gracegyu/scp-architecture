@@ -355,10 +355,22 @@ paths:
     get:
       operationId: getAdminDevices
       parameters:
-      - { name: status, in: query, description: 상태 필터, schema: { $ref: '#/components/schemas/DeviceStatus' } }
-      - { name: clinicId, in: query, description: 클리닉 필터, schema: { type: string } }
-      - { name: limit, in: query, description: '페이지 크기(커서 페이지네이션·§7.2.1)', schema: { type: integer } }
-      - { name: cursor, in: query, description: 다음 페이지 커서, schema: { type: string } }
+      - name: status
+        in: query
+        description: 상태 필터(정확 일치)
+        schema: { $ref: '#/components/schemas/DeviceStatus' }
+      - name: clinicId
+        in: query
+        description: 클리닉 필터 — clinic_id 정확 일치(exact)
+        schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
+      - name: limit
+        in: query
+        description: 페이지 크기(커서 페이지네이션·§7.2.1)
+        schema: { type: integer, default: 20, example: 20 }
+      - name: cursor
+        in: query
+        description: 다음 페이지 커서 — 불투명 토큰(직전 응답의 nextCursor 값을 그대로 전달·클라이언트가 직접 만들지 않음)
+        schema: { type: string, example: eyJkIjoiMDE5MjBhN2IifQ }
       security:
       - operatorAuth: []
       tags: [ devices ]
@@ -498,7 +510,7 @@ paths:
       - name: clinicId
         in: path
         required: true
-        schema: { type: string }
+        schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
     get:
       operationId: getAdminClinicsById
       security:
@@ -545,6 +557,7 @@ paths:
       required: true
       schema:
         type: string
+        example: d3f1a9c07b6e4258af31c9d2e0b4a687
     put:
       operationId: putAdminClinicsByClinicIdRegion
       security:
@@ -672,12 +685,12 @@ paths:
         - name: targetId
           in: query
           required: true
-          schema: { type: string }
+          schema: { type: string, example: axs }
           description: upstream 대상 라벨(=Vatech-Target)
         - name: externalOrgId
           in: query
           required: true
-          schema: { type: string }
+          schema: { type: string, example: '0040694997' }
           description: upstream 발급 외부 Org-ID
       responses:
         '204': { description: 삭제됨 }
@@ -701,32 +714,34 @@ paths:
       parameters:
         - name: targetId
           in: query
-          schema: { type: string }
-          description: 발신 upstream 라벨 필터
+          schema: { type: string, example: axs }
+          description: 발신 upstream 라벨 필터(정확 일치)
         - name: clinicId
           in: query
-          schema: { type: string }
-          description: 분배 대상 clinic 필터
+          schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
+          description: 분배 대상 clinic 필터(정확 일치)
         - name: eventType
           in: query
-          schema: { type: string }
-          description: upstream 원어 event_type 필터
+          schema: { type: string, example: patient.created }
+          description: upstream 원어 event_type 필터(정확 일치)
         - name: state
           in: query
           schema: { $ref: '#/components/schemas/WebhookEventState' }
-          description: 처리 상태 필터
+          description: 처리 상태 필터(정확 일치)
         - name: from
           in: query
-          schema: { type: string, format: date-time }
+          schema: { type: integer, format: int64, example: 1720137600000 }
+          description: 이 시각 이후(Unix ms·시각 범위 하한)
         - name: to
           in: query
-          schema: { type: string, format: date-time }
+          schema: { type: integer, format: int64, example: 1720224000000 }
+          description: 이 시각 이전(Unix ms·시각 범위 상한)
         - name: limit
           in: query
-          schema: { type: integer, default: 50, maximum: 200 }
+          schema: { type: integer, default: 50, maximum: 200, example: 20 }
         - name: cursor
           in: query
-          schema: { type: string }
+          schema: { type: string, example: eyJkIjoiMDE5MjBhN2IifQ }
           description: 페이지네이션 커서
       responses:
         '200':
@@ -755,18 +770,18 @@ paths:
       parameters:
         - name: clinicId
           in: query
-          schema: { type: string }
-          description: clinic 필터
+          schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
+          description: clinic 필터(정확 일치)
         - name: staleOnly
           in: query
-          schema: { type: boolean, default: false }
-          description: last_heartbeat 임계 초과(정체) 디바이스만
+          schema: { type: boolean, default: false, example: true }
+          description: last_heartbeat 임계 초과(정체) 디바이스만 (boolean 토글·필터 아님)
         - name: limit
           in: query
-          schema: { type: integer, default: 50, maximum: 200 }
+          schema: { type: integer, default: 50, maximum: 200, example: 20 }
         - name: cursor
           in: query
-          schema: { type: string }
+          schema: { type: string, example: eyJkIjoiMDE5MjBhN2IifQ }
       responses:
         '200':
           description: fleet 상태 목록
@@ -828,7 +843,7 @@ paths:
 
   /v1/admin/upstreams/{targetId}:
     parameters:
-    - { name: targetId, in: path, required: true, schema: { type: string } }
+    - { name: targetId, in: path, required: true, schema: { type: string, example: axs } }
     delete:
       operationId: deleteAdminUpstreamsByTargetId
       security:
@@ -856,8 +871,8 @@ paths:
       description: 스코프·키로 필터. device에 실제 적용되는 실효값은 device의 GET /v1/fleet/config
       parameters:
       - { name: scopeType, in: query, schema: { type: string, enum: [ global, region, clinic, device ] } }
-      - { name: scopeId, in: query, schema: { type: string } }
-      - { name: configKey, in: query, schema: { type: string } }
+      - { name: scopeId, in: query, description: 스코프 id(정확 일치), schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 } }
+      - { name: configKey, in: query, description: config 키(정확 일치), schema: { type: string, example: gw.heartbeat.interval_seconds } }
       responses:
         '200':
           description: config 항목 목록
@@ -903,8 +918,8 @@ paths:
       description: '운영자가 중앙 config 항목을 삭제한다((scopeType, scopeId, configKey) 지정·FR-CFG-01·§7.8.4).'
       parameters:
       - { name: scopeType, in: query, required: true, schema: { type: string, enum: [ global, region, clinic, device ] } }
-      - { name: scopeId, in: query, schema: { type: string } }
-      - { name: configKey, in: query, required: true, schema: { type: string } }
+      - { name: scopeId, in: query, description: 스코프 id(정확 일치), schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 } }
+      - { name: configKey, in: query, required: true, schema: { type: string, example: gw.heartbeat.interval_seconds } }
       responses:
         '204':
           description: 삭제됨
@@ -926,8 +941,8 @@ paths:
         운영자가 정책을 조회한다(scope·target 필터·FR-INT-03). GW는 deny-by-default라 본 표가 허용 정책의 SSOT.
       parameters:
       - { name: scopeType, in: query, schema: { type: string, enum: [ global, clinic, device ] } }
-      - { name: scopeId, in: query, schema: { type: string } }
-      - { name: targetId, in: query, schema: { type: string }, description: 'upstream 대상' }
+      - { name: scopeId, in: query, description: 스코프 id(정확 일치), schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 } }
+      - { name: targetId, in: query, schema: { type: string, example: axs }, description: 'upstream 대상(정확 일치)' }
       responses:
         '200':
           description: 정책 목록
@@ -965,7 +980,7 @@ paths:
 
   /v1/admin/policies/{id}:
     parameters:
-    - { name: id, in: path, required: true, schema: { type: string } }
+    - { name: id, in: path, required: true, description: 정책 id, schema: { type: string, example: pol_7f3a2b1c } }
     delete:
       operationId: deleteAdminPoliciesById
       security:
@@ -1008,7 +1023,7 @@ paths:
 
   /v1/admin/regions/{regionId}:
     parameters:
-    - { name: regionId, in: path, required: true, schema: { type: string } }
+    - { name: regionId, in: path, required: true, schema: { type: string, example: apne2 } }
     put:
       operationId: putAdminRegionsByRegionId
       security:
@@ -1095,8 +1110,10 @@ paths:
     - name: env
       in: path
       required: true
+      description: 환경 식별자
       schema:
         type: string
+        example: production
     get:
       operationId: getWellKnownByEnvServerConfiguration
       tags: [ compatibility ]
@@ -1214,6 +1231,7 @@ components:
       schema:
         type: string
         format: uuid
+        example: 01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60
 
   schemas:
     # 공통 오류 envelope (GW 생성 — §7.7.4). 프록시 upstream 자체 오류는 verbatim이라 미적용.
@@ -1291,7 +1309,7 @@ components:
           description: >-
             부트스트랩 신뢰 = LM 라이선스·Clinic-ID(EzServer가 설치 시 LMP에서 수신).
             공장 토큰/OOB 코드는 미도입(GW 사전 발급 토큰 없음). 최종 활성화는 C/S Console 승인(§2.3.1·§7.2.5)
-          example: 'LM-LIC-8f3a2b1c:CLINIC-0040694997'
+          example: 'LM-LIC-8f3a2b1c:d3f1a9c07b6e4258af31c9d2e0b4a687'
         serial:
           type: string
           description: 대상 디바이스 시리얼(부트스트랩 식별)
@@ -1354,7 +1372,7 @@ components:
           description: >-
             소속 클리닉(등록 시 포함). nullable — 미래 클리닉 비소속(비-EzServer) 디바이스. region은 clinic에서 파생(§6.4.1 A안,
             region 컬럼 없음)
-          example: CLINIC-0040694997
+          example: d3f1a9c07b6e4258af31c9d2e0b4a687
         clientId:
           type: string
           nullable: true
@@ -1637,7 +1655,7 @@ components:
           nullable: true
           description: >-
             해석된 대상 clinic(org_mapping 조회 결과)
-          example: CLINIC-0040694997
+          example: d3f1a9c07b6e4258af31c9d2e0b4a687
         region: { type: string, description: '해석된 대상 region(clinic 파생)', example: apne2 }
         payloadRef:
           type: string
@@ -1650,7 +1668,7 @@ components:
           nullable: true
           description: >-
             구체적 분배 목적지 스냅샷 {channel}:{endpoint}
-          example: 'mqtt_edge:gw/clinic/CLINIC-0040694997/webhook'
+          example: 'mqtt_edge:gw/clinic/d3f1a9c07b6e4258af31c9d2e0b4a687/webhook'
         attempts: { type: integer, description: '분배 시도 횟수', example: 1 }
         lastError: { type: string, nullable: true, description: '마지막 분배 실패 사유(성공 시 null)', example: null }
         receivedAt: { type: integer, format: int64, description: '수신 시각(Unix ms)', example: 1720137600123 }
@@ -1704,7 +1722,7 @@ components:
           description: >-
             upstream(발신)의 org 식별자(예 AXS Organization-ID)
           example: '0040694997'
-        clinicId: { type: string, example: CLINIC-0040694997 }
+        clinicId: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
         mappingVersion: { type: integer, example: 2 }
       description: 'webhook 라우팅 키 — (targetId, externalOrgId) → clinicId → region'
     Policy:
@@ -1728,7 +1746,7 @@ components:
           nullable: true
           description: >-
             global=생략(null) / clinic=clinicId / device=deviceId (다형 참조·하드 FK 없음)
-          example: CLINIC-0040694997
+          example: d3f1a9c07b6e4258af31c9d2e0b4a687
         targetId: { type: string, description: '적용 대상 upstream(=upstream.targetId)', example: axs }
         allowedEndpoints:
           type: array
@@ -1751,7 +1769,7 @@ components:
         clinic 레코드(region SSOT·§6.4.1). GET /v1/clinics/me(device self)·GET
         /v1/admin/clinics/{clinicId}(operator) 응답.
       properties:
-        clinicId: { type: string, description: 'LMP 발급 Clinic-ID(§1.4)', example: CLINIC-0040694997 }
+        clinicId: { type: string, description: 'LMP 발급 Clinic-ID·32자(§1.4)', example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
         region: { type: string, description: '배정 리전(region_catalog.regionId)', example: apne2 }
         name: { type: string, nullable: true, example: ES Clinic }
         countryCode: { type: string, nullable: true, description: 'ISO 3166 Alpha-2(GW region과 별개)', example: KR }
@@ -1765,7 +1783,7 @@ components:
       type: object
       required: [ clinicId, region ]
       properties:
-        clinicId: { type: string, example: CLINIC-0040694997 }
+        clinicId: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
         region:
           type: string
           description: >-
