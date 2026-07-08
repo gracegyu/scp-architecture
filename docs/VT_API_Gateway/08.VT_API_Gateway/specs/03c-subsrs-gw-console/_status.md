@@ -82,9 +82,10 @@
 - **Device 상세** 탭: [상태·lifecycle] · [인증·키] · [소속 clinic 카드(읽기+링크)].
 - **Clinic 상세** 탭: [clinic 정보·region] · [org-bindings] · [소속 device 목록] · [clinic-scope 정책·config].
 
-### 선택 후속 (③ API 다듬기 — 통합 아님·관계 일급화)
-- device 상세 응답에 **clinic 요약 임베드**(clinicId·name·region) → 화면 2콜 회피.
-- **`GET /v1/admin/clinics/{clinicId}/devices`**(clinic의 device 하위목록) 신설 → 1:N 표현. (③ SRS/OpenAPI 소관·미결정, 콘솔 스펙 시 함께 확정.)
+### 관계 일급화 (③ API — 반영 완료 2026-07-08)
+- ✅ `Device` 응답에 **`clinic` 요약 임베드**(clinicId·name·region·nullable·읽기전용) → device 화면이 clinic 2차 조회 없이 카드 렌더. clinic-less면 null.
+- ✅ **`GET /v1/admin/clinics/{clinicId}/devices`**(clinic의 device 하위목록·1:N) 신설 → Clinic 상세의 "소속 device 목록" 탭이 이 엔드포인트를 사용. (OpenAPI op 42·redocly valid.)
+- 콘솔 구현 시: device 카드=임베드 `clinic` 사용(별도 콜 불필요)·clinic 상세 device 탭=nested list 사용.
 
 ### device-self 층 유의 (섞지 말 것)
 - `/v1/clinics/me/*`(device가 자기 clinic read-back·region·org-binding 자가 등록)는 **디바이스 self 평면**이고 위 operator 화면과 **actor가 다름**. Console(operator)과 EzServer Console(device-self)을 혼동해 한 화면에 합치지 않는다.

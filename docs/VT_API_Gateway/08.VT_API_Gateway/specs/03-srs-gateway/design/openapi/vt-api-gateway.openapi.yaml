@@ -586,6 +586,51 @@ paths:
 
   # --- 디바이스 긴급 정지(kill)·감사 로그 조회 (§7.8.2·§7.9) ---
 
+  /v1/admin/clinics/{clinicId}/devices:
+    parameters:
+    - name: clinicId
+      in: path
+      required: true
+      schema:
+        type: string
+        example: d3f1a9c07b6e4258af31c9d2e0b4a687
+    get:
+      operationId: getAdminClinicDevices
+      security:
+      - operatorAuth: []
+      tags: [ devices ]
+      summary: 클리닉 소속 디바이스 목록 — 운영자 (FR-DEV-01) [v1.0]
+      description: >-
+        운영자(Console)가 특정 클리닉에 소속된 디바이스 목록을 조회한다 — clinic↔device **1:N 관계의 자연 표현**
+        (clinic 상세 화면의 하위목록용·③-C·Appendix B #47). 결과는 GET /v1/admin/devices?clinicId= 와 동일하나
+        경로로 소속 관계를 일급화. 상태 필터·커서 페이지네이션(§7.2.1).
+      parameters:
+      - name: status
+        in: query
+        description: 상태 필터(정확 일치)
+        schema: { $ref: '#/components/schemas/DeviceStatus' }
+      - name: limit
+        in: query
+        description: 페이지 크기(커서 페이지네이션·§7.2.1)
+        schema: { type: integer, default: 20, example: 20 }
+      - name: cursor
+        in: query
+        description: 다음 페이지 커서 — 불투명 토큰(직전 응답의 nextCursor 값을 그대로 전달·클라이언트가 직접 만들지 않음)
+        schema: { type: string, example: eyJkIjoiMDE5MjBhN2IifQ }
+      responses:
+        '200':
+          description: 디바이스 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /v1/admin/devices/{id}/kill:
     parameters:
     - $ref: '#/components/parameters/DeviceId'
@@ -1429,6 +1474,17 @@ components:
             소속 클리닉(등록 시 포함). nullable — 미래 클리닉 비소속(비-EzServer) 디바이스. region은 clinic에서 파생(§6.4.1 A안,
             region 컬럼 없음)
           example: d3f1a9c07b6e4258af31c9d2e0b4a687
+        clinic:
+          type: object
+          nullable: true
+          readOnly: true
+          description: >-
+            소속 클리닉 **요약 임베드**(읽기 전용·조회 편의 — 화면이 clinic을 2차 조회 안 하도록). clinicId가 null이면(clinic-less) 이 값도 null.
+            정본=Clinic 스키마·GET /v1/admin/clinics/{clinicId}. 쓰기 시 무시(clinicId만 사용).
+          properties:
+            clinicId: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
+            name: { type: string, nullable: true, example: ES Clinic }
+            region: { type: string, description: '파생 리전(clinic.region·§6.4.1)', example: apne2 }
         clientId:
           type: string
           nullable: true
