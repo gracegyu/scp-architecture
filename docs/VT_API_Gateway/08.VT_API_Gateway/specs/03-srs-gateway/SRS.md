@@ -573,6 +573,73 @@ sequenceDiagram
 
 > **정리.** target 지시는 **구간마다 형태가 다르다** — CleverOne→EzServer는 **헤더(`Vatech-Target`)**, EzServer→GW(및 GW 직접 호출)는 **서브도메인(`{target}.gw.vatech.com`)**. **GW의 라우팅 신호는 오직 서브도메인**이며, 헤더는 EzServer가 서브도메인으로 바꾸기 위한 내부 hop 키일 뿐이다. `axs`를 `cleverspace`로 바꾸면 그대로 CleverSpace(내부 B) 호출 흐름이 된다(§2.3.5). Webhook(외부→GW)만 이 프록시 경로가 아니라 upstream 전용 수신 호스트로 들어오는 별개 흐름이다(§2.3.6).
 
+#### 구간별 헤더 세트 (Vatech-* · 인증 · User-Agent)
+
+target 지시(위)와 별개로 **식별·인증·관측 헤더**는 hop마다 실리는 내용이 다르다. `User-Agent`는 **모든 hop 공통(직전 송신자)** 이고, 머신 판정(버전 게이트·SW 인벤토리)은 `Vatech-*` 전용 헤더로 한다(§7.7.1). **GW→외부(AXS)로는 내부 `Vatech-*`를 전달하지 않고**(Roadmap §5.1) AXS가 요구하는 헤더로 교체한다.
+
+| 헤더/항목 | ① CleverOne→EzServer (내부·평문) | ② EzServer→GW (edge·HTTPS) | ③a GW→AXS (외부 C) | ③b GW→CleverSpace (내부 B) |
+| --- | --- | --- | --- | --- |
+| `Vatech-Product/Version/OS` (originator) | **CleverOne**·버전·OS | ① 그대로 relay | **미전송** | 정규화 전달 |
+| `Vatech-Clinic-Id` | ✓ | ✓ relay | 미전송 | 정규화 |
+| `Vatech-Via` (경유 홉) | — | `EzServer/x` 누적 | 미전송 | (`VatechAPIGateway/x`) |
+| **라우팅 지시** | `Vatech-Target: axs`(헤더) | **Host 서브도메인** `axs.gw.vatech.com` | GW가 host 결정(§4.1.2) | GW가 host 결정 |
+| `Authorization` | (내부 hop·GW 인증 아님) | `Bearer <GW 발급 device 토큰>`(§7.1.1) | **`Bearer <AXS OAuth2>`**(client_credentials·External Connector·§7.1.3) | 내부 신뢰 |
+| **대상 전용 헤더** | — | — | **`Organization-ID: <uuid>`**(AXS 필수·org_mapping) · `Content-Type`·`Accept` | — |
+| `User-Agent` (기본·직전 송신자) | `CleverOne/x` | `EzServer/x` | `VatechAPIGateway/x` | `VatechAPIGateway/x` |
+| **본문** | 원요청 | 원요청 | **verbatim**(AXS OpenAPI) | 통과+정규화 |
+
+- **AXS(③a) 요구 헤더 근거**(`references/Straumann연동/AXS_docs/openapi`): `bearerAuth`(OAuth2 `client_credentials`·JWT Bearer)·**`Organization-ID`**(uuid·**required**·`OrganizationIdHeader`). GW의 `External Connector`가 토큰(§7.1.3)과 `Organization-ID`(org_mapping·§7.3)를 얹고 요청/응답 body는 verbatim bypass한다(§4.1.4 경로③). **내부 `Vatech-*`는 AXS로 전달하지 않는다**(Roadmap §5.1).
+- **`User-Agent`는 전 hop 기본**(직전 송신자·로그·관측·하위호환). 단 **머신 판정(버전 게이트·SW 인벤토리 §7.8.5)은 `Vatech-*` 전용 헤더**로 하고 UA에 의존하지 않는다(중간 변형 취약·§7.7.1).
+- **originator vs 경유 홉**: `Vatech-Product/Version/OS`는 항상 **요청 시작 주체**(CleverOne), `Vatech-Via`는 **거쳐 간 홉**(EzServer)이다. GW는 둘을 분리해 **더 낮은 버전 기준**으로 게이팅(§7.7.1)하고 **SW 인벤토리(§7.8.5)** 도 이 헤더에서 관측한다.
+
+**Example — 대표 경로 `CleverOne → EzServer → GW → AXS`의 hop별 실제 헤더**(값은 예시):
+
+```http
+# ① CleverOne → EzServer   (내부·대개 평문 HTTP)
+POST /axs/v1/orders HTTP/1.1
+Host: ezserver.local
+Vatech-Product: CleverOne
+Vatech-Version: 1.5.5
+Vatech-OS: Windows/11
+Vatech-Clinic-Id: d3f1a9c07b6e4258af31c9d2e0b4a687
+Vatech-Target: axs
+User-Agent: CleverOne/1.5.5
+
+# ② EzServer → GW   (edge·HTTPS·EzServer가 Vatech-Target→서브도메인 변환)
+POST /v1/orders HTTP/1.1
+Host: axs.gw.vatech.com
+Vatech-Product: CleverOne            ; originator 그대로 relay
+Vatech-Version: 1.5.5
+Vatech-OS: Windows/11
+Vatech-Clinic-Id: d3f1a9c07b6e4258af31c9d2e0b4a687
+Vatech-Via: EzServer/6.5.0           ; 경유 홉 누적
+Authorization: Bearer <GW 발급 device access token>   ; private_key_jwt로 발급(§7.1.1)
+User-Agent: EzServer/6.5.0
+
+# ③a GW → AXS   (외부 C·External Connector·verbatim bypass)
+POST /v1/orders HTTP/1.1
+Host: api.eu.axs.straumann.com
+Authorization: Bearer <AXS OAuth2 access token>        ; client_credentials·GW 관리(§7.1.3)
+Organization-ID: e407b34d-c4b0-4db3-bbcd-cc11770eae7b  ; AXS 필수(uuid·org_mapping)
+Content-Type: application/json
+Accept: application/json
+User-Agent: VatechAPIGateway/1.0.0
+;  ← 내부 Vatech-* 는 외부로 전송하지 않음(Roadmap §5.1)
+
+# ③b GW → CleverSpace   (내부 B·target=cleverspace·②의 Host만 cleverspace.gw.vatech.com)
+POST /... HTTP/1.1
+Host: <cleverspace 내부 host>
+Vatech-Product: CleverOne            ; 정규화 신원 전달(외부와 달리 유지)
+Vatech-Version: 1.5.5
+Vatech-OS: Windows/11
+Vatech-Clinic-Id: d3f1a9c07b6e4258af31c9d2e0b4a687
+Vatech-Via: EzServer/6.5.0           ; (VatechAPIGateway/1.0.0도 홉으로 누적 가능)
+User-Agent: VatechAPIGateway/1.0.0
+;  ← 내부라 AXS OAuth·Organization-ID 없음(External Connector 미개입)
+```
+
+> **③a(외부) vs ③b(내부) 차이만**: 외부는 `Vatech-*` 미전송 + AXS OAuth Bearer·`Organization-ID` 부착(verbatim), 내부는 `Vatech-*` 정규화 전달 + 내부 자격(OAuth 미부착). 그 외 ①②는 동일.
+
 ### 2.3.1 온보딩 — EzServer enrollment (클리닉·region 확립 포함) — FR-ENR-\* · FR-RGN-\*
 
 온보딩은 **EzServer enrollment 한 흐름**이다 — 디바이스 머신 신뢰와 **그 클리닉의 존재·초기 region 확립**을 함께 처리한다(별도 "클리닉 등록" 전용 흐름·API 없음 — enroll이 흡수). enrollment은 **최초 1회**(재설치 시 재-enroll 회전, §7.2.7)이고, **region *변경*은 온보딩 이후의 별도 관심사**다(§2.3.3·§7.3.4·FR-RGN-04).
@@ -2467,6 +2534,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-09 | **`fleet_state.success_rate` 전면 재검토 → 제거(관측 metric으로 재배치)** — 사용자 지적: rate를 PG 스칼라(0~1 한 값)로 두면 **분자/분모·시간창·다중 인스턴스 집계**가 불가하고, device→GW 기록만으론 "성공/실패" 정의·용도가 불명확 → **구현 불가·설계 오류**. **결론**: 성공률·오류 분포(FR-FLEET-03·P2)는 **관측(observability) metric** 영역이다. **`fleet_state.success_rate` 컬럼 제거**·`FleetState.successRate`·`FleetHeartbeat.metrics.successRate` 제거. **재정의(§7.8.3)**: GW(및 edge)가 **OTel counter** 방출 → **Grafana Alloy → Prometheus/Grafana(§6.3.2)** 가 `rate()`로 시간창·인스턴스 횡단 집계(멀티서버 문제 해소). 성공/실패는 metric별 정의(GW 프록시 5xx·timeout·거부 / 업로드는 GW 미경유라 edge·저장소 관측). 대시보드=Grafana(≠`GET /v1/admin/fleet`). **fleet_state 잔존 = liveness(last_heartbeat)+rollout(app_version)**, online=파생. heartbeat metrics(diskFree·queueDepth)는 관측 파이프라인 전달·DB 미저장. §7.8.1·§7.9 FR-ADM-01·getAdminFleet(FR-FLEET-01만)·DBML·OpenAPI 정합. metric 이름·SLI·경보 임계=LLD/인프라(#14). redocly valid·DBML OK·op 44 | (작성자 ID 미지정) |
 | 2026-07-09 | **클라이언트 SW 인벤토리 기능 신설 — 클리닉별 설치 버전·OS 가시성(§7.8.5·FR-FLEET-06·op 44→45·DBML 10→11)** — 오랜 숙원(클리닉별 SW 버전 파악) 반영. **원천=FR-COMPAT-01 헤더**(`Vatech-Product/Version/OS/Clinic-Id`·전 요청 필수·이미 파싱)를 영속. **식별 id 없음 전제**(헤더 instance-id 없음·GW peer=EzServer라 클라 IP 미가시·source-IP 식별 회피·IP 동적/PII 재확인) → **(clinic,product,version,os) 튜플 + last_seen**(버전 presence·recency·**대수 아님**). **DBML** 신규 `client_inventory` 테이블(튜플 unique·Redis seen-set throttle로 요청마다 쓰기 금지)·`fleet_state.os` 추가(EzServer OS). **OpenAPI** `ClientInventory` 스키마·`GET /v1/admin/clinics/{clinicId}/clients`(product·staleOnly·커서)·FleetHeartbeat/FleetState `os`. **SRS §7.8.5 신설**(목적·원천·no-id 튜플 모델·throttle·신뢰/PII·조회·Console·미래). **Console(③-C)** SW 인벤토리 탭 씨앗(대수 표기 금지·튜플). 신뢰=클라 주장값·비인증·관측용(authz 아님)·PHI/PII 없음. **미래 `Vatech-Instance-Id`**(install GUID)로 per-instance·정확 대수 — 표준 도입 여부는 **7/9 R11 결정(미도입 가능)**. Appendix B #48. FR 번호 충돌 회피(FR-FLEET-05=v2.0 선점 → **06**). redocly valid·DBML OK·op 45 | (작성자 ID 미지정) |
 | 2026-07-09 | **client_inventory 쓰기 throttle 메커니즘 확정 — Redis SET-NX 게이트 + GW core async upsert(§7.8.5)** — "그냥 unique upsert하면 되나?"→정합성은 되나 **요청마다 PG 쓰기**라 저QPS control-plane에 과부하 → throttle 필요. "Redis 필요한가?"→**예**(무상태 pod라 pod-로컬 캐시는 배포마다 flush 폭풍 / 리전 공유 Redis는 pod 교체에도 게이트 유지). 확정 메커니즘: 요청 시 `gw:seen:client:{clinicId}:{hash}` **SET NX EX(반영주기)** → **성공(신규/주기경과)만 GW core가 async upsert**(`ON CONFLICT DO UPDATE last_seen`), 실패는 skip. **누가**=GW core(요청 경로·논블로킹), **주기**=SET-NX TTL(기본 6~24h·운영값), **별도 배치/크론 불요**. redis-keyspace ②에 키 추가, §7.8.5·DBML 주석 구체화. redis-keyspace·DBML·SRS 정합 | (작성자 ID 미지정) |
+| 2026-07-09 | **§2.3.0에 구간별 헤더 세트 테이블 추가 (CleverOne→EzServer→GW→upstream 3단계)** — 라우팅 골격(target 지시)에 더해 **식별·인증·관측 헤더**가 hop마다 무엇이 실리는지 표로 정리. ① CleverOne→EzServer(`Vatech-Product/Version/OS`=originator·`Vatech-Target`·평문) · ② EzServer→GW(originator relay+`Vatech-Via`·Host 서브도메인·`Authorization: Bearer` device 토큰) · ③a GW→AXS(외부 C: **내부 Vatech-* 미전송**·**`Authorization: Bearer` AXS OAuth2 client_credentials**·**`Organization-ID: uuid` 필수**·verbatim) · ③b GW→CleverSpace(내부 B: 정규화 신원). **AXS 요구 헤더는 실제 스펙 근거**(`AXS_docs/openapi`: bearerAuth·`OrganizationIdHeader` uuid required). **`User-Agent`=전 hop 기본(직전 송신자)**·머신 판정은 Vatech-* 전용. originator vs 경유 홉 분리(§7.7.1)·SW 인벤토리(§7.8.5) 연계 명시. **(후속 동일자)** 가독성 위해 테이블 **전치**(행=헤더 항목·열=hop) + 맨 아래 **실제 HTTP 헤더 Example**(CleverOne→EzServer→GW→AXS hop별 전체 헤더·값 예시·http 코드블록) 추가. **(재수정)** GW→CleverSpace(③b·내부 B) 예시도 코드블록에 추가(외부↔내부 대비)·표는 예시 row 없이 헤더 항목만 | (작성자 ID 미지정) |
+| 2026-07-09 | **§2.3.0 헤더 예시의 GW 와이어 값 → 공식 명칭 `VatechAPIGateway`** — User-Agent·Vatech-Via의 GW 토큰을 `GW/x`·`GW/1.0.0` → **`VatechAPIGateway/x`**(용어집 공식 명칭·용어집 "GW (VatechAPIGateway)")로 교정(표 2·예시 3곳). 산문의 약어 "GW"·"SRS(GW)"는 유지. 명칭 반영일 뿐(설계·회의 결정 아님) | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 서명 주체 정정 — ELM(로컬)→LMP(클라우드)** — ELM(`ezserver-license-manager`)은 클리닉마다 **로컬**(localhost·LexFloatServer 온프렘)이라 서명자로 두면 GW가 10만 로컬 키를 신뢰해야 함 → **서명 권위=중앙 LMP(클라우드)**, GW는 LMP JWKS 하나로 검증, EzServer/ELM은 릴레이만. B는 **PMS 연동(EPI)과 무관**(별개 컴포넌트). R9·#42 정정 | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 완충용 `licenseAttestation` 예약 필드 추가 + R9 비교 표** — B1(LMP 검증 자동승인) 도입 시 EzServer 버전 공존 완충을 위해 **OpenAPI `EnrollStartRequest.licenseAttestation`(nullable·v1.0 미사용·R9 확정 시 활성)** 예약. Agenda R9를 **A vs B 비교 표**(신뢰앵커·C/S부담·확장성·LMP변경·인간검증·region·난이도·현행동작·abuse)로 재구성해 회의 가독성↑ | (작성자 ID 미지정) |
 | 2026-07-07 | **R9 재구성 — enrollment 신뢰 앵커 C/S vs LMP-검증 비교(LMP 역량 정독)** — 이전 회의의 'C/S Console 수동 승인 번거로움' 우려를 반영해 **자동승인 대안**을 진지 비교로 승격. LMP/ELM=Cryptlex(LexActivator+product.dat) 확인 → 오프라인 서명 검증 역량 있으나 device측이라 **GW-검증 증명은 LMP 소폭 변경 필요**(B1=ELM-서명 attestation→GW가 JWKS 검증·추천 / B2=GW→LMP 런타임 verify). 추천 v1.0=A(C/S)·B1 병행(gw/1.1). R9·#42 재작성·§7.2 enroll 불릿(④ 신뢰 앵커)로 갱신. (앞서 'LMP-서명 추천'은 LMP 발급 여부 미확인 상태의 성급한 표현이라 정정) | (작성자 ID 미지정) |
