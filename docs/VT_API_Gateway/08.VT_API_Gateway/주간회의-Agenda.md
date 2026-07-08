@@ -491,7 +491,7 @@
     - **SRS 반영 완료**: DBML(Table `upstream`)·OpenAPI(`Upstream`·`/admin/v1/upstreams`)·db-jsonb(#upstream)·redis(`gw:cache:upstream`)·SRS §6.4·§7.5·§7.6·§7.9·§2.3.4·ERD·API명세·③-C·ARD 전부 정합.
     - **이번 회의에서 다른 이름으로 바뀌면** 그때 일괄 재반영(단순 rename). 결정만 주면 됨.
 
-  - **R7. Webhook payload 저장 방식 결정 (중요 · 결정 요청)** — `webhook_event`가 수신하는 이벤트 **본문(payload)** 을 어디에·어떻게 보관할지 확정.
+  - **R7. Webhook payload(환자정보 PHI 포함 가능) 저장·보존·접근 방식 결정 (중요)** — `webhook_event`가 수신하는 이벤트 **본문(payload)** — AXS `patient.created` 등 **환자정보(PHI) 포함 가능** — 을 **어디에(위치)·얼마나(보존기간)·어떻게 보호(마스킹·접근통제)** 보관할지 확정. (PHI라 컴플라이언스에 직결되는 게 이 안건의 무게.)
     - **배경(references 스펙 확인 결과)**:
       - v1.0 webhook 소스 = **AXS 단독**(CleverSpace=webhook 대상 아님 확정 · CleverLab=갈래B 보류).
       - AXS payload = **JSON**, 수 KB(알림 메타데이터 — 큰 영상은 webhook 아님·presigned). **환자 PHI 포함**: `patient.created/updated`에 이름·생년월일·성별·patientId, file 이벤트에 storageUri·파일메타.
@@ -543,7 +543,7 @@
     - **⑤ 비차단·기한**: **GW API는 이미 A/B 모두 수용**(org-bindings 수렴 + 미연동의 `link`=프록시 레일·**신규 GW 엔드포인트 불요**) → **GW baseline 안 막힘**; 막히는 것 = **EzServer AXS flow(③-P-EZ)·④ 집필**. 따라서 **④ 집필·EzServer AXS 착수 전(= AXS pilot 8/15 역산·7월 말 sandbox 자격 확보 전)** 회신.
     - **성격/산출**: [정보·조사] — **이번 회의 확정 불요**, 정할 것은 **"누가·언제까지 알아오나"**. 확정 시 **④ AXS Sub-SRS**에 구체화(상태 A/B/C 판정·링크 트리거 주체·UI 소유). **미확정 시 차주 이월**(아래 이월 논의 사항에 등재 예정). 근거: 참조-카탈로그 §3 AXS_docs `organization.yml`·Integration_guide + `references/Straumann연동/AXS_docs/openapi/organization.yml`(link/check/unlink/info·consent PENDING→APPROVED).
 
-  - **R9. 호환성 매트릭스 관리 구조 결정 (2건 · 추천안 있음)** — GW가 공시하는 버전 호환성 매트릭스(§7.7.2·§7.7.5)의 저작·배포 구조. **2단계 파이프라인**(원본 git → CI 생성 → S3 발행 → GW 런타임 read+cache·**앱 재배포와 분리**)은 전제로 두고, 아래 **2건**을 결정한다. (매트릭스 샘플·구조 공유는 S3 참조.)
+  - **R9. 호환성 매트릭스 저작·배포 구조 확정 — 원본 YAML → CI → 서빙 JSON (SSOT·앱 배포와 분리) (2건 · 추천안 있음)** — GW가 공시하는 버전 호환성 매트릭스(§7.7.2·§7.7.5)의 **저작·배포 구조**를 확정한다(런타임 게이팅 로직 아님). **현재 설계 = 원본 `compat-matrix.yaml`(git·PR 편집·SSOT) → CI 컴파일 → env별 `server-configuration.json` 생성 → S3 발행 → GW 런타임 read+cache**(앱 재배포와 분리). 이 **YAML→JSON 2단계 컴파일**은 전제로 두고, 아래 **2건**(소스 repo·CI 토폴로지 / 원본 포맷)만 결정한다. (샘플=`design/well-known/`·S3 참조.)
 
     - **결정 1 — 소스 repo 위치 + CI 토폴로지** (추천 = **A. `vt-api-gateway` 단일 repo + path-scoped**)
 
