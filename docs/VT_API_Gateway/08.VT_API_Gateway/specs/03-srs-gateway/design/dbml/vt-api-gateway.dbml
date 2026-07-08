@@ -92,7 +92,7 @@ Enum region_status {
 //     - 개인키 SW/HW 보관 위치는 gw/1.1 attestation(FR-ENR-06·FR-AUTH-07)
 Table device {
   device_id   varchar [pk]                                       // GW 디바이스 식별자(= EzServer 인스턴스, §1.4). **GW가 등록 시 생성 = UUIDv7**(RFC 9562·불투명·시간정렬, serial·clinic_id 비파생, §7.2.1·Appendix B #29 확정). 재설치·키 회전 시에도 유지. 예 `01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60`
-  clinic_id   varchar [ref: > clinic.clinic_id]   // 소속 클리닉(FK). nullable(미래 클리닉 비소속 device). 등록 시 포함. 예 `CLINIC-0040694997`
+  clinic_id   varchar [ref: > clinic.clinic_id]   // 소속 클리닉(FK). nullable(미래 클리닉 비소속 device). 등록 시 포함. 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`
   client_public_key varchar                                      // EzServer가 enrollment 시 생성한 키페어의 공개키(또는 key-id). private_key_jwt 서명 검증 키·디바이스 신원 바인딩(§7.1.1·ADR-13). **하드웨어/머신 지문 아님**(구 명칭 'fingerprint'을 정확화). 재설치=새 키→재-enroll로 회전(§7.2.6·7.2.7). nullable(enroll 전). 예 `-----BEGIN PUBLIC KEY-----\nMFkwEwYH...\n-----END PUBLIC KEY-----`(PEM) 또는 key-id `ez-8f3a2b`
   client_id   varchar [unique]                                   // OAuth2 client id(고유). **GW가 enroll 시 생성 = `gwc_`+base64url(128비트 CSPRNG)**(불투명·비파생, RFC 6749 §2.2·§7.2.5·Appendix B #28). 공개 식별자(비밀 아님). **nullable**(client 자격 미발급 device). 인증=private_key_jwt로 client_id+client_public_key 검증. 예 `gwc_Qk9y3Zx1aB2cD3eF4gH5iJ`
   status      device_status [not null, default: 'pending']       // lifecycle 상태(pending→active→suspended→revoked). 예 `active`
@@ -134,7 +134,7 @@ Table device {
 //     - 수집 필드셋 7/9 R3/#41 확정 전 잠정(TBD) · 저장 구조=고정 컬럼 확정(jsonb 아님) · country_code(국가)≠region(배포 리전)
 //  • 그 외 속성(상태·C/S 담당자·온보딩 시각 등)은 필요 시 추가(ERD 점선)
 Table clinic {
-  clinic_id       varchar [pk]                                    // 클리닉 식별자 = **canonical 클리닉 엔터티**(device·org_mapping·webhook_event·policy가 참조하는 clinic_id의 원본). **LMP 발급 Clinic-ID**(EzServer가 설치 시 수신·전달, §1.4). GW 생성 아님. 예 `CLINIC-0040694997`
+  clinic_id       varchar [pk]                                    // 클리닉 식별자 = **canonical 클리닉 엔터티**(device·org_mapping·webhook_event·policy가 참조하는 clinic_id의 원본). **LMP 발급 Clinic-ID·32자**(EzServer가 설치 시 수신·전달, §1.4). GW 생성 아님. 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`
   region          varchar [not null, ref: > region_catalog.region_id]  // 이 클리닉의 배정 리전(FK, region SSOT). clinic↔region 1:1이라 컬럼으로 인라인(조인 없음). 예 `apne2`
   name            varchar                                         // 클리닉 표시명(LMP `clinic.name`·enroll 시 EzServer 전달·Console 식별). nullable. 예 `ES Clinic`. **수집 필드셋 7/9 R3/#41 확정 전 잠정(TBD)**
   country_code    varchar                                         // 클리닉 국가(LMP `countyCode`=ISO 3166 Alpha-2). **GW region(배포 리전)과 별개** — region 추천/표시 참고. nullable. 예 `KR`
@@ -193,7 +193,7 @@ Enum config_scope {
 Table policy {
   id                varchar [pk]  // 정책 식별자. 예 `pol_axs_clinic0040`
   scope_type        policy_scope [not null]  // 부착 스코프 global|clinic|device. 주체=device, 실효정책=device→clinic(소속 시)→global 합성(§1.2·§6.4.1). 예 `clinic`
-  scope_id          varchar       // 부착 대상 id — global=NULL / clinic=clinic_id / device=device_id. **다형 참조라 하드 FK 없음**(scope_type discriminator + 앱레벨 무결성). 예 `CLINIC-0040694997`(clinic) / global이면 NULL
+  scope_id          varchar       // 부착 대상 id — global=NULL / clinic=clinic_id / device=device_id. **다형 참조라 하드 FK 없음**(scope_type discriminator + 앱레벨 무결성). 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`(clinic) / global이면 NULL
   target_id         varchar [ref: > upstream.target_id]  // 적용 대상 = upstream.target_id(아웃바운드 연동 대상, FK). 예 `axs` (global 스코프여도 어느 upstream 호출을 허용하는지 지정)
   allowed_endpoints jsonb         // 허용 (method,path) 목록. 예 `[{"methods":["GET"],"pathPattern":"/v1/patients/**"}]`. 형식·매칭=design/db-jsonb-fields.md#policy
   scopes            jsonb         // 허용 scope 집합. 예 `["axs:patient.read","axs:study.write"]`. 형식=design/db-jsonb-fields.md#policy
@@ -289,11 +289,11 @@ Table webhook_event {
   target_id       varchar [not null, ref: > upstream.target_id] // 발신 upstream(FK → upstream, target_id로 식별). 예 `axs`
   event_type      varchar                                             // 발신 이벤트 유형 — upstream.event_type_path로 payload에서 **verbatim 추출**. **발신 어휘 free string·GW enum 아님**, 의미=(target_id,event_type), 미추출 시 null. PHI-free. 용도=Console 필터·관측. **목적지 라우팅은 org_mapping(별개)**. 예 `patient.created`
   external_org_id varchar                                             // upstream(발신)의 org 식별자 — 분배 대상 역조회 키. 예 `0040694997`(AXS Org-ID)
-  clinic_id       varchar [ref: > clinic.clinic_id]    // 해석된 대상 클리닉(FK, org_mapping 조회 결과). 예 `CLINIC-0040694997`
+  clinic_id       varchar [ref: > clinic.clinic_id]    // 해석된 대상 클리닉(FK, org_mapping 조회 결과). 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`
   region          varchar [ref: > region_catalog.region_id]          // 해석된 대상 리전(FK, clinic 파생). 예 `apne2`
   payload_ref     varchar                                            // 본문 보관 참조(claim-check). 본문=리전 로컬 S3(SSE·짧은 TTL, 7/9 R7)·in-flight는 SQS. **관계형 DB에 본문 미저장**(payload는 opaque·환자 PHI 포함 가능·복제 금지, §6.4·§7.6.3). 외부 스키마 ④. 예 `s3://gw-webhook-payload-apne2/axs/c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545.json`
   state           webhook_state [not null, default: 'received']      // 처리 상태(received|dispatched|dead_letter). 예 `dispatched`
-  dispatch_target varchar                                            // 실제 발행한 **구체적 분배 목적지** — 형식 `{channel_type}:{endpoint}`. v1.0은 clinic에서 도출한 MQTT 토픽(§7.6.6). **clinic_id·region('어디')과 별개로 '어떤 채널·주소로' 보냈나**(감사·디버깅). 발행 전 null. ※ upstream(아웃바운드 라우팅 대상)와 **무관**(분배 목적지 ≠ 호출 대상). 예 `mqtt_edge:gw/clinic/CLINIC-0040694997/webhook`
+  dispatch_target varchar                                            // 실제 발행한 **구체적 분배 목적지** — 형식 `{channel_type}:{endpoint}`. v1.0은 clinic에서 도출한 MQTT 토픽(§7.6.6). **clinic_id·region('어디')과 별개로 '어떤 채널·주소로' 보냈나**(감사·디버깅). 발행 전 null. ※ upstream(아웃바운드 라우팅 대상)와 **무관**(분배 목적지 ≠ 호출 대상). 예 `mqtt_edge:gw/clinic/d3f1a9c07b6e4258af31c9d2e0b4a687/webhook`
   attempts        integer [not null, default: 0]                     // 분배 시도 횟수(N회 실패 → dead_letter·DLQ, §7.6.3). 예 `1`
   last_error      varchar                                            // 마지막 분배 실패 사유(관측·DLQ 진단). 예 `mqtt publish timeout` (성공 시 null)
   received_at     bigint                                             // 수신 시각(Unix ms). 예 `1720137600123`
@@ -314,14 +314,14 @@ Table webhook_event {
 // ── org_mapping — Org-ID↔ClinicID 매핑 · webhook 분배 1차 라우팅 키 (§4.1.3·§7.6) ──
 //  • 외부 upstream 이벤트엔 그쪽 org 식별자(예 AXS Organization-ID)만 있고 우리 clinic_id 없음
 //  • (target_id, external_org_id) → clinic_id 를 이어 수신 이벤트의 대상 클리닉 역조회(→ clinic으로 region → MQTT 토픽·§7.6.6)
-//  • 예: AXS organizationId=0040694997 → clinic_id=CLINIC-0040694997
+//  • 예: AXS organizationId=0040694997 → clinic_id=d3f1a9c07b6e4258af31c9d2e0b4a687
 //  • 레코드: 외부 연동 연결 시 upstream별 자가 등록(§2.3.4) · 오설정은 Admin 교정(/admin/v1/org-mappings)
 //  • (target_id, external_org_id) 복합 PK + clinic_id 역인덱스 → 양방향 조회(복구·감사)
 //  • 얇은 식별자 대응표일 뿐 — 인증·OAuth·webhook 검증·payload 해석은 upstream 테이블 담당(§6.4.1 경계). target_id=upstream FK
 Table org_mapping {
   target_id       varchar [not null, ref: > upstream.target_id] // 연동 대상 upstream(FK, target_id). 예 `axs`
   external_org_id varchar [not null]                                  // upstream(발신)의 org 식별자. 예 `0040694997`(AXS Organization-ID)
-  clinic_id       varchar [not null, ref: > clinic.clinic_id]  // 대응 클리닉(FK). 예 `CLINIC-0040694997`
+  clinic_id       varchar [not null, ref: > clinic.clinic_id]  // 대응 클리닉(FK). 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`
   mapping_version integer [not null, default: 1]                      // 매핑 버전 — 변경마다 +1(단조). 캐시 무효화·CAS·drift 감지(§7.3.2). 값 이력=audit_log. 예 `2`
   created_at      bigint                                              // 생성 시각(Unix ms). 예 `1720137600000`
   updated_at      bigint                                              // 수정 시각(Unix ms). 예 `1720224000000`
