@@ -333,11 +333,11 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 현재 운영자 신원·역할 조회 — Console UI 부트스트랩 (FR-AUTH-08·09) [v1.0]
+      summary: 현재 운영자 신원·역할·상태 조회 — Console UI 부트스트랩 (FR-AUTH-08·09) [v1.0]
       description: >-
-        로그인한 운영자(Console Admin·C/S) 자신의 신원·역할을 반환한다 — Console이 역할별 메뉴·권한을 렌더하는 UI 부트스트랩용.
-        **GW 무상태**: 운영자 user 테이블·세션 없음·**IdP 재호출 없음**. 반환값은 **제시된 OIDC Bearer 토큰(JWT)의 claim을 그대로 파싱**한 것(§7.1.4·§7.9.2·claim→RBAC) — 즉 "네 토큰에 이렇게 들어 있고, GW는 이렇게 역할로 해석한다"의 에코다. Console이 자기 ID 토큰 claim을 직접 읽어도 동일하며, 본 API는 **GW의 claim→RBAC 해석을 단일 출처로 제공**하는 편의(v1.0 매핑 자명 시 선택적).
-        **인증 자체는 전용 endpoint가 아니라 모든 `/v1/admin/*` 요청의 `operatorAuth`(Entra JWKS 검증)** 로 이뤄진다(7/9 R2=Entra 전제·Appendix B #38).
+        로그인한 운영자 자신의 신원·**GW가 부여한 실효 역할·접근 상태**를 반환한다 — Console이 메뉴·권한을 렌더하는 부트스트랩용(7/9 R2 A방안).
+        **authN=Entra SSO, authz=GW DB**: `operatorAuth`(요청별 Entra JWKS 검증)로 신원(subject)만 확인하고, **역할은 GW `operator_role`(status=active)에서 조회**(토큰 claim 에코 아님·§7.1.4·§7.9.2). 첫 SSO면 GW가 operator를 **JIT 생성**한다.
+        **accessState**: `active`(실효 역할 ≥1) / `no_access`(로그인은 되나 역할 0 → Console "권한 요청" 화면) / `suspended`(정지). `no_access`면 Console은 `POST /v1/admin/me/access-requests`로 역할 요청 화면을 띄운다.
       responses:
         '200':
           description: 현재 운영자 신원·역할
@@ -345,6 +345,205 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OperatorMe'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  # --- 운영자 인가(RBAC) 관리 (§7.1.4·§7.9.2 · 7/9 R2 A: authN=Entra SSO · authz=GW) ---
+
+  /v1/admin/me/access-requests:
+    post:
+      operationId: postAdminMeAccessRequests
+      security:
+      - operatorAuth: []
+      tags: [ admin ]
+      summary: 본인 권한(역할) 요청 — 미등록/추가 권한 (FR-ADM-02) [v1.0]
+      description: >-
+        로그인은 됐으나 실효 역할이 없거나(no_access) 추가 역할이 필요한 운영자가 역할을 **멀티 요청**한다(§7.9.2·7/9 R2 A). 각 역할이 `operator_role` status=requested로 생성돼 **Admin 승인 큐**(GET /v1/admin/access-requests)에 오른다. Admin 알림은 Console/OOB(③-C).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AccessRequestCreate' }
+      responses:
+        '201': { description: 요청됨(승인 대기) }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /v1/admin/operators:
+    get:
+      operationId: getAdminOperators
+      security:
+      - operatorAuth: []
+      tags: [ admin ]
+      summary: 운영자 목록 조회 — Admin (FR-ADM-02) [v1.0]
+      description: 운영자(사내 직원) 목록·상태·실효 역할 조회(Admin 전용·§7.9.2).
+      parameters:
+      - name: status
+        in: query
+        description: 운영자 상태 필터(정확 일치)
+        schema: { type: string, enum: [ active, suspended ] }
+      - name: role
+        in: query
+        description: 역할 보유 필터(정확 일치·예 cs)
+        schema: { type: string, example: cs }
+      - name: limit
+        in: query
+        description: 페이지 크기(커서 페이지네이션)
+        schema: { type: integer, default: 50, maximum: 200, example: 20 }
+      - name: cursor
+        in: query
+        description: 다음 페이지 커서 — 불투명 토큰(직전 응답 nextCursor 그대로)
+        schema: { type: string, example: eyJkIjoiMDE5MjBhN2IifQ }
+      responses:
+        '200':
+          description: 운영자 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Operator'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /v1/admin/operators/{operatorId}:
+    parameters:
+    - name: operatorId
+      in: path
+      required: true
+      schema: { type: string, example: op_7f3a2b1c }
+    get:
+      operationId: getAdminOperatorsById
+      security:
+      - operatorAuth: []
+      tags: [ admin ]
+      summary: 운영자 단건 조회(+역할·요청 이력) — Admin (FR-ADM-02) [v1.0]
+      description: 단일 운영자 신원·상태·역할/요청 이력 조회(Admin·§7.9.2).
+      responses:
+        '200':
+          description: 운영자
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Operator' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    patch:
+      operationId: patchAdminOperatorsById
+      security:
+      - operatorAuth: []
+      tags: [ admin ]
+      summary: 운영자 상태 변경(정지/복구) — Admin·오프보딩 (FR-ADM-02) [v1.0]
+      description: >-
+        운영자 status(active↔suspended) 변경(§7.9.2). suspended=역할 무관 접근 차단(오프보딩·Entra 비활성과 병행). 감사 action=operator.status.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ status ]
+              properties:
+                status: { type: string, enum: [ active, suspended ], example: suspended }
+      responses:
+        '200': { description: 변경됨 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /v1/admin/operators/{operatorId}/roles:
+    parameters:
+    - name: operatorId
+      in: path
+      required: true
+      schema: { type: string, example: op_7f3a2b1c }
+    post:
+      operationId: postAdminOperatorRoles
+      security:
+      - operatorAuth: []
+      tags: [ admin ]
+      summary: 운영자 역할 직접 부여 — Admin (FR-ADM-02) [v1.0]
+      description: >-
+        Admin이 운영자에게 역할을 직접 부여한다(요청 없이 즉시 active·§7.9.2). CS=global(전 클리닉). 감사 action=operator.role.grant.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleGrantCreate' }
+      responses:
+        '201': { description: 부여됨(active) }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /v1/admin/operators/{operatorId}/roles/{grantId}:
+    parameters:
+    - name: operatorId
+      in: path
+      required: true
+      schema: { type: string, example: op_7f3a2b1c }
+    - name: grantId
+      in: path
+      required: true
+      schema: { type: string, example: grt_7f3a2b1c }
+    patch:
+      operationId: patchAdminOperatorRole
+      security:
+      - operatorAuth: []
+      tags: [ admin ]
+      summary: 역할 부여 결정(승인/거부/회수) — Admin (FR-ADM-02) [v1.0]
+      description: >-
+        요청(requested)을 **승인(active)/거부(rejected)** 하거나 부여된(active) 역할을 **회수(revoked)** 한다(§7.9.2). 거부·회수는 행을 보존(감사). 감사 action=operator.role.decide.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleGrantDecision' }
+      responses:
+        '200': { description: 반영됨 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /v1/admin/access-requests:
+    get:
+      operationId: getAdminAccessRequests
+      security:
+      - operatorAuth: []
+      tags: [ admin ]
+      summary: 권한 요청 승인 큐 — Admin (FR-ADM-02) [v1.0]
+      description: >-
+        승인 대기(requested) 역할 요청을 운영자 횡단으로 조회한다(Admin 승인 큐·§7.9.2) — 각 항목은 operator + requested 역할. 승인/거부는 PATCH /v1/admin/operators/{operatorId}/roles/{grantId}.
+      parameters:
+      - name: limit
+        in: query
+        description: 페이지 크기
+        schema: { type: integer, default: 50, maximum: 200, example: 20 }
+      - name: cursor
+        in: query
+        description: 다음 페이지 커서 — 불투명 토큰(직전 응답 nextCursor 그대로)
+        schema: { type: string, example: eyJkIjoiMDE5MjBhN2IifQ }
+      responses:
+        '200':
+          description: 승인 대기 요청 목록(operator + requested 역할)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Operator'
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
@@ -1578,18 +1777,105 @@ components:
           example: { deviceId: 01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60, region: apne2, aud: axs.gw.vatech.com }
     OperatorMe:
       type: object
+      required: [ subject, accessState, roles ]
       description: >-
-        현재 운영자(Console) 신원·역할 — GET /v1/admin/me. 직원 IdP(Entra) OIDC Bearer claim에서 GW가
-        해석(§7.1.4·§7.9.2·claim→RBAC). 인증 자체는 요청별 operatorAuth.
+        현재 운영자 신원·**GW 부여 실효 역할·접근 상태** — GET /v1/admin/me. authN=Entra SSO(subject), authz=GW `operator_role`(status=active)에서 조회(§7.1.4·§7.9.2·7/9 R2 A).
       properties:
-        subject: { type: string, description: '직원 IdP subject(Entra oid/sub)', example: entra-8f3a }
-        displayName: { type: string, nullable: true, description: 표시명(claim), example: 홍길동 }
+        subject: { type: string, description: 'Entra oid/sub(SSO 신원)', example: entra-8f3a2b1c }
+        displayName: { type: string, nullable: true, description: 표시명(Entra claim), example: 홍길동 }
         email: { type: string, nullable: true, example: gd.hong@vatech.com }
+        accessState:
+          type: string
+          enum: [ active, no_access, suspended ]
+          description: 'active=실효 역할≥1 / no_access=로그인OK·역할0(권한 요청 화면) / suspended=정지'
+          example: active
         roles:
           type: array
-          description: 'GW 해석 역할(Entra App Role/Group claim→RBAC·§7.9.2). 예 Admin·CS'
-          items: { type: string }
-          example: [ CS ]
+          description: 'GW 부여 실효 역할(operator_role status=active). 빈 배열=no_access'
+          items: { $ref: '#/components/schemas/RoleGrant' }
+          example: [ { role: cs, scopeType: global, status: active } ]
+
+    RoleGrant:
+      type: object
+      required: [ role, status ]
+      description: '운영자 역할 부여 1건(operator_role). RBAC 역할 + 데이터 스코프 + lifecycle.'
+      properties:
+        id: { type: string, description: 'grant id(승인/거부/회수 대상)', example: grt_7f3a2b1c }
+        role: { type: string, description: '앱 레벨 역할 상수(admin|developer|cs|operator|…·db-jsonb#operator_role)', example: cs }
+        scopeType:
+          type: string
+          nullable: true
+          enum: [ global, region, clinic ]
+          description: '데이터 스코프(config/policy와 동일 다형). CS=global(전 클리닉). null→global'
+          example: global
+        scopeId: { type: string, nullable: true, description: 'global=null / region=regionId / clinic=clinicId', example: null }
+        status:
+          type: string
+          enum: [ requested, active, rejected, revoked ]
+          description: 'requested(승인 대기)·active(실효)·rejected(거부·보존)·revoked(회수)'
+          example: active
+        note: { type: string, nullable: true, description: '요청/결정 사유', example: 설치 지원 담당 }
+        requestedAt: { type: integer, format: int64, nullable: true, example: 1720137600000 }
+        decidedBy: { type: string, nullable: true, description: '승인/거부한 Admin(subject)', example: entra-admin-1 }
+        decidedAt: { type: integer, format: int64, nullable: true, example: 1720138000000 }
+
+    Operator:
+      type: object
+      required: [ id, subject, status ]
+      description: '운영자(사내 직원) 신원 — Admin 관리 뷰(operator 테이블). authN=Entra SSO·authz=GW.'
+      properties:
+        id: { type: string, example: op_7f3a2b1c }
+        subject: { type: string, description: 'Entra oid/sub', example: entra-8f3a2b1c }
+        email: { type: string, nullable: true, example: gd.hong@vatech.com }
+        displayName: { type: string, nullable: true, example: 홍길동 }
+        status:
+          type: string
+          enum: [ active, suspended ]
+          description: 'active(정상)/suspended(정지·오프보딩). 실효 역할 0이면 active여도 접근 no_access'
+          example: active
+        roles:
+          type: array
+          description: '부여/요청 역할 목록(active·requested·rejected·revoked)'
+          items: { $ref: '#/components/schemas/RoleGrant' }
+        createdAt: { type: integer, format: int64, description: '최초 로그인(JIT) 시각(Unix ms)', example: 1720137600000 }
+        updatedAt: { type: integer, format: int64, example: 1720224000000 }
+
+    AccessRequestCreate:
+      type: object
+      required: [ roles ]
+      description: '본인 권한(역할) 요청 — POST /v1/admin/me/access-requests. 멀티 역할 요청 → 각 requested 생성 → Admin 승인 큐.'
+      properties:
+        roles:
+          type: array
+          minItems: 1
+          description: '요청 역할 목록(멀티). 스코프 생략 시 global'
+          items:
+            type: object
+            required: [ role ]
+            properties:
+              role: { type: string, example: cs }
+              scopeType: { type: string, nullable: true, enum: [ global, region, clinic ], example: global }
+              scopeId: { type: string, nullable: true, example: null }
+          example: [ { role: cs }, { role: operator, scopeType: region, scopeId: apne2 } ]
+        note: { type: string, nullable: true, description: '요청 사유(Admin 참고)', example: 호주 클리닉 설치 지원 }
+
+    RoleGrantCreate:
+      type: object
+      required: [ role ]
+      description: 'Admin 직접 역할 부여 — POST /v1/admin/operators/{operatorId}/roles(즉시 active).'
+      properties:
+        role: { type: string, example: cs }
+        scopeType: { type: string, nullable: true, enum: [ global, region, clinic ], example: global }
+        scopeId: { type: string, nullable: true, example: null }
+        note: { type: string, nullable: true, example: CS 전 클리닉 관리 }
+
+    RoleGrantDecision:
+      type: object
+      required: [ status ]
+      description: 'Admin 결정 — PATCH …/roles/{grantId}. requested→active(승인)/rejected(거부), active→revoked(회수).'
+      properties:
+        status: { type: string, enum: [ active, rejected, revoked ], example: active }
+        note: { type: string, nullable: true, example: 승인 }
 
     # 온보딩
     EnrollStartRequest:

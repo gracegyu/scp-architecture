@@ -681,6 +681,16 @@
     - **결정 필요 없음** — 공유만. 구체 활용(공지/명령 등)은 수요 발생 시 별도 안건화. 
 
   - **S2. 프로젝트 일정(Gantt) — 주간 참고 스냅샷** — 스펙 생애주기(작성→PR→baseline)+GW 구현 타임라인. **정본=[개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정은 그쪽 먼저). 아래는 7/9 기준 스냅샷 — 매주 최신본으로 갱신.
+    - (결정) Gantt 및 담당자로 수정하기로 했어.
+      - AXS연동은 당장은 CleverOne은 고려하지 않고, Straumann의 IO Scanner 만 1차로 고려한다.
+        - IO Scanner와 EzServer 연동 방식은 아직 정해지지 않았다. 추후 정해질 예정.
+        - 이를 고려하여 먼저 작성할 Spec을 먼저 완료한다. 관련 없는 Spec은 최대한 뒤로 미룬다. 
+      - 아래 제품의 Spec은 내가 초안을 쓰지 않고 개발 담당자가 직접 작성한다. 나는 GW 스펙을 제공하여 표준만 알려주면 된다.
+        - CleverOne Spec 은 담당자(Nick)가 작성한다.
+        - EzServer Spec 은 Thomas가 작성한다.
+      - Straumann 연동 목표일정은 협의중인데, 잠정적으로 10월 중으로 한다.
+        - 일단 10월안에 출시 가능한 일정으로 역산하여 Gantt를 업데이트 한다.
+        - 나는 SectionView 프로젝트를 병행 진행해야 해서 100% 투입은 어려워. 이것도 고려해줘. 
     - 막대 색: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 회색=완료 · 빨강=외부 선결. **③ GW SRS PR 시작=7/9**. 구현=R7 **1안**(④ AXS baseline 후·스펙 병행)·기간 미정(SRS 확정 후 재산정). pilot 8/15는 재검토(R7).
 
     ```mermaid

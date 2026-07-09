@@ -104,3 +104,23 @@ Device 상세 [상태·lifecycle] 탭에서 상태 전이 액션을 제공(정�
 
 ### device-self 층 유의 (섞지 말 것)
 - `/v1/clinics/me/*`(device가 자기 clinic read-back·region·org-binding 자가 등록)는 **디바이스 self 평면**이고 위 operator 화면과 **actor가 다름**. Console(operator)과 EzServer Console(device-self)을 혼동해 한 화면에 합치지 않는다.
+
+---
+
+## 작성 가이드 — 운영자 인가(RBAC) 화면 (7/9 R2 A · §7.1.4·§7.9.2)
+
+> 정본=③ §7.1.4·§7.9.2·Appendix B #38. **authN=Entra SSO / authz=GW 자체**. 로그인은 직원 전원 가능, 권한은 GW가 부여·승인.
+
+- **로그인·부트스트랩**: Entra SSO → `GET /v1/admin/me` → `accessState`로 분기.
+  - `active`(역할≥1): 역할별 메뉴 렌더(역할→가능 기능은 §7.9.2 매핑).
+  - `no_access`(로그인OK·역할 0): **"권한 요청" 화면**(아래).
+  - `suspended`: **"계정 정지" 안내**(빈 화면·문의 안내).
+- **권한 요청 화면**(no_access·본인): 역할 **멀티 체크**(admin/developer/cs/operator…) + 스코프(기본 global·필요 시 region/clinic) + 사유(note) → `POST /v1/admin/me/access-requests` → **"승인 대기"** 표시. 거부되면 다시 빈 "권한 없음" 화면(사유 표시 가능).
+- **Admin 승인 큐**: `GET /v1/admin/access-requests`(requested) 목록(요청자·역할·사유·시각) → 항목별 **승인/거부** = `PATCH /v1/admin/operators/{operatorId}/roles/{grantId}`(active/rejected). 알림(요청 발생 시 Admin에게)은 Console/OOB — **알림 채널은 ③-C 확정**(이메일/Teams/인앱 badge 등).
+- **운영자 관리**(Admin): `GET /v1/admin/operators`(상태·역할 필터) → 상세 `/{id}` → **역할 직접 부여**(`POST …/roles`·CS=global)·**회수**(`PATCH …/roles/{grantId}`=revoked)·**정지/복구**(`PATCH /operators/{id}` status). 오프보딩=Entra 비활성 + 여기서 suspended.
+- **표기·UX 규약**:
+  - **역할=멀티**(체크박스)·서열 아님(등급 UI 금지). 역할별 "무엇을 할 수 있나"를 툴팁/설명으로.
+  - **CS는 전 클리닉(global)** 자동 — 클리닉 선택 UI 불필요(scope=global 표기).
+  - **거부·회수 이력 표시**(감사): rejected/revoked도 목록에 상태로 노출(삭제 아님).
+  - **본인 권한 변경 방지**(Admin이 자기 마지막 admin 역할 회수 잠금 등 안전장치)는 LLD/③-C.
+- **감사**: 승인/거부/부여/회수/정지는 audit_log(action=`operator.role.decide`·`operator.role.grant`·`operator.status`·§7.9.3) — Console에서 이력 조회 연동.
