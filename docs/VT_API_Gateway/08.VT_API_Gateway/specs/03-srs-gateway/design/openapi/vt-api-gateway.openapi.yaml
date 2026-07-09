@@ -1066,10 +1066,10 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: webhook 이벤트(메타) 검색/조회 — Console 운영·감사용 (PHI-free·payload는 payloadRef 참조·FR-WH-*) [v1.0]
+      summary: webhook 이벤트(메타) 검색/조회 — Console 운영·감사용 (payload 본문 미포함·DB 암호화 저장·FR-WH-*) [v1.0]
       description: >-
         운영자가 webhook 이벤트 메타(PHI-free: target·event_type·org·clinic·region·state·시각)를
-        검색·조회한다(Console 운영·감사·§7.6). 본문(payload)은 미포함 — payload_ref로 리전 S3 별도(claim-check).
+        검색·조회한다(Console 운영·감사·§7.6). 본문(payload)은 미포함 — DB에 KMS 암호화 저장(`payload_encrypted`)되며 열람은 `GET /{eventId}/payload`(복호화·masking·break-glass).
       parameters:
         - name: targetId
           in: query
@@ -1130,7 +1130,7 @@ paths:
       summary: webhook 이벤트 단건(메타) 조회 — DLQ·장애 triage (PHI-free·payload 미제공·FR-WH-*) [v1.0]
       description: >-
         운영자가 eventId로 단일 webhook 이벤트의 **메타**(state·attempts·lastError·dispatchTarget·시각 등)를 조회한다 — DLQ/장애 triage용.
-        **payload 본문은 제공하지 않는다**(opaque·환자 PHI 포함 가능·§6.4·§7.6.3): 본문은 리전 로컬 S3(claim-check·짧은 TTL)에만 있고 소비자=클리닉 EzServer(MQTT 하행·§7.6.6)뿐이다. 본문 열람이 필요하면 별도 break-glass·redact·감사 경로(§7.6.3·Appendix B #36)로 다루며 본 API 범위 아님.
+        **payload 본문은 제공하지 않는다**(opaque·환자 PHI 포함 가능·§6.4·§7.6.3): 본문은 DB에 **KMS 암호화 저장**(`payload_encrypted`)되며, 열람은 별도 break-glass 경로 `GET /{eventId}/payload`(복호화·masking·감사·§7.6.3·#36)로만. 본 API는 메타 전용.
       responses:
         '200':
           description: webhook 이벤트 메타
@@ -1157,10 +1157,10 @@ paths:
       summary: webhook payload 원문 열람(redact) — break-glass·감사 (FR-WH-*) [v1.0]
       description: >-
         운영자가 특정 이벤트의 **본문(payload)** 을 열람한다 — 디버깅/재생 목적의 **break-glass** 경로.
-        **GW가 중개**한다: 리전 로컬 GW가 자기 리전 S3(claim-check `payload_ref`)에서 읽어 **PHI 필드를 redact(마스킹)** 한 뒤 반환하며(§7.6.3·§6.4),
-        **Console은 S3에 직접 접근하지 않는다**(브라우저 IAM 불가·RBAC/감사/주권/redact 우회 방지).
+        **GW가 중개**한다: GW가 DB의 **`payload_encrypted`를 KMS로 복호화**한 뒤 **PHI 필드를 masking** 해 반환하며(§7.6.3·§6.4),
+        **Console은 DB·복호화 키에 직접 접근하지 않는다**(브라우저 IAM 불가·RBAC/감사/주권/masking 우회 방지).
         **상위 RBAC(break-glass 역할) 필요**(§7.9.2·일반 operator는 403)·**전량 감사**(action=`webhook.payload.view`·§7.9.3).
-        payload는 짧은 TTL이라 이벤트 없음 또는 만료 시 404. redact 필드·TTL 값은 Appendix B #36.
+        **삭제 당분간 미고려**라 보관 중이면 조회되고 이벤트 자체가 없으면 404. masking 필드·보존기간은 Appendix B #36.
       responses:
         '200':
           description: redact 적용된 payload
@@ -2251,7 +2251,7 @@ components:
       type: object
       required: [ eventId, redacted, payload ]
       description: >-
-        webhook 본문 열람 결과(break-glass·§7.6.3). GW가 리전 로컬 S3(claim-check)에서 읽어 PHI redact 후 반환한다. **Console 직접 S3 접근 금지**(GW 중개만).
+        webhook 본문 열람 결과(break-glass·§7.6.3). GW가 DB의 `payload_encrypted`를 **KMS 복호화** 후 PHI를 masking해 반환한다. Console은 마스킹 응답만 표시(GW 중개·직접 DB/키 접근 없음).
       properties:
         eventId: { type: string, example: c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545 }
         redacted: { type: boolean, description: 'PHI 필드 마스킹 적용 여부(§7.6.3·redact 목록 #36)', example: true }
@@ -2264,7 +2264,7 @@ components:
     WebhookEvent:
       type: object
       description: >-
-        webhook 이벤트 **PHI-free 운영 메타데이터**(webhook_event 테이블 매핑, §7.6). payload 본문은 리전 로컬 S3에만 두고 payloadRef로 참조(claim-check, 7/9 R7). 관계형 DB·본 응답에 본문 미포함.
+        webhook 이벤트 **운영 메타데이터**(webhook_event 테이블 매핑, §7.6·PHI-free 메타). payload 본문은 DB에 **KMS 암호화 저장**(`payload_encrypted`·7/9 R7)되며 **본 메타 응답에는 미포함**(열람=`GET /{eventId}/payload`·복호화·masking).
       required: [ eventId, targetId, state, attempts, receivedAt ]
       properties:
         eventId: { type: string, description: '이벤트 식별자 = 멱등 키(dedup)', example: c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545 }
@@ -2283,12 +2283,6 @@ components:
             해석된 대상 clinic(org_mapping 조회 결과·미해석 시 null)
           example: d3f1a9c07b6e4258af31c9d2e0b4a687
         region: { type: string, nullable: true, description: '해석된 대상 region(clinic 파생·미해석 시 null)', example: apne2 }
-        payloadRef:
-          type: string
-          nullable: true
-          description: >-
-            본문 claim-check 참조(리전 로컬 S3·미보관 시 null)
-          example: 's3://gw-webhook-payload-apne2/axs/c2f8aaf5.json'
         state: { $ref: '#/components/schemas/WebhookEventState' }
         dispatchTarget:
           type: string

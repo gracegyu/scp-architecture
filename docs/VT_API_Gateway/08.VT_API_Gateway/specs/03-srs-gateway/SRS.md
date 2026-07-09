@@ -247,7 +247,7 @@ flowchart TB
     subgraph RA["GW Region A (서울)"]
         LBA["Ingress LB (inbound 1)"]
         GA["GW Deployments<br/>core · WH Receiver · WH Dispatcher"]
-        STA[("저장소 PG·SQS·Valkey·S3<br/>(S3=webhook payload·리전·짧은 TTL)")]
+        STA[("저장소 PG·SQS·Valkey·S3<br/>(payload=PG 암호화·리전 / S3=well-known)")]
         NATA["NAT · egress EIP set A"]
         LBA --> GA
         GA --- STA
@@ -262,7 +262,7 @@ flowchart TB
     subgraph RB["GW Region B (미주) · gw/1.2"]
         LBB["Ingress LB (inbound 1)"]
         GB["GW Deployments<br/>core · WH Receiver · WH Dispatcher"]
-        STB[("저장소 PG·SQS·Valkey·S3<br/>(S3=webhook payload·리전·짧은 TTL)")]
+        STB[("저장소 PG·SQS·Valkey·S3<br/>(payload=PG 암호화·리전 / S3=well-known)")]
         NATB["NAT · egress EIP set B"]
         LBB --> GB
         GB --- STB
@@ -329,7 +329,7 @@ flowchart TD
 - **멀티 리전 = 데이터 부류를 나눈다.**
   - **(전역 일관) 라우팅·식별 데이터** — device/clinic↔region 매핑·레지스트리·Org-ID↔ClinicID·정책(OPA)·compat matrix·JWKS. **모든 리전이 같은 답을 내야** 한다(예: B 리전에 떨어진 Webhook이 "클리닉 X는 A 리전 소속"임을 알아야 분배 가능). 따라서 **전역 일관**으로 둔다 — soft-state 캐시 + 변경 시 strong-consistency 경로·`mapping_version`(ADR-02·§7.3.1·§7.3.2).
   - **(리전 로컬) 운영 데이터** — audit log(발생 리전)·in-flight webhook/queue. **리전마다 다르며** 합쳐서 전체다.
-  - **PHI 영상 본문은 어느 store에도 미저장**(§6.4) — 데이터 주권은 "PHI **바이트**를 매핑된 리전 storage로 라우팅"의 문제이지 GW DB 내용 분리가 아니다(§7.3.3). 전역 데이터는 PHI 미포함 control-plane 메타라 **리전 간 복제 가능**. **예외 — webhook payload**: AXS 등 인바운드 이벤트 본문은 환자정보(PHI)를 포함할 수 있어, GW가 store-and-forward로 **전이(transient) 경유**한다. 이 본문은 **리전 로컬(SQS in-flight·짧은 TTL S3)에만·복제 없이** 최소 보관하고 전역 PG에 넣지 않는다(§7.6.3·7/9 R7).
+  - **PHI 영상 본문은 어느 store에도 미저장**(§6.4) — 데이터 주권은 "PHI **바이트**를 매핑된 리전 storage로 라우팅"의 문제이지 GW DB 내용 분리가 아니다(§7.3.3). 전역 데이터는 PHI 미포함 control-plane 메타라 **리전 간 복제 가능**. **예외 — webhook payload**: AXS 등 인바운드 이벤트 본문은 환자정보(PHI)를 포함할 수 있다. 7/9 R7 결정으로 이 본문은 **DB(`webhook_event.payload_encrypted`)에 KMS envelope 암호화 저장**(복호화 가능·Console masking·삭제 당분간 미고려)하되 **리전 로컬(전역 복제 대상 아님)** 으로 두어 주권을 유지한다(§7.6.3). S3 claim-check는 폐기.
 - **저장소 역할(PostgreSQL / Redis).** **PostgreSQL = 원본(SSOT).** 전역 일관 데이터는 **리전 간 복제/sync**(원본 → 리전 복제본), 리전 로컬 데이터(audit·in-flight queue)는 리전 전용. **Redis = 빠른 조회 캐시(리전마다).** Redis끼리 직접 복제하기보다 **각 리전이 로컬 PostgreSQL에서 캐시(cache-aside)** 하고 **TTL·`mapping_version`으로 무효화**해 일관성을 맞춘다(멱등 키·nonce 같은 휘발 상태는 리전 Redis 로컬). 즉 일관성의 근거는 _PostgreSQL 복제 + 캐시 무효화_ 다.
 - **전역데이터 복제 토폴로지 세부**(원본 primary 위치·단일 vs multi-primary·충돌 처리)는 gw/1.2 설계 결정(Appendix B #15)이나, 위 **"PostgreSQL 원본+리전 복제 / Redis 리전 캐시" 모델과 "전역 일관/리전 로컬" 구분 원칙은 버전과 무관하게 고정**이다.
 
@@ -384,12 +384,12 @@ flowchart LR
         subgraph WHTIER["Webhook Ingress (Webhook Receiver → SQS → Webhook Dispatcher)"]
             WH["Webhook Receiver<br/>검증·멱등·ACK·적재"]
             SQSQ["내부 큐 A·SQS<br/>(재시도·DLQ)"]
-            S3PL["payload 보관 S3<br/>(리전·SSE·짧은 TTL · PHI)"]
+            PLDB["payload 저장 PG<br/>webhook_event.payload_encrypted<br/>(KMS 암호화·리전 로컬)"]
             DISP["Webhook Dispatcher<br/>SQS consumer·별도 Deployment<br/>대상 해석·publish (ADR-12)"]
             WH --> SQSQ
-            WH -->|"payload 저장(ref)"| S3PL
+            WH -->|"암호화 저장"| PLDB
             SQSQ --> DISP
-            S3PL -.->|"본문 read"| DISP
+            PLDB -.->|"복호화 read"| DISP
         end
     end
 
@@ -425,7 +425,7 @@ flowchart LR
     classDef comp fill:#ffffff,stroke:#1565c0,stroke-width:1.5px,color:#0d47a1
     classDef mgd fill:#eceff1,stroke:#90a4ae,color:#37474f
     class AUTH,ROUTER,RGN,COMPAT,ADM,DREG,ENR,CFG,FLEET,OPA,AUD,CONN,WH,DISP comp
-    class SQSQ,S3PL,DNOTE mgd
+    class SQSQ,PLDB,DNOTE mgd
 ```
 
 **색 범례** (§2.1과 동일):
@@ -939,7 +939,7 @@ sequenceDiagram
 
 ### 2.3.8 운영자·Console 인증 (직원 IdP OIDC) — FR-AUTH-08/09·FR-ADM-02
 
-GW Console 사용자(Admin·C/S)은 **사내 직원**이라 **직원 IdP(MS365/Entra ID) OIDC**로 로그인한다(§7.1.4). GW는 IdP 발급 토큰을 검증하고, **역할(Admin/C-S)은 IdP claim(App Role/Group)** 으로 RBAC 판정한다(§7.9.2). device 인증(private_key_jwt·§2.3.2)과 완전히 분리된 면이다(ADR-08). GW는 자체 비밀번호·user 저장소를 두지 않는다(§6.2).
+GW Console 사용자(Admin·C/S)은 **사내 직원**이라 **직원 IdP(MS365/Entra ID) OIDC**로 로그인한다(§7.1.4). GW는 IdP 발급 토큰을 검증(authN)하고, **역할·인가(authz)는 GW 자체**(`operator_role`·§7.9.2·7/9 R2 A) — Entra는 SSO만. device 인증(private_key_jwt·§2.3.2)과 분리 면(ADR-08). GW는 **자체 비밀번호는 두지 않되**(SSO), authz용 `operator`·`operator_role` 테이블은 둔다(§7.9.2).
 
 ```mermaid
 sequenceDiagram
@@ -1436,14 +1436,16 @@ GW는 의료 데이터(PHI) 경로의 control plane이므로, 데이터 보호·
 | 2   | Authorization       | 운영자 RBAC(§7.9.2), scope 기반 디바이스 권한                                                   |
 | 3   | Access control      | OPA allowlist(미등록 디바이스 차단 §7.2.2), egress endpoint allowlist(§7.5.3)                   |
 | 4   | Non-repudiation     | append-only 감사(operator·timestamp·before/after·IP, §7.9.3)                                    |
-| 5   | Confidentiality     | 전 구간 TLS, 시크릿 KMS, 외부 토큰 암호화 저장(§7.1.3), PII/PHI 비저장(NFR-SEC)                 |
+| 5   | Confidentiality     | 전 구간 TLS, 시크릿 KMS, 외부 토큰 암호화 저장(§7.1.3). PHI 원칙적 비저장 — **단 webhook payload는 KMS envelope 암호화 저장**(§7.6.3·복호화 가능·masking·보관기간 추후 고려)                 |
 | 6   | Integrity           | 업로드 checksum/ETag(§7.4.5), idempotency(§7.4.4·§7.6.4), Webhook HMAC(§7.6.2)                  |
 | 7   | Secure coding       | OWASP Top 10 점검, 의존성 스캔(CI 게이트)                                                       |
 | 8   | Web vulnerabilities | 입력 검증(class-validator), 표준 오류 매핑(§7.7.4)                                              |
 
 > 보안과 편리의 트레이드오프: 디바이스는 머신 인증(무인 자동), 운영자 관리 변경에만 RBAC·감사 강화 — 행위별 보안 강도 분리.
 >
-> **운영자·Console 인증 보안(§7.1.4·§7.9.2).** GW Console 사용자(Admin·C/S)는 **사내 직원**이라 **직원 IdP(MS365/Entra ID)에 OIDC 위임**한다 — GW는 **자체 비밀번호·user 저장소를 두지 않아**(credential 유출면 제거), 비밀번호 정책·MFA·리셋·**퇴사 오프보딩을 IdP가 담당**한다. **인가는 IdP claim(App Role/Group)→RBAC**(§7.9.2·별도 user 테이블 없음). device 인증(private_key_jwt)과 분리 면(ADR-08). 최종 방식(Entra 연동 vs GW 자체 DB)은 Agenda 7/9 R2·Appendix B #38.
+> **운영자·Console 인증 보안(§7.1.4·§7.9.2).** GW Console 사용자(Admin·C/S)는 **사내 직원**이라 **직원 IdP(MS365/Entra ID)에 OIDC 위임**한다 — GW는 **자체 비밀번호·user 저장소를 두지 않아**(credential 유출면 제거), 비밀번호 정책·MFA·리셋·**퇴사 오프보딩을 IdP가 담당**한다. **인가(authz)는 GW 자체**(`operator_role`·§7.9.2·**7/9 R2 A 확정**) — Entra는 **SSO(authN)만**. GW는 authz용 `operator`·`operator_role` 테이블을 둔다(자체 비밀번호는 없음). device 인증(private_key_jwt)과 분리 면(ADR-08). Appendix B #38.
+>
+> **webhook payload 기밀성·보관(7/9 R7).** GW는 PHI를 원칙적으로 저장하지 않으나, **webhook payload(PHI 포함 가능)만 예외로 DB에 보관**한다 — **KMS envelope 암호화**(복호화 가능·앱 레벨·평문 미노출)·**리전 로컬**(전역 복제 안 함·주권)·Console 조회 시 **masking**·열람 전량 감사(§7.6.3·§7.9.3). **보관기간은 추후 고려**한다(v1.0은 자동 삭제/purge 없이 누적·정책은 Appendix B #36 후속). **암호화에 쓰는 KMS 키 자체(CMK·alias·키 회전·리전별 키 토폴로지)는 SRS에서 정하지 않는다 — LLD/③-I(인프라) 소관**이고, SRS는 "payload는 KMS envelope로 암호화 저장한다"는 **요구**까지만 규정한다(시크릿·자격의 `kms://alias/…` 참조와 동일 취급).
 
 ## 6.3 Software System Attributes (소프트웨어 시스템 특성)
 
@@ -1951,13 +1953,14 @@ FR-WH-02 (**식별** = Host/SNI → 레지스트리 `inbound_host`로 target·�
 
 FR-WH-04 (검증 직후 `2xx` 즉시 응답, 처리는 **내부 비동기 큐(A)** 로 위임 — 재시도·백오프·DLQ). **내부 큐 기본 = Amazon SQS**(서버리스·IRSA·DLQ 내장, 순서/dedup 필요 시 SQS FIFO; 대안 Amazon MQ, §3.1.2). 이 큐는 **GW 내부 버퍼**이며, 클리닉으로의 마지막 구간 전달은 §7.6.6 엣지(B·MQTT)가 담당한다 — **둘은 별개 레그**다. **큐에서 꺼내(consume) 대상으로 발행하는 주체는 Webhook Dispatcher(§7.6.7)** 다 — 큐는 스스로 push하지 않는다.
 
-**payload 보관(7/9 R7 추천안).** 이벤트 본문(payload)은 target가 소유하는 **opaque**(GW 비해석)이며 **환자정보(PHI)를 포함할 수 있다**(예: AXS `patient.created`의 이름·생년월일). 따라서 본문은 **관계형 DB(`webhook_event`)에 저장하지 않고**, 다음과 같이 **리전 로컬로만·복제 없이** 최소 보관한다:
-- **in-flight** = SQS 메시지(리전 로컬·SSE). 분배 완료까지 버퍼.
-- **디버깅·재생·감사용 보관** = **리전 로컬 S3**(SSE 암호화·**짧은 TTL** lifecycle로 자동 만료). `webhook_event.payload_ref`는 이 객체를 가리키는 **claim-check 참조**다.
-- `webhook_event` 자체는 **PHI-free 운영 메타데이터**(target·event_type·org·clinic·region·state·시각)만 담아 **Console 검색/필터** 대상이 된다. 본문 내부(환자 신원)로는 검색하지 않는다.
-- **Console payload 열람 = GW 중개만(직접 S3 금지)**: 본문 열람은 **`GET /v1/admin/webhook-events/{eventId}/payload`(break-glass)** 로만 한다. **GW(리전 로컬)가** `payload_ref`로 자기 리전 S3에서 읽어 **PHI redact(마스킹)** 후 반환하고(전달 verbatim 본문은 불변·§6.4 최소화), **Console은 S3에 직접 접근하지 않는다** — 브라우저는 IAM 자격을 쥘 수 없고, 직접 접근은 RBAC(§7.9.2)·감사(§7.9.3)·리전 주권·redact를 모두 우회하기 때문이다. 접근은 **상위 RBAC(break-glass 역할)** 로 제한하고 **전량 감사**(action=`webhook.payload.view`)한다. 목록·단건 **메타** 조회(`/webhook-events`·`/{eventId}`)는 PHI-free이며 payload를 반환하지 않는다. redact 필드·payload TTL·메타 보존기간은 Appendix B #36.
+**payload 보관(7/9 R7 확정).** 이벤트 본문(payload)은 target가 소유하는 **opaque**(GW 비해석)이며 **환자정보(PHI)를 포함할 수 있다**(예: AXS `patient.created`의 이름·생년월일). 7/9 R7 결정에 따라 본문은 **관계형 DB(`webhook_event.payload_encrypted`)에 암호화하여 일정기간 보관**한다(구 S3 claim-check 폐기):
+- **저장 = DB 암호화(KMS)**: `payload_encrypted` 컬럼에 **KMS envelope 암호화**(복호화 가능·앱 레벨)로 저장한다 — DB 덤프로도 평문 PHI가 노출되지 않고 GW만 KMS로 복호화한다. **리전 로컬 보관·전역 복제 대상 아님**(주권 유지). Aurora at-rest 암호화와 별개의 앱 레벨 암호화다. **암호화에 쓰는 KMS 키(CMK·alias·키 회전·리전별 키 토폴로지)는 SRS에서 정하지 않는다 — LLD/③-I(인프라) 소관**(SRS는 KMS envelope 암호화 요구까지·§6.2).
+- **보관 기간 = 일정기간·삭제 당분간 미고려**: 디버깅·재생·감사용으로 보관하되 **자동 삭제(TTL purge)를 v1.0에 도입하지 않는다**(보존기간·purge 정책은 Appendix B #36·후속).
+- **in-flight(분배 큐)**: async 큐(SQS)는 **eventId만** 실어 DB 행을 claim-check한다(SQS에 payload 평문을 장기 적재하지 않음). Dispatcher가 DB에서 복호화해 대상으로 분배한다.
+- `webhook_event`의 **메타 컬럼**(target·event_type·org·clinic·region·state·시각)은 PHI-free라 **Console 검색/필터** 대상이고, **`payload_encrypted`는 검색/조회 대상이 아니다**(본문 내부 환자 신원으로 검색하지 않음).
+- **Console payload 열람 = GW 중개·복호화·masking**: 본문 열람은 **`GET /v1/admin/webhook-events/{eventId}/payload`(break-glass)** 로만 한다. **GW가 DB의 `payload_encrypted`를 KMS로 복호화**한 뒤 **환자정보를 masking**해 반환하고(전달 verbatim 본문은 불변·§6.4 최소화), **상위 RBAC(break-glass 역할)** 로 제한·**전량 감사**(action=`webhook.payload.view`·§7.9.3)한다. Console은 이 API의 마스킹 응답만 표시한다. 목록·단건 **메타** 조회(`/webhook-events`·`/{eventId}`)는 payload를 반환하지 않는다. masking 필드·보존기간은 Appendix B #36.
 
-- **Side Effect**: 큐(SQS) 적재 + 본문 리전 S3 보관(짧은 TTL). 처리 실패 N회 → DLQ 이동·알람
+- **Side Effect**: 본문 **DB 암호화 저장**(`payload_encrypted`·KMS) + 큐(SQS·eventId 참조) 적재. 처리 실패 N회 → DLQ 이동·알람
 
 ### 7.6.4 멱등 처리 (P1)
 
@@ -2169,7 +2172,7 @@ FR-FLEET-06 (앞단 클라이언트 SW 버전·OS 가시성).
 
 ### 7.9.1 테넌트·키·디바이스 관리 API (P1)
 
-FR-ADM-01 (CRUD API, MVP 경량). Console(③-C)이 호출. 테넌트·키·디바이스에 더해 **분배 지식·연동 레지스트리 관리** 포함 — Org-ID↔ClinicID 매핑(`/v1/admin/org-mappings`, GET/POST/**DELETE**)·**연동 대상 통합(`/v1/admin/targets` — 라우팅+아웃바운드 자격+인바운드 webhook 수신)**. 각 레지스트리는 GET(조회)+POST(등록/갱신 upsert)+DELETE(연동 해지) 제공. **관측·감사 조회(GW 런타임 생성 데이터, write API 없음)**: webhook 이벤트 메타 검색 `GET /v1/admin/webhook-events`(target/clinic/event_type/state/기간 필터·payload 본문 미포함·§7.6) + 단건 `GET /v1/admin/webhook-events/{eventId}`(DLQ triage·**메타 전용·payload 미제공**) + 본문 열람 `GET /v1/admin/webhook-events/{eventId}/payload`(**break-glass·GW 중개·redact·감사**·Console 직접 S3 금지·§7.6.3), fleet 상태 `GET /v1/admin/fleet`(heartbeat·버전·online 대시보드·§7.8; 성공률·오류=관측 metric §7.8.3), 클라이언트 SW 인벤토리 `GET /v1/admin/clinics/{clinicId}/clients`(앞단 CleverOne 등 버전·OS presence·§7.8.5), 감사 `GET /v1/admin/audit`. **정책 관리**(`/v1/admin/policies` GET/POST/DELETE·FR-INT-03·deny-by-default라 v1.0 필수)·**리전 카탈로그 관리**(`/v1/admin/regions` POST/PUT/DELETE·§7.3.6, 조회는 `GET /v1/regions`)도 제공(#32·#30 해소). **target(예: AXS) 하나 등록 = `target` 1 레코드**(+정책·클리닉별 org_mapping)이므로 Console이 등록하고 credential/secret은 KMS 저장(원문 미노출)·감사(action=`target.upsert`) — 등록 레코드·화면 가이드는 **③-C `_status.md`(작성 가이드)** 참조. 전체 스키마는 Swagger.
+FR-ADM-01 (CRUD API, MVP 경량). Console(③-C)이 호출. 테넌트·키·디바이스에 더해 **분배 지식·연동 레지스트리 관리** 포함 — Org-ID↔ClinicID 매핑(`/v1/admin/org-mappings`, GET/POST/**DELETE**)·**연동 대상 통합(`/v1/admin/targets` — 라우팅+아웃바운드 자격+인바운드 webhook 수신)**. 각 레지스트리는 GET(조회)+POST(등록/갱신 upsert)+DELETE(연동 해지) 제공. **관측·감사 조회(GW 런타임 생성 데이터, write API 없음)**: webhook 이벤트 메타 검색 `GET /v1/admin/webhook-events`(target/clinic/event_type/state/기간 필터·payload 본문 미포함·§7.6) + 단건 `GET /v1/admin/webhook-events/{eventId}`(DLQ triage·**메타 전용·payload 미제공**) + 본문 열람 `GET /v1/admin/webhook-events/{eventId}/payload`(**break-glass·GW 중개·DB 복호화·masking·감사**·Console 직접 접근 금지·§7.6.3), fleet 상태 `GET /v1/admin/fleet`(heartbeat·버전·online 대시보드·§7.8; 성공률·오류=관측 metric §7.8.3), 클라이언트 SW 인벤토리 `GET /v1/admin/clinics/{clinicId}/clients`(앞단 CleverOne 등 버전·OS presence·§7.8.5), 감사 `GET /v1/admin/audit`. **정책 관리**(`/v1/admin/policies` GET/POST/DELETE·FR-INT-03·deny-by-default라 v1.0 필수)·**리전 카탈로그 관리**(`/v1/admin/regions` POST/PUT/DELETE·§7.3.6, 조회는 `GET /v1/regions`)도 제공(#32·#30 해소). **target(예: AXS) 하나 등록 = `target` 1 레코드**(+정책·클리닉별 org_mapping)이므로 Console이 등록하고 credential/secret은 KMS 저장(원문 미노출)·감사(action=`target.upsert`) — 등록 레코드·화면 가이드는 **③-C `_status.md`(작성 가이드)** 참조. 전체 스키마는 Swagger.
 
 > **조회 필터 매칭 규약(v1.0).** 관리 조회 API의 모든 문자열·id·enum 필터는 **정확 일치(exact match)** 다(부분 일치·prefix·**full-text 검색 없음**). 예외는 두 가지뿐: **시각 범위**(`webhook-events`의 `from`/`to` = Unix ms 경계)와 **boolean 토글**(`fleet`의 `staleOnly`). 페이지네이션은 커서(`limit`/`cursor`, 불투명 토큰). full-text·부분 검색 수요가 생기면 별도 검토(현 v1.0 비목표).
 
@@ -2277,7 +2280,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 46 | example/식별자 **실형식 grounding 확인**(외부 발급·GW surrogate) | GW+발급처(AXS·LMP·EzServer)·LLD | 문서화 **값 확인** — 스키마·계약 불변, example 값만 실데이터로 확정. 대상: **externalOrgId**(AXS organizationId=UUID·`organization.yml`/`patientevents.md` 근거로 교정 완료; 구 `webhooks.md` 샘플의 10자리 `0040694997`은 실은 **customerNumber 형식** — 혼재)·**enroll licenseProof**(LMP 라이선스 id 형식·illustrative)·**serial**(EzServer 시리얼 형식·illustrative)·**policy/config surrogate id**(GW 생성·불투명·prefix/규칙 LLD). 확정 경로=7/9 R4(#45 AXS 실태)·LMP/EzServer 실데이터·LLD. **이미 교정**: `clinicId`(LMP 32자·별건)·`externalOrgId`(UUID). ⚠️ 다른 리소스 example 재사용 오용 주의(예 clinic 32-hex를 범용 `scopeId`로) |
 | 40 | Entra 디렉터리 선결 확인·tenant admin 요청 | IT(Entra 담당) | 외부 의존성·행정 절차(§2.6 성격)·#38 Entra안의 전제 |
 | 43 | 미승인 pending 자동 만료 TTL 값(추천 7일) | GW+운영조직 | config **값** — 만료 메커니즘은 §7.2 스펙 확정. C/S SLA 확인 후 default |
-| 36 | webhook payload TTL·메타 보존기간·redact 필드 | 품질/법무 | 컴플라이언스·운영 **값** — 저장 방식(claim-check)은 §7.6.3 스펙 확정 |
+| 36 | webhook payload 보존기간·masking 필드 | 품질/법무 | 컴플라이언스·운영 **값** — **저장 방식 확정(7/9 R7): DB KMS 암호화(`payload_encrypted`)·masking·삭제 당분간 미고려**(§7.6.3). 잔여=보존기간·purge 정책·masking 대상 필드(후속) |
 | 34 | heartbeat 권장 주기·오프라인 임계값 | 인프라/운영 | 운영 튜닝 **값** — 메커니즘(push·파생판정)은 §7.8.1 스펙 확정 |
 | 2 | 공개 EP DNS 인증서·GeoDNS·리전 내부 호스트 구성 | 인프라/플랫폼 | 배포·인프라 — 호스트 네이밍 규약(`{target}.webhook…`)은 §4.5.1·§7.6.2 스펙 확정 |
 | 3 | 경로 B EOS 시점 | PM(제품) | 제품·운영 **일정**(§2.8·§1.2 영역)·GW 아키텍처 무영향 |
@@ -2548,6 +2551,8 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-09 | **7/9 R3 결정 반영 — LMP clinic 정보 수집 확정 + LMP 변경 미sync(enroll 스냅샷)** — enroll 시 LMP clinic 정보를 **수집·저장 확정**(name·country_code·address·phone·website=LMP 전부·필드셋 TBD 해소). **핵심: LMP에서 그 정보가 바뀌어도 GW는 자동 sync하지 않는다**(enroll 시점 스냅샷) → `patchClinicMe`의 'LMP 정보 동기화' 의미를 **수동 보정**으로 재정의(자동 sync 아님), §2.3.1 enroll 포착 문구·DBML clinic·OpenAPI ClinicInfo·provenance 표에 스냅샷·미sync 명시. 갱신 경로=(재)enroll 재포착 또는 운영자/디바이스 수동 교정. Appendix B #41 확정. redocly valid·DBML OK | (작성자 ID 미지정) |
 | 2026-07-09 | **7/9 R4 결정 반영 — enroll 승인 A안=v1.0 확정·B안=LMP 재개발 후** — enroll 승인 두 flow 중 **A안(C/S 수동 승인)=v1.0 확정**, **B안(LMP 제3자 서명 attestation 자동승인)=v1.0 미지원**(현 LMP 문제로 재개발 예정→재개발 후 적용). **B flow는 스펙에서 삭제하지 않고 유지**(SRS §2.3.1 B 시퀀스·OpenAPI `licenseAttestation` 예약 필드·postEnrollComplete·DBML device 주석·redis JWKS)하되 전부 **'v1.0 미지원·LMP 재개발 후'** 로 재프레이밍. §2.3.1·§7.2.5·여정 [2]·provenance·Appendix B #42 확정. redocly valid·DBML OK | (작성자 ID 미지정) |
 | 2026-07-09 | **7/9 R5 확정(A+C) — SRS 변경 없음·EzServer nginx 가이드 씨앗 캡처** — 라우팅 A+C(GW edge=서브도메인 C안 / CleverOne→EzServer 내부=Vatech-Target 헤더 A안)는 이미 ADR-11·§4.1.2·§2.3.0·§4.5.1에 반영돼 **SRS 수정 없음**. EzServer 측 **nginx 변환 설정 방법(순정 nginx map: Vatech-Target 헤더→{label}.gw.vatech.com HTTPS·평문→HTTPS 브리징·허용 라벨 화이트리스트·헤더 relay/Vatech-Via·외부 Vatech-* 미전달)** 을 잊지 않도록 **③-P-EZ `_status.md` 필수 반영 항목에 씨앗으로 정리**(nginx 스케치 포함·baseline 후 EzServer 팀 인계 시 승격) | (작성자 ID 미지정) |
+| 2026-07-09 | **7/9 R7 결정 반영 — webhook payload 저장: S3 claim-check → DB KMS 암호화(전면 반전)** — **결정: 일정기간 보관·S3 아니고 DB·복호화 가능 암호화·Console masking·삭제 당분간 미고려.** payload를 **`webhook_event.payload_encrypted`(bytea·KMS envelope·복호화 가능)** 에 저장(구 S3 claim-check·`payload_ref`·짧은 TTL·SSE **폐기**). **§6.4 PHI 원칙 개정**: PHI 영상 본문 미저장(presigned)은 유지하되 webhook payload는 **DB 암호화 저장**(리전 로컬·전역 복제 안 함·주권 유지). **§7.6.3 재작성**(DB 암호화·in-flight SQS=eventId claim-check·보관·masking), **§2.1.1·§2.2 다이어그램**(S3 payload 노드 S3PL→PG PLDB·`payload=PG 암호화`), **OpenAPI**(WebhookEvent `payloadRef` 제거·`/{eventId}/payload`=DB 복호화+masking·삭제 미고려라 만료 404 없음·WebhookPayloadView·메타 desc), **DBML**(`payload_ref`→`payload_encrypted bytea`·header·Note), Appendix B #36(저장 방식 확정·잔여=보존기간/purge/masking 필드). redocly valid·DBML OK | (작성자 ID 미지정) |
+| 2026-07-09 | **R7 후속 — payload 보관기간=추후 고려 정리(§6.2) + KMS 키는 LLD 소관 명시** — webhook payload 보관기간은 **추후 고려**(v1.0 자동 삭제/purge 없이 누적·정책=Appendix B #36 후속)로 §6.2 보안요구에 정리. §6.2 Confidentiality 행을 'PHI 원칙 비저장 + webhook payload는 KMS 암호화 저장 예외'로 정정. **암호화 KMS 키(CMK·alias·회전·리전 키 토폴로지)는 SRS 미결정 — LLD/③-I(인프라) 소관**임을 §6.2·§7.6.3에 명시(SRS는 KMS envelope 암호화 '요구'까지·시크릿 `kms://alias/…` 참조와 동일 취급) | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 서명 주체 정정 — ELM(로컬)→LMP(클라우드)** — ELM(`ezserver-license-manager`)은 클리닉마다 **로컬**(localhost·LexFloatServer 온프렘)이라 서명자로 두면 GW가 10만 로컬 키를 신뢰해야 함 → **서명 권위=중앙 LMP(클라우드)**, GW는 LMP JWKS 하나로 검증, EzServer/ELM은 릴레이만. B는 **PMS 연동(EPI)과 무관**(별개 컴포넌트). R9·#42 정정 | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 완충용 `licenseAttestation` 예약 필드 추가 + R9 비교 표** — B1(LMP 검증 자동승인) 도입 시 EzServer 버전 공존 완충을 위해 **OpenAPI `EnrollStartRequest.licenseAttestation`(nullable·v1.0 미사용·R9 확정 시 활성)** 예약. Agenda R9를 **A vs B 비교 표**(신뢰앵커·C/S부담·확장성·LMP변경·인간검증·region·난이도·현행동작·abuse)로 재구성해 회의 가독성↑ | (작성자 ID 미지정) |
 | 2026-07-07 | **R9 재구성 — enrollment 신뢰 앵커 C/S vs LMP-검증 비교(LMP 역량 정독)** — 이전 회의의 'C/S Console 수동 승인 번거로움' 우려를 반영해 **자동승인 대안**을 진지 비교로 승격. LMP/ELM=Cryptlex(LexActivator+product.dat) 확인 → 오프라인 서명 검증 역량 있으나 device측이라 **GW-검증 증명은 LMP 소폭 변경 필요**(B1=ELM-서명 attestation→GW가 JWKS 검증·추천 / B2=GW→LMP 런타임 verify). 추천 v1.0=A(C/S)·B1 병행(gw/1.1). R9·#42 재작성·§7.2 enroll 불릿(④ 신뢰 앵커)로 갱신. (앞서 'LMP-서명 추천'은 LMP 발급 여부 미확인 상태의 성급한 표현이라 정정) | (작성자 ID 미지정) |

@@ -7,7 +7,7 @@
 // GW의 핵심 역할 = 발신자 식별→올바른 client로 분배(GW는 payload 비해석). 본 DB는 '어디로 분배할지'의 지식을 보관:
 //   라우팅 키(org_mapping)·연동 대상 통합 config(target: 라우팅+아웃바운드 자격+인바운드 webhook 수신). (분배 채널은 clinic→MQTT 토픽 규약으로 도출·테이블 없음, §7.6.6)
 // 컬럼은 snake_case(PostgreSQL 관례), API DTO는 camelCase(SRS §1.3)로 매핑.
-// 시간은 Unix Timestamp(ms) bigint. PHI 본문 미저장(presigned 직결, SRS §6.4).
+// 시간은 Unix Timestamp(ms) bigint. PHI 영상 본문 미저장(presigned 직결). **webhook payload(PHI 가능)는 DB에 암호화 저장**(webhook_event.payload_encrypted·KMS envelope·복호화 가능·Console masking·삭제 미고려·7/9 R7·§7.6.3). (SRS §6.4)
 // 타입·인덱스·정밀 relation은 LLD(dev-chain-design)에서 확정.
 // jsonb 컬럼(policy.allowed_endpoints·policy.scopes·target.egress_allowlist·target.source_ip_allowlist·config.config_value·audit_log.before_state·audit_log.after_state)의 형식·예시·검증 = design/db-jsonb-fields.md(구현 계약 SSOT). 컬럼 주석엔 shape 요약만. (target_registry.retry_policy는 R4로 제거 — 재시도=istio)
 // 2026-06-29 PR 정합 보강: upstream_registry 복원력 컬럼·enum화·created_at/updated_at·webhook_event 보강.
@@ -380,7 +380,7 @@ Table config {
 //  • 멱등: event_id=멱등 키(중복 수신 dedup·§7.6.4)
 //  • GW는 payload 비해석 → external_org_id로 org_mapping 조회 → 대상 clinic→region 해석(clinic_id·region 컬럼 저장)
 //  • 분배: clinic MQTT 토픽(gw/clinic/{clinicId}/webhook·§7.6.6 도출·별도 테이블 없음) · dispatch_target 스냅샷(clinic/region='어디', dispatch_target='어떤 채널로')
-//  • 본문은 관계형 DB 미저장(opaque·PHI 가능) → 리전 로컬 S3(짧은 TTL·SSE)·payload_ref 참조(claim-check·7/9 R7·§7.6.3)
+//  • 본문(opaque·PHI 가능)은 **DB에 KMS envelope 암호화 저장**(payload_encrypted·복호화 가능·7/9 R7·§7.6.3). **S3 claim-check 폐기**. 리전 로컬(전역 복제 안 함·주권)·Console 조회 시 복호화→masking·**삭제 당분간 미고려**
 //  • 재시도 N회 실패 → dead_letter(DLQ) · 이벤트 메타 보존/payload TTL=Appendix B
 Table webhook_event {
   event_id        varchar [pk]                                        // 이벤트 식별자 = 멱등 키(중복 수신 dedup, §7.6.4). target.event_id_path로 payload에서 추출(예 AXS messageId) — target별 필드명 상이. 예 `c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545`
@@ -389,7 +389,7 @@ Table webhook_event {
   external_org_id varchar                                             // target(발신)의 org 식별자 — 분배 대상 역조회 키. AXS=organizationId·UUID(organization.yml). 예 `e407b34d-c4b0-4db3-bbcd-cc11770eae7b`. 실제 값 7/9 R4 확정(#46)
   clinic_id       varchar [ref: > clinic.clinic_id]    // 해석된 대상 클리닉(FK, org_mapping 조회 결과). 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`
   region          varchar [ref: > region_catalog.region_id]          // 해석된 대상 리전(FK, clinic 파생). 예 `apne2`
-  payload_ref     varchar                                            // 본문 보관 참조(claim-check). 본문=리전 로컬 S3(SSE·짧은 TTL, 7/9 R7)·in-flight는 SQS. **관계형 DB에 본문 미저장**(payload는 opaque·환자 PHI 포함 가능·복제 금지, §6.4·§7.6.3). 외부 스키마 ④. 예 `s3://gw-webhook-payload-apne2/axs/c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545.json`
+  payload_encrypted bytea                                            // 이벤트 본문(payload)을 **KMS envelope 암호화**해 저장(복호화 가능·암호문+래핑 데이터키, 7/9 R7·§7.6.3). opaque·환자 PHI 포함 가능. Console 조회 시 GW가 복호화→**masking**(break-glass·§7.9.2·감사). **삭제 당분간 미고려**(일정기간 보관·retention #36). 평문·S3 미저장·리전 로컬(전역 복제 안 함)
   state           webhook_state [not null, default: 'received']      // 처리 상태(received|dispatched|dead_letter). 예 `dispatched`
   dispatch_target varchar                                            // 실제 발행한 **구체적 분배 목적지** — 형식 `{channel_type}:{endpoint}`. v1.0은 clinic에서 도출한 MQTT 토픽(§7.6.6). **clinic_id·region('어디')과 별개로 '어떤 채널·주소로' 보냈나**(감사·디버깅). 발행 전 null. ※ target(아웃바운드 라우팅 대상)와 **무관**(분배 목적지 ≠ 호출 대상). 예 `mqtt_edge:gw/clinic/d3f1a9c07b6e4258af31c9d2e0b4a687/webhook`
   attempts        integer [not null, default: 0]                     // 분배 시도 횟수(N회 실패 → dead_letter·DLQ, §7.6.3). 예 `1`
@@ -397,7 +397,7 @@ Table webhook_event {
   received_at     bigint [not null]                                  // 수신 시각(Unix ms·insert 시 항상 설정). 예 `1720137600123`
   dispatched_at   bigint                                             // 분배 완료 시각(Unix ms). 예 `1720137600456` (미분배 시 null)
 
-  Note: '외부 webhook 수신·분배 상태(FR-WH-*·§7.6) — PHI-free 운영 메타(Console 필터). 본문은 DB 미저장(리전 S3 claim-check). 상세는 테이블 위 주석 참조.'
+  Note: '외부 webhook 수신·분배 상태(FR-WH-*·§7.6) — PHI-free 운영 메타(Console 필터) + 본문 payload_encrypted(KMS 암호화·masking·삭제 미고려·7/9 R7). 상세는 테이블 위 주석 참조.'
   Indexes {
     target_id  // target별 조회
     event_type // 이벤트 유형별 필터(Console)
