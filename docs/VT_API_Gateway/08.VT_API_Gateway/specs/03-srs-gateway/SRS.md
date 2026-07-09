@@ -160,6 +160,7 @@ flowchart TD
     end
     subgraph GWBOX["VatechAPIGateway (본 SRS 대상)"]
         GW["GW core<br/>인증·라우팅·region·외부 연동"]
+        ADM["GW Admin API<br/>운영자 /v1/admin/* (내부 전용·4-way)"]
         WHR["Webhook Ingress<br/>수신·큐·분배 (sub-tier)"]
     end
     subgraph UP["연동 서비스 (GW target · target-routed proxy, ADR-11)"]
@@ -187,10 +188,10 @@ flowchart TD
     WHR -.->|"MQTT (분배·하행)"| EZ
     WHR -.->|"HTTP push (갈래B·보류)"| CLAB
     R53 -.-> GW
-    CONSOLE -.-> GW
+    CONSOLE -.-> ADM
 
     classDef srsTarget fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1
-    class GW,WHR srsTarget
+    class GW,ADM,WHR srsTarget
     %% GW(본 SRS) 범위 박스 = 연두 테두리(§2.1.1·§2.2 동일 색)
     style GWBOX fill:#e8f5e9,stroke:#66bb6a,stroke-width:3px
 ```
@@ -200,7 +201,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     A["GW 범위"]:::scope
-    B["GW core / Webhook Ingress"]:::box
+    B["GW core / GW Admin API / Webhook Ingress"]:::box
     C["우리가 만드는 컴포넌트"]:::comp
     D["managed 인프라·데이터"]:::mgd
     E["외부 (비대상)"]:::ext
@@ -222,7 +223,7 @@ flowchart TD
 | Route 53 GeoDNS | EzServer를 최근접 GW Region에 연결 |
 | GW Console | Admin Web(③-C Sub-SRS) — 관리 API 호출 |
 
-> 상세 인터페이스는 §4. **Webhook Ingress는 GW 내부의 별도 sub-tier**(외부 서버 아님 — GW 고유 API(A), §4.1.1·§7.6.1). *(Ingress = 수신(Webhook Receiver)·큐(SQS)·분배(Webhook Dispatcher)를 묶은 서브티어 — Receiver·Dispatcher는 **GW core와 별개의 Deployment**로 독립 스케일(§6.6.2·§7.6.7), §2.2)* **API 호출 경로는 대상에 무관하게 동일하다** — `CleverOne→EzServer→GW→CleverSpace` 든 `…→GW→AXS` 든 모두 **GW를 단일 경유하는 target-routed proxy**(ADR-11, 경로 B 제거). 차이는 **trust profile뿐**: 내부(B=CleverSpace, 통과+정규화 신원) vs 외부(C=AXS, GW가 OAuth·고정 egress IP 추가). 그래서 다이어그램의 `GW→target` 화살표는 같은 종류이고, AXS만 라벨이 `C·외부`다. **CleverLab은 GW가 호출하는 프록시 대상이 아니라**, 클라우드↔클라우드 외부 연동(갈래 B)에서 **GW를 호출하는 클라이언트**다(CleverLab→GW→AXS) — 현 시점 **보류**(§1.2).
+> 상세 인터페이스는 §4. **Webhook Ingress는 GW 내부의 별도 sub-tier**(외부 서버 아님 — GW 고유 API(A), §4.1.1·§7.6.1). *(Ingress = 수신(Webhook Receiver)·큐(SQS)·분배(Webhook Dispatcher)를 묶은 서브티어 — Receiver·Dispatcher는 **GW core와 별개의 Deployment**로 독립 스케일(§6.6.2·§7.6.7), §2.2 — **운영자 GW Admin API(`/v1/admin/*`)도 별도 내부전용 Deployment로 분리**·4-way·7/9 R10)* **API 호출 경로는 대상에 무관하게 동일하다** — `CleverOne→EzServer→GW→CleverSpace` 든 `…→GW→AXS` 든 모두 **GW를 단일 경유하는 target-routed proxy**(ADR-11, 경로 B 제거). 차이는 **trust profile뿐**: 내부(B=CleverSpace, 통과+정규화 신원) vs 외부(C=AXS, GW가 OAuth·고정 egress IP 추가). 그래서 다이어그램의 `GW→target` 화살표는 같은 종류이고, AXS만 라벨이 `C·외부`다. **CleverLab은 GW가 호출하는 프록시 대상이 아니라**, 클라우드↔클라우드 외부 연동(갈래 B)에서 **GW를 호출하는 클라이언트**다(CleverLab→GW→AXS) — 현 시점 **보류**(§1.2).
 >
 > **유일하게 다른 건 Webhook(이벤트 인바운드)** — AXS는 결과 이벤트를 GW로 _밀어 보내고_, GW가 **Webhook Ingress**로 받아 방화벽 뒤 **EzServer는 MQTT(하행, 갈래 A 역방향)**·**클라우드는 HTTP push**로 분배한다(대상=Org-ID→Clinic→리전 매핑, §7.3). 클라우드 수신 대상은 **CleverLab(갈래 B·보류)뿐**이며, **CleverSpace는 webhook 수신 대상이 아니다**(내부(B) 프록시·presigned 백엔드일 뿐 — 다이어그램엔 *API 호출 대상*으로만 그린다). 대상별 시나리오는 §2.3.6. AXS의 **외부 연동(egress)은 GW core**, **Webhook(인바운드)은 Webhook Ingress**로 들어와 방향이 반대다. 멱등·교차 리전 등 분배 상세는 **§2.3.6·§7.6**.
 >
@@ -246,7 +247,7 @@ flowchart TB
 
     subgraph RA["GW Region A (서울)"]
         LBA["Ingress LB (inbound 1)"]
-        GA["GW Deployments<br/>core · WH Receiver · WH Dispatcher"]
+        GA["GW Deployments<br/>core · GW Admin API(내부전용) · WH Receiver · WH Dispatcher"]
         STA[("저장소 PG·SQS·Valkey·AppConfig<br/>(payload=PG 암호화·리전 / compat=AppConfig·7/9 R9)")]
         NATA["NAT · egress EIP set A"]
         LBA --> GA
@@ -261,7 +262,7 @@ flowchart TB
 
     subgraph RB["GW Region B (미주) · gw/1.2"]
         LBB["Ingress LB (inbound 1)"]
-        GB["GW Deployments<br/>core · WH Receiver · WH Dispatcher"]
+        GB["GW Deployments<br/>core · GW Admin API(내부전용) · WH Receiver · WH Dispatcher"]
         STB[("저장소 PG·SQS·Valkey·AppConfig<br/>(payload=PG 암호화·리전 / compat=AppConfig·7/9 R9)")]
         NATB["NAT · egress EIP set B"]
         LBB --> GB
@@ -302,7 +303,7 @@ flowchart TB
 ```mermaid
 flowchart TD
     A["GW 범위"]:::scope
-    B["GW core / Webhook Ingress"]:::box
+    B["GW core / GW Admin API / Webhook Ingress"]:::box
     C["우리가 만드는 컴포넌트"]:::comp
     D["managed 인프라·데이터"]:::mgd
     E["외부 (비대상)"]:::ext
@@ -337,7 +338,7 @@ flowchart TD
 
 ## 2.2 Overall System Configuration (전체 시스템 구성)
 
-ARD §3·§4의 **3-Plane(Control / Data / Integration)** 구성을 따른다. 컴포넌트 도출 기준 = _plane(책임 영역) + 배포 단위_. **본 도는 §2.1과 같은 그림에서 GW 쪽을 확대한 것**이며(외부 시스템은 §2.1과 동일), GW를 **GW core + Webhook Ingress** 두 부분으로 나눈다.
+ARD §3·§4의 **3-Plane(Control / Data / Integration)** 구성을 따른다. 컴포넌트 도출 기준 = _plane(책임 영역) + 배포 단위_. **본 도는 §2.1과 같은 그림에서 GW 쪽을 확대한 것**이며(외부 시스템은 §2.1과 동일), GW를 **GW core · GW Admin API(내부 전용) · Webhook Ingress** 세 배포 단위로 나눈다(4-way·7/9 R10 — 제어평면 Admin을 데이터평면에서 격리).
 
 ```mermaid
 flowchart LR
@@ -359,14 +360,13 @@ flowchart LR
     R53["Route 53 GeoDNS"]
     CONSOLE["GW Console (③-C)"]
 
-    subgraph GWBOX["VatechAPIGateway (§2.1 GW를 확대 — 두 부분)"]
+    subgraph GWBOX["VatechAPIGateway (§2.1 GW를 확대 — GW core · GW Admin API(내부전용) · Webhook Ingress)"]
         subgraph CORE["GW core"]
             subgraph CTRL["Control Plane (글로벌, soft-state)"]
                 AUTH["Auth Service"]
                 ROUTER["Proxy Router<br/>(target-routed proxy · 정책 집행 PEP)"]
                 RGN["Region Resolver"]
                 COMPAT["API Compatibility Gate"]
-                ADM["Admin API / RBAC"]
                 DREG["EzServer Registry / Lifecycle"]
                 ENR["Enrollment"]
                 CFG["Config"]
@@ -380,6 +380,9 @@ flowchart LR
             subgraph INTEG["Integration Plane"]
                 CONN["External Connector<br/>(외부 C · egress·OAuth)"]
             end
+        end
+        subgraph ADMTIER["GW Admin API (내부 전용 · 별도 Deployment · 4-way·7/9 R10)"]
+            ADM["GW Admin API / RBAC<br/>/v1/admin/* · operator(Entra)<br/>kill·config publish·payload break-glass"]
         end
         subgraph WHTIER["Webhook Ingress (Webhook Receiver → SQS → Webhook Dispatcher)"]
             WH["Webhook Receiver<br/>검증·멱등·ACK·적재"]
@@ -415,10 +418,11 @@ flowchart LR
     DISP ==>|"MQTT (하행·IoT Core)"| EZ
     DISP ==>|"HTTP push (갈래B·보류)"| CLAB
 
-    %% 색 위계: 연두(GW 범위) > 연파랑(GW core·Webhook Ingress) > 흰카드+파란테두리(우리 컴포넌트) · 회색(managed: SQS·DB·AppConfig)
+    %% 색 위계: 연두(GW 범위) > 연파랑(GW core·GW Admin API·Webhook Ingress) > 흰카드+파란테두리(우리 컴포넌트) · 회색(managed: SQS·DB·AppConfig)
     style GWBOX fill:#e8f5e9,stroke:#66bb6a,stroke-width:3px
     style CORE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style WHTIER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style ADMTIER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style CTRL fill:transparent,stroke:#90caf9
     style DATA fill:transparent,stroke:#90caf9
     style INTEG fill:transparent,stroke:#90caf9
@@ -433,7 +437,7 @@ flowchart LR
 ```mermaid
 flowchart TD
     A["GW 범위"]:::scope
-    B["GW core / Webhook Ingress"]:::box
+    B["GW core / GW Admin API / Webhook Ingress"]:::box
     C["우리가 만드는 컴포넌트"]:::comp
     D["managed 인프라·데이터"]:::mgd
     E["외부 (비대상)"]:::ext
@@ -446,7 +450,7 @@ flowchart TD
 
 > **프록시 복원력의 위치(7/2 R4)**: **재시도·서킷 브레이커는 service mesh(istio) egress**가 담당한다(GW 밖·인프라 소유, §3.1·③-I) — GW에 서킷 런타임 상태 저장을 두지 않는다. **단 GW→target 연결 timeout(connect/response/total_deadline)은 GW 책임**이다 — GW(`External Connector`/`Proxy Router`)가 target에 **직접 연결하는 HTTP 클라이언트**라 자기 호출을 bound해야 한다(`target`에 per-대상 보유, §7.5.4·D1~D3). 그 외 GW 앱 레벨 = mesh/자기 timeout 실패를 **표준 오류 envelope로 정규화**(`Vatech-Error-Origin`)·멱등·클라이언트 취소 전파. 재시도·서킷 값만 istio 설정(GitOps)이며 `target`에 두지 않는다.
 
-> **그리는 규칙**: §2.2는 §2.1과 같은 그림에서 **GW 쪽만 확대**한 것이다 — **VatechAPIGateway 바깥(외부 시스템·엣지)은 §2.1과 동일**, 안쪽을 **`GW core`(Control/Data/Integration plane) + `Webhook Ingress` 두 부분**으로 펼친다. 각 외부는 GW 내부 컴포넌트와 **1개 이상 연결**(가장 깔끔하게 1개), **요청 처리 파이프라인(PEP 체인)은 연결**한다 — `COMPAT→ROUTER`(호환성 게이트 통과→라우팅), `ROUTER⇢RGN`(region 참조)·`ROUTER⇢OPA`(정책 판정)·`ROUTER⇢CONN`(외부 C). 반면 순수 **cross-cutting/관리 컴포넌트**(EzServer Registry·Enrollment·Config·Fleet·Audit)는 거의 모든 흐름이 닿아 가독성을 위해 **미연결**(외부와의 특정 연결만 표기: CONSOLE→ADM·R53→RGN). (**예외**: CleverOne은 §2.1처럼 **EzServer를 경유**해 GW에 닿으므로 GW 내부 컴포넌트에 직접 연결하지 않는다 — `CO→EZ→GW`.) **API 호출은 대상 무관 동일 경로**(`ROUTER` = target-routed proxy, ADR-11) — CleverSpace = B(내부 프록시 대상), AXS = C(외부, `ROUTER`가 `CONN`으로 OAuth·고정 egress IP 추가). **CleverLab은 프록시 대상이 아니라 갈래B 클라우드 클라이언트**(CleverLab→GW→AXS, 보류) — GW를 _호출하는_ 쪽이다. **Webhook(이벤트)만 별개** — 현재 AXS만 GW로 발신; 클라우드 수신 대상=**CleverLab만**(갈래B 보류), **CleverSpace는 webhook 대상 아님**(§2.3.6). 수신→분배 런타임은 **§2.3.6**이 정본.
+> **그리는 규칙**: §2.2는 §2.1과 같은 그림에서 **GW 쪽만 확대**한 것이다 — **VatechAPIGateway 바깥(외부 시스템·엣지)은 §2.1과 동일**, 안쪽을 **`GW core`(Control/Data/Integration plane) · `GW Admin API`(내부 전용·별도 Deployment·4-way·7/9 R10) · `Webhook Ingress` 세 부분**으로 펼친다. 각 외부는 GW 내부 컴포넌트와 **1개 이상 연결**(가장 깔끔하게 1개), **요청 처리 파이프라인(PEP 체인)은 연결**한다 — `COMPAT→ROUTER`(호환성 게이트 통과→라우팅), `ROUTER⇢RGN`(region 참조)·`ROUTER⇢OPA`(정책 판정)·`ROUTER⇢CONN`(외부 C). 반면 순수 **cross-cutting/관리 컴포넌트**(EzServer Registry·Enrollment·Config·Fleet·Audit)는 거의 모든 흐름이 닿아 가독성을 위해 **미연결**(외부와의 특정 연결만 표기: CONSOLE→ADM·R53→RGN). (**예외**: CleverOne은 §2.1처럼 **EzServer를 경유**해 GW에 닿으므로 GW 내부 컴포넌트에 직접 연결하지 않는다 — `CO→EZ→GW`.) **API 호출은 대상 무관 동일 경로**(`ROUTER` = target-routed proxy, ADR-11) — CleverSpace = B(내부 프록시 대상), AXS = C(외부, `ROUTER`가 `CONN`으로 OAuth·고정 egress IP 추가). **CleverLab은 프록시 대상이 아니라 갈래B 클라우드 클라이언트**(CleverLab→GW→AXS, 보류) — GW를 _호출하는_ 쪽이다. **Webhook(이벤트)만 별개** — 현재 AXS만 GW로 발신; 클라우드 수신 대상=**CleverLab만**(갈래B 보류), **CleverSpace는 webhook 대상 아님**(§2.3.6). 수신→분배 런타임은 **§2.3.6**이 정본.
 
 > **🔍 대안 검토 — 디바이스 인증 방식** (ADR-01)
 >
@@ -916,11 +920,11 @@ Webhook은 **외부 서비스(현재 AXS)가 보낸 이벤트**를 GW가 받아,
 
 ### 2.3.7 버전 호환 게이팅 — FR-COMPAT-\*
 
-`Vatech-*` 헤더로 originator(요청 시작 주체)와 경유 홉(`Vatech-Via`)을 분리 판정하고, GW가 **AppConfig agent에서 읽어 캐시한 호환성 매트릭스**(§7.7.5·7/9 R9)와 대조해 **더 낮은 버전 기준**으로 게이팅한다. 미지원이면 표준 오류코드와 "업데이트 필요" fallback을 안내해 원인불명 실패를 제거(ADR-07)한다. 상세는 §7.7. 아래는 **① 매트릭스 발행(build-time)** 과 **② 런타임 게이팅** 두 흐름이다 — 발행은 CI/ops 흐름이라 런타임 시나리오(§2.3.1~7)와 범주가 달라 별도 번호(§2.3.8)를 주지 않고 본 절에 함께 둔다.
+`Vatech-*` 헤더로 originator(요청 시작 주체)와 경유 홉(`Vatech-Via`)을 분리 판정하고, GW core가 **AppConfig agent에서 읽어 캐시한 호환성 매트릭스**(§7.7.5·7/9 R9)와 대조해 **더 낮은 버전 기준**으로 게이팅한다. 미지원이면 표준 오류코드와 "업데이트 필요" fallback을 안내해 원인불명 실패를 제거(ADR-07)한다. 상세는 §7.7. 아래는 **① 매트릭스 발행(build-time)** 과 **② 런타임 게이팅** 두 흐름이다 — 발행은 CI/ops 흐름이라 런타임 시나리오(§2.3.1~7)와 범주가 달라 별도 번호(§2.3.8)를 주지 않고 본 절에 함께 둔다.
 
 #### ① 매트릭스 발행 파이프라인 (build-time)
 
-`compat-matrix.yaml`(원본·git)을 **Azure Pipeline이 AWS CLI로** 검증·렌더해 `server-configuration.json`을 **AWS AppConfig에 발행**한다(§7.7.5·7/9 R9). GW는 이미지에 굽지 않고 런타임에 **AppConfig Agent(사이드카)** 로 읽으므로 **매트릭스만 바뀌면 앱 재배포 0**(앱 build/deploy는 `config/**` 제외·path-scoped). AppConfig는 **배포 전 JSON Schema 검증·점진 롤아웃·경보 자동 롤백**을 제공한다(안전 크리티컬 매트릭스 보호).
+`compat-matrix.yaml`(원본·git)을 **Azure Pipeline이 AWS CLI로** 검증·렌더해 `server-configuration.json`을 **AWS AppConfig에 발행**한다(§7.7.5·7/9 R9). GW core는 이미지에 굽지 않고 런타임에 **AppConfig Agent(사이드카)** 로 읽으므로 **매트릭스만 바뀌면 앱 재배포 0**(앱 build/deploy는 `config/**` 제외·path-scoped). AppConfig는 **배포 전 JSON Schema 검증·점진 롤아웃·경보 자동 롤백**을 제공한다(안전 크리티컬 매트릭스 보호).
 
 ```mermaid
 flowchart LR
@@ -929,7 +933,7 @@ flowchart LR
     CI["Azure Pipeline · config/** path-scoped<br/>AWS CLI: YAML→env별 JSON 렌더·스키마 검증"]
     AC["AWS AppConfig(리전별)<br/>hosted config 버전 + 배포(점진·경보 자동 롤백)<br/>배포 전 JSON Schema 검증 게이트"]
     AG["AppConfig Agent(사이드카)<br/>pod별 폴링·로컬 캐시"]
-    GW["GW · 게이팅 + /.well-known 서빙"]
+    GW["GW core<br/>게이팅 + /.well-known 서빙"]
     DEV --> YAML --> CI -->|"create-hosted-configuration-version<br/>+ start-deployment"| AC --> AG --> GW
 ```
 
@@ -940,7 +944,7 @@ sequenceDiagram
     autonumber
     participant CO as CleverOne (originator)
     participant EZ as EzServer (경유 홉)
-    participant GW as GW (Compat Gate)
+    participant GW as GW core (Compat Gate)
     participant AC as AppConfig Agent (사이드카 · pod 로컬)
     participant CS as CleverSpace
     GW->>AC: server-configuration.json 로드 (agent 로컬 캐시 · §7.7.5)
@@ -1646,12 +1650,13 @@ BE = NestJS + DDD + TDD, DB = PostgreSQL, ORM = Prisma, CI = Azure Pipelines. (A
 
 > **IaC 도구 = Terraform (확정, 7/2 R5).** GW 인프라는 **Terraform**으로 관리한다 — 조직 인프라 표준 레포 **`es-infra`(Terraform, `platforms` 프로젝트)** 에 편입되며, 별도 IaC 도구를 두지 않는다(ARD §4.5 baseline과 일치). GW 배포는 es-infra의 EKS(`platform/`)·데이터(`data/`)·Route53(`network/`)·앱 아이덴티티(`apps/`) 계층에 얹힌다(참조 카탈로그 §2 `es-infra`).
 
-> **k8s 배포 단위 = 기능별 Deployment 분리 (확정, 7/2 R5).** GW 소프트웨어(단일 코드베이스)를 **기능별로 잘게 쪼갠 Deployment**로 배포해 독립 스케일·장애 격리한다:
-> - **GW core** — GW 고유 API + target-routed proxy(§4.1)
-> - **Webhook Receiver** — webhook 수신·검증·ACK·SQS 적재(§7.6.1·2)
-> - **Webhook Dispatcher** — SQS consumer·대상 해석·발행(ADR-12·§7.6.7)
+> **k8s 배포 단위 = 기능별 Deployment 분리 (7/2 R5 · 4-way 확정 7/9 R10).** GW 소프트웨어(단일 코드베이스)를 **기능별로 잘게 쪼갠 Deployment**로 배포해 독립 스케일·장애 격리한다:
+> - **GW core** — device 인증·target-routed proxy·enroll·well-known(§4.1) · **공개 노출면**(device edge)
+> - **GW Admin API** — 운영자·Console용 `/v1/admin/*`(operator/Entra·RBAC·kill·config publish·payload break-glass·§7.9) · **내부 전용 노출면**(공개 device edge·webhook 호스트에서 도달 금지 — 전용 ingress·NetworkPolicy). **7/9 R10에서 GW core로부터 분리**(제어평면 admin / 데이터평면 proxy·webhook 격리 — 게이트웨이 표준 패턴)
+> - **Webhook Receiver** — webhook 수신·검증·ACK·SQS 적재(§7.6.1·2) · **공개 노출면**(webhook 호스트)
+> - **Webhook Dispatcher** — SQS consumer·대상 해석·발행(ADR-12·§7.6.7) · **내부 전용**
 >
-> 세 Deployment는 **동일 코드·도메인·커넥터·시크릿을 공유**(드리프트 0·단일 검증 스택)하되 **독립 replica·오토스케일**(예: Dispatcher=SQS 큐depth/KEDA)·장애 격리한다. 향후 기능 추가 시 같은 원칙으로 분리.
+> 네 Deployment는 **동일 코드·도메인·커넥터·시크릿을 공유**(드리프트 0·단일 검증 스택)하되 **독립 replica·오토스케일**(예: Dispatcher=SQS 큐depth/KEDA)·장애 격리·**노출면 분리**(제어평면 Admin=내부 전용 / 데이터평면 core·Receiver=공개)한다. Admin은 저QPS라 **저사양 최소 HA(≥2) 상주**(한계비용 소소·같은 이미지). **API 계약(`/v1/admin/*`)은 토폴로지와 무관하게 불변**. 향후 기능 추가 시 같은 원칙으로 분리.
 
 ## 6.7 Memory Constraints (메모리 제한 사항)
 
@@ -2209,6 +2214,8 @@ FR-FLEET-06 (앞단 클라이언트 SW 버전·OS 가시성).
 운영자 관리 기능은 **MVP 경량**으로 구현한다(심도 정책). UI 상세는 ③-C, 본 절은 *관리 API·권한·감사·컴플라이언스 규칙*을 정의한다.
 
 > **경계**: 관리 화면·플로우(매핑·클리닉·상태·온보딩 UI)는 **③-C GW Console Sub-SRS**. 본 절은 Console이 호출하는 *관리 API와 정책*만.
+>
+> **배포(4-way·7/9 R10)**: 관리 API(`/v1/admin/*`)는 **GW core와 분리된 별도 내부 전용 Deployment(`GW Admin API`)** 로 서빙한다 — **공개 device edge·webhook 호스트에서 도달 금지**(전용 ingress·NetworkPolicy), 제어평면(admin·최고위험: kill·config publish·PHI break-glass)을 데이터평면(device 인증·target proxy hot path)에서 격리한다(§6.6.2·§2.1.1·§2.2). **데이터는 PostgreSQL 공유**(서비스·데이터 분리가 아니라 배포·노출면 분리)이며 **API 계약은 토폴로지와 무관하게 불변**.
 
 ### 7.9.1 테넌트·키·디바이스 관리 API (P1)
 
@@ -2286,7 +2293,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 13 | 라우팅 모델 ADR-11 (target-routed proxy) | **CCB 승인(2026-06-25) · 7/2 R1 개정**: GW edge=target 서브도메인(`{target}.gw.vatech.com`), `Vatech-Target`=CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환). 잔여(구현)=EzServer 헤더→서브도메인 변환·클라이언트 `Vatech-Target` 부착(③-P-\*, 결정 아님) | §4.1.1·§4.1.2·§4.5.1·§7.5·Appendix A·ARD §2 |
 | 29 | `device_id` 생성 형식 | **확정(2026-07-01): `device_id` = UUIDv7**(RFC 9562, 128비트·시간정렬·불투명, canonical 소문자 문자열). GW가 등록 시 생성, serial·clinic_id 비파생, 재설치·회전 시 유지. 제조 serial은 PK 아닌 별도 선택 속성으로만(LLD) | §7.2.1·§6.4.1 |
 | 28 | `client_id` 발급 형식 | **확정(2026-07-01): `client_id` = `gwc_` + base64url(128비트 CSPRNG)**(패딩 없음, 총 26자, 불투명·내부 식별자 비파생·비밀 아님). UNIQUE 충돌 시 재생성(무시할 확률). 재설치·키 회전 시 재발급 | §7.2.5·§7.1.1 |
-| 26 | IaC 도구 | **확정(2026-07-02, R5): Terraform** — 조직 표준 `es-infra`(Terraform)에 편입, 별도 IaC 도구 없음(ARD §4.5 일치). k8s 배포=기능별 Deployment 분리(GW core·Webhook Receiver·Webhook Dispatcher) | §6.6.2·§2.1.1·§7.6 |
+| 26 | IaC 도구 | **확정(2026-07-02, R5): Terraform** — 조직 표준 `es-infra`(Terraform)에 편입, 별도 IaC 도구 없음(ARD §4.5 일치). k8s 배포=기능별 Deployment 분리(**4-way·7/9 R10**: GW core·**GW Admin API(내부전용)**·Webhook Receiver·Webhook Dispatcher) | §6.6.2·§2.1.1·§7.6 |
 | 31 | egress 규칙 SSOT 일원화 | **확정(2026-07-06): egress_allowlist 단일 SSOT**(+`requireStaticEgressIp` 이관·이후 `target.egress_allowlist`로 병합). `policy.egress` 등 중복 **제거**(3중복 해소). egress=외부(C) 대상 속성이지 per-tenant authz 아님 — OPA·네트워크 모두 target 참조 | §7.5.3·§6.4·design/db-jsonb-fields.md |
 | 35 | 중앙 Config(§7.8.4) 저장·전달·버전 모델 | **확정(2026-07-06)**: SSOT=PostgreSQL `config` 테이블(`config_scope` global/region/clinic/device·다형 참조), 실효=키별 가장 구체 우선(override 병합), 실효 `configVersion`=**콘텐츠 해시(SHA-256)**, 키 레지스트리=**앱 레벨 확장형 seed**(db-jsonb#config·DB enum 아님), 관리=`/v1/admin/config` CRUD(감사 `config.publish`). **v1.0 실사용 = GW-내부 config(`gw.*`, pod·리전 공유)** + heartbeat 주기(`gw.heartbeat.interval_seconds`)를 heartbeat 응답으로 device 전달. **device로의 원격 config 전달(`device.*`·`GET /v1/fleet/config` pull·MQTT `config` stream push-notify·configVersion drift)=gw/1.1+**(§7.6.6 범용 하행 레일의 미래 활용). Console UI=③-C. 기타 비목표(gw/1.1↑): rollout/카나리·명명 그룹(FR-FLEET-04) | §7.8.4·§7.8.1·§7.6.6·design/dbml·design/db-jsonb-fields.md#config·design/openapi |
 | 30 | region 카탈로그 관리 API | **확정(2026-07-07)**: **`/v1/admin/regions` POST(개통)·`/{regionId}` PUT(active/draining/planned 전이)·DELETE(회수) 신설**, 조회=`GET /v1/regions`. v1.0=1행 시드로 충분·gw/1.2 다행. 잔여(비-SRS)=Console region 관리 UI(③-C) | §7.3.6·§7.9.1 |
@@ -2594,6 +2601,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-09 | **7/9 R7 결정 반영 — webhook payload 저장: S3 claim-check → DB KMS 암호화(전면 반전)** — **결정: 일정기간 보관·S3 아니고 DB·복호화 가능 암호화·Console masking·삭제 당분간 미고려.** payload를 **`webhook_event.payload_encrypted`(bytea·KMS envelope·복호화 가능)** 에 저장(구 S3 claim-check·`payload_ref`·짧은 TTL·SSE **폐기**). **§6.4 PHI 원칙 개정**: PHI 영상 본문 미저장(presigned)은 유지하되 webhook payload는 **DB 암호화 저장**(리전 로컬·전역 복제 안 함·주권 유지). **§7.6.3 재작성**(DB 암호화·in-flight SQS=eventId claim-check·보관·masking), **§2.1.1·§2.2 다이어그램**(S3 payload 노드 S3PL→PG PLDB·`payload=PG 암호화`), **OpenAPI**(WebhookEvent `payloadRef` 제거·`/{eventId}/payload`=DB 복호화+masking·삭제 미고려라 만료 404 없음·WebhookPayloadView·메타 desc), **DBML**(`payload_ref`→`payload_encrypted bytea`·header·Note), Appendix B #36(저장 방식 확정·잔여=보존기간/purge/masking 필드). redocly valid·DBML OK | (작성자 ID 미지정) |
 | 2026-07-09 | **7/9 R8 결정 반영 — AXS 가입 A/B/C 전부 cover + 「가입 필수정보」 3층 명문화(AXS 문서 근거)** — 결정: **A/B/C 전부 cover, 가입 API 활용, GW가 Straumann·AXS 가입 지원**. **AXS 문서 전수 확인 핵심 발견**: AXS는 **조직/고객 생성 API가 없다**(org 경로=`link`/`check`/`unlink`/`{customerNumber}/info` 4개뿐·`organization.yml`). 따라서 "가입"을 **3개 층**으로 정정·명문화 — **①GW→AXS 통합 파트너 등록**(Vatech 1회·**비-API**·이메일 `support-axs@straumann.com`: full name·company·developer email·app name·intended roles → `client_id`/`client_secret`·B2C 토큰 EP·`getting-started.md`/`authentication.md` 근거)·**②클리닉 link**(**유일한 API 층**·`customerNumber`+`integratingEntityId`→`organizationId`+consent)·**③Straumann 고객가입**(C→B·**비-API**·수동 온보딩→`customerNumber`). **cover 의미 정정**: A 무처리·B API 자동 링크·C 비-API 선행절차 관리+확보 후 B. **이전 'C=범위 밖·가입 시 B 수렴' 프레이밍 폐기**(§2.3 여정 [3]·flowchart에 C 분기(Straumann 고객가입) 추가·§2.3.4 「연동 링크」 문단 재작성·**개발자용 '가입 필수정보' 3층 표 신설**). **GW 스키마 무영향 확정**: ②=기존 프록시 레일(`axs.gw.vatech.com`)+`org-bindings` 수렴·`customerNumber`=통과값(미저장)·client_id/secret=`target(axs).credential_ref`(KMS)·③=API 없음 → **신규 엔드포인트/컬럼 0**. ④ `_status`(3층 필수정보·A/B/C cover·TBD를 '결정됨→현장 절차 상세'로 정리)·Appendix B #45(R8 결정 결과·조직생성 API 없음) 동기화. 겸사 R7 잔재 교정(SRS §6.4 저장유형·api-surface-matrix webhook payload 'S3 금지'→'DB/KMS·복호화·masking'). redocly valid·DBML OK | (작성자 ID 미지정) |
 | 2026-07-09 | **7/9 R9 결정 반영 — 호환성 매트릭스 서빙 저장소 S3 → AWS AppConfig(원본 YAML·Azure Pipeline+AWS CLI 발행)** — 결정: **원본 YAML은 `vt-api-gateway` repo 관리, Azure Pipeline이 AWS CLI로 YAML→JSON 변환·등록, S3 아닌 저장소.** 회의에서 Secrets Manager가 거론됐으나 매트릭스 특성 기준 4개 후보(S3·Secrets Manager·SSM Parameter Store·AppConfig) 비교 후 **AppConfig 확정**. **전환 근거**: ①비-secret config(Secrets Manager=시크릿 전용·시크릿당 과금·회전 낭비) ②**8KB 초과 가능**(Parameter Store Adv 8KB 하드리밋 배제·Secrets Manager 64KB 여유 없음·AppConfig MB급) ③안전 크리티컬(오설정=전 클라 잠금) → AppConfig **배포 전 JSON Schema 검증+점진 롤아웃+경보 자동 롤백**(타 store 부재) ④앱 재배포 0 유지. **CI·멀티서버·멀티리전 검토 완료**(블로커 없음): 멀티서버=AppConfig Agent 사이드카 pod별 폴링(eventual consistent·기존 성질과 동일)·멀티리전=리전별 App/Env/Profile+CI 리전 루프(리전 로컬 발행→전역 일관·구 S3 모델과 동일). **문서 반영**: §7.7.5 재작성(**4후보 비교표+선정 사유**)·§2.3.8 발행/게이팅 파이프라인 2 mermaid(S3→AppConfig·Azure Pipeline·Agent)·§2.1.1 다이어그램 노드/범례(S3→AppConfig·**GW 소유 S3 소멸**)·redis-keyspace(`gw:cache:compat` 폐기=Agent pod-로컬로 대체)·well-known README·③-C 뷰어 seed·③-I AppConfig 인프라 소유 seed·Appendix B #8(포맷 YAML·저장소 AppConfig 확정). fence parity 52·redocly valid·DBML OK | (작성자 ID 미지정) |
+| 2026-07-09 | **7/9 R10 결정 반영 — GW 배포 토폴로지 3-way → 4-way(GW Admin API를 GW core에서 분리·내부 전용)** — 결정: **admin과 core를 분리, 4-way 확정.** 운영자·Console용 `/v1/admin/*`을 담던 admin 로직을 **`GW core`에서 떼어 별도 Deployment `GW Admin API`(내부 전용 노출면)** 로 분리 → 4개 Deployment(**공개**: GW core·Webhook Receiver / **내부 전용**: GW Admin API·Webhook Dispatcher). 근거=**제어평면(admin: kill·config publish·PHI break-glass 최고위험) / 데이터평면(device 인증·target proxy hot path·공개·대량) 격리**(게이트웨이 표준)·블라스트 반경 축소·배포 케이던스 독립·인프라 '작은 단위' 선호·**나중 분리 시 IEC 62304 재검증 회피**. **같은 코드베이스·이미지·시크릿·PostgreSQL 공유**(배포·노출면 분리이지 서비스·데이터 분리 아님)·**API 계약 불변**. **문서 반영(특히 다이어그램)**: §2.1.1 배포 노드(GA/GB: core·**GW Admin API(내부전용)**·WH Receiver·WH Dispatcher)·§2.2 컴포넌트 다이어그램(**`GW Admin API`를 GW core에서 빼 별도 `ADMTIER` 서브그래프로**·intro '두 부분→세 배포 단위')·§6.6.2 배포 단위(3→4·노출면 분리·저사양 HA)·§2.2 서브티어 노트(§225)·§7.9 배포 노트(내부 전용 ingress/NetworkPolicy)·Appendix B #26(4-way)·③-I seed(Admin 내부전용 ingress/NetworkPolicy IaC). **(후속 정합)** 명칭 `Admin API`→**`GW Admin API`**(형제 `GW core`와 정합·`GwAdminAPI` 카멜케이스 대신 공백표기 형제와 일치·전 문서 일괄)·**§2.1 맥락도에 `GW Admin API` 컴포넌트 추가**(Console→Admin API 엣지·srsTarget)·**§2.2 `ADMTIER` 파란 스타일 부여**(스타일 누락→기본 노랑 교정·CORE/WHTIER 동일)·**색 범례 3곳 갱신**(GW core/GW Admin API/Webhook Ingress)·**§2.3.8 다이어그램 액터 `GW`→`GW core`**(sub-component 명시). fence parity 52·redocly valid·DBML OK | (작성자 ID 미지정) |
 | 2026-07-09 | **R7 후속 — payload 보관기간=추후 고려 정리(§6.2) + KMS 키는 LLD 소관 명시** — webhook payload 보관기간은 **추후 고려**(v1.0 자동 삭제/purge 없이 누적·정책=Appendix B #36 후속)로 §6.2 보안요구에 정리. §6.2 Confidentiality 행을 'PHI 원칙 비저장 + webhook payload는 KMS 암호화 저장 예외'로 정정. **암호화 KMS 키(CMK·alias·회전·리전 키 토폴로지)는 SRS 미결정 — LLD/③-I(인프라) 소관**임을 §6.2·§7.6.3에 명시(SRS는 KMS envelope 암호화 '요구'까지·시크릿 `kms://alias/…` 참조와 동일 취급) | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 서명 주체 정정 — ELM(로컬)→LMP(클라우드)** — ELM(`ezserver-license-manager`)은 클리닉마다 **로컬**(localhost·LexFloatServer 온프렘)이라 서명자로 두면 GW가 10만 로컬 키를 신뢰해야 함 → **서명 권위=중앙 LMP(클라우드)**, GW는 LMP JWKS 하나로 검증, EzServer/ELM은 릴레이만. B는 **PMS 연동(EPI)과 무관**(별개 컴포넌트). R9·#42 정정 | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 완충용 `licenseAttestation` 예약 필드 추가 + R9 비교 표** — B1(LMP 검증 자동승인) 도입 시 EzServer 버전 공존 완충을 위해 **OpenAPI `EnrollStartRequest.licenseAttestation`(nullable·v1.0 미사용·R9 확정 시 활성)** 예약. Agenda R9를 **A vs B 비교 표**(신뢰앵커·C/S부담·확장성·LMP변경·인간검증·region·난이도·현행동작·abuse)로 재구성해 회의 가독성↑ | (작성자 ID 미지정) |
