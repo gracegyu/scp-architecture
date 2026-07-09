@@ -258,10 +258,10 @@ paths:
       security:
       - deviceAuth: []
       tags: [ clinics ]
-      summary: 내 clinic 정보 갱신 — device self(LMP 정보 동기화) (FR-RGN-06) [v1.0]
+      summary: 내 clinic 정보 보정 — device self(수동·enroll 스냅샷 교정·LMP 자동 sync 아님) (FR-RGN-06) [v1.0]
       description: >-
         LMP에서 clinic 정보가 바뀌면 EzServer가 자기 clinic의 표시·연락 정보(ClinicInfo)를 갱신한다(LMP=SoT·§2.3.1).
-        region·clinicId 제외(region=PUT /v1/clinics/me/region). 토큰 기준 self. 필드셋 7/9 R3/#41 TBD.
+        region·clinicId 제외(region=PUT /v1/clinics/me/region). 토큰 기준 self. **clinic 정보는 enroll 시점 스냅샷이며 LMP 변경을 자동 sync하지 않는다**(7/9 R3) — 본 API는 (재)enroll 외 수동 보정용. 수집 필드셋 확정(name·countryCode·address·phone·website).
       requestBody:
         required: true
         content:
@@ -748,7 +748,7 @@ paths:
       summary: 클리닉 정보 교정 — 운영자 (FR-RGN-06) [v1.0]
       description: >-
         운영자가 클리닉 표시·연락 정보(ClinicInfo)를 교정한다. region 변경은 PUT /v1/admin/clinics/{clinicId}/region.
-        device 자가 동기화는 PATCH /v1/clinics/me.
+        device 자가 보정은 PATCH /v1/clinics/me. **clinic 정보는 enroll 스냅샷·LMP 자동 sync 아님(7/9 R3)** — 본 교정은 Console 표시 정확성용 수동 조작.
       requestBody:
         required: true
         content:
@@ -2464,7 +2464,7 @@ components:
       type: object
       description: >-
         LMP가 제공하는 clinic 표시·연락 정보(enroll 시 EzServer가 전달·§2.3.1, LMP 변경 시 PATCH /v1/clinics/me로 갱신).
-        **수집 필드셋은 7/9 R3/Appendix B #41 확정 전 잠정(TBD)** — 추천안=LMP가 주는 전부. 저장 구조=고정 컬럼 확정(jsonb 아님). 환자 PHI 아님(clinic 업무정보).
+        **수집 필드셋 확정(7/9 R3)**: name·countryCode·address·phone·website(LMP 전부). **enroll 시점 스냅샷 — LMP 변경 시 GW 자동 sync 안 함**(갱신=(재)enroll 또는 운영자 수동 교정). 저장 구조=고정 컬럼(jsonb 아님). 환자 PHI 아님(clinic 업무정보).
       properties:
         name: { type: string, description: '클리닉 표시명(LMP clinic.name)·Console 식별', example: ES Clinic }
         countryCode:
