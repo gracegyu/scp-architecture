@@ -27,7 +27,7 @@
 | **target** | ✅ | ✅ by-id | ✅ upsert | ✅ upsert | ✅(참조 시 409) | — | ✅ `/v1/admin/targets`(목록·무페이지네이션=소규모 카탈로그) + `/{targetId}`(단건·DELETE)·upsert 200/201 |
 | **policy** | ✅ | (list) | ✅ upsert | ✅ upsert | ✅ | — | ✅ `/v1/admin/policies`(목록 필터 scope/target·**limit/cursor**) + `/{id}`(DELETE)·**upsert 200/201(결과 Policy 반환·id=GW surrogate)**·read=list-only(by-id 조회 없음·의도) |
 | **org_mapping** | ✅ | (list) | ✅(교정) | ✅ | ✅ | `POST /v1/clinics/me/org-bindings`(자가 등록) | ✅ 자가등록=`/v1/clinics/me/org-bindings`·교정=`/v1/admin/org-mappings` |
-| **region_catalog** | ✅(admin) | (list) | ✅ | ✅ | ✅(드묾·gw1.2) | **`GET /v1/regions`**(선택지·client read) | ✅ 관리=`/v1/admin/regions` · client read=`/v1/regions` 유지 |
+| **region_catalog** | ✅ `GET /v1/admin/regions` | (list) | ✅(409 중복) | ✅ PUT/{id} | ✅(참조·default 시 409·gw1.2) | **`GET /v1/regions`**(deviceAuth·선택지) | ✅ 관리=`/v1/admin/regions`(**operator GET list 신설**+POST/PUT/DELETE) · device read=`/v1/regions`(별개 면) |
 | **config** | ✅ | ✅ | ✅ put | ✅ | ✅ | `GET /v1/fleet/config`(gw1.1) | ✅ `/v1/admin/config` |
 | **webhook_event** | ✅ search | ✅ by-id(메타) | — | — | — | — | ✅ read-only(검색 `/webhook-events` + 단건 `/{eventId}` **메타** + 본문 `/{eventId}/payload` **break-glass·GW중개·redact**·GW가 `payload_encrypted` 복호화→masking, Console 직접 DB/KMS 접근 금지, 7/9 R7) |
 | **fleet_state** | ✅ | — | — | — | — | `POST /v1/fleet/heartbeat`(device push) | ✅ read-only(`/v1/admin/fleet`·heartbeat·버전·OS·online) |
