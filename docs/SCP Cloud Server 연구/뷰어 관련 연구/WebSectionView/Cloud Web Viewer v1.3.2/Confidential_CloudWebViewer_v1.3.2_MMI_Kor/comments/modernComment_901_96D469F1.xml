@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p188:cmLst xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p188="http://schemas.microsoft.com/office/powerpoint/2018/8/main"><p188:cm id="{147F5B26-1238-4479-BC33-FA8F125A5E58}" authorId="{51E2D86A-2225-42E0-393E-495EA4391E13}" created="2026-07-07T07:23:31.731"><ac:txMkLst xmlns:ac="http://schemas.microsoft.com/office/drawing/2013/main/command"><pc:docMk xmlns:pc="http://schemas.microsoft.com/office/powerpoint/2013/main/command"/><pc:sldMk xmlns:pc="http://schemas.microsoft.com/office/powerpoint/2013/main/command" cId="2530503153" sldId="2305"/><ac:spMk id="2092" creationId="{2F5F61BA-155C-6642-20FA-B73D5DFDE011}"/><ac:txMk cp="944" len="90"><ac:context len="1635" hash="30179382"/></ac:txMk></ac:txMkLst><p188:pos x="3346314" y="3174383"/><p188:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="ko-KR" altLang="en-US"/><a:t>[@곽지건(Joseph)] 책임님, [@최소기(Ryan)] 팀장님, 
+리뷰 내용에 따라 내용 업데이트 하였습니다.
+Clever Space MPR 레이아웃에 ESC 단축키 미적용된것을 확인하여, Section 레이아웃도 동일하게 ESC 미적용으로 변경하고, 한 점일 시에는 더블클릭하여도 point 하나만 입력, curve 입력 종료되지 않음을 기재하였습니다.
+
+[@김성훈(Scott)] , [@전규현(Jeon, Gyu Hyeon)] , [@민진우(Thomas)] 
+ESC 키 미적용으로 내용 업데이트 하였으니, 확인 부탁드립니다.</a:t></a:r></a:p></p188:txBody></p188:cm></p188:cmLst>
