@@ -86,7 +86,7 @@ Enum region_status {
 //  • PHI 미저장
 //  • lifecycle: pending → active → suspended → revoked (§7.2)
 //     - 미승인 pending: TTL(기본 7일·config) 후 자동 만료 (무인증 enroll abuse 방지 · Appendix B #43)
-//     - active 승인 경로: C/S 수동(A안) 또는 유효 LMP attestation 자동(B안·§2.3.1) — 승인 방식은 audit_log 추적(별도 컬럼 없음)
+//     - active 승인 경로: **v1.0=C/S 수동(A안)**. 유효 LMP attestation 자동(B안·§2.3.1)=**v1.0 미지원·LMP 재개발 후**(7/9 R4). 승인 방식은 audit_log 추적(별도 컬럼 없음)
 //  • region 컬럼 없음: device 리전 = clinic_id → clinic.region 파생 (§6.4.1 A안·region SSOT=clinic)
 //  • clinic_id·client_id nullable: 각각 clinic 비소속·client 자격 미발급 device 표현
 //  • 인증 = private_key_jwt(ADR-13): 개인키=디바이스 보유, GW는 공개키(client_public_key)만 검증(공유 secret 없음)

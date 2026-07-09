@@ -129,13 +129,13 @@ paths:
     post:
       operationId: postEnrollComplete
       tags: [ enrollment ]
-      summary: 서명+공개키 검증 → 디바이스 등록 (A안 pending·C/S 승인 / B안 유효 attestation 시 active 자동) + 클리닉·region 확립 (FR-ENR-01/04·FR-RGN-*) [v1.0]
+      summary: 서명+공개키 검증 → 디바이스 등록 (v1.0=A안 pending·C/S 승인 / B안 attestation 자동승인=LMP 재개발 후) + 클리닉·region 확립 (FR-ENR-01/04·FR-RGN-*) [v1.0]
       description: >-
         nonce 서명·공개키(clientPublicKey)를 검증하고 디바이스를 status=pending으로 등록한다.
         **enroll 요청의 Clinic-ID로 clinic을 upsert(없으면 생성)하며, region 기본값은 요청이 GeoDNS로 도달한 최근접 리전**(v1.0=서울, §2.3.1·§2.7.1) — 별도 클리닉 등록 API 불요.
         active 활성화(=인증 허용)는 C/S가 GW Console에서 승인(설치 확인 + region 확정/다른 리전 override)해야 하며,
         승인은 PATCH /v1/admin/devices/{id}(status: active) [+ region override 시 PUT /v1/admin/clinics/{clinicId}/region]로 수행된다(§2.3.1·§7.2.3·§7.2.5·§7.9.2).
-        **enroll B안(7/9 R4)**: 유효 `licenseAttestation`(LMP 제3자 서명) 제시 시 GW가 **LMP JWKS**로 검증해 **status=active 자동 승인**(C/S 수동 생략); attestation 없거나 검증 실패면 위 A안(pending→C/S 승인). 두 flow 공존.
+        **enroll B안(7/9 R4 확정: v1.0 미지원·LMP 재개발 후 적용)**: 유효 `licenseAttestation`(LMP 제3자 서명) 제시 시 GW가 **LMP JWKS**로 검증해 **status=active 자동 승인**(C/S 수동 생략). **v1.0은 A안만 구현**(현 LMP 문제로 재개발 예정·그 후 B안). flow는 스펙에 유지.
       security: []
       requestBody:
         required: true
@@ -146,7 +146,7 @@ paths:
       responses:
         '202':
           description: >-
-            등록 접수됨. client_id 발급(공개키(clientPublicKey) 바인딩). **status = pending(A안·C/S 승인 대기) 또는 active(B안·유효 attestation 자동 승인)**.
+            등록 접수됨. client_id 발급(공개키(clientPublicKey) 바인딩). **v1.0: status = pending(A안·C/S 승인 대기)**. (B안 active 자동 승인=LMP 재개발 후·v1.0 미지원.)
             공유 secret 없음 — 이후 private_key_jwt로 인증(§7.1.1). pending 동안 토큰 미발급
           content:
             application/json:
@@ -1926,7 +1926,7 @@ components:
           type: string
           nullable: true
           description: >-
-            **(예약 · v1.0 미사용 · enroll B안)** LMP가 라이선스 검증 후 발급한 **제3자 서명 attestation(JWT)**. 제시 시 GW가 **LMP JWKS**(런타임 fetch+캐시)로 검증 성공하면 C/S 수동 승인 없이 **status=active 자동 승인**(§2.3.1 B). 없으면 A안(pending→C/S 승인). **Agenda R9·Appendix B #42 확정 시 활성**·v1.0 미전송. 상세=③-P-LMP OnePager.
+            **(예약 · v1.0 미사용 · enroll B안)** LMP가 라이선스 검증 후 발급한 **제3자 서명 attestation(JWT)**. 제시 시 GW가 **LMP JWKS**(런타임 fetch+캐시)로 검증 성공하면 C/S 수동 승인 없이 **status=active 자동 승인**(§2.3.1 B). **7/9 R4 확정: v1.0 미지원·LMP 재개발 후 적용**(현 LMP 문제로 재개발 예정)·v1.0 미전송. Appendix B #42. 상세=③-P-LMP OnePager.
           example: null
 
     # 디바이스
