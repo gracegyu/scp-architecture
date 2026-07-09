@@ -685,6 +685,9 @@
       - AXS연동은 당장은 CleverOne은 고려하지 않고, Straumann의 IO Scanner 만 1차로 고려한다.
         - IO Scanner와 EzServer 연동 방식은 아직 정해지지 않았다. 추후 정해질 예정.
         - 이를 고려하여 먼저 작성할 Spec을 먼저 완료한다. 관련 없는 Spec은 최대한 뒤로 미룬다. 
+        - 이 내용은 SRS의 1.2에도 언급이 되어야 하고(우선 개발할 내용) 2.7에도 적용해야 해. 
+          - v1.0에는 IO Scanner 연동만 들어가는 거지. 
+          - CleverOne 연동은 v1.0 이후 버전에 적절한 곳에 넣으면 돼. 
       - 아래 제품의 Spec은 내가 초안을 쓰지 않고 개발 담당자가 직접 작성한다. 나는 GW 스펙을 제공하여 표준만 알려주면 된다.
         - CleverOne Spec 은 담당자(Nick)가 작성한다.
         - EzServer Spec 은 Thomas가 작성한다.

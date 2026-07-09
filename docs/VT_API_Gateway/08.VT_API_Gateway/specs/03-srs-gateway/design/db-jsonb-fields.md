@@ -160,19 +160,19 @@ device.approve → before {"status":"pending"} after {"status":"active"}
 
 ---
 
-## `operator_role` (운영자 역할 상수 — 필드 형식 SSOT, §7.9.2 · 7/9 R2 A)
+## `operator_role` (운영자 역할 — 필드 형식 SSOT, §7.9.2 · 7/9 R2 A)
 
-authz=GW 자체(authN=Entra SSO). `role`은 자유 문자열이지만 **앱 레벨 상수 집합**으로 강제(DB enum 아님·확장형). `scope_type`+`scope_id`는 데이터 스코프(config/policy와 동일 다형).
+authz=GW 자체(authN=Entra SSO). `role`은 **소스코드로 관리하는 enum**(`operator_role_type`·DBML Enum→Prisma→TS 단일 선언·DB·앱 동시 강제). `scope_type`+`scope_id`는 데이터 스코프(config/policy와 동일 다형).
 
-### `role` — 앱 레벨 상수(초기 seed, 확장 가능)
+### `role` — enum `operator_role_type`(소스코드 관리)
 ```
-admin   cs   operator   developer
+admin   cs   operator   developer     ← operator_role_type (DBML Enum)
 ```
 - `admin` — 전체 관리(운영자·역할 승인·매핑 교정·config 등). 보통 global.
 - `cs` — 현장 설치. **전 클리닉(global) enrollment 승인**+조회.
 - `operator` — fleet 운영·조회(kill·config 등 운영 액션).
 - `developer` — 조회·디버깅(읽기 위주).
-- **DB enum 아님** — 신규 역할은 상수 추가(마이그레이션 회피). **역할→허용 action 매핑은 앱 레벨**(§7.9.2·LLD·별도 permission 테이블 없음). 미등록 역할은 부여/요청 API에서 거부.
+- **DB 테이블 아님·enum이다** — 역할→허용 action 매핑이 **코드/OPA(앱 레벨·별도 permission 테이블 없음)** 라, 역할 목록도 코드(enum)에 둔다(DB 행 추가만으론 권한 0인 유령 역할). **역할 추가 = `operator_role_type` enum + 소스코드(GW 권한 매핑 + GW Console UI) 동시 수정**(마이그레이션·양측 릴리스). 미등록 역할은 enum 제약으로 거부.
 
 ### `scope_type` / `scope_id` — 데이터 스코프
 - `global`(scope_id=NULL·전 클리닉/리전) / `region`(scope_id=region_id) / `clinic`(scope_id=clinic_id).
@@ -183,6 +183,7 @@ admin   cs   operator   developer
 ## 변경 이력
 | 일시 | 내용 |
 | --- | --- |
+| 2026-07-09 | **역할=소스코드 enum 확정(role 테이블·상수 폐기)** — `operator_role.role`을 varchar 상수 → **`operator_role_type` enum(DBML Enum·소스코드 관리)**. 역할 목록=코드(enum)·역할→권한 매핑=코드/OPA. 역할 추가=enum+GW+GW Console 동시 수정 |
 | 2026-07-09 | **`operator_role` 역할 상수 레지스트리 신설(7/9 R2 A)** — authz=GW 자체. role=앱상수(admin/cs/operator/developer·확장형)·scope_type/scope_id(global/region/clinic·CS=global). 역할→action 매핑=앱레벨 |
 | 2026-07-09 | **`upstream` → `target` 리네임(7/9 R6)** — `## upstream` 절→`## target`, 앵커 `#upstream`→`#target`, `target.target_id`·감사 action `target.upsert/delete`. 위 2026-07-01 행의 upstream은 당시 기록이라 보존 |
 | 2026-07-01 | 신설 — DB jsonb 컬럼(policy 3개·connector/upstream egress·retry_policy·webhook source_ip) 형식·예시·검증 정의. egress 3중복 → Appendix B #31 |
