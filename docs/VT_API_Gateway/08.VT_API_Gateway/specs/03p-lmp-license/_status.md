@@ -12,3 +12,5 @@
 - 공식 등록처: LMP/ELM repo(`ewoosoft/ezserver`) 또는 GW `docs/` (인계 시 결정)
 
 > 상세 초안 = [OnePager.md](OnePager.md). GW가 검증에 쓰는 키 = **LMP 공개키(JWKS)** 뿐(Cryptlex 키는 LMP/ELM 내부).
+>
+> **참고(별도·미래 — 7/9 R11).** 클라이언트 **SW 인벤토리의 정식(중앙) 수집·관리**(설치·update 연계)도 **신규 LMP** 소관으로 결정됐다 — 현재 GW는 **간이(interim)** 구현만 둔다(GW SRS §7.8.5). 본 seed(enroll attestation)와는 **별개 항목**(신규 LMP의 또 다른 기능)이라 여기 상술하지 않고 포인터만 둔다.
