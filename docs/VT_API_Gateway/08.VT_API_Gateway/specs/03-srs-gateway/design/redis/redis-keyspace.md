@@ -2,7 +2,7 @@
 
 > **엔진 = Valkey**(AWS=ElastiCache for Valkey). Valkey는 Redis 포크로 **RESP 프로토콜·클라이언트·명령·키스페이스가 완전 호환**이라 본 카탈로그(키 패턴·TTL·자료형)가 그대로 적용된다. 문서 내 "Redis"는 Redis 호환(=Valkey)을 가리킨다(SRS §1.4). 키 프리픽스(`gw:…`)·파일명은 변경 없음.
 > dev-chain-design 산출물. `design/dbml`(PostgreSQL SSOT)·`design/openapi`와 나란히 둔다.
-> **Redis는 SSOT가 아니다** — PostgreSQL이 SSOT(`design/dbml`). Redis는 **① 캐시**(원본에서 재구성 가능 — 대부분 PG, 일부 KMS/S3) + **② 휘발 상태**(nonce·멱등·dedup·rate-limit·lock·폐기 denylist)만 보관한다.
+> **Redis는 SSOT가 아니다** — PostgreSQL이 SSOT(`design/dbml`). Redis는 **① 캐시**(원본에서 재구성 가능 — 대부분 PG, 일부 KMS) + **② 휘발 상태**(nonce·멱등·dedup·rate-limit·lock·폐기 denylist)만 보관한다.
 > 정밀 자료형·TTL 값은 LLD에서 확정. 본 문서는 키 네임스페이스·용도·종류(cache/ephemeral)·재구성 출처를 고정한다.
 > **값(value) 내부 스키마는 여기서 재정의하지 않는다** — `자료형`(Redis 타입)만 고정하고, 값의 필드 구성·JSON 모양은 **재구성 출처(SSOT: DBML 행 / OpenAPI 스키마 / well-known)** 를 그대로 따른다(중복·드리프트 방지). 출처로 덮이지 않는 비자명한 값 구조만 `비고`/`용도`에 명시한다.
 
@@ -15,7 +15,7 @@
 - **PHI 미저장**(§6.4). 객체 키/메타에 환자정보 미포함.
 - **네이밍**: `gw:{class}:{...}` — `class` = `cache` | `nonce` | `idemp` | `wh` | `rl` | `lock` | `revoked`. 콜론(`:`) 계층 구분.
 
-## ① 캐시 (rebuildable — 원본에서 재구성 · 출처 대부분 PostgreSQL, 단 `compat`=S3·`jwks`/`wh-secret`/`conn-token`=KMS — TTL + 버전 무효화)
+## ① 캐시 (rebuildable — 원본에서 재구성 · 출처 대부분 PostgreSQL, 단 `jwks`/`wh-secret`/`conn-token`=KMS — TTL + 버전 무효화. **compat 매트릭스는 Redis 캐시 아님** → AppConfig Agent pod-로컬·7/9 R9)
 
 | 키 패턴 | 자료형 | TTL(예시) | 용도 | 재구성 출처 |
 | --- | --- | --- | --- | --- |
@@ -29,7 +29,6 @@
 | `gw:cache:regions` | hash/json | 분 | GW 운영 리전 목록(§7.3.6) | `region_catalog` |
 | `gw:cache:jwks:{issuer}` | string/json | 분 | **발급기별 JWKS(공개키)** — ① 운영자 IdP(직원 MS365/Entra·§7.1.4 토큰 검증) · ② (enroll B안·**v1.0 미지원·LMP 재개발 후**) **LMP 제3자 서명 attestation 검증**(§2.3.1 B·③-P-LMP). issuer별 런타임 fetch+캐시. device 공개키는 `cache:device`(디바이스별·DB) | 각 발급기 JWKS 엔드포인트 |
 | `gw:cache:operator-roles:{subject}` | hash/json | 분 | **운영자 실효 역할·접근 상태**(authz) — `operator_role`(status=active)+`operator.status`를 subject별 캐시(요청별 `/v1/admin/*` authz 조회·§7.1.4·§7.9.2·7/9 R2 A). 승인/거부/회수/정지 시 무효화 | `operator`·`operator_role`(PG) |
-| `gw:cache:compat` | hash | 분 | 호환성 매트릭스/well-known(§7.7) | **well-known JSON(리전 로컬 S3·CI 발행·§7.7.5) — PG 아님**(`compat_matrix` 테이블 폐기, 2026-07-01) |
 | `gw:cache:conn-token:{targetId}` | string | 토큰 만료 전(선제 갱신) | **아웃바운드 OAuth2 access token** 캐시(§7.1.3) — GW가 external(C) 호출에 쓰는 토큰. **만료 전 자동 갱신**(만료 후 아님) | target 토큰 엔드포인트(자격=`target.credential_ref`, KMS) |
 | `gw:cache:config:gw` | hash/json | 초~분 | **v1.0** GW-내부 실효 config(`gw.*` · region/global 병합, pod 공유·§7.8.4) — heartbeat 응답의 주기·`configVersion` 산출 | `config`(`gw.*` 기여 행) |
 | `gw:cache:config:{deviceId}` | hash/json | 초~분 | **gw/1.1+** device **실효 config**(`device.*` · device>clinic>region>global 병합 + `configVersion`, pull `GET /v1/fleet/config`·heartbeat) — v1.0 미사용 | `config`(기여 스코프 행 병합) |
@@ -57,5 +56,5 @@
 
 ## 매핑
 
-- 캐시 키 ↔ 출처: 위 "재구성 출처" 열이 SSOT 링크. 대부분 **PostgreSQL**(`design/dbml`)이며, 예외는 **`compat`=S3 well-known(§7.7.5)** · **`jwks`=발급기 JWKS** · **`wh-secret`/`conn-token`=KMS**. DBML·§7.7.5 변경 시 본 카탈로그 동기화.
+- 캐시 키 ↔ 출처: 위 "재구성 출처" 열이 SSOT 링크. 대부분 **PostgreSQL**(`design/dbml`)이며, 예외는 **`jwks`=발급기 JWKS** · **`wh-secret`/`conn-token`=KMS**. **compat 매트릭스는 Redis에 캐시하지 않는다(7/9 R9)** — AppConfig Agent(사이드카)가 pod-로컬로 폴링·캐시(§7.7.5), 구 `gw:cache:compat`(리전 로컬 S3 캐시)는 폐기. DBML·§7.7.5 변경 시 본 카탈로그 동기화.
 - 본 카탈로그는 SRS §3.1.2·§6.4·§2.1.1에서 참조한다.

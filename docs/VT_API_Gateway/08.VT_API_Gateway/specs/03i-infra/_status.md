@@ -5,7 +5,8 @@
 - 상태: 미작성 (인프라 담당 별도 — GW SRS 요구를 입력으로 IaC 계획 작성)
 - 문서 유형: IaC 구축 계획서 (기능 스펙/One Pager 아님)
 - 범위: **단일 Region GW(3단계·v1.0)** — **Route 53 GeoDNS 라우팅·DNS 호스트(apex `gw.vatech.com` + webhook `{target}.webhook.gw.vatech.com`)·K8s HA·고정 egress IP를 v1.0부터 구축**(GeoDNS 대상=서울 1개로 resolve, 멀티리전-ready, SRS §2.7.1·§4.5.1). **4단계=N리전 활성화**(GeoDNS 라우팅 대상 증분·글로벌 복제 — record 타입·클라이언트 변경 없음). 비-AWS국 MinIO는 target(CleverSpace/AXS) 제공(GW 중계만)
-- 입력(spec_refs): ③ GW SRS(§3.1·§4.5.1 DNS·§7.3.5 GeoDNS), Roadmap §4, 실행 할당표
+- **호환성 매트릭스 = AWS AppConfig (7/9 R9·§7.7.5)**: 서빙 저장소를 S3/Secrets Manager 아닌 **AppConfig**로 확정. 인프라 구축 항목 — **App/Environment(env·리전별)/ConfigurationProfile(hosted·JSON Schema validator)/Deployment Strategy(점진+bake)** 프로비저닝 · **CloudWatch 경보 연동(자동 롤백)** · **AppConfig Agent 사이드카**(GW pod 폴링·localhost 서빙) · **리전별 배포**(리전 로컬 발행→전역 일관) · 발행 파이프라인=**Azure Pipeline이 AWS CLI로**(`create-hosted-configuration-version`+`start-deployment`, OIDC 페더레이션 인증 권장·env별 직렬화). TBD: 정확 요금·크기 상한·폴링 주기·배포 전략 파라미터.
+- 입력(spec_refs): ③ GW SRS(§3.1·§4.5.1 DNS·§7.3.5 GeoDNS·**§7.7.5 compat AppConfig**), Roadmap §4, 실행 할당표
 - 작성 모델: 인프라 담당 주도. GW SRS는 계획·요구만 명시(본 SRS §3·§4.5.1·§7.3.5)
 - TBD: DNS 호스트명 확정(§4.5.1), 노드 타입·수, RTO/RPO, MQTT 브로커 운영 주체
 - 공식 등록처: TBD (vt-api-gateway-infra repo 권장 — 별도 담당)

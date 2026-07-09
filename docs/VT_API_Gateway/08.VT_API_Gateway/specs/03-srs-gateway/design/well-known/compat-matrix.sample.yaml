@@ -1,6 +1,6 @@
 # 호환성 매트릭스 — SSOT (사람이 편집하는 원본)
 # =====================================================================
-# - 이 YAML이 정본. CI가 이 파일로부터 env별 server-configuration.json 을 생성해 S3에 발행한다.
+# - 이 YAML이 정본. Azure Pipeline이 AWS CLI로 이 파일로부터 env별 server-configuration.json 을 생성해 AWS AppConfig에 발행한다(7/9 R9·구 S3 폐기).
 #   (schemaVersion · env · serverVersion · generatedAt 는 CI가 주입 — 여기 적지 않는다)
 # - 값 확정: (1) API 호환성 One Pager(VKS)와 동기화. 편집은 PR 리뷰를 거친다.
 # - 반응 정책(SRS 7.7.3): major 미달 = 차단 / minor 미달 = 경고 통과(degrade) / patch = 무시.

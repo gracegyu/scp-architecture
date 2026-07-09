@@ -2,7 +2,7 @@
 
 API 버전 호환성 게이트(SRS §7.7, FR-COMPAT-02)가 런타임에 공시하는 **서버 구성 파일**의 샘플과 작성 규칙이다.
 
-> **원본(SSOT) = [`compat-matrix.sample.yaml`](./compat-matrix.sample.yaml)** — 담당 개발자는 **이 YAML을 편집(PR)** 한다. **[`server-configuration.sample.json`](./server-configuration.sample.json)은 CI가 원본에서 생성하는 서빙본**(직접 편집하지 않음)이다: CI가 검증 → env별 JSON 생성 → S3 발행, GW는 런타임에 S3에서 읽어 게이팅·`/.well-known` 서빙(§7.7.5, 앱 배포와 분리). *원본 포맷(yaml vs json)은 회의 결정 사항 — Appendix B #8.*
+> **원본(SSOT) = [`compat-matrix.sample.yaml`](./compat-matrix.sample.yaml)** — 담당 개발자는 **이 YAML을 편집(PR)** 한다. **[`server-configuration.sample.json`](./server-configuration.sample.json)은 CI가 원본에서 생성하는 서빙본**(직접 편집하지 않음)이다: **Azure Pipeline**이 **AWS CLI**로 검증 → env별 JSON 생성 → **AWS AppConfig에 발행**(hosted config 버전+배포), GW는 런타임에 **AppConfig Agent(사이드카)** 로 읽어 게이팅·`/.well-known` 서빙(§7.7.5, 앱 배포와 분리). *원본 포맷=**YAML 확정**·서빙 저장소=**AppConfig 확정**(7/9 R9·구 S3 폐기·Appendix B #8).*
 
 ## 1. 무엇인가
 
@@ -56,7 +56,7 @@ API 버전 호환성 게이트(SRS §7.7, FR-COMPAT-02)가 런타임에 공시�
 2. API/기능별 `minClientVersion`을 ① One Pager 확정값에 맞춰 채운다(제품명 키 = `Vatech-Product` 헤더값).
 3. `errorCode`·`fallback`을 §7.7.4 표준에 맞춰 지정한다.
 4. `schemaVersion`·`env`·`serverVersion`·`generatedAt`은 **CI가 주입**(손으로 넣지 않음).
-5. CI 파이프라인: YAML 스키마 검증 → env별 `server-configuration.json` 생성 → **S3 발행**(§7.7.5). 앱 build/deploy와 분리(`config/**` path-scoped).
+5. CI 파이프라인(**Azure Pipeline + AWS CLI**): YAML 스키마 검증 → env별 `server-configuration.json` 생성 → **AWS AppConfig 발행**(`create-hosted-configuration-version` + `start-deployment`·배포 전 JSON Schema 검증·점진·경보 자동 롤백·§7.7.5·7/9 R9). 앱 build/deploy와 분리(`config/**` path-scoped).
 
 ## 6. 참조
 

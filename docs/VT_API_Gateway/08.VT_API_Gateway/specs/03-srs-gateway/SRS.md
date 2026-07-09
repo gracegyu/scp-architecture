@@ -247,7 +247,7 @@ flowchart TB
     subgraph RA["GW Region A (서울)"]
         LBA["Ingress LB (inbound 1)"]
         GA["GW Deployments<br/>core · WH Receiver · WH Dispatcher"]
-        STA[("저장소 PG·SQS·Valkey·S3<br/>(payload=PG 암호화·리전 / S3=well-known)")]
+        STA[("저장소 PG·SQS·Valkey·AppConfig<br/>(payload=PG 암호화·리전 / compat=AppConfig·7/9 R9)")]
         NATA["NAT · egress EIP set A"]
         LBA --> GA
         GA --- STA
@@ -262,7 +262,7 @@ flowchart TB
     subgraph RB["GW Region B (미주) · gw/1.2"]
         LBB["Ingress LB (inbound 1)"]
         GB["GW Deployments<br/>core · WH Receiver · WH Dispatcher"]
-        STB[("저장소 PG·SQS·Valkey·S3<br/>(payload=PG 암호화·리전 / S3=well-known)")]
+        STB[("저장소 PG·SQS·Valkey·AppConfig<br/>(payload=PG 암호화·리전 / compat=AppConfig·7/9 R9)")]
         NATB["NAT · egress EIP set B"]
         LBB --> GB
         GB --- STB
@@ -415,7 +415,7 @@ flowchart LR
     DISP ==>|"MQTT (하행·IoT Core)"| EZ
     DISP ==>|"HTTP push (갈래B·보류)"| CLAB
 
-    %% 색 위계: 연두(GW 범위) > 연파랑(GW core·Webhook Ingress) > 흰카드+파란테두리(우리 컴포넌트) · 회색(managed: SQS·DB·S3)
+    %% 색 위계: 연두(GW 범위) > 연파랑(GW core·Webhook Ingress) > 흰카드+파란테두리(우리 컴포넌트) · 회색(managed: SQS·DB·AppConfig)
     style GWBOX fill:#e8f5e9,stroke:#66bb6a,stroke-width:3px
     style CORE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style WHTIER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
@@ -916,20 +916,21 @@ Webhook은 **외부 서비스(현재 AXS)가 보낸 이벤트**를 GW가 받아,
 
 ### 2.3.7 버전 호환 게이팅 — FR-COMPAT-\*
 
-`Vatech-*` 헤더로 originator(요청 시작 주체)와 경유 홉(`Vatech-Via`)을 분리 판정하고, GW가 **S3에서 읽어 캐시한 호환성 매트릭스**(§7.7.5)와 대조해 **더 낮은 버전 기준**으로 게이팅한다. 미지원이면 표준 오류코드와 "업데이트 필요" fallback을 안내해 원인불명 실패를 제거(ADR-07)한다. 상세는 §7.7. 아래는 **① 매트릭스 발행(build-time)** 과 **② 런타임 게이팅** 두 흐름이다 — 발행은 CI/ops 흐름이라 런타임 시나리오(§2.3.1~7)와 범주가 달라 별도 번호(§2.3.8)를 주지 않고 본 절에 함께 둔다.
+`Vatech-*` 헤더로 originator(요청 시작 주체)와 경유 홉(`Vatech-Via`)을 분리 판정하고, GW가 **AppConfig agent에서 읽어 캐시한 호환성 매트릭스**(§7.7.5·7/9 R9)와 대조해 **더 낮은 버전 기준**으로 게이팅한다. 미지원이면 표준 오류코드와 "업데이트 필요" fallback을 안내해 원인불명 실패를 제거(ADR-07)한다. 상세는 §7.7. 아래는 **① 매트릭스 발행(build-time)** 과 **② 런타임 게이팅** 두 흐름이다 — 발행은 CI/ops 흐름이라 런타임 시나리오(§2.3.1~7)와 범주가 달라 별도 번호(§2.3.8)를 주지 않고 본 절에 함께 둔다.
 
 #### ① 매트릭스 발행 파이프라인 (build-time)
 
-`compat-matrix.yaml`(원본·git)을 CI가 검증·렌더해 `server-configuration.json`을 **S3에 발행**한다(§7.7.5). GW는 이미지에 굽지 않고 런타임에 S3에서 읽으므로 **매트릭스만 바뀌면 앱 재배포 0**(앱 build/deploy는 `config/**` 제외·path-scoped).
+`compat-matrix.yaml`(원본·git)을 **Azure Pipeline이 AWS CLI로** 검증·렌더해 `server-configuration.json`을 **AWS AppConfig에 발행**한다(§7.7.5·7/9 R9). GW는 이미지에 굽지 않고 런타임에 **AppConfig Agent(사이드카)** 로 읽으므로 **매트릭스만 바뀌면 앱 재배포 0**(앱 build/deploy는 `config/**` 제외·path-scoped). AppConfig는 **배포 전 JSON Schema 검증·점진 롤아웃·경보 자동 롤백**을 제공한다(안전 크리티컬 매트릭스 보호).
 
 ```mermaid
 flowchart LR
     DEV["개발자: compat-matrix.yaml 편집 · PR 리뷰"]
-    YAML["vt-api-gateway repo<br/>config/compat-matrix.yaml · 원본 SSOT"]
-    CI["CI · config/** path-scoped<br/>스키마 검증 → env별 JSON 렌더"]
-    S3["S3 리전 로컬<br/>server-configuration.json · CI-only write"]
-    GW["GW · 런타임 read+cache<br/>게이팅 + /.well-known 서빙"]
-    DEV --> YAML --> CI --> S3 --> GW
+    YAML["vt-api-gateway repo<br/>config/compat-matrix.yaml · 원본 SSOT(YAML)"]
+    CI["Azure Pipeline · config/** path-scoped<br/>AWS CLI: YAML→env별 JSON 렌더·스키마 검증"]
+    AC["AWS AppConfig(리전별)<br/>hosted config 버전 + 배포(점진·경보 자동 롤백)<br/>배포 전 JSON Schema 검증 게이트"]
+    AG["AppConfig Agent(사이드카)<br/>pod별 폴링·로컬 캐시"]
+    GW["GW · 게이팅 + /.well-known 서빙"]
+    DEV --> YAML --> CI -->|"create-hosted-configuration-version<br/>+ start-deployment"| AC --> AG --> GW
 ```
 
 #### ② 런타임 게이팅
@@ -940,10 +941,10 @@ sequenceDiagram
     participant CO as CleverOne (originator)
     participant EZ as EzServer (경유 홉)
     participant GW as GW (Compat Gate)
-    participant S3 as S3 (well-known · 리전 로컬)
+    participant AC as AppConfig Agent (사이드카 · pod 로컬)
     participant CS as CleverSpace
-    GW->>S3: server-configuration.json 로드 (런타임·캐시 · §7.7.5)
-    S3-->>GW: 실효 매트릭스
+    GW->>AC: server-configuration.json 로드 (agent 로컬 캐시 · §7.7.5)
+    AC-->>GW: 실효 매트릭스
     CO->>EZ: 요청 (Vatech-Product/Version/OS)
     EZ->>GW: 전달 (+ Vatech-Via: EzServer)
     GW->>GW: originator vs Via 분리 판정 · 매트릭스 대조(최저 버전 기준)
@@ -954,7 +955,7 @@ sequenceDiagram
     else 미지원 버전
         GW-->>CO: 표준 오류 + "업데이트 필요" fallback
     end
-    Note over GW,S3: 매트릭스 원본=S3의 server-configuration.json(CI 발행) · GW는 그 사본을 캐시해 게이팅하고 /.well-known/{env}/server-configuration.json 로 서빙(이미지 미포함, §7.7.5)
+    Note over GW,AC: 매트릭스 원본=AppConfig hosted config(Azure Pipeline이 AWS CLI로 발행·7/9 R9) · AppConfig Agent가 pod-로컬로 폴링·캐시 → GW가 게이팅하고 /.well-known/{env}/server-configuration.json 로 서빙(이미지 미포함, §7.7.5)
 ```
 
 ### 2.3.8 운영자·Console 인증 (직원 IdP OIDC) — FR-AUTH-08/09·FR-ADM-02
@@ -2074,9 +2075,28 @@ FR-COMPAT-04 (미지원 시 표준 오류코드 + "업데이트 필요" fallback
 
 FR-COMPAT-05 (매트릭스를 단일 소스로 동결, 빌드/CI 반영·검증). 매트릭스 확정본은 ① 산출물과 동기화(§2.8).
 
-> **SSOT = 소스 파일(DB 아님).** 호환성 매트릭스는 **릴리스에 묶인 정적 설정**이라 **레포 소스(① One Pager 동기화)를 SSOT로 두고, 빌드/CI로 `/.well-known/{env}/server-configuration.json` 생성·공시**한다(런타임 조회는 파일/캐시). **DB 테이블로 두지 않는다**(런타임 임의 변경이 버전 게이팅을 깨는 것 방지 — `compat_matrix` 테이블 폐기, 2026-07-01). 긴급 클라이언트 버전 차단이 필요하면 일반 테이블이 아니라 **Config push(§7.8.4)** 로 처리한다.
+> **SSOT = 소스 파일(DB 아님).** 호환성 매트릭스는 **릴리스에 묶인 정적 설정**이라 **레포 소스(① One Pager 동기화)를 SSOT로 두고, 빌드/CI로 `/.well-known/{env}/server-configuration.json` 생성·공시**한다(런타임 조회는 AppConfig agent 캐시). **DB 테이블로 두지 않는다**(런타임 임의 변경이 버전 게이팅을 깨는 것 방지 — `compat_matrix` 테이블 폐기, 2026-07-01). 긴급 클라이언트 버전 차단이 필요하면 일반 테이블이 아니라 **Config push(§7.8.4)** 로 처리한다.
 >
-> **저작(authoring) = git/CI, Console = 읽기 전용 뷰어.** 매트릭스는 **안전 크리티컬**(오설정 시 전 클라이언트 잠금/부적합 통과)이고 **릴리스 결합·저빈도 변경**이라, 편집은 **레포 소스 파일(YAML 권장) + PR 리뷰 + CI 검증·배포**로만 한다 — 리뷰·이력·롤백·감사를 git이 보장. **GW Console에 매트릭스 편집 UI(한-행 편집)·임의 업로드 저작면을 만들지 않는다**(런타임 가변 저장소 재도입 = 위 원칙 위반). Console은 **현재 실효 매트릭스를 well-known에서 읽어 표시하는 뷰어**(+선택적 스키마 검증·미리보기)만 제공한다(③-C). **소스 파일 위치·배포 lifecycle**: 소스는 `vt-api-gateway` 레포 `config/compat-matrix.yaml`(YAML·SSOT·사람이 PR로 편집)에 두고, **서빙본 `server-configuration.json`은 이 원본에서 CI가 생성하는 산출물**(직접 편집·관리 안 함 — `generatedAt`·`serverVersion` 등 자동 주입·env별 생성·스키마 검증). 원본 포맷(yaml vs json)은 회의 결정 사항. **매트릭스 변경이 GW 앱 재배포를 유발하지 않도록 lifecycle을 분리**한다 — ① **GW는 매트릭스를 이미지에 굽지 않고 런타임에 리전 로컬 S3 객체에서 읽는다**(read-only + 캐시). ② **발행은 앱 배포와 별개의 config 파이프라인**: `config/**` 경로 변경 시 그 파이프라인만 트리거되어 스키마 검증 후 well-known JSON을 **S3에 발행**하고, **앱 build/deploy 파이프라인은 `config/**`를 path-filter로 제외**(매트릭스만 바뀌면 앱 재배포 0). ③ **S3 객체는 CI만 쓰기**(GW·admin은 읽기전용·IAM) — 위 "런타임 임의 변경 금지"를 지키면서 재배포 없이 갱신. 따라서 **CI 토폴로지 = `vt-api-gateway` 단일 repo + `config/**` path-scoped 발행 잡(권장·확정 방향)** — 발행 잡이 작고(검증→렌더→S3 업로드) path 분기가 CI 1급 기능이라 전용 config 레포는 불요. 강한 물리 분리가 필요하면 기존 `es-gitops` 재활용도 가능(신설 없음)하나 인프라 repo에 앱데이터가 섞여 오너십이 흐려진다. **최종 CI 토폴로지는 ③-I(인프라) 소유** — Agenda 7/9 R9 상정. git 커밋이 생기지만 **앱 릴리스 baseline(태그)과 config 커밋은 별개**(매트릭스는 자기 콘텐츠 해시로 버전). ① One Pager(VKS)는 사람이 읽는 확정본으로 동기화.
+> **저작(authoring) = git/CI, Console = 읽기 전용 뷰어.** 매트릭스는 **안전 크리티컬**(오설정 시 전 클라이언트 잠금/부적합 통과)이고 **릴리스 결합·저빈도 변경**이라, 편집은 **레포 소스 파일 + PR 리뷰 + CI 검증·배포**로만 한다 — 리뷰·이력·롤백·감사를 git이 보장. **GW Console에 매트릭스 편집 UI·임의 업로드 저작면을 만들지 않는다**(런타임 가변 저장소 재도입 = 위 원칙 위반). Console은 **현재 실효 매트릭스를 well-known에서 읽어 표시하는 뷰어**(+선택적 스키마 검증·미리보기)만 제공한다(③-C). **소스 = `vt-api-gateway` 레포 `config/compat-matrix.yaml`**(**YAML·SSOT·7/9 R9 확정** — 사람이 PR로 편집), **서빙본 `server-configuration.json`은 CI 생성 산출물**(env별·`generatedAt`·`serverVersion` 등 자동 주입·스키마 검증·직접 편집 안 함).
+>
+> **서빙 저장소 = AWS AppConfig (7/9 R9 확정).** 이전 설계는 리전 로컬 **S3**였고 회의에서 **Secrets Manager**가 거론됐으나, 매트릭스 특성(**비-secret config · 8KB 초과 가능 · 안전 크리티컬 · 저빈도 릴리스 결합**)을 기준으로 4개 후보를 비교해 **AppConfig로 확정**한다. AppConfig는 AWS Systems Manager 계열의 **애플리케이션 config 전용 서비스**로, KMS(암호화 키 관리)·Secrets Manager(시크릿 값 저장)와는 별개다.
+>
+> | 항목 | SSM Parameter Store | Secrets Manager | **AWS AppConfig** | (참고) S3(구 설계) |
+> |---|---|---|---|---|
+> | 크기 한도 | Std 4KB / Adv 8KB ✗ | 64KB △ | **~MB급 ✓** | 사실상 무제한 |
+> | 8KB 초과 수용 | 불가(쪼개기만) | 64KB까지만 | **여유 ✓** | 여유 |
+> | 설계 용도 | config | 시크릿 전용 ✗ | **앱 config+안전배포 ✓** | 객체 스토리지 |
+> | 비용 | Std 무료 | ~$0.40/시크릿·월 | 수신당 과금(캐시 시 소액) | 매우 저렴 |
+> | 버전/롤백 | 정수 버전 | 스테이지 | 배포 이력 | 버전관리(옵션) |
+> | 스키마 검증 | ✗ | ✗ | **JSON Schema/Lambda 게이트 ✓** | ✗ |
+> | 점진 배포·자동 롤백 | ✗ | ✗ | **%·bake + 경보 자동 롤백 ✓** | ✗ |
+> | CI 쓰기(AWS CLI) | put-parameter | put-secret-value | **create-version + start-deployment** | s3 cp |
+> | GW 읽기 | Get+캐시 | Get+캐시 | **Agent(sidecar) 폴링+캐시** | Get+캐시 |
+> | 판정 | ✗ 8KB 초과 불가 | ✗ config 오남용·64KB | **★ 채택** | 안전장치 없음(구 설계) |
+>
+> **선정 사유(회의 Secrets Manager 대비 전환 근거).** ① **비-secret config** — Secrets Manager는 자격/키 전용이라 시크릿당 과금·회전 등 불필요 기능을 안고 config를 넣는 용도 오남용이다(config 전용 서비스가 옳다). ② **8KB 초과 가능** — Parameter Store(Adv 8KB 하드리밋)는 배제, Secrets Manager(64KB)도 성장 여유가 없다. AppConfig는 **MB급**. ③ **안전 크리티컬** — 매트릭스 오설정은 전 클라이언트를 잠그거나 부적합을 통과시킨다. AppConfig가 네이티브 제공하는 **배포 전 JSON Schema 검증 게이트 + 점진 롤아웃 + CloudWatch 경보 자동 롤백**은 S3·Parameter Store·Secrets Manager 어디에도 없는 안전장치로, 이 성격에 결정적이다. ④ **앱 재배포 0 유지** — pod 재시작 없이 agent가 다음 폴링에 반영. → 요약: **크기 한계 회피 + 안전 배포**가 Secrets Manager를 대체할 실질 근거다.
+>
+> **발행 파이프라인·lifecycle (Azure Pipeline + AWS CLI).** 소스 `config/compat-matrix.yaml`(git PR) → **Azure Pipeline**(`config/**` path-scoped 트리거)이 **AWS CLI**로 YAML→env별 JSON 변환·스키마 검증 → `aws appconfig create-hosted-configuration-version`(profile validator가 배포 전 재검증) → `aws appconfig start-deployment`(전략=점진+bake·경보 자동 롤백). **앱 build/deploy 파이프라인은 `config/**`를 path-filter로 제외**(매트릭스만 바뀌면 앱 재배포 0). GW pod는 **AppConfig Agent 사이드카**로 폴링해 실효 매트릭스를 로컬에서 얻어(§2.3.8·pod별 캐시·공유 Redis 캐시 불요) `/.well-known/{env}/server-configuration.json`으로 서빙한다. **AppConfig는 리전 서비스**라 App/Env/Profile을 **리전별로 두고 CI가 같은 버전을 전 리전에 배포**(리전 로컬 발행 → 전역 일관 — 구 S3 모델과 동일 패턴). **AppConfig 리소스·Agent 사이드카·CloudWatch 경보·리전별 배포·정확 요금/크기 상한/폴링 주기 = ③-I(인프라) 소유·LLD 확정**. git 커밋과 앱 릴리스 baseline은 별개. ① One Pager(VKS)는 사람이 읽는 확정본으로 동기화.
 
 **비목표(Will Not Do)**: 클라이언트 자동 업데이트·강제 설치는 본 게이트 범위 밖(클라이언트 제품 영역).
 
@@ -2286,7 +2306,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 41 | **Enrollment clinic record 보강 (LMP clinic 정보) — 확정(2026-07-09·7/9 R3): 수집함·LMP 미sync** — **결정: 수집한다**(name·country_code·address·phone·website=LMP 전부). **단 LMP에서 clinic 정보가 바뀌어도 GW로 자동 sync하지 않는다**(enroll 시점 스냅샷·갱신=(재)enroll 재포착 또는 운영자 수동 교정만). §2.3.1·DBML clinic·OpenAPI ClinicInfo·patchClinicMe(수동 보정으로 재정의) 반영. *(이하 결정 전 원문 보존)* — clinicId는 LMP `POST /licenses` 반환(확인 완료). LMP `GET /licenses`가 clinic 정보(`ClinicWithoutIdType`={name·address·phone·countyCode(국가 ISO3166)·website}) 제공 → Console 식별성 위해 clinic record 보강. **DB/API에 고정 필드로 선반영(TBD)**: DBML `clinic`(name·country_code·address·phone·website nullable)·OpenAPI(`ClinicInfo`·`EnrollCompleteRequest.clinic`·`PATCH /v1/clinics/me`(device)·`PATCH /v1/admin/clinics/{clinicId}`(operator)). **저장 구조=고정 컬럼 확정**(jsonb 아님·회의 안건 아님). **미결(7/9 R3 회의)=수집·저장 필드셋만**(추천=LMP 전부·최소=name+country_code). 잔여: 신규 클리닉 정보 시점·실제 형식(clinic_id 평문)·PII 범위 | §2.3.1·§7.3·§7.9·§6.4.1 | EzServer(③-P-EZ)+GW | enroll 구현 착수 전 | §2.3.1·Agenda 7/9 R3 |
 | 27 | **공개키(client_public_key) 회전(재설치) 정책 수치·crypto 확정** — 정책 골격은 §7.2.7 확정(라이선스/Clinic-ID 재검증·C/S 승인·기존 revoke·개인키 백업 미도입). **미결**: 회전 속도·횟수 상한, 빈발 시 Admin 에스컬레이션 임계, 키페어 알고리즘·key-id 산출·서명 스킴(nonce), revoke 전파 방식 | §7.2.6·§7.2.7·§2.3.1 | GW+보안 | enrollment 구현 착수 전 | §2.3·§7.2·보안설계·LLD |
 | 1 | v1.0 목표 RPS·동시 세션(fleet 규모) | §5.1·5.2 | 인프라(규모 PL 입력) | 설계 착수 전 | §3.1·§7.1·§7.4 |
-| 8 | 호환성 매트릭스 확정본 **+ 불일치 반응 정책**(major=차단/minor=경고 통과/patch=무시 3단계·경고 헤더명·API↔제품 버전 매핑) — 선례=CleverOne↔EzServer 게이팅(참조-카탈로그 §3) · **관리 lifecycle 확정(§7.7.5)**: git/CI 저작·Console 뷰어 · 소스=`vt-api-gateway` `config/compat-matrix.yaml` · **런타임 S3 로딩(CI-only write)+path-scoped 발행 파이프라인으로 앱 재배포와 분리** · **CI 토폴로지=`vt-api-gateway` 단일 repo+path 분기 권장(Agenda 7/9 R9·최종=③-I)** · ① One Pager(VKS)=사람용 확정본 동기화 · **잔여=매트릭스 값(min 버전)·반응 정책 확정값**(① 산출) | §2.8·§7.7.3·§7.7.5 | ① One Pager · GW | ① 확정 시 | §7.7 |
+| 8 | 호환성 매트릭스 확정본 **+ 불일치 반응 정책**(major=차단/minor=경고 통과/patch=무시 3단계·경고 헤더명·API↔제품 버전 매핑) — 선례=CleverOne↔EzServer 게이팅(참조-카탈로그 §3) · **관리 lifecycle 확정(§7.7.5·7/9 R9)**: git/CI 저작·Console 뷰어 · 소스=`vt-api-gateway` `config/compat-matrix.yaml`(**원본 포맷=YAML 확정**) · **서빙 저장소=AWS AppConfig 확정**(S3·Secrets Manager·Parameter Store 비교 후 채택 — 비-secret config·8KB 초과 가능·안전 크리티컬 근거·§7.7.5 표) · **발행=Azure Pipeline이 AWS CLI로**(`create-hosted-configuration-version`+`start-deployment`·배포 전 JSON Schema 검증·점진·경보 자동 롤백)·`config/**` path-scoped로 앱 재배포와 분리 · **AppConfig Agent 사이드카 폴링(pod-로컬·공유 Redis 캐시 불요)·리전별 배포** · **AppConfig 리소스·Agent·경보·요금/크기/폴링 = ③-I 소유** · ① One Pager(VKS)=사람용 확정본 동기화 · **잔여=매트릭스 값(min 버전)·반응 정책 확정값**(① 산출) | §2.8·§7.7.3·§7.7.5 | ① One Pager · GW · ③-I | ① 확정 시 | §7.7 |
 | 33 | **비-EzServer·clinic-less device 구체화(미래 확장점)** — v1.0 device=EzServer(clinic-bound)뿐. 모델은 device-중심으로 clinic-less/비-EzServer를 **수용하도록 설계**(§1.2 Will Not Do)하되 구체 정체는 미정의. 실제 등장 시 확정: (a) clinic-less device의 **region 출처**(자체 지정/global) · (b) **target-org 신원**(`org_mapping`은 현재 clinic-키 → device-스코프 확장) · (c) **인증 부트스트랩**(EzServer=LM 라이선스·Clinic-ID; clinic-less는 다른 신뢰 앵커) · (d) policy `device` 스코프 실사용 | §1.2·§6.4.1·§7.2·§7.3 | GW(설계)+제품 로드맵 | 해당 device 연동 요구 시 | §1.2 Will Not Do·§6.4.1 |
 | 37 | **분배 수신자(delivery) 모델 도입 — 비-edge/클라우드·다중 수신자** — v1.0은 전 클리닉이 EzServer(edge)라 분배 방식이 불변·토픽이 clinic_id에서 결정적(`gw/clinic/{clinicId}/webhook`, §7.6.6)이라 **저장 테이블 없이 규약으로 도출**한다(구 `delivery_channel` 테이블은 정보 0이라 **삭제**). **미래에** 어떤 target의 이벤트가 **클리닉 EzServer가 아닌 다른 수신자**(클라우드 CleverLab=갈래B / 한 클리닉 복수 수신자 / target·event_type별 상이 목적지)로 가야 하면 규약 도출만으론 부족 → **수신자 모델 도입**(예: `(clinic, recipient)` 또는 라우팅 규칙 테이블). 트리거=갈래B(CleverLab 클라우드 수신) 활성화 또는 비-edge 수신 target 등장 | §7.6.5/6·§2.3·design/dbml | GW+제품 | 갈래B 활성화/비-edge 수신 요구 시 | §7.6·④ |
 
@@ -2573,6 +2593,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-09 | **7/9 R5 확정(A+C) — SRS 변경 없음·EzServer nginx 가이드 씨앗 캡처** — 라우팅 A+C(GW edge=서브도메인 C안 / CleverOne→EzServer 내부=Vatech-Target 헤더 A안)는 이미 ADR-11·§4.1.2·§2.3.0·§4.5.1에 반영돼 **SRS 수정 없음**. EzServer 측 **nginx 변환 설정 방법(순정 nginx map: Vatech-Target 헤더→{label}.gw.vatech.com HTTPS·평문→HTTPS 브리징·허용 라벨 화이트리스트·헤더 relay/Vatech-Via·외부 Vatech-* 미전달)** 을 잊지 않도록 **③-P-EZ `_status.md` 필수 반영 항목에 씨앗으로 정리**(nginx 스케치 포함·baseline 후 EzServer 팀 인계 시 승격) | (작성자 ID 미지정) |
 | 2026-07-09 | **7/9 R7 결정 반영 — webhook payload 저장: S3 claim-check → DB KMS 암호화(전면 반전)** — **결정: 일정기간 보관·S3 아니고 DB·복호화 가능 암호화·Console masking·삭제 당분간 미고려.** payload를 **`webhook_event.payload_encrypted`(bytea·KMS envelope·복호화 가능)** 에 저장(구 S3 claim-check·`payload_ref`·짧은 TTL·SSE **폐기**). **§6.4 PHI 원칙 개정**: PHI 영상 본문 미저장(presigned)은 유지하되 webhook payload는 **DB 암호화 저장**(리전 로컬·전역 복제 안 함·주권 유지). **§7.6.3 재작성**(DB 암호화·in-flight SQS=eventId claim-check·보관·masking), **§2.1.1·§2.2 다이어그램**(S3 payload 노드 S3PL→PG PLDB·`payload=PG 암호화`), **OpenAPI**(WebhookEvent `payloadRef` 제거·`/{eventId}/payload`=DB 복호화+masking·삭제 미고려라 만료 404 없음·WebhookPayloadView·메타 desc), **DBML**(`payload_ref`→`payload_encrypted bytea`·header·Note), Appendix B #36(저장 방식 확정·잔여=보존기간/purge/masking 필드). redocly valid·DBML OK | (작성자 ID 미지정) |
 | 2026-07-09 | **7/9 R8 결정 반영 — AXS 가입 A/B/C 전부 cover + 「가입 필수정보」 3층 명문화(AXS 문서 근거)** — 결정: **A/B/C 전부 cover, 가입 API 활용, GW가 Straumann·AXS 가입 지원**. **AXS 문서 전수 확인 핵심 발견**: AXS는 **조직/고객 생성 API가 없다**(org 경로=`link`/`check`/`unlink`/`{customerNumber}/info` 4개뿐·`organization.yml`). 따라서 "가입"을 **3개 층**으로 정정·명문화 — **①GW→AXS 통합 파트너 등록**(Vatech 1회·**비-API**·이메일 `support-axs@straumann.com`: full name·company·developer email·app name·intended roles → `client_id`/`client_secret`·B2C 토큰 EP·`getting-started.md`/`authentication.md` 근거)·**②클리닉 link**(**유일한 API 층**·`customerNumber`+`integratingEntityId`→`organizationId`+consent)·**③Straumann 고객가입**(C→B·**비-API**·수동 온보딩→`customerNumber`). **cover 의미 정정**: A 무처리·B API 자동 링크·C 비-API 선행절차 관리+확보 후 B. **이전 'C=범위 밖·가입 시 B 수렴' 프레이밍 폐기**(§2.3 여정 [3]·flowchart에 C 분기(Straumann 고객가입) 추가·§2.3.4 「연동 링크」 문단 재작성·**개발자용 '가입 필수정보' 3층 표 신설**). **GW 스키마 무영향 확정**: ②=기존 프록시 레일(`axs.gw.vatech.com`)+`org-bindings` 수렴·`customerNumber`=통과값(미저장)·client_id/secret=`target(axs).credential_ref`(KMS)·③=API 없음 → **신규 엔드포인트/컬럼 0**. ④ `_status`(3층 필수정보·A/B/C cover·TBD를 '결정됨→현장 절차 상세'로 정리)·Appendix B #45(R8 결정 결과·조직생성 API 없음) 동기화. 겸사 R7 잔재 교정(SRS §6.4 저장유형·api-surface-matrix webhook payload 'S3 금지'→'DB/KMS·복호화·masking'). redocly valid·DBML OK | (작성자 ID 미지정) |
+| 2026-07-09 | **7/9 R9 결정 반영 — 호환성 매트릭스 서빙 저장소 S3 → AWS AppConfig(원본 YAML·Azure Pipeline+AWS CLI 발행)** — 결정: **원본 YAML은 `vt-api-gateway` repo 관리, Azure Pipeline이 AWS CLI로 YAML→JSON 변환·등록, S3 아닌 저장소.** 회의에서 Secrets Manager가 거론됐으나 매트릭스 특성 기준 4개 후보(S3·Secrets Manager·SSM Parameter Store·AppConfig) 비교 후 **AppConfig 확정**. **전환 근거**: ①비-secret config(Secrets Manager=시크릿 전용·시크릿당 과금·회전 낭비) ②**8KB 초과 가능**(Parameter Store Adv 8KB 하드리밋 배제·Secrets Manager 64KB 여유 없음·AppConfig MB급) ③안전 크리티컬(오설정=전 클라 잠금) → AppConfig **배포 전 JSON Schema 검증+점진 롤아웃+경보 자동 롤백**(타 store 부재) ④앱 재배포 0 유지. **CI·멀티서버·멀티리전 검토 완료**(블로커 없음): 멀티서버=AppConfig Agent 사이드카 pod별 폴링(eventual consistent·기존 성질과 동일)·멀티리전=리전별 App/Env/Profile+CI 리전 루프(리전 로컬 발행→전역 일관·구 S3 모델과 동일). **문서 반영**: §7.7.5 재작성(**4후보 비교표+선정 사유**)·§2.3.8 발행/게이팅 파이프라인 2 mermaid(S3→AppConfig·Azure Pipeline·Agent)·§2.1.1 다이어그램 노드/범례(S3→AppConfig·**GW 소유 S3 소멸**)·redis-keyspace(`gw:cache:compat` 폐기=Agent pod-로컬로 대체)·well-known README·③-C 뷰어 seed·③-I AppConfig 인프라 소유 seed·Appendix B #8(포맷 YAML·저장소 AppConfig 확정). fence parity 52·redocly valid·DBML OK | (작성자 ID 미지정) |
 | 2026-07-09 | **R7 후속 — payload 보관기간=추후 고려 정리(§6.2) + KMS 키는 LLD 소관 명시** — webhook payload 보관기간은 **추후 고려**(v1.0 자동 삭제/purge 없이 누적·정책=Appendix B #36 후속)로 §6.2 보안요구에 정리. §6.2 Confidentiality 행을 'PHI 원칙 비저장 + webhook payload는 KMS 암호화 저장 예외'로 정정. **암호화 KMS 키(CMK·alias·회전·리전 키 토폴로지)는 SRS 미결정 — LLD/③-I(인프라) 소관**임을 §6.2·§7.6.3에 명시(SRS는 KMS envelope 암호화 '요구'까지·시크릿 `kms://alias/…` 참조와 동일 취급) | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 서명 주체 정정 — ELM(로컬)→LMP(클라우드)** — ELM(`ezserver-license-manager`)은 클리닉마다 **로컬**(localhost·LexFloatServer 온프렘)이라 서명자로 두면 GW가 10만 로컬 키를 신뢰해야 함 → **서명 권위=중앙 LMP(클라우드)**, GW는 LMP JWKS 하나로 검증, EzServer/ELM은 릴레이만. B는 **PMS 연동(EPI)과 무관**(별개 컴포넌트). R9·#42 정정 | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 완충용 `licenseAttestation` 예약 필드 추가 + R9 비교 표** — B1(LMP 검증 자동승인) 도입 시 EzServer 버전 공존 완충을 위해 **OpenAPI `EnrollStartRequest.licenseAttestation`(nullable·v1.0 미사용·R9 확정 시 활성)** 예약. Agenda R9를 **A vs B 비교 표**(신뢰앵커·C/S부담·확장성·LMP변경·인간검증·region·난이도·현행동작·abuse)로 재구성해 회의 가독성↑ | (작성자 ID 미지정) |
