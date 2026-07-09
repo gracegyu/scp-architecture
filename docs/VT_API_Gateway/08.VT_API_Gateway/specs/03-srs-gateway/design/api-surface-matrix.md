@@ -29,7 +29,7 @@
 | **org_mapping** | ✅ | (list) | ✅(교정) | ✅ | ✅ | `POST /v1/clinics/me/org-bindings`(자가 등록) | ✅ 자가등록=`/v1/clinics/me/org-bindings`·교정=`/v1/admin/org-mappings` |
 | **region_catalog** | ✅(admin) | (list) | ✅ | ✅ | ✅(드묾·gw1.2) | **`GET /v1/regions`**(선택지·client read) | ✅ 관리=`/v1/admin/regions` · client read=`/v1/regions` 유지 |
 | **config** | ✅ | ✅ | ✅ put | ✅ | ✅ | `GET /v1/fleet/config`(gw1.1) | ✅ `/v1/admin/config` |
-| **webhook_event** | ✅ search | ✅ by-id(메타) | — | — | — | — | ✅ read-only(검색 `/webhook-events` + 단건 `/{eventId}` **메타** + 본문 `/{eventId}/payload` **break-glass·GW중개·redact**·Console 직접 S3 금지) |
+| **webhook_event** | ✅ search | ✅ by-id(메타) | — | — | — | — | ✅ read-only(검색 `/webhook-events` + 단건 `/{eventId}` **메타** + 본문 `/{eventId}/payload` **break-glass·GW중개·redact**·GW가 `payload_encrypted` 복호화→masking, Console 직접 DB/KMS 접근 금지, 7/9 R7) |
 | **fleet_state** | ✅ | — | — | — | — | `POST /v1/fleet/heartbeat`(device push) | ✅ read-only(`/v1/admin/fleet`·heartbeat·버전·OS·online) |
 | **client_inventory** | ✅ by-clinic | — | — | — | — | (관측·Vatech-* 헤더) | ✅ read-only(`/v1/admin/clinics/{clinicId}/clients`·앞단 SW 버전·OS presence·§7.8.5·식별id 없음=튜플) |
 | **audit_log** | ✅ search | — | — | — | — | — | ✅ append-only(`/v1/admin/audit`) |
