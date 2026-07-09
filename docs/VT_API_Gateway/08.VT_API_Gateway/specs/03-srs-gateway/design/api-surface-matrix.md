@@ -25,7 +25,7 @@
 | **device** | ✅ | ✅ | ✅(예외·주=enroll) | ✅(lifecycle·kill) | ✗(=revoke) | heartbeat·token·enroll·config(gw1.1) | ✅ `/v1/admin/devices` · **clinic별 nested list `/v1/admin/clinics/{clinicId}/devices`(1:N·#47)** · 응답에 `clinic` 요약 임베드 |
 | **clinic** | ✅ | ✅ | ✅ | ✅ | ✗(canonical·비삭제) | `GET/PATCH /v1/clinics/me` · `PUT /v1/clinics/me/region` · `POST /v1/clinics/me/org-bindings` | ✅ op `/v1/admin/clinics`(list/read/create/update)·device-self `/me` 분리 완료 · **하위 device 목록=`/{clinicId}/devices`** |
 | **target** | ✅ | ✅ by-id | ✅ upsert | ✅ upsert | ✅(참조 시 409) | — | ✅ `/v1/admin/targets`(목록·무페이지네이션=소규모 카탈로그) + `/{targetId}`(단건·DELETE)·upsert 200/201 |
-| **policy** | ✅ | (list) | ✅ upsert | ✅ | ✅ | — | ✅ `/v1/admin/policies` |
+| **policy** | ✅ | (list) | ✅ upsert | ✅ upsert | ✅ | — | ✅ `/v1/admin/policies`(목록 필터 scope/target·**limit/cursor**) + `/{id}`(DELETE)·**upsert 200/201(결과 Policy 반환·id=GW surrogate)**·read=list-only(by-id 조회 없음·의도) |
 | **org_mapping** | ✅ | (list) | ✅(교정) | ✅ | ✅ | `POST /v1/clinics/me/org-bindings`(자가 등록) | ✅ 자가등록=`/v1/clinics/me/org-bindings`·교정=`/v1/admin/org-mappings` |
 | **region_catalog** | ✅(admin) | (list) | ✅ | ✅ | ✅(드묾·gw1.2) | **`GET /v1/regions`**(선택지·client read) | ✅ 관리=`/v1/admin/regions` · client read=`/v1/regions` 유지 |
 | **config** | ✅ | ✅ | ✅ put | ✅ | ✅ | `GET /v1/fleet/config`(gw1.1) | ✅ `/v1/admin/config` |
