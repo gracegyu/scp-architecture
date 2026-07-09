@@ -27,7 +27,7 @@
 | `gw:cache:webhook-host:{inboundHost}` | string | 분 | **webhook 발신자 식별 역조회**(수신 Host/SNI → `target_id`, §7.6.2·§2.3.6) — `target`은 targetId 키라 역방향 인덱스 필요 | `target.inbound_host`(역인덱스) |
 | `gw:cache:wh-secret:{targetId}` | string | 짧음 | **webhook HMAC 검증 시크릿**(§7.6.2) — `secret_ref`로 KMS에서 로드, **비밀 취급**(로그 미기록·§6.2) | KMS(`target.secret_ref`) |
 | `gw:cache:regions` | hash/json | 분 | GW 운영 리전 목록(§7.3.6) | `region_catalog` |
-| `gw:cache:jwks:{issuer}` | string/json | 분 | **발급기별 JWKS(공개키)** — ① 운영자 IdP(직원 MS365/Entra·§7.1.4 토큰 검증) · ② (enroll B안) **LMP 제3자 서명 attestation 검증**(§2.3.1 B·③-P-LMP). issuer별 런타임 fetch+캐시. device 공개키는 `cache:device`(디바이스별·DB) | 각 발급기 JWKS 엔드포인트 |
+| `gw:cache:jwks:{issuer}` | string/json | 분 | **발급기별 JWKS(공개키)** — ① 운영자 IdP(직원 MS365/Entra·§7.1.4 토큰 검증) · ② (enroll B안·**v1.0 미지원·LMP 재개발 후**) **LMP 제3자 서명 attestation 검증**(§2.3.1 B·③-P-LMP). issuer별 런타임 fetch+캐시. device 공개키는 `cache:device`(디바이스별·DB) | 각 발급기 JWKS 엔드포인트 |
 | `gw:cache:operator-roles:{subject}` | hash/json | 분 | **운영자 실효 역할·접근 상태**(authz) — `operator_role`(status=active)+`operator.status`를 subject별 캐시(요청별 `/v1/admin/*` authz 조회·§7.1.4·§7.9.2·7/9 R2 A). 승인/거부/회수/정지 시 무효화 | `operator`·`operator_role`(PG) |
 | `gw:cache:compat` | hash | 분 | 호환성 매트릭스/well-known(§7.7) | **well-known JSON(리전 로컬 S3·CI 발행·§7.7.5) — PG 아님**(`compat_matrix` 테이블 폐기, 2026-07-01) |
 | `gw:cache:conn-token:{targetId}` | string | 토큰 만료 전(선제 갱신) | **아웃바운드 OAuth2 access token** 캐시(§7.1.3) — GW가 external(C) 호출에 쓰는 토큰. **만료 전 자동 갱신**(만료 후 아님) | target 토큰 엔드포인트(자격=`target.credential_ref`, KMS) |
