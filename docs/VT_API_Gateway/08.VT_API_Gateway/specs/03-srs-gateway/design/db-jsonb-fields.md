@@ -131,7 +131,7 @@ gw.heartbeat.interval_seconds        gw.heartbeat.offline_threshold_multiplier  
 region.change   device.approve   credential.rotate   policy.update
 ```
 - **형식**: `^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$` (소문자 `resource`.`verb`, 최소 1개 점).
-- **표준 목록(초기 — 앱 레벨 상수, 확장 가능)**: `region.change` · `device.approve` · `device.suspend` · `device.revoke` · `enroll.rotate` · `credential.issue` · `credential.rotate` · `policy.create` · `policy.update` · `policy.delete` · `orgmapping.upsert` · `target.upsert` · `target.delete` · `killswitch.toggle` · `config.publish` · `webhook.payload.view`(break-glass 본문 열람·§7.6.3).
+- **표준 목록(초기 — 앱 레벨 상수, 확장 가능)**: `region.open` · `region.change` · `region.withdraw` · `device.approve` · `device.suspend` · `device.revoke` · `enroll.rotate` · `credential.issue` · `credential.rotate` · `policy.create` · `policy.update` · `policy.delete` · `orgmapping.upsert` · `target.upsert` · `target.delete` · `killswitch.toggle` · `config.publish` · `webhook.payload.view`(break-glass 본문 열람·§7.6.3).
 - **DB enum이 아니다** — 감사 동작은 기능 추가로 계속 늘어 enum이면 매번 마이그레이션이 필요하다. 대신 **앱 레벨 상수 집합**으로 관리하고 위 정규식으로 검증하며, 신규 action은 상수만 추가한다. **자유 오타 문자열(예 `리전변경`)은 금지**.
 
 ### `actor` — `type:id`

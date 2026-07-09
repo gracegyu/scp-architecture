@@ -1503,12 +1503,32 @@ paths:
   # --- GW 운영 리전 카탈로그 관리 (§7.3.6·FR-RGN-06, 운영자) — 조회는 GET /v1/regions. v1.0=1행(시드 가능)·gw/1.2 다행 ---
 
   /v1/admin/regions:
+    get:
+      operationId: getAdminRegions
+      security:
+      - operatorAuth: []
+      tags: [ admin ]
+      summary: 리전 카탈로그 목록 조회 (운영자 관리용·FR-RGN-06) [v1.0 · gw/1.2 확장]
+      description: >-
+        운영자(Console)가 리전 카탈로그를 조회한다 — 등록/상태변경/회수 대상 선택용. **공개 `GET /v1/regions`(deviceAuth·device의 region 선택용)와 별개 면**(operatorAuth). 소규모 카탈로그(v1.0=1행·gw/1.2=N)라 무페이지네이션.
+      responses:
+        '200':
+          description: 운영 리전 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Region'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: postAdminRegions
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 리전 카탈로그 등록 (region 개통) (FR-RGN-06) [v1.0 · gw/1.2 확장]
+      summary: 리전 카탈로그 등록 (region 개통)·감사 action=region.open (FR-RGN-06) [v1.0 · gw/1.2 확장]
       description: >-
         운영자가 리전 카탈로그에 리전을 개통(등록)한다(FR-RGN-06·§7.3.6). **v1.0**: 1행 시드(예 서울) — 실질적 다중 리전 개통은
         **gw/1.2**.
@@ -1537,10 +1557,9 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 리전 상태·속성 변경 (active/draining/planned 전이 등) (FR-RGN-06) [v1.0 · gw/1.2 확장]
+      summary: 리전 상태·속성 변경 (active/draining/planned 전이 등)·감사 action=region.change (FR-RGN-06) [v1.0 · gw/1.2 확장]
       description: >-
-        운영자가 리전 상태·속성을 변경한다(active/draining/planned 전이 등·FR-RGN-06). draining=신규 배정 중단·기존 유지. **다중
-        리전 운영은 gw/1.2**.
+        운영자가 리전 상태·속성을 변경한다(active/draining/planned 전이 등·FR-RGN-06). draining=신규 배정 중단·기존 유지. **경로 `regionId`가 권위**(요청 본문 regionId는 일치해야 하며 불일치 시 400). **새 `isDefault=true` 지정 시 기존 default는 해제**(정확히 1개·§7.3.6). **다중 리전 운영은 gw/1.2**.
       requestBody:
         required: true
         content:
@@ -1559,8 +1578,8 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 리전 회수(드묾 — draining 후) (FR-RGN-06) [gw/1.2]
-      description: '운영자가 리전을 회수한다(드묾·draining 후). **다중 리전(gw/1.2)** 운영 맥락 — v1.0 단일 리전에선 사실상 미사용.'
+      summary: 리전 회수(드묾 — draining 후)·감사 action=region.withdraw (FR-RGN-06) [gw/1.2]
+      description: '운영자가 리전을 회수한다(드묾·draining 후). **`clinic.region`이 참조 중이면 409**(FK — 먼저 그 클리닉들을 다른 리전으로 재배정/draining). **default 리전은 삭제 불가**(먼저 다른 리전을 default로). **다중 리전(gw/1.2)** 운영 맥락 — v1.0 단일 리전에선 사실상 미사용.'
       responses:
         '204': { description: 삭제됨 }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -2516,7 +2535,7 @@ components:
         displayName: { type: string, example: 서울 }
         endpoint: { type: string, example: https://apne2.internal.gw.vatech.com }
         status: { type: string, enum: [ active, draining, planned ], example: active }
-        isDefault: { type: boolean, example: true }
+        isDefault: { type: boolean, description: '기본 리전(GeoDNS 기본·단일 리전). **정확히 1개만 true** — 새 default 지정 시 기존 해제(앱레벨·§7.3.6)', example: true }
         createdAt: { type: integer, format: int64, description: '생성 시각(Unix ms·서버 설정·읽기 전용)', example: 1720224000000 }
         updatedAt: { type: integer, format: int64, description: '수정 시각(Unix ms·서버 설정·읽기 전용)', example: 1720310400000 }
       description: 'GW 운영 리전(GET /v1/regions). region_catalog 테이블 매핑'
