@@ -133,12 +133,12 @@ Table device {
 //  • 생성: EzServer enroll이 흡수(별도 등록 API 없음) — Clinic-ID로 upsert(§2.3.1). region 기본=GeoDNS 최근접(C/S override)·Admin 교정만(FR-RGN-04)
 //  • region: clinic과 1:1 → 컬럼 인라인(핫패스 조인 회피). relocation 시 mapping_version +1(값 이력=audit_log)
 //  • 표시·연락 속성(name·country_code·address·phone·website): LMP 발급(enroll 시 EzServer 전달)·LMP 변경 시 device 자가 갱신(PATCH /v1/clinics/{id}·self-only)·운영자 교정
-//     - 수집 필드셋 7/9 R3/#41 확정 전 잠정(TBD) · 저장 구조=고정 컬럼 확정(jsonb 아님) · country_code(국가)≠region(배포 리전)
+//     - **수집 확정(7/9 R3)**: name·country_code·address·phone·website(LMP 전부). **enroll 시점 스냅샷 — LMP에서 바뀌어도 GW 자동 sync 안 함**(갱신=(재)enroll 재포착 또는 운영자 수동 교정만). 저장=고정 컬럼(jsonb 아님) · country_code(국가)≠region(배포 리전)
 //  • 그 외 속성(상태·C/S 담당자·온보딩 시각 등)은 필요 시 추가(ERD 점선)
 Table clinic {
   clinic_id       varchar [pk]                                    // 클리닉 식별자 = **canonical 클리닉 엔터티**(device·org_mapping·webhook_event·policy가 참조하는 clinic_id의 원본). **LMP 발급 Clinic-ID·32자**(EzServer가 설치 시 수신·전달, §1.4). GW 생성 아님. 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`
   region          varchar [not null, ref: > region_catalog.region_id]  // 이 클리닉의 배정 리전(FK, region SSOT). clinic↔region 1:1이라 컬럼으로 인라인(조인 없음). 예 `apne2`
-  name            varchar                                         // 클리닉 표시명(LMP `clinic.name`·enroll 시 EzServer 전달·Console 식별). nullable. 예 `ES Clinic`. **수집 필드셋 7/9 R3/#41 확정 전 잠정(TBD)**
+  name            varchar                                         // 클리닉 표시명(LMP `clinic.name`·enroll 시 EzServer 전달·Console 식별). nullable. 예 `ES Clinic`. (수집 확정 7/9 R3·enroll 스냅샷·LMP 미sync)
   country_code    varchar                                         // 클리닉 국가(LMP `countyCode`=ISO 3166 Alpha-2). **GW region(배포 리전)과 별개** — region 추천/표시 참고. nullable. 예 `KR`
   address         varchar                                         // 클리닉 주소(LMP `clinic.address`)·C/S 연락. nullable. (환자 PHI 아님·clinic 업무정보)
   phone           varchar                                         // 클리닉 전화(LMP `clinic.phone`). nullable. 예 `02-1234-5678`
