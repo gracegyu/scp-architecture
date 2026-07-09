@@ -89,7 +89,7 @@
 - **Clinic 상세 > SW 인벤토리 탭**: (a) **EzServer(device)** 버전·OS = `GET /v1/admin/fleet`(해당 clinic) · (b) **앞단 클라이언트 목록**(CleverOne 등) = `GET /v1/admin/clinics/{clinicId}/clients` → product·version·os·firstSeen·lastSeen.
 - **표기 규약**: 식별 id 없음 → **(product,version,os) 튜플 단위**. **"대수"를 표시하지 말 것**(같은 버전 여러 PC가 한 행으로 합쳐짐 — 오해 유발). `lastSeen` 정체 = "구버전 잠정 잔존/업그레이드됨"으로 표기(확정 아님·recency).
 - **fleet 뷰**: "특정 버전 미만 클리닉 전체" 조회로 호환 업그레이드 캠페인 지원(staleOnly·product 필터).
-- **미래**: `Vatech-Instance-Id` 도입 시 per-instance·정확 대수 표시로 확장(7/9 R11 결정 대기 — 미도입이면 튜플 표기 유지).
+- **미래**: `Vatech-Instance-Id`는 **7/9 R11 미도입 확정** → **튜플 표기 유지**. per-instance·정확 대수·정식 수집·관리는 **신규 LMP** 소관이며, GW Console은 **간이(interim) 뷰**다(설치·update 궁합·§7.8.5).
 
 ### Device lifecycle 액션 UI (필수)
 Device 상세 [상태·lifecycle] 탭에서 상태 전이 액션을 제공(정본=③ §7.2.3·API `PATCH /v1/admin/devices/{id}`·`POST /v1/admin/devices/{id}/kill`):
