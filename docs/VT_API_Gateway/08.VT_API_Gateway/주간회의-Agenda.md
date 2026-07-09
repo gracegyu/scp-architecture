@@ -314,6 +314,7 @@
 - 논의 사항 (7/2 결정 → 적용 방법 확정 · 신규 결정 요청)
 
   - **R1. 무인 장비(EzServer)의 GW 인증 방식 확정 — private_key_jwt(공개키) vs OneID (중요 · 결정·재확인)** — **결론: OneID에는 무인 장비용 머신 인증 수단이 없다 — 사실상 후보가 못 된다. private_key_jwt(공개키)로 확정한다.** 되돌리기 어려운 기반 결정이라 CCB 재확인을 받는다.
+    - (결정) 이대로 결정한다.
     - **왜 OneID로는 안 되나** — 무인 장비가 OneID에서 토큰을 받을 grant는 **ROPC(user id/pw를 토큰 엔드포인트로 직접 전송)** 뿐이다(Authorization Code=브라우저·사람 필요, client_credentials=OneID가 제품에만 발급). 그런데 OneID v1.0은 **외부 머신에 ROPC를 제공하지도 않고**(사용자·제품용 IdP), 설령 켠다 해도 **EzServer가 id/pw(=공유 secret)를 저장해두고 자동 로그인**하는 편법이 된다:
       - 10만 대에 **공유 secret 상주·매 로그인 전송** → private_key_jwt가 없애려던 유출면 부활.
       - **ROPC는 MFA 불가**(OAuth 2.1에서 제거된 grant).
@@ -337,6 +338,11 @@
     - **성격**: [결정·재확인] — 이견 없으면 ADR-13(private_key_jwt) 확정. 변경 시 §7.1.1·§2.3.1(enrollment)·DBML(device)·clinic-less 전제 재검토. 근거=OneID SRS §1.2·§2.5.
 
   - **R2. GW Console 사용자 인증·역할 관리 — MS365/Entra 연동(기본안) vs 자체 DB (결정 요청)** — Console 로그인 사용자 관리 방식을 확정한다.
+    - (결정) A방안으로 확정한다.
+      - SSO만(Authentication) MS365를 사용하고, 권한관리(Authorization)는 GW 자체적으로 한다.
+      - 기본적으로 모든 직원은 로그인은 되지만 권한이 없으면 볼 수가 없다.
+      - Admin이 일일이 권한을 부여해야 한다.
+      - CS직원은 모든 Clinic의 관리권한이 부여된다.
     - **전제(오해 정정 공유)**: **OneID = 고객(클리닉·랩·개인) 신원 제품**(테넌트=고객). **GW Console 사용자 = 우리 직원**(Admin·현장 C/S)이라 **OneID 대상이 아니다** → Console 사람 인증은 별도 IdP.
 
       | 기준 | **A. MS365/Entra OIDC 연동 (기본안·추천)** | B. GW 자체 user DB |
@@ -356,12 +362,19 @@
     - **성격**: [논의·결정] — A/B 택일 + C/S 클리닉 범위 여부. 확정 시 §7.1.4(사람 인증 재정의)·§7.9.2(RBAC 역할 원천)·§2.3(운영자 로그인 시나리오)·verify 엔드포인트 일반 OIDC화·(조건부)DBML/API 반영. Appendix B #38. **(디바이스 인증 방식(공개키 vs OneID) 결정·OneID 전면 제거 배경은 위 R1 참조.)**
 
   - **R3. Enrollment 시 수집할 LMP clinic 정보 필드 확정 (논의·결정)** — clinicId만으로 enroll은 되지만 `clinic` 테이블에 id만 있으면 Console에서 사람이 식별하기 어렵다. enroll 때 LMP가 주는 clinic 정보를 함께 받아 record를 보강한다. **회의 결정 = 어느 필드를 수집·저장할지** (저장 구조·API·DB는 이미 반영).
+    - (결정) 수집하기로 한다.
+      - 하지만 LMP의 Clinic 정보가 바뀌어도, VAG에 sync 하지 않는다.
     - **LMP 제공(원문 확인)**: `licenseapi.yaml` `GET /licenses` 응답 `clinic` = {`name`·`address`·`phone`·`countyCode`(국가 ISO 3166)·`website`}. EzServer가 enroll 시 전달 → GW `clinic` 저장. LMP 변경 시 `PATCH /v1/clinics/{clinicId}`(device 자가 동기화·self-only)로 갱신.
     - **추천안 = LMP가 주는 전부 수집**(name·country_code·address·phone·website) — LMP 응답에 공짜로 함께 오고, 이름·국가=식별, 주소·전화=C/S 연락에 유용, **환자 PHI 아님(clinic 업무정보)**. *(최소안 = name + country_code, 식별만.)*
     - **유의**: LMP `country_code`(clinic 국가) ≠ GW `region`(배포 리전) — 별개 컬럼.
     - **성격**: [논의·결정] — **수집 필드셋만 승인**(추천=전부). DBML(clinic 5컬럼 고정 필드)·OpenAPI(`ClinicInfo`·enroll·`PATCH /v1/clinics/{clinicId}`)·§2.3.1은 **선반영 완료(필드셋 TBD)**. 잔여 확인(EzServer/LMP·③-P-EZ): 신규 클리닉 시 정보 시점·실제 형식.
 
   - **R4. Enrollment 승인 flow — v1.0 우선순위 (논의·결정)** — enroll 승인에는 **두 flow가 공존**한다(택일 아님 — 둘 다 장기적으로 필요). v1.0에 **무엇을 먼저** 넣을지 정한다.
+    - (결정)
+      - 이번에는 A안으로 확정한다.
+      - 당장 B안을 고려하지는 않는다. 왜냐하면 현재 LMP는 문제가 있어서 LMP 재개발이 이루어질 예정이다. 
+      - B안은 LMP 재개발이 이루어진 후에 적용할 것이다. 
+      - SRS에는 B안을 유지할 수 있지만, 추후 LMP 재개발시 적용한다고 명시해줘. 
     - **A. C/S 수동 승인** — C/S가 Console에서 승인. **모든 device 커버**(LMP 미등록·비-EzServer 포함) → **항상 필요(보편·fallback)**. LMP 변경 0·지금 동작. 단 설치마다 수동(현장 번거로움 — 이전 회의 우려).
     - **B. 제3자(LMP) 서명 검증 자동승인** — **LMP가 라이선스 검증 후 attestation을 서명("제3자 서명")** → EzServer가 enroll에 실어 전달 → GW가 **LMP 공개키(JWKS)로 검증** → 자동 active(C/S 수동 생략·확장성↑). 단 **LMP 라이선스 등록 device만** 대상.
     - **왜 둘 다**: B가 있어도 **LMP 경로 밖 device**는 A로 승인해야 함 → **A=보편/fallback · B=LMP 등록 device 편의**. 그래서 §2.3.1에 **두 flow 모두 기록**(지원 시점만 TBD).
@@ -425,6 +438,7 @@
     - **성격**: [논의·결정] — v1.0 우선순위. B 상세(LMP 제3자 서명 개발·claims·JWKS·EzServer 릴레이)=Appendix B #42·B안 설계 One Pager. **확인**: LMP가 제3자 서명 attestation 발급 가능한지(ES 라이선스/ELM 팀).
 
   - **R5. 라우팅 방식 재평가 방안** — GW edge = **C안(서브도메인)** 확정 · CleverOne→EzServer 내부구간 = **A+C 채택**.
+    - (결정) A+C안으로 확정한다.
     - **전제**: GW edge(EzServer→GW) = **C안(서브도메인)** `{target}.gw.vatech.com` 확정(운영/로그/LB/WAF 가시성은 공개 edge에서 확보). 남은 결정 = **내부구간(CleverOne→EzServer)** 에서 target을 EzServer에 전달하는 방식(A/B/C). 표기 = `내부구간 + edge`(edge는 항상 C).
     - **비교 (항목별 · A+C → B+C → C+C)**:
 
@@ -479,6 +493,8 @@
     - **SRS 반영 예정(확정 후)**: ADR-11(라우팅 = **edge 서브도메인** · `Vatech-Target`은 내부 hop 변환 키로 유지) · §4.5.1(`{target}.gw.vatech.com` + `*.gw.vatech.com` 와일드카드 cert + GeoDNS 와일드카드) · §4.1.2(라우팅 방식) · §4.1.4(업로드 target 지정) · webhook 서브도메인과 일관성 명시.
 
   - **R6. 외부 연동 대상(AXS·CleverSpace 등)의 공식 명칭 확정 — DB·API·Console·커뮤니케이션 공통 용어 (명칭 승인)** — **결정 = GW가 대신 호출·수신하는 외부 연동 서버(예 AXS·CleverSpace)를 부르는 공식 용어**를 정한다. 이 명칭은 **DB 테이블·API 필드·GW Console UI·앞으로의 팀 커뮤니케이션에서 모두 동일하게** 쓰이므로 한번 정하면 파급이 크다(그래서 지금 못박는다). **계기**: 이 대상의 라우팅·아웃바운드 자격·인바운드 webhook 수신을 담던 **3개 표(upstream_registry·connector·webhook_provider)를 1개로 병합**(1:1 facet·중복 토큰·미연결 해소, 등록=1 레코드)하며 **엔터티/용어 이름**을 확정해야 했다. 4개 후보 비교 후 **일단 `upstream`으로 정했다** — 회의에서 최종 승인 또는 변경.
+    - (결정) target으로 확정한다.
+      - 마켓팅, CS 직원들이 이해하기 쉬운용어다.
     - **이름 후보 비교**:
 
       | 후보 | 장점 | 단점 |
@@ -492,6 +508,11 @@
     - **이번 회의에서 다른 이름으로 바뀌면** 그때 일괄 재반영(단순 rename). 결정만 주면 됨.
 
   - **R7. Webhook payload(환자정보 PHI 포함 가능) 저장·보존·접근 방식 결정 (중요)** — `webhook_event`가 수신하는 이벤트 **본문(payload)** — AXS `patient.created` 등 **환자정보(PHI) 포함 가능** — 을 **어디에(위치)·얼마나(보존기간)·어떻게 보호(마스킹·접근통제)** 보관할지 확정. (PHI라 컴플라이언스에 직결되는 게 이 안건의 무게.)
+    - (결정) 일정기간 보관한다.
+      - S3가 아니고 DB에 보관한다.
+      - 보관할때는 복호화가능하도록 암호화해서 저장한다.
+      - GW console에서 조회할 때 환자정보는 masking 해서 표시한다.
+      - 삭제는 당분간 고려하지 않는다.
     - **배경(references 스펙 확인 결과)**:
       - v1.0 webhook 소스 = **AXS 단독**(CleverSpace=webhook 대상 아님 확정 · CleverLab=갈래B 보류).
       - AXS payload = **JSON**, 수 KB(알림 메타데이터 — 큰 영상은 webhook 아님·presigned). **환자 PHI 포함**: `patient.created/updated`에 이름·생년월일·성별·patientId, file 이벤트에 storageUri·파일메타.
@@ -523,6 +544,10 @@
     - **SRS 반영 예정(확정 후)**: DBML `webhook_event.payload_ref` 주석(본문=리전 S3·claim-check 참조·관계형 DB 미저장) · **`event_type` 컬럼 추가 검토**(Console 필터) · §6.4(webhook PHI 전이·최소 persist로 정교화) · §7.6(store-and-forward 본문 보관·TTL) · Appendix B(보존기간·본 결정 로그).
 
   - **R8. [조사] 호주 AXS 연동 실태 — 시나리오(A/B/C)·Org-ID 취득 경로 (이번 회의 확정 불요)** — AXS webhook 분배·아웃바운드 호출의 라우팅 키인 **외부 Org-ID(Straumann Organization-ID)를 각 클리닉이 어떻게 갖게 되는가**와, 호주 현장에 **어떤 시나리오가 실제 존재하는가**를 확인한다. GW는 `org_mapping`(로컬 매핑)만 채우지만, 그 전에 "그 클리닉의 AXS 조직이 우리 연동과 연결돼 Org-ID가 존재"해야 하는데 그 취득 경로가 미확인이다(§2.3.4 「연동 링크·org_mapping 생애주기」는 GW 공통 레일만 규정).
+    - (결정) A,B,C case를 우리가 전부 cover 한다.
+      - 가입 API를 활용한다. 
+      - 우리가 Straumann 가입도 한다. 이때 필요한 정보는? AXS 문서를 보고 필요한 정보를 개발자(나)에게 알려줘야 한다. 스펙에 기입되어야 한다. 
+      - 우리가 AXS 가입도 한다. 이때 필요한 정보는? AXS 문서를 보고 필요한 정보를 개발자(나)에게 알려줘야 한다. 스펙에 기입되어야 한다. 
     - **① 시나리오 (클리닉 전제 상태)**:
 
       | 상태 | Straumann 가입(`customerNumber`) | AXS org 존재 | 온보딩이 해야 할 일 |
@@ -544,6 +569,9 @@
     - **성격/산출**: [정보·조사] — **이번 회의 확정 불요**, 정할 것은 **"누가·언제까지 알아오나"**. 확정 시 **④ AXS Sub-SRS**에 구체화(상태 A/B/C 판정·링크 트리거 주체·UI 소유). **미확정 시 차주 이월**(아래 이월 논의 사항에 등재 예정). 근거: 참조-카탈로그 §3 AXS_docs `organization.yml`·Integration_guide + `references/Straumann연동/AXS_docs/openapi/organization.yml`(link/check/unlink/info·consent PENDING→APPROVED).
 
   - **R9. 호환성 매트릭스 저작·배포 구조 확정 — 원본 YAML → CI → 서빙 JSON (SSOT·앱 배포와 분리) (2건 · 추천안 있음)** — GW가 공시하는 버전 호환성 매트릭스(§7.7.2·§7.7.5)의 **저작·배포 구조**를 확정한다(런타임 게이팅 로직 아님). **현재 설계 = 원본 `compat-matrix.yaml`(git·PR 편집·SSOT) → CI 컴파일 → env별 `server-configuration.json` 생성 → S3 발행 → GW 런타임 read+cache**(앱 재배포와 분리). 이 **YAML→JSON 2단계 컴파일**은 전제로 두고, 아래 **2건**(소스 repo·CI 토폴로지 / 원본 포맷)만 결정한다. (샘플=`design/well-known/`·S3 참조.)
+    - (결정) aml 로 관리하고 secret manager 에 등록해서 관리한다. (S3에 저장하지 않는다)
+      - azure pipeline에서 AWS CLI 를 사용해서 yaml을 json으로 변경해서 등록한다.
+      - yaml은 vt-api-gateway repo에서 관리한다.
 
     - **결정 1 — 소스 repo 위치 + CI 토폴로지** (추천 = **A. `vt-api-gateway` 단일 repo + path-scoped**)
 
@@ -569,6 +597,7 @@
     - **성격/산출**: [논의·결정 요청] — 결정 1=방향(단일 repo) 승인(최종 토폴로지는 ③-I) · 결정 2=택일. 확정 시 §7.7.5·Appendix B #8 반영. *(값·3단계 스키마 확정은 ① One Pager 소관, 별개.)*
 
   - **R10. GW 배포 토폴로지 — 관리(admin) API를 별도 Deployment로 분리할지 (3-way → 4-way) (결정 요청 · 추천 = 4-way)** — 7/2 R5에서 GW 소프트웨어(**단일 코드베이스**)를 **기능별 Deployment**로 쪼개기로 확정했다(현 **3-way**: `GW core` · `WH Receiver` · `WH Dispatcher`). 그런데 **운영자·Console용 관리 API(`/v1/admin/*`)가 지금은 `GW core` 안에 포함**돼 있다. 이 admin API를 **별도 Deployment(`Admin API`)로 떼어 4-way로 갈지** 정한다. **이는 배포/네트워크 토폴로지 결정이며, API 계약(`/v1/admin/*` 경로)은 어느 쪽이든 불변**이다(데이터도 PostgreSQL을 공유 — 서비스·데이터 분리가 아니라 배포·노출면 분리).
+    - (결정) admin 과 core는 분리한다.  4way로 결정한다. 이에 따라서 SRS에 관련된 부분을 모두 수정한다.
 
     - **왜 admin이 다른가**: 트래픽 = 운영자 **일/주**(사람·저볼륨) · 노출면 = **내부/Console 전용**(공개 device edge·webhook 호스트에서 도달 금지) · 권한 = **kill-switch·config publish·payload break-glass(PHI 열람)** 등 최고위험. device 인증·target proxy hot path(머신·대량·공개)와 프로파일이 근본적으로 다르다 → **제어평면(admin) / 데이터평면(proxy·webhook) 분리**는 게이트웨이 표준 패턴.
 
@@ -618,6 +647,12 @@
     - **성격/산출**: [논의·결정 요청] — 4-way 승인 시 §2.1.1 서술·다이어그램·Appendix B #26(배포 단위)·③-I IaC(Deployment/ingress/NetworkPolicy)에 반영. **최종 배포 토폴로지는 ③-I(인프라) 소유**(R9 CI 토폴로지와 동일 원칙).
 
   - **R11. [신규 기능] 클라이언트 SW 인벤토리 — 클리닉별 설치 SW 버전·OS 가시성 (기능 추가 확인 + `Vatech-Instance-Id` 도입 여부 결정)** — "각 클리닉에 어떤 제품·버전이 깔려 있는지" 파악난이 **오랜 숙원**이었다. GW가 이미 **전 요청 필수로 받는 `Vatech-*` 헤더**(FR-COMPAT-01·§7.7.1: `Vatech-Product`·`Version`·`OS`·`Clinic-Id`)를 **영속(persist)** 하면 **추가 수집 없이** 클리닉별 SW 인벤토리를 만들 수 있다. **이미 ③ SRS(§7.8.5·FR-FLEET-06)·DBML(`client_inventory`)·API(`GET /v1/admin/clinics/{clinicId}/clients`)에 반영**했고, 본 안건은 (1) 기능 추가 확인 + (2) 미래 정밀 식별 헤더 결정이다.
+    - (결정) 이 기능을 GW에 넣는다.
+      - 단, 이 기능은 정식으로 추후 개발되는 새로운 LMP에 들어갈 기능이다. LMP는 update 기능도 있으므로 궁합이 더 잘 맞는다.
+      - 하지만 GW에는 이 기능을 간이로 넣는다. 새로운 LMP 이전에 충분히 역할을 할 수 있다. 
+      - 식별을 위한 Instance-ID는 고려하지 않고 일단 수집한다.
+        - (참고) EzServer는 Scan 기능을 이용해서 Clinic 내의 client PC를 수집하고 HW 고유 정보를 이용해서 식별 정보를 모으고 있다. 하지만 이정보를 중앙에서 집중 관리하는 기능은 없다. 추후 신규 LMP에서 제대로 수집 관리를 할 예정이다.
+          - EzServer Client 식별 정보가 있어도 GW 호출시 어느 client가 호출한 것인지는 알기 어려워서 현재는 이 정보 활용이 어렵다.    
 
     - **동작**: `CleverOne → EzServer → GW` 체인에서 GW가 보는 **originator SW**(CleverOne 등)를 관측·기록. EzServer 자신은 device(heartbeat 버전·OS). **Console**: Clinic 선택 → EzServer 정보 + **앞단 클라 목록(버전·OS)**.
     - **식별 id 없음 전제**: 앞단 클라는 안정 식별자가 없다(헤더에 instance-id 없음·GW의 peer는 EzServer라 클라 IP 미가시). → **(clinic, product, version, os) 튜플 + last_seen**. 버전 업 = 새 튜플·옛 튜플 정체(업그레이드/제거 추정). **버전 presence는 얻지만 설치 대수는 못 센다.**
