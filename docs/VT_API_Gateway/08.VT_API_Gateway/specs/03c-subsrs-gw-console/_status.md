@@ -10,7 +10,7 @@
 
 > **씨앗 — webhook payload 열람은 GW 중개·복호화·masking(7/9 R7).** payload는 **DB에 KMS 암호화 저장**(`webhook_event.payload_encrypted`)된다. Console은 DB·복호화 키에 직접 접근하지 않고, 열람은 **`GET /v1/admin/webhook-events/{eventId}/payload`(break-glass)** 로만 — GW가 **복호화 후 PHI masking**해 반환하고 전량 감사(action=`webhook.payload.view`). Console UI는 이 마스킹 응답만 표시(재-마스킹 해제 UI 금지). 목록·단건 **메타**는 payload 미포함. **삭제 당분간 미고려**. 근거=③ §7.6.3·Appendix B #36(masking 필드·보존기간).
 
-> **씨앗 — 호환성 매트릭스는 Console에서 편집하지 않는다(뷰어만).** 매트릭스 저작은 **git 레포 소스 파일 + PR + CI**(§7.7.5·안전 크리티컬·릴리스 결합)이고, **Console은 현재 실효 매트릭스를 well-known(`/.well-known/{env}/server-configuration.json`)에서 읽어 표시하는 읽기 전용 뷰어**(+선택적 스키마 검증·미리보기)만 만든다. **한-행 편집 UI·임의 JSON 업로드 저작면은 만들지 않음**(런타임 가변 저장소 재도입 금지). 긴급 클라이언트 차단은 매트릭스가 아니라 Config push(§7.8.4) UI 소관.
+> **씨앗 — 호환성 매트릭스는 Console에서 편집하지 않는다(뷰어만).** 매트릭스 저작은 **git 레포 소스 파일(YAML) + PR + CI(Azure Pipeline+AWS CLI) → AWS AppConfig 발행**(§7.7.5·7/9 R9·안전 크리티컬·릴리스 결합·구 S3 폐기)이고, **Console은 현재 실효 매트릭스를 well-known(`/.well-known/{env}/server-configuration.json`)에서 읽어 표시하는 읽기 전용 뷰어**(+선택적 스키마 검증·미리보기)만 만든다. **한-행 편집 UI·임의 JSON 업로드 저작면은 만들지 않음**(런타임 가변 저장소 재도입 금지). 긴급 클라이언트 차단은 매트릭스가 아니라 Config push(§7.8.4) UI 소관.
 
 ---
 
