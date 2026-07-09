@@ -511,7 +511,7 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 - **[3] (선택·opt-in) AXS 외부 연동** — 연동을 켜는 클리닉만(사전 target `axs` 등록·운영자 1회 전제, §2.3.4 [1]). **Straumann/AXS 가맹이어도 연동을 안 하면 이 단계 생략**(org_mapping 없음·enroll 등 나머지 정상 — 새 처리 불요). 켠 경우, **처리는 `organizationId` 보유 여부**로 갈린다:
   - **연동 완료**(그 AXS 조직에 `organizationId` 확보·승인): AXS 링크 **생략**, org-binding 로컬 매핑만.
   - **미연동**(`link` 필요): AXS `link(customerNumber)`로 `organizationId` 획득 + org-admin **동의(`PENDING`→`APPROVED`)** 후 org-binding.
-  - 이는 **클리닉 가입 상태 A/B/C**(A=Straumann+AXS · B=Straumann만·AXS org 없음 · **C=비-Straumann=범위 밖·가입 시 B 수렴**)와 대응되며, **현장 분포·전제(`customerNumber` 사전 보유 등)는 7/9 R8 조사 대상**. 상세·판정 로직=**④ Sub-SRS 정본**, GW 공통 레일(org_mapping·프록시)만 §2.3.4. (근거: AXS Organization API `references/Straumann연동/AXS_docs/openapi/organization.yml`)
+  - 이는 **클리닉 가입 상태 A/B/C**(A=Straumann+AXS · B=Straumann만·AXS org 없음 · C=비-Straumann)와 대응되며 **7/9 R8 결정으로 A/B/C를 모두 cover**한다: **A**=처리 불요(orgId 보유) · **B**=GW가 `link`(프록시)로 자동 연동 · **C**=Straumann 고객가입이 **선행**(AXS API 없음·수동 온보딩 → `customerNumber` 확보 후 B로 수렴). **단 조직 생성은 API가 없다** — GW→AXS 통합 파트너 등록(1회·이메일)과 Straumann 고객가입(C)은 모두 **비-API 선행절차**이며, 필요 정보는 아래 「AXS 가입 필수정보」(§2.3.4)에 명시한다. 상세·판정 로직=**④ Sub-SRS 정본**, GW 공통 레일(org_mapping·프록시)만 §2.3.4. (근거: AXS Organization API `references/Straumann연동/AXS_docs/openapi/organization.yml`)
 
 **여정은 상위 단계·분기만** 보인다(상세 시퀀스는 각 소유 절 — 재작도하지 않는다).
 
@@ -519,10 +519,12 @@ GW의 주요 동작을 **시나리오별 개요(overview)** 로 정리한다. �
 flowchart LR
     S0["[0] EzServer 설치<br/>(③-P-EZ)"] --> S1["[1] LMP 라이선스 등록<br/>Clinic-ID 수신<br/>(LMP/③-P-LMP)"]
     S1 --> S2["[2] GW 온보딩·enroll<br/>clinic·device·region 확립<br/>+ 승인 A안 C/S(v1.0) · B안 LMP서명(LMP 재개발 후)<br/>(§2.3.1·§2.3.2)"]
-    S2 --> Q{"[3] AXS 연동?<br/>(켜는 클리닉만)"}
-    Q -->|"연동 완료<br/>(organizationId 보유)"| OB["org-binding 로컬 기록<br/>(§2.3.4)"]
-    Q -->|"미연동<br/>(link 필요)"| LK["AXS link → organizationId<br/>동의 PENDING→APPROVED<br/>(정본 ④)"]
+    S2 --> Q{"[3] AXS 연동?<br/>(켜는 클리닉만 · A/B/C 전부 cover)"}
+    Q -->|"A 연동 완료<br/>(organizationId 보유)"| OB["org-binding 로컬 기록<br/>(§2.3.4)"]
+    Q -->|"B Straumann 고객·미연동<br/>(customerNumber 보유·link 필요)"| LK["AXS link(customerNumber) → organizationId<br/>동의 PENDING→APPROVED<br/>(정본 ④)"]
+    Q -->|"C 비-Straumann<br/>(customerNumber 없음)"| SG["Straumann 고객가입<br/>(AXS API 없음·수동 온보딩)<br/>→ customerNumber 확보"]
     Q -->|"연동 안 함"| DONE([셋업 완료 → 런타임 §2.3.2~6])
+    SG --> LK
     LK --> OB
     OB --> DONE
 ```
@@ -770,9 +772,27 @@ sequenceDiagram
 앞의 [1] target 등록(운영자·전역 1회)과 달리, **클리닉이 그 연동을 실제 켤 때** `org_mapping`(외부 Org-ID ↔ clinic_id) 한 행이 생긴다. 여기서 **두 가지를 분리**해야 한다(오해가 잦은 지점):
 
 - **(로컬) `org_mapping` 등록 = `POST /v1/clinics/me/org-bindings`** — GW **DB에 매핑 한 행을 기록**할 뿐 **AXS를 호출하지 않는다**. GW가 라우팅/분배에 쓰는 로컬 지식이다(모든 target 공통).
-- **(원격) AXS 연동 링크 = AXS Organization API 호출** — AXS 쪽에 "이 조직을 우리 integrating entity와 연결"하는 것으로, **별개의 프록시 호출**(`Vatech-Target: axs` 경로③·External Connector가 OAuth 부착)이다. AXS 문서 기준 `POST /v1/organization/integration/link`(`customerNumber` + integrating entity=Client ID) → `organizationId` + **org-admin 동의**(status `PENDING`→`APPROVED`, Data Reader 동의 요건)로 완료된다. **조직 자체는 우리가 만들지 않는다**(클리닉=Straumann 고객·`customerNumber` 보유). 보조 API: `.../integration/check`(연결 확인)·`.../integration/{customerNumber}/info`(region·countryCode).
+- **(원격) AXS 연동 링크 = AXS Organization API 호출** — AXS 쪽에 "이 조직을 우리 integrating entity와 연결"하는 것으로, **별개의 프록시 호출**(`Vatech-Target: axs` 경로③·External Connector가 OAuth 부착)이다. AXS 문서 기준 `POST /v1/organization/integration/link`(`customerNumber` + integrating entity=Client ID) → `organizationId` + **org-admin 동의**(status `PENDING`→`APPROVED`, Data Reader 동의 요건)로 완료된다. **AXS/Straumann 어느 쪽도 "조직(고객) 생성" API를 제공하지 않는다** — `link`는 **이미 존재하는** AXS Organization(=Straumann 고객·`customerNumber` 보유)을 우리 integrating entity에 **연결**할 뿐이다(AXS 경로는 link/check/unlink/info 4개뿐, 조직 생성 없음·`organization.yml` 전수 확인). 보조 API: `.../integration/check`(연결 확인)·`.../integration/{customerNumber}/info`(region·countryCode).
 
-따라서 처리는 **`organizationId` 보유 여부**로 나뉜다 — **연동 완료**(이미 AXS 조직에 연결돼 `organizationId` 보유): 링크 생략, 바로 org-binding으로 로컬 매핑만 기록. **미연동**: 먼저 AXS 링크([2a])로 동의·`organizationId`를 얻고 → org-binding으로 매핑 기록([2b]). (클리닉 **가입 상태 A/B/C**·현장 분포=주간회의 7/9 R8·④.)
+따라서 처리는 **`organizationId` 보유 여부**로 나뉜다 — **연동 완료(A)**: 이미 AXS 조직에 연결돼 `organizationId` 보유 → 링크 생략, 바로 org-binding으로 로컬 매핑만 기록. **미연동(B)**: `customerNumber`를 가진 Straumann 고객이나 아직 link 전 → 먼저 AXS 링크([2a])로 동의·`organizationId`를 얻고 → org-binding으로 매핑 기록([2b]). **비-Straumann(C)**: `customerNumber`가 없으므로 **Straumann 고객가입이 선행**(아래 필수정보 ③·비-API)해 `customerNumber`를 확보한 뒤 B와 동일 경로. **7/9 R8 결정: GW는 A/B/C를 모두 cover**하되, cover의 의미는 (A) 무처리·(B) API로 자동 링크·(C) 비-API 선행절차 관리 + 확보 후 B 진입이다. 상태 A/B/C 판정·현장 분포=④.
+
+> **[개발자 필수정보] AXS 가입 — 선행조건 1 + 클리닉 케이스 A/B/C (7/9 R8·AXS 문서 근거).** AXS 문서 전수 확인 결과 **조직/고객 생성 API는 없다**(org 경로=link/check/unlink/info 4개뿐). "가입"은 아래처럼 **전 클리닉 공통 선행조건(파트너 등록)** 과 **클리닉 가입 상태별 처리(A/B/C)** 로 나뉜다.
+>
+> **선행조건 (전 클리닉 공통·1회·비-API) — GW→AXS 통합 파트너 등록.** 케이스가 아니라 A/B/C 셋 다의 공통 전제다. 이메일 `support-axs@straumann.com`에 **full name · company name(Vatech) · developer account email · application name(integration name) · intended roles/API calls** 제출 → AXS whitelist → **`client_id`+`client_secret`**(OAuth2 `client_credentials`·B2C 토큰 EP) 발급 → GW가 KMS 보관(`target.credential_ref`). 이 `client_id`가 link의 `integratingEntityId`다. **이게 없으면 어떤 클리닉도 AXS를 호출할 수 없다.** (근거 `getting-started.md`·`authentication.md`)
+>
+> **클리닉 가입 상태별 처리 (A/B/C 순서):**
+>
+> | 케이스 | 클리닉 상태 | GW가 하는 일 | **AXS API 호출?** | 클리닉에서 받을 정보 | 산출 |
+> |---|---|---|---|---|---|
+> | **A** | Straumann+AXS — **이미 연동**(`organizationId` 보유·consent APPROVED) | **org-binding 로컬 기록만** | ❌ **없음** — 이미 link 완료 | `organizationId`(이미 보유 — 획득 경로는 ④) | `org_mapping` 1행 |
+> | **B** | Straumann 고객 — `customerNumber` 보유·**미연동** | **AXS `link` 호출** → `organizationId` 획득 → org-binding | ✅ **`link` (유일한 AXS API 액션)** | **`customerNumber`** (GW가 클리닉에서 수집할 유일한 신규 입력) + `integratingEntityId`(=선행조건·GW 보유) | `organizationId`(uuid)·`organizationIntegrationId`·`consentVersion`·`status`(`PENDING`→org-admin 동의→`APPROVED`) → `org_mapping` |
+> | **C** | 비-Straumann — `customerNumber` **없음** | (자동화 불가) **Straumann 고객가입 선행**(아래) → `customerNumber` 확보 → **B와 동일** | ❌ **API 없음** — Straumann 고객가입은 수동 | (선행) Straumann 온보딩 산출물 → `customerNumber` | (B로 수렴) |
+>
+> **C 케이스 가입 방법 (Straumann 고객가입 = 비-API·수동).** AXS 문서에는 **고객(조직) 생성 절차·API가 없다** — 이는 AXS 연동이 아니라 **Straumann 본사와의 비즈니스 온보딩**이다. 실무 경로: **① Straumann 영업/파트너 채널에 고객 등록 요청**(제품 계약·법인/클리닉 정보 제출) → **② Straumann이 고객 계정 개설 + `customerNumber` 발급**(=AXS Organization의 자연키) → **③ 그 `customerNumber`로 B 경로(link) 진입**. GW는 이 절차를 **대행·자동화할 수 없고**, 클리닉을 "비-Straumann(C)" 상태로 인지·안내하며 `customerNumber` 확보 시점에 B를 실행한다. (구체 온보딩 서식·담당 창구·리드타임은 Straumann 영업 소관 — ④ `customerNumber` 확보 경로 TBD와 연계.)
+>
+> **정리 — 케이스별 API 가능 여부:** **A**=AXS 호출 없음(이미 연동 → GW 자체 org-binding만) · **B**=AXS `link` **자동 호출**(유일한 AXS API) · **C**=API 없음(수동 Straumann 가입 후 B). 즉 **AXS를 API로 부르는 건 B 하나**, **자동화 불가한 건 C 하나**다.
+>
+> **GW 스키마 영향 없음**: B의 `link`는 기존 프록시 레일(`axs.gw.vatech.com` verbatim), org-binding(A·B 공통)은 기존 `org-bindings` API, `customerNumber`는 **통과값**(GW 미저장), client_id/secret은 `target(axs).credential_ref`(KMS). C는 API가 없어 엔드포인트/컬럼 신설이 없다 — **A/B/C cover에 GW core 신규 스키마 불요**. AXS 고유 시퀀스(동의 폴링·상태 판정)=**④**.
 
 ```mermaid
 sequenceDiagram
@@ -1593,7 +1613,7 @@ flowchart TB
 
 > **인증·온보딩은 별도 테이블이 없다** — 자격은 `device`(client_id·client_public_key)에 통합, 발급 access token은 **무상태 JWT**(서명 검증·저장 안 함, §7.1.1·ADR-02), enrollment 부트스트랩·승인 대기는 `device.status`(pending), 이력은 `audit_log`.
 
-- 저장 정보 유형: 디바이스 레지스트리(+인증 자격 client_id·client_public_key), device/clinic↔region 매핑, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event` — PHI-free 메타데이터; 본문은 리전 로컬 S3·짧은 TTL·참조, 7/9 R7·§7.6.3)**, **분배 지식·연동 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·**연동 대상 통합(`target`** — 라우팅 라벨+host+profile+GW 연결 timeout(D1~D3·재시도·서킷은 istio R4)+외부(C) OAuth 자격·**egress allowlist(SSOT #31)**+인바운드 webhook 수신 config)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. (분배 채널은 별도 테이블 없이 clinic→MQTT 토픽 규약으로 도출·§7.6.6) **PHI 영상 본문은 미저장**(presigned 직결). **webhook payload는 관계형 DB 미저장** — 환자정보 포함 가능해 리전 로컬 S3에 짧은 TTL로 최소 보관·참조(7/9 R7·§7.6.3). **호환성 매트릭스는 DB 미저장** — 소스 파일 → well-known JSON(§7.7.5, `compat_matrix` 테이블 폐기).
+- 저장 정보 유형: 디바이스 레지스트리(+인증 자격 client_id·client_public_key), device/clinic↔region 매핑, 정책(OPA 입력), 감사 로그, **webhook 이벤트 수신·분배 상태(`webhook_event` — 메타데이터 + `payload_encrypted`(KMS envelope 암호화 본문·리전 로컬·Console 조회 시 masking, 7/9 R7·§7.6.3))**, **분배 지식·연동 레지스트리** — Org-ID↔ClinicID(`org_mapping`, webhook 라우팅 키)·**연동 대상 통합(`target`** — 라우팅 라벨+host+profile+GW 연결 timeout(D1~D3·재시도·서킷은 istio R4)+외부(C) OAuth 자격·**egress allowlist(SSOT #31)**+인바운드 webhook 수신 config)·**GW 운영 리전 카탈로그(`region_catalog`, §7.3.6)**. (분배 채널은 별도 테이블 없이 clinic→MQTT 토픽 규약으로 도출·§7.6.6) **PHI 영상 본문은 미저장**(presigned 직결). **webhook payload는 예외적으로 DB 저장** — 환자정보 포함 가능해 `webhook_event.payload_encrypted`에 KMS envelope 암호화(복호화 가능)·리전 로컬·Console masking·삭제 당분간 미고려(7/9 R7·§7.6.3). **호환성 매트릭스는 DB 미저장** — 소스 파일 → well-known JSON(§7.7.5, `compat_matrix` 테이블 폐기).
 - 캐시: **Valkey**(ElastiCache for Valkey·Redis 호환, §1.4)(region 매핑 TTL·nonce·rate-limit·idempotency·JWKS·webhook dedup). **캐시(PG 재구성 가능) + 휘발 상태(nonce·멱등·dedup·rate-limit·lock)이며 SSOT 아님.** 키 패턴·TTL·재구성 출처는 키스페이스 카탈로그 `design/redis/redis-keyspace.md`(DBML과 나란한 설계 산출물)
 - **데이터 토폴로지(멀티 서버·멀티 리전, §2.1.1)**: 리전 내 pod는 **동일 DB·Redis 공유**(무상태 앱 tier). 멀티 리전에서는 **(전역 일관) 라우팅·식별 데이터**(매핑·레지스트리·Org-ID·정책·compat·JWKS) 와 **(리전 로컬) 운영 데이터**(audit·in-flight queue)로 나눈다. 전역 데이터는 어느 리전에서도 같은 답을 내야 하며(soft-state 캐시 + strong-consistency 경로·`mapping_version`), 운영 데이터는 리전 로컬이다. **저장소 구현(전역 DB 단일 vs 리전별 복제)은 gw/1.2 TBD(Appendix B #15)**, 구분 원칙은 고정.
 - 무결성:
@@ -2276,7 +2296,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 
 | # | 항목 | 소유 | 비-스펙 사유 |
 | --- | --- | --- | --- |
-| 45 | 호주 AXS 연동 실태 조사(시나리오 A/B/C·Org-ID 취득) | 영업/Straumann·EzServer·④ | 조사 — **GW 비차단**(API case-agnostic)·결과는 ④/EzServer flow가 소비. 7/9 R8 |
+| 45 | 호주 AXS 연동 실태 조사(시나리오 A/B/C·Org-ID 취득) | 영업/Straumann·EzServer·④ | **결정(7/9 R8): A/B/C 전부 cover** — AXS 문서 전수 확인 결과 **조직/고객 생성 API 없음**(org 경로=link/check/unlink/info 4개뿐). "가입"은 3층: **①GW→AXS 통합 파트너 등록**(1회·이메일·client_id/secret)·**②클리닉 link**(API·`customerNumber`+integratingEntityId→organizationId)·**③Straumann 고객가입**(C→B·비-API·수동). GW cover=A 무처리·B API 링크·C 비-API 선행절차 관리. **GW 스키마 무영향**(§2.3.4 표). 잔여=현장 분포·customerNumber 확보 경로(④·비차단) |
 | 46 | example/식별자 **실형식 grounding 확인**(외부 발급·GW surrogate) | GW+발급처(AXS·LMP·EzServer)·LLD | 문서화 **값 확인** — 스키마·계약 불변, example 값만 실데이터로 확정. 대상: **externalOrgId**(AXS organizationId=UUID·`organization.yml`/`patientevents.md` 근거로 교정 완료; 구 `webhooks.md` 샘플의 10자리 `0040694997`은 실은 **customerNumber 형식** — 혼재)·**enroll licenseProof**(LMP 라이선스 id 형식·illustrative)·**serial**(EzServer 시리얼 형식·illustrative)·**policy/config surrogate id**(GW 생성·불투명·prefix/규칙 LLD). 확정 경로=7/9 R4(#45 AXS 실태)·LMP/EzServer 실데이터·LLD. **이미 교정**: `clinicId`(LMP 32자·별건)·`externalOrgId`(UUID). ⚠️ 다른 리소스 example 재사용 오용 주의(예 clinic 32-hex를 범용 `scopeId`로) |
 | 40 | Entra 디렉터리 선결 확인·tenant admin 요청 | IT(Entra 담당) | 외부 의존성·행정 절차(§2.6 성격)·#38 Entra안의 전제 |
 | 43 | 미승인 pending 자동 만료 TTL 값(추천 7일) | GW+운영조직 | config **값** — 만료 메커니즘은 §7.2 스펙 확정. C/S SLA 확인 후 default |
@@ -2552,6 +2572,7 @@ FR-COMP-02 (국경 간 동의 추적, v1.0~v2.0). 리전 재지정(§7.3.4) 시 
 | 2026-07-09 | **7/9 R4 결정 반영 — enroll 승인 A안=v1.0 확정·B안=LMP 재개발 후** — enroll 승인 두 flow 중 **A안(C/S 수동 승인)=v1.0 확정**, **B안(LMP 제3자 서명 attestation 자동승인)=v1.0 미지원**(현 LMP 문제로 재개발 예정→재개발 후 적용). **B flow는 스펙에서 삭제하지 않고 유지**(SRS §2.3.1 B 시퀀스·OpenAPI `licenseAttestation` 예약 필드·postEnrollComplete·DBML device 주석·redis JWKS)하되 전부 **'v1.0 미지원·LMP 재개발 후'** 로 재프레이밍. §2.3.1·§7.2.5·여정 [2]·provenance·Appendix B #42 확정. redocly valid·DBML OK | (작성자 ID 미지정) |
 | 2026-07-09 | **7/9 R5 확정(A+C) — SRS 변경 없음·EzServer nginx 가이드 씨앗 캡처** — 라우팅 A+C(GW edge=서브도메인 C안 / CleverOne→EzServer 내부=Vatech-Target 헤더 A안)는 이미 ADR-11·§4.1.2·§2.3.0·§4.5.1에 반영돼 **SRS 수정 없음**. EzServer 측 **nginx 변환 설정 방법(순정 nginx map: Vatech-Target 헤더→{label}.gw.vatech.com HTTPS·평문→HTTPS 브리징·허용 라벨 화이트리스트·헤더 relay/Vatech-Via·외부 Vatech-* 미전달)** 을 잊지 않도록 **③-P-EZ `_status.md` 필수 반영 항목에 씨앗으로 정리**(nginx 스케치 포함·baseline 후 EzServer 팀 인계 시 승격) | (작성자 ID 미지정) |
 | 2026-07-09 | **7/9 R7 결정 반영 — webhook payload 저장: S3 claim-check → DB KMS 암호화(전면 반전)** — **결정: 일정기간 보관·S3 아니고 DB·복호화 가능 암호화·Console masking·삭제 당분간 미고려.** payload를 **`webhook_event.payload_encrypted`(bytea·KMS envelope·복호화 가능)** 에 저장(구 S3 claim-check·`payload_ref`·짧은 TTL·SSE **폐기**). **§6.4 PHI 원칙 개정**: PHI 영상 본문 미저장(presigned)은 유지하되 webhook payload는 **DB 암호화 저장**(리전 로컬·전역 복제 안 함·주권 유지). **§7.6.3 재작성**(DB 암호화·in-flight SQS=eventId claim-check·보관·masking), **§2.1.1·§2.2 다이어그램**(S3 payload 노드 S3PL→PG PLDB·`payload=PG 암호화`), **OpenAPI**(WebhookEvent `payloadRef` 제거·`/{eventId}/payload`=DB 복호화+masking·삭제 미고려라 만료 404 없음·WebhookPayloadView·메타 desc), **DBML**(`payload_ref`→`payload_encrypted bytea`·header·Note), Appendix B #36(저장 방식 확정·잔여=보존기간/purge/masking 필드). redocly valid·DBML OK | (작성자 ID 미지정) |
+| 2026-07-09 | **7/9 R8 결정 반영 — AXS 가입 A/B/C 전부 cover + 「가입 필수정보」 3층 명문화(AXS 문서 근거)** — 결정: **A/B/C 전부 cover, 가입 API 활용, GW가 Straumann·AXS 가입 지원**. **AXS 문서 전수 확인 핵심 발견**: AXS는 **조직/고객 생성 API가 없다**(org 경로=`link`/`check`/`unlink`/`{customerNumber}/info` 4개뿐·`organization.yml`). 따라서 "가입"을 **3개 층**으로 정정·명문화 — **①GW→AXS 통합 파트너 등록**(Vatech 1회·**비-API**·이메일 `support-axs@straumann.com`: full name·company·developer email·app name·intended roles → `client_id`/`client_secret`·B2C 토큰 EP·`getting-started.md`/`authentication.md` 근거)·**②클리닉 link**(**유일한 API 층**·`customerNumber`+`integratingEntityId`→`organizationId`+consent)·**③Straumann 고객가입**(C→B·**비-API**·수동 온보딩→`customerNumber`). **cover 의미 정정**: A 무처리·B API 자동 링크·C 비-API 선행절차 관리+확보 후 B. **이전 'C=범위 밖·가입 시 B 수렴' 프레이밍 폐기**(§2.3 여정 [3]·flowchart에 C 분기(Straumann 고객가입) 추가·§2.3.4 「연동 링크」 문단 재작성·**개발자용 '가입 필수정보' 3층 표 신설**). **GW 스키마 무영향 확정**: ②=기존 프록시 레일(`axs.gw.vatech.com`)+`org-bindings` 수렴·`customerNumber`=통과값(미저장)·client_id/secret=`target(axs).credential_ref`(KMS)·③=API 없음 → **신규 엔드포인트/컬럼 0**. ④ `_status`(3층 필수정보·A/B/C cover·TBD를 '결정됨→현장 절차 상세'로 정리)·Appendix B #45(R8 결정 결과·조직생성 API 없음) 동기화. 겸사 R7 잔재 교정(SRS §6.4 저장유형·api-surface-matrix webhook payload 'S3 금지'→'DB/KMS·복호화·masking'). redocly valid·DBML OK | (작성자 ID 미지정) |
 | 2026-07-09 | **R7 후속 — payload 보관기간=추후 고려 정리(§6.2) + KMS 키는 LLD 소관 명시** — webhook payload 보관기간은 **추후 고려**(v1.0 자동 삭제/purge 없이 누적·정책=Appendix B #36 후속)로 §6.2 보안요구에 정리. §6.2 Confidentiality 행을 'PHI 원칙 비저장 + webhook payload는 KMS 암호화 저장 예외'로 정정. **암호화 KMS 키(CMK·alias·회전·리전 키 토폴로지)는 SRS 미결정 — LLD/③-I(인프라) 소관**임을 §6.2·§7.6.3에 명시(SRS는 KMS envelope 암호화 '요구'까지·시크릿 `kms://alias/…` 참조와 동일 취급) | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 서명 주체 정정 — ELM(로컬)→LMP(클라우드)** — ELM(`ezserver-license-manager`)은 클리닉마다 **로컬**(localhost·LexFloatServer 온프렘)이라 서명자로 두면 GW가 10만 로컬 키를 신뢰해야 함 → **서명 권위=중앙 LMP(클라우드)**, GW는 LMP JWKS 하나로 검증, EzServer/ELM은 릴레이만. B는 **PMS 연동(EPI)과 무관**(별개 컴포넌트). R9·#42 정정 | (작성자 ID 미지정) |
 | 2026-07-07 | **B1 완충용 `licenseAttestation` 예약 필드 추가 + R9 비교 표** — B1(LMP 검증 자동승인) 도입 시 EzServer 버전 공존 완충을 위해 **OpenAPI `EnrollStartRequest.licenseAttestation`(nullable·v1.0 미사용·R9 확정 시 활성)** 예약. Agenda R9를 **A vs B 비교 표**(신뢰앵커·C/S부담·확장성·LMP변경·인간검증·region·난이도·현행동작·abuse)로 재구성해 회의 가독성↑ | (작성자 ID 미지정) |
