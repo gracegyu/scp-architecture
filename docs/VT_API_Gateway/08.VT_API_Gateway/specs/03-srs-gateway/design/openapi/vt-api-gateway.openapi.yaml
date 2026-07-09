@@ -1801,7 +1801,7 @@ components:
       description: '운영자 역할 부여 1건(operator_role). RBAC 역할 + 데이터 스코프 + lifecycle.'
       properties:
         id: { type: string, description: 'grant id(승인/거부/회수 대상)', example: grt_7f3a2b1c }
-        role: { type: string, description: '앱 레벨 역할 상수(admin|developer|cs|operator|…·db-jsonb#operator_role)', example: cs }
+        role: { type: string, enum: [ admin, developer, cs, operator ], description: '역할(소스코드 enum·operator_role_type·§7.9.2). 추가 시 DB enum+GW+Console 소스 동시 수정', example: cs }
         scopeType:
           type: string
           nullable: true
@@ -1853,7 +1853,7 @@ components:
             type: object
             required: [ role ]
             properties:
-              role: { type: string, example: cs }
+              role: { type: string, enum: [ admin, developer, cs, operator ], example: cs }
               scopeType: { type: string, nullable: true, enum: [ global, region, clinic ], example: global }
               scopeId: { type: string, nullable: true, example: null }
           example: [ { role: cs }, { role: operator, scopeType: region, scopeId: apne2 } ]
@@ -1864,7 +1864,7 @@ components:
       required: [ role ]
       description: 'Admin 직접 역할 부여 — POST /v1/admin/operators/{operatorId}/roles(즉시 active).'
       properties:
-        role: { type: string, example: cs }
+        role: { type: string, enum: [ admin, developer, cs, operator ], example: cs }
         scopeType: { type: string, nullable: true, enum: [ global, region, clinic ], example: global }
         scopeId: { type: string, nullable: true, example: null }
         note: { type: string, nullable: true, example: CS 전 클리닉 관리 }

@@ -233,6 +233,17 @@ Enum grant_status {
   revoked    // 승인 후 회수
 }
 
+// 운영자 역할 (§7.9.2 · 7/9 R2 A) — **소스코드 enum으로 관리**(DB enum과 동일 선언·DBML→Prisma→TS 생성).
+//  • 역할 "목록"=여기 고정, 역할→허용 action 매핑=코드/OPA(앱 레벨·별도 permission 테이블 없음).
+//  • **역할 추가 시 = 이 enum + 소스코드(GW 권한 매핑 + GW Console UI) 를 함께 수정**(DB·GW·Console 동시·마이그레이션). 런타임 무릴리스 추가 없음.
+Enum operator_role_type {
+  admin      // 전체 관리(운영자·역할 승인·매핑 교정·config 등·보통 global)
+  developer  // 조회·디버깅(읽기 위주)
+  cs         // 현장 설치 — 전 클리닉(global) enrollment 승인+조회
+  operator   // fleet 운영·조회(kill·config 등)
+  // TBD 추가할 Role이 있으면 PR시 의견을 주세요.
+}
+
 // ── operator — GW Console 운영자(사내 직원) 신원 (§7.1.4 · 7/9 R2 A방안) ──
 //  • authN=MS365/Entra SSO(직원 전원 로그인 가능) / authz=GW 자체(본 표). 이전 "operator 무상태·테이블 없음" 반전.
 //  • 첫 SSO 성공 시 JIT 생성(subject/email/display_name=Entra claim·status=active·역할 0). 비밀번호·시크릿 없음(SSO).
@@ -250,13 +261,13 @@ Table operator {
 }
 
 // ── operator_role — 운영자 역할 부여(요청→승인/거부/회수) (§7.9.2) ──
-//  • RBAC: 역할=앱 레벨 상수(admin|developer|cs|operator|…·DB enum 아님·확장형·db-jsonb#operator_role) + 데이터 스코프(global/region/clinic·config/policy와 동일 다형).
+//  • RBAC: 역할=`operator_role_type` **enum(소스코드 관리)** + 데이터 스코프(global/region/clinic·config/policy와 동일 다형).
 //  • CS=global(전 클리닉 관리권한). 실효 역할=status=active. 요청=requested(본인)·Admin 승인=active·거부=rejected(보존)·회수=revoked.
-//  • 역할→허용 action 매핑은 앱 레벨(§7.9.2)·별도 permission 테이블 없음. Console UI=③-C.
+//  • 역할→허용 action 매핑은 코드/OPA(앱 레벨)·별도 permission 테이블 없음. 역할 추가=enum+GW+GW Console 소스 동시 수정. Console UI=③-C.
 Table operator_role {
   id           varchar [pk]                  // grant id. 예 `grt_7f3a2b1c`
   operator_id  varchar [not null, ref: > operator.id]
-  role         varchar [not null]            // 앱 레벨 역할 상수. 예 `cs`·`admin`·`developer`·`operator`
+  role         operator_role_type [not null]  // 역할(enum·소스코드 관리). 예 `cs`·`admin`·`developer`·`operator`
   scope_type   varchar                       // 데이터 스코프 global|region|clinic(다형·하드 FK 없음). CS=global. NULL→global
   scope_id     varchar                       // global=NULL / region=region_id / clinic=clinic_id. 예 NULL(global) / `apne2`
   status       grant_status [not null, default: 'requested']  // requested→active/rejected/revoked
