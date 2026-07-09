@@ -204,7 +204,7 @@ Table policy {
 
   Note: '정책 결정점(OPA) 입력(FR-INT-03) — 주체=device, scope별 부착·deny-by-default. v1.0 집행=coarse. 상세는 테이블 위 주석 참조.'
   Indexes {
-    (scope_type, scope_id, target_id)  // 스코프·target(target_id) 조합 조회
+    (scope_type, scope_id, target_id) [unique] // 스코프·target당 1행(upsert 충돌대상·db-jsonb "1행/튜플" 보장). **LLD 주의: global 행은 scope_id=NULL이라 표준 UNIQUE로는 중복 미차단**(PG는 NULL을 distinct 취급) → `NULLS NOT DISTINCT`(PG15+)/부분 유니크(WHERE scope_id IS NULL)/sentinel로 확정(config 인덱스와 동일 처리)
   }
 }
 

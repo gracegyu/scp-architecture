@@ -1426,6 +1426,14 @@ paths:
         in: query
         schema: { type: string, example: axs }
         description: 'target 대상(정확 일치)'
+      - name: limit
+        in: query
+        description: 페이지 크기(커서 페이지네이션)
+        schema: { type: integer, default: 50, maximum: 200, example: 20 }
+      - name: cursor
+        in: query
+        description: 다음 페이지 커서 — 불투명 토큰(직전 응답 nextCursor 그대로)
+        schema: { type: string, example: eyJkIjoiMDE5MjBhN2IifQ }
       responses:
         '200':
           description: 정책 목록
@@ -1443,10 +1451,12 @@ paths:
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 정책 등록/갱신(upsert) — allowed_endpoints·scopes. 감사 action=policy.update (FR-INT-03) [v1.0]
+      summary: 정책 등록/갱신(upsert) — allowed_endpoints·scopes. 감사 action=policy.create/policy.update (FR-INT-03) [v1.0]
       description: >-
-        운영자가 정책을 등록/갱신(upsert)한다(allowed_endpoints·scopes). deny-by-default라 v1.0 필수(허용 정책 없으면 프록시
-        전면 거부). v1.0 집행=coarse(target 사용 허용까지·§7.5.3). 감사 action=policy.update.
+        운영자가 정책을 등록/갱신(upsert)한다(allowed_endpoints·scopes). **자연키 (scopeType, scopeId, targetId)가 있으면
+        갱신(200)·없으면 생성(201)** — `id`는 GW 생성 surrogate라 요청 본문의 id/createdAt/updatedAt은 서버가 무시·설정하고,
+        생성 id를 알 수 있도록 **결과 Policy를 본문으로 반환**한다. deny-by-default라 v1.0 필수(허용 정책 없으면 프록시
+        전면 거부). v1.0 집행=coarse(target 사용 허용까지·§7.5.3). 감사 action=policy.create(신규)/policy.update(갱신).
       requestBody:
         required: true
         content:
@@ -1454,11 +1464,19 @@ paths:
             schema:
               $ref: '#/components/schemas/Policy'
       responses:
-        '201': { description: 등록됨 }
+        '200':
+          description: '갱신됨(기존 scope+target override) — 결과 Policy(id 포함) 반환'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Policy' }
+        '201':
+          description: '신규 등록됨 — 생성된 Policy(GW 생성 id 포함) 반환'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Policy' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /v1/admin/policies/{id}:
