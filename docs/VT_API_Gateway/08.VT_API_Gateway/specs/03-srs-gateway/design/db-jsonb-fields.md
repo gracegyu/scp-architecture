@@ -160,9 +160,30 @@ device.approve → before {"status":"pending"} after {"status":"active"}
 
 ---
 
+## `operator_role` (운영자 역할 상수 — 필드 형식 SSOT, §7.9.2 · 7/9 R2 A)
+
+authz=GW 자체(authN=Entra SSO). `role`은 자유 문자열이지만 **앱 레벨 상수 집합**으로 강제(DB enum 아님·확장형). `scope_type`+`scope_id`는 데이터 스코프(config/policy와 동일 다형).
+
+### `role` — 앱 레벨 상수(초기 seed, 확장 가능)
+```
+admin   cs   operator   developer
+```
+- `admin` — 전체 관리(운영자·역할 승인·매핑 교정·config 등). 보통 global.
+- `cs` — 현장 설치. **전 클리닉(global) enrollment 승인**+조회.
+- `operator` — fleet 운영·조회(kill·config 등 운영 액션).
+- `developer` — 조회·디버깅(읽기 위주).
+- **DB enum 아님** — 신규 역할은 상수 추가(마이그레이션 회피). **역할→허용 action 매핑은 앱 레벨**(§7.9.2·LLD·별도 permission 테이블 없음). 미등록 역할은 부여/요청 API에서 거부.
+
+### `scope_type` / `scope_id` — 데이터 스코프
+- `global`(scope_id=NULL·전 클리닉/리전) / `region`(scope_id=region_id) / `clinic`(scope_id=clinic_id).
+- **v1.0: `cs`·`admin`=global.** region/clinic 스코핑은 후속(국가/법인 한정 등·#39).
+
+---
+
 ## 변경 이력
 | 일시 | 내용 |
 | --- | --- |
+| 2026-07-09 | **`operator_role` 역할 상수 레지스트리 신설(7/9 R2 A)** — authz=GW 자체. role=앱상수(admin/cs/operator/developer·확장형)·scope_type/scope_id(global/region/clinic·CS=global). 역할→action 매핑=앱레벨 |
 | 2026-07-09 | **`upstream` → `target` 리네임(7/9 R6)** — `## upstream` 절→`## target`, 앵커 `#upstream`→`#target`, `target.target_id`·감사 action `target.upsert/delete`. 위 2026-07-01 행의 upstream은 당시 기록이라 보존 |
 | 2026-07-01 | 신설 — DB jsonb 컬럼(policy 3개·connector/upstream egress·retry_policy·webhook source_ip) 형식·예시·검증 정의. egress 3중복 → Appendix B #31 |
 | 2026-07-02 (R4) | `upstream_registry.retry_policy` 형식 섹션 제거 — **재시도·서킷=service mesh(istio) 담당**(GW 미소유). **단 GW→provider 연결 timeout(connect/response/total_deadline)은 GW 책임이라 스칼라 컬럼 유지**(D1~D3, §7.5.4). jsonb 대상은 egress_allowlist만 |

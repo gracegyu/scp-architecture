@@ -38,6 +38,7 @@
 // 2026-07-01: token 테이블 삭제 — 무상태 JWT(서명 검증)·디바이스 단위 폐기라 발급 토큰 저장 불필요, 이력은 audit_log. 12 테이블.
 // 2026-07-01: device.fingerprint → device.client_public_key 리네이밍 — 실제로 키페어 공개키라 'fingerprint'(하드웨어 지문 연상·LM machine fingerprint 충돌)를 정확한 명칭으로 교체(§7.2.6).
 // 2026-07-01: clinic_region_mapping → clinic 승격(C안) — clinic_id를 5개 테이블이 참조하는 canonical 엔터티라 정명. region·mapping_version은 clinic 컬럼으로 유지(1:1 인라인). R8 "전용 clinic 테이블 분리" 해소.
+// 2026-07-09 (7/9 R2 A): **operator·operator_role 테이블 신설** — Console 인가=GW 자체(authN=Entra SSO만). operator(JIT·SSO·status active/suspended·비번 없음)+operator_role(RBAC 역할 앱상수+스코프·요청→승인/거부/회수). enum operator_status·grant_status. 이전 'operator 무상태' 반전(§7.1.4·§7.9.2). 13 테이블.
 // 2026-07-09 (7/9 R6): **엔티티 `upstream` → `target` 리네임**(마케팅·CS 이해 용이). Table target·Enum target_profile·FK `> target.target_id`(policy·webhook_event·org_mapping). PK 컬럼 `target_id`는 유지(자연키). 위 날짜 주석의 upstream/upstream_registry는 당시 기록이라 보존. dbml2sql OK(target 비예약어).
 
 Project vt_api_gateway {
@@ -216,6 +217,60 @@ Enum audit_result {
   success   // 동작이 수행됨
   denied    // 권한·정책으로 거부됨
   failure   // 시도했으나 실패(오류)
+}
+
+// 운영자 계정 상태 (§7.9.2 · 7/9 R2 A방안)
+Enum operator_status {
+  active     // 정상(승인된 역할 있으면 이용·역할 0이면 "권한 요청" 화면)
+  suspended  // 관리자 정지(오프보딩·차단) — 역할 무관 접근 거부
+}
+
+// 운영자 역할 부여 lifecycle (§7.9.2)
+Enum grant_status {
+  requested  // 본인이 요청·Admin 승인 대기(승인 큐)
+  active     // 승인됨(실효 역할)
+  rejected   // 거부됨(감사 보존·빈 화면)
+  revoked    // 승인 후 회수
+}
+
+// ── operator — GW Console 운영자(사내 직원) 신원 (§7.1.4 · 7/9 R2 A방안) ──
+//  • authN=MS365/Entra SSO(직원 전원 로그인 가능) / authz=GW 자체(본 표). 이전 "operator 무상태·테이블 없음" 반전.
+//  • 첫 SSO 성공 시 JIT 생성(subject/email/display_name=Entra claim·status=active·역할 0). 비밀번호·시크릿 없음(SSO).
+//  • 오프보딩=Entra 비활성 + status=suspended. 실효 역할=operator_role.status=active.
+Table operator {
+  id           varchar [pk]                 // GW surrogate. 예 `op_7f3a2b1c`(생성 규칙 LLD)
+  subject      varchar [unique, not null]   // Entra oid/sub(안정 신원·SSO 키). 예 `entra-8f3a2b1c`
+  email        varchar                      // Entra claim(표시·연락). 예 `gd.hong@vatech.com`
+  display_name varchar                      // Entra claim. 예 `홍길동`
+  status       operator_status [not null, default: 'active']  // active(정상)/suspended(정지). "권한 요청" 화면=active+실효역할 0
+  created_at   bigint                        // 최초 로그인(JIT) 시각(Unix ms)
+  updated_at   bigint
+
+  Note: 'GW Console 운영자(사내 직원) 신원(§7.1.4·7/9 R2 A). authN=Entra SSO·authz=GW. 첫 SSO JIT 생성·비번 없음. 상세는 테이블 위 주석 참조.'
+}
+
+// ── operator_role — 운영자 역할 부여(요청→승인/거부/회수) (§7.9.2) ──
+//  • RBAC: 역할=앱 레벨 상수(admin|developer|cs|operator|…·DB enum 아님·확장형·db-jsonb#operator_role) + 데이터 스코프(global/region/clinic·config/policy와 동일 다형).
+//  • CS=global(전 클리닉 관리권한). 실효 역할=status=active. 요청=requested(본인)·Admin 승인=active·거부=rejected(보존)·회수=revoked.
+//  • 역할→허용 action 매핑은 앱 레벨(§7.9.2)·별도 permission 테이블 없음. Console UI=③-C.
+Table operator_role {
+  id           varchar [pk]                  // grant id. 예 `grt_7f3a2b1c`
+  operator_id  varchar [not null, ref: > operator.id]
+  role         varchar [not null]            // 앱 레벨 역할 상수. 예 `cs`·`admin`·`developer`·`operator`
+  scope_type   varchar                       // 데이터 스코프 global|region|clinic(다형·하드 FK 없음). CS=global. NULL→global
+  scope_id     varchar                       // global=NULL / region=region_id / clinic=clinic_id. 예 NULL(global) / `apne2`
+  status       grant_status [not null, default: 'requested']  // requested→active/rejected/revoked
+  note         varchar                       // 요청/결정 사유(선택). 예 `설치 지원 담당`
+  requested_at bigint                         // 요청 시각(Unix ms)
+  decided_by   varchar                        // 승인/거부한 Admin(operator.subject). 예 `entra-admin-1`
+  decided_at   bigint
+
+  Note: '운영자 역할 부여 lifecycle(§7.9.2) — RBAC 역할+스코프·요청→승인/거부/회수. 실효=active. 상세는 테이블 위 주석 참조.'
+  Indexes {
+    (operator_id, role, scope_type, scope_id) [unique]  // 동일 스코프 역할 중복 방지
+    operator_id
+    status  // 승인 큐(requested)·실효(active) 조회
+  }
 }
 
 // ── audit_log — 감사 로그 (FR-AUD-01 · IEC 62304/ISO 13485) ──
