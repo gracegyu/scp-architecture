@@ -39,6 +39,7 @@ VS Code / Claude Code는 `~/Documents/Azure/scp.code-workspace` 등으로 여러
 | scp-architecture | `~/Documents/Azure/scp-architecture` | MMI, 개발실 리뷰, Spec, 본 가이드 |
 | scp-section-poc | `~/Documents/Azure/scp-section-poc` | Section 모듈 구현 코드베이스 (출발점) |
 | cloudwebviewer | `~/Documents/Azure/cloudwebviewer` | 접목 대상 (읽기·Integration Spec 협의용) |
+| EzCloud Test (CW 런타임) | [https://container.test.ezcloud.ezcld.net/](https://container.test.ezcloud.ezcld.net/) | Clever Space 안 **Cloud Web Viewer** — MPR·툴바 UX 참고 (§9.3.1) |
 | stream-zip-unzip | `~/Documents/Azure/stream-zip-unzip` | CT ZIP Stream Unzip 참고 (PoC에서 패턴 차용) |
 | abc-dev-assistant | `~/Documents/Git/abc-dev-assistant` | dev-chain·Spec 작성 스킬 |
 | es-toolkit | `~/Documents/Azure/es-toolkit` | `/es-*` 개발 표준 명령 |
@@ -55,6 +56,7 @@ Claude Code는 **시작할 때 연 cwd(작업 디렉터리)** 를 기준으로 �
 | WebSectionView 상위 | `~/Documents/Azure/scp-architecture/docs/.../WebSectionView/` |
 | **코드 루트** | `~/Documents/Azure/scp-section-poc/` |
 | CW 참조 | `~/Documents/Azure/cloudwebviewer/` |
+| EzCloud Test (CW UI) | https://container.test.ezcloud.ezcld.net/ |
 
 #### 권장 cwd (결론)
 
@@ -992,6 +994,7 @@ Integration Spec은 별도 또는 §11로 CW Viewer 담당자와 공동.
 | Phase 5 OnePager (VKS) | https://vks.vatech.com/spaces/ESDEVELOPER/pages/305058086/ |
 | Phase 4 OnePager (VKS) | https://vks.vatech.com/spaces/ESDEVELOPER/pages/303490289/ |
 | PoC 데모 | http://scp-section-demo.test.scp.esclouddev.com/ |
+| EzCloud Test (Clever Space) | https://container.test.ezcloud.ezcld.net/ — 내장 **Cloud Web Viewer** (MPR·툴바 참고) |
 | PoC 레포 | https://dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc |
 | CW Viewer | https://dev.azure.com/ewoosoft/cloudwebviewer/_git/cloudwebviewer |
 | abc-dev-assistant | `~/Documents/Git/abc-dev-assistant/AGENTS.md` |
@@ -1030,6 +1033,7 @@ Cloud Web Viewer v1.3.2 Section 모듈 — 구현 작업.
 cwd: ~/Documents/Azure/scp-section-poc
 문서 루트: ~/Documents/Azure/scp-architecture/docs/SCP Cloud Server 연구/뷰어 관련 연구/WebSectionView/Cloud Web Viewer v1.3.2
 CW 참조: ~/Documents/Azure/cloudwebviewer
+EzCloud Test (MPR·툴바 UX): https://container.test.ezcloud.ezcld.net/
 
 먼저 읽을 파일:
 - [문서 루트]/Claude Code 작업 가이드.md (§2.1, §7.9 PoC 노하우, §9 환경 정렬)
@@ -1054,3 +1058,4 @@ CW 참조: ~/Documents/Azure/cloudwebviewer
 | 1.2 | 2026-07-09 | §4.1 MMI UI 시각 정본 `media/image23.png` 및 media/ 사용 규칙 |
 | 1.3 | 2026-07-09 | §4.2 MMI PPT comments. ESC·1점 더블클릭·proj Curve 예외 — §3·§6·§9·§12 반영 |
 | 1.4 | 2026-07-09 | §2.1 Claude Code cwd·세션 유지. §16 프롬프트 문서/구현 분리 |
+| 1.5 | 2026-07-09 | EzCloud Test URL — `container.test.ezcloud.ezcld.net` 내 Cloud Web Viewer 런타임 참고 |
