@@ -544,25 +544,27 @@ d.Active section line 위치 변경에 따라 Scout view의 Active section line�
 
 - 
 
-4.**Active section line (초록색 세로 실선) 각도 변경 (PoC에 없음, 적용 여부 결정 필요)**
+4.~~**Active section line (초록색 세로 실선) 각도 변경 (PoC에 없음, 적용 여부 결정 필요)**~~
 
-a.Center Section Line 양 끝에 위치한 control point에 마우스를 hover하면 마우스 커서가 변경된다.
+**[v1.3.2 스펙아웃]** Clever Space CT viewer 임플란트 시뮬레이션 탑재 시점에 재검토 (PLAN-1287 #3, 2026-07-09 기획 확정)
 
-b.Control point를 drag & drop하여 Active section line의 각도를 회전시킬 수 있다.
+~~a.Center Section Line 양 끝에 위치한 control point에 마우스를 hover하면 마우스 커서가 변경된다.~~
 
-①회전 시, 변경된 Active section line에 따라 Section view가 구성된다.
+~~b.Control point를 drag & drop하여 Active section line의 각도를 회전시킬 수 있다.~~
 
-②회전 시, 파노라마 이미지의 중심선과 만나는 점을 중심으로 회전된다.
+~~①회전 시, 변경된 Active section line에 따라 Section view가 구성된다.~~
 
-③회전 시 control point는 파노라마 이미지 경계선을 따라 이동한다.
+~~②회전 시, 파노라마 이미지의 중심선과 만나는 점을 중심으로 회전된다.~~
 
-c.회전하면 해당 각도를 반영하여 Section View가 업데이트된다.
+~~③회전 시 control point는 파노라마 이미지 경계선을 따라 이동한다.~~
 
-d.단, Scout View상의 Section Line은 업데이트되지 않는다.
+~~c.회전하면 해당 각도를 반영하여 Section View가 업데이트된다.~~
 
-e.각도는 ±45도 범위 내에서 조절 가능하다.
+~~d.단, Scout View상의 Section Line은 업데이트되지 않는다.~~
 
-①이때, 파노라마 이미지의 경계선을 이동하여도 각도는 변경되지 않는다.
+~~e.각도는 ±45도 범위 내에서 조절 가능하다.~~
+
+~~①이때, 파노라마 이미지의 경계선을 이동하여도 각도는 변경되지 않는다.~~
 
 - 
 
@@ -769,6 +771,25 @@ b.View Original
 
 a.Image Adjust, Setting (Thickness, Interval 조정), 최대화
 
+ 
+6.**계측, 주석 Overlay 표시 규칙 (Clever One 코드 기반 기준)**
+  1. 계측, 주석 Overlay 귀속 기준
+     1. Scout/Panorama/Section view의 Overlay는 Curve 및 생성 시점의 평면에 귀속된다.
+        - 평면은 생성 시점의 point와 normal로 정의된다.
+        - V1.3.2에는 단일 Curve 생성을 지원하지만, 차기 버전에서 입력 가능한 curve 개수가 증가할 수 있음을 염두할 필요가 있다.
+  2. Section view Overlay 표시 조건
+     1. 현재 표시 중인 슬라이스 평면과 Overlay 생성 시점의 평면을 비교하여, 아래 두 조건을 모두 만족하는 경우 해당 Overlay를 표시한다.
+     2. 거리 오차: 현재 슬라이스 평면으로부터 저장된 interval의 ±Interval/2 범위 이내
+     3. 방향 오차(Normal): 실사용에 불편하지 않은 수준으로 별도 정의
+  3. Curve Point 변경 시
+     1. 각 Section slice의 Normal이 변경되므로, normal의 판정 오차에 의해 기존 Overlay가 표시되지 않을 수 있다.
+     2. 단, Overlay 데이터가 삭제되는 것은 아니며, 생성 시점과 동일한 평면 조건이 충족되면 다시 표시된다.
+  4. Interval 변경 시
+     1.  Normal은 유지되므로, 원래 위치로 이동하면 기존 Overlay 확인이 가능하다.
+  5.  Thickness 변경 시
+      1.  Thickness 변경 시 Overlay 표시 조건에는 영향을 주지 않는다.
+  6.  Overlay는 MPR 레이아웃과 공유되지 않는다.
+
 # 1.14 Save Project
 Section 레이아웃의 작업 내용을 저장할 수 있다.
 
@@ -794,17 +815,17 @@ c.(참고) 저장 대상 항목은 아래와 같다.
 
 ⑦Panorama View의 중심선 위치
 
-⑧Active Section Line의 회전 각도 (v1.3.2에 회전 미적용 시 삭제 필요)
+⑧각 단면의 Thickness / Interval 설정값
 
-⑨각 단면의 Thickness / Interval 설정값
+⑨각 단면의 Overlay 입력값 (Length, Angle, Arrow, Free Draw 등)
 
-⑩각 단면의 Overlay 입력값 (Length, Angle, Arrow, Free Draw 등)
+⑩각 단면의 Windowing / Image Filter 설정값
 
-⑪각 단면의 Windowing / Image Filter 설정값
+⑪B/L Switching 상태
 
-⑫B/L Switching 상태
+⑫BL/LB 기준점 위치
 
-⑬BL/LB 기준점 위치
+(~~⑧Active Section Line의 회전 각도~~ — v1.3.2 미적용·스펙아웃, PLAN-1287 #3)
 
 d.단, 상기 항목은 개발실 리뷰 후 변경될 수 있다.
 
@@ -851,7 +872,8 @@ c.Section 레이아웃으로 오픈될 경우, 저장된 Curve를 기준으로 P
 | Slice 이동 (마우스 휠 / Slider) | ● | ✕ (UI disabled) | ● |
 | Panorama 이미지 경계선 이동 | ● | ✕ (화면 blank) | ● |
 | Panorama 이미지 중심선 이동 | ● | ✕ (화면 blank) | ● |
-| Active section line 조정 (이동, 회전) | ● | ✕ (화면 blank) | ● |
+| Active section line 위치 이동 | ● | ✕ (화면 blank) | ● |
+| ~~Active section line 각도 회전 (±45°)~~ | — (v1.3.2 스펙아웃) | — | — |
 | **Section View** |  |  |  |
 | Image Adjust (Width/Level 조정 / Image Filter) / 최대화 | ● | ✕ (UI disabled) | ● |
 | Setting (Thickness / Interval 조정) | ● | ✕ (UI disabled) | ● |
