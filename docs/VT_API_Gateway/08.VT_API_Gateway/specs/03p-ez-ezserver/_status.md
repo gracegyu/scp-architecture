@@ -22,6 +22,6 @@
       # proxy_pass https://$gw_host;  proxy_ssl_server_name on;  proxy_set_header Host $gw_host;
       # proxy_set_header Vatech-Via "EzServer/<ver>";  # originator Vatech-* 는 통과
       ```
-- 작성 모델: GW 소유자 1차 초안 → EzServer 팀 인계
+- 작성 모델(**7/9 변경**): **Thomas(EzServer 팀)가 직접 작성** — GW(Raymond)는 **표준 계약만 제공**(§2.3.0 헤더·§4.5.1 라우팅·§7.7 COMPAT·§7.8.1 fleet·§7.6.6 MQTT), 초안 미작성. **v1.0 = Straumann IO(IntraOral) Scanner 연동(갈래A) 우선**(CleverOne 무관분 후행) · **IO Scanner↔EzServer 연동 방식 미정**(추후 확정 — 확정 후 해당 부분 구체화).
 - TBD: MQTT 역방향(Edge 분배) 운영 주체 — ③ §7.6 TBD 연동
 - 공식 등록처: TBD (제품 repo / VKS — 인계 시 결정)

@@ -5,6 +5,7 @@
 - 상태: 미작성 (③ SRS baseline 후)
 - 문서 유형: Sub-SRS
 - 범위: AXS OAuth·Org-ID 매핑·리전, Webhook 이벤트·서명·재시도, **EzServer→AXS 갈래 A(우선 범위)**, unstable 환경
+- **v1.0 1차 범위 = Straumann IO(IntraOral) Scanner 연동만 (7/9 결정)** — **CleverOne 연동은 post-v1.0로 deferred**(SRS §1.2·§2.7). ④ 집필 시 IO Scanner 시나리오를 우선 구체화하고, CleverOne originator 부분은 후행. **IO Scanner↔EzServer 연동 방식 미정**(추후 확정·③-P-EZ). 목표=10월 출시(Agenda Gantt).
 - 상위 여정 조망: **③ SRS §2.3 「클리닉 온보딩 end-to-end 여정」**(설치→LMP→enroll→AXS·가입 상태 A/B/C 분기 노출)이 GW 관점 뼈대를 두고, **본 ④가 AXS 내부 가입·구독 절차의 정본**이다(레이어 분리·Appendix B #44).
 - **7/9 R8 결정: A/B/C를 모두 cover** — cover의 의미는 (A) 무처리(orgId 보유)·(B) API로 자동 link·(C) 비-API 선행절차(Straumann 고객가입) 관리 + `customerNumber` 확보 후 B 진입. C는 더 이상 "범위 밖"이 아니다(단 Straumann 고객 생성 API는 없음 → 수동 온보딩 선행).
 - **AXS "가입" = 선행조건 1 + 클리닉 케이스 A/B/C (개발자 필수정보 — ③ SRS §2.3.4 표 정본, 여기 상세)**:
