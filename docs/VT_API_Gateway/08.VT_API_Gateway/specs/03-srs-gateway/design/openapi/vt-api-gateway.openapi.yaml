@@ -6,10 +6,10 @@
 # 시드 출처: "VT API Gateway - API 명세·데이터 모델·주권" §1 엔드포인트.
 # 범위: GW 고유 API(A — apex gw.vatech.com 호출)만 정의(§4.1.1·ADR-11, 7/2 R1).
 #       프록시(B 내부·C 외부)는 target 서브도메인({target}.gw.vatech.com, Host/SNI)으로 라우팅되는 verbatim bypass이며 OpenAPI에 정의하지 않는다
-#       (레지스트리 config + upstream OpenAPI 정본). Vatech-Target 헤더는 CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환). §4.1.2·§4.5.1 참조.
+#       (레지스트리 config + target OpenAPI 정본). Vatech-Target 헤더는 CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환). §4.1.2·§4.5.1 참조.
 # 필드는 camelCase, 시간은 Unix ms(SRS §1.3). 상세 스키마는 LLD에서 확정.
 # 에러 계약: 공통 Error envelope + 재사용 응답(400/401/403/404/409/429) + 프록시 GW생성 오류(502/503/504=ProxyError, §7.5.4·§7.7.4)
-#   + Vatech-Error-Origin(gateway|upstream)·Retry-After 헤더. 인증=전 op 명시(상속 없음): deviceAuth(private_key_jwt)/operatorAuth(직원 IdP OIDC+RBAC)/webhookHmac(발신자 HMAC), 공개 ep(auth·enroll·well-known·webhooks)는 security:[]. 운영자=Entra OIDC Bearer 요청별 operatorAuth 검증(전용 verify ep 없음·7/9 R2=Entra).
+#   + Vatech-Error-Origin(gateway|target)·Retry-After 헤더. 인증=전 op 명시(상속 없음): deviceAuth(private_key_jwt)/operatorAuth(직원 IdP OIDC+RBAC)/webhookHmac(발신자 HMAC), 공개 ep(auth·enroll·well-known·webhooks)는 security:[]. 운영자=Entra OIDC Bearer 요청별 operatorAuth 검증(전용 verify ep 없음·7/9 R2=Entra).
 #   (example·완전한 code-first 정합은 baseline 후 — Appendix B #6)
 openapi: 3.0.3
 info:
@@ -53,19 +53,19 @@ paths:
 
   # --- 프록시(B 내부·C 외부)는 본 OpenAPI에 정의하지 않는다 (§4.1.1·§4.1.2·ADR-11, 7/2 R1) ---
   # 라우팅 = target 서브도메인({target}.gw.vatech.com, Host/SNI · 라벨=논리 ID) → 레지스트리 allowlist→host 해석. 미등록 라벨=404.
-  # GW는 클라이언트가 친 upstream 경로를 host만 바꿔 verbatim 전달(요청/응답 body 그대로). 경로를 GW가 정의/변환하지 않음.
+  # GW는 클라이언트가 친 target 경로를 host만 바꿔 verbatim 전달(요청/응답 body 그대로). 경로를 GW가 정의/변환하지 않음.
   #   - 경로②(B): cleverspace.gw.vatech.com — CleverSpace OpenAPI 정본
   #   - 경로③(C): axs.gw.vatech.com — AXS OpenAPI 스냅샷 + ④ Sub-SRS 정본 (OAuth2·egress allowlist는 GW 정책)
   # apex gw.vatech.com 호출만 아래 GW 고유 API(A)로 처리된다. Vatech-Target 헤더는 CleverOne→EzServer 내부 hop 키(EzServer가 서브도메인 변환).
   #
   # 프록시 에러·복원력 계약 (정본 §7.5.4·§7.7.4 — 경로가 아니라 전 프록시 공통이므로 여기 주석으로 기술):
-  #   - GW→upstream 연결 timeout(connect/response/total_deadline, Upstream)=GW 책임(7/2 R4·D1~D3): GW가 upstream에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound. total_deadline < 클라이언트 타임아웃.
-  #   - 클라이언트 타임아웃 인지(D10): 프록시 호출 시 클라이언트가 선택적 요청 헤더 Vatech-Timeout-Ms(상대값 ms) 전송 가능 → GW가 내부 deadline=now+min(헤더, total_deadline)로 클램프(gRPC grpc-timeout 선례). 미전송 시 계약값(EzServer 30s, D4) 사용. 프록시는 verbatim이라 본 헤더는 upstream에 전달 안 함.
+  #   - GW→target 연결 timeout(connect/response/total_deadline, Target)=GW 책임(7/2 R4·D1~D3): GW가 target에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound. total_deadline < 클라이언트 타임아웃.
+  #   - 클라이언트 타임아웃 인지(D10): 프록시 호출 시 클라이언트가 선택적 요청 헤더 Vatech-Timeout-Ms(상대값 ms) 전송 가능 → GW가 내부 deadline=now+min(헤더, total_deadline)로 클램프(gRPC grpc-timeout 선례). 미전송 시 계약값(EzServer 30s, D4) 사용. 프록시는 verbatim이라 본 헤더는 target에 전달 안 함.
   #   - 재시도·서킷 브레이커=service mesh(istio) egress 담당(GW 미구현, D5~D8).
-  #   - GW 정규화 오류 = ProxyError 스키마: 502 연결실패(UPSTREAM_UNREACHABLE) / 504 timeout·deadline(UPSTREAM_TIMEOUT, GW 자기 timeout) / 503 서킷·일시불가(UPSTREAM_UNAVAILABLE, mesh). 헤더 Vatech-Error-Origin: gateway.
-  #     재사용 응답 정의 = components/responses/{UpstreamUnreachable(502), UpstreamUnavailable(503), UpstreamTimeout(504)} (프록시 게이트웨이 핸들러에서 사용).
-  #   - upstream 자체 4xx/5xx = 원 코드·body verbatim 통과(GW 미변형). 헤더 Vatech-Error-Origin: upstream.
-  #   - GW 앱레벨: 연결 timeout + 오류 정규화 + 멱등(Idempotency-Key 존중) + 클라이언트 조기 절단 시 upstream 호출 취소. 네트워크 재시도·서킷은 mesh 담당.
+  #   - GW 정규화 오류 = ProxyError 스키마: 502 연결실패(TARGET_UNREACHABLE) / 504 timeout·deadline(TARGET_TIMEOUT, GW 자기 timeout) / 503 서킷·일시불가(TARGET_UNAVAILABLE, mesh). 헤더 Vatech-Error-Origin: gateway.
+  #     재사용 응답 정의 = components/responses/{TargetUnreachable(502), TargetUnavailable(503), TargetTimeout(504)} (프록시 게이트웨이 핸들러에서 사용).
+  #   - target 자체 4xx/5xx = 원 코드·body verbatim 통과(GW 미변형). 헤더 Vatech-Error-Origin: target.
+  #   - GW 앱레벨: 연결 timeout + 오류 정규화 + 멱등(Idempotency-Key 존중) + 클라이언트 조기 절단 시 target 호출 취소. 네트워크 재시도·서킷은 mesh 담당.
 
   # ═══════════════════ DEVICE-SELF PLANE (/v1/*, deviceAuth) — EzServer(디바이스)가 자기 것만 호출. auth/token·enroll 부트스트랩만 security:[] ═══════════════════
 
@@ -305,10 +305,10 @@ paths:
       security:
       - deviceAuth: []
       tags: [ clinics ]
-      summary: 내 clinic 외부 upstream Org-ID 자가 등록 — device self(연동 켤 때) (FR-INT-*) [v1.0]
+      summary: 내 clinic 외부 target Org-ID 자가 등록 — device self(연동 켤 때) (FR-INT-*) [v1.0]
       description: >-
-        클리닉(자기)이 외부 연동(예 AXS)을 켤 때 그 upstream의 Org-ID를 등록 → org_mapping((upstream,
-        Org-ID)→clinic·webhook 분배 키). Org-ID는 upstream 온보딩에서 발급(§2.3.4·④). **경우 A(이미 연동)=보유
+        클리닉(자기)이 외부 연동(예 AXS)을 켤 때 그 target의 Org-ID를 등록 → org_mapping((target,
+        Org-ID)→clinic·webhook 분배 키). Org-ID는 target 온보딩에서 발급(§2.3.4·④). **경우 A(이미 연동)=보유
         Org-ID로 즉시 등록 / 경우 B(미연동)=AXS link 프록시로 Org-ID 획득 후 등록 — 두 경우 모두 본 엔드포인트로 수렴**(GW 고유 API는
         Org-ID만 필요·case-agnostic; link는 프록시 레일). 토큰 기준 self. 운영자 교정은 POST /v1/admin/org-mappings.
       requestBody:
@@ -782,7 +782,7 @@ paths:
       parameters:
       - name: targetId
         in: query
-        description: 연동 대상(upstream) 필터 — 정확 일치(exact)
+        description: 연동 대상(target) 필터 — 정확 일치(exact)
         schema: { type: string, example: axs }
       - name: clinicId
         in: query
@@ -790,7 +790,7 @@ paths:
         schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
       - name: externalOrgId
         in: query
-        description: upstream 발급 Org-ID 필터 — 정확 일치(exact)
+        description: target 발급 Org-ID 필터 — 정확 일치(exact)
         schema: { type: string, example: e407b34d-c4b0-4db3-bbcd-cc11770eae7b }
       - name: limit
         in: query
@@ -846,12 +846,12 @@ paths:
           in: query
           required: true
           schema: { type: string, example: axs }
-          description: upstream 대상 라벨(=Vatech-Target)
+          description: target 대상 라벨(=Vatech-Target)
         - name: externalOrgId
           in: query
           required: true
           schema: { type: string, example: e407b34d-c4b0-4db3-bbcd-cc11770eae7b }
-          description: 'upstream 발급 외부 Org-ID(AXS=organizationId·UUID). 실제 형식·값은 7/9 R4 확정(#46)'
+          description: 'target 발급 외부 Org-ID(AXS=organizationId·UUID). 실제 형식·값은 7/9 R4 확정(#46)'
       responses:
         '204': { description: 삭제됨 }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -875,7 +875,7 @@ paths:
         - name: targetId
           in: query
           schema: { type: string, example: axs }
-          description: 발신 upstream 라벨 필터(정확 일치)
+          description: 발신 target 라벨 필터(정확 일치)
         - name: clinicId
           in: query
           schema: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
@@ -883,7 +883,7 @@ paths:
         - name: eventType
           in: query
           schema: { type: string, example: patient.created }
-          description: upstream 원어 event_type 필터(정확 일치)
+          description: target 원어 event_type 필터(정확 일치)
         - name: state
           in: query
           schema: { $ref: '#/components/schemas/WebhookEventState' }
@@ -1012,83 +1012,83 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  # --- 연동 대상(upstream) 통합 관리 (§7.5·§7.6·§7.1.3, Console ③-C) — 라우팅+자격+webhook 수신 한 레코드 ---
+  # --- 연동 대상(target) 통합 관리 (§7.5·§7.6·§7.1.3, Console ③-C) — 라우팅+자격+webhook 수신 한 레코드 ---
 
-  /v1/admin/upstreams:
+  /v1/admin/targets:
     get:
-      operationId: getAdminUpstreams
+      operationId: getAdminTargets
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: 연동 대상(upstream) 목록 조회 (라우팅·자격·webhook 수신 통합) (FR-INT-01/02·FR-WH-01/02) [v1.0]
+      summary: 연동 대상(target) 목록 조회 (라우팅·자격·webhook 수신 통합) (FR-INT-01/02·FR-WH-01/02) [v1.0]
       description: >-
-        운영자가 등록된 연동 대상(upstream) **전체 목록**을 조회한다. **소규모 카탈로그**(v1.0=1개 `axs`·향후 소수 `cleverspace` 등)라 페이지네이션·필터 없음(region 카탈로그와 동일 패턴). credential_ref·secret_ref는 **KMS 참조만** 반환(시크릿 원문 미노출·§6.2).
+        운영자가 등록된 연동 대상(target) **전체 목록**을 조회한다. **소규모 카탈로그**(v1.0=1개 `axs`·향후 소수 `cleverspace` 등)라 페이지네이션·필터 없음(region 카탈로그와 동일 패턴). credential_ref·secret_ref는 **KMS 참조만** 반환(시크릿 원문 미노출·§6.2).
       responses:
         '200':
-          description: upstream 목록
+          description: target 목록
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Upstream'
+                  $ref: '#/components/schemas/Target'
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
-      operationId: postAdminUpstreams
+      operationId: postAdminTargets
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: upstream 등록/갱신(upsert) — **연동 하나=1 레코드**(라우팅+자격+webhook 수신)·감사 action=upstream.upsert (FR-INT-01/02·FR-WH-01/02) [v1.0]
+      summary: target 등록/갱신(upsert) — **연동 하나=1 레코드**(라우팅+자격+webhook 수신)·감사 action=target.upsert (FR-INT-01/02·FR-WH-01/02) [v1.0]
       description: >-
-        운영자가 연동 대상(upstream)을 **upsert**한다 — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드로(구 3표
-        병합·§7.5·§7.6). **PK `targetId`가 있으면 갱신(200)·없으면 생성(201)**. credential·secret은 KMS 저장(원문 미노출·§6.2). 감사 action=upstream.upsert.
+        운영자가 연동 대상(target)을 **upsert**한다 — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드로(구 3표
+        병합·§7.5·§7.6). **PK `targetId`가 있으면 갱신(200)·없으면 생성(201)**. credential·secret은 KMS 저장(원문 미노출·§6.2). 감사 action=target.upsert.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Upstream'
+              $ref: '#/components/schemas/Target'
       responses:
-        '200': { description: '갱신됨(기존 upstream override)' }
+        '200': { description: '갱신됨(기존 target override)' }
         '201': { description: 신규 등록됨 }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /v1/admin/upstreams/{targetId}:
+  /v1/admin/targets/{targetId}:
     parameters:
     - name: targetId
       in: path
       required: true
       schema: { type: string, example: axs }
     get:
-      operationId: getAdminUpstreamsByTargetId
+      operationId: getAdminTargetsByTargetId
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: upstream 단건 조회 — Console 편집 폼 프리필 (FR-INT-01/02·FR-WH-01/02) [v1.0]
-      description: '단일 연동 대상(upstream)의 전체 설정을 조회한다(편집 폼 프리필·목록과 일관). credential_ref·secret_ref는 KMS 참조만(원문 미노출·§6.2).'
+      summary: target 단건 조회 — Console 편집 폼 프리필 (FR-INT-01/02·FR-WH-01/02) [v1.0]
+      description: '단일 연동 대상(target)의 전체 설정을 조회한다(편집 폼 프리필·목록과 일관). credential_ref·secret_ref는 KMS 참조만(원문 미노출·§6.2).'
       responses:
         '200':
-          description: upstream 레코드
+          description: target 레코드
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Upstream' }
+              schema: { $ref: '#/components/schemas/Target' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     delete:
-      operationId: deleteAdminUpstreamsByTargetId
+      operationId: deleteAdminTargetsByTargetId
       security:
       - operatorAuth: []
       tags: [ admin ]
-      summary: upstream 삭제 — 해당 연동 전체(라우팅·자격·webhook 수신) 제거·감사 action=upstream.delete (FR-INT-01/02·FR-WH-01/02) [v1.0]
+      summary: target 삭제 — 해당 연동 전체(라우팅·자격·webhook 수신) 제거·감사 action=target.delete (FR-INT-01/02·FR-WH-01/02) [v1.0]
       description: >-
-        운영자가 upstream을 삭제한다 — 해당 연동 전체(라우팅·자격·webhook 수신) 제거. 감사 action=upstream.delete.
+        운영자가 target을 삭제한다 — 해당 연동 전체(라우팅·자격·webhook 수신) 제거. 감사 action=target.delete.
         **종속 참조가 있으면 409**(`org_mapping`·`policy`·`webhook_event`가 targetId를 FK 참조·§6.4.1) — 먼저 매핑/정책을 정리해야 삭제 가능(연동 사용 중 오삭제·orphan 방지).
       responses:
         '204': { description: 삭제됨 }
@@ -1226,7 +1226,7 @@ paths:
       - name: targetId
         in: query
         schema: { type: string, example: axs }
-        description: 'upstream 대상(정확 일치)'
+        description: 'target 대상(정확 일치)'
       responses:
         '200':
           description: 정책 목록
@@ -1247,7 +1247,7 @@ paths:
       summary: 정책 등록/갱신(upsert) — allowed_endpoints·scopes. 감사 action=policy.update (FR-INT-03) [v1.0]
       description: >-
         운영자가 정책을 등록/갱신(upsert)한다(allowed_endpoints·scopes). deny-by-default라 v1.0 필수(허용 정책 없으면 프록시
-        전면 거부). v1.0 집행=coarse(upstream 사용 허용까지·§7.5.3). 감사 action=policy.update.
+        전면 거부). v1.0 집행=coarse(target 사용 허용까지·§7.5.3). 감사 action=policy.update.
       requestBody:
         required: true
         content:
@@ -1354,7 +1354,7 @@ paths:
 
   # ═══════════════════ PUBLIC PLANE — 외부 발신자(webhookHmac)·공개 well-known · security:[] ═══════════════════
 
-  # --- Webhook 수신 (§7.6·§4.1.3) — {target}.webhook.gw.vatech.com Host/SNI로 식별. 경로/스키마는 upstream 규약 수용·유연(아래 예시). GW는 발신자 HMAC 검증·라우팅만, payload 비해석 ---
+  # --- Webhook 수신 (§7.6·§4.1.3) — {target}.webhook.gw.vatech.com Host/SNI로 식별. 경로/스키마는 target 규약 수용·유연(아래 예시). GW는 발신자 HMAC 검증·라우팅만, payload 비해석 ---
 
   /v1/webhooks/{target}:
     post:
@@ -1362,15 +1362,15 @@ paths:
       tags: [ webhooks ]
       security:
       - webhookHmac: []
-      summary: 외부 이벤트 Webhook 수신 (FR-WH-01~05) — upstream별 전용 호스트로 식별, 경로/형식 유연(예시) [v1.0]
+      summary: 외부 이벤트 Webhook 수신 (FR-WH-01~05) — target별 전용 호스트로 식별, 경로/형식 유연(예시) [v1.0]
       description: >-
-        **발신자 식별 = upstream별 전용 호스트**(`{target}.webhook.gw.vatech.com`, Host/SNI → 레지스트리 inbound_host, §7.6.2) — source IP 비의존. 아래 경로 `/v1/webhooks/{target}`와 스키마는 **예시**이며 확정 계약이 아니다(upstream 규약 수용·유연, §4.1.3). **신뢰(인증) = HMAC + timestamp**(호스트명은 식별이지 인증 아님); source IP allowlist는 옵션. GW는 멱등(eventId)·라우팅만 하며 payload는 소비자가 해석한다(opaque, ④/AXS 스냅샷 참조).
+        **발신자 식별 = target별 전용 호스트**(`{target}.webhook.gw.vatech.com`, Host/SNI → 레지스트리 inbound_host, §7.6.2) — source IP 비의존. 아래 경로 `/v1/webhooks/{target}`와 스키마는 **예시**이며 확정 계약이 아니다(target 규약 수용·유연, §4.1.3). **신뢰(인증) = HMAC + timestamp**(호스트명은 식별이지 인증 아님); source IP allowlist는 옵션. GW는 멱등(eventId)·라우팅만 하며 payload는 소비자가 해석한다(opaque, ④/AXS 스냅샷 참조).
       parameters:
       - name: target
         in: path
         required: true
         description: >-
-          upstream 라벨(=Vatech-Target·서브도메인). **레지스트리(`upstream.inbound_host`) 기반 검증 — enum/하드코딩
+          target 라벨(=Vatech-Target·서브도메인). **레지스트리(`target.inbound_host`) 기반 검증 — enum/하드코딩
           금지·런타임 등록**(§7.6.1). 미등록 라벨=404. axs는 예시일 뿐 고정 목록 아님(cleverspace 등 확장)
         schema:
           type: string
@@ -1439,20 +1439,20 @@ components:
       in: header
       name: X-Signature
       description: >-
-        **Webhook HMAC 서명 검증(발신자 인증)** — 외부 발신자(v1.0=AXS)가 payload를 upstream별 시크릿으로 HMAC
-        서명(§7.6.2). GW가 `upstream.secret_ref`(KMS)로 검증 + timestamp replay 방지. **실제 서명 헤더명·알고리즘은
-        upstream 규약(`sig_scheme`)** 이라 발신자별로 다름(여기 `X-Signature`는 예시). source IP allowlist는 옵션.
+        **Webhook HMAC 서명 검증(발신자 인증)** — 외부 발신자(v1.0=AXS)가 payload를 target별 시크릿으로 HMAC
+        서명(§7.6.2). GW가 `target.secret_ref`(KMS)로 검증 + timestamp replay 방지. **실제 서명 헤더명·알고리즘은
+        target 규약(`sig_scheme`)** 이라 발신자별로 다름(여기 `X-Signature`는 예시). source IP allowlist는 옵션.
         bearer 토큰 아님.
 
   headers:
     VatechErrorOrigin:
-      description: 오류 책임 주체 — gateway(GW 생성) | upstream(대상 서버 자체 오류, verbatim 통과). §7.7.4
-      schema: { type: string, enum: [ gateway, upstream ] }
+      description: 오류 책임 주체 — gateway(GW 생성) | target(대상 서버 자체 오류, verbatim 통과). §7.7.4
+      schema: { type: string, enum: [ gateway, target ] }
     RetryAfter:
       description: 재시도 권고(초). 429·503에서 부여
       schema: { type: integer }
-    VatechUpstreamLatencyMs:
-      description: 프록시 시 upstream 응답 지연(관측, §7.5.4)
+    VatechTargetLatencyMs:
+      description: 프록시 시 target 응답 지연(관측, §7.5.4)
       schema: { type: integer, format: int64 }
 
   responses:
@@ -1489,25 +1489,25 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
     # --- 프록시(B/C) 전용 — GW 생성 오류. 특정 경로가 아니라 target 서브도메인 proxy 공통(§7.5.4·§7.7.4). ---
-    # --- upstream 자체 4xx/5xx는 본 응답을 쓰지 않고 원응답을 verbatim 통과(Vatech-Error-Origin: upstream). ---
-    # --- ※ 아래 Upstream* 응답·ProxyError 스키마·Vatech* 헤더는 프록시 경로가 OpenAPI에 정의되지 않아(bypass, §4.1.1) '정의만·미참조'다 → redocly `no-unused-components` 경고는 **의도된 것**(프록시 핸들러 구현 계약 참조용). ---
-    UpstreamUnreachable:
-      description: upstream 연결 실패(거부·DNS·TLS) — GW 연결 timeout·GW 정규화 (502)
+    # --- target 자체 4xx/5xx는 본 응답을 쓰지 않고 원응답을 verbatim 통과(Vatech-Error-Origin: target). ---
+    # --- ※ 아래 Target* 응답·ProxyError 스키마·Vatech* 헤더는 프록시 경로가 OpenAPI에 정의되지 않아(bypass, §4.1.1) '정의만·미참조'다 → redocly `no-unused-components` 경고는 **의도된 것**(프록시 핸들러 구현 계약 참조용). ---
+    TargetUnreachable:
+      description: target 연결 실패(거부·DNS·TLS) — GW 연결 timeout·GW 정규화 (502)
       headers:
         Vatech-Error-Origin: { $ref: '#/components/headers/VatechErrorOrigin' }
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ProxyError' }
-    UpstreamUnavailable:
-      description: 서킷 개방(mesh/istio) / upstream 일시 불가 — GW 정규화 (503)
+    TargetUnavailable:
+      description: 서킷 개방(mesh/istio) / target 일시 불가 — GW 정규화 (503)
       headers:
         Retry-After: { $ref: '#/components/headers/RetryAfter' }
         Vatech-Error-Origin: { $ref: '#/components/headers/VatechErrorOrigin' }
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ProxyError' }
-    UpstreamTimeout:
-      description: upstream 응답 지연 — GW 연결 timeout(response/total_deadline, D2/D3) 초과·GW 정규화 (504)
+    TargetTimeout:
+      description: target 응답 지연 — GW 연결 timeout(response/total_deadline, D2/D3) 초과·GW 정규화 (504)
       headers:
         Vatech-Error-Origin: { $ref: '#/components/headers/VatechErrorOrigin' }
       content:
@@ -1526,7 +1526,7 @@ components:
         example: 01920a7b-3c4d-7e5f-8a90-1b2c3d4e5f60
 
   schemas:
-    # 공통 오류 envelope (GW 생성 — §7.7.4). 프록시 upstream 자체 오류는 verbatim이라 미적용.
+    # 공통 오류 envelope (GW 생성 — §7.7.4). 프록시 target 자체 오류는 verbatim이라 미적용.
     Error:
       type: object
       required: [ errorCode ]
@@ -1559,7 +1559,7 @@ components:
         scope:
           type: string
           description: >-
-            요청 권한 scope(공백 구분·형식 `{target}:{resource}.{action}`). **v1.0 미사용·예약(gw/1.1+ 세분화용)** — v1.0은 AXS + Org-ID가 데이터·작업 격리를 하므로 GW는 upstream 단위로만 굵게 인가하고 scope 세분화는 하지 않는다(§7.5.3). EzServer는 v1.0에 보내지 않아도 된다. 미래 활성화 시 정책/OPA가 검증(초과 403). axs는 예시일 뿐 엔드포인트가 AXS 전용이란 뜻 아님.
+            요청 권한 scope(공백 구분·형식 `{target}:{resource}.{action}`). **v1.0 미사용·예약(gw/1.1+ 세분화용)** — v1.0은 AXS + Org-ID가 데이터·작업 격리를 하므로 GW는 target 단위로만 굵게 인가하고 scope 세분화는 하지 않는다(§7.5.3). EzServer는 v1.0에 보내지 않아도 된다. 미래 활성화 시 정책/OPA가 검증(초과 403). axs는 예시일 뿐 엔드포인트가 AXS 전용이란 뜻 아님.
           example: axs:patient.read axs:study.write
     TokenResponse:
       type: object
@@ -1827,12 +1827,12 @@ components:
           description: '변경 주체(audit actor, 예 user:entra-…)'
           example: user:entra-8f3a
 
-    # 연동 대상(upstream) 통합 (§7.5·§7.6·§7.1.3) — 라우팅+아웃바운드 자격+인바운드 webhook 수신
-    Upstream:
+    # 연동 대상(target) 통합 (§7.5·§7.6·§7.1.3) — 라우팅+아웃바운드 자격+인바운드 webhook 수신
+    Target:
       type: object
       required: [ targetId, profile ]
       description: >-
-        연동 대상(외부 서비스·내부 backend) **통합 레코드**(엔터티=upstream) — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드에(구 upstream_registry·connector·webhook_provider 병합). **upstream 하나 등록=1 레코드**. credential_ref·secret_ref는 KMS 참조만(원문 미노출). org_mapping·webhook_event·policy가 targetId를 참조. AXS=①②③ 다 채움 / 내부(cleverspace)=① 라우팅만.
+        연동 대상(외부 서비스·내부 backend) **통합 레코드**(엔터티=target) — 라우팅+아웃바운드 자격+인바운드 webhook 수신을 한 레코드에(구 target_registry·connector·webhook_provider 병합). **target 하나 등록=1 레코드**. credential_ref·secret_ref는 KMS 참조만(원문 미노출). org_mapping·webhook_event·policy가 targetId를 참조. AXS=①②③ 다 채움 / 내부(cleverspace)=① 라우팅만.
       properties:
         targetId:
           type: string
@@ -1852,8 +1852,8 @@ components:
           description: >-
             internal=B(내부) / external=C(외부)
           example: external
-        connectTimeoutMs: { type: integer, description: 'GW→upstream 연결 대기 — GW 책임(D1, §7.5.4·R4)', example: 3000 }
-        responseTimeoutMs: { type: integer, description: 'GW→upstream 응답 대기·초과 504(D2)', example: 10000 }
+        connectTimeoutMs: { type: integer, description: 'GW→target 연결 대기 — GW 책임(D1, §7.5.4·R4)', example: 3000 }
+        responseTimeoutMs: { type: integer, description: 'GW→target 응답 대기·초과 504(D2)', example: 10000 }
         totalDeadlineMs: { type: integer, description: '프록시 총 예산(D3, < 클라이언트 타임아웃)', example: 12000 }
         enabled: { type: boolean, example: true }
         # ── ② 아웃바운드 자격 (외부 C만·nullable) ──
@@ -1868,7 +1868,7 @@ components:
           nullable: true
           description: >-
             egress SSOT(#31) — hosts·cidrs 둘 다 비면 fail-closed(전면 거부). 외부 C만.
-            형식=design/db-jsonb-fields.md#upstream
+            형식=design/db-jsonb-fields.md#target
           properties:
             hosts:
               type: array
@@ -1917,7 +1917,7 @@ components:
           type: string
           nullable: true
           description: >-
-            payload에서 event_type 추출 경로(upstream 어휘 verbatim·GW enum 아님)
+            payload에서 event_type 추출 경로(target 어휘 verbatim·GW enum 아님)
           example: $.eventType
         createdAt: { type: integer, format: int64, description: '생성 시각(Unix ms·서버 설정·읽기 전용)', example: 1720224000000 }
         updatedAt: { type: integer, format: int64, description: '수정 시각(Unix ms·서버 설정·읽기 전용)', example: 1720310400000 }
@@ -1926,7 +1926,7 @@ components:
     WebhookEnvelope:
       type: object
       description: >-
-        GW가 검증·라우팅에 쓰는 **논리(추출) 필드**를 예시로 정의(확정 계약 아님·§4.1.3). **실제 인바운드 본문은 upstream 원 스키마**라 필드명·구조가 다르며, GW가 `upstream.event_id_path`·`event_type_path`·`org_id_path`로 추출한다. 예: AXS는 `messageId`(→eventId)·`eventType`·최상위 `organizationId`(→org 라우팅 키)를 flat하게 보냄(아래 payload 래핑은 논리 예시). payload 본문은 opaque(GW 재정의 금지).
+        GW가 검증·라우팅에 쓰는 **논리(추출) 필드**를 예시로 정의(확정 계약 아님·§4.1.3). **실제 인바운드 본문은 target 원 스키마**라 필드명·구조가 다르며, GW가 `target.event_id_path`·`event_type_path`·`org_id_path`로 추출한다. 예: AXS는 `messageId`(→eventId)·`eventType`·최상위 `organizationId`(→org 라우팅 키)를 flat하게 보냄(아래 payload 래핑은 논리 예시). payload 본문은 opaque(GW 재정의 금지).
       required: [ eventId, eventType ]
       properties:
         eventId:
@@ -1939,7 +1939,7 @@ components:
           example: patient.created
         payload:
           type: object
-          description: upstream별 외부 스키마(④/AXS 스냅샷 참조). GW 재정의 금지.
+          description: target별 외부 스키마(④/AXS 스냅샷 참조). GW 재정의 금지.
           example: { organizationId: e407b34d-c4b0-4db3-bbcd-cc11770eae7b, patient: { id: a5437cb7-fffd-4cb2-8fdd-4063b5e43dae } }
     WebhookAck:
       type: object
@@ -1972,7 +1972,7 @@ components:
         payload:
           type: object
           additionalProperties: true
-          description: 'redact 적용된 본문(upstream-owned·opaque). 마스킹된 PHI 필드는 값이 가려짐(전달 verbatim 본문은 불변)'
+          description: 'redact 적용된 본문(target-owned·opaque). 마스킹된 PHI 필드는 값이 가려짐(전달 verbatim 본문은 불변)'
           example: { organizationId: e407b34d-c4b0-4db3-bbcd-cc11770eae7b, patient: { id: a5437cb7-fffd-4cb2-8fdd-4063b5e43dae, firstName: '***', lastName: '***' } }
         retrievedAt: { type: integer, format: int64, description: '열람 시각(Unix ms)', example: 1720224000000 }
     WebhookEvent:
@@ -1982,12 +1982,12 @@ components:
       required: [ eventId, targetId, state, attempts, receivedAt ]
       properties:
         eventId: { type: string, description: '이벤트 식별자 = 멱등 키(dedup)', example: c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545 }
-        targetId: { type: string, description: '발신 upstream 라벨', example: axs }
+        targetId: { type: string, description: '발신 target 라벨', example: axs }
         eventType:
           type: string
           nullable: true
           description: >-
-            upstream 원어 event_type(verbatim·GW enum 아님·null 가능)
+            target 원어 event_type(verbatim·GW enum 아님·null 가능)
           example: patient.created
         externalOrgId: { type: string, nullable: true, description: '발신 org 식별자(분배 역조회 키·AXS=organizationId UUID). 추출 실패 시 null', example: e407b34d-c4b0-4db3-bbcd-cc11770eae7b }
         clinicId:
@@ -2096,11 +2096,11 @@ components:
       type: object
       required: [ targetId, externalOrgId, clinicId ]
       properties:
-        targetId: { type: string, description: '연동 대상(upstream) ID', example: axs }
+        targetId: { type: string, description: '연동 대상(target) ID', example: axs }
         externalOrgId:
           type: string
           description: >-
-            upstream(발신)의 org 식별자(AXS=organizationId·UUID, organization.yml). 실제 값은 7/9 R4 확정(#46)
+            target(발신)의 org 식별자(AXS=organizationId·UUID, organization.yml). 실제 값은 7/9 R4 확정(#46)
           example: e407b34d-c4b0-4db3-bbcd-cc11770eae7b
         clinicId: { type: string, example: d3f1a9c07b6e4258af31c9d2e0b4a687 }
         mappingVersion: { type: integer, description: '매핑 버전(변경마다 +1·캐시 무효화·CAS·§7.3.2)', example: 2 }
@@ -2112,8 +2112,8 @@ components:
       required: [ scopeType, targetId ]
       description: >-
         정책(OPA 입력·policy 테이블 매핑, §7.5.3·FR-INT-03). GW deny-by-default라 허용을 명시.
-        실효=device→clinic→global 합성. egress는 여기 아님(upstream.egressAllowlist, #31). **v1.0
-        집행=coarse(upstream 사용 허용까지)** — allowedEndpoints·scopes 세분화는 gw/1.1+ 예약(작업·데이터 격리는
+        실효=device→clinic→global 합성. egress는 여기 아님(target.egressAllowlist, #31). **v1.0
+        집행=coarse(target 사용 허용까지)** — allowedEndpoints·scopes 세분화는 gw/1.1+ 예약(작업·데이터 격리는
         AXS+Org-ID)
       properties:
         id: { type: string, description: '정책 id(GW 생성·불투명 surrogate)', example: pol_7f3a2b1c }
@@ -2129,7 +2129,7 @@ components:
           description: >-
             global=생략(null) / clinic=clinicId / device=deviceId (다형 참조·하드 FK 없음)
           example: d3f1a9c07b6e4258af31c9d2e0b4a687
-        targetId: { type: string, description: '적용 대상 upstream(=upstream.targetId)', example: axs }
+        targetId: { type: string, description: '적용 대상 target(=target.targetId)', example: axs }
         allowedEndpoints:
           type: array
           description: '허용 (method,path) 목록. 형식=design/db-jsonb-fields.md#policy'
@@ -2203,13 +2203,13 @@ components:
       type: object
       required: [ targetId, externalOrgId ]
       properties:
-        targetId: { type: string, description: '연동 대상(upstream) ID', example: axs }
+        targetId: { type: string, description: '연동 대상(target) ID', example: axs }
         externalOrgId:
           type: string
           description: >-
-            upstream(발신) Org-ID(AXS=organizationId·UUID, organization.yml). 실제 값은 7/9 R4 확정(#46)
+            target(발신) Org-ID(AXS=organizationId·UUID, organization.yml). 실제 값은 7/9 R4 확정(#46)
           example: e407b34d-c4b0-4db3-bbcd-cc11770eae7b
-      description: '외부 연동 연결 시 upstream별 Org-ID 등록 → org_mapping(webhook 라우팅 키)'
+      description: '외부 연동 연결 시 target별 Org-ID 등록 → org_mapping(webhook 라우팅 키)'
     Region:
       type: object
       required: [ regionId, status ]
@@ -2228,18 +2228,18 @@ components:
       properties:
         errorCode:
           type: string
-          enum: [ UPSTREAM_UNREACHABLE, UPSTREAM_TIMEOUT, UPSTREAM_UNAVAILABLE ]
+          enum: [ TARGET_UNREACHABLE, TARGET_TIMEOUT, TARGET_UNAVAILABLE ]
           description: '502 연결 실패 / 504 deadline 초과 / 503 서킷·일시불가(§7.7.4)'
-          example: UPSTREAM_TIMEOUT
+          example: TARGET_TIMEOUT
         origin:
           type: string
           enum: [ gateway ]
           description: >-
-            GW가 생성한 오류임을 표시(헤더 Vatech-Error-Origin: gateway와 동일). upstream 자체 4xx/5xx는 본 스키마를 쓰지 않고
-            원응답을 verbatim 통과(origin: upstream)
+            GW가 생성한 오류임을 표시(헤더 Vatech-Error-Origin: gateway와 동일). target 자체 4xx/5xx는 본 스키마를 쓰지 않고
+            원응답을 verbatim 통과(origin: target)
           example: gateway
         targetId: { type: string, description: '실패한 target 서브도메인 라벨(논리 ID)', example: axs }
         retryAfter: { type: integer, description: '503 시 재시도 권고(초)', example: 30 }
-        message: { type: string, example: upstream response deadline exceeded }
+        message: { type: string, example: target response deadline exceeded }
       description: >-
-        GW 생성 프록시 오류 본문(502/503/504). upstream 응답은 verbatim 통과라 이 스키마 미적용(§7.5.4·§7.7.4)
+        GW 생성 프록시 오류 본문(502/503/504). target 응답은 verbatim 통과라 이 스키마 미적용(§7.5.4·§7.7.4)
