@@ -4,7 +4,7 @@
 >
 > 실행 컨텍스트: **작업 유형별 cwd** 는 §2.1. 문서 루트 = `.../Cloud Web Viewer v1.3.2/`, 코드 루트 = `scp-section-poc`.
 >
-> 갱신: 2026-07-10 (v1.8) · §3.2 Spec 정제 단계, §16.0·§16.3 Claude Code 시작 프롬프트.
+> 갱신: 2026-07-10 (v1.9) · 문서 폴더 성격별 재정리(§4), 경로 동기화.
 >
 > 요구사항 정본은 MMI. 본 가이드는 요약·핸드오프·구현 맥락. 상세 기능 정의는 MMI와 후속 Spec을 따른다.
 
@@ -16,11 +16,11 @@ Cloud Web Viewer v1.3.2 Section Layout은 문서·코드가 세 갈래로 나뉜
 
 | 체계 | 역할 | 위치 |
 | --- | --- | --- |
-| 요구사항 (MMI) | 기획 기능 정의 v0.9.1 | `.../MMI_Kor/MMI.md` |
-| MMI PPT comments | PPT 변경 이력·MMI.md 드리프트 보조 정본 | `.../MMI_Kor/comments/` (§4.2) |
-| **UI 시각 정본** | Section Layout 3영역 기본 화면 | `.../MMI_Kor/media/image23.png` (§4.1) |
-| 검토·합의 | 개발실 리뷰, PLAN-1287 기획 답변 | `MMI_개발실리뷰.md`, `../PLAN-1287.md` |
-| 기술 검증 (PoC) | Web Section View 타당성·엔진·UI 프로토타입 | `scp-section-poc` 레포 + `../WebSectionView/` Phase 문서 |
+| 요구사항 (MMI) | 기획 기능 정의 v0.9.1 | `.../기획·요구사항/MMI/MMI.md` |
+| MMI PPT comments | PPT 변경 이력·MMI.md 드리프트 보조 정본 | `.../기획·요구사항/MMI/comments/` (§4.2) |
+| **UI 시각 정본** | Section Layout 3영역 기본 화면 | `.../기획·요구사항/MMI/media/image23.png` (§4.1) |
+| 검토·합의 | 개발실 리뷰, PLAN-1287 기획 답변 | `./검토/MMI_개발실리뷰.md`, `./기획·요구사항/PLAN-1287.md` |
+| 기술 검증 (PoC) | Web Section View 타당성·엔진·UI 프로토타입 | `scp-section-poc` 레포 + `../PoC/` Phase 문서 |
 | Section 모듈 (현재 단계) | MMI 정합 구현체 — 제품 접목 전 | `scp-section-poc` 확장 → 인계 |
 | 최종 제품 | Clever Space CT Viewer 접목 | `cloudwebviewer` 레포 |
 
@@ -63,7 +63,7 @@ Claude Code는 **시작할 때 연 cwd** 를 기준으로 터미널·상대 경�
 | 평가 항목 | A. 문서 폴더 `Cloud Web Viewer v1.3.2/` | B. 소스 폴더 `scp-section-poc/` |
 |-----------|----------------------------------------|--------------------------------|
 | MMI·Spec·image23·Slide7 | **최상** — 같은 트리, `@` 참조 짧음 | 절대경로 또는 긴 `../scp-architecture/...` |
-| Phase 1~5 PoC 문서 | `../Phase5/` 한 단계 | 문서 루트를 프롬프트로 지정 |
+| Phase 1~5 PoC 문서 | `../PoC/Phase5/` 한 단계 | 문서 루트를 프롬프트로 지정 |
 | `pnpm i` / `pnpm dev` | **실패·오동작** (package.json 없음) | **네이티브** |
 | git commit 대상 | `scp-architecture` (문서) | `scp-section-poc` (코드) — **의도한 대상** |
 | CW core link 검증 | link 경로 부적합 | **적합** |
@@ -118,7 +118,7 @@ Claude Code는 **시작할 때 연 cwd** 를 기준으로 터미널·상대 경�
 
 | 폴더 | 이유 |
 | --- | --- |
-| `WebSectionView/` (v1.3.2 **상위**) | Phase1~5 등 **v1.3.2와 무관한 문서 혼재** — 문서 전용이어도 **v1.3.2 하위**가 낫다 |
+| `WebSectionView/` (v1.3.2 **상위**) | PoC 문서는 `PoC/` 하위로 분리 — cwd로 쓰지 않음. 문서 전용이면 **v1.3.2 하위**가 낫다 |
 | `scp-architecture/` 레포 루트 | Section 문서까지 상대 경로가 김 |
 | `section.code-workspace` 파일 위치 (`Azure/`) | 워크스페이스 루트는 cwd로 쓰지 않음 |
 
@@ -235,21 +235,25 @@ Spec 정제 완료 기준: 개발계획 §3.7 「완료 기준」·§14.2 Techni
 
 ```
 docs/SCP Cloud Server 연구/뷰어 관련 연구/WebSectionView/
-├── WebSectionView.md                          # 초기 연구 메모
-├── WebSectionView_PoC_OnePager.md             # PoC 전체 로드맵
-├── PLAN-1287.md                               # Jira comment 스레드 (기획 답변·B/L)
-├── Phase1/ … Phase5/                          # Phase별 OnePager·결과
-└── Cloud Web Viewer v1.3.2/
+├── 주간회의-Agenda.md
+├── PoC/                                       # Web Section View 기술 검증 (Phase 1~5)
+│   ├── WebSectionView.md                      # 최초 연구 메모
+│   ├── WebSectionView_PoC_OnePager.md
+│   ├── Phase1/ … Phase5/
+│   └── 참고/                                  # Jira export·경쟁사·CleverOne 스크린샷
+└── Cloud Web Viewer v1.3.2/                   # Section 모듈 v1.3.2 (현재 작업)
     ├── Claude Code 작업 가이드.md              ← 본 문서
-    ├── Section-Module-개발계획.md              # 절차·범위·체크리스트
-    ├── Confidential_CloudWebViewer_v1.3.2_MMI_개발실리뷰.md
-    ├── Confidential_CloudWebViewer_v1.3.2_MMI_Kor/
-    │   ├── MMI.md                             # ★ 요구사항 정본 (텍스트)
-    │   ├── media/                             # PPT 원본 삽입 이미지 (§4.1)
-    │   │   └── image23.png                    # ★ v1.3.2 Section Layout UI 시각 정본
-    │   ├── comments/                          # PPT modern comment XML (§4.2)
-    │   └── Slide*.jpg                         # SharePoint 저해상도 export (참고만)
-    └── Section-Module-Spec-v1.3.2-OnePager.md   # OnePager Spec (B/L, 환경 정렬 §3)
+    ├── Section-Module-개발계획.md
+    ├── Section-Module-Spec-v1.3.2-OnePager.md
+    ├── CloudWebViewerData/                    # EzCloud·CW UI 참고 스크린샷
+    ├── 기획·요구사항/
+    │   ├── PLAN-1287.md                       # Jira 기획 답변·B/L
+    │   ├── PLAN-1287.xml
+    │   ├── MMI/                               # MMI v0.9.1 (MMI.md, media, comments, Slide*.jpg)
+    │   └── Confidential_260602_Cloud Web Viewer_Market Requirements/
+    ├── 검토/
+    │   └── MMI_개발실리뷰.md
+    └── 참고/                                  # 기타 이미지
 ```
 
 ---
@@ -260,7 +264,7 @@ docs/SCP Cloud Server 연구/뷰어 관련 연구/WebSectionView/
 
 | 우선순위 | 파일 | 역할 |
 | ---: | --- | --- |
-| **1 (필수)** | `Confidential_CloudWebViewer_v1.3.2_MMI_Kor/media/image23.png` | **v1.3.2 Section Layout 기본 UI** — Scout + Panorama + Section 3×3 전체를 관통하는 시각 정본 |
+| **1 (필수)** | `기획·요구사항/MMI/media/image23.png` | **v1.3.2 Section Layout 기본 UI** — Scout + Panorama + Section 3×3 전체를 관통하는 시각 정본 |
 | 2 | `MMI.md` | 동작·규칙 **텍스트** 정본 (image23과 함께 읽을 것) |
 | 3 | `media/image19.png`, `image27.png`, `image28.png` | image23과 **동일 계열** 뷰어 목업(해상도·슬라이스 번호·TH/INT만 다름). image23과 충돌 시 **image23 우선** |
 | 4 | `media/` 나머지 | 부분 확대·아이콘·다른 슬라이드 설명용 **참고** |
@@ -270,7 +274,7 @@ docs/SCP Cloud Server 연구/뷰어 관련 연구/WebSectionView/
 
 ```
 scp-architecture/docs/SCP Cloud Server 연구/뷰어 관련 연구/WebSectionView/
-  Cloud Web Viewer v1.3.2/Confidential_CloudWebViewer_v1.3.2_MMI_Kor/media/image23.png
+  Cloud Web Viewer v1.3.2/기획·요구사항/MMI/media/image23.png
 ```
 
 - 해상도: **1428 × 906** PNG (SharePoint `Slide*.jpg` 1280×720 JPEG보다 선명).
@@ -339,7 +343,7 @@ PoC는 이미 이 비율을 따른다. MMI 정합 시 **image23의 비율·오�
 
 ## 4.2 MMI PPT comments — 변경 이력 보조 정본
 
-위치: `Confidential_CloudWebViewer_v1.3.2_MMI_Kor/comments/` (PowerPoint modern comment XML 6개, 기획 Jessi, 2026-07-01~08).
+위치: `기획·요구사항/MMI/comments/` (PowerPoint modern comment XML 6개, 기획 Jessi, 2026-07-01~08).
 
 PLAN-1287 Jira와 동일 수신자(Scott·Raymond·Thomas)에게 보낸 PPT 측 변경 알림이다. 본문 상세는 `MMI.md`·PPT 슬라이드에 있고, comment는 결정 근거·시점·MMI.md 드리프트 보정용이다. **unzip 전체·XML 원본은 레포에 필수 아님** — 본 절 요약만으로 Spec 작성 가능.
 
@@ -381,13 +385,13 @@ PLAN-1287 Jira와 동일 수신자(Scott·Raymond·Thomas)에게 보낸 PPT 측 
 ## 5. 읽기 순서 (새 세션)
 
 1. 본 문서 (§4.1 image23, **§4.2 PPT comments**)
-2. **UI 시각 정본**: `Confidential_CloudWebViewer_v1.3.2_MMI_Kor/media/image23.png` (§4.1)
+2. **UI 시각 정본**: `기획·요구사항/MMI/media/image23.png` (§4.1)
 3. [Section-Module-개발계획.md](./Section-Module-개발계획.md)
-4. [MMI.md](./Confidential_CloudWebViewer_v1.3.2_MMI_Kor/MMI.md) — 1.1~1.14 + Overlay §6 (775행~) + Save Project. **§4.2와 충돌 시 §4.2 우선**
-5. [PLAN-1287.md](../PLAN-1287.md) — 기획 확정·B/L 알고리즘
-6. [MMI_개발실리뷰.md](./Confidential_CloudWebViewer_v1.3.2_MMI_개발실리뷰.md) — 공수·리스크·아키텍처
-7. [WebSectionView_PoC_OnePager.md](../WebSectionView_PoC_OnePager.md) — PoC 배경
-8. Phase 결과: 본 문서 **§7.9** (인라인 정본). 원문 필요 시 [Phase5](../Phase5/Phase5_SectionView_결과.md) 등
+4. [MMI.md](./기획·요구사항/MMI/MMI.md) — 1.1~1.14 + Overlay §6 (775행~) + Save Project. **§4.2와 충돌 시 §4.2 우선**
+5. [PLAN-1287.md](./기획·요구사항/PLAN-1287.md) — 기획 확정·B/L 알고리즘
+6. [MMI_개발실리뷰.md](./검토/MMI_개발실리뷰.md) — 공수·리스크·아키텍처
+7. [WebSectionView_PoC_OnePager.md](../PoC/WebSectionView_PoC_OnePager.md) — PoC 배경
+8. Phase 결과: 본 문서 **§7.9** (인라인 정본). 원문 필요 시 [Phase5](../PoC/Phase5/Phase5_SectionView_결과.md) 등
 9. 코드: `scp-section-poc/README.md` → `packages/core`, `packages/components`
 
 구현 착수 시 추가:
@@ -522,7 +526,7 @@ Section Grid는 WebGL2 채택이 PoC 핵심 결론. CPU만으로는 9장 실시�
 
 ### 7.9 PoC Phase별 상세 노하우 (인라인 정본)
 
-아래는 Phase 1~5 결과 문서·코드에서 추출한 **구현·디버깅·설계 결정** 전체이다. Section 모듈 개발 시 Phase 문서를 다시 열지 않아도 되도록 인라인했다. 원문: `../Phase1/` ~ `../Phase5/`, `../WebSectionView_PoC_OnePager.md`.
+아래는 Phase 1~5 결과 문서·코드에서 추출한 **구현·디버깅·설계 결정** 전체이다. Section 모듈 개발 시 Phase 문서를 다시 열지 않아도 되도록 인라인했다. 원문: `../PoC/Phase1/` ~ `../PoC/Phase5/`, `../PoC/WebSectionView_PoC_OnePager.md`.
 
 #### 7.9.1 Phase 0 배경 — 왜 이 PoC를 했는가
 
@@ -1077,18 +1081,20 @@ Integration Spec은 별도 또는 §11로 CW Viewer 담당자와 공동.
 | --- | --- |
 | 본 가이드 | `Cloud Web Viewer v1.3.2/Claude Code 작업 가이드.md` |
 | 개발 계획 | `Cloud Web Viewer v1.3.2/Section-Module-개발계획.md` |
-| MMI | `Cloud Web Viewer v1.3.2/Confidential_CloudWebViewer_v1.3.2_MMI_Kor/MMI.md` |
-| MMI PPT comments (요약) | 본 가이드 §4.2. 원본 `.../MMI_Kor/comments/` (선택) |
-| **MMI UI 시각 정본** | `.../MMI_Kor/media/image23.png` (1428×906) — §4.1 |
-| MMI media (참고) | `.../MMI_Kor/media/` — image19/27/28 동계열, 나머지 부분 설명용 |
+| MMI | `Cloud Web Viewer v1.3.2/기획·요구사항/MMI/MMI.md` |
+| MMI PPT comments (요약) | 본 가이드 §4.2. 원본 `.../기획·요구사항/MMI/comments/` (선택) |
+| **MMI UI 시각 정본** | `.../기획·요구사항/MMI/media/image23.png` (1428×906) — §4.1 |
+| MMI media (참고) | `.../기획·요구사항/MMI/media/` — image19/27/28 동계열 |
 | 개발실 리뷰 (VKS) | https://vks.vatech.com/spaces/ESDEVELOPER/pages/316794587/ |
-| PLAN-1287 | `WebSectionView/PLAN-1287.md` |
-| PoC OnePager | `WebSectionView/WebSectionView_PoC_OnePager.md` |
-| Phase 1 결과 | `WebSectionView/Phase1/Phase1_WebGL_MultiView_결과.md` |
-| Phase 2 결과 | `WebSectionView/Phase2/Phase2_CT_Download_결과.md` |
-| Phase 3 결과 | `WebSectionView/Phase3/Phase3_ArchCurve_결과.md` |
-| Phase 4 결과 | `WebSectionView/Phase4/Phase4_Panorama_결과.md` |
-| Phase 5 결과 | `WebSectionView/Phase5/Phase5_SectionView_결과.md` |
+| PLAN-1287 | `WebSectionView/Cloud Web Viewer v1.3.2/기획·요구사항/PLAN-1287.md` |
+| Market Requirements | `.../기획·요구사항/Confidential_260602_Cloud Web Viewer_Market Requirements/Confidential_260602_Cloud Web Viewer_Market Requirements-Review.md` |
+| 개발실 리뷰 | `Cloud Web Viewer v1.3.2/검토/MMI_개발실리뷰.md` |
+| PoC OnePager | `WebSectionView/PoC/WebSectionView_PoC_OnePager.md` |
+| Phase 1 결과 | `WebSectionView/PoC/Phase1/Phase1_WebGL_MultiView_결과.md` |
+| Phase 2 결과 | `WebSectionView/PoC/Phase2/Phase2_CT_Download_결과.md` |
+| Phase 3 결과 | `WebSectionView/PoC/Phase3/Phase3_ArchCurve_결과.md` |
+| Phase 4 결과 | `WebSectionView/PoC/Phase4/Phase4_Panorama_결과.md` |
+| Phase 5 결과 | `WebSectionView/PoC/Phase5/Phase5_SectionView_결과.md` |
 | Phase 5 OnePager (VKS) | https://vks.vatech.com/spaces/ESDEVELOPER/pages/305058086/ |
 | Phase 4 OnePager (VKS) | https://vks.vatech.com/spaces/ESDEVELOPER/pages/303490289/ |
 | PoC 데모 | http://scp-section-demo.test.scp.esclouddev.com/ |
@@ -1121,10 +1127,10 @@ EzCloud Test: https://container.test.ezcloud.ezcld.net/
 1. [문서 루트]/Claude Code 작업 가이드.md (전체, 특히 §2.1·§3.2·§4.1·§4.2)
 2. [문서 루트]/Section-Module-개발계획.md (§3 방안 1, §3.7 Spec 정제, §8.1 범위, §14.2)
 3. [문서 루트]/Section-Module-Spec-v1.3.2-OnePager.md (초안 v0.6)
-4. [문서 루트]/Confidential_CloudWebViewer_v1.3.2_MMI_Kor/MMI.md
-5. [문서 루트]/../PLAN-1287.md
-6. [문서 루트]/Confidential_CloudWebViewer_v1.3.2_MMI_Kor/media/image23.png
-7. [문서 루트]/CloudWebViewerData/2.png, Confidential_.../Slide7.jpg (EzCloud·Slide7 비교)
+4. [문서 루트]/기획·요구사항/MMI/MMI.md
+5. [문서 루트]/기획·요구사항/PLAN-1287.md
+6. [문서 루트]/기획·요구사항/MMI/media/image23.png
+7. [문서 루트]/CloudWebViewerData/2.png, [문서 루트]/기획·요구사항/MMI/Slide7.jpg
 
 다음 작업 (개발계획 §3.7):
 - OnePager를 MMI 1.1~1.14 매핑 표 포함해 리뷰 가능 수준으로 정제
@@ -1148,8 +1154,8 @@ cwd: .../WebSectionView/Cloud Web Viewer v1.3.2  (본 폴더)
 - Claude Code 작업 가이드.md (§2.1 cwd, §4.1 image23, §4.2 comments)
 - Section-Module-Spec-v1.3.2-OnePager.md
 - Section-Module-개발계획.md
-- Confidential_CloudWebViewer_v1.3.2_MMI_Kor/MMI.md
-- ../PLAN-1287.md
+- 기획·요구사항/MMI/MMI.md
+- 기획·요구사항/PLAN-1287.md
 
 다음 작업: [여기에 구체 지시]
 ```
@@ -1168,7 +1174,7 @@ EzCloud Test (MPR·툴바 UX): https://container.test.ezcloud.ezcld.net/
 - [문서 루트]/Claude Code 작업 가이드.md (§2.1 cwd, §7.9 PoC 노하우, 개발계획 §10 환경 정렬)
 - [문서 루트]/Section-Module-Spec-v1.3.2-OnePager.md
 - [문서 루트]/Section-Module-개발계획.md §3·§10
-- [문서 루트]/Confidential_CloudWebViewer_v1.3.2_MMI_Kor/media/image23.png
+- [문서 루트]/기획·요구사항/MMI/media/image23.png
 
 방법론: es-toolkit /es-* + abc-dev-assistant dev-chain-frontend
 
@@ -1209,3 +1215,4 @@ cwd: ~/Documents/Azure/scp-section-poc
 | 1.6 | 2026-07-10 | §2.1 cwd **재검토** — 개발 확대 시에도 기본 `scp-section-poc`. `section.code-workspace`와 cwd 분리 |
 | 1.7 | 2026-07-10 | §2.1 **문서+코드 혼합** — poc cwd 유지, 문서는 절대경로 편집·별도 git 커밋 |
 | 1.8 | 2026-07-10 | §3.2 **Spec 정제** 단계. §16.0 첫 세션·§16.3 후속 프롬프트. 개발계획 §3.7 연동 |
+| 1.9 | 2026-07-10 | **문서 폴더 재정리** — PoC 비본문 분리, `기획·요구사항/`·`검토/`·`참고/` 구조. §1·§4·§15·§16 경로 동기화 |

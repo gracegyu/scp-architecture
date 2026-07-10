@@ -256,10 +256,10 @@ Section 모듈 구현 (scp-section-poc에서 MMI 정합)
 
 | 단계 | 문서·위치 | 비고 |
 |------|-----------|------|
-| 요구사항 | [MMI.md](./Confidential_CloudWebViewer_v1.3.2_MMI_Kor/MMI.md) | v0.9.1, Overlay §775–791 반영 |
-| 개발실 리뷰 | [MMI_개발실리뷰.md](./Confidential_CloudWebViewer_v1.3.2_MMI_개발실리뷰.md) | VKS 업로드본 |
-| 기획 답변 스레드 | [PLAN-1287.md](../PLAN-1287.md) | Jira comment 정리 |
-| PoC OnePager | [WebSectionView_PoC_OnePager.md](../WebSectionView_PoC_OnePager.md) | 기술 검증 배경 |
+| 요구사항 | [MMI.md](./기획·요구사항/MMI/MMI.md) | v0.9.1, Overlay §775–791 반영 |
+| 개발실 리뷰 | [MMI_개발실리뷰.md](./검토/MMI_개발실리뷰.md) | VKS 업로드본 |
+| 기획 답변 스레드 | [PLAN-1287.md](./기획·요구사항/PLAN-1287.md) | Jira comment 정리 |
+| PoC OnePager | [WebSectionView_PoC_OnePager.md](../PoC/WebSectionView_PoC_OnePager.md) | 기술 검증 배경 |
 | PoC 구현 | `scp-section-poc` 레포 | Section 모듈 출발 코드베이스 |
 | Spec | [Section-Module-Spec-v1.3.2-OnePager.md](./Section-Module-Spec-v1.3.2-OnePager.md) | **OnePager** v0.6 — B/L §4, 화면 3분할 §2 |
 | cloudwebviewer 레포 | `~/Documents/Azure/cloudwebviewer` | 툴바·공통 UI·개발 환경 정본 (§9) |
@@ -424,7 +424,11 @@ MMI 1.12 **Arrow** — 아직 `InteractionType` 미포함. Section Spec에 신�
 | | `packages/core/docs/*.pu` | PlantUML (setting, CT load flow) |
 | | `examples/host-app/README.md` | host 데모 |
 | **scp-architecture** | `WebSectionView/Cloud Web Viewer v1.3.2/*` | MMI, 개발계획, Claude Code 가이드 |
-| | `WebSectionView/PLAN-1287.md` | 기획 답변 |
+| | `WebSectionView/Cloud Web Viewer v1.3.2/기획·요구사항/PLAN-1287.md` | 기획 답변 |
+| | `WebSectionView/Cloud Web Viewer v1.3.2/기획·요구사항/MMI/` | MMI v0.9.1 |
+| | `WebSectionView/Cloud Web Viewer v1.3.2/기획·요구사항/.../Market Requirements/` | 기획 MR(2026-06-02) |
+| | `WebSectionView/Cloud Web Viewer v1.3.2/검토/MMI_개발실리뷰.md` | 개발실 리뷰 |
+| | `WebSectionView/PoC/Phase1/` … `Phase5/` | PoC Phase별 OnePager·결과 |
 | | `Image Download…/CloudWebViewer CT Loading 개선 PoC OnePager.md` | CT 스트리밍 로딩 PoC (cloudwebviewer 브랜치 StreamPOC) |
 | | `Image Download…/CloudWebViewer VTK.js 볼륨 렌더링 분석.md` | VTK 분석 |
 | | `VT_API_Gateway/참조-카탈로그.md` | cloudwebviewer 레포 링크 |
@@ -663,3 +667,4 @@ Section 모듈 Spec은 **SRS 장문이 아니라 OnePager** 로 작성한다. �
 | 0.5 | 2026-07-09 | §10.4 **pnpm link 확정** — CW toolbar/common 복사 금지, 패키지 역할 분리, Dev 서비스 참고, 문서 정본 위치 |
 | 0.6 | 2026-07-09 | §10.3.1 **EzCloud Test URL** — `container.test.ezcloud.ezcld.net` 내 Cloud Web Viewer 런타임 참고 |
 | 0.7 | 2026-07-10 | **§3 개발 레포 3방안** — 방안 1 확정. §3.6 cwd. §3.7 Claude Code Spec 정제. §8.1 MPR/Section 데모 포함(OnePager 정합) |
+| 0.8 | 2026-07-10 | **문서 폴더 재정리** — PLAN-1287·MMI·MR → `기획·요구사항/`, 개발실 리뷰 → `검토/`. §5·§9.4 경로 동기화 |
