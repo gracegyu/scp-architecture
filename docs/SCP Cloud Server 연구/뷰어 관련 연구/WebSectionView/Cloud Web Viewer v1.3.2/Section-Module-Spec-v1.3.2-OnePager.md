@@ -10,7 +10,7 @@ Cloud Web Viewer v1.3.2 — Section Module
 
 ## Submitter Info
 
-Raymond (전규현) — Section 모듈 Spec 초안
+Raymond (전규현) — Section 모듈 Spec v0.6 **정제 중** (Claude Code §3.7)
 
 ## Project Description
 
@@ -21,7 +21,7 @@ Clever Space Cloud Web Viewer에 Section Layout(MMI v1.3.2)을 접목하기 전,
 - **런타임 참고:** EzCloud Test [https://container.test.ezcloud.ezcld.net/](https://container.test.ezcloud.ezcld.net/) — Clever Space 안의 **Cloud Web Viewer**(MPR·툴바 UX 확인, §3.5)
 - **CW UI 소비:** `@cloudwebviewer/core`를 **pnpm `link:`** 로 참조 (§3.4). toolbar·common **소스 복사 금지**
 - **Section 엔진:** `@ewoosoft/scp-section-*` 유지 — CW core와 패키지·역할 분리
-- **환경 정책:** scp-section-poc의 Node/pnpm/React/Vite/TS/MUI 등을 **cloudwebviewer와 통일** (본 Spec §3, 개발계획 §9). 구현 착수 전 필수.
+- **환경 정책:** scp-section-poc의 Node/pnpm/React/Vite/TS/MUI 등을 **cloudwebviewer와 통일** (본 Spec §3, 개발계획 §10). 구현 착수 전 필수.
 - UI 정본: §2 화면 3분할 — (3) `image23.png`, (1)(2) EzCloud `2.png`·Slide7
 - 완성 후 패키지·API·데모로 CW Viewer 팀에 인계 (`cloudwebviewer` 직접 접목은 Section 모듈 범위 아님)
 
@@ -65,7 +65,7 @@ B/L: PLAN-1287 Raymond 초안 → Jessi confirm (세로 우세·반전 조건·1
 | **(2) MPR/Section 선택** — Slide7·EzCloud와 동일 L&F + layout 전환 (§2) | EzCloud 컨테이너 앱 배포·권한 |
 | MMI 1.2~1.13 (±45° 회전 제외), Overlay·Save 스키마 | |
 
-상세: Section-Module-개발계획.md §7, 본 Spec §2
+상세: Section-Module-개발계획.md §8, 본 Spec §2
 
 ### 2. 화면 3분할 — Toolbar · MPR/Section 선택 · Section 뷰
 
@@ -179,7 +179,7 @@ MPR 선택 시 (3)은 MPR 2×2(3D·Axial·Sag·Cor) — EzCloud `2.png` 정본. 
 6. `section-demo`에서 CW `Toolbar` import·렌더 검증
 7. `pnpm i && pnpm build && pnpm dev` 검증
 
-상세 체크리스트: [Section-Module-개발계획.md §9](./Section-Module-개발계획.md)
+상세 체크리스트: [Section-Module-개발계획.md §10](./Section-Module-개발계획.md)
 
 #### 3.3 완료 기준 (DoD)
 
@@ -207,7 +207,7 @@ MPR 선택 시 (3)은 MPR 2×2(3D·Axial·Sag·Cor) — EzCloud `2.png` 정본. 
 
 link 불가 시: Known gap 기록 → MUI + `#141414`·36px·hover 토큰으로 임시 상단 바 → link 후 CW 컴포넌트로 교체.
 
-상세: [개발계획 §9.4](./Section-Module-개발계획.md)
+상세: [개발계획 §10.4](./Section-Module-개발계획.md)
 
 #### 3.5 EzCloud Test — Cloud Web Viewer 런타임 참고
 
@@ -220,7 +220,7 @@ link 불가 시: Known gap 기록 → MUI + `#141414`·36px·hover 토큰으로 
 | Section 미탑재 | v1.3.2 Section Layout은 아직 없음 — **MPR만** look&feel·동작 정본. Section 데모는 `scp-section-poc` |
 | PoC 데모와 구분 | `scp-section-demo` = Section 엔진 검증 / EzCloud Test = CW 제품 UI·MPR 워크플로 참고 |
 
-상세: [개발계획 §9.3.1](./Section-Module-개발계획.md)
+상세: [개발계획 §10.3.1](./Section-Module-개발계획.md)
 
 ### 4. B/L 자동 판정 알고리즘 (v1.3.2 Spec)
 
@@ -337,7 +337,7 @@ confirm 후 본 절 버전을 올리고 DoD에 반영한다.
 | Toolbar 이벤트 | §2.3 — `useBoundStore` / `toolStore` MPR 동일 패턴 |
 | MPR/Section 토글 | §2.2 — CW link 또는 Slide7 동일 L&F (EzCloud 미탑재) |
 | CW 런타임 참고 | §3.5 EzCloud Test — `container.test.ezcloud.ezcld.net` |
-| Integration (접목) | 개발계획 §7.3 |
+| Integration (접목) | 개발계획 §8.3 |
 
 ### 6. DoD (발췌)
 
@@ -364,3 +364,4 @@ confirm 후 본 절 버전을 올리고 DoD에 반영한다.
 | 0.3 | 2026-07-09 | §3.4 **pnpm link 확정** — CW UI 복사 금지, 패키지 분리, Dev 서비스 참고, DoD 강화 |
 | 0.4 | 2026-07-09 | §3.5 **EzCloud Test URL** — Clever Space 내 Cloud Web Viewer 런타임 참고 |
 | 0.5 | 2026-07-09 | §2 **화면 3분할** — Toolbar·MPR/Section 선택(link/동일 L&F)·Section 뷰(인계). §2.3 Toolbar 이벤트 연동 |
+| 0.6 | 2026-07-10 | 개발계획 §10 교차참조 정합. Spec 상태 **초안→정제 중** (Claude Code §3.7) |
