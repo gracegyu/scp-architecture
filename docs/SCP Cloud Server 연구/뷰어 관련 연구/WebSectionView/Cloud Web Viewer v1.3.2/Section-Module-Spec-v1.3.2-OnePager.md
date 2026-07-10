@@ -25,7 +25,7 @@ Clever Space Cloud Web Viewer에 Section Layout(MMI v1.3.2)을 접목하기 전,
 - UI 정본: §2 화면 3분할 — (3) `image23.png`, (1)(2) EzCloud `2.png`·Slide7
 - 완성 후 패키지·API·데모로 CW Viewer 팀에 인계 (`cloudwebviewer` 직접 접목은 Section 모듈 범위 아님)
 
-참조: [Section-Module-개발계획.md](./Section-Module-개발계획.md), [MMI.md](./Confidential_CloudWebViewer_v1.3.2_MMI_Kor/MMI.md), [Claude Code 작업 가이드.md](./Claude Code%20작업%20가이드.md)
+참조: [Section-Module-개발계획.md](./Section-Module-개발계획.md), [MMI.md](./기획·요구사항/MMI/MMI.md), [Claude Code 작업 가이드.md](./Claude Code%20작업%20가이드.md)
 
 ## Business and Marketing Justification
 
@@ -107,7 +107,7 @@ MPR 선택 시 (3)은 MPR 2×2(3D·Axial·Sag·Cor) — EzCloud `2.png` 정본. 
 | 영역 | 파일 |
 |------|------|
 | (1) Toolbar + (2) 바 + MPR 본문 | `CloudWebViewerData/2.png` |
-| (1)(2)(3) Section 목표 | `Confidential_.../Slide7.jpg`, `media/image23.png` |
+| (1)(2)(3) Section 목표 | `기획·요구사항/MMI/Slide7.jpg`, `기획·요구사항/MMI/media/image23.png` |
 | (1) 단일 뷰 예 (Section 비교용 아님) | `CloudWebViewerData/1.png` |
 
 #### 2.3 Toolbar ↔ Section 뷰 이벤트 연동 (필수)
@@ -224,7 +224,7 @@ link 불가 시: Known gap 기록 → MUI + `#141414`·36px·hover 토큰으로 
 
 ### 4. B/L 자동 판정 알고리즘 (v1.3.2 Spec)
 
-정본 출처: [PLAN-1287.md §2](../PLAN-1287.md) (Raymond 제안, 2026-07-09)  
+정본 출처: [PLAN-1287.md §2](./기획·요구사항/PLAN-1287.md) (Raymond 제안, 2026-07-09)  
 상태: **기획 confirm 대기** — confirm 전까지 구현은 본 초안을 따르되, §4.8 예외·§4.9 confirm 항목은 feature flag 또는 설정으로 분리 가능.
 
 #### 4.1 합의·역할 분담 (PLAN-1287 §1)
