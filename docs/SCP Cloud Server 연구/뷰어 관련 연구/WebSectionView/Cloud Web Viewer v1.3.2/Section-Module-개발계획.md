@@ -2,10 +2,10 @@
 
 | 항목 | 내용 |
 |------|------|
-| 문서 버전 | 0.6 |
+| 문서 버전 | 0.8 |
 | 작성일 | 2026-07-09 |
 | 작성 | Raymond |
-| 상태 | Spec OnePager v0.3. **CW UI = pnpm link 확정(§9.4). 다음: scp-section-poc 환경 정렬 적용** |
+| 상태 | Spec OnePager v0.6 **정제 중**. **다음: Claude Code로 OnePager 완성(§3.7)** → Spec 리뷰 |
 
 ---
 
@@ -13,9 +13,9 @@
 
 MMI 검토·기획 답변·PoC 결과를 바탕으로, **Section 모듈**을 무엇으로 부르고 어디까지 만들며 어떤 순서로 진행할지 정리한 **개발 계획 참고 문서**이다.
 
-- 구현 코드베이스는 **`scp-section-poc`에서 이어서 개발**한다. `cloudwebviewer` 레포에 Section을 직접 넣지 않는다.
-- CW 툴바·공통 UI는 **소스 복사 없이** `pnpm link:` 로 `@cloudwebviewer/core`를 참조한다 (§9.4).
-- **개발 환경·UI 스택·툴바 look&feel** 은 `cloudwebviewer`와 **통일**한다 (§9). 정본 레포는 참조·link 의존용.
+- 구현 코드베이스는 **`scp-section-poc`에서 이어서 개발**한다 (§3 **방안 1** 확정). `cloudwebviewer` 레포에 Section을 직접 넣지 않는다.
+- CW 툴바·공통 UI는 **소스 복사 없이** `pnpm link:` 로 `@cloudwebviewer/core`를 참조한다 (§10.4).
+- **개발 환경·UI 스택·툴바 look&feel** 은 `cloudwebviewer`와 **통일**한다 (§10). 정본 레포는 참조·link 의존용.
 - Spec(SRS) 본문은 **OnePager Spec** (`Section-Module-Spec-v1.3.2-OnePager.md`). 환경 정렬 요구도 Spec에 명시한다.
 
 ---
@@ -35,7 +35,7 @@ PoC와 Section 모듈의 차이:
 | | PoC | Section 모듈 |
 |---|-----|--------------|
 | 목적 | WebGL·곡선·9단면 등 **기술 검증** | MMI v1.3.2 **동작·UX·데이터 규칙** 구현 |
-| 범위 | 단계별 최소 기능 | MMI 1.1~1.13 + Overlay 규칙. **UI: image23 3영역 + CW Top Toolbar** (§7) |
+| 범위 | 단계별 최소 기능 | MMI 1.1~1.13 + Overlay 규칙. **UI: image23 3영역 + CW Top Toolbar** (§8) |
 | 품질 | 데모·실험 수준 | 인계 가능 수준 (API·데모·Known gaps 문서) |
 | 제품 연동 | 없음 | 인계 후 CW Viewer 팀이 접목 |
 
@@ -48,22 +48,192 @@ PoC와 Section 모듈의 차이:
 
 ---
 
-## 3. 전체 진행 절차
+## 3. 개발 레포 선택 — 3가지 방안 비교
+
+Section v1.3.2를 **어느 레포·어떤 방식으로** 개발할지에 대한 결정이다. UI 범위(image23 vs Toolbar 포함)는 §8.2를, 환경·link 상세는 §10을 본다.
+
+### 3.1 방안 요약
+
+| | 방안 1 | 방안 2 | 방안 3 |
+|---|--------|--------|--------|
+| **명칭** | **scp-section-poc + CW 환경 정렬** | **cloudwebviewer 브랜치 직접 개발** | **cloudwebviewer fork + 데이터 개조** |
+| **코드 위치** | `scp-section-poc` (`@ewoosoft/scp-section-*`) | `cloudwebviewer` (`packages/core` 또는 `packages/section`) | fork 레포 (개인/팀 사본) |
+| **CW 연동** | `pnpm link:` — Toolbar·store·common **동일 컴포넌트** | 네이티브 import (link 불필요) | fork 본문 그대로 + 로컬 데이터 경로 개조 |
+| **Section 엔진** | PoC 계승 (WebGL·curve·9단면) | PoC 이식 또는 CW 패턴 재작성 | PoC 이식 + fork 데이터 레이어 |
+| **인계·접목** | **필요** — 패키지·API·데모 → CW 팀 | **불필요** — PR 머지로 종료 | **fork → upstream 역이식** 필요 (실질 2차 접목) |
+| **데이터(CT)** | PoC `CTVolumeLoader`·데모 stub / 로컬 ZIP | CW CT 파이프라인 (EzCloud·prj) | fork에서 로딩만 쉽게 바꿈 |
+
+### 3.2 방안별 상세
+
+#### 방안 1 — scp-section-poc + CloudWebViewer 환경 일치 (권장)
+
+**내용:** PoC 레포에서 Section 모듈을 이어가고, Node/pnpm/Vite/MUI·`.npmrc`를 `cloudwebviewer`와 맞춘다. Toolbar·`ContentTitleBar`·zustand `toolStore`는 **`@cloudwebviewer/core` pnpm link** 로 가져와 MPR과 **동일 look&feel·동일 이벤트**(OnePager §2.3). Section 본문(Scout·Panorama·Section grid)만 `@ewoosoft/scp-section-*`에 둔다.
+
+| 장점 | 단점 |
+|------|------|
+| Phase 1~5 PoC 코드·노하우 **그대로 계승** | 접목 단계 **남음** (§8.3 — Scout↔Axial, prj, MFE 등) |
+| CW monorepo 빌드·VTK·MFE 부담 **최소** (link + 참조) | 환경 정렬·link 초기 1~2주 공수 (§10) |
+| Section 팀 **단독 git·속도** — CW PR 정책에 막히지 않음 | 개발 중 CW core 변경 시 link 버전 맞춤 필요 |
+| 인계 경계 명확 (패키지·API·Known gaps) | EzCloud Test는 MPR만 — Section은 `section-demo` |
+| 접목 시 UI·이벤트 갭 **이미 link로 축소** | |
+
+**적합:** Raymond가 Section **주 담당**, CW 팀은 접목·리뷰 분리. v1.3.2 일정에 **인계 후 병렬**이 가능한 구조.
+
+#### 방안 2 — cloudwebviewer 브랜치에서 직접 개발
+
+**내용:** `cloudwebviewer`에 `tasks/…-section` 브랜치를 열고 `packages/section` 신설 또는 `packages/core` 내 Section Layout을 구현. PoC 엔진을 CW 구조(vtk·WorkSpace·CT load)에 맞게 이식.
+
+| 장점 | 단점 |
+|------|------|
+| **접목 과정 없음** — 완료 = CW PR 머지 | monorepo 온보딩·**첫 빌드 시간** 큼 (VTK, MFE, private registry) |
+| Toolbar·store·Axial Scout **처음부터 네이티브** | PoC WebGL 파이프라인 → CW `react-vtkjs` 패턴 **이식 비용** |
+| `host-app`·EzCloud 배포 파이프라인 **즉시 검증** | CW **코드 오너·PR·릴리즈** 프로세스에 종속 |
+| MPR/Section 토글·prj를 **한 레포에서** 완성 | Section 실험이 **공유 core**에 영향 — 리뷰·회귀 부담 |
+| | CW 팀 **사전 합의** 없으면 진행 불가 (§8.2 안 D) |
+
+**적합:** CW Viewer **정식 담당자**가 Section까지 한 몸으로 v1.3.2를 내며, **인계·이중 레포를 원하지 않을 때**. Raymond 단독이면 조건부( CW 팀이 브랜치 개발 승인).
+
+#### 방안 3 — cloudwebviewer fork + 데이터 로딩 개조
+
+**내용:** `cloudwebviewer`를 fork한 뒤 CT/환자 데이터 로딩 경로만 로컬·샘플 데이터로 바꿔 개발 속도를 높이고, Section을 fork 안에서 구현.
+
+| 장점 | 단점 |
+|------|------|
+| 제품 UI·데이터 파이프라인 **한 레포**에서 실험 | fork **지속 동기화** 부담 (upstream CW 매주/매스프린트 변경) |
+| EzCloud 없이 **로컬 CT**로 빠른 반복 가능 | 정식 `cloudwebviewer`와 **drift** — 역머지 시 대규모 충돌 |
+| 방안 2보다 데이터만 가볍게 시작 가능 | **공식 배포 경로 없음** — fork는 Test/Prod에 안 탑재 |
+| | 결국 upstream 반영 = **방안 2 + fork 정리** 이중 공수 |
+| | 팀 표준 레포가 아니어서 **인수·리뷰·감사** 어려움 |
+| | PoC 레포 자산 활용은 방안 1보다 **불리** |
+
+**적합:** **단기 스파이크**(1~2주, Toolbar·데이터 파이프만 탐색). v1.3.2 **본 개발 경로로는 비권장**.
+
+### 3.3 비교 매트릭스 (의사결정용)
+
+| 평가 항목 | 방안 1 poc+link | 방안 2 CW 브랜치 | 방안 3 fork |
+|-----------|-----------------|------------------|-------------|
+| PoC 자산 활용 | **최상** | 중 (이식 필요) | 중하 |
+| 초기 환경 구축 | 중 (§10 1회) | **상** (CW 풀 빌드) | 상 (fork + 개조) |
+| Toolbar·이벤트 일치 | **상** (link = 동일 코드) | **최상** | 상 (동기화 시) |
+| 접목·인계 공수 | 중 (명시적 1회) | **없음** | **최상** (역이식) |
+| 개발 속도(초기) | **상** | 하~중 | 중 |
+| CW 팀 협업 부담 | **하** (인계 시점) | 상 (상시 PR) | 상 (비표준 레포) |
+| v1.3.2 일정 리스크 | **중** — 인계 병렬 가능 | 중 — CW 리소스·빌드 | **상** — drift |
+| 장기 유지보수 | **양호** (명확 패키지) | **양호** (단일 레포) | **불량** |
+
+### 3.4 권장 결론
+
+**권장: 방안 1 (scp-section-poc + CW 환경 정렬 + pnpm link)**
+
+근거:
+
+1. **PoC가 이미 Section 엔진·UI 골격을 갖춤** — 레포를 옮기면 이식만으로 2~4주 손실 가능.
+2. **화면 3분할**(OnePager §2)에서 우리가 새로 만드는 것은 **(3) Section 뷰** 뿐. (1) Toolbar·(2) MPR/Section 선택은 link로 **제품과 동일**하게 맞출 수 있어, 방안 2의 핵심 이점을 **대부분 흡수**.
+3. **접목은 불가피한 영역이 분리**되어 있음 (Scout=MPR Axial, Clever Space 셸, prj, MFE) — 방안 2를 써도 CW 팀·인프라 작업은 남음. 방안 1은 **Section 로직만 인계**하면 됨.
+4. 방안 3은 단기 편의 이후 **upstream 병합 비용**이 방안 1+2를 합친 것보다 큼.
+
+**방안 2를 선택할 조건 (예외):**
+
+- Cloud Web Viewer **정식 개발자**가 Section까지 동일 브랜치에서 끝까지 담당한다.
+- CW 팀·PL이 **fork/별도 레포 인계 없이** main 합류만 원한다.
+- PoC WebGL 엔진을 CW vtk 파이프라인으로 **교체하기로** 이미 합의했다.
+
+**방안 3:** v1.3.2 본선 **비권장**. CT 로딩·host 연동 **탐색용 스파이크**에만 제한.
+
+### 3.5 확정 후 작업 (방안 1 기준)
+
+```
+section.code-workspace (8레포)
+    ↓
+§10 환경 정렬 + §10.4 CW core link
+    ↓
+section-demo = Toolbar + MPR/Section stub + SectionViewer (OnePager §2)
+    ↓
+MMI 1.2~1.13 구현 (@ewoosoft/scp-section-*)
+    ↓
+인계물: npm/workspace 패키지, API, 데모, Known gaps
+    ↓
+[ CW 팀 ] §8.3 Integration
+```
+
+워크스페이스: `~/Documents/Azure/section.code-workspace` (scp-section-poc, cloudwebviewer, WebSectionView, ezcloud, scp-report-poc 등).
+
+### 3.6 Claude Code cwd (문서 vs poc)
+
+| 질문 | 답 |
+|------|-----|
+| 개발 확대 시 문서 폴더 cwd? | **아니오** — 기본 cwd는 **`scp-section-poc`** 유지 |
+| 문서 폴더 cwd는 언제? | Spec·MMI·개발계획 **문서만** 수정할 때 |
+| 여러 레포를 동시에 보려면? | Cursor **`section.code-workspace`** (탐색) + Claude cwd는 poc (실행) |
+
+상세: [Claude Code 작업 가이드.md §2.1](./Claude%20Code%20작업%20가이드.md)
+
+### 3.7 Claude Code — OnePager Spec 정제 (다음 단계)
+
+Raymond가 **scp-section-poc** cwd에서 Claude Code를 실행하고, **작업 가이드를 먼저 읽게 한 뒤** OnePager Spec을 MMI 정합 수준으로 **정제·완성**한다.
+
+#### 세션 시작 (권장)
+
+1. **cwd:** `~/Documents/Azure/scp-section-poc`
+2. **Cursor:** `section.code-workspace` (문서·코드 동시 열람)
+3. **첫 지시:** 작업 가이드 → 개발계획 → OnePager 초안 순으로 읽고, Spec 정제 착수 (가이드 §16.0)
+
+#### Spec 정제 목표 (초안 → 리뷰 가능)
+
+| # | 작업 | 입력 | OnePager 반영 위치 |
+|---|------|------|-------------------|
+| 1 | **MMI 1.1~1.14 매핑 표** | MMI.md, PLAN-1287, 개발실리뷰 | Technical Description 신규 절 |
+| 2 | **화면 3분할·범위** | image23, Slide7, `2.png` | §2 (기존) — 개발계획 §8.1과 일치 확인 |
+| 3 | **TBD 항목 확정** | Overlay §6, NFR 수치, Save 필드 | §5 표 보강 |
+| 4 | **Draw Curve** | 가이드 §4.2, MMI comments | §5 또는 전용 절 |
+| 5 | **Integration 요약** | §8.3 | §5 표 — 접목 vs 모듈 경계 |
+| 6 | **문서 3종 정합** | 가이드·개발계획·OnePager | 상호 §번호·범위 불일치 제거 |
+| 7 | **DoD·리스크** | MMI 체크리스트 | §6 |
+
+#### 완료 기준 (Spec 리뷰 게이트)
+
+- OnePager 템플릿 7필드 + Technical Description **§14.2 항목 전부** 반영
+- MMI 1.1~1.14 **누락·스펙아웃** 명시 (±45° 회전 등)
+- 개발계획 §8.1 범위와 OnePager §1·§2 **일치**
+- B/L §4는 confirm 대기 상태 유지 가능 (Known gap 명시)
+- 기획·CW Viewer **Spec 리뷰** 요청 가능 수준
+
+#### 이후 순서
+
+```
+Claude Code Spec 정제 (§3.7)  ← [다음]
+    ↓
+Spec 리뷰 (기획 + CW Viewer)
+    ↓
+scp-section-poc 환경 정렬 (§10)
+    ↓
+Section 모듈 구현
+```
+
+환경 정렬(§10)은 Spec 정제와 **병행 가능**하나, **구현 착수 전** Spec 리뷰 가능 수준은 필수.
+
+---
+
+## 4. 전체 진행 절차
 
 ```
 [완료] MMI v0.9.1
     ↓
 [완료] MMI 개발실 리뷰 (VKS)
     ↓
-[완료] 기획 답변 (PLAN-1287) + MMI 보강 (Overlay, 회전 스펙아웃 등)
+[완료] 기획 답변 (PLAN-1287) + MMI 보강
     ↓
-[진행] B/L 자동 판정 — 개발실 알고리즘 초안 → 기획 Jira confirm
+[진행] B/L 자동 판정 — 개발실 초안 → 기획 Jira confirm
     ↓
-[완료] OnePager Spec 초안 (B/L 알고리즘 포함)
+[확정] 개발 레포 — §3 방안 1 (scp-section-poc + CW link)
     ↓
-[다음] scp-section-poc — cloudwebviewer와 개발 환경·UI 스택 정렬 (§9)  ← **구현 착수 전 필수**
+[완료] OnePager Spec 초안 (B/L·화면 3분할·§10 link)
     ↓
-Spec 리뷰 (기획 + Cloud Web Viewer 담당자 권장) — 환경 정렬과 병행 가능
+[다음] Claude Code — OnePager Spec 정제·MMI 매핑 (§3.7)  ← **지금**
+    ↓
+Spec 리뷰 (기획 + Cloud Web Viewer 담당자)
+    ↓
+scp-section-poc — cloudwebviewer 환경·UI 정렬 (§10)  ← 구현 착수 전 필수
     ↓
 Section 모듈 구현 (scp-section-poc에서 MMI 정합)
     + Section Slice 스크롤 성능 수치 검증 (구현 초기, 별도 PoC 아님)
@@ -82,7 +252,7 @@ Section 모듈 구현 (scp-section-poc에서 MMI 정합)
 
 ---
 
-## 4. 참조 문서·산출물 맵
+## 5. 참조 문서·산출물 맵
 
 | 단계 | 문서·위치 | 비고 |
 |------|-----------|------|
@@ -91,13 +261,13 @@ Section 모듈 구현 (scp-section-poc에서 MMI 정합)
 | 기획 답변 스레드 | [PLAN-1287.md](../PLAN-1287.md) | Jira comment 정리 |
 | PoC OnePager | [WebSectionView_PoC_OnePager.md](../WebSectionView_PoC_OnePager.md) | 기술 검증 배경 |
 | PoC 구현 | `scp-section-poc` 레포 | Section 모듈 출발 코드베이스 |
-| Spec | [Section-Module-Spec-v1.3.2-OnePager.md](./Section-Module-Spec-v1.3.2-OnePager.md) | **OnePager** — B/L 알고리즘 §Technical Description 2절 |
-| cloudwebviewer 레포 | `~/Documents/Azure/cloudwebviewer` | 툴바·공통 UI·개발 환경 정본 (§8) |
+| Spec | [Section-Module-Spec-v1.3.2-OnePager.md](./Section-Module-Spec-v1.3.2-OnePager.md) | **OnePager** v0.6 — B/L §4, 화면 3분할 §2 |
+| cloudwebviewer 레포 | `~/Documents/Azure/cloudwebviewer` | 툴바·공통 UI·개발 환경 정본 (§9) |
 | 인계 (미작성) | TBD | README, API, 데모 URL, Known gaps |
 
 ---
 
-## 5. 기획 확정 사항 (Spec에 그대로 반영)
+## 6. 기획 확정 사항 (Spec에 그대로 반영)
 
 PLAN-1287 Jessi 회신 및 MMI 업데이트 기준.
 
@@ -115,7 +285,7 @@ PLAN-1287 Jessi 회신 및 MMI 업데이트 기준.
 | — | 모바일/터치 | v1.3.2 **마우스 전용** |
 | — | Scout 명칭 | 당분간 Scout. 7/10 기획 검토 후 변경 시 공유 |
 
-### 5.1 Overlay 표시 규칙 (MMI EP01_F013 §6)
+### 6.1 Overlay 표시 규칙 (MMI EP01_F013 §6)
 
 - Overlay는 **Curve + 생성 시점 평면(point, normal)** 에 귀속.
 - Section view 표시 조건: (1) 현재 슬라이스 평면과의 **거리** ≤ 저장 interval의 ±Interval/2, (2) **Normal** 허용 오차 — MMI상 "별도 정의" → **Spec에서 수치 확정**.
@@ -126,25 +296,25 @@ PLAN-1287 Jessi 회신 및 MMI 업데이트 기준.
 
 ---
 
-## 6. Spec에서 확정할 항목
+## 7. Spec에서 확정할 항목
 
 | 항목 | 현재 상태 | Spec에서 할 일 |
 |------|-----------|----------------|
-| B/L 자동 판정 | PLAN-1287 Raymond 초안 | **OnePager Spec §2** 작성 완료 → 기획 confirm 후 버전 고정 |
+| B/L 자동 판정 | PLAN-1287 Raymond 초안 | **OnePager Spec §4** 반영 완료 → 기획 confirm 후 버전 고정 |
 | Overlay Normal 허용 오차 | MMI "별도 정의" | 각도(°) 또는 dot product 임계값 |
 | Section Slice 스크롤 성능 | 개발실 리뷰 리스크 | 디바운스·캐싱·NFR 수치. 구현 초기 벤치마크 |
 | Section 모듈 ↔ CW Viewer 경계 | PoC는 Scout 2D 독립 | API·이벤트·데이터 모델. Scout는 접목 시 MPR Axial |
 | Save Project 저장 필드 | 회전 각도 항목 삭제(MMI 반영) | curve·interval·thickness·overlay·B/L 극성 등 목록 |
 | Image Filter / 계측 툴 | MPR→Section | Top Toolbar 연동 시 CW `InteractionType`·Handler 패턴 따름. Arrow는 MMI 1.12 신규 — CW에 아직 없음 |
-| Section 모듈 UI 스택 | PoC: plain React+Vite6 | **cloudwebviewer와 버전·MUI·툴바 정렬** (§9) |
-| 툴바 look&feel | MMI 1.12·1.13 | `@cloudwebviewer/core` **pnpm link** 로 `toolbar/`·`ContentTitleBar` import (§9.4). 복사·포크 금지 |
+| Section 모듈 UI 스택 | PoC: plain React+Vite6 | **cloudwebviewer와 버전·MUI·툴바 정렬** (§10) |
+| 툴바 look&feel | MMI 1.12·1.13 | `@cloudwebviewer/core` **pnpm link** 로 `toolbar/`·`ContentTitleBar` import (§10.4). 복사·포크 금지 |
 | CW UI 의존 방식 | PoC: 자체 React UI | **link 확정** — `packages/core`·`common/` 통째 복사 금지. link 실패 시 design token만 임시 |
 
 ---
 
-## 7. Section 모듈 범위 (Spec에 고정)
+## 8. Section 모듈 범위 (Spec에 고정)
 
-### 7.1 권장 범위 — image23 + Top Toolbar (합의안)
+### 8.1 권장 범위 — image23 + Top Toolbar (합의안)
 
 MMI 시각 정본 `image23.png`는 **Scout + Panorama + Section 3×3** 만 담는다. MMI 1.12·1.13의 **Top Toolbar** 는 image23 밖이지만, Section 레이아웃에서 **동일 look&feel** 이 요구되므로 Section 모듈 범위에 **포함**하는 것이 타당하다.
 
@@ -152,30 +322,30 @@ MMI 시각 정본 `image23.png`는 **Scout + Panorama + Section 3×3** 만 담�
 |---------|-----|--------------|------|
 | **3영역 뷰어 본문** | 1.2~1.9 | **포함** | image23 정본. PoC SectionViewer 계승 |
 | **뷰별 타이틀 바** | 1.7~1.9 (W/L, Setting, 최대화) | **포함** | image23 각 영역 상단. CW `ContentTitleBar` 패턴 |
-| **Top Toolbar** | 1.12·1.13 (Pan, Zoom, Length, Grid, Overlay…) | **포함** | MMI "MPR과 동일하게 동작". CW `Toolbar` 재사용 |
-| **MPR/Section 토글** | 1.1 | 제외 (접목) | `Slide7.jpg` — Clever Space 셸 |
-| **Clever Space 셸** | LNB, Back, 환자 목록 | 제외 (접목) | `cloudwebviewer` `BackBtn`·host 연동 |
-| **CT 로드·prj I/O** | 1.14 | 데이터 모델만 / 데모 stub | 실제 prj는 CW 팀 (§7.4) |
+| **Top Toolbar** | 1.12·1.13 (Pan, Zoom, Length, Grid, Overlay…) | **포함** | MMI "MPR과 동일하게 동작". CW `Toolbar` link |
+| **MPR/Section 선택** | 1.1 | **포함 (데모)** | Slide7 `[MPR][Section]` — CW link 또는 동일 L&F stub. **Clever Space 라우팅은 접목** (§8.3) |
+| **Clever Space 셸** | LNB, Back, 환자 목록 | 제외 (접목) | `cloudwebviewer` `BackBtn`·host·ezcloud 연동 |
+| **CT 로드·prj I/O** | 1.14 | 데이터 모델만 / 데모 stub | 실제 prj는 CW 팀 (§8.4) |
 
 구현 원칙:
 
-- 툴바·버튼·다이얼로그는 **CW 소스를 scp-section-poc로 복사하지 않는다.** `@cloudwebviewer/core`를 **pnpm `link:`** 로 연결해 `toolbar/`, `workSpace/content/components/common/` 등을 **import** 한다 (§9.4).
+- 툴바·버튼·다이얼로그는 **CW 소스를 scp-section-poc로 복사하지 않는다.** `@cloudwebviewer/core`를 **pnpm `link:`** 로 연결해 `toolbar/`, `workSpace/content/components/common/` 등을 **import** 한다 (§10.4).
 - Section 엔진·WebGL·수학은 **`@ewoosoft/scp-section-*`** 패키지에 유지한다. CW `packages/core`와 **역할·네임스페이스를 분리**한다.
 - 스타일: link된 CW 컴포넌트가 MUI 5 + Emotion + `#141414` 배경, 36px 아이콘, hover `rgba(0,190,165,0.4)` (`Toolbar.tsx` customCSS)를 제공. link 불가 시에만 동일 토큰으로 임시 UI.
 - MMI 1.12 **Arrow** 툴은 현재 CW `InteractionType`에 없음 — Section 모듈에서 CW 패턴으로 **신규 추가** 후 접목 시 core에 역머지 검토.
 
-### 7.2 다른 의견 (Spec 리뷰 시 선택지)
+### 8.2 UI 범위 선택지 (Spec 리뷰 시)
 
 | 안 | 범위 | 장점 | 단점 |
 |----|------|------|------|
 | **A (권장)** | image23 + Top Toolbar + 뷰 타이틀 바 | MMI 1.12·1.13 데모 가능, 인계 시 UI 갭 최소 | CW 레포 분석·환경 정렬 선행 필요 |
 | B (최소) | image23 3영역만 | PoC에서 빠르게 확장 | 툴바 L&F 불일치, 계측·Grid 데모 불가, 접목 시 UI 재작업 |
 | C (확대) | A + MPR/Section 토글 + `host-app` 셸 | 제품에 가장 근접 | Clever Space 라우팅·권한 범위 침범, 공수 증가 |
-| D (레포 통합) | `cloudwebviewer` 내 `packages/section` 신규 | 툴바·타입·빌드 완전 공유 | "별도 레포 인계" 전제와 충돌 — CW 팀 합의 필수 |
+| D (레포 통합) | `cloudwebviewer` 내 `packages/section` 신규 | 툴바·타입·빌드 완전 공유 | **§3 방안 2** — CW 팀 합의 필수 |
 
-**결론:** Spec에는 **안 A**를 기본으로 쓰고, Integration(접목) 범위는 §7.3에 분리한다.
+**결론:** UI 범위는 **안 A**를 기본으로 쓰고, Integration(접목)은 §8.3에 분리한다. **개발 레포**는 §3 **방안 1** 확정.
 
-### 7.3 Integration Spec — Cloud Web Viewer 담당 (접목)
+### 8.3 Integration Spec — Cloud Web Viewer 담당 (접목)
 
 - MPR 레이아웃 ↔ Section Layout 토글·라우팅 (MMI 1.1)
 - Scout view = MPR Axial 컴포넌트 재사용 (Section 모듈 2D Scout 교체)
@@ -184,7 +354,7 @@ MMI 시각 정본 `image23.png`는 **Scout + Panorama + Section 3×3** 만 담�
 - Clever Space `host-app` 연동, Back·권한·환자 컨텍스트
 - Module Federation 배포 (`@cloudwebviewer/core` remote)
 
-### 7.4 Save Project — Section 모듈에서 어디까지?
+### 8.4 Save Project — Section 모듈에서 어디까지?
 
 | 옵션 | 설명 |
 |------|------|
@@ -195,12 +365,12 @@ MMI 시각 정본 `image23.png`는 **Scout + Panorama + Section 3×3** 만 담�
 
 ---
 
-## 8. cloudwebviewer 레포 분석 (선행 필수)
+## 9. cloudwebviewer 레포 분석 (선행 필수)
 
 로컬 경로: `~/Documents/Azure/cloudwebviewer`  
 원격: https://dev.azure.com/ewoosoft/cloudwebviewer/_git/cloudwebviewer
 
-### 8.1 레포 구조
+### 9.1 레포 구조
 
 ```
 cloudwebviewer/
@@ -214,7 +384,7 @@ cloudwebviewer/
 
 현재 **Section Layout 코드는 없음.** CT는 `CTViewerLayout.LayoutMPR` 만 존재 (`ctContent/index.tsx`).
 
-### 8.2 Section 모듈이 참조할 핵심 경로
+### 9.2 Section 모듈이 참조할 핵심 경로
 
 **소비 방식:** 아래 경로의 파일을 scp-section-poc로 **복사하지 않고**, `@cloudwebviewer/core` link 후 **named import** 한다.
 
@@ -229,7 +399,7 @@ cloudwebviewer/
 | MPR 설정 | `packages/core/src/setting/` | Thickness/Interval combo (`MPR_VIEW_THICKNESSES` 등) |
 | 외부 타입 | `@ewoosoft/es-common-types`, `@ewoosoft/vpopviewer-common-types` | Overlay·좌표·Modality |
 
-### 8.3 Toolbar 구성 (현재 MPR 기준)
+### 9.3 Toolbar 구성 (현재 MPR 기준)
 
 `App.tsx`: 상단 `Toolbar` → 하단 `WorkSpace`.
 
@@ -245,7 +415,7 @@ cloudwebviewer/
 
 MMI 1.12 **Arrow** — 아직 `InteractionType` 미포함. Section Spec에 신규 타입·아이콘·Handler 추가 필요.
 
-### 8.4 워크스페이스 내 cloudwebviewer 관련 문서 조사
+### 9.4 워크스페이스 내 cloudwebviewer 관련 문서 조사
 
 | 위치 | 문서 | 내용 |
 |------|------|------|
@@ -259,22 +429,22 @@ MMI 1.12 **Arrow** — 아직 `InteractionType` 미포함. Section Spec에 신�
 | | `Image Download…/CloudWebViewer VTK.js 볼륨 렌더링 분석.md` | VTK 분석 |
 | | `VT_API_Gateway/참조-카탈로그.md` | cloudwebviewer 레포 링크 |
 | | `VT_API_Gateway/references/CleverSpace/Confidential_EzCloud_v1.0_SRS.md` | EzCloud↔CW Viewer 연동 |
-| **EzCloud Test (런타임)** | [container.test.ezcloud.ezcld.net](https://container.test.ezcloud.ezcld.net/) | Clever Space Test — **내장 Cloud Web Viewer**(MPR·툴바 UX 참고, §9.3.1) |
+| **EzCloud Test (런타임)** | [container.test.ezcloud.ezcld.net](https://container.test.ezcloud.ezcld.net/) | Clever Space Test — **내장 Cloud Web Viewer**(MPR·툴바 UX 참고, §10.3.1) |
 | **cloudwebviewer/.cursor/rules** | `excution_command.md`, `common.md` | host-app에서 `pnpm dev`. `docs/srs.md` 참조 규칙 — **현재 레포에 `docs/` 폴더 없음** (미동기화 또는 미클론) |
 
 v1.3.2 Section 전용 SRS는 **아직 레포에 없음.** 정본은 scp-architecture의 MMI + 본 OnePager Spec이 된다.
 
 ---
 
-## 9. 개발 환경 정렬 — scp-section-poc ↔ cloudwebviewer
+## 10. 개발 환경 정렬 — scp-section-poc ↔ cloudwebviewer
 
-### 9.0 정책 (확정)
+### 10.0 정책 (확정)
 
 | 항목 | 결정 |
 |------|------|
-| **구현 레포** | `scp-section-poc` — PoC 이후 Section 모듈도 **동일 레포에서 계속** 개발 |
+| **구현 레포** | `scp-section-poc` — §3 **방안 1** 확정. PoC 이후 **동일 레포에서 계속** 개발 |
 | **정본(참조) 레포** | `~/Documents/Azure/cloudwebviewer` — 툴바·MUI·버전·`.npmrc` **정본** |
-| **CW UI 소비** | `@cloudwebviewer/core` **pnpm `link:`** (§9.4). toolbar·common **소스 복사·포크 금지** |
+| **CW UI 소비** | `@cloudwebviewer/core` **pnpm `link:`** (§10.4). toolbar·common **소스 복사·포크 금지** |
 | **Section 엔진** | `@ewoosoft/scp-section-core` 등 **scp-section-poc 패키지 유지** — CW core와 혼합 금지 |
 | **하지 않는 것** | Section 초기 구현을 `cloudwebviewer` monorepo로 옮기지 않음 (접목은 인계 후 CW 팀) |
 | **CW 로컬 빌드** | link 설정·최초 `pnpm i` 시 1회. 일상 개발은 **scp-section-poc `pnpm dev`만**으로 충분 |
@@ -285,7 +455,7 @@ v1.3.2 Section 전용 SRS는 **아직 레포에 없음.** 정본은 scp-architec
 
 환경 정렬은 **MMI 기능 구현 착수 전 게이트**이다. Spec(OnePager §3)과 동일 요구.
 
-### 9.1 버전 차이 (현재 → 목표)
+### 10.1 버전 차이 (현재 → 목표)
 
 | 항목 | cloudwebviewer (정본) | scp-section-poc (현재) | scp-section-poc 목표 |
 |------|----------------------|------------------------|----------------------|
@@ -300,7 +470,7 @@ v1.3.2 Section 전용 SRS는 **아직 레포에 없음.** 정본은 scp-architec
 | registry | `.npmrc` (private) | 없음 | **CW `.npmrc` 공유** (`@ewoosoft/*`) |
 | 패키지 스코프 | `@cloudwebviewer/*` | `@ewoosoft/scp-section-*` | **유지** — 인계 시 API만 문서화 |
 
-### 9.2 scp-section-poc 적용 체크리스트
+### 10.2 scp-section-poc 적용 체크리스트
 
 구현 레포 `scp-section-poc`에서 수행:
 
@@ -308,21 +478,21 @@ v1.3.2 Section 전용 SRS는 **아직 레포에 없음.** 정본은 scp-architec
 2. `apps/section-demo` — vite **5.0.8**, react/react-dom **18.2**, typescript **5.2**.
 3. MUI·Emotion·(필요 시 Lingui) — CW core link와 동일 major로 맞춤 (`section-demo` 또는 `packages/components`).
 4. `.npmrc` — `cloudwebviewer/.npmrc`와 동일 registry 설정 (**설정 파일만** 복사).
-5. **§9.4** — `@cloudwebviewer/core`·`@cloudwebviewer/core-types` pnpm `link:` 설정.
+5. **§10.4** — `@cloudwebviewer/core`·`@cloudwebviewer/core-types` pnpm `link:` 설정.
 6. `section-demo`에서 `Toolbar`·`ContentTitleBar` import 후 상단 렌더 — link 성공 검증.
 7. `pnpm i` / `pnpm build` / `pnpm dev` — 정렬 후 빌드·데모 기동 검증.
 8. README — Node 20·pnpm 9.15.9·CW clone 경로·link 전제 명시.
 
-완료 기준: §9.1 표 목표 충족 + `section-demo` dev 기동 + CW Toolbar link 렌더(또는 Known gap 문서화).
+완료 기준: §10.1 표 목표 충족 + `section-demo` dev 기동 + CW Toolbar link 렌더(또는 Known gap 문서화).
 
-### 9.3 cloudwebviewer 측 (참조만)
+### 10.3 cloudwebviewer 측 (참조만)
 
-- 레포 분석: §8 (Toolbar, ContentTitleBar, host-app).
+- 레포 분석: §9 (Toolbar, ContentTitleBar, host-app).
 - link 선행: CW 레포 clone 후 `pnpm i` 1회(의존 해석). **일상 Section 개발마다 CW 빌드·`host-app` 기동은 필수 아님.**
-- MPR·툴바 동작·look&feel 확인: **§9.3.1 EzCloud Test** 우선. 로컬 `examples/host-app`은 link 디버깅 시에만.
-- Module Federation·접목은 Integration Spec(§7.3) — 환경 정렬과 별도.
+- MPR·툴바 동작·look&feel 확인: **§10.3.1 EzCloud Test** 우선. 로컬 `examples/host-app`은 link 디버깅 시에만.
+- Module Federation·접목은 Integration Spec(§8.3) — 환경 정렬과 별도.
 
-#### 9.3.1 EzCloud Test — Cloud Web Viewer 런타임 참고
+#### 10.3.1 EzCloud Test — Cloud Web Viewer 런타임 참고
 
 Section 모듈 개발 시 MPR 레이아웃·Top Toolbar·뷰 타이틀 바 등 **제품 동작·look&feel** 을 확인하는 기본 환경이다. 로컬 `cloudwebviewer` 빌드 없이도 사용한다.
 
@@ -337,9 +507,9 @@ Section 모듈 개발 시 MPR 레이아웃·Top Toolbar·뷰 타이틀 바 등 *
 
 PoC 데모(`scp-section-demo`)와 구분: PoC는 Section 엔진 검증, EzCloud Test는 **CW 제품 UI·MPR 워크플로** 정본 참고.
 
-### 9.4 CW UI 의존 — pnpm link (확정, 복사 금지)
+### 10.4 CW UI 의존 — pnpm link (확정, 복사 금지)
 
-#### 9.4.1 패키지 역할 분리
+#### 10.4.1 패키지 역할 분리
 
 | 패키지 | 레포 | 역할 | Section 모듈에서 |
 |--------|------|------|------------------|
@@ -350,7 +520,7 @@ PoC 데모(`scp-section-demo`)와 구분: PoC는 Section 엔진 검증, EzCloud 
 
 `@ewoosoft/scp-section-core` ≠ `@cloudwebviewer/core`. 이름이 비슷해도 **합치거나 scp 쪽에 CW toolbar 소스를 넣지 않는다.**
 
-#### 9.4.2 link 설정 예시
+#### 10.4.2 link 설정 예시
 
 레포가 `~/Documents/Azure/` 아래 나란히 clone 되어 있다고 가정:
 
@@ -367,7 +537,7 @@ PoC 데모(`scp-section-demo`)와 구분: PoC는 Section 엔진 검증, EzCloud 
 - 상대 경로는 **scp-section-poc 내 소비 패키지 기준**으로 조정한다.
 - `examples/host-app`의 `core-types` link 패턴과 동일 계열이다. Section은 **UI 컴포넌트**를 위해 `packages/core`를 직접 link한다.
 
-#### 9.4.3 import 범위 (허용)
+#### 10.4.3 import 범위 (허용)
 
 | import 대상 | 용도 |
 |-------------|------|
@@ -378,23 +548,23 @@ PoC 데모(`scp-section-demo`)와 구분: PoC는 Section 엔진 검증, EzCloud 
 
 Section 전용 로직(Draw curve, B/L, 9단면 생성)은 **`@ewoosoft/scp-section-*`** 에만 둔다.
 
-#### 9.4.4 금지·폴백
+#### 10.4.4 금지·폴백
 
 | 금지 | 이유 |
 |------|------|
 | `cloudwebviewer/packages/core/src/toolbar/` 등을 scp-section-poc로 **복사** | CW 업데이트와 drift, 인계 시 이중 유지보수 |
 | `@cloudwebviewer/core`를 scp monorepo **내부 패키지로 포크** | 접목 전제(모듈 인계)와 충돌 |
-| Section 엔진을 CW `packages/core`에 **선행 머지** | 레포 통합(§7.2 안 D) — CW 팀 합의 없이 진행 금지 |
+| Section 엔진을 CW `packages/core`에 **선행 머지** | **§3 방안 2** — CW 팀 합의 없이 진행 금지 |
 
 link·registry 오류로 Toolbar를 당장 쓸 수 없을 때:
 
 1. Known gap으로 문서화.
-2. MUI + §7.1 스타일 토큰으로 **임시** 상단 바만 구현 (기능 우선).
+2. MUI + §8.1 스타일 토큰으로 **임시** 상단 바만 구현 (기능 우선).
 3. link 해결 후 CW 컴포넌트로 **교체** — 임시 UI를 정본으로 고정하지 않음.
 
 ---
 
-## 10. PoC 없이 바로 Section 모듈 구현 가능 여부
+## 11. PoC 없이 바로 Section 모듈 구현 가능 여부
 
 **결론: 별도 PoC 프로젝트 없이 Section 모듈 구현을 시작해도 된다.**
 
@@ -406,14 +576,14 @@ link·registry 오류로 Toolbar를 당장 쓸 수 없을 때:
 
 구현 시 유의:
 
-1. **scp-section-poc ↔ cloudwebviewer 환경 정렬** — §9 선행. 툴바·MUI 없이 기능만 먼저 넣지 않음.
+1. **scp-section-poc ↔ cloudwebviewer 환경 정렬** — §10 선행. 툴바·MUI 없이 기능만 먼저 넣지 않음.
 2. **Section Slice 스크롤** — 개발실 리뷰 최대 리스크. 구현 착수 직후 첫 주에 수치 측정.
 3. **Scout** — Section 모듈에서는 PoC 방식 유지 가능. 접목 시 MPR Axial로 교체한다는 전제를 Spec에 명시.
 4. **B/L** — 기획 Jira confirm 전까지 알고리즘을 feature flag 또는 문서 draft로 두고, confirm 후 고정.
 
 ---
 
-## 11. 구현·인계 계획 (요약)
+## 12. 구현·인계 계획 (요약)
 
 | 항목 | 내용 |
 |------|------|
@@ -426,14 +596,15 @@ link·registry 오류로 Toolbar를 당장 쓸 수 없을 때:
 
 ---
 
-## 12. 다음 작업 체크리스트
+## 13. 다음 작업 체크리스트
 
 | 순서 | 작업 | 담당 | 상태 |
 |------|------|------|------|
-| 0 | **cloudwebviewer 레포 분석** (§8) | Raymond | 완료(문서) |
-| 0b | **scp-section-poc 환경 정렬** (§9) — 버전 통일 + **CW core link** (§9.4) | Raymond | **다음 (필수)** |
-| 1 | Section 모듈 **OnePager Spec** v1.3.2 (B/L §2 포함) | Raymond | **초안 완료** — 리뷰 대기 |
-| 2 | Integration 범위 — §7.3을 Spec Technical Description에 반영 | Raymond + CW Viewer | 대기 |
+| 0 | **cloudwebviewer 레포 분석** (§9) | Raymond | 완료(문서) |
+| 0a | **Claude Code Spec 정제** (§3.7) — MMI 매핑·TBD·3종 문서 정합 | Raymond | **다음 (지금)** |
+| 0b | **scp-section-poc 환경 정렬** (§10) — 버전 통일 + CW core link | Raymond | Spec 정제 후 (구현 전 필수) |
+| 1 | Section 모듈 **OnePager Spec** v1.3.2 | Raymond | **초안 완료** — §3.7 정제 중 |
+| 2 | Integration 범위 — §8.3을 Spec Technical Description에 반영 | Raymond + CW Viewer | 대기 |
 | 3 | B/L 알고리즘 기획 confirm (PLAN-1287) | Jessi | 진행 |
 | 4 | Spec 리뷰 | 기획 + CW Viewer | 대기 |
 | 5 | Section 모듈 구현 (CW 툴바 연동 포함) | Raymond | 대기 |
@@ -442,13 +613,13 @@ link·registry 오류로 Toolbar를 당장 쓸 수 없을 때:
 
 ---
 
-## 13. Spec 산출물 — OnePager 형식
+## 14. Spec 산출물 — OnePager 형식
 
 Section 모듈 Spec은 **SRS 장문이 아니라 OnePager** 로 작성한다. 팀 OnePager 템플릿 필드를 따른다.
 
 파일명 예: `Section-Module-Spec-v1.3.2-OnePager.md` (본 폴더)
 
-### 13.1 OnePager 필드 매핑
+### 14.1 OnePager 필드 매핑
 
 | 템플릿 필드 | Section 모듈 Spec에 넣을 내용 |
 |-------------|------------------------------|
@@ -459,34 +630,36 @@ Section 모듈 Spec은 **SRS 장문이 아니라 OnePager** 로 작성한다. �
 | **Business and Marketing Justification** | Clever Space CT Section 진단 워크플로. v1.3.2 출시 범위 |
 | **Risk Assessment** | Slice 스크롤 성능, B/L 미확정, CW 툴바 의존·Arrow 신규, Scout 접목 |
 | **Resource and Scheduling Details** | Spec → 구현 → 인계 일정, CW 팀 협의 시점 |
-| **Technical Description** | **핵심** — 아래 §13.2 항목을 이 절에 집약 |
+| **Technical Description** | **핵심** — 아래 §14.2 항목을 이 절에 집약 |
 
-### 13.2 Technical Description에 포함할 상세 (OnePager 본문)
+### 14.2 Technical Description에 포함할 상세 (OnePager 본문)
 
-1. **범위 표** — §7.1 (image23 + Toolbar + 타이틀 바 / 제외 항목)
-2. **MMI 1.1~1.14 매핑 표** — PoC 갭, 스펙아웃(±45°)
-3. **UI 정본** — `image23.png`, CW `Toolbar`·`ContentTitleBar` 참조 경로
-4. **Overlay §6** + Normal 허용 오차 (수치 TBD)
-5. **B/L 자동 판정** — [OnePager Spec §2](./Section-Module-Spec-v1.3.2-OnePager.md) (PLAN-1287 전문). confirm 3항 미결
-6. **Draw Curve** — §4.2 PPT comments (ESC 없음, 1점 더블클릭)
-7. **Save Project** — 데이터 모델, proj Curve 없음 시 blank
-8. **공개 API·패키지 경계** — `@ewoosoft/scp-section-*` export, CW 연동 포인트
-9. **Integration 요약** — §7.3 (접목 책임, Spec 리뷰 시 CW 팀 합의)
-10. **NFR** — 9단면 생성 ms, 마우스 전용, 브라우저
-11. **개발 환경** — §9 scp-section-poc ↔ cloudwebviewer 정렬 (Spec §3)
-12. **DoD** — MMI 체크리스트
+1. **범위 표** — §8.1 (image23 + Toolbar + MPR/Section 데모 + 타이틀 바 / 제외 항목)
+2. **화면 3분할·개발 레포** — OnePager §2, 본 문서 §3 방안 1
+3. **MMI 1.1~1.14 매핑 표** — PoC 갭, 스펙아웃(±45°)
+4. **UI 정본** — `image23.png`, CW `Toolbar`·`ContentTitleBar` 참조 경로
+5. **Overlay §6** + Normal 허용 오차 (수치 TBD)
+6. **B/L 자동 판정** — [OnePager Spec §4](./Section-Module-Spec-v1.3.2-OnePager.md) (PLAN-1287 전문). confirm 3항 미결
+7. **Draw Curve** — §4.2 PPT comments (ESC 없음, 1점 더블클릭)
+8. **Save Project** — 데이터 모델, proj Curve 없음 시 blank
+9. **공개 API·패키지 경계** — `@ewoosoft/scp-section-*` export, CW 연동 포인트
+10. **Integration 요약** — §8.3 (접목 책임, Spec 리뷰 시 CW 팀 합의)
+11. **NFR** — 9단면 생성 ms, 마우스 전용, 브라우저
+12. **개발 환경** — §10 scp-section-poc ↔ cloudwebviewer 정렬 (Spec §3)
+13. **DoD** — MMI 체크리스트
 
 장문 SRS가 필요해지면 OnePager 승인 후 별도 문서로 확장한다. v1.3.2 1차 산출물은 **OnePager만**.
 
 ---
 
-## 14. 변경 이력
+## 15. 변경 이력
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
 | 0.1 | 2026-07-09 | 초안 작성. PoC→Section 모듈 명칭·절차·범위 정리 |
 | 0.2 | 2026-07-09 | Spec OnePager 형식. 범위(image23+Toolbar). cloudwebviewer 분석·환경 정렬·문서 조사 |
 | 0.3 | 2026-07-09 | OnePager Spec 초안. B/L 알고리즘 Spec 반영 |
-| 0.4 | 2026-07-09 | §9 정책 확정: **scp-section-poc에서 계속 개발**, CW와 환경 통일. Spec 연동 |
-| 0.5 | 2026-07-09 | §9.4 **pnpm link 확정** — CW toolbar/common 복사 금지, 패키지 역할 분리, Dev 서비스 참고, 문서 정본 위치 |
-| 0.6 | 2026-07-09 | §9.3.1 **EzCloud Test URL** — `container.test.ezcloud.ezcld.net` 내 Cloud Web Viewer 런타임 참고 |
+| 0.4 | 2026-07-09 | §10 정책 확정: **scp-section-poc에서 계속 개발**, CW와 환경 통일. Spec 연동 |
+| 0.5 | 2026-07-09 | §10.4 **pnpm link 확정** — CW toolbar/common 복사 금지, 패키지 역할 분리, Dev 서비스 참고, 문서 정본 위치 |
+| 0.6 | 2026-07-09 | §10.3.1 **EzCloud Test URL** — `container.test.ezcloud.ezcld.net` 내 Cloud Web Viewer 런타임 참고 |
+| 0.7 | 2026-07-10 | **§3 개발 레포 3방안** — 방안 1 확정. §3.6 cwd. §3.7 Claude Code Spec 정제. §8.1 MPR/Section 데모 포함(OnePager 정합) |

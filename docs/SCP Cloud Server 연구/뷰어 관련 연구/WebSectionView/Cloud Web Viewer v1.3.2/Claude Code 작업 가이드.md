@@ -4,7 +4,7 @@
 >
 > 실행 컨텍스트: **작업 유형별 cwd** 는 §2.1. 문서 루트 = `.../Cloud Web Viewer v1.3.2/`, 코드 루트 = `scp-section-poc`.
 >
-> 갱신: 2026-07-09 (v1.4) · §2.1 Claude Code 작업 폴더(cwd)·세션 유지 가이드.
+> 갱신: 2026-07-10 (v1.8) · §3.2 Spec 정제 단계, §16.0·§16.3 Claude Code 시작 프롬프트.
 >
 > 요구사항 정본은 MMI. 본 가이드는 요약·핸드오프·구현 맥락. 상세 기능 정의는 MMI와 후속 Spec을 따른다.
 
@@ -32,21 +32,141 @@ AI는 Section 모듈 Spec·구현을 담당한다. Clever Space `cloudwebviewer`
 
 ## 2. Multi-root 워크스페이스 · 레포
 
-VS Code / Claude Code는 `~/Documents/Azure/scp.code-workspace` 등으로 여러 레포를 동시에 연다.
+VS Code / Cursor는 `~/Documents/Azure/section.code-workspace`(Section 전용) 또는 `scp.code-workspace`로 여러 레포를 동시에 연다. **워크스페이스 ≠ Claude Code cwd** (§2.1).
 
 | 레포 | 로컬 경로 | Section 모듈에서의 역할 |
 | --- | --- | --- |
 | scp-architecture | `~/Documents/Azure/scp-architecture` | MMI, 개발실 리뷰, Spec, 본 가이드 |
 | scp-section-poc | `~/Documents/Azure/scp-section-poc` | Section 모듈 구현 코드베이스 (출발점) |
 | cloudwebviewer | `~/Documents/Azure/cloudwebviewer` | 접목 대상 (읽기·Integration Spec 협의용) |
-| EzCloud Test (CW 런타임) | [https://container.test.ezcloud.ezcld.net/](https://container.test.ezcloud.ezcld.net/) | Clever Space 안 **Cloud Web Viewer** — MPR·툴바 UX 참고 (§9.3.1) |
+| EzCloud Test (CW 런타임) | [https://container.test.ezcloud.ezcld.net/](https://container.test.ezcloud.ezcld.net/) | Clever Space 안 **Cloud Web Viewer** — MPR·툴바 UX 참고 (개발계획 §10.3.1) |
 | stream-zip-unzip | `~/Documents/Azure/stream-zip-unzip` | CT ZIP Stream Unzip 참고 (PoC에서 패턴 차용) |
 | abc-dev-assistant | `~/Documents/Git/abc-dev-assistant` | dev-chain·Spec 작성 스킬 |
 | es-toolkit | `~/Documents/Azure/es-toolkit` | `/es-*` 개발 표준 명령 |
 
-### 2.1 Claude Code 작업 폴더(cwd) — 세션 유지
+### 2.1 Claude Code 작업 폴더(cwd) — 재검토 (2026-07-10)
 
-Claude Code는 **시작할 때 연 cwd(작업 디렉터리)** 를 기준으로 상대 경로·터미널·컨텍스트가 잡힌다. Section 모듈은 문서와 코드가 **서로 다른 레포**에 있으므로, 세션 목적에 맞는 cwd를 고른다.
+Claude Code는 **시작할 때 연 cwd** 를 기준으로 터미널·상대 경로·git·파일 생성 위치가 잡힌다. Section 모듈은 문서(`scp-architecture`)와 코드(`scp-section-poc`)가 **다른 레포**이므로 cwd 선택이 중요하다.
+
+#### cwd가 결정하는 것
+
+| 영향 | 설명 |
+|------|------|
+| 터미널 | `pnpm dev` / `pnpm build` / `git status` 가 cwd 레포에서 실행됨 |
+| 상대 경로 | `./packages/...` 등이 cwd 기준으로 해석됨 |
+| git 커밋 | cwd가 속한 레포에만 커밋됨 |
+| 파일 생성 실수 | cwd가 문서 폴더면 `docs/` 아래에 `.ts` 가 생길 수 있음 |
+| CW `link:` | `section-demo/package.json` 의 `link:../../../cloudwebviewer/...` 는 **scp-section-poc 기준** |
+
+#### 후보 2개 비교
+
+| 평가 항목 | A. 문서 폴더 `Cloud Web Viewer v1.3.2/` | B. 소스 폴더 `scp-section-poc/` |
+|-----------|----------------------------------------|--------------------------------|
+| MMI·Spec·image23·Slide7 | **최상** — 같은 트리, `@` 참조 짧음 | 절대경로 또는 긴 `../scp-architecture/...` |
+| Phase 1~5 PoC 문서 | `../Phase5/` 한 단계 | 문서 루트를 프롬프트로 지정 |
+| `pnpm i` / `pnpm dev` | **실패·오동작** (package.json 없음) | **네이티브** |
+| git commit 대상 | `scp-architecture` (문서) | `scp-section-poc` (코드) — **의도한 대상** |
+| CW core link 검증 | link 경로 부적합 | **적합** |
+| cloudwebviewer 읽기 | 가능 (읽기만) | 가능 + link 빌드 검증 |
+| 코드 확대 시 | **위험** — 구현 파일이 docs 레포로 새는 경우 | **안전** |
+| Spec 수정만 할 때 | **편함** | 문서 경로를 매번 명시 |
+
+#### “개발이 확대되면 문서 폴더 cwd가 나은가?”
+
+**아니오. 개발이 확대될수록 기본 cwd는 `scp-section-poc` 가 맞다.**
+
+| 확대 시나리오 | 문서 cwd | poc cwd |
+|---------------|----------|---------|
+| Section 기능·테스트 코드 증가 | pnpm·테스트 실행 불편 | **자연스러움** |
+| Toolbar 이벤트·link 디버깅 | 터미널 cwd 불일치 | **동일 레포에서 검증** |
+| Integration Spec·API 문서 추가 | 문서 작성에 유리 | §16 프롬프트로 문서 읽기 — **충분** |
+| 여러 레포 동시 참조 | 보이기만 좋음 (워크스페이스 역할) | `section.code-workspace` + poc cwd |
+
+문서가 늘어나는 것은 **“읽어야 할 입력”** 이 늘어나는 것이지, **“코드를 쓸 위치”** 가 문서 레포로 바뀌는 것이 아니다. Spec·MMI는 **매 세션 프롬프트(§16)에서 문서 루트 절대경로**로 고정하면 poc cwd에서도 동일하게 참조한다.
+
+문서 cwd를 기본으로 두면 확대 시 **리스크가 커진다**: `pnpm` 오실행, `scp-architecture`에 실수 커밋, `docs/.../packages` 같은 잘못된 경로에 소스 생성.
+
+#### 3층 운영 모델 (권장)
+
+| 레이어 | 도구 | 역할 |
+|--------|------|------|
+| **탐색** | `~/Documents/Azure/section.code-workspace` | 8레포 동시 열람 (WebSectionView, poc, CW, ezcloud…) |
+| **Claude cwd — 기본** | `scp-section-poc/` | 환경 정렬(§10) · 구현 · 빌드 · git |
+| **Claude cwd — 예외** | `Cloud Web Viewer v1.3.2/` | Spec·MMI·개발계획 **문서만** 수정할 때 |
+
+워크스페이스 첫 폴더가 `WebSectionView`여도, Claude Code cwd는 위 표와 **독립**으로 고른다.
+
+#### 단계별 cwd
+
+| 단계 | cwd | 비고 |
+|------|-----|------|
+| **OnePager Spec 정제** (§3.7) | **`scp-section-poc/`** | §16.0·§16.3 — **Raymond 다음 단계** |
+| Spec·MMI·개발계획 **문서만** | `Cloud Web Viewer v1.3.2/` | §16.1 프롬프트 |
+| 환경 정렬 · Section 구현 · 인계 | **`scp-section-poc/`** | §16.2 프롬프트 — **기본** |
+| 문서 수정 직후 이어서 코딩 | **새 세션** → `scp-section-poc/` | cwd 혼합 지양 |
+| 문서+코드를 한 세션에 | `scp-section-poc/` + §16.2 (문서 루트 명시) | 장기 구현 시 **이쪽** |
+
+#### 권장 cwd (결론)
+
+| 작업 유형 | cwd |
+| --- | --- |
+| **Spec·MMI·개발계획 문서만** | `Cloud Web Viewer v1.3.2/` |
+| **구현·빌드·환경 정렬·인계 코드** | **`scp-section-poc/`** ← v1.3.2 본선 **기본** |
+| **cloudwebviewer 분석(읽기)** | `cloudwebviewer/` 또는 poc + 절대경로 |
+
+#### 쓰지 않는 것 (단독 cwd)
+
+| 폴더 | 이유 |
+| --- | --- |
+| `WebSectionView/` (v1.3.2 **상위**) | Phase1~5 등 **v1.3.2와 무관한 문서 혼재** — 문서 전용이어도 **v1.3.2 하위**가 낫다 |
+| `scp-architecture/` 레포 루트 | Section 문서까지 상대 경로가 김 |
+| `section.code-workspace` 파일 위치 (`Azure/`) | 워크스페이스 루트는 cwd로 쓰지 않음 |
+
+#### 세션 유지 팁
+
+1. **한 세션 = 한 주 cwd.** 문서 세션 종료 후 구현은 **새 세션** + cwd `scp-section-poc`.
+2. **멀티루트 워크스페이스** (`section.code-workspace`) = Cursor에서 보기용. Claude cwd는 **poc 또는 v1.3.2 하나**.
+3. **매 세션 첫 메시지**에 §16 프롬프트 — poc cwd여도 **문서 루트 절대경로** 필수.
+4. **장기 구현(확대 포함)** 기본 cwd = **`scp-section-poc`**. 문서 폴더 기본화는 **비권장**.
+5. **환경 정렬(개발계획 §10)** 은 반드시 cwd = `scp-section-poc`. `cloudwebviewer`는 link·버전 참조만.
+
+#### 문서+코드 혼합 작업 (실무 — Raymond 패턴)
+
+**개발하면서 Spec·개발계획·가이드를 계속 참고·수정할 예정이어도 cwd는 `scp-section-poc` 가 낫다.**
+
+| 오해 | 실제 |
+|------|------|
+| “문서도 자주 쓰니까 문서 폴더 cwd” | cwd는 **쓰기 위치의 기본값**일 뿐. poc cwd에서도 **다른 레포 파일 읽기·수정 가능** (절대경로) |
+| “문서 cwd면 MMI를 더 잘 본다” | §16 프롬프트에 문서 루트를 고정하면 poc cwd에서도 동일. `@Section-Module-Spec-...` 는 워크스페이스에서 동작 |
+| “한 세션에서 둘 다 하려면 문서 cwd” | 코드·pnpm이 필요한 순간 **문서 cwd가 발목** 잡힘 |
+
+**혼합 작업 운영:**
+
+1. **Claude Code cwd** = `scp-section-poc` (고정).
+2. **Cursor** = `section.code-workspace` — 문서·코드 탭을 오가며 사람이 확인.
+3. **세션 첫 메시지** = §16.2 + “문서도 수정할 수 있음. 문서 루트: `…/Cloud Web Viewer v1.3.2/`”.
+4. **문서 수정** 시 Claude에게 `scp-architecture/.../Section-Module-Spec-....md` **절대경로**로 지시.
+5. **git** — 코드 커밋: `scp-section-poc` / 문서 커밋: `scp-architecture` (레포가 다르므로 **커밋 전 cwd·경로 확인**).
+6. 문서 **만** 손대는 짧은 세션(30분 이하)이면 그때만 cwd를 `v1.3.2/` 로 바꿔도 됨.
+
+```
+[일상] cwd = scp-section-poc
+        ├─ 코드 구현 · pnpm · link 검증
+        ├─ Spec/개발계획 수정 (절대경로로 scp-architecture 파일 편집)
+        └─ MMI·image23 참조 (읽기 전용 또는 가이드만 수정)
+
+[예외] cwd = Cloud Web Viewer v1.3.2/
+        └─ Spec·MMI·개발계획 대량 정리만 할 때
+```
+
+#### cwd 빠른 선택
+
+```
+문서만 수정?           → Cloud Web Viewer v1.3.2/
+코드·pnpm·빌드·git?    → scp-section-poc/          ← 기본
+문서+코드 혼합(일상)?   → scp-section-poc/ + §16.2  ← **Raymond 권장**
+문서 직후 코딩만?      → 새 세션 → scp-section-poc/ (선택)
+```
 
 **절대 경로 (로컬 기준):**
 
@@ -57,41 +177,11 @@ Claude Code는 **시작할 때 연 cwd(작업 디렉터리)** 를 기준으로 �
 | **코드 루트** | `~/Documents/Azure/scp-section-poc/` |
 | CW 참조 | `~/Documents/Azure/cloudwebviewer/` |
 | EzCloud Test (CW UI) | https://container.test.ezcloud.ezcld.net/ |
-
-#### 권장 cwd (결론)
-
-| 작업 유형 | cwd로 열 폴더 | 이유 |
-| --- | --- | --- |
-| **Spec·MMI·개발계획 문서** | `Cloud Web Viewer v1.3.2/` | MMI, OnePager Spec, 본 가이드, 개발실 리뷰가 **한 폴더**에 모임. 상위 `PLAN-1287.md`는 `../` 한 단계 |
-| **구현·빌드·환경 정렬** | `scp-section-poc/` | `package.json`, `pnpm`, `apps/section-demo`가 여기. 변경·커밋 대상 레포 |
-| **cloudwebviewer 분석(읽기)** | `cloudwebviewer/` 또는 멀티루트 | Toolbar·`package.json` 정본 탐색 시 |
-
-#### 쓰지 않는 것 (단독 cwd)
-
-| 폴더 | 이유 |
-| --- | --- |
-| `WebSectionView/` (상위만) | Phase1~5·구 PoC OnePager 등 **v1.3.2와 무관한 문서가 섞여** 세션 컨텍스트가 흐려짐 |
-| `scp-architecture/` 레포 루트 | Section 문서까지 상대 경로가 김. 문서 전용 세션에는 v1.3.2 하위가 낫다 |
-
-#### 세션 유지 팁
-
-1. **한 세션 = 한 주 cwd.** 문서 세션과 코드 세션을 섞으면 상대 경로·git 상태가 헷갈린다. 문서 끝나고 구현으로 넘어갈 때는 **새 세션**을 열고 cwd를 `scp-section-poc`로 바꾼다.
-2. **멀티루트 워크스페이스** (`scp.code-workspace`)는 VS Code/Cursor에서 레포를 동시에 보기용. Claude Code **cwd는 위 표대로 하나만** 고른다.
-3. **매 세션 첫 메시지**에 §16 프롬프트를 붙여 `문서 루트`·`코드 루트`를 **둘 다 명시**한다. cwd가 `scp-section-poc`여도 문서 경로는 절대경로 또는 `../scp-architecture/docs/.../Cloud Web Viewer v1.3.2/` 로 읽게 한다.
-4. **장기 작업(문서+코드 반복)** 의 기본 cwd는 **`scp-section-poc`** 를 권장한다. Section 모듈의 실체가 코드이고, 문서는 가이드·Spec 경로만 프롬프트로 고정하면 된다.
-5. **환경 정렬(§9)** 단계는 반드시 cwd = `scp-section-poc`. `cloudwebviewer`는 link·버전 **참조만**.
-
-#### cwd 빠른 선택
-
-```
-문서만 수정?     → Cloud Web Viewer v1.3.2/
-코드·pnpm·빌드?  → scp-section-poc/
-둘 다?           → scp-section-poc/ + §16 프롬프트(문서 루트 명시)
-```
+| Section 워크스페이스 | `~/Documents/Azure/section.code-workspace` |
 
 ---
 
-## 3. 현재 진행 상태 (2026-07-09)
+## 3. 현재 진행 상태 (2026-07-10)
 
 ### 3.1 완료
 
@@ -104,21 +194,29 @@ Claude Code는 **시작할 때 연 cwd(작업 디렉터리)** 를 기준으로 �
 | Save Project Curve 초기화 | MMI EP01_F014 #3 + PPT comment 913 | proj Curve 있으면 세팅, 없으면 blank (§4.2) |
 | MMI PPT comments 정리 | `comments/` XML 6개 (Jessi, 7/1~8) | §4.2 — ESC·1점 더블클릭·proj 예외·B/L 일정 |
 | Web Section View PoC | Phase 1~5 구현 | 기술 검증 완료 |
-| Section 모듈 개발계획 | `Section-Module-개발계획.md` | 초안 완료 |
+| Section 모듈 개발계획 | `Section-Module-개발계획.md` v0.8 | 방안 1 확정, §3.7 Spec 정제 절차 |
+| OnePager Spec 초안 | `Section-Module-Spec-v1.3.2-OnePager.md` v0.6 | 화면 3분할·B/L·환경 정책 — **정제 중** |
 
-### 3.2 지금 단계
+### 3.2 지금 단계 — OnePager Spec 정제 (Claude Code)
 
 ```
-[지금] Section 모듈 Spec v1.3.2 작성
+[완료] PoC Phase 1~5 · 개발계획 v0.8 · OnePager 초안 v0.6
     ↓
-Spec 리뷰 (기획 + Cloud Web Viewer 담당자 권장)
+[지금] Claude Code — OnePager Spec 정제 (개발계획 §3.7, 가이드 §16.0·§16.3)
+    │   MMI 1.1~1.14 매핑 · TBD 확정 · 3종 문서 정합
+    ↓
+Spec 리뷰 (기획 + Cloud Web Viewer 담당자)
+    ↓
+scp-section-poc 환경 정렬 (개발계획 §10) — 구현 착수 전 필수
     ↓
 Section 모듈 구현 (scp-section-poc → MMI 정합)
     ↓
 인계 → CW Viewer 접목 → 통합 테스트 → 출시
 ```
 
-Spec 리뷰는 PoC가 아니다. 성능 검증은 구현 초기 벤치마크로 병행한다.
+**운영:** cwd = `scp-section-poc`. Cursor = `section.code-workspace`. 첫 메시지 = §16.0.
+
+Spec 정제 완료 기준: 개발계획 §3.7 「완료 기준」·§14.2 Technical Description 항목 전부 OnePager에 반영.
 
 ### 3.3 미확정 (Spec·기획 confirm 필요)
 
@@ -1007,6 +1105,37 @@ Integration Spec은 별도 또는 §11로 CW Viewer 담당자와 공동.
 
 아래를 Claude Code **첫 메시지**로 붙여넣는다. cwd는 §2.1 참고.
 
+### 16.0 첫 세션 — Spec 정제 (cwd = `scp-section-poc/`) — **Raymond 권장 시작**
+
+`scp-section-poc`에서 Claude Code를 연 뒤, **본 가이드를 먼저 읽으라고** 지시하면 된다. 문서는 절대경로로 읽는다.
+
+```
+Cloud Web Viewer v1.3.2 Section 모듈 — OnePager Spec 정제 (첫 세션).
+
+cwd: ~/Documents/Azure/scp-section-poc
+문서 루트: ~/Documents/Azure/scp-architecture/docs/SCP Cloud Server 연구/뷰어 관련 연구/WebSectionView/Cloud Web Viewer v1.3.2
+CW 참조: ~/Documents/Azure/cloudwebviewer
+EzCloud Test: https://container.test.ezcloud.ezcld.net/
+
+먼저 순서대로 읽을 파일:
+1. [문서 루트]/Claude Code 작업 가이드.md (전체, 특히 §2.1·§3.2·§4.1·§4.2)
+2. [문서 루트]/Section-Module-개발계획.md (§3 방안 1, §3.7 Spec 정제, §8.1 범위, §14.2)
+3. [문서 루트]/Section-Module-Spec-v1.3.2-OnePager.md (초안 v0.6)
+4. [문서 루트]/Confidential_CloudWebViewer_v1.3.2_MMI_Kor/MMI.md
+5. [문서 루트]/../PLAN-1287.md
+6. [문서 루트]/Confidential_CloudWebViewer_v1.3.2_MMI_Kor/media/image23.png
+7. [문서 루트]/CloudWebViewerData/2.png, Confidential_.../Slide7.jpg (EzCloud·Slide7 비교)
+
+다음 작업 (개발계획 §3.7):
+- OnePager를 MMI 1.1~1.14 매핑 표 포함해 리뷰 가능 수준으로 정제
+- TBD: Overlay §6, NFR, Save, Draw Curve (가이드 §4.2)
+- 개발계획 §8.1·OnePager §2 범위 정합 (MPR/Section 데모 포함, Clever Space 셸은 접목)
+- 가이드·개발계획·OnePager 3종 상호 §번호·용어 일치 확인
+- 코드 수정·환경 정렬(§10)은 이번 세션에서 하지 말 것 — Spec만
+
+방법론: abc-dev-assistant spec-standard, abc-spec-writer (OnePager 템플릿)
+```
+
 ### 16.1 문서·Spec 세션 (cwd = `Cloud Web Viewer v1.3.2/`)
 
 ```
@@ -1036,15 +1165,33 @@ CW 참조: ~/Documents/Azure/cloudwebviewer
 EzCloud Test (MPR·툴바 UX): https://container.test.ezcloud.ezcld.net/
 
 먼저 읽을 파일:
-- [문서 루트]/Claude Code 작업 가이드.md (§2.1, §7.9 PoC 노하우, §9 환경 정렬)
+- [문서 루트]/Claude Code 작업 가이드.md (§2.1 cwd, §7.9 PoC 노하우, 개발계획 §10 환경 정렬)
 - [문서 루트]/Section-Module-Spec-v1.3.2-OnePager.md
-- [문서 루트]/Section-Module-개발계획.md §9
+- [문서 루트]/Section-Module-개발계획.md §3·§10
 - [문서 루트]/Confidential_CloudWebViewer_v1.3.2_MMI_Kor/media/image23.png
 
 방법론: es-toolkit /es-* + abc-dev-assistant dev-chain-frontend
 
 현재 단계: scp-section-poc에서 개발. cloudwebviewer 접목·커밋은 scp-section-poc만.
-다음 작업: [여기에 구체 지시 — 예: §9 환경 정렬 적용]
+다음 작업: [여기에 구체 지시 — 예: §10 환경 정렬 적용]
+```
+
+### 16.3 Spec 정제 후속 세션 (cwd = `scp-section-poc/`)
+
+§16.0 이후 이어서 OnePager를 다듬을 때. 구현·pnpm은 아직 하지 않는다.
+
+```
+Cloud Web Viewer v1.3.2 — OnePager Spec 정제 (후속).
+
+cwd: ~/Documents/Azure/scp-section-poc
+문서 루트: [§16.0과 동일]
+
+이전 세션 이어서:
+- Section-Module-Spec-v1.3.2-OnePager.md — 개발계획 §14.2 항목 중 미반영분
+- §3.3 미확정 항목: TBD / Will Not Do / Decision Log 로 명시
+- B/L: OnePager §4 유지, confirm 대기 상태 표기
+
+다음 작업: [예: MMI 1.9 Slice 스크롤 NFR 초안, Integration §8.3 요약 반영]
 ```
 
 ---
@@ -1059,3 +1206,6 @@ EzCloud Test (MPR·툴바 UX): https://container.test.ezcloud.ezcld.net/
 | 1.3 | 2026-07-09 | §4.2 MMI PPT comments. ESC·1점 더블클릭·proj Curve 예외 — §3·§6·§9·§12 반영 |
 | 1.4 | 2026-07-09 | §2.1 Claude Code cwd·세션 유지. §16 프롬프트 문서/구현 분리 |
 | 1.5 | 2026-07-09 | EzCloud Test URL — `container.test.ezcloud.ezcld.net` 내 Cloud Web Viewer 런타임 참고 |
+| 1.6 | 2026-07-10 | §2.1 cwd **재검토** — 개발 확대 시에도 기본 `scp-section-poc`. `section.code-workspace`와 cwd 분리 |
+| 1.7 | 2026-07-10 | §2.1 **문서+코드 혼합** — poc cwd 유지, 문서는 절대경로 편집·별도 git 커밋 |
+| 1.8 | 2026-07-10 | §3.2 **Spec 정제** 단계. §16.0 첫 세션·§16.3 후속 프롬프트. 개발계획 §3.7 연동 |
