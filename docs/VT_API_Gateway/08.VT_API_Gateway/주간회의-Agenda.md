@@ -839,7 +839,7 @@
 
   - **S1. v1.0 전략 조정 반영 — Straumann IO Scanner 우선 (7/9 결정)** — v1.0 AXS 연동 = **IO Scanner만**, **CleverOne 연동은 post-v1.0**로 이관. GW 기본(호환성·인증·라우팅·target 프록시)은 originator 무관 공통이라 **v1.0 포함**. **스펙 초안 담당**: CleverOne=**Nick** · EzServer=**Thomas**(GW는 표준 계약만 제공·Raymond 초안 미작성). **반영 완료**: SRS §1.2·§2.7 · ④/③-P-EZ/③-P-CO seed · 정본 Roadmap §3.9.
   - **S2. 프로젝트 일정(Gantt) — 7/16 스냅샷** — 스펙 생애주기(작성→PR→baseline)+GW 구현 타임라인. **정본=[개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정은 그쪽 먼저·동기화 완료). **7/9 대비 변경**: v1.0 범위=IO Scanner로 축소 · 각 스펙 **작성/PR 분리** · CleverOne·②Presigned·CleverSpace=**deferred(post-v1.0)** 섹션 · **담당 표기**.
-    - 막대 색: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 빨강=외부/미정 선결. **선결(빨강)**: IO Scanner↔EzServer 연동방식(미정·R1)·AXS sandbox 자격(Straumann). **목표=10월 출시**(역산·잠정).
+    - 막대 색: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 빨강=외부/미정 선결. **선결(빨강)**: IO Scanner↔EzServer 연동방식(미정·R1)·AXS sandbox 자격(Straumann). **목표=10월 출시**(역산·잠정). **병행 별도 프로젝트**: `SectionView Module 구현`(7/13~2주·Raymond·**GW 아님**)을 별도 섹션 `▷ 병행`에 **다른 색(crit)** 으로 표기 — GW 일정과 자원 경합(부분투입) 가시화용.
 
     ```mermaid
     gantt
@@ -890,6 +890,9 @@
         CleverOne 연동 스펙 작성 (Nick) :codef, after rel, 14d
         ② Presigned One Pager 작성     :pdef, after rel, 14d
         CleverSpace 적응 작성 (③-P-CS)  :csdef, after rel, 14d
+
+        section ▷ 병행 · 별도 프로젝트 (GW 아님)
+        SectionView Module 구현 (Raymond 병행) :crit, sv, 2026-07-13, 14d
     ```
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
