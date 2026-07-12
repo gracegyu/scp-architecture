@@ -359,7 +359,7 @@ paths:
       tags: [ admin ]
       summary: 본인 권한(역할) 요청 — 미등록/추가 권한 (FR-ADM-02) [v1.0]
       description: >-
-        로그인은 됐으나 실효 역할이 없거나(no_access) 추가 역할이 필요한 운영자가 역할을 **멀티 요청**한다(§7.9.2·7/9 R2 A). 각 역할이 `operator_role` status=requested로 생성돼 **Admin 승인 큐**(GET /v1/admin/access-requests)에 오른다. Admin 알림은 Console/OOB(③-C).
+        로그인은 됐으나 실효 역할이 없거나(no_access) 추가 역할이 필요한 운영자가 역할을 **멀티 요청**한다(§7.9.2·7/9 R2 A). 각 역할이 `operator_role` status=requested로 생성돼 **Admin 승인 큐**(GET /v1/admin/access-requests)에 오른다. Admin 알림은 Console/OOB(③-C). 감사 action=operator.role.request.
       requestBody:
         required: true
         content:
