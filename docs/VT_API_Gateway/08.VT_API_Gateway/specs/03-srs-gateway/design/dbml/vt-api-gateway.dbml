@@ -278,7 +278,7 @@ Table operator_role {
 
   Note: '운영자 역할 부여 lifecycle(§7.9.2) — RBAC 역할+스코프·요청→승인/거부/회수. 실효=active. 상세는 테이블 위 주석 참조.'
   Indexes {
-    (operator_id, role, scope_type, scope_id) [unique]  // 동일 스코프 역할 중복 방지
+    (operator_id, role, scope_type, scope_id) [unique]  // 동일 스코프 역할 중복 방지. **LLD 주의: global 역할은 scope_type/scope_id가 NULL이라 표준 UNIQUE로는 중복 미차단**(PG NULL distinct·policy/config 인덱스와 동일) → global을 'global' 명시 저장 또는 `NULLS NOT DISTINCT`(PG15+)/부분 유니크로 확정. scope_type 'NULL→global' 모호성도 이때 정규화
     operator_id
     status  // 승인 큐(requested)·실효(active) 조회
   }
