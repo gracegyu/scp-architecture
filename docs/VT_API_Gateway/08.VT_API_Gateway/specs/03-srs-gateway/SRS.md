@@ -1361,12 +1361,24 @@ DNS 호스트는 *클라이언트가 접속하는 외부 계약*이므로 본 SR
 | GW 고유 API (GeoDNS apex) | `gw.vatech.com` **(확정)** | **GW 고유 API(A, §4.1.1)의 호스트.** Route 53 GeoDNS로 최근접 리전 라우팅(§7.3.5). **v1.0(단일 리전)에서도 apex를 사용** — apex가 단일 리전을 가리키고, 2차에 백엔드만 N개로 늘린다 |
 | **프록시 target (target별)** | `https://{target}.gw.vatech.com` (예: `axs.gw.vatech.com`·`cleverspace.gw.vatech.com`) | **GW edge 라우팅 키 = 서브도메인 라벨**(프록시: 내부 B·외부 C, §4.1.2). **`*.gw.vatech.com` 와일드카드 GeoDNS**(모두 GW edge LB로 resolve)로 두어 신규 target은 **레지스트리 1행**이면 되고 DNS·cert 추가가 불필요하다 — GW가 라벨을 레지스트리로 검증해 **미등록 라벨은 `404`**(SSRF 안전). **CleverOne→EzServer 내부 구간은 `Vatech-Target` 헤더**로 지시하고 **EzServer가 이 서브도메인으로 변환**해 HTTPS 전달(§4.1.2). apex와 동일하게 v1.0부터 GeoDNS(대상=서울 1개) |
 | Webhook 수신 (target별) | `https://{target}.webhook.gw.vatech.com` (예: `axs.webhook.gw.vatech.com`) | **target별 전용 호스트로 발신자 식별**(Host/SNI). **apex와 동일하게 v1.0부터 GeoDNS 라우팅으로 구성**(대상=서울 1개, 2차에 리전 대상만 추가 §2.1.1·§2.7.1). **와일드카드 DNS 미사용**(엄격 관리·명시 등록; 추가는 연단위로 드묾 — 프록시 target과 달리 발신자 식별 무결성이 중요), TLS는 `*.webhook.gw.vatech.com` 와일드카드 cert 가능. 경로/형식은 target 규약 수용(유연, §7.6.1·§4.1.3). **Host=식별, 인증=HMAC**(§7.6.2) |
+| **Admin API (내부 전용·4-way R10)** | `admin.gw.vatech.com` | **운영자 관리 API `/v1/admin/*`의 별도 배포(`GW Admin API`·§6.6.2·R10) 전용 호스트.** **내부 전용 노출면** — 공개 device edge(apex)·webhook 호스트에서 **도달 금지**, Console·VPC 내부에서만(전용 ingress+NetworkPolicy·**사설 hosted zone 또는 내부 ALB+제한(WAF/IP-allow/VPN)**). apex(GW core)와 **물리 분리**(제어평면/데이터평면 격리). 사설/공개 zone·리전 토폴로지=③-I. v1.0 서울 1개(리전별·저볼륨) |
 | 리전별 엔드포인트(내부) | `gw-<region>.vatech.com` (예: `-apne2`) | GeoDNS 백엔드·내부/운영용. **v1.0부터 네이밍 규칙 예약**(단일 리전 1개만 실재), 2차에 N개로 확장. 클라이언트엔 노출하지 않음 |
-| GW Console | `console.gw.vatech.com` | **③-C 영역** — 본 SRS는 참조만. 확정은 ③-C Sub-SRS |
+| GW Console (UI) | `console.gw.vatech.com` | **③-C 영역**(운영자 브라우저 UI) — 이 UI가 **Admin API(`admin.gw.vatech.com`)** 를 호출한다(별개 호스트·백엔드). 본 SRS는 참조만·확정은 ③-C |
 
 > **와일드카드 TLS·DNS.** GW edge는 **`*.gw.vatech.com` 와일드카드 TLS cert** 하나로 apex·모든 target 서브도메인·Console을 커버한다(webhook 2단계 호스트는 `*.webhook.gw.vatech.com` 별도 와일드카드). **프록시 target은 와일드카드 DNS 사용**(레지스트리 검증이 SSRF를 막으므로 DNS 엄격 등록 불요) — **webhook 수신 호스트는 와일드카드 DNS 미사용**(발신자 식별 무결성이 걸려 명시 등록)이라는 차이에 유의.
 
 > **멀티리전-ready DNS (§2.7.1).** **apex(`gw.vatech.com`)·프록시 target(`*.gw.vatech.com`)·target webhook 호스트(`{target}.webhook.gw.vatech.com`)는 v1.0부터 GeoDNS 라우팅 정책으로 구축**한다 — **v1.0엔 라우팅 대상이 서울 리전 1개**뿐이라 모든 조회가 서울로 resolve된다. 클라이언트는 처음부터 이 공개 호스트만 사용하고(리전 내부 호스트 직접 노출 금지), **2차 리전 추가는 GeoDNS 라우팅 대상을 N개로 늘리는 증분**일 뿐 — **record 타입·호스트명·클라이언트/헤더 변경이 없다**. (단순 A레코드로 두었다가 2차에 GeoDNS로 바꾸는 방식은 record 타입 마이그레이션이 생기므로 쓰지 않는다. 또 apex 없이 리전 호스트를 클라이언트에 박으면 2차에 재배포 필요 — 금지.)
+
+> **4-way 배포 ↔ DNS ↔ 노출면 (R10·인프라 담당 참고).** 단일 코드베이스를 4개 Deployment로 나눈(§6.6.2) 각 서빙 단위의 호스트·노출·리전 거동을 한눈에:
+>
+> | 배포(Deployment) | 호스트 | 노출면 | 리전 거동 |
+> | --- | --- | --- | --- |
+> | **GW core** | apex `gw.vatech.com` + proxy `*.gw.vatech.com` | **공개**(device edge) | v1.0 서울·**GeoDNS-ready**(2차 대상만 +N) |
+> | **GW Admin API** | `admin.gw.vatech.com` | **내부 전용**(Console/VPC·전용 ingress+NetworkPolicy) | v1.0 서울·리전별(저볼륨)·공개 GeoDNS 밖 |
+> | **Webhook Receiver** | `{target}.webhook.gw.vatech.com` | **공개**(외부 발신자·명시 등록) | v1.0 서울·**GeoDNS-ready**(2차 대상만 +N) |
+> | **Webhook Dispatcher** | (ingress 없음) | **내부**(SQS consumer·수신 endpoint 없음) | 리전 로컬 실행 |
+>
+> **핵심**: 공개 3호스트(apex·`*.gw`·webhook)는 **v1.0부터 GeoDNS**(대상=서울 1개)로 깔고 2차에 **라우팅 대상만 N리전으로 증분**(record 타입·호스트명·클라이언트/헤더 불변). **Admin API는 공개 edge와 분리된 내부 전용 호스트**(4-way R10)라 device/webhook 공개면에서 도달하지 않는다 — 공개 GeoDNS 밖(사설 zone/내부 ALB). Dispatcher는 수신 ingress가 없다(큐 소비자). 인증서·GeoDNS·사설 zone 실제 구성=③-I.
 
 - **apex 호스트명 `gw.vatech.com` 확정(Scott, 2026-06-24)** — 재논의 불요.
 - 잔여(인프라/플랫폼팀): 인증서 발급·GeoDNS 구성·리전 내부 호스트(`gw-<region>.vatech.com`) 실제 등록 — 배포 구성 착수 전.
