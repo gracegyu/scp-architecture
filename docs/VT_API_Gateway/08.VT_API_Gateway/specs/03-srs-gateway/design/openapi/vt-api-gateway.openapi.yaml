@@ -1326,6 +1326,14 @@ paths:
         in: query
         description: config 키(정확 일치)
         schema: { type: string, example: gw.heartbeat.interval_seconds }
+      - name: limit
+        in: query
+        description: 페이지 크기(커서 페이지네이션)
+        schema: { type: integer, default: 50, maximum: 200, example: 20 }
+      - name: cursor
+        in: query
+        description: 다음 페이지 커서 — 불투명 토큰(직전 응답 nextCursor 그대로)
+        schema: { type: string, example: eyJkIjoiMDE5MjBhN2IifQ }
       responses:
         '200':
           description: config 항목 목록
@@ -1368,7 +1376,7 @@ paths:
       - operatorAuth: []
       tags: [ admin ]
       summary: 중앙 config 항목 삭제 — (scopeType, scopeId, configKey) 지정 (FR-CFG-01) [v1.0]
-      description: '운영자가 중앙 config 항목을 삭제한다((scopeType, scopeId, configKey) 지정·FR-CFG-01·§7.8.4).'
+      description: '운영자가 중앙 config 항목을 삭제한다((scopeType, scopeId, configKey) 지정·FR-CFG-01·§7.8.4). 삭제 시 그 스코프 키는 덜 구체적 스코프값/기본값으로 회귀. 감사 action=config.delete.'
       parameters:
       - name: scopeType
         in: query
@@ -2147,7 +2155,7 @@ components:
           example: 1720224000000
         updatedBy:
           type: string
-          description: '변경 주체(audit actor, 예 user:entra-…)'
+          description: '변경 주체(audit actor) — **서버가 operatorAuth subject에서 설정·읽기 전용**(클라이언트 입력 무시·감사 무결성). 예 user:entra-…'
           example: user:entra-8f3a
 
     # 연동 대상(target) 통합 (§7.5·§7.6·§7.1.3) — 라우팅+아웃바운드 자격+인바운드 webhook 수신
