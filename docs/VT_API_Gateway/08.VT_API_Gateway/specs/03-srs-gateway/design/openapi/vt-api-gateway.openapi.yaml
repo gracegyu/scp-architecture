@@ -2387,6 +2387,7 @@ components:
     # 감사
     AuditLog:
       type: object
+      required: [ id, ts, actor, action, result ]
       description: 'append-only 감사 항목(audit_log 테이블 매핑, §7.9.3·FR-AUD-01). 조회 전용(write API 없음).'
       properties:
         id: { type: integer, format: int64, description: '감사 항목 식별자(자동 증가·페이지네이션/참조용)', example: 100237 }
