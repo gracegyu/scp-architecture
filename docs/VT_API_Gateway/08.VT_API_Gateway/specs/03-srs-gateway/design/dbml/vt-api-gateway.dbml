@@ -340,7 +340,7 @@ Table client_inventory {
 
   Note: '앞단 클라 SW 인벤토리(FR-FLEET-06·§7.8.5) — Vatech-* 헤더 관측·clinic별 product/버전/OS presence. 식별 id 없음→(clinic,product,version,os) 튜플·last_seen. 대수 아님. 상세는 테이블 위 주석 참조.'
   Indexes {
-    (clinic_id, product, sw_version, os) [unique]  // 튜플=식별키(식별 id 없음)·upsert 단위
+    (clinic_id, product, sw_version, os) [unique]  // 튜플=식별키(식별 id 없음)·upsert 단위. **LLD 주의: os는 nullable이라 미보고(null) 시 표준 UNIQUE로 중복 미차단**(PG NULL distinct → throttle ON CONFLICT 불발·행 누적). os는 identity+throttle 해시에 쓰이므로 **미보고 시 sentinel('unknown'/'')로 정규화**(권장) 또는 `NULLS NOT DISTINCT`(PG15+)로 확정. FR-COMPAT-01상 OS는 필수라 실무 null은 드묾
     clinic_id                                      // clinic별 인벤토리 조회
     last_seen                                      // staleness(구버전 잔존) 조회
   }

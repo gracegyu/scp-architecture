@@ -1,6 +1,6 @@
 # GW API 표면 · Console CRUD 매트릭스 (설계 추적)
 
-> **상태: 재구성 반영 완료(2026-07-08)** — operator=`/v1/admin/*`·device-self=`/v1/*`(+`/me`)·`/v1/region/resolve` 제거·clinic GET/list 신설·`Clinic` 스키마 추가. **clinic↔device 관계 일급화**(nested `GET /v1/admin/clinics/{clinicId}/devices` + `Device.clinic` 요약 임베드·#47). OpenAPI redocly valid(**54 ops**·7/9 policy 리뷰+getAdminRegions 신설). **7/9 R2 A**: 운영자 인가=GW 자체(operator·operator_role·RBAC 관리 API 7종 신설).
+> **상태: 재구성 반영 완료(2026-07-08)** — operator=`/v1/admin/*`·device-self=`/v1/*`(+`/me`)·`/v1/region/resolve` 제거·clinic GET/list 신설·`Clinic` 스키마 추가. **clinic↔device 관계 일급화**(nested `GET /v1/admin/clinics/{clinicId}/devices` + `Device.clinic` 요약 임베드·#47). OpenAPI redocly valid(**55 ops**·7/9~10 policy·regions·client-inventory 리뷰 신설분 반영). **7/9 R2 A**: 운영자 인가=GW 자체(operator·operator_role·RBAC 관리 API 7종 신설).
 >
 > **목적**: GW API를 **청중 면(plane)** 과 **엔티티별 CRUD+list**로 정리해, **GW Console(operator UI) 구현**·**device 연동**에 필요한 API 조합을 한눈에 추적한다. 계약 정본은 `design/openapi/vt-api-gateway.openapi.yaml`이고 본 문서는 그 **조감·추적**.
 > `dbml`·`redis`·`db-jsonb-fields`와 나란한 설계 산출물.
@@ -31,7 +31,7 @@
 | **config** | ✅ | ✅ | ✅ put | ✅ | ✅ | `GET /v1/fleet/config`(gw1.1) | ✅ `/v1/admin/config` |
 | **webhook_event** | ✅ search | ✅ by-id(메타) | — | — | — | — | ✅ read-only(검색 `/webhook-events` + 단건 `/{eventId}` **메타** + 본문 `/{eventId}/payload` **break-glass·GW중개·redact**·GW가 `payload_encrypted` 복호화→masking, Console 직접 DB/KMS 접근 금지, 7/9 R7) |
 | **fleet_state** | ✅ | — | — | — | — | `POST /v1/fleet/heartbeat`(device push) | ✅ read-only(`/v1/admin/fleet`·heartbeat·버전·OS·online) |
-| **client_inventory** | ✅ by-clinic | — | — | — | — | (관측·Vatech-* 헤더) | ✅ read-only(`/v1/admin/clinics/{clinicId}/clients`·앞단 SW 버전·OS presence·§7.8.5·식별id 없음=튜플) |
+| **client_inventory** | ✅ 횡단 `/v1/admin/clients` + by-clinic | — | — | — | — | (관측·Vatech-* 헤더) | ✅ read-only(**전 클리닉 `/v1/admin/clients`**(캠페인) + 드릴다운 `/v1/admin/clinics/{clinicId}/clients`·앞단 SW 버전·OS presence·§7.8.5·식별id 없음=튜플·대수 아님) |
 | **audit_log** | ✅ search | — | — | — | — | — | ✅ append-only(`/v1/admin/audit`) |
 | **operator** | ✅ | ✅ by-id | (JIT·SSO 자동) | ✅ status(정지/복구) | ✗(=suspended) | `GET /v1/admin/me`·`POST …/me/access-requests`(본인 권한 요청) | ✅ RBAC(7/9 R2 A·authN=Entra SSO/authz=GW): `/v1/admin/operators`·`/{id}`·상태 PATCH |
 | **operator_role** | ✅(승인 큐 `/access-requests`) | — | ✅ Admin 부여 `POST …/{id}/roles` | ✅ 승인/거부/회수 `PATCH …/roles/{grantId}` | ✗(=revoked) | 요청 `POST …/me/access-requests` | ✅ 역할=앱상수·스코프(CS=global)·요청→승인 lifecycle |
