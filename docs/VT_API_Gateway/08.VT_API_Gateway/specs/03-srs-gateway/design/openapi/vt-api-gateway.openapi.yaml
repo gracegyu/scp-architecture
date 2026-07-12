@@ -1702,6 +1702,12 @@ paths:
       responses:
         '200':
           description: 서버 구성(호환성 매트릭스 공시)
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                description: 호환성 매트릭스(server-configuration) — 스키마·샘플=design/well-known/(§7.7.5·AppConfig 서빙)
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
@@ -1850,6 +1856,7 @@ components:
           example: axs:patient.read axs:study.write
     TokenResponse:
       type: object
+      required: [ accessToken, expiresAt ]
       properties:
         accessToken:
           type: string
@@ -1983,7 +1990,12 @@ components:
           example: EZ-SN-2024-012345
     EnrollChallenge:
       type: object
+      required: [ challengeId, nonce, expiresAt ]
       properties:
+        challengeId:
+          type: string
+          description: '이 challenge 식별자(gw:nonce:enroll:{challengeId}·§7.2.6). complete 시 그대로 되보내야 GW가 저장한 nonce·부트스트랩(Clinic-ID)을 상관한다'
+          example: ec_7f3a2b1c9d8e
         nonce:
           type: string
           example: n_7f3a2b1c9d8e4f5a
@@ -1993,8 +2005,12 @@ components:
           example: 1720137900000
     EnrollCompleteRequest:
       type: object
-      required: [ nonceSignature, clientPublicKey ]
+      required: [ challengeId, nonceSignature, clientPublicKey ]
       properties:
+        challengeId:
+          type: string
+          description: 'enroll/start가 준 challengeId — GW가 이를 키로 저장한 nonce·부트스트랩(Clinic-ID)을 조회해 서명 검증 + clinic upsert(§2.3.1·§7.2.6)'
+          example: ec_7f3a2b1c9d8e
         nonceSignature:
           type: string
           description: EzServer 개인키로 nonce 서명(소지 증명, §7.2.6)
