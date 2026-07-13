@@ -10,11 +10,11 @@ Cloud Web Viewer v1.3.2 — Section Module
 
 ## Submitter Info
 
-Raymond (전규현) · Ewoosoft Cloud Web Viewer 팀 · raymond.jeon@ewoosoft.com — Section 모듈 Spec v1.5
+Raymond (전규현) · raymond.jeon@ewoosoft.com 
 
 ## Project Description
 
-Clever Space Cloud Web Viewer(웹 CT 뷰어)에 치열궁 단면 진단용 **Section Layout**(MMI v1.3.2)을 추가한다. 지금은 MPR만 제공해 Section 진단이 필요한 사용자가 데스크톱 제품(Clever One)에 묶여 있으며, 본 프로젝트는 이 단면 진단을 웹에서 제공해 Clever Space 사용자의 웹 전환을 지원한다.
+Clever Space Cloud Web Viewer(CW, 웹 CT 뷰어)에 치열궁 단면 진단용 **Section Layout**(MMI v1.3.2)을 추가한다. 지금은 MPR만 제공해 Section 진단이 필요한 사용자가 데스크톱 제품(Clever One)에 묶여 있으며, 본 프로젝트는 이 단면 진단을 웹에서 제공해 Clever Space 사용자의 웹 전환을 지원한다.
 
 Section 뷰는 **기존 PoC(`scp-section-poc`, WebGL)를 확장해 MMI 전 기능을 구현**하며, Cloud Web Viewer와 환경·인터페이스·툴바·공통 모듈·prj를 정합해 **CW가 그대로 embed**할 수 있게 인계한다. 구현 접근·산출물은 Technical Description §9·§10 참조.
 
