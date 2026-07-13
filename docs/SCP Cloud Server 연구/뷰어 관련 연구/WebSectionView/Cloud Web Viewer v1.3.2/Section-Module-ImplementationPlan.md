@@ -207,7 +207,7 @@
 
 #### T-P2-1 — 전체 slice 인덱싱·페이징 모델
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-14 core `computeSectionIndexModel`(+`SECTION_WINDOW_SIZE=9`, `SectionIndexModel`) 신규: totalCount=floor(totalMm/interval)+1, 9-window windowStart 양끝 clamp. UT-SEC-001/002(+경계 방어) 통과. `useScoutAxialUi.sectionIndexModel` 파생 노출. (시각 없음 — 자동 UT DoD 충족)
 
 | 필드 | 값 |
 |------|------|
