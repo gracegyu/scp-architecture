@@ -154,7 +154,7 @@
 
 #### T-P1-2 — Edit Curve·context menu
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — DoD(§6) 항목 통과 시 체크 (UT-CRV-011/012 + edit ops 5개 hook 통과·context menu Add/Delete Point·Delete Curve 확인 다이얼로그·L/B Switching(Scout 라벨)·최소 2점. Section 타일 B/L는 T-P1-3)
 
 | 필드 | 값 |
 |------|------|
