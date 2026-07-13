@@ -109,7 +109,7 @@ MMI 정본(SharePoint PPT) Epic 1 Section Layout 전 항목. "MPR과 동일"로 
 | **1.4** | Panorama Line 요소 | 경계선(노랑, 기본 거리 **100mm**), 중심선(초록), Scout 위치선(흰 점선, 기본=중심선), Active section line(중 Center 다른 색) | 부분 | 경계선 100mm, 각 line 오버레이 | 확정 |
 | **1.5** | Draw Curve | 좌클릭=추가, 우클릭=직전 취소(1점이면 불가), 더블클릭=종료. 미리보기 실시간. **Section·Panorama는 curve 완료 후 표시(완료 전 blank)**. §6 상세 | 부분(점마다 생성) | ESC 미적용·1점 더블클릭 무시·완료 후 1회·Active line 실시간(§6) | 확정 |
 | **1.6** | Edit Curve | curve 이동, point 이동(drop 시 갱신)·삭제·추가(context menu, 최소 2점), Curve 삭제(확인 box), **L/B Switching**(text만 반전, 영상 flip 없음), **BL/LB 기준점 이동**(section line 따라 한 칸) | 편집 보유, 기준점 없음 | context menu, 기준점 drag, 확인 다이얼로그 | 확정 |
-| **1.7** | Scout 조작 | Active line 이동·**길이 조절**(Center line control point 대칭 드래그 — PoC는 slider), Panorama thickness 조절(대칭), Scout slice 변경(휠·slider → Pano 위치선), 삭제·L/B Switching·기준점(편집 모드 동일) | slider 기반 | 드래그 핸들, thickness line 드래그 | 확정 |
+| **1.7** | Scout 조작 | Active line 이동·**길이 조절**(Center line control point 대칭 드래그 — PoC는 slider), Panorama thickness 조절(대칭, **combo와 동일 30mm cap** — §12-D8), Scout slice 변경(휠·slider → Pano 위치선), 삭제·L/B Switching·기준점(편집 모드 동일) | slider 기반 | 드래그 핸들, thickness line 드래그(30mm clamp) | 확정 |
 | **1.8** | Panorama 조작 | 경계선 이동(세로폭, 대칭), 중심선 이동(drop 시 3뷰 갱신·Scout 위치선 동기), Active line 이동, slice 변경(휠·slider → Scout navigator line). **±45° 회전 스펙아웃** | 위치 이동 보유 | 경계선·중심선·active line 드래그. 회전 제외 | 확정 / ±45° 스펙아웃 |
 | **1.9** | Section 조작 | **Slice 변경**(휠·slider → 9장·slice number·Scout/Pano Active line 동기), Center slice(5번째 강조), 최대화(3×3 유지), **개별 slice 더블클릭 최대화** | 중심 9장만 | **전체 slice 인덱싱·스크롤·페이징 신규**(§8 성능 핵심), slice number, 더블클릭 최대화 | 확정(핵심 신규) |
 | **1.10** | Thickness/Interval | Setting에서 조절, MPR 동일. 기본 Th **0mm**(전 뷰), INT: Scout=Voxel Based(MPR 동기)·Pano/Section=1mm. 변경 시 오버레이·total slice·slider·line 간격 갱신. Draw 중 조정 시 curve 취소 없음(즉시 적용) | INT 보유, Th UI 없음·기본 full 6mm(=half 3mm) | **Th 기본 0mm**, Setting UI, combo 상한 **30mm**(CW `SLICE_THICKNESSES` 정합 §9.5) | 확정 |
@@ -198,7 +198,7 @@ MMI 본문과 PPT comment(기획 Jessi, 7/7~8) 상충 시 **comment(최신) 우�
 |------|------|
 | 9단면 생성 | 측정 JS 평균 **393ms**(362~427). 기본 JS(WASM 이점 제한적) |
 | Section Slice 스크롤 | 30 FPS(**33ms**) 미달 = 최대 리스크. **디바운스(≥48ms)·캐싱(생성 slice 재사용)·표시 분리(이전 이미지 유지)·Thickness 상한**. 구현 초기 worst-case 벤치마크 → NFR 목표 확정(§12-D7) |
-| Thickness 0mm | `slabHalfWidthMm=0` 경로 검증(현 기본 half 3mm=full 6mm). 상한 30mm(CW combo) |
+| Thickness 0mm | `slabHalfWidthMm=0` 경로 검증(현 기본 half 3mm=full 6mm). 상한 **30mm — combo·드래그 공통**(단일 `MAX_THICKNESS_MM`, §12-D8) |
 | 입력 | v1.3.2 **마우스 전용**(모바일/터치 스펙아웃) |
 | 브라우저·메모리 | Chrome 기준. CT 볼륨 100~250MB 수용. WebGL Context 3개 전략(CONTEXT_LOST 방지) |
 | 계측 로그 | `SectionGen` JSON 한 줄(`{tag,mode,ms}`) 벤치마크 수집 |
@@ -318,7 +318,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | D5 | Save prj(§7) | **확정** — CW prj XML 스키마 호환 직렬화. 개발 중엔 동일 payload를 브라우저 `localStorage`/export로 임시 저장. 호환 방향 Desktop→Web 우선 | CW 팀(스키마 필드 확인) |
 | D6 | 구현 커버리지 | **확정** — poc를 확장해 MMI 1.1~1.13 **전 기능** | — |
 | D7 | Section Slice 스크롤 NFR(§8) | 벤치마크 결과로 목표 수치 확정. **사용자 결정 불필요** | 구현 초기 |
-| D8 | Scout 명칭 / Thickness drag cap | Scout 유지(기획 검토) / drag 상한 없음 기본(개발실). **사용자 결정 불필요**(기본값 유지) | 기획 / 개발실 |
+| D8 | Scout 명칭 / Thickness drag cap | Scout 유지(기획 검토). **Thickness 드래그도 combo와 동일 30mm cap 확정**(2026-07-13, 개발실) — 정합성 + Section scroll 성능 예산(§8, Thickness 상한이 완화책) + 단일 `MAX_THICKNESS_MM` 재사용. clamp 한 줄이라 가역적 | 기획 / 개발실 |
 | D9 | 일정·인원·KPI | 목표 1주·예상 2주, Raymond 1명. 비즈니스 정량 KPI 제품팀 미요구(N/A) | — |
 | D10 | B/L 결정 시점·기준점 역할 | **확정** — B/L은 최초 P1·P2로 **1회 고정**, 이후 편집(P3+·P1/P2 이동)에 재판정 없음. 변경은 수동 L/B Switching만. BL/LB 기준점 이동은 B/L 무영향(§5) | 기획 회신 반영 완료 |
 

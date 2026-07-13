@@ -165,7 +165,7 @@ PLAN-1287 Jessi 회신 + MMI + 2026-07-13 B/L 회신 기준. OnePager §3~§7에
 | 1.8 | Active section line 회전 ±45° | **v1.3.2 스펙아웃** (임플란트 시뮬 재검토) |
 | 1.6·1.7 | BL/LB 기준점 이동 | 포함. **단, 이동은 B/L 판정에 영향 없음**(§6.2, D10) |
 | 1.5·1.3 | **B/L 자동 판정** | **확정 — §6.2 새 단일 규칙**. 폴백: 수동 L/B Switching |
-| 1.10 | Thickness | 기본 0mm. combo 상한 30mm(Clever One 동일). drag 시 상한 없음 기본(개발실 판단 시 30mm cap 가능) |
+| 1.10 | Thickness | 기본 0mm. combo 상한 30mm(Clever One 동일). **drag(Panorama thickness line)도 동일 30mm cap 확정**(2026-07-13, 개발실 — 정합성·Section scroll 성능 예산, 단일 `MAX_THICKNESS_MM`) |
 | 1.10 | Draw curve 중 Thickness/Interval | curve 취소 없음, 즉시 적용 |
 | 1.5 | Draw curve 표시 | Active line: 점 추가마다 갱신. Section 이미지: curve 완료 후 1회. 종료=더블클릭(우클릭=직전 취소), ESC 미적용 |
 | 1.9 | slice 더블클릭 최대화 | 포함 |
