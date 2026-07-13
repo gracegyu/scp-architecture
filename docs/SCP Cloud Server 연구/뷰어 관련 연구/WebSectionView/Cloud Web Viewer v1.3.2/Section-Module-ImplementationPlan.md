@@ -88,7 +88,7 @@
 
 #### T-P0-3 — CW 계약 미러 store + Toolbar stub + core-types link
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — DoD(§6) 항목 통과 시 체크 (toolStore 단위 5/5·core-types link tsc 통과·Toolbar 시각은 T-P0-4 dev 확인)
 
 | 필드 | 값 |
 |------|------|
@@ -104,7 +104,7 @@
 
 #### T-P0-4 — 데모 셸 조립·검증
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — DoD(§6) 항목 통과 시 체크 (Toolbar+MPR/Section 선택+SectionViewer 조립·build 974모듈·dev :5173)
 
 | 필드 | 값 |
 |------|------|
