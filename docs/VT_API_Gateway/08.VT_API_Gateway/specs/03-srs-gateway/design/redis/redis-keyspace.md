@@ -15,7 +15,7 @@
 - **PHI 미저장**(§6.4). 객체 키/메타에 환자정보 미포함.
 - **네이밍**: `gw:{class}:{...}` — `class` = `cache` | `nonce` | `idemp` | `wh` | `rl` | `lock` | `revoked`. 콜론(`:`) 계층 구분.
 
-## ① 캐시 (rebuildable — 원본에서 재구성 · 출처 대부분 PostgreSQL, 단 `jwks`/`wh-secret`/`conn-token`=KMS — TTL + 버전 무효화. **compat 매트릭스는 Redis 캐시 아님** → AppConfig Agent pod-로컬·7/9 R9)
+## ① 캐시 (rebuildable — 원본에서 재구성 · 출처 대부분 PostgreSQL, 단 `jwks`/`wh-secret`/`conn-token`=KMS — TTL + 버전 무효화. **compat 매트릭스는 Redis 캐시 아님** → AppConfig Agent pod-로컬)
 
 | 키 패턴 | 자료형 | TTL(예시) | 용도 | 재구성 출처 |
 | --- | --- | --- | --- | --- |
@@ -28,7 +28,7 @@
 | `gw:cache:wh-secret:{targetId}` | string | 짧음 | **webhook HMAC 검증 시크릿**(§7.6.2) — `secret_ref`로 KMS에서 로드, **비밀 취급**(로그 미기록·§6.2) | KMS(`target.secret_ref`) |
 | `gw:cache:regions` | hash/json | 분 | GW 운영 리전 목록(§7.3.6) | `region_catalog` |
 | `gw:cache:jwks:{issuer}` | string/json | 분 | **발급기별 JWKS(공개키)** — ① 운영자 IdP(직원 MS365/Entra·§7.1.4 토큰 검증) · ② (enroll B안·**v1.0 미지원·LMP 재개발 후**) **LMP 제3자 서명 attestation 검증**(§2.3.1 B·③-P-LMP). issuer별 런타임 fetch+캐시. device 공개키는 `cache:device`(디바이스별·DB) | 각 발급기 JWKS 엔드포인트 |
-| `gw:cache:operator-roles:{subject}` | hash/json | 분 | **운영자 실효 역할·접근 상태**(authz) — `operator_role`(status=active)+`operator.status`를 subject별 캐시(요청별 `/v1/admin/*` authz 조회·§7.1.4·§7.9.2·7/9 R2 A). 승인/거부/회수/정지 시 무효화 | `operator`·`operator_role`(PG) |
+| `gw:cache:operator-roles:{subject}` | hash/json | 분 | **운영자 실효 역할·접근 상태**(authz) — `operator_role`(status=active)+`operator.status`를 subject별 캐시(요청별 `/v1/admin/*` authz 조회·§7.1.4·§7.9.2·A). 승인/거부/회수/정지 시 무효화 | `operator`·`operator_role`(PG) |
 | `gw:cache:conn-token:{targetId}` | string | 토큰 만료 전(선제 갱신) | **아웃바운드 OAuth2 access token** 캐시(§7.1.3) — GW가 external(C) 호출에 쓰는 토큰. **만료 전 자동 갱신**(만료 후 아님) | target 토큰 엔드포인트(자격=`target.credential_ref`, KMS) |
 | `gw:cache:config:gw` | hash/json | 초~분 | **v1.0** GW-내부 실효 config(`gw.*` · region/global 병합, pod 공유·§7.8.4) — heartbeat 응답의 주기·`configVersion` 산출 | `config`(`gw.*` 기여 행) |
 | `gw:cache:config:{deviceId}` | hash/json | 초~분 | **gw/1.1+** device **실효 config**(`device.*` · device>clinic>region>global 병합 + `configVersion`, pull `GET /v1/fleet/config`·heartbeat) — v1.0 미사용 | `config`(기여 스코프 행 병합) |
@@ -44,7 +44,7 @@
 | `gw:nonce:enroll:{challengeId}` | string | 짧음(분) | enrollment nonce challenge(§7.2.6) | 1회용·재사용 거부 |
 | `gw:idemp:{scope}:{key}` | string | 시간~일 | idempotency(업로드 commit·요청 멱등, §4.5) | 저장 결과 ref/상태 |
 | `gw:wh:dedup:{targetId}:{eventId}` | string | 시간~일 | webhook eventId 중복 처리 방지(§7.6.4) | 인스턴스 공유 필수 |
-| `gw:rl:{subject}:{window}` | counter(string/INCR) | window 길이 | rate-limit 카운터(§7.1.1 토큰·**무인증 enroll은 IP/서브넷 subject**·§7.2 7/9 R4) | 윈도우 만료 시 자동 소멸 |
+| `gw:rl:{subject}:{window}` | counter(string/INCR) | window 길이 | rate-limit 카운터(§7.1.1 토큰·**무인증 enroll은 IP/서브넷 subject**·§7.2) | 윈도우 만료 시 자동 소멸 |
 | `gw:seen:client:{clinicId}:{tupleHash}` | string(SET NX) | 반영 주기(기본 예 6~24h·운영값) | **클라 SW 인벤토리 flush throttle**(§7.8.5) — `{tupleHash}`=hash(product·version·os). `SET NX EX` **성공(부재)=신규/주기 경과 → GW core가 `client_inventory` async upsert(last_seen 갱신)+키 세팅**, **실패(존재)=최근 반영됨 → skip**. 요청마다 PG 쓰기 방지 | 출처=관측(Vatech-* 헤더)·멀티 pod 공유 필수(무상태 pod 교체에도 게이트 유지) |
 | `gw:revoked:{deviceId}` | string(SET) | ≈ access token 최대 수명 | **폐기 디바이스 denylist**(kill/revoke 즉시 전파·§7.2.4) — 이미 발급된 **단명 토큰을 만료 전 차단**(그 후엔 토큰이 자연 만료라 키 불요) | 출처=`device.status=revoked`(PG)·멀티 pod 공유 필수 |
 | `gw:lock:{resource}` | string(SET NX) | 짧음(초) | 분산 락(선택 — 단발 작업 직렬화) | 필요 시만 |
@@ -56,5 +56,5 @@
 
 ## 매핑
 
-- 캐시 키 ↔ 출처: 위 "재구성 출처" 열이 SSOT 링크. 대부분 **PostgreSQL**(`design/dbml`)이며, 예외는 **`jwks`=발급기 JWKS** · **`wh-secret`/`conn-token`=KMS**. **compat 매트릭스는 Redis에 캐시하지 않는다(7/9 R9)** — AppConfig Agent(사이드카)가 pod-로컬로 폴링·캐시(§7.7.5), 구 `gw:cache:compat`(리전 로컬 S3 캐시)는 폐기. DBML·§7.7.5 변경 시 본 카탈로그 동기화.
+- 캐시 키 ↔ 출처: 위 "재구성 출처" 열이 SSOT 링크. 대부분 **PostgreSQL**(`design/dbml`)이며, 예외는 **`jwks`=발급기 JWKS** · **`wh-secret`/`conn-token`=KMS**. **compat 매트릭스는 Redis에 캐시하지 않는다** — AppConfig Agent(사이드카)가 pod-로컬로 폴링·캐시(§7.7.5), 구 `gw:cache:compat`(리전 로컬 S3 캐시)는 폐기. DBML·§7.7.5 변경 시 본 카탈로그 동기화.
 - 본 카탈로그는 SRS §3.1.2·§6.4·§2.1.1에서 참조한다.

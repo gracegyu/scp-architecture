@@ -76,7 +76,7 @@ GW는 target으로 verbatim 프록시하므로(§4.1.2), **정책은 (method + p
 - **타입**: CIDR 문자열 배열. 발신자 **식별은 Host/SNI**(inbound_host)가 하고, 이 목록은 **옵션 방어심층**(비어 있으면 IP 체크 생략, §7.6.2). webhook 발신 target에만 채움.
 - **검증**: 각 원소 유효 CIDR.
 
-> 라우팅(host·profile·연결 timeout) 스칼라는 jsonb 아님 — 재시도·서킷은 service mesh(istio) egress(7/2 R4), 연결 timeout(connect/response/total_deadline)은 GW 책임 스칼라 컬럼(D1~D3·§7.5.4, 수치=Appendix B #25).
+> 라우팅(host·profile·연결 timeout) 스칼라는 jsonb 아님 — 재시도·서킷은 service mesh(istio) egress, 연결 timeout(connect/response/total_deadline)은 GW 책임 스칼라 컬럼(D1~D3·§7.5.4, 수치=Appendix B #25).
 
 ---
 
@@ -160,7 +160,7 @@ device.approve → before {"status":"pending"} after {"status":"active"}
 
 ---
 
-## `operator_role` (운영자 역할 — 필드 형식 SSOT, §7.9.2 · 7/9 R2 A)
+## `operator_role` (운영자 역할 — 필드 형식 SSOT, §7.9.2·A)
 
 authz=GW 자체(authN=Entra SSO). `role`은 **소스코드로 관리하는 enum**(`operator_role_type`·DBML Enum→Prisma→TS 단일 선언·DB·앱 동시 강제). `scope_type`+`scope_id`는 데이터 스코프(config/policy와 동일 다형).
 
@@ -178,19 +178,4 @@ admin   cs   operator   developer     ← operator_role_type (DBML Enum)
 - `global`(scope_id=NULL·전 클리닉/리전) / `region`(scope_id=region_id) / `clinic`(scope_id=clinic_id).
 - **v1.0: `cs`·`admin`=global.** region/clinic 스코핑은 후속(국가/법인 한정 등·#39).
 
----
 
-## 변경 이력
-| 일시 | 내용 |
-| --- | --- |
-| 2026-07-09 | **역할=소스코드 enum 확정(role 테이블·상수 폐기)** — `operator_role.role`을 varchar 상수 → **`operator_role_type` enum(DBML Enum·소스코드 관리)**. 역할 목록=코드(enum)·역할→권한 매핑=코드/OPA. 역할 추가=enum+GW+GW Console 동시 수정 |
-| 2026-07-09 | **`operator_role` 역할 상수 레지스트리 신설(7/9 R2 A)** — authz=GW 자체. role=앱상수(admin/cs/operator/developer·확장형)·scope_type/scope_id(global/region/clinic·CS=global). 역할→action 매핑=앱레벨 |
-| 2026-07-09 | **`upstream` → `target` 리네임(7/9 R6)** — `## upstream` 절→`## target`, 앵커 `#upstream`→`#target`, `target.target_id`·감사 action `target.upsert/delete`. 위 2026-07-01 행의 upstream은 당시 기록이라 보존 |
-| 2026-07-01 | 신설 — DB jsonb 컬럼(policy 3개·connector/upstream egress·retry_policy·webhook source_ip) 형식·예시·검증 정의. egress 3중복 → Appendix B #31 |
-| 2026-07-02 (R4) | `upstream_registry.retry_policy` 형식 섹션 제거 — **재시도·서킷=service mesh(istio) 담당**(GW 미소유). **단 GW→provider 연결 timeout(connect/response/total_deadline)은 GW 책임이라 스칼라 컬럼 유지**(D1~D3, §7.5.4). jsonb 대상은 egress_allowlist만 |
-| 2026-07-06 | `policy` 키를 `(tenant=clinic)` → **`(scope_type{global\|clinic\|device}, scope_id, connector)`** 로 일반화 — 주체=device·clinic=선택적 그룹(§1.2·§6.4.1), 실효정책 device→clinic→global. jsonb 필드(allowed_endpoints·scopes) 형식은 불변 |
-| 2026-07-06 (#31) | **egress SSOT 일원화** — `connector.egress_allowlist` 단일 SSOT(+requireStaticEgressIp 이관). `policy.egress`·`upstream_registry.egress_allowlist` 섹션·컬럼 제거. egress=외부(C) 대상 속성(per-tenant authz 아님), OPA/네트워크가 connector 참조 |
-| 2026-07-06 | **connector·upstream_registry·webhook_provider → `upstream` 병합** — jsonb 섹션 `#connector`·`#webhook_provider`·`#upstream_registry`를 **`#upstream`** 하나로 통합(egress_allowlist=아웃바운드 그룹·source_ip_allowlist=인바운드 그룹). `#policy`의 connector→**target_id**(FK→upstream). audit action → `upstream.upsert`·`upstream.delete`. 표명 upstream·PK target_id 확정(Agenda R3) |
-| 2026-07-08 | **`audit_log`에 `before_state`/`after_state`(jsonb·부분 스냅샷)·`source_ip` 추가** — §7.9.3이 요구하던 변경 전/후·IP를 실제 필드로 뒷받침(SRS↔DBML 불일치 해소·A안). 부분 스냅샷(관련 필드만)·**PHI·원문 secret 금지**(참조/마스킹)·create=after/delete=before/no-op 미기록. 섹션 성격이 "문자열 규약"→"문자열+jsonb"로 확장. DBML·OpenAPI `AuditLog`·§7.9.3 정합 |
-| 2026-07-06 | **`audit_log` 문자열 규약 신설** — `action`=`resource.verb` 명명 규약(free string·정규식·표준 목록·앱 레벨 상수, DB enum 아님) · `actor`=`type:id`(user/system/device) · `result`=DB enum `audit_result`(success/denied/failure). §7.9.3에서 참조 |
-| 2026-07-06 | **`config` 값 계약 신설(§7.8.4 중앙 Config)** — `config_key` 네임스페이스 규약(`gw.*` GW 소비 / `device.*` 전달·정규식·**키 레지스트리 seed 7종**: heartbeat interval/threshold·log.level·upload concurrency/chunk·telemetry·feature_flags, type/범위/기본값/소비자·확장형·미등록/범위밖 거부) · `config_value` jsonb 형식·검증(PHI 금지) · **실효 `configVersion`=콘텐츠 해시(SHA-256, 행 version 최댓값 아님)** · 스코프(global/region/clinic/device)·실효 해석(키별 가장 구체 우선 override). DBML `config` 테이블 신설과 정합 |
