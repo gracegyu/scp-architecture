@@ -11,12 +11,12 @@
 | 프로젝트명 | section-module-v1.3.2 |
 | PL | Raymond (전규현) |
 | 작성 시작 | 2026-07-13 |
-| **현재 버전** | **v0.2 (초안 — baseline 미확정, MMI UI 정합 P7 보강)** |
-| 관련 Spec 베이스라인 | Section OnePager **v1.5** (scp-architecture, **미커밋** — 커밋 후 SHA 동결) |
+| **현재 버전** | **v0.3 (초안 — baseline 미확정, 파노라마 생성 모델 정정·MMI 재검토 반영)** |
+| 관련 Spec 베이스라인 | Section OnePager **v1.6** (scp-architecture, **미커밋** — 커밋 후 SHA 동결) |
 | 구현 Repo | `scp-section-poc` @ `23ac6ef` |
 | 접목/참조 Repo | `cloudwebviewer` (Cloud Web Viewer, CW) @ `d063ae2` (embed 대상, 읽기·계약 참조) |
 | Operating Mode 디폴트 | **유인 (Task 단위, 사람 확인·커밋)** — 무인 루프 미사용 |
-| 단일/분리 세션 | **단일 세션** (Repo 1개·Task 30개·2주·1명 → ip-standard 4기준상 단일) |
+| 단일/분리 세션 | **단일 세션** (Repo 1개·Task 32개·2주·1명 → ip-standard 4기준상 단일) |
 | Slack 채널 | (해당 시 지정) |
 | 무인 모드 Kill Switch | **N/A** — 무인 루프 인프라 미사용(유인 전용, §7) |
 
@@ -41,13 +41,13 @@
 | **P0** | 환경 정렬·경계 | scp-section-poc ↔ CW 버전·UI 스택·store·toolbar stub 정합 + CT 공급 인터페이스 추상화·외부 패널 (구현 착수 게이트) | 2일 | poc |
 | **P1** | Scout·Curve·B/L | Draw/Edit curve UX, B/L 단일 규칙, BL/LB 기준점 | 2일 | poc |
 | **P2** | Section Slice 스크롤 | 전체 slice 인덱싱·페이징·9장·slice number·최대화 (성능 핵심 §NFR) | 2일 | poc |
-| **P3** | Pano/Scout 조작·Thickness | 드래그 핸들·경계선·중심선·thickness line·Setting·ruler 전체 축 | 1.5일 | poc |
+| **P3** | Pano/Scout 조작·Thickness | 드래그 핸들·경계선·중심선·thickness line·**파노라마 thin 재슬라이스·P/A offset 스윕(생성 모델 정정)**·Setting(combo·전 뷰 두께)·ruler 전체 축 | 2.5일 | poc |
 | **P4** | Windowing/Filter·계측·Overlay | Image Filter, Length/Angle/FreeDraw/Arrow(section 스코프), Overlay 규칙(3D 좌표) | 1.5일 | poc |
 | **P5** | Save Project | 데이터 모델·CW prj 스키마 매핑·직렬화·브라우저 임시저장 | 1일 | poc |
 | **P7** | **MMI UI 정합(한땀 정합)** | **뷰 Title Bar·글로벌 바·per-panel Slice Slider·Image Info Overlay·Scout/Pano 렌더 스타일**을 MMI(§1.2·1.3·1.4)와 픽셀 단위 일치 | 1.5일 | poc |
 | **P6** | NFR·인계 | Slice 스크롤 벤치마크→NFR, 공개 API·embed 매핑·Known gaps·데모 | 0.5일 | poc |
 
-합계 ≈ 11.5일(예상 2주). 목표 1주는 P0·P1·P2 우선(핵심 신규) 기준.
+합계 ≈ 12.5일(예상 2주). 목표 1주는 P0·P1·P2 우선(핵심 신규) 기준.
 
 **실행 전략 — Phase 번호 순차가 아니라 DAG 의존성 기반 interleaving.** P7(UI 정합)은 태스크를 한 곳에 모아 "빠짐없이" 추적하는 버킷이며, **실행은 각 P7 태스크의 선행(P2/P3/P4)이 끝나는 즉시** 수행한다(기능 완성 → 그 UI를 바로 MMI에 정합 → 실데이터로 시각 검증). 정적 크롬(T-P7-1/2, T-P7-3 골격)은 P0 셸 직후 이미 착수. 이후 순서: P1-4 → P2 → (T-P7-3 실배선·T-P7-4 slice번호/방향) → P3 → (T-P7-6·T-P7-4 Th/INT·T-P3-4 ruler) → P4 → (T-P7-5·T-P7-4 W/L) → P5 → P6. §5 DAG가 이 순서를 규정한다.
 
@@ -326,14 +326,30 @@
 | 필드 | 값 |
 |------|------|
 | id | T-P3-4 |
-| title | Th 기본 0mm(slabHalfWidthMm=0 경로)·Setting 패널(Th/INT combo, 상한 30mm — **드래그와 공유하는 단일 `MAX_THICKNESS_MM`**, T-P3-3 참조)·ruler 전체 축 |
+| title | 각 뷰 Setting 다이얼로그(**Thickness combo {0,0.1,0.5,1,2,3,5,10,20,30}mm** + drag off-list 값·**Interval: Scout=Voxel Based·Pano/Section=1mm**)·**Section slab 두께 노출**(Scout·Pano·Section 전 뷰)·Th 기본 0mm(slabHalfWidthMm=0)·ruler 전체 축. 상한 30mm는 드래그와 단일 `MAX_THICKNESS_MM`(T-P3-3) |
 | repo | scp-section-poc |
-| spec_refs[] | S-SPEC §3.1(1.2·1.10)·§8, S-MMI §1.10·§1.2, S-CW `types/core/src/setting.ts`#SLICE_THICKNESSES@d063ae2 |
+| spec_refs[] | S-SPEC §3.1(1.2·1.10)·§3.3·§8, S-MMI §1.10(Slide20·27)·§1.2, S-CW `types/core/src/setting.ts`#SLICE_THICKNESSES@d063ae2 |
 | depends_on[] | T-P2-1 |
-| outputs[] | `packages/core/src/panorama/panorama.ts`·`section/section.ts`, `components/src/SectionTileChrome.tsx` |
-| dod[] | UT-SET-001(Th=0 경로 픽셀)·UT-SET-002(combo 상한 30mm)·UT-SET-003(ruler 전체 축 눈금) + MT-SET-004 Setting UI |
-| estimate | 2h |
-| risk | Th=0 경계 케이스(슬랩 루프) |
+| outputs[] | `packages/core/src/panorama/panorama.ts`·`section/section.ts`, `components/src/*`(Setting 다이얼로그·SectionTileChrome) |
+| dod[] | UT-SET-001(Th=0 경로 픽셀)·UT-SET-002(combo 옵션값·상한 30mm·off-list drag 값 표시)·UT-SET-005(Section slab 두께 적용)·UT-SET-003(ruler 전체 축 눈금) + MT-SET-004 Setting UI(Th combo·Interval Voxel Based) |
+| estimate | 2.5h |
+| risk | Th=0 경계 케이스(슬랩 루프)·전 뷰 두께 배선 |
+
+#### T-P3-5 — 파노라마 생성 모델 정정 (thin 재슬라이스 + P/A offset 스윕)
+
+- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+
+| 필드 | 값 |
+|------|------|
+| id | T-P3-5 |
+| title | 파노라마를 **thin 기본(Th0) 재슬라이스**로 정정 + **P/A 슬라이더 → 곡선 법선 offset 스윕**(navigator 위치에서 재생성) + Scout **Panorama navigator line** 동기 + 투영 방식 파라미터(기본값 D12 대기, MIP/mean 전환 가능). T-P7-3 Pano P/A 실배선 완성 |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §3.3·§3.1(1.3·1.8)·§12-D11·D12, S-MMI §1.3-5·§1.8-5, S-PLAN(2026-07-13 파노라마 회신) |
+| depends_on[] | T-P3-2 |
+| outputs[] | `packages/core/src/panorama/panorama.ts`(offset 재슬라이스·투영 param), `components/src/PanoramaView.tsx`·`ScoutView.tsx`(navigator line·P/A slider) |
+| dod[] | UT-PAN-001(navigator offset≠0 시 재슬라이스 곡선이 법선방향 이동)·UT-PAN-002(투영 param MIP↔mean 전환)·UT-PAN-003(Th0 thin 경로) + MT-PAN-004 P/A 스윕 시 Scout navigator line 동기·파노라마 깊이 변화 |
+| estimate | 3h |
+| risk | **D12(max/mean) 미확정** — 기본 투영값은 파라미터로 두고 확정 시 스위치. offset 재슬라이스 곡선 생성 신규 |
 
 ### P4 — Windowing/Filter·계측·Overlay
 
@@ -507,7 +523,7 @@
 
 #### T-P7-3 — Per-panel Slice Slider (H/F · P/A · R/L)
 
-- [ ] **완료** — (진행) 골격·방향 라벨(H/F·P/A·R/L) 렌더 완료. **Scout H/F → sliceIndex 실배선 완료**. Pano P/A·Section R/L은 시각 슬라이더 상태(placeholder) — 실제 slice 연동은 선행 **T-P2-2** 완료 후 마무리
+- [ ] **완료** — (진행) 골격·방향 라벨(H/F·P/A·R/L) 렌더 완료. **Scout H/F → sliceIndex 실배선 완료**. Section R/L은 **T-P2-2**, **Pano P/A는 T-P3-5(파노라마 P/A offset 스윕)** 완료 후 실배선 (현재 시각 placeholder)
 
 | 필드 | 값 |
 |------|------|
@@ -588,6 +604,7 @@ flowchart LR
   subgraph P3[P3 조작·Thickness]
     T3a[T-P3-1 폭] 
     T3b[T-P3-2 경계·중심] --> T3c[T-P3-3 thickness line]
+    T3b --> T3e[T-P3-5 파노라마 P/A 재슬라이스]
     T3d[T-P3-4 Th0·Setting·ruler]
   end
   subgraph P4[P4 Filter·계측·Overlay]
@@ -621,6 +638,7 @@ flowchart LR
   T4d --> T6b
   T0d --> T7a & T7b
   T2b --> T7c
+  T3e --> T7c
   T3d --> T7d
   T4a --> T7d
   T1d --> T7e
@@ -652,7 +670,8 @@ flowchart LR
 | T-P3-1 | UT-CTL-001/002, MT-CTL-003 | 혼합 | vitest; 드래그 수동 |
 | T-P3-2 | UT-CTL-011/012, MT-CTL-013 | 혼합 | vitest; 드래그 수동 |
 | T-P3-3 | UT-CTL-021/023, MT-CTL-022 | 혼합 | vitest(30mm clamp); 드래그 수동 |
-| T-P3-4 | UT-SET-001~003, MT-SET-004 | 혼합 | vitest; Setting UI 수동 |
+| T-P3-4 | UT-SET-001/002/003/005, MT-SET-004 | 혼합 | vitest; Setting UI 수동 |
+| T-P3-5 | UT-PAN-001~003, MT-PAN-004 | 혼합 | `pnpm --filter …core test`; P/A 스윕·navigator 수동 |
 | T-P4-1 | UT-FLT-001/002, MT-FLT-003 | 혼합 | vitest; 필터 시각 수동 |
 | T-P4-2 | UT-MEA-001/002, MT-MEA-003 | 혼합 | vitest; 계측 수동 |
 | T-P4-3 | UT-ARR-001/002, MT-ARR-003 | 혼합 | vitest; arrow 수동 |
@@ -685,6 +704,7 @@ flowchart LR
 
 | 일자 | 버전 | 인수자 | 내용 |
 |------|------|--------|------|
+| 2026-07-13 | v0.3 | — | **MMI 전면 재검토(38 슬라이드 병렬 감사) — 파노라마 생성 모델 정정 반영**(OnePager v1.6 동기). **신규 T-P3-5**(파노라마 thin 재슬라이스 + P/A offset 스윕 + navigator 동기 + 투영 param) 추가. **T-P3-4 확장**(Thickness combo 옵션값·off-list drag·Voxel Based Interval·**Section slab 두께**). Phase P3 2.5일, 합계 12.5일, Task 31→32. DAG·DoD 동기(T3e·UT-PAN-*·UT-SET-005). D12(max/mean 투영) **기획 결정 대기**로 T-P3-5 risk 명시. T-P7-3 Pano P/A 실배선은 T-P3-5 의존으로 갱신 |
 | 2026-07-13 | v0.2 | — | **MMI UI 정합 갭 보강** — MMI §1.2(Section Layout Overview) 뷰 크롬·오버레이가 기존 IP에 전용 태스크로 없던 것을 감사·발견하여 **신규 Phase P7(6 Task: 글로벌 바·뷰 Title Bar·per-panel Slice Slider·Info Overlay·Scout/Pano 렌더 스타일) 추가**. Phase 표·DAG·DoD 매핑 동기화(Task 24→30, Phase 7→8). 행동(P1~P4)과 시각 정합(P7) 분리, 중복 항목 상호 참조(ruler=P3-4·slice number=P2-2·B/L=P1-3). Thickness 드래그 30mm cap 확정(§12-D8) 반영분 포함 |
 | 2026-07-13 | v0.1a | — | **T-P0-5 추가** — CT 공급 인터페이스(`SectionCtProvider`) 추상화 + 외부 좌측 CT 패널로 모듈 경계 명확화(§9.4). Phase P0 "환경 정렬·경계"로 확장, DAG·DoD·Phase 표 동기화. (구현 병행 반영: P0 T-P0-1~5·T-P1-1 완료 체크) |
 | 2026-07-13 | v0.1 | — (ip-writer 초안) | 초안 작성. **spec-baseline-handoff 없이 작성** — OnePager v1.5 기반, 컨텍스트 신뢰도는 사람 리뷰 전. 8섹션·24 Task·7 Phase(P0~P6). 프론트 단일 모듈이라 DBML/Swagger N/A·TCL 인라인 정의. **Spec(OnePager) 미커밋 → §2 S-SPEC SHA 미동결(TBD)**: baseline 후 IP 사람 리뷰 7질문 재점검 필요 |
