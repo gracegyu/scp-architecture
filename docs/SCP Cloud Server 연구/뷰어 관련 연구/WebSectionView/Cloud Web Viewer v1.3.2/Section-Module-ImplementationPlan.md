@@ -11,12 +11,12 @@
 | 프로젝트명 | section-module-v1.3.2 |
 | PL | Raymond (전규현) |
 | 작성 시작 | 2026-07-13 |
-| **현재 버전** | **v0.1 (초안 — baseline 미확정)** |
+| **현재 버전** | **v0.2 (초안 — baseline 미확정, MMI UI 정합 P7 보강)** |
 | 관련 Spec 베이스라인 | Section OnePager **v1.5** (scp-architecture, **미커밋** — 커밋 후 SHA 동결) |
 | 구현 Repo | `scp-section-poc` @ `23ac6ef` |
 | 접목/참조 Repo | `cloudwebviewer` (Cloud Web Viewer, CW) @ `d063ae2` (embed 대상, 읽기·계약 참조) |
 | Operating Mode 디폴트 | **유인 (Task 단위, 사람 확인·커밋)** — 무인 루프 미사용 |
-| 단일/분리 세션 | **단일 세션** (Repo 1개·Task 24개·2주·1명 → ip-standard 4기준상 단일) |
+| 단일/분리 세션 | **단일 세션** (Repo 1개·Task 30개·2주·1명 → ip-standard 4기준상 단일) |
 | Slack 채널 | (해당 시 지정) |
 | 무인 모드 Kill Switch | **N/A** — 무인 루프 인프라 미사용(유인 전용, §7) |
 
@@ -44,9 +44,12 @@
 | **P3** | Pano/Scout 조작·Thickness | 드래그 핸들·경계선·중심선·thickness line·Setting·ruler 전체 축 | 1.5일 | poc |
 | **P4** | Windowing/Filter·계측·Overlay | Image Filter, Length/Angle/FreeDraw/Arrow(section 스코프), Overlay 규칙(3D 좌표) | 1.5일 | poc |
 | **P5** | Save Project | 데이터 모델·CW prj 스키마 매핑·직렬화·브라우저 임시저장 | 1일 | poc |
+| **P7** | **MMI UI 정합(한땀 정합)** | **뷰 Title Bar·글로벌 바·per-panel Slice Slider·Image Info Overlay·Scout/Pano 렌더 스타일**을 MMI(§1.2·1.3·1.4)와 픽셀 단위 일치 | 1.5일 | poc |
 | **P6** | NFR·인계 | Slice 스크롤 벤치마크→NFR, 공개 API·embed 매핑·Known gaps·데모 | 0.5일 | poc |
 
-합계 ≈ 10일(예상 2주). 목표 1주는 P0·P1·P2 우선(핵심 신규) 기준.
+합계 ≈ 11.5일(예상 2주). 목표 1주는 P0·P1·P2 우선(핵심 신규) 기준.
+
+**실행 전략 — Phase 번호 순차가 아니라 DAG 의존성 기반 interleaving.** P7(UI 정합)은 태스크를 한 곳에 모아 "빠짐없이" 추적하는 버킷이며, **실행은 각 P7 태스크의 선행(P2/P3/P4)이 끝나는 즉시** 수행한다(기능 완성 → 그 UI를 바로 MMI에 정합 → 실데이터로 시각 검증). 정적 크롬(T-P7-1/2, T-P7-3 골격)은 P0 셸 직후 이미 착수. 이후 순서: P1-4 → P2 → (T-P7-3 실배선·T-P7-4 slice번호/방향) → P3 → (T-P7-6·T-P7-4 Th/INT·T-P3-4 ruler) → P4 → (T-P7-5·T-P7-4 W/L) → P5 → P6. §5 DAG가 이 순서를 규정한다.
 
 ## 4. Task Cards
 
@@ -466,6 +469,106 @@
 | estimate | 1.5h |
 | risk | (낮음) |
 
+### P7 — MMI UI 정합 (한땀 정합)
+
+> MMI §1.2(Section Layout Overview)·§1.3(Scout Curve 요소)·§1.4(Panorama Line 요소)가 규정하는 **뷰 크롬·정보 오버레이·렌더 스타일**을 PoC와 픽셀 단위로 일치시킨다. 기존 P1~P4 태스크는 **동작(behavior)**을, P7은 **시각 정합(chrome·overlay·style)**을 담당하며 중복 항목은 서로 참조한다(ruler=T-P3-4, slice number=T-P2-2, B/L 라벨=T-P1-3). MMI가 명시한 "PoC와 상이" 크롬 차이를 모두 태스크화한다.
+
+#### T-P7-1 — 글로벌 상단 바 (Patient·MPR/Section·Save)
+
+- [x] **완료** — 2026-07-13 App.tsx 글로벌 바(Patient stub·CT/MPR/Section 토글·Save 디스켓) MMI 정합, 사용자 시각 확인. UT-UI-001(토글 상태 전이)은 App 레벨이라 MT로 확인
+
+| 필드 | 값 |
+|------|------|
+| id | T-P7-1 |
+| title | 상단 글로벌 바: Patient 정보 strip(좌)·CT / [MPR] / [Section] 토글(중앙)·Save 디스켓(우), CW 헤더 토큰 픽셀 정합 |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §3.1(1.1·1.2), S-MMI §1.1·§1.2, S-CW `workSpace/…/ContentTitleBar.tsx`@d063ae2 |
+| depends_on[] | T-P0-4 |
+| outputs[] | `apps/section-demo/src/App.tsx`, `apps/section-demo/src/cw/*` |
+| dod[] | UT-UI-001(MPR/Section 토글 상태 전이) + MT-UI-002 Patient strip·토글·Save 아이콘이 MMI 상단 바와 배치·토큰 정합 |
+| estimate | 1.5h |
+| risk | Patient 데이터는 provider(§T-P0-5)에서 주입(placeholder 허용) |
+
+#### T-P7-2 — 3-뷰 Title Bar 골격 (라벨·Curve 관리·아이콘 클러스터)
+
+- [x] **완료** — 2026-07-13 공용 `ViewTitleBar.tsx` 신규(라벨·slider·Image Adjust/Setting/최대화 아이콘). Scout Curve 관리(Draw↔Curve1 chip+편집+삭제) 토글, dev 컨트롤은 Setting 뒤로. 사용자 시각 확인(골격 정합). 세부 픽셀 폴리시는 T-P7-4/5/6 병행
+
+| 필드 | 값 |
+|------|------|
+| id | T-P7-2 |
+| title | Scout/Panorama/Section 각 뷰 상단 Title Bar: 뷰 라벨 + 우측 아이콘(Image Adjust·Setting·최대화). Scout는 Curve 관리 영역(curve 無=[Draw Curve], 有=Curve번호+[편집]+[삭제] 토글) |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §3.1(1.2), S-MMI §1.2(각 뷰 e)·§1.5-1·§1.6-1, S-CW `workSpace/…/ContentTitleBar.tsx`@d063ae2 |
+| depends_on[] | T-P0-4 |
+| outputs[] | `packages/components/src/ScoutView.tsx`·`PanoramaView.tsx`·`SectionGrid.tsx`(또는 신규 `ViewTitleBar.tsx`) |
+| dod[] | UT-UI-011(Curve 유무에 따른 Scout 헤더 토글: Draw ↔ 번호+편집+삭제) + MT-UI-012 3-뷰 Title Bar가 MMI 라벨·아이콘 배치와 정합 |
+| estimate | 2h |
+| risk | Image Adjust/Setting 다이얼로그 동작은 P3-4·P4-1, 여기선 헤더 트리거만 |
+
+#### T-P7-3 — Per-panel Slice Slider (H/F · P/A · R/L)
+
+- [ ] **완료** — (진행) 골격·방향 라벨(H/F·P/A·R/L) 렌더 완료. **Scout H/F → sliceIndex 실배선 완료**. Pano P/A·Section R/L은 시각 슬라이더 상태(placeholder) — 실제 slice 연동은 선행 **T-P2-2** 완료 후 마무리
+
+| 필드 | 값 |
+|------|------|
+| id | T-P7-3 |
+| title | PoC의 별도 슬라이더 박스 → 각 뷰 Title Bar 내장 slice slider로 이관. 방향 라벨 Scout **H/F**·Pano **P/A**·Section **R/L**, 휠과 동기 |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §3.1(1.2), S-MMI §1.2-1d·2c·3c, §1.7-4·§1.8-5·§1.9-1 |
+| depends_on[] | T-P2-2 |
+| outputs[] | `packages/components/src/ScoutView.tsx`·`PanoramaView.tsx`·`SectionGrid.tsx`, `hooks/useScoutAxialUi.ts` |
+| dod[] | UT-UI-021(slider↔slice 인덱스 양방향)·UT-UI-022(방향 라벨 매핑 H/F·P/A·R/L) + MT-UI-023 슬라이더 위치·라벨이 MMI와 정합, 휠 동기 |
+| estimate | 2h |
+| risk | slice 모델(P2) 의존 — 인덱스 경계 회귀 |
+
+#### T-P7-4 — Image Information Overlay (3뷰)
+
+- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+
+| 필드 | 값 |
+|------|------|
+| id | T-P7-4 |
+| title | 뷰별 정보 오버레이: Patient(좌상, Scout)·W/L+Filter(우상, 3뷰)·방향표기 R/L(Scout·Pano 상단)·B/L(Section 상단)·Th/INT/Total Slice(우하)·slice number(Section 좌상, center bold). MMI 위치 규격 정합 |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §3.1(1.2·1.10)·§5, S-MMI §1.2-b·§1.10-3②③·§1.9-2 |
+| depends_on[] | T-P3-4, T-P4-1 |
+| outputs[] | `packages/components/src/SectionTileChrome.tsx`·`ScoutView.tsx`·`PanoramaView.tsx` |
+| dod[] | UT-UI-031(Th/INT/Total Slice 텍스트 값 반영)·UT-UI-032(center slice number bold) + MT-UI-033 Patient·W/L·Filter·방향표기 위치가 MMI와 정합 |
+| estimate | 2h |
+| risk | W/L·Th/INT 값 소스(P3·P4) 선행. 미완 항목 placeholder |
+
+#### T-P7-5 — Scout Curve 렌더 스타일 정합 (MMI §1.3)
+
+- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+
+| 필드 | 값 |
+|------|------|
+| id | T-P7-5 |
+| title | Scout curve 요소 색·글리프·라벨을 MMI와 정합: Section line(빨강 수직)·Active section line(9 빨강)·Center line(노랑+control point square)·Panorama navigator line(초록 offset)·thickness line(초록 한 쌍+control point)·L/B(흰 text)·arc mm 눈금 라벨(20 간격)·호장 길이 텍스트 |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §3.1(1.3), S-MMI §1.3(요소 1~8) |
+| depends_on[] | T-P1-4, T-P3-3 |
+| outputs[] | `packages/components/src/ScoutView.tsx` |
+| dod[] | UT-UI-041(요소별 색·control point 좌표 산출) + MT-UI-042 Scout 선/점/라벨 스타일이 MMI Scout와 정합(색·점선·square·번호·호장 텍스트) |
+| estimate | 2h |
+| risk | 요소 다수 — 색/굵기 상수 분리(스타일 토큰화) |
+
+#### T-P7-6 — Panorama 렌더 스타일 정합 (MMI §1.4)
+
+- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+
+| 필드 | 값 |
+|------|------|
+| id | T-P7-6 |
+| title | Panorama line 요소를 MMI와 정합: 이미지 경계선(노랑 가로 실선)·중심선(초록 가로 실선)·Scout 위치선(흰 가로 점선)·Active/Center section line(세로, center 별색) |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §3.1(1.8), S-MMI §1.4(요소 1~4) |
+| depends_on[] | T-P3-2 |
+| outputs[] | `packages/components/src/PanoramaView.tsx` |
+| dod[] | UT-UI-051(각 선 색·좌표 산출) + MT-UI-052 Panorama 선 스타일이 MMI Panorama와 정합(경계 노랑·중심 초록·위치선 흰 점선) |
+| estimate | 1.5h |
+| risk | (낮음) |
+
 ## 5. Dependency DAG
 
 ```mermaid
@@ -495,6 +598,14 @@ flowchart LR
   subgraph P5[P5 Save]
     T5a[T-P5-1 모델매핑] --> T5b[T-P5-2 직렬화]
   end
+  subgraph P7[P7 MMI UI 정합]
+    T7a[T-P7-1 글로벌 바]
+    T7b[T-P7-2 뷰 Title Bar]
+    T7c[T-P7-3 Slice Slider]
+    T7d[T-P7-4 Info Overlay]
+    T7e[T-P7-5 Scout 스타일]
+    T7f[T-P7-6 Pano 스타일]
+  end
   subgraph P6[P6 NFR·인계]
     T6a[T-P6-1 벤치마크]
     T6b[T-P6-2 인계]
@@ -508,9 +619,18 @@ flowchart LR
   T2c --> T6a
   T5b --> T6b
   T4d --> T6b
+  T0d --> T7a & T7b
+  T2b --> T7c
+  T3d --> T7d
+  T4a --> T7d
+  T1d --> T7e
+  T3c --> T7e
+  T3b --> T7f
+  T7d --> T6b
+  T7e --> T6b
 ```
 
-순환 없음. 같은 subgraph 내 분기 노드(T-P3-1/2/4, T-P4-1/2)는 병렬 가능.
+순환 없음. 같은 subgraph 내 분기 노드(T-P3-1/2/4, T-P4-1/2)는 병렬 가능. **P7 정적 크롬(T-P7-1/2/3)은 P0 셸 직후 착수 가능**하며, 스타일·오버레이(T-P7-4/5/6)는 데이터 태스크(P3·P4·P1-4) 완료분에 의존한다.
 
 ## 6. DoD Mapping
 
@@ -541,6 +661,12 @@ flowchart LR
 | T-P5-2 | UT-SAV-011/012, MT-SAV-013 | 혼합 | vitest; 저장/재오픈 수동 |
 | T-P6-1 | UT-NFR-001, MT-NFR-002 | 혼합 | 로그 수집; worst-case 수동 |
 | T-P6-2 | UT-API-001, MT-API-002 | 혼합 | build; 문서 리뷰 수동 |
+| T-P7-1 | UT-UI-001, MT-UI-002 | 혼합 | vitest; 상단 바 정합 수동 |
+| T-P7-2 | UT-UI-011, MT-UI-012 | 혼합 | vitest; Title Bar 정합 수동 |
+| T-P7-3 | UT-UI-021/022, MT-UI-023 | 혼합 | vitest; 슬라이더·휠 수동 |
+| T-P7-4 | UT-UI-031/032, MT-UI-033 | 혼합 | vitest; 오버레이 위치 수동 |
+| T-P7-5 | UT-UI-041, MT-UI-042 | 혼합 | vitest; Scout 스타일 정합 수동 |
+| T-P7-6 | UT-UI-051, MT-UI-052 | 혼합 | vitest; Pano 스타일 정합 수동 |
 
 > 수동(MT-*) 항목은 대부분 **시각·상호작용 검증**(WebGL 렌더·드래그·라벨)이라 자동화 불가분이며, risk-tier(인증·결제·DB마이그레이션·PII)에 해당하지 않는다. 자동(UT-*)은 순수 로직(B/L 수학·curve·인덱싱·직렬화·필터 커널) 위주. 무인 모드 미사용이므로 수동 DoD 허용.
 
@@ -559,5 +685,6 @@ flowchart LR
 
 | 일자 | 버전 | 인수자 | 내용 |
 |------|------|--------|------|
+| 2026-07-13 | v0.2 | — | **MMI UI 정합 갭 보강** — MMI §1.2(Section Layout Overview) 뷰 크롬·오버레이가 기존 IP에 전용 태스크로 없던 것을 감사·발견하여 **신규 Phase P7(6 Task: 글로벌 바·뷰 Title Bar·per-panel Slice Slider·Info Overlay·Scout/Pano 렌더 스타일) 추가**. Phase 표·DAG·DoD 매핑 동기화(Task 24→30, Phase 7→8). 행동(P1~P4)과 시각 정합(P7) 분리, 중복 항목 상호 참조(ruler=P3-4·slice number=P2-2·B/L=P1-3). Thickness 드래그 30mm cap 확정(§12-D8) 반영분 포함 |
 | 2026-07-13 | v0.1a | — | **T-P0-5 추가** — CT 공급 인터페이스(`SectionCtProvider`) 추상화 + 외부 좌측 CT 패널로 모듈 경계 명확화(§9.4). Phase P0 "환경 정렬·경계"로 확장, DAG·DoD·Phase 표 동기화. (구현 병행 반영: P0 T-P0-1~5·T-P1-1 완료 체크) |
 | 2026-07-13 | v0.1 | — (ip-writer 초안) | 초안 작성. **spec-baseline-handoff 없이 작성** — OnePager v1.5 기반, 컨텍스트 신뢰도는 사람 리뷰 전. 8섹션·24 Task·7 Phase(P0~P6). 프론트 단일 모듈이라 DBML/Swagger N/A·TCL 인라인 정의. **Spec(OnePager) 미커밋 → §2 S-SPEC SHA 미동결(TBD)**: baseline 후 IP 사람 리뷰 7질문 재점검 필요 |
