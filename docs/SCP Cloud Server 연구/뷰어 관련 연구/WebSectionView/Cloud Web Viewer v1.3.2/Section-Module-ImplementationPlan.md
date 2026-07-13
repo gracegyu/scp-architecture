@@ -189,7 +189,7 @@
 
 #### T-P1-4 — BL/LB 기준점
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-14 useCurveEditor `blRefArcMm`(기본 0=첫 점)·`setBlRefArcMm` 추가(B/L 극성 분리). ScoutView 연두 삼각형(size 14)+"BL/LB" 라벨, hover=move 커서, drag=section line(interval) 스냅 이동, 이동 시 blPolarity 불변. UT-BL-011 통과 + 사용자 시각 확인(#23). MMI 대비 삼각형 크기 조정 완료
 
 | 필드 | 값 |
 |------|------|
