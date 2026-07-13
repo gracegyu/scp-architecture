@@ -170,7 +170,7 @@
 
 #### T-P1-3 — B/L blPolarity (단일 규칙)
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — DoD(§6) 항목 통과 시 체크 (UT-BL-001 core 3/3·UT-BL-002 hook 1회고정·L/B Switching(UT-BL-003 T-P1-2)·Scout+Section 타일 라벨 blPolarity 반영·더블클릭 종료 시 자동판정)
 
 | 필드 | 값 |
 |------|------|
@@ -180,7 +180,7 @@
 | spec_refs[] | S-SPEC §5, S-PLAN(2026-07-13 B/L 회신), S-MMI §1.3 |
 | depends_on[] | T-P1-1 |
 | outputs[] | `packages/core/src/bl/blPolarity.ts`, `components/src/SectionGrid.tsx` |
-| dod[] | UT-BL-001(외적 부호 좌/우 판정)·UT-BL-002(최초 2점 후 편집에 재판정 없음)·UT-BL-003(L/B Switching 토글) + MT-BL-004 Scout/Section B·L 라벨 방향 일치 |
+| dod[] | UT-BL-001(중앙 타일 법선 n̂·C 내적 부호 판정 — 점 순서 무관)·UT-BL-002(최초 2점 후 편집에 재판정 없음)·UT-BL-003(L/B Switching 토글) + MT-BL-004 Scout/Section B·L 라벨 방향 일치(좌→우·우→좌 모두 C쪽=L) |
 | estimate | 2h |
 | risk | 좌표계(objectFit contain) 변환 오차 |
 
@@ -307,12 +307,12 @@
 | 필드 | 값 |
 |------|------|
 | id | T-P3-3 |
-| title | thickness line control point 대칭 드래그 → Pano thickness 실시간 |
+| title | thickness line control point 대칭 드래그 → Pano thickness 실시간, **combo와 동일 30mm cap**(단일 `MAX_THICKNESS_MM`) |
 | repo | scp-section-poc |
-| spec_refs[] | S-SPEC §3.1(1.3·1.7), S-MMI §1.7-3 |
+| spec_refs[] | S-SPEC §3.1(1.3·1.7)·§8·§12-D8, S-MMI §1.7-3 |
 | depends_on[] | T-P3-2 |
 | outputs[] | `packages/components/src/PanoramaView.tsx`, `core/src/panorama/panorama.ts` |
-| dod[] | UT-CTL-021(thickness 대칭·overlay 반영) + MT-CTL-022 드래그 |
+| dod[] | UT-CTL-021(thickness 대칭·overlay 반영)·UT-CTL-023(드래그 상한 30mm clamp — combo와 동일) + MT-CTL-022 드래그 |
 | estimate | 1h |
 | risk | (낮음) |
 
@@ -323,7 +323,7 @@
 | 필드 | 값 |
 |------|------|
 | id | T-P3-4 |
-| title | Th 기본 0mm(slabHalfWidthMm=0 경로)·Setting 패널(Th/INT combo, 상한 30mm)·ruler 전체 축 |
+| title | Th 기본 0mm(slabHalfWidthMm=0 경로)·Setting 패널(Th/INT combo, 상한 30mm — **드래그와 공유하는 단일 `MAX_THICKNESS_MM`**, T-P3-3 참조)·ruler 전체 축 |
 | repo | scp-section-poc |
 | spec_refs[] | S-SPEC §3.1(1.2·1.10)·§8, S-MMI §1.10·§1.2, S-CW `types/core/src/setting.ts`#SLICE_THICKNESSES@d063ae2 |
 | depends_on[] | T-P2-1 |
@@ -531,7 +531,7 @@ flowchart LR
 | T-P2-4 | UT-SEC-031, MT-SEC-032 | 혼합 | vitest; 더블클릭 수동 |
 | T-P3-1 | UT-CTL-001/002, MT-CTL-003 | 혼합 | vitest; 드래그 수동 |
 | T-P3-2 | UT-CTL-011/012, MT-CTL-013 | 혼합 | vitest; 드래그 수동 |
-| T-P3-3 | UT-CTL-021, MT-CTL-022 | 혼합 | vitest; 드래그 수동 |
+| T-P3-3 | UT-CTL-021/023, MT-CTL-022 | 혼합 | vitest(30mm clamp); 드래그 수동 |
 | T-P3-4 | UT-SET-001~003, MT-SET-004 | 혼합 | vitest; Setting UI 수동 |
 | T-P4-1 | UT-FLT-001/002, MT-FLT-003 | 혼합 | vitest; 필터 시각 수동 |
 | T-P4-2 | UT-MEA-001/002, MT-MEA-003 | 혼합 | vitest; 계측 수동 |
