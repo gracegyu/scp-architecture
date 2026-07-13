@@ -101,7 +101,7 @@
 
     - **핵심 논리**: Terraform을 고르는 가장 큰 이유 = 멀티클라우드인데 **AWS 전용이면 그 이유가 사라진다**. 남는 비교에서 CDK가 **언어 일관성(TS)·AWS 네이티브·조직 역량**으로 우위. (Terraform의 모듈·state 강점은 AWS 전용 + TS 스택에선 일관성에 밀림.)
     - **결정 요청**: ① IaC 도구 = CDK 확정? ② 확정 시 ARD §4.5·SRS §6.6.2 정합(Terraform→CDK) ③ 최종 표준은 인프라(③-I) 소유 확인.
-  
+
   - **R6. GW SRS 리뷰어 목록 확정 (회의에서 작성)** — ③ GW SRS(+OpenAPI·DBML) **PR 7/9 시작 전**에 리뷰어를 지정해야 리뷰가 공백 없이 진행된다. SRS가 걸치는 **영역별로 리뷰어를 배정**한다. 아래 표의 이름 칸을 회의에서 채운다(총괄 2인은 CCB 기확정, 나머지는 영역 담당 지명).
 
     | 영역 | 리뷰 포인트 | 리뷰어 |
@@ -167,7 +167,7 @@
     - **→ 해소·갱신(2026-07-06 · device-중심 정체성 정립)**: SRS §1.2에 **GW=범용 API GW · 호출 주체=device · clinic=device의 선택적 그룹**을 정의(현재 EzServer/AXS/CleverSpace + 미래 다수 provider·비-EzServer·clinic-less 확장성). 이로써 위 미결이 다음으로 정리됨:
       - **① Device 1:N 모델 유지**(1:1 UNIQUE 강제 안 함) — device=주체, clinic 선택적. 현 EzServer=클리닉당 1개는 운영 사실일 뿐, 모델 제약 아님.
       - **③ clinic-less device region = 미래 확장점 확정**(지금 미정의 — 등장 시 자체 region/global, §1.2 Will Not Do·Appendix B #33).
-      - **⑤ policy 스코프 = device-중심 확정(device→clinic→global)** — 구 'device 배제'를 **대체**. `policy.tenant`(clinic 하드 FK) → **`scope_type{global\|clinic\|device}+scope_id`**. clinic=clinic-bound device의 **상한(ceiling)**, device는 그 안에서 narrowing(§7.5.3, deny-by-default). *device 단위 policy는 clinic-less/예외용 — v1.0은 clinic+global만 사용.*
+      - **⑤ policy 스코프 = device-중심 확정(device→clinic→global)** — 구 'device 배제'를 **대체**. `policy.tenant`(clinic 하드 FK) → **`scope_type{global\|clinic\|device}+scope_id`**. clinic=clinic-bound device의 **상한(ceiling)**, device는 그 안에서 narrowing(§7.5.3, deny-by-default). _device 단위 policy는 clinic-less/예외용 — v1.0은 clinic+global만 사용._
       - **org_mapping 경계**: 얇은 식별자 매핑(clinic-키) 유지, device-스코프는 미래 확장점(#33). region A안(②③ SSOT=clinic)·nullable·1:N는 **불변**.
       - 반영 완료: SRS §1.2·§1.4·§6.4.1·§7.5.3·Appendix B #32/#33 · DBML(`policy_scope`)·db-jsonb · ARD v0.25.
     - **해결됨(보고)**: ② 전용 `clinic` 테이블 = **`clinic_region_mapping`을 `clinic`으로 승격 확정**(C안, 2026-07-01) · ④ **`connector`(아웃바운드)/`provider`(인바운드) 분리 유지 확정**(통합 안 함); `provider` 표기는 정규 토큰·enum 금지(레지스트리 FK는 선택).
@@ -252,18 +252,17 @@
 # 7/2 주간회의 결정사항
 
 - R1. 라우팅 방식 재평가
-  - C안(서브도메인 방식)으로 결정했어. 유지보수/장애대응이 편하고 provider 추가시 인프라 확장은 큰 문제가 아니라고 했어.  
-  - 이에 Thomas가 걱정이 있어. CleverOne에서 CleverSpace등 Cloud로 가는 모든 통신은 EzServer를 통하는데, EzServer는 nginx로 r-proxy 방식으로 설정하여 어떻게 서브도메인으로 필요한 접속을 하냐는 것이야. 
+  - C안(서브도메인 방식)으로 결정했어. 유지보수/장애대응이 편하고 provider 추가시 인프라 확장은 큰 문제가 아니라고 했어.
+  - 이에 Thomas가 걱정이 있어. CleverOne에서 CleverSpace등 Cloud로 가는 모든 통신은 EzServer를 통하는데, EzServer는 nginx로 r-proxy 방식으로 설정하여 어떻게 서브도메인으로 필요한 접속을 하냐는 것이야.
     - 나는 EzServer로 접속해서도 axs.gw.vatech.com으로 접속하도록 할 수 있다고 생각했는데 어때?
-    - 그래서 내가 방안을 마련하기로 했어. 
+    - 그래서 내가 방안을 마련하기로 했어.
   -  C(sub domain) 형태로 가면 CleverOne 에서 EzServer/GW를 통해서 AXS API를 사용하는 방법을 검토한다. 전규현/ Raymond 
     - 방안
       - CleverOne에서 EzServer간은 A방안으로 하고, EzServer와 GW는 C안으로 하는 방안도 있다. (Scott의견)
       - nginx 확장을 구현해서 GW 연결과 내부 API 호출을 분리하는 방안도 있다. (Raymond의견)
-      - 아니면 우리가 Rust로 GW를 직접 만드는 방안도 있는데, Thomas는 이미 nginx(+php)로 EzServer를 만들어서 Rust로 새로 개발하면 공수가 크다고 했어. 
-      - nginx로 간단히 해결 되면 좋고, 이구간에서는 A방안을 써도 되고, 가장 좋은 방법을 찾아야해. 
-  - 문제가 없는지 어느 방법이 있는지? 
-  
+      - 아니면 우리가 Rust로 GW를 직접 만드는 방안도 있는데, Thomas는 이미 nginx(+php)로 EzServer를 만들어서 Rust로 새로 개발하면 공수가 크다고 했어.
+      - nginx로 간단히 해결 되면 좋고, 이구간에서는 A방안을 써도 되고, 가장 좋은 방법을 찾아야해.
+  - 문제가 없는지 어느 방법이 있는지?
 - R3. 수집 에이전트 확정
   - Grafana Alloy로 사용한다. 이렇게 SRS에 반영해야 해
   - **→ 반영완료(2026-07-02)**: SRS §1.4 용어·§3.1.2·§6.3.2 수집 에이전트=Grafana Alloy. 앱 계약(stdout JSON+OTel) 불변.
@@ -273,46 +272,32 @@
   - Provider 연결은 timeout 처리가 필요하다. 다시 정리한다.
   - retry도 istio에서 처리하므로 GW에서 하지 않는다.
   - 서킷브레이커도 infra(istio)에서 처리한다.
-  - 따라서, infra에서 제공하는 것은 GW가 할 필요가 없어. GW에서 꼭 지원해야 하는 것들만 남겨서 정리하면 돼. 그 항목의 추천안은 유지하면 돼. 이렇게 SRS 새로 정리해줘. 
+  - 따라서, infra에서 제공하는 것은 GW가 할 필요가 없어. GW에서 꼭 지원해야 하는 것들만 남겨서 정리하면 돼. 그 항목의 추천안은 유지하면 돼. 이렇게 SRS 새로 정리해줘.
   - **→ 반영완료(2026-07-02)**: §7.5.4 재작성 — **분담**: ① **GW→provider 연결 timeout(connect 3s·response 10s/AXS SLA·total_deadline<클라, D1~D3)은 GW 책임**(GW가 AXS 등에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound) · ② **재시도·서킷은 istio egress**(D5~D8) · ③ GW 앱레벨=오류 정규화·멱등·취소(D9). DBML/OpenAPI: retry_policy·circuit_breaker만 제거, 연결 timeout 컬럼 유지. Appendix B #25=①값+②istio 분담.
 
 - R5. IaC 도구 확정
-  - Terraform으로 확정한다. 
+  - Terraform으로 확정한다.
     - k8s Deployment는 기능별로 잘게 쪼갠다. (GWcore, Webhook Receiver, Webhook Dispatcher 각각)
 
-- R6. GW SRS 리뷰어 목록 확정 
-  | 영역 | 리뷰 포인트 | 리뷰어 |
-  | --- | --- | --- |
-  | 총괄·승인(CCB) | baseline 승인 | **Scott(실장·총괄,PM)·Raymond(GW 리드)** |
-  | 아키텍처·라우팅 | ADR(특히 ADR-11 R1 재평가)·3-plane·§2 | **Thomas** (외 추가 가능 — 복수 아키텍트) |
-  | 인증·보안 | §7.1·§6.2·§6.5·PHI·데이터 주권 | (보안 담당) — Scott |
-  | 인프라(③-I) | §3.1·배포·EIP·IaC(R5)·환경 구축 | **Jack** |
-  | DB·데이터 모델 | §6.4·DBML·보존기간(#5) | **GW 팀(작성자) = Raymond** — 자체 소유(별도 DBA 없음). 보존기간(#5)만 법무/품질 입력 |
-  | API 계약 | §4·§7·OpenAPI 정합·에러 계약 | **GW 팀(작성자) = Raymond** — 자체 소유(총괄과 동일). *외부* 적합성 검토는 소비자 ③-P |
-  | 제품 적응 ③-P-EZ (EzServer) | 클라이언트·클리닉 등록 주체 영향 | Thomas (담당 1인 이상) |
-  | 제품 적응 ③-P-CS (CleverSpace) | presigned·B 프록시 영향 | 고형용/ Larry |
-  | 제품 적응 ③-P-CO (CleverOne) | 경유 전환 영향 | 탁수용/ Nick |
-  | 제품 적응 ③-P-OID (OneID) | 인증 연계 영향 | 서유진 / Jin |
-  | QA·검증 | §3.6·테스트·호환성 매트릭스 | **정우혁/ James_ES** |
+- R6. GW SRS 리뷰어 목록 확정 | 영역 | 리뷰 포인트 | 리뷰어 | | --- | --- | --- | | 총괄·승인(CCB) | baseline 승인 | **Scott(실장·총괄,PM)·Raymond(GW 리드)** | | 아키텍처·라우팅 | ADR(특히 ADR-11 R1 재평가)·3-plane·§2 | **Thomas** (외 추가 가능 — 복수 아키텍트) | | 인증·보안 | §7.1·§6.2·§6.5·PHI·데이터 주권 | (보안 담당) — Scott | | 인프라(③-I) | §3.1·배포·EIP·IaC(R5)·환경 구축 | **Jack** | | DB·데이터 모델 | §6.4·DBML·보존기간(#5) | **GW 팀(작성자) = Raymond** — 자체 소유(별도 DBA 없음). 보존기간(#5)만 법무/품질 입력 | | API 계약 | §4·§7·OpenAPI 정합·에러 계약 | **GW 팀(작성자) = Raymond** — 자체 소유(총괄과 동일). *외부* 적합성 검토는 소비자 ③-P | | 제품 적응 ③-P-EZ (EzServer) | 클라이언트·클리닉 등록 주체 영향 | Thomas (담당 1인 이상) | | 제품 적응 ③-P-CS (CleverSpace) | presigned·B 프록시 영향 | 고형용/ Larry | | 제품 적응 ③-P-CO (CleverOne) | 경유 전환 영향 | 탁수용/ Nick | | 제품 적응 ③-P-OID (OneID) | 인증 연계 영향 | 서유진 / Jin | | QA·검증 | §3.6·테스트·호환성 매트릭스 | **정우혁/ James_ES** |
   - **→ 반영완료(2026-07-02)**: SRS §9 Document Approvals에 영역별 리뷰어 표 추가 + §8·§9·Appendix B #10에 **Scott=PM 겸임** 반영.
 
-- R7. 스펙 ↔ GW 구현 진행 전략 
+- R7. 스펙 ↔ GW 구현 진행 전략
   - **1안으로 결정** — ④ AXS Sub-SRS baseline **직후 구현 착수 + ③-C·③-P·③-I 스펙 병행**(2안=전 스펙 완료 후 착수는 납기 지연으로 반려).
   - 구현 시작점=④ AXS baseline(고정, 첫 연동·E2E 필수). 구현 기간=미정(SRS 확정 후 재산정). pilot 8/15는 재검토.
   - 반영: `specs/00-execution-allocation.md` "구현 착수 전략" 섹션 신설 · 위 gantt에 1안 채택 표기.
 
 - R9. 온보딩/enrollment 모델 확인
-  -  EzServer 에서 private key 분실시 재발급 과정이 필요하다.
-  -  License 등록과정에서 GW 온보딩을 하게 하는 방안을 검토한다. (최대한 편리하게)
-  -  EzServer내에서 private 키를 안전하게 보관/백업할 방법이 필요하다. 
-  -  이런 것이 SRS에 다 반영되었나? 또는 OnePager에서 구체적으로 작성하면 되나?
-  -  분실 시 재발급 과정은 GW SRS에 있어야 하지 않나?
+  - EzServer 에서 private key 분실시 재발급 과정이 필요하다.
+  - License 등록과정에서 GW 온보딩을 하게 하는 방안을 검토한다. (최대한 편리하게)
+  - EzServer내에서 private 키를 안전하게 보관/백업할 방법이 필요하다.
+  - 이런 것이 SRS에 다 반영되었나? 또는 OnePager에서 구체적으로 작성하면 되나?
+  - 분실 시 재발급 과정은 GW SRS에 있어야 하지 않나?
   - **→ 반영완료(2026-07-02)**: 상당 부분 이미 SRS에 있었고 '개인키 분실 복구'로 명확화. **분실 복구=재-enroll 회전**(§7.2.7, 유일 경로·백업 복원 없음)·**개인키 백업(export) 미도입**(§7.2.6, 디바이스 비이탈)·**at-rest 안전 보관=EzServer(③-P-EZ) OnePager**·라이선스 등록 시 자동 enroll 편의(§2.3.1). GW SRS에 재발급 과정 있음(§7.2.7).
 
 # VT API Gateway — 7/9 주간회의 Agenda
 
 - 논의 사항 (7/2 결정 → 적용 방법 확정 · 신규 결정 요청)
-
   - **R1. 무인 장비(EzServer)의 GW 인증 방식 확정 — private_key_jwt(공개키) vs OneID (중요 · 결정·재확인)** — **결론: OneID에는 무인 장비용 머신 인증 수단이 없다 — 사실상 후보가 못 된다. private_key_jwt(공개키)로 확정한다.** 되돌리기 어려운 기반 결정이라 CCB 재확인을 받는다.
     - (결정) 이대로 결정한다.
     - **왜 OneID로는 안 되나** — 무인 장비가 OneID에서 토큰을 받을 grant는 **ROPC(user id/pw를 토큰 엔드포인트로 직접 전송)** 뿐이다(Authorization Code=브라우저·사람 필요, client_credentials=OneID가 제품에만 발급). 그런데 OneID v1.0은 **외부 머신에 ROPC를 제공하지도 않고**(사용자·제품용 IdP), 설령 켠다 해도 **EzServer가 id/pw(=공유 secret)를 저장해두고 자동 로그인**하는 편법이 된다:
@@ -322,16 +307,16 @@
     - **private_key_jwt** — enrollment 때 device가 키페어를 생성해 **공개키만 GW에 등록**(개인키 비반출), 이후 서명한 JWT assertion으로 인증. 공유 secret이 없고, 폐기는 GW denylist로 즉시, SE/TPM·DPoP로 v1.1 확장(ADR-01).
     - **비교**:
 
-      | 기준 | **private_key_jwt (추천)** | OneID (ROPC) |
-      | --- | --- | --- |
-      | 자격 성격 | 비대칭 키페어·개인키 비반출·GW엔 공개키만 | 공유 secret(id/pw)을 device에 저장·전송 |
-      | 최초 주입 | enrollment 온디바이스 키생성(비밀 배포 0) | 10만 대에 비번 배포·관리 |
-      | MFA | 해당없음(서명 기반) | 불가(ROPC) |
-      | 계정 모델 | device=머신 신원 | 고객 IdP에 device 계정(오염)·1계정=1테넌트 |
-      | clinic-less device | 가능(현 전제 유지) | 불가(전제 변경 필요) |
-      | 폐기(kill-switch) | GW denylist 즉시(§7.2.4) | OneID 계정 정지 왕복 |
-      | 리전 주권/장애격리 | GW 리전 로컬 검증 | OneID 중앙 가용성 종속 |
-      | 표준·미래 | RFC 7523·SE/TPM·DPoP(ADR-01) | ROPC=OAuth 2.1 삭제·확장 경로 없음 |
+      | 기준               | **private_key_jwt (추천)**                | OneID (ROPC)                               |
+      | ------------------ | ----------------------------------------- | ------------------------------------------ |
+      | 자격 성격          | 비대칭 키페어·개인키 비반출·GW엔 공개키만 | 공유 secret(id/pw)을 device에 저장·전송    |
+      | 최초 주입          | enrollment 온디바이스 키생성(비밀 배포 0) | 10만 대에 비번 배포·관리                   |
+      | MFA                | 해당없음(서명 기반)                       | 불가(ROPC)                                 |
+      | 계정 모델          | device=머신 신원                          | 고객 IdP에 device 계정(오염)·1계정=1테넌트 |
+      | clinic-less device | 가능(현 전제 유지)                        | 불가(전제 변경 필요)                       |
+      | 폐기(kill-switch)  | GW denylist 즉시(§7.2.4)                  | OneID 계정 정지 왕복                       |
+      | 리전 주권/장애격리 | GW 리전 로컬 검증                         | OneID 중앙 가용성 종속                     |
+      | 표준·미래          | RFC 7523·SE/TPM·DPoP(ADR-01)              | ROPC=OAuth 2.1 삭제·확장 경로 없음         |
 
     - **"OneID 재사용이 더 싸지 않나"** — 아니다. OneID에 device용 grant/서비스계정을 신설하고 10만 대 비번 배포·계정계 오염을 감수해야 한다. private_key_jwt verify는 GW 설계(§7.1.1)에 이미 반영·외부 의존 0.
     - **결정 = private_key_jwt.** (OneID는 이론상 계정 생성+비번 저장+ROPC 활성으로 구성이야 가능하나, OneID 기능 신설·clinic-less 전제 폐기·보안 격하를 요구해 **실질 불가**. 전제를 바꿔도 공유secret·MFA·계정오염·중앙의존은 그대로라 결론 불변.) **파생**: OneID는 GW 인증에서 제거 → `oneid` upstream·③-P-OID도 데이터 경로 없는 잔재라 제거(내부 프록시 대상=CleverSpace만), OneID는 고객 로그인 제품으로만 잔존(전 문서 정리 완료).
@@ -345,47 +330,47 @@
       - CS직원은 모든 Clinic의 관리권한이 부여된다.
     - **전제(오해 정정 공유)**: **OneID = 고객(클리닉·랩·개인) 신원 제품**(테넌트=고객). **GW Console 사용자 = 우리 직원**(Admin·현장 C/S)이라 **OneID 대상이 아니다** → Console 사람 인증은 별도 IdP.
 
-      | 기준 | **A. MS365/Entra OIDC 연동 (기본안·추천)** | B. GW 자체 user DB |
-      | --- | --- | --- |
-      | 인증 | Entra OIDC(직원 SSO·MFA) | GW가 user·비밀번호 관리 |
-      | 오프보딩 | **자동**(퇴사=Entra 비활성→접근 차단) | 수동 |
-      | 비밀번호 관리 | 없음(Entra) | GW 부담(리셋·정책·보안) |
-      | 역할(Admin/C-S) | Entra App Role/Group→토큰 claim | GW user 테이블 |
-      | 별도 user 테이블 | **불요** | 필요(풀 CRUD) |
-      | 의존 | Entra 앱 등록(IT 협조) | 없음(자립) |
-      | 구축량 | OIDC 연동 | user CRUD·비번·리셋·감사 풀스택 |
+      | 기준             | **A. MS365/Entra OIDC 연동 (기본안·추천)** | B. GW 자체 user DB              |
+      | ---------------- | ------------------------------------------ | ------------------------------- |
+      | 인증             | Entra OIDC(직원 SSO·MFA)                   | GW가 user·비밀번호 관리         |
+      | 오프보딩         | **자동**(퇴사=Entra 비활성→접근 차단)      | 수동                            |
+      | 비밀번호 관리    | 없음(Entra)                                | GW 부담(리셋·정책·보안)         |
+      | 역할(Admin/C-S)  | Entra App Role/Group→토큰 claim            | GW user 테이블                  |
+      | 별도 user 테이블 | **불요**                                   | 필요(풀 CRUD)                   |
+      | 의존             | Entra 앱 등록(IT 협조)                     | 없음(자립)                      |
+      | 구축량           | OIDC 연동                                  | user CRUD·비번·리셋·감사 풀스택 |
 
     - **역할 관리(A안)**: "누가 Admin/C-S냐"는 **Entra에서 App Role/Group 배정** → 토큰 claim으로 GW RBAC(§7.9.2). **별도 user 테이블 불요.** 인증=Entra, 인가=claim.
     - **하위 결정 — C/S를 담당 클리닉에 한정하나?** 한정하면("C/S X는 클리닉 A·B만 승인") Entra가 그 매핑을 모르므로 **GW에 작은 (operator↔clinic) 매핑 테이블**만 추가(역할은 여전히 Entra). 한정 안 하면 GW 테이블 0.
     - **추천 = A(Entra)**: IdP 재구현 회피·직원 SSO·자동 오프보딩. DBML은 (클리닉 범위 한정 없으면) **무변경**.
-    - **확인 필요(Entra 선결)**: (a) **C/S 인력이 Vatech MS365/Entra 디렉터리에 있는지**(현장 설치·해외법인·협력사 직원 포함 여부) — 없으면 게스트 초대/별도 등록 필요 → A안 전제 흔들림. (b) **Entra 앱 등록·App Role/Group·admin consent·redirect URI는 tenant admin 권한**이라 **MS365/Entra 담당(IT)에 요청** 필요(담당자·절차·리드타임 확인). *이 IT 의존은 이점의 대가 — 오프보딩·MFA·비번정책을 IT가 담당.* → Appendix B #40.
+    - **확인 필요(Entra 선결)**: (a) **C/S 인력이 Vatech MS365/Entra 디렉터리에 있는지**(현장 설치·해외법인·협력사 직원 포함 여부) — 없으면 게스트 초대/별도 등록 필요 → A안 전제 흔들림. (b) **Entra 앱 등록·App Role/Group·admin consent·redirect URI는 tenant admin 권한**이라 **MS365/Entra 담당(IT)에 요청** 필요(담당자·절차·리드타임 확인). _이 IT 의존은 이점의 대가 — 오프보딩·MFA·비번정책을 IT가 담당._ → Appendix B #40.
     - **성격**: [논의·결정] — A/B 택일 + C/S 클리닉 범위 여부. 확정 시 §7.1.4(사람 인증 재정의)·§7.9.2(RBAC 역할 원천)·§2.3(운영자 로그인 시나리오)·verify 엔드포인트 일반 OIDC화·(조건부)DBML/API 반영. Appendix B #38. **(디바이스 인증 방식(공개키 vs OneID) 결정·OneID 전면 제거 배경은 위 R1 참조.)**
 
   - **R3. Enrollment 시 수집할 LMP clinic 정보 필드 확정 (논의·결정)** — clinicId만으로 enroll은 되지만 `clinic` 테이블에 id만 있으면 Console에서 사람이 식별하기 어렵다. enroll 때 LMP가 주는 clinic 정보를 함께 받아 record를 보강한다. **회의 결정 = 어느 필드를 수집·저장할지** (저장 구조·API·DB는 이미 반영).
     - (결정) 수집하기로 한다.
       - 하지만 LMP의 Clinic 정보가 바뀌어도, VAG에 sync 하지 않는다.
     - **LMP 제공(원문 확인)**: `licenseapi.yaml` `GET /licenses` 응답 `clinic` = {`name`·`address`·`phone`·`countyCode`(국가 ISO 3166)·`website`}. EzServer가 enroll 시 전달 → GW `clinic` 저장. LMP 변경 시 `PATCH /v1/clinics/{clinicId}`(device 자가 동기화·self-only)로 갱신.
-    - **추천안 = LMP가 주는 전부 수집**(name·country_code·address·phone·website) — LMP 응답에 공짜로 함께 오고, 이름·국가=식별, 주소·전화=C/S 연락에 유용, **환자 PHI 아님(clinic 업무정보)**. *(최소안 = name + country_code, 식별만.)*
+    - **추천안 = LMP가 주는 전부 수집**(name·country_code·address·phone·website) — LMP 응답에 공짜로 함께 오고, 이름·국가=식별, 주소·전화=C/S 연락에 유용, **환자 PHI 아님(clinic 업무정보)**. _(최소안 = name + country_code, 식별만.)_
     - **유의**: LMP `country_code`(clinic 국가) ≠ GW `region`(배포 리전) — 별개 컬럼.
     - **성격**: [논의·결정] — **수집 필드셋만 승인**(추천=전부). DBML(clinic 5컬럼 고정 필드)·OpenAPI(`ClinicInfo`·enroll·`PATCH /v1/clinics/{clinicId}`)·§2.3.1은 **선반영 완료(필드셋 TBD)**. 잔여 확인(EzServer/LMP·③-P-EZ): 신규 클리닉 시 정보 시점·실제 형식.
 
   - **R4. Enrollment 승인 flow — v1.0 우선순위 (논의·결정)** — enroll 승인에는 **두 flow가 공존**한다(택일 아님 — 둘 다 장기적으로 필요). v1.0에 **무엇을 먼저** 넣을지 정한다.
     - (결정)
       - 이번에는 A안으로 확정한다.
-      - 당장 B안을 고려하지는 않는다. 왜냐하면 현재 LMP는 문제가 있어서 LMP 재개발이 이루어질 예정이다. 
-      - B안은 LMP 재개발이 이루어진 후에 적용할 것이다. 
-      - SRS에는 B안을 유지할 수 있지만, 추후 LMP 재개발시 적용한다고 명시해줘. 
+      - 당장 B안을 고려하지는 않는다. 왜냐하면 현재 LMP는 문제가 있어서 LMP 재개발이 이루어질 예정이다.
+      - B안은 LMP 재개발이 이루어진 후에 적용할 것이다.
+      - SRS에는 B안을 유지할 수 있지만, 추후 LMP 재개발시 적용한다고 명시해줘.
     - **A. C/S 수동 승인** — C/S가 Console에서 승인. **모든 device 커버**(LMP 미등록·비-EzServer 포함) → **항상 필요(보편·fallback)**. LMP 변경 0·지금 동작. 단 설치마다 수동(현장 번거로움 — 이전 회의 우려).
     - **B. 제3자(LMP) 서명 검증 자동승인** — **LMP가 라이선스 검증 후 attestation을 서명("제3자 서명")** → EzServer가 enroll에 실어 전달 → GW가 **LMP 공개키(JWKS)로 검증** → 자동 active(C/S 수동 생략·확장성↑). 단 **LMP 라이선스 등록 device만** 대상.
     - **왜 둘 다**: B가 있어도 **LMP 경로 밖 device**는 A로 승인해야 함 → **A=보편/fallback · B=LMP 등록 device 편의**. 그래서 §2.3.1에 **두 flow 모두 기록**(지원 시점만 TBD).
 
-      | 기준 | **A. C/S 수동 승인** | **B. 제3자(LMP) 서명 자동승인** |
-      | --- | --- | --- |
-      | 커버 범위 | **모든 device** | LMP 라이선스 등록 device만 |
-      | C/S 부담 | 설치마다 수동 | 없음(자동) |
-      | LMP 변경 | 불요 | **필요**(제3자 서명 발급·크로스팀·Roadmap 추가·별도 설계) |
-      | 검증 키 | — | GW가 **LMP JWKS**(런타임 fetch+캐시)로 검증 |
-      | 지금 동작 | ✅ | ❌(LMP 개발 후) |
+      | 기준      | **A. C/S 수동 승인** | **B. 제3자(LMP) 서명 자동승인**                           |
+      | --------- | -------------------- | --------------------------------------------------------- |
+      | 커버 범위 | **모든 device**      | LMP 라이선스 등록 device만                                |
+      | C/S 부담  | 설치마다 수동        | 없음(자동)                                                |
+      | LMP 변경  | 불요                 | **필요**(제3자 서명 발급·크로스팀·Roadmap 추가·별도 설계) |
+      | 검증 키   | —                    | GW가 **LMP JWKS**(런타임 fetch+캐시)로 검증               |
+      | 지금 동작 | ✅                   | ❌(LMP 개발 후)                                           |
 
     - **A/B enroll 승인 시퀀스** (참석자용 · 정본 §2.3.1):
 
@@ -488,8 +473,10 @@
           }
       }
       ```
+
       - **동작**: CleverOne이 `Vatech-Target: axs` 헤더로 EzServer 호출(평문/HTTPS 무관) → EzServer가 헤더값을 `axs.gw.vatech.com`으로 변환해 **HTTPS로 GW 전달**(HTTP→HTTPS 브리징). EzServer 자체 HTTPS-off와 무관(아웃바운드는 nginx가 클라이언트로 HTTPS 개시, cert 설치 불요).
       - **보안**: 평문 LAN 구간에 토큰/PHI가 실리면 노출 — 민감 트래픽은 그 구간 HTTPS 권장(기존 운영 자세라 별도 판단).
+
     - **SRS 반영 예정(확정 후)**: ADR-11(라우팅 = **edge 서브도메인** · `Vatech-Target`은 내부 hop 변환 키로 유지) · §4.5.1(`{target}.gw.vatech.com` + `*.gw.vatech.com` 와일드카드 cert + GeoDNS 와일드카드) · §4.1.2(라우팅 방식) · §4.1.4(업로드 target 지정) · webhook 서브도메인과 일관성 명시.
 
   - **R6. 외부 연동 대상(AXS·CleverSpace 등)의 공식 명칭 확정 — DB·API·Console·커뮤니케이션 공통 용어 (명칭 승인)** — **결정 = GW가 대신 호출·수신하는 외부 연동 서버(예 AXS·CleverSpace)를 부르는 공식 용어**를 정한다. 이 명칭은 **DB 테이블·API 필드·GW Console UI·앞으로의 팀 커뮤니케이션에서 모두 동일하게** 쓰이므로 한번 정하면 파급이 크다(그래서 지금 못박는다). **계기**: 이 대상의 라우팅·아웃바운드 자격·인바운드 webhook 수신을 담던 **3개 표(upstream_registry·connector·webhook_provider)를 1개로 병합**(1:1 facet·중복 토큰·미연결 해소, 등록=1 레코드)하며 **엔터티/용어 이름**을 확정해야 했다. 4개 후보 비교 후 **일단 `upstream`으로 정했다** — 회의에서 최종 승인 또는 변경.
@@ -499,10 +486,11 @@
 
       | 후보 | 장점 | 단점 |
       | --- | --- | --- |
-      | **`upstream`(채택)** | 회의 어법 그대로(*"신규 upstream=레지스트리 1행"*)·업계 표준(GW가 라우팅하는 backend)·내부/외부 backend 다 포괄·클라이언트(CleverOne) 자연 배제·컴포넌트(External Connector)와 충돌 없음 | 인바운드 webhook facet엔 살짝 아웃바운드 뉘앙스 |
+      | **`upstream`(채택)** | 회의 어법 그대로(_"신규 upstream=레지스트리 1행"_)·업계 표준(GW가 라우팅하는 backend)·내부/외부 backend 다 포괄·클라이언트(CleverOne) 자연 배제·컴포넌트(External Connector)와 충돌 없음 | 인바운드 webhook facet엔 살짝 아웃바운드 뉘앙스 |
       | `target` | 문서 어휘(target-routed proxy·`Vatech-Target`)와 일치 | 회의에선 target=라우팅 키(헤더값), upstream=서버로 구분 → 엔터티엔 upstream이 정확 |
       | `integration`(연동) | 양방향·내부/외부 다 포괄·"연동" 자연 | 회의 미사용·다소 추상적 |
       | `provider` | 익숙(webhook에서 유래) | **webhook 유래뿐**·CleverSpace 등 내부 backend엔 부적합·OAuth "provider"와 과적재 |
+
     - **확정(잠정)**: 표명=**`upstream`**(엔터티), PK=**`target_id`**(=Vatech-Target 값=서브도메인 라벨). FK(org_mapping·webhook_event·policy)=`target_id`. "CleverSpace를 등록한다 = **upstream 1 레코드 추가**"로 표현.
     - **SRS 반영 완료**: DBML(Table `upstream`)·OpenAPI(`Upstream`·`/admin/v1/upstreams`)·db-jsonb(#upstream)·redis(`gw:cache:upstream`)·SRS §6.4·§7.5·§7.6·§7.9·§2.3.4·ERD·API명세·③-C·ARD 전부 정합.
     - **이번 회의에서 다른 이름으로 바뀌면** 그때 일괄 재반영(단순 rename). 결정만 주면 됨.
@@ -520,11 +508,11 @@
     - **핵심 논점**: 쟁점은 "payload가 너무 큰가"가 **아니라** "**payload에 환자 PHI가 들어온다**"는 점. GW 대전제(§6.4 "GW는 PHI 미저장")를 **"webhook에서는 PHI를 전이(transient) 경유하고 persist를 최소화한다"** 로 정교화해야 함(리전 로컬·암호화·짧은 TTL·복제 금지·콘솔 비노출).
     - **결정 항목 (3)**:
 
-      | # | 결정 항목 | 옵션 | **추천안** |
-      | --- | --- | --- | --- |
+      | #    | 결정 항목                       | 옵션                                                               | **추천안**            |
+      | ---- | ------------------------------- | ------------------------------------------------------------------ | --------------------- |
       | R7-1 | dispatch 후에도 payload를 보관? | (a) **일정기간 보관**(디버깅·재생·감사) / (b) SQS 전이만·사후 폐기 | **(a) 일정기간 보관** |
-      | R7-2 | 보관 장소 | **S3(리전 로컬·참조)** vs PG DB(jsonb 컬럼) | **S3** |
-      | R7-3 | Console 상세 뷰의 환자정보 | **redact(마스킹)+접근통제** vs 원문 노출 | **redact+접근통제** |
+      | R7-2 | 보관 장소                       | **S3(리전 로컬·참조)** vs PG DB(jsonb 컬럼)                        | **S3**                |
+      | R7-3 | Console 상세 뷰의 환자정보      | **redact(마스킹)+접근통제** vs 원문 노출                           | **redact+접근통제**   |
 
     - **R7-2 비교 (S3 vs DB) — 추천 = S3**:
 
@@ -536,32 +524,32 @@
       | 보존 관리 | lifecycle 규칙 **자동 TTL**·암호화 기본(관리형·부담 적음) | 수동 정리 잡 필요 |
       | 단순성 | claim-check 참조·orphan 관리(경미) | 원자적·단일 저장소(가장 단순) |
       | 대전제 정합 | **"GW는 PHI 미저장" 유지**(전이만) | 대전제 약화 |
-
       - **추천 근거 요약**: payload가 **환자 PHI**를 담고 GW가 **opaque(포맷 무관)** 로 다루므로, **검사 안 한 외부 PHI를 복제되는 통제 DB에 원문 저장하지 않는다**가 핵심. Console 요구(검색/필터)는 **PHI-free 메타데이터 컬럼으로 이미 충족**되고, 본문은 단건 조회(참조 fetch)로 족하다. "S3가 번거롭다"는 우려는 SQS가 이미 in-flight 본문을 들고 있고 S3 lifecycle이 자동이라 실제 부담은 작다.
       - **DB(jsonb)가 정당화되는 조건**: `webhook_event`가 **엄격히 리전-로컬(비복제)** 이고 조직이 리전 PG의 PHI 보관을 허용하며 최대 단순성/검색성을 원할 때 — 절충 대안(짧은 TTL·접근통제 필수).
+
     - **R7-1 보존기간(TTL)**: 디버깅·재생·감사 목적이므로 **짧게**(초안 예: 7~30일). 정확한 값은 감사·consent 보존정책(Appendix B #5)과 함께 확정.
     - **R7-3**: redact = Console 화면 표시 시 환자정보 **마스킹**(전달 본문은 verbatim 불변). 운영자 디버깅은 허용하되 환자 신원 불필요 노출을 막는 데이터 최소화(§6.4). 접근통제 = 역할(Admin/C-S)별 payload 열람 권한.
     - **SRS 반영 예정(확정 후)**: DBML `webhook_event.payload_ref` 주석(본문=리전 S3·claim-check 참조·관계형 DB 미저장) · **`event_type` 컬럼 추가 검토**(Console 필터) · §6.4(webhook PHI 전이·최소 persist로 정교화) · §7.6(store-and-forward 본문 보관·TTL) · Appendix B(보존기간·본 결정 로그).
 
   - **R8. [조사] 호주 AXS 연동 실태 — 시나리오(A/B/C)·Org-ID 취득 경로 (이번 회의 확정 불요)** — AXS webhook 분배·아웃바운드 호출의 라우팅 키인 **외부 Org-ID(Straumann Organization-ID)를 각 클리닉이 어떻게 갖게 되는가**와, 호주 현장에 **어떤 시나리오가 실제 존재하는가**를 확인한다. GW는 `org_mapping`(로컬 매핑)만 채우지만, 그 전에 "그 클리닉의 AXS 조직이 우리 연동과 연결돼 Org-ID가 존재"해야 하는데 그 취득 경로가 미확인이다(§2.3.4 「연동 링크·org_mapping 생애주기」는 GW 공통 레일만 규정).
     - (결정) A,B,C case를 우리가 전부 cover 한다.
-      - 가입 API를 활용한다. 
-      - 우리가 Straumann 가입도 한다. 이때 필요한 정보는? AXS 문서를 보고 필요한 정보를 개발자(나)에게 알려줘야 한다. 스펙에 기입되어야 한다. 
-      - 우리가 AXS 가입도 한다. 이때 필요한 정보는? AXS 문서를 보고 필요한 정보를 개발자(나)에게 알려줘야 한다. 스펙에 기입되어야 한다. 
+      - 가입 API를 활용한다.
+      - 우리가 Straumann 가입도 한다. 이때 필요한 정보는? AXS 문서를 보고 필요한 정보를 개발자(나)에게 알려줘야 한다. 스펙에 기입되어야 한다.
+      - 우리가 AXS 가입도 한다. 이때 필요한 정보는? AXS 문서를 보고 필요한 정보를 개발자(나)에게 알려줘야 한다. 스펙에 기입되어야 한다.
     - **① 시나리오 (클리닉 전제 상태)**:
 
-      | 상태 | Straumann 가입(`customerNumber`) | AXS org 존재 | 온보딩이 해야 할 일 |
-      | :---: | :---: | :---: | --- |
-      | **A** | ✓ | ✓ | Vatech 이미 연동이면 **org-binding만** / 아니면 `link`→동의→org-binding |
-      | **B** | ✓ | ✗ | **AXS org 확보**(생성·개통 방식=확인 대상) → `link` → org-binding |
-      | **C** | ✗ | ✗ | **범위 밖** — Straumann 가입은 클리닉↔Straumann 영업 과정(우리 SW 무관) · 가입하면 B로 합류 |
-
+      | 상태  | Straumann 가입(`customerNumber`) | AXS org 존재 | 온보딩이 해야 할 일                                                                         |
+      | :---: | :------------------------------: | :----------: | ------------------------------------------------------------------------------------------- |
+      | **A** |                ✓                 |      ✓       | Vatech 이미 연동이면 **org-binding만** / 아니면 `link`→동의→org-binding                     |
+      | **B** |                ✓                 |      ✗       | **AXS org 확보**(생성·개통 방식=확인 대상) → `link` → org-binding                           |
+      | **C** |                ✗                 |      ✗       | **범위 밖** — Straumann 가입은 클리닉↔Straumann 영업 과정(우리 SW 무관) · 가입하면 B로 합류 |
       - **C 취급(권고)**: 전제 미충족이라 AXS 연동 자체 불가(AXS=Straumann 플랫폼). flow로 만들지 않되 **"범위 밖·가입 시 B 수렴"으로 경계만 명시**(추후 "비고객은?" 재질문 차단).
-      - **opt-in 전제(중요)**: AXS 연동은 **선택** — **가맹(A/B)이어도 연동 안 하는 클리닉은 `[3]` 자체를 건너뜀**(org_mapping 없음·enroll 등 정상·새 처리 불요). 위 A/B/C는 *연동하는* 클리닉의 전제 상태다. 조사 시 **"연동 안 함" 비율**도 함께 파악하면 EzServer가 link flow를 얼마나 자주 타는지 가늠에 도움.
-    - **② 묻는 것 (조사 질문)**: A/B/C **분포**(대부분 A? B 상당? C 무시 가능?) · **B의 AXS org 확보 방식**(`link`가 자동 생성/개통 vs Straumann 별도 개통 — 핵심 미지) · A의 **Vatech 기연동 여부** · `customerNumber` **취득 경로**(설치 입력/LMP/포털·*“Straumann 고객이면 있다”는 가정*) · consent 주체·타이밍.
+      - **opt-in 전제(중요)**: AXS 연동은 **선택** — **가맹(A/B)이어도 연동 안 하는 클리닉은 `[3]` 자체를 건너뜀**(org_mapping 없음·enroll 등 정상·새 처리 불요). 위 A/B/C는 _연동하는_ 클리닉의 전제 상태다. 조사 시 **"연동 안 함" 비율**도 함께 파악하면 EzServer가 link flow를 얼마나 자주 타는지 가늠에 도움.
+
+    - **② 묻는 것 (조사 질문)**: A/B/C **분포**(대부분 A? B 상당? C 무시 가능?) · **B의 AXS org 확보 방식**(`link`가 자동 생성/개통 vs Straumann 별도 개통 — 핵심 미지) · A의 **Vatech 기연동 여부** · `customerNumber` **취득 경로**(설치 입력/LMP/포털·_“Straumann 고객이면 있다”는 가정_) · consent 주체·타이밍.
     - **③ 상태 B(연결 필요) 절차는? (어디서·누가·어떤 UI)**:
       - AXS **별도 콘솔/포털**에서 조직 담당자가 발급·동의하는가? (out-of-band)
-      - **GW가 AXS API로** 대행하는가? — *우리 조사(AXS Organization API)*: `POST /v1/organization/integration/link`(`customerNumber` + 우리 Client ID) → `organizationId` + **조직 관리자 동의**(status `PENDING`→`APPROVED`). 즉 **조직 자체는 Straumann 고객**이고 우리는 그 조직에 우리 연동을 **"연결(link)"** 만 한다(생성 아님). 보조 API `.../check`(연결 확인)·`.../unlink`(해제)·`.../{customerNumber}/info`(region·country).
+      - **GW가 AXS API로** 대행하는가? — _우리 조사(AXS Organization API)_: `POST /v1/organization/integration/link`(`customerNumber` + 우리 Client ID) → `organizationId` + **조직 관리자 동의**(status `PENDING`→`APPROVED`). 즉 **조직 자체는 Straumann 고객**이고 우리는 그 조직에 우리 연동을 **"연결(link)"** 만 한다(생성 아님). 보조 API `.../check`(연결 확인)·`.../unlink`(해제)·`.../{customerNumber}/info`(region·country).
       - **EzServer Console에서** 그 연결을 트리거하는 **UI를 제공**해야 하나? (customerNumber 입력·동의 상태 표시·완료 시 org-binding 자동 등록 등)
     - **부가 요청**: Straumann과 **계약·sandbox 제공 시 Tech support(기술 질의) 채널**도 함께 확보 요청 — 위 절차·동의 흐름·`customerNumber` 취득 방법은 Straumann에 직접 확인해야 정확하다. (AXS sandbox 자격은 이월 #6과 연계)
     - **④ 누가·언제까지·회신처**: **드라이브=Raymond(GW 리드)** · 입력원=**호주 영업/현장·Straumann 파트너십 담당**(계약·연동 실태)+**EzServer팀(③-P-EZ)**(customerNumber 취득). **회신처=④ `_status` TBD**.
@@ -585,19 +573,20 @@
       | 신규 repo | 불요 | 필요 | 불요 |
       - **추천 근거(A)**: 발행 잡이 작고(검증+렌더+S3 업로드) path 분기가 표준이라 **단일 repo가 가장 단순·저비용 + GW팀 단일 오너십**. "두 개의 대등한 CI"가 아니라 **큰 배포 파이프라인 1개 + 작은 발행 잡 1개**다. 강한 물리 분리가 꼭 필요하면 **C(es-gitops·신설 없음)** 가 차선이나 인프라 repo에 앱데이터가 섞임. **B(신규 repo)는 파일 하나 위해 과함.** 최종 CI 토폴로지는 **③-I(인프라) 소유**.
 
-    - **결정 2 — 원본 포맷 YAML vs JSON** (추천 = **YAML**) — *2단계 자체는 확정, 원본 포맷만 택일.*
+    - **결정 2 — 원본 포맷 YAML vs JSON** (추천 = **YAML**) — _2단계 자체는 확정, 원본 포맷만 택일._
 
-      | 기준 | **YAML (추천)** | JSON |
-      | --- | --- | --- |
-      | 주석("이 하한 버전인 이유") | ◎ 가능(감사·인수인계) | ✕ 불가 |
-      | 편집성 | ◎ 노이즈 적음 | △ 쉼표·괄호 |
-      | 포맷 수 | 원본 yaml / 서빙 json(2종) | 1종(json) |
-      | 서빙본과 형태 | 다름(컴파일) | 거의 같음 |
+      | 기준                        | **YAML (추천)**            | JSON        |
+      | --------------------------- | -------------------------- | ----------- |
+      | 주석("이 하한 버전인 이유") | ◎ 가능(감사·인수인계)      | ✕ 불가      |
+      | 편집성                      | ◎ 노이즈 적음              | △ 쉼표·괄호 |
+      | 포맷 수                     | 원본 yaml / 서빙 json(2종) | 1종(json)   |
+      | 서빙본과 형태               | 다름(컴파일)               | 거의 같음   |
       - **추천 근거**: 매트릭스는 "왜 이 버전이 하한인가"를 주석으로 남기는 가치가 크고, §7.7.3 3단계 정책 등 **풍부한 저작 모델**을 담기 좋아 **YAML**. 단일 포맷을 선호하면 JSON 원본도 유효(생성 단계는 동일하게 필요).
-    - **성격/산출**: [논의·결정 요청] — 결정 1=방향(단일 repo) 승인(최종 토폴로지는 ③-I) · 결정 2=택일. 확정 시 §7.7.5·Appendix B #8 반영. *(값·3단계 스키마 확정은 ① One Pager 소관, 별개.)*
+
+    - **성격/산출**: [논의·결정 요청] — 결정 1=방향(단일 repo) 승인(최종 토폴로지는 ③-I) · 결정 2=택일. 확정 시 §7.7.5·Appendix B #8 반영. _(값·3단계 스키마 확정은 ① One Pager 소관, 별개.)_
 
   - **R10. GW 배포 토폴로지 — 관리(admin) API를 별도 Deployment로 분리할지 (3-way → 4-way) (결정 요청 · 추천 = 4-way)** — 7/2 R5에서 GW 소프트웨어(**단일 코드베이스**)를 **기능별 Deployment**로 쪼개기로 확정했다(현 **3-way**: `GW core` · `WH Receiver` · `WH Dispatcher`). 그런데 **운영자·Console용 관리 API(`/v1/admin/*`)가 지금은 `GW core` 안에 포함**돼 있다. 이 admin API를 **별도 Deployment(`Admin API`)로 떼어 4-way로 갈지** 정한다. **이는 배포/네트워크 토폴로지 결정이며, API 계약(`/v1/admin/*` 경로)은 어느 쪽이든 불변**이다(데이터도 PostgreSQL을 공유 — 서비스·데이터 분리가 아니라 배포·노출면 분리).
-    - (결정) admin 과 core는 분리한다.  4way로 결정한다. 이에 따라서 SRS에 관련된 부분을 모두 수정한다.
+    - (결정) admin 과 core는 분리한다. 4way로 결정한다. 이에 따라서 SRS에 관련된 부분을 모두 수정한다.
 
     - **왜 admin이 다른가**: 트래픽 = 운영자 **일/주**(사람·저볼륨) · 노출면 = **내부/Console 전용**(공개 device edge·webhook 호스트에서 도달 금지) · 권한 = **kill-switch·config publish·payload break-glass(PHI 열람)** 등 최고위험. device 인증·target proxy hot path(머신·대량·공개)와 프로파일이 근본적으로 다르다 → **제어평면(admin) / 데이터평면(proxy·webhook) 분리**는 게이트웨이 표준 패턴.
 
@@ -626,7 +615,8 @@
         WHR --- DB
         WHD --- DB
     ```
-    - *현재 3-way*: 위 `Admin API` 박스가 **`GW core` 안에 포함**(admin이 device/proxy와 같은 **공개 노출면·같은 프로세스**). *4-way*: `Admin API`를 떼어 **내부 전용**으로.
+
+    - _현재 3-way_: 위 `Admin API` 박스가 **`GW core` 안에 포함**(admin이 device/proxy와 같은 **공개 노출면·같은 프로세스**). _4-way_: `Admin API`를 떼어 **내부 전용**으로.
 
     - **항목별 비교 (3-way vs 4-way)**:
 
@@ -649,51 +639,50 @@
   - **R11. [신규 기능] 클라이언트 SW 인벤토리 — 클리닉별 설치 SW 버전·OS 가시성 (기능 추가 확인 + `Vatech-Instance-Id` 도입 여부 결정)** — "각 클리닉에 어떤 제품·버전이 깔려 있는지" 파악난이 **오랜 숙원**이었다. GW가 이미 **전 요청 필수로 받는 `Vatech-*` 헤더**(FR-COMPAT-01·§7.7.1: `Vatech-Product`·`Version`·`OS`·`Clinic-Id`)를 **영속(persist)** 하면 **추가 수집 없이** 클리닉별 SW 인벤토리를 만들 수 있다. **이미 ③ SRS(§7.8.5·FR-FLEET-06)·DBML(`client_inventory`)·API(`GET /v1/admin/clinics/{clinicId}/clients`)에 반영**했고, 본 안건은 (1) 기능 추가 확인 + (2) 미래 정밀 식별 헤더 결정이다.
     - (결정) 이 기능을 GW에 넣는다.
       - 단, 이 기능은 정식으로 추후 개발되는 새로운 LMP에 들어갈 기능이다. LMP는 update 기능도 있으므로 궁합이 더 잘 맞는다.
-      - 하지만 GW에는 이 기능을 간이로 넣는다. 새로운 LMP 이전에 충분히 역할을 할 수 있다. 
+      - 하지만 GW에는 이 기능을 간이로 넣는다. 새로운 LMP 이전에 충분히 역할을 할 수 있다.
       - 식별을 위한 Instance-ID는 고려하지 않고 일단 수집한다.
         - (참고) EzServer는 Scan 기능을 이용해서 Clinic 내의 client PC를 수집하고 HW 고유 정보를 이용해서 식별 정보를 모으고 있다. 하지만 이정보를 중앙에서 집중 관리하는 기능은 없다. 추후 신규 LMP에서 제대로 수집 관리를 할 예정이다.
-          - EzServer Client 식별 정보가 있어도 GW 호출시 어느 client가 호출한 것인지는 알기 어려워서 현재는 이 정보 활용이 어렵다.    
+          - EzServer Client 식별 정보가 있어도 GW 호출시 어느 client가 호출한 것인지는 알기 어려워서 현재는 이 정보 활용이 어렵다.
 
     - **동작**: `CleverOne → EzServer → GW` 체인에서 GW가 보는 **originator SW**(CleverOne 등)를 관측·기록. EzServer 자신은 device(heartbeat 버전·OS). **Console**: Clinic 선택 → EzServer 정보 + **앞단 클라 목록(버전·OS)**.
     - **식별 id 없음 전제**: 앞단 클라는 안정 식별자가 없다(헤더에 instance-id 없음·GW의 peer는 EzServer라 클라 IP 미가시). → **(clinic, product, version, os) 튜플 + last_seen**. 버전 업 = 새 튜플·옛 튜플 정체(업그레이드/제거 추정). **버전 presence는 얻지만 설치 대수는 못 센다.**
     - **비용**: 헤더는 이미 오므로 캡처가 저렴(요청마다 쓰지 않게 Redis seen-set throttle). 클라 주장값이라 **관측용(authz 아님)**·PHI/PII 없음.
 
     - **결정 2건**:
-      1. **기능 추가 승인** — 위 v1.0 캡처 + 조회 API 포함(리치 Console 대시보드는 ③-C). *(반대·범위 조정 의견 수렴.)*
+      1. **기능 추가 승인** — 위 v1.0 캡처 + 조회 API 포함(리치 Console 대시보드는 ③-C). _(반대·범위 조정 의견 수렴.)_
       2. **미래 표준 헤더 `Vatech-Instance-Id` 도입 여부** — 클라가 생성하는 **안정 install GUID**를 헤더 표준에 추가할지. 도입 시 per-instance 인벤토리·**정확한 설치 대수**·정밀 업그레이드 추적이 가능하나 **전 제품 클라이언트 변경**(공용 라이브러리·① One Pager·③-P)이 필요. **도입 안 함도 유효**(튜플 presence로 충분하면).
 
-      | 관점 | 튜플 모델 (현재·id 없음) | +`Vatech-Instance-Id` (미래) |
-      | --- | --- | --- |
-      | 얻는 것 | 클리닉별 **버전 presence**·구버전 잔존 여부 | + **정확 설치 대수**·per-instance 추적 |
-      | 정확도 | last_seen recency(제거 추정) | 인스턴스 확정(정밀) |
-      | 클라 변경 | 없음(기존 헤더 재사용) | **전 제품 클라 변경**(헤더 부착) |
-      | 프라이버시 | product/version/os만 | install GUID 추가(단말 식별성↑·정책 검토) |
-      | 비용·시점 | v1.0 즉시 | gw/1.1+·표준 협의 |
+      | 관점       | 튜플 모델 (현재·id 없음)                    | +`Vatech-Instance-Id` (미래)              |
+      | ---------- | ------------------------------------------- | ----------------------------------------- |
+      | 얻는 것    | 클리닉별 **버전 presence**·구버전 잔존 여부 | + **정확 설치 대수**·per-instance 추적    |
+      | 정확도     | last_seen recency(제거 추정)                | 인스턴스 확정(정밀)                       |
+      | 클라 변경  | 없음(기존 헤더 재사용)                      | **전 제품 클라 변경**(헤더 부착)          |
+      | 프라이버시 | product/version/os만                        | install GUID 추가(단말 식별성↑·정책 검토) |
+      | 비용·시점  | v1.0 즉시                                   | gw/1.1+·표준 협의                         |
 
     - **성격/산출**: [기능 추가 확인 + 결정] — (1) 승인 시 현행 반영 유지(§7.8.5·`client_inventory`·조회 API·③-C UI) · (2) `Vatech-Instance-Id` **도입/미도입** 결정 → 도입 시 ① One Pager 헤더 표준·③-P 클라 반영·gw/1.1 인벤토리 확장, 미도입 시 튜플 모델 확정(§7.8.5에 결론 기록). Appendix B #48.
 
 - 공유 사항 (결정 아님 · 정보 공유)
-
   - **S1. GW→각 EzServer(클리닉) 범용 하행(downlink) 레일 확보** — webhook 역방향 분배를 위해 만든 **MQTT 하행 채널**(EzServer가 방화벽 뒤에서 outbound 지속 구독, §7.6.6)은, 사실상 **중앙(GW)에서 각 클리닉 edge로 능동 전달하는 최초의 수단**이다. 토픽을 `gw/clinic/{clinicId}/{stream}` 로 두어 **`{stream}` 확장점을 예약**했다(EzServer는 `#` 구독·미지 stream 무시·forward-compat).
     - **지금**: `webhook`(AXS 이벤트 분배) **하나만 구현**.
     - **미래 활용 가능(예약·미구현)**: `announce`(클라이언트 새 버전 설치 안내·프로모션·공지) · `command`(kill-switch 등 즉시 명령) · `config`(원격 설정 하달) 등. 새 용도는 **발행자 추가만**으로 수용(레일·EzServer 구독 불변).
     - **의미**: 지금은 안 쓰더라도 **"중앙에서 fleet으로 뭔가 내려보내는" 다양한 미래 수요를 무구조변경으로 담을 레일**을 확보. 확장점 예약 비용≈0, 기능은 미구현(YAGNI 준수).
-    - **결정 필요 없음** — 공유만. 구체 활용(공지/명령 등)은 수요 발생 시 별도 안건화. 
+    - **결정 필요 없음** — 공유만. 구체 활용(공지/명령 등)은 수요 발생 시 별도 안건화.
 
   - **S2. 프로젝트 일정(Gantt) — 주간 참고 스냅샷** — 스펙 생애주기(작성→PR→baseline)+GW 구현 타임라인. **정본=[개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정은 그쪽 먼저). 아래는 7/9 기준 스냅샷 — 매주 최신본으로 갱신.
     - (결정) Gantt 및 담당자로 수정하기로 했어.
       - AXS연동은 당장은 CleverOne은 고려하지 않고, Straumann의 IO Scanner 만 1차로 고려한다.
         - IO Scanner와 EzServer 연동 방식은 아직 정해지지 않았다. 추후 정해질 예정.
-        - 이를 고려하여 먼저 작성할 Spec을 먼저 완료한다. 관련 없는 Spec은 최대한 뒤로 미룬다. 
-        - 이 내용은 SRS의 1.2에도 언급이 되어야 하고(우선 개발할 내용) 2.7에도 적용해야 해. 
-          - v1.0에는 IO Scanner 연동만 들어가는 거지. 
-          - CleverOne 연동은 v1.0 이후 버전에 적절한 곳에 넣으면 돼. 
+        - 이를 고려하여 먼저 작성할 Spec을 먼저 완료한다. 관련 없는 Spec은 최대한 뒤로 미룬다.
+        - 이 내용은 SRS의 1.2에도 언급이 되어야 하고(우선 개발할 내용) 2.7에도 적용해야 해.
+          - v1.0에는 IO Scanner 연동만 들어가는 거지.
+          - CleverOne 연동은 v1.0 이후 버전에 적절한 곳에 넣으면 돼.
       - 아래 제품의 Spec은 내가 초안을 쓰지 않고 개발 담당자가 직접 작성한다. 나는 GW 스펙을 제공하여 표준만 알려주면 된다.
         - CleverOne Spec 은 담당자(Nick)가 작성한다.
         - EzServer Spec 은 Thomas가 작성한다.
       - Straumann 연동 목표일정은 협의중인데, 잠정적으로 10월 중으로 한다.
         - 일단 10월안에 출시 가능한 일정으로 역산하여 Gantt를 업데이트 한다.
-        - 나는 SectionView 프로젝트를 병행 진행해야 해서 100% 투입은 어려워. 이것도 고려해줘. 
+        - 나는 SectionView 프로젝트를 병행 진행해야 해서 100% 투입은 어려워. 이것도 고려해줘.
     - 막대 색: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 회색=완료 · 빨강=외부 선결. **③ GW SRS PR 시작=7/9**. 구현=R7 **1안**(④ AXS baseline 후·스펙 병행)·기간 미정(SRS 확정 후 재산정). pilot 8/15는 재검토(R7).
 
     ```mermaid
@@ -750,7 +739,7 @@
       | 제품 | 1단계(호환성) | 2단계(presigned) | 3단계(GW 일원화) | 4단계(멀티리전) | 5단계(Straumann) | 후속 | 스펙 산출물(단위·유형) |
       | --- | --- | --- | --- | --- | --- | --- | --- |
       | **CleverSpace** | ⬜ 서버 버전 체크·well-known·오류코드 | ⬜ presigned 발급 신규 | ⬜ GW 경유 수신 정합 | ⬜ 멀티 Region 구축 | — | — | ① OnePager · ② OnePager · ③-P-CS |
-      | **CleverOne** | ⬜ Vatech-* 헤더·well-known·fallback | ⬜ 업로드 흐름 연계 | ⬜ Direct→GW 경유 | ⬜ Region 선택 UI(대안)·ClinicID | — | — | ① · ② · ③-P-CO OnePager |
+      | **CleverOne** | ⬜ Vatech-\* 헤더·well-known·fallback | ⬜ 업로드 흐름 연계 | ⬜ Direct→GW 경유 | ⬜ Region 선택 UI(대안)·ClinicID | — | — | ① · ② · ③-P-CO OnePager |
       | **EzServer(EZ)** | ⬜ 헤더 대리 전달 | ⬜ 전송 로직(presigned 직접) | ⬜ GW 경유 전환 | ⬜ ClinicID·Region·클리닉 등록(잠정) | ⬜ AXS 연동(갈래A)·presigned 직접 | ⬜ Rust 재개발 | ①·②·③-P-EZ·④(갈래A) |
       | **CleverLab** | — | — | — | — | ⬜ AXS 오더·상태·확정(갈래B)·presigned | — | ④ Sub-SRS(갈래B) |
       | **VatechAPIGateway** | — | — | 🟡 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟡 Region 분배·HA(K8s)·Route53·Postgres | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS 🟡** · ④ connector ⬜ |
@@ -766,21 +755,21 @@
 
       ```yaml
       apis:
-        - id: region.change              # 안정 식별자(불변)
+        - id: region.change # 안정 식별자(불변)
           path: /v1/clinics/{clinicId}/region
-          minClientVersion: { EzServer: "2.1.0" }
+          minClientVersion: { EzServer: '2.1.0' }
           errorCode: COMPAT_CLIENT_TOO_OLD
-          fallback: "클라이언트 업데이트가 필요합니다."
+          fallback: '클라이언트 업데이트가 필요합니다.'
         - id: region.resolve
           path: /v1/region/resolve
-          minClientVersion: { CleverOne: "1.2.0" }
+          minClientVersion: { CleverOne: '1.2.0' }
           errorCode: COMPAT_CLIENT_TOO_OLD
-          fallback: "클라이언트 업데이트가 필요합니다."
+          fallback: '클라이언트 업데이트가 필요합니다.'
       features:
         - id: presignedUpload
-          minClientVersion: { CleverOne: "1.3.0", EzServer: "2.1.0" }
+          minClientVersion: { CleverOne: '1.3.0', EzServer: '2.1.0' }
           errorCode: COMPAT_FEATURE_UNSUPPORTED
-          fallback: "현재 버전에서 지원하지 않는 기능입니다."
+          fallback: '현재 버전에서 지원하지 않는 기능입니다.'
       # schemaVersion·env·serverVersion·generatedAt 는 CI가 주입(여기 안 적음)
       ```
 
@@ -788,20 +777,34 @@
 
       ```json
       {
-        "schemaVersion": "1.0", "env": "production", "serverVersion": "gw/1.0.0.0", "generatedAt": 1718000000000,
+        "schemaVersion": "1.0",
+        "env": "production",
+        "serverVersion": "gw/1.0.0.0",
+        "generatedAt": 1718000000000,
         "compatibility": {
           "apis": [
-            { "id": "region.change", "path": "/v1/clinics/{clinicId}/region",
+            {
+              "id": "region.change",
+              "path": "/v1/clinics/{clinicId}/region",
               "minClientVersion": { "EzServer": "2.1.0" },
-              "errorCode": "COMPAT_CLIENT_TOO_OLD", "fallback": "클라이언트 업데이트가 필요합니다." },
-            { "id": "region.resolve", "path": "/v1/region/resolve",
+              "errorCode": "COMPAT_CLIENT_TOO_OLD",
+              "fallback": "클라이언트 업데이트가 필요합니다."
+            },
+            {
+              "id": "region.resolve",
+              "path": "/v1/region/resolve",
               "minClientVersion": { "CleverOne": "1.2.0" },
-              "errorCode": "COMPAT_CLIENT_TOO_OLD", "fallback": "클라이언트 업데이트가 필요합니다." }
+              "errorCode": "COMPAT_CLIENT_TOO_OLD",
+              "fallback": "클라이언트 업데이트가 필요합니다."
+            }
           ],
           "features": [
-            { "id": "presignedUpload",
+            {
+              "id": "presignedUpload",
               "minClientVersion": { "CleverOne": "1.3.0", "EzServer": "2.1.0" },
-              "errorCode": "COMPAT_FEATURE_UNSUPPORTED", "fallback": "현재 버전에서 지원하지 않는 기능입니다." }
+              "errorCode": "COMPAT_FEATURE_UNSUPPORTED",
+              "fallback": "현재 버전에서 지원하지 않는 기능입니다."
+            }
           ]
         }
       }
@@ -811,7 +814,6 @@
     - **관리 구조·포맷 결정은 → R5** (소스 repo 위치+CI 토폴로지·원본 포맷 YAML/JSON). 본 S3는 샘플·구조 공유용.
     - **관리 방식(§7.7.5)**: 서빙 JSON은 **손편집 아님**(원본→CI 생성→S3). GW는 런타임 read+cache라 **매트릭스만 바뀌면 앱 재배포 0**(`config/**` path-scoped 발행 파이프라인). S3는 **CI만 쓰기**, Console은 **읽기 전용 뷰어**.
     - **논의 씨앗**: 현재 스키마는 `minClientVersion` 이분법(미만=거부)만 표현 → **§7.7.3의 3단계 반응(major=차단/minor=경고/patch=무시)은 아직 스키마에 없음** → 값 확정(① One Pager) 시 tier/경고 필드 도입 검토. **이번 주는 형식·구조 공유가 목적**(값·스키마 확정은 ①).
-
 
 - 이월 논의 사항 (6/25·7/2 미결 — 계속)
   | # | 항목 | 타입 | 상태 |
@@ -825,18 +827,15 @@
   | 11 | 호환성 매트릭스 확정본 | [정보] | ① One Pager 의존 |
   - **차주 이월 후보**: R4(AXS Org-ID 취득 경로·절차)가 이번 회의에서 확정/조사경로 미정이면 다음 주 이월 논의에 등재.
 
-
 # VT API Gateway — 7/16 주간회의 Agenda
 
 > 7/9 스냅샷(위 「7/9 주간회의」)은 **그대로 보존**(그 회의에서 공유한 정본). 아래는 **7/9 결정을 반영한 7/16 최신 스냅샷**이며, 틀(논의/공유/이월)은 7/9와 동일하다.
 
 - 논의 사항 (7/9 결정 → 적용/후속 · 신규 결정 요청)
-
   - **R1. IO(IntraOral) Scanner ↔ EzServer 연동 방식 확정 (선결·중요)** — v1.0 범위를 **Straumann IO Scanner**로 좁혔으나(7/9), **IO Scanner와 EzServer가 어떻게 연동되는지 미정**이다. 이는 **③-P-EZ EzServer 스펙·④ AXS 시나리오·GW E2E의 최대 선결**이라 조기 확정이 필요하다. **정할 것 = 방식·결정 주체·기한**(미정 시 아래 이월 논의로).
   - **R2. Straumann 연동 목표일정 확정 — 잠정 10월 중** — 10월 출시 역산 Gantt(아래 S2)를 **확정/조정**한다. Raymond는 **SectionView 병행(부분투입)** 이라 이를 반영한 기간이며, 착수 후 재산정.
 
 - 공유 사항 (결정 아님 · 정보 공유)
-
   - **S1. v1.0 전략 조정 반영 — Straumann IO Scanner 우선 (7/9 결정)** — v1.0 AXS 연동 = **IO Scanner만**, **CleverOne 연동은 post-v1.0**로 이관. GW 기본(호환성·인증·라우팅·target 프록시)은 originator 무관 공통이라 **v1.0 포함**. **스펙 초안 담당**: CleverOne=**Nick** · EzServer=**Thomas**(GW는 표준 계약만 제공·Raymond 초안 미작성). **반영 완료**: SRS §1.2·§2.7 · ④/③-P-EZ/③-P-CO seed · 정본 Roadmap §3.9.
   - **S2. 프로젝트 일정(Gantt) — 7/16 스냅샷** — 스펙 생애주기(작성→PR→baseline)+GW 구현 타임라인. **정본=[개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정은 그쪽 먼저·동기화 완료). **7/9 대비 변경**: v1.0 범위=IO Scanner로 축소 · 각 스펙 **작성/PR 분리** · CleverOne·②Presigned·CleverSpace=**deferred(post-v1.0)** 섹션 · **담당 표기**.
     - 막대 색: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 빨강=외부/미정 선결. **선결(빨강)**: IO Scanner↔EzServer 연동방식(미정·R1)·AXS sandbox 자격(Straumann). **목표=10월 출시**(역산·잠정). **병행 별도 프로젝트**: `SectionView Module 구현`(7/13~2주·Raymond·**GW 아님**)을 별도 섹션 `▷ 병행`에 **다른 색(crit)** 으로 표기 — GW 일정과 자원 경합(부분투입) 가시화용.
@@ -849,8 +848,8 @@
         todayMarker stroke-width:3px,stroke:#d33,opacity:0.6
 
         section ③ GW SRS + API/DBML (계약 SSOT · Raymond·부분투입)
-        작성 (본문+OpenAPI·DBML)       :done, srsw, 2026-06-15, 24d
-        PR 리뷰·수정                  :active, srspr, 2026-07-09, 21d
+        작성 (본문+OpenAPI·DBML)       :done, srsw, 2026-06-15, 28d
+        PR 리뷰·수정                  :active, srspr, 2026-07-13, 21d
         baseline v1.0                 :milestone, srsbl, after srspr, 0d
 
         section ① API 호환성 One Pager (GW 기본 — v1.0 포함)
@@ -897,14 +896,14 @@
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
-  | # | 항목 | 타입 | 상태 |
-  | --- | --- | --- | --- |
-  | 4 | Webhook 클라우드 분배(CleverLab 갈래B) | [논의] | v1.0 제외 — Open 후 결정 |
-  | 6 | AXS sandbox 자격증명(Straumann 제공) | [정보] | pilot·E2E 블로커 — 확보 시점? |
-  | 7 | 경로 B EOS 시점 | [논의] | ① One Pager 확정 의존 |
-  | 8 | v1.0 목표 RPS·동시 세션 | [정보] | 인프라/규모 PL 입력 대기 |
-  | 9 | RTO/RPO·유지보수 윈도우 | [정보] | 인프라 설계 단계 |
-  | 10 | 감사·consent 보존 기간 | [정보] | 법무 확인 대기 |
-  | 11 | 호환성 매트릭스 확정본 | [정보] | ① One Pager 의존 |
-  | 신규 | IO Scanner↔EzServer 연동 방식 | [논의·선결] | 미정 → 이번 주 R1로 승격 |
+  | #    | 항목                                   | 타입        | 상태                          |
+  | ---- | -------------------------------------- | ----------- | ----------------------------- |
+  | 4    | Webhook 클라우드 분배(CleverLab 갈래B) | [논의]      | v1.0 제외 — Open 후 결정      |
+  | 6    | AXS sandbox 자격증명(Straumann 제공)   | [정보]      | pilot·E2E 블로커 — 확보 시점? |
+  | 7    | 경로 B EOS 시점                        | [논의]      | ① One Pager 확정 의존         |
+  | 8    | v1.0 목표 RPS·동시 세션                | [정보]      | 인프라/규모 PL 입력 대기      |
+  | 9    | RTO/RPO·유지보수 윈도우                | [정보]      | 인프라 설계 단계              |
+  | 10   | 감사·consent 보존 기간                 | [정보]      | 법무 확인 대기                |
+  | 11   | 호환성 매트릭스 확정본                 | [정보]      | ① One Pager 의존              |
+  | 신규 | IO Scanner↔EzServer 연동 방식          | [논의·선결] | 미정 → 이번 주 R1로 승격      |
   - **차주 이월 후보**: R1(IO Scanner↔EzServer 연동 방식)·R2(목표일정) 미확정 시 다음 주 이월.
