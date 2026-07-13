@@ -5,7 +5,7 @@
 | 문서 버전 | 0.9 |
 | 작성일 | 2026-07-09 (최종 현행화 2026-07-13) |
 | 작성 | Raymond |
-| 상태 | **Spec(OnePager) v1.5 완성.** 현재: VKS 공유·리뷰 요청 + **환경 정렬(§10)→구현 착수** 병행. 모든 핵심 결정 확정(§16 Decision Log) |
+| 상태 | **Spec(OnePager) v1.6.** 구현 착수·병행(P0~P1·P7 정적 크롬 진행). MMI 전면 재검토로 **파노라마 생성 모델 정정(D11)**·투영 방식 **D12 기획 결정 대기**. 핵심 결정 확정(§0 Decision Log) |
 
 > 본 문서는 **내부 개발 계획·의사결정 기록**이다. 리뷰 공유 정본은 [OnePager Spec](./Section-Module-Spec-v1.3.2-OnePager.md)이며, 세부 요구·접목 계약은 그쪽을 따른다. 본 문서는 "왜 이렇게 정했는가"의 배경을 남긴다.
 
@@ -23,6 +23,8 @@ OnePager §12 Decision Log와 동기. 상세는 각 절 참조.
 | D5 | **Save prj** | CW prj XML 스키마 호환 직렬화. 개발 중엔 동일 payload를 **브라우저 localStorage/export**로 임시 저장(§8.4) |
 | D6 | **구현 커버리지** | PoC를 확장해 **MMI 1.1~1.13 전 기능** |
 | D9 | **일정** | 목표 **1주**, 예상 **2주**. Section 모듈 = Raymond 1명 / 접목 = CW 팀 |
+| **D11** | **파노라마 생성 모델(정정)** | **확정**(기획 2026-07-13) — 파노라마 = 곡선 따라 **가느다란(기본 Th0) 재슬라이스를 P/A로 offset 스윕**(Scout navigator line). **PoC의 두꺼운 MIP 고정 모델은 정정.** Section도 동일 slab 두께 보유. MMI·Ez3D-i·CleverOne 동일 (OnePager §3.3). *이전 MMI 분석 누락분* |
+| **D12** | **슬랩 투영 방식(max vs mean)** | **미확정 — 기획 결정 대기.** Thickness>0 slab을 최댓값(MIP) vs 평균(mean). CleverOne=평균(흐림), PoC=MIP. 엔진은 둘 다 지원, 기본값 확정 후 고정 |
 | 기타 | D3(Overlay normal 5° 튜닝)·D7(Slice 스크롤 NFR 벤치마크)·D8(Scout 명칭·Th cap 기본값)·D10(B/L 1회 고정) — OnePager §12 |
 
 ---
@@ -165,7 +167,9 @@ PLAN-1287 Jessi 회신 + MMI + 2026-07-13 B/L 회신 기준. OnePager §3~§7에
 | 1.8 | Active section line 회전 ±45° | **v1.3.2 스펙아웃** (임플란트 시뮬 재검토) |
 | 1.6·1.7 | BL/LB 기준점 이동 | 포함. **단, 이동은 B/L 판정에 영향 없음**(§6.2, D10) |
 | 1.5·1.3 | **B/L 자동 판정** | **확정 — §6.2 새 단일 규칙**. 폴백: 수동 L/B Switching |
-| 1.10 | Thickness | 기본 0mm. combo 상한 30mm(Clever One 동일). **drag(Panorama thickness line)도 동일 30mm cap 확정**(2026-07-13, 개발실 — 정합성·Section scroll 성능 예산, 단일 `MAX_THICKNESS_MM`) |
+| 1.10 | Thickness | 기본 0mm. **combo 옵션 {0,0.1,0.5,1,2,3,5,10,20,30}mm**(drag off-list 값 허용), 상한 30mm(Clever One 동일). **drag(Panorama thickness line)도 동일 30mm cap 확정**(2026-07-13, 개발실 — 단일 `MAX_THICKNESS_MM`). **Scout·Pano·Section 전 뷰 slab 두께 보유**(가로폭·세로폭 extent와 별개) |
+| 1.10 | Interval | Scout=**Voxel Based Interval**(MPR 동기)·Pano/Section=1mm |
+| 1.3·1.8 | **파노라마 생성 모델(정정, D11)** | 파노라마 = **thin 재슬라이스(기본 Th0)를 P/A로 offset 스윕**(Scout navigator line). PoC의 두꺼운 MIP 고정은 정정. 투영 방식(max/mean)은 **D12 기획 결정 대기** (OnePager §3.3) |
 | 1.10 | Draw curve 중 Thickness/Interval | curve 취소 없음, 즉시 적용 |
 | 1.5 | Draw curve 표시 | Active line: 점 추가마다 갱신. Section 이미지: curve 완료 후 1회. 종료=더블클릭(우클릭=직전 취소), ESC 미적용 |
 | 1.9 | slice 더블클릭 최대화 | 포함 |
@@ -398,3 +402,4 @@ Section 모듈 Spec은 **OnePager** 로 작성했다(장문 SRS 아님). 파일:
 | 0.7 | 2026-07-10 | §3 개발 레포 3방안 — 방안 1 확정. §3.7 Spec 정제 계획 |
 | 0.8 | 2026-07-10 | 문서 폴더 재정리 — 경로 동기화 |
 | **0.9** | **2026-07-13** | **전체 현행화**: §0 Decision Log 요약 신설(D1~D10). B/L **확정 규칙**(§6.2, P1→P2·C쪽=L·1회 고정). 접목 **D1**(vtk 미접목·WebGL embed) 반영 — §1·§8·§9 재작성. §9 cloudwebviewer **실조사**(Federation·vtk 스텁·prj 스키마·버전). Save **D5**(§8.3). 상태·§4 절차·§7·§13 체크리스트 현행화(Spec 완성·B/L 확정·다음=환경정렬·구현). §5 참조 org URL. §3.7(구 Spec 정제 계획)·과거 상태 표기 정리 |
+| **0.10** | **2026-07-13** | **MMI 전면 재검토 — 파노라마 생성 모델 정정**: **D11**(파노라마 = thin 재슬라이스·P/A offset 스윕, thick-MIP 고정 정정) + **D12**(투영 max/mean 기획 결정 대기) §0 추가. §6 기획 확정에 파노라마 모델·**Thickness combo 옵션값·Voxel Based Interval·전 뷰 slab 두께** 행 추가. OnePager v1.6·IP v0.3과 동기. 상태 현행화 |
