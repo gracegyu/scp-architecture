@@ -38,7 +38,7 @@
 
 | Phase | 제목 | 목표 | 예상 | 도메인 |
 |-------|------|------|:----:|--------|
-| **P0** | 환경 정렬 | scp-section-poc ↔ CW 버전·UI 스택·store·toolbar stub 정합 (구현 착수 게이트) | 1.5일 | poc |
+| **P0** | 환경 정렬·경계 | scp-section-poc ↔ CW 버전·UI 스택·store·toolbar stub 정합 + CT 공급 인터페이스 추상화·외부 패널 (구현 착수 게이트) | 2일 | poc |
 | **P1** | Scout·Curve·B/L | Draw/Edit curve UX, B/L 단일 규칙, BL/LB 기준점 | 2일 | poc |
 | **P2** | Section Slice 스크롤 | 전체 slice 인덱싱·페이징·9장·slice number·최대화 (성능 핵심 §NFR) | 2일 | poc |
 | **P3** | Pano/Scout 조작·Thickness | 드래그 핸들·경계선·중심선·thickness line·Setting·ruler 전체 축 | 1.5일 | poc |
@@ -118,11 +118,27 @@
 | estimate | 1.5h |
 | risk | (낮음) |
 
+#### T-P0-5 — CT 공급 인터페이스 추상화 + 외부 CT 패널
+
+- [x] **완료** — DoD(§6) 항목 통과 시 체크 (SectionCtProvider+S3 impl·UT-ENV-041·좌측 CtSourcePanel·SectionViewer는 volume만 소비)
+
+| 필드 | 값 |
+|------|------|
+| id | T-P0-5 |
+| title | `SectionCtProvider` 계약(+S3 시뮬 구현)으로 CT 공급 추상화, CT 선택을 Section 뷰 밖 좌측 패널로 분리 |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §1·§9.4, S-CW `types/core/src/content.ts`#IContainerApis.contentIOApis@d063ae2 |
+| depends_on[] | T-P0-4 |
+| outputs[] | `packages/components/src/ct/SectionCtProvider.ts`, `CtSourcePanel.tsx`, `index.ts`, `apps/section-demo/src/App.tsx` |
+| dod[] | UT-ENV-041(provider listCases 계약 단위) + MT-ENV-042 좌측 CT 패널 로드→Section 3영역 표시, CT 선택이 Section 뷰 밖 |
+| estimate | 1h |
+| risk | 접목 시 S3 provider → CW `contentIOApis` provider로 교체(주입점 유지) |
+
 ### P1 — Scout·Curve·B/L
 
 #### T-P1-1 — Draw Curve UX 정합
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — DoD(§6) 항목 통과 시 체크 (UT-CRV-001~003 core 4/4 + useCurveEditor hook 6/6·ESC 미적용·1점더블클릭 무시·우클릭 취소·완료 후 생성 게이트·build/dev)
 
 | 필드 | 값 |
 |------|------|
@@ -454,8 +470,9 @@
 
 ```mermaid
 flowchart LR
-  subgraph P0[P0 환경 정렬]
+  subgraph P0[P0 환경 정렬·경계]
     T0a[T-P0-1 버전핀] --> T0b[T-P0-2 UI스택] --> T0c[T-P0-3 store+Toolbar] --> T0d[T-P0-4 셸 조립]
+    T0d --> T0e[T-P0-5 CT provider·외부 패널]
   end
   subgraph P1[P1 Scout·Curve·B/L]
     T1a[T-P1-1 Draw] --> T1b[T-P1-2 Edit]
@@ -503,6 +520,7 @@ flowchart LR
 | T-P0-2 | UT-ENV-011/012 | 자동 | `corepack pnpm@9.15.9 install && build` |
 | T-P0-3 | UT-ENV-021/022, MT-ENV-023 | 혼합 | `pnpm --filter section-demo test`; Toolbar 시각 수동 |
 | T-P0-4 | UT-ENV-032, MT-ENV-031 | 혼합 | build/dev; image23 정합 수동 |
+| T-P0-5 | UT-ENV-041, MT-ENV-042 | 혼합 | `pnpm --filter …components test`; 좌측 CT 패널 로드 수동 |
 | T-P1-1 | UT-CRV-001~003, MT-CRV-004 | 혼합 | `pnpm --filter …components test`; blank/생성 수동 |
 | T-P1-2 | UT-CRV-011/012, MT-CRV-013 | 혼합 | vitest; 다이얼로그 수동 |
 | T-P1-3 | UT-BL-001~003, MT-BL-004 | 혼합 | `pnpm --filter …core test`; 라벨 방향 수동 |
@@ -541,4 +559,5 @@ flowchart LR
 
 | 일자 | 버전 | 인수자 | 내용 |
 |------|------|--------|------|
+| 2026-07-13 | v0.1a | — | **T-P0-5 추가** — CT 공급 인터페이스(`SectionCtProvider`) 추상화 + 외부 좌측 CT 패널로 모듈 경계 명확화(§9.4). Phase P0 "환경 정렬·경계"로 확장, DAG·DoD·Phase 표 동기화. (구현 병행 반영: P0 T-P0-1~5·T-P1-1 완료 체크) |
 | 2026-07-13 | v0.1 | — (ip-writer 초안) | 초안 작성. **spec-baseline-handoff 없이 작성** — OnePager v1.5 기반, 컨텍스트 신뢰도는 사람 리뷰 전. 8섹션·24 Task·7 Phase(P0~P6). 프론트 단일 모듈이라 DBML/Swagger N/A·TCL 인라인 정의. **Spec(OnePager) 미커밋 → §2 S-SPEC SHA 미동결(TBD)**: baseline 후 IP 사람 리뷰 7질문 재점검 필요 |

@@ -4,7 +4,7 @@
 
 | 문서 ID | ESIP-GW-SRS |
 | --- | --- |
-| 문서 버전 | Draft (baseline 전) |
+| 문서 버전 | 0.9 (Draft · baseline 승인 시 1.0) |
 | 적용 제품 버전 | gw/1.0.0.0~ |
 | 분류 | 통제 문서 (Controlled · IEC 62304 / ISO 13485 — 요구사항 추적성) |
 | SSOT 여부 | 본 SRS가 GW 플랫폼 요구사항의 SSOT. 기존 [요구사항 명세](https://vks.vatech.com/x/AcSSEg)·[PRD](https://vks.vatech.com/pages/viewpage.action?pageId=311608280)·[ARD](https://vks.vatech.com/pages/viewpage.action?pageId=311608281)는 추출/배경 뷰 |
