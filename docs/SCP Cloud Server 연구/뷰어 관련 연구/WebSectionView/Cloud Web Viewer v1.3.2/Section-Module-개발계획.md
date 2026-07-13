@@ -331,7 +331,8 @@ CW vtk 엔진에 Section 파이프라인 **뼈대(계약)는 있으나 뷰 로�
 
 - import 허용: `toolbar/Toolbar`·`ToolBtn`·store, `ContentTitleBar`, `common/*` 다이얼로그, `toolbar/type`.
 - Section 전용 로직(Draw curve·B/L·9단면)은 `@ewoosoft/scp-section-*`에만.
-- 금지: CW toolbar/common 소스 복사, `@cloudwebviewer/core` 포크, Section 엔진을 CW core에 선행 머지.
+- 금지: CW toolbar/common 소스(컴포넌트·store 로직) 복사, `@cloudwebviewer/core` 포크, Section 엔진을 CW core에 선행 머지.
+- 예외(허용): **아이콘 SVG 에셋 복사** — 픽셀 일치용, 자기완결 에셋만(툴바 로직 제외). 데모 `apps/section-demo/src/cw/icons/`(cloudwebviewer `assets/icon`에서 복사, 수동 동기화). 접목 시 CW 네이티브 아이콘 사용.
 - link 불가 시: Known gap 기록 → MUI + `#141414`·36px·hover `rgba(0,190,165,0.4)` 토큰으로 임시 상단 바 → link 해결 후 교체.
 
 > 용도 구분: **link = 개발 중 우리 데모가 CW UI를 소비**. **embed = 제품이 우리 패키지를 소비**(§8.2). 방향이 반대인 두 정합이며 둘 다 유효.
