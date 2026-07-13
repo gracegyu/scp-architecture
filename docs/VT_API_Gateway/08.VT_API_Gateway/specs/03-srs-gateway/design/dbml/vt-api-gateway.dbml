@@ -7,40 +7,9 @@
 // GW의 핵심 역할 = 발신자 식별→올바른 client로 분배(GW는 payload 비해석). 본 DB는 '어디로 분배할지'의 지식을 보관:
 //   라우팅 키(org_mapping)·연동 대상 통합 config(target: 라우팅+아웃바운드 자격+인바운드 webhook 수신). (분배 채널은 clinic→MQTT 토픽 규약으로 도출·테이블 없음, §7.6.6)
 // 컬럼은 snake_case(PostgreSQL 관례), API DTO는 camelCase(SRS §1.3)로 매핑.
-// 시간은 Unix Timestamp(ms) bigint. PHI 영상 본문 미저장(presigned 직결). **webhook payload(PHI 가능)는 DB에 암호화 저장**(webhook_event.payload_encrypted·KMS envelope·복호화 가능·Console masking·삭제 미고려·7/9 R7·§7.6.3). (SRS §6.4)
+// 시간은 Unix Timestamp(ms) bigint. PHI 영상 본문 미저장(presigned 직결). **webhook payload(PHI 가능)는 DB에 암호화 저장**(webhook_event.payload_encrypted·KMS envelope·복호화 가능·Console masking·삭제 미고려·§7.6.3). (SRS §6.4)
 // 타입·인덱스·정밀 relation은 LLD(dev-chain-design)에서 확정.
-// jsonb 컬럼(policy.allowed_endpoints·policy.scopes·target.egress_allowlist·target.source_ip_allowlist·config.config_value·audit_log.before_state·audit_log.after_state)의 형식·예시·검증 = design/db-jsonb-fields.md(구현 계약 SSOT). 컬럼 주석엔 shape 요약만. (target_registry.retry_policy는 R4로 제거 — 재시도=istio)
-// 2026-06-29 PR 정합 보강: upstream_registry 복원력 컬럼·enum화·created_at/updated_at·webhook_event 보강.
-// 2026-07-01: region A안(device.region·region_mapping 제거·device.clinic_id 추가) · compat_matrix 제거 · 전 필드 주석.
-// 2026-07-01: enrollment_token 제거 — 부트스트랩=LM 라이선스·Clinic-ID + C/S 사람 승인(사전 발급 토큰 없음). 승인 대기=device.pending(§2.3.1·§7.2.5).
-// 2026-07-02 (R1): 라우팅 신호 개정 — upstream_registry.target_id = target 서브도메인 라벨(GW edge={target_id}.gw.vatech.com, ADR-11 7/2 R1). Vatech-Target 헤더=CleverOne→EzServer 내부 hop(EzServer가 서브도메인 변환). 주석만 갱신(스키마 불변).
-// 2026-07-02 (R4): upstream_registry 복원력 컬럼 정리 — **재시도·서킷(retry_policy·circuit_breaker) 제거**(service mesh/istio egress 담당). **GW→provider 연결 timeout(connect/response/total_deadline)은 유지**(GW가 provider에 직접 연결하는 HTTP 클라이언트라 자기 호출 bound 필수 — D1~D3, §7.5.4). GW 앱레벨=오류 정규화·멱등·취소.
-// 2026-07-08: **테이블 Note 컨벤션 변경** — 각 테이블 상세 설계·근거를 **테이블 위 `//` 블록 주석**(소스 전용·줄바꿈·diff 쉬움·PostgreSQL 미포함)으로 이관, `Note:`는 **짧은 1문장**(COMMENT ON TABLE)만 유지(전 10테이블). 생성 COMMENT ON TABLE 1000+자 → 최대 ~250자. **스키마 불변**(주석/Note 텍스트만). enroll pending TTL 기본 7일·B안(제3자 서명) 승인 경로도 device 블록에 반영.
-// 2026-07-06: device-중심 정체성 정합 — 주체=device·clinic=선택적 그룹(§1.2). policy.tenant(clinic 하드 FK) → **scope_type{global|clinic|device}+scope_id**(다형 참조·하드 FK 없음)로 일반화(clinic-less device 수용, 실효정책 device→clinic→global). v1.0=clinic+global만 사용. clinic Note·인덱스 갱신. device.clinic_id nullable·1:N·region A안은 불변.
-// 2026-07-06: audit_log 필드 규약 — result를 **enum(audit_result: success|denied|failure)** 로, action/actor는 명명 규약(action=`resource.verb` free string·앱 상수, actor=`type:id` user/system/device) + not null·action 인덱스. 형식=db-jsonb#audit_log·§7.9.3.
-// 2026-07-06: connector.credential_ref 의미 명확화 — access token이 아니라 장수명 client 자격의 KMS 참조(DB 평문 미저장). access token은 gw:cache:conn-token(redis-keyspace)에 캐시·만료 전 선제 갱신(§7.1.3). 스키마 불변(주석만).
-// 2026-07-06 (#31): egress SSOT 일원화 — **connector.egress_allowlist = 단일 SSOT**(+requireStaticEgressIp). **policy.egress·upstream_registry.egress_allowlist 제거**(3중복 해소). egress는 외부(C) 대상 속성이지 per-tenant authz 아님 — OPA/네트워크 모두 connector 참조.
-// 2026-07-06: fleet_state.last_heartbeat 의미 명확화 — device→GW push(POST /v1/fleet/heartbeat)로만 갱신(GW는 edge 폴링 불가). 온라인/오프라인=임계값 초과 파생 판정(§7.8.1). 주석만(스키마 불변).
-// 2026-07-06 (R2): webhook_event payload 저장 방식 — 본문은 관계형 DB 미저장(opaque·PHI 포함 가능), 리전 로컬 S3(짧은 TTL·SSE)+payload_ref claim-check(in-flight=SQS). event_type 컬럼 추가(Console 필터)·인덱스. 추천안 채택(7/9 R2 확정 전 provisional).
-//   ⤷ SUPERSEDED (7/9 R7): 위 S3 claim-check는 폐기 — payload는 **DB `webhook_event.payload_encrypted`(bytea·KMS envelope 암호화)** 로 저장(§7.6.3). 위 줄은 당시 provisional 기록으로만 보존.
-// 2026-07-06: 테이블 Note 서술식 정리 — device·clinic·region_catalog·policy·connector·audit_log·fleet_state·config Note를 명사 나열→흐르는 서술식으로(의미 불변, 가독성). org_mapping·webhook_provider·upstream_registry·webhook_event는 기존 서술식 유지.
-// 2026-07-06: 전 테이블 필드에 예시 문자열(예 `…`) 보강 — device_id=UUIDv7·client_id=gwc_…·clinic_id=CLINIC-…·region=apne2·config_value=3600·dispatch_target=mqtt_edge:gw/clinic/…/webhook 등 구현자가 값 형태를 바로 알도록. 스키마 불변(주석만).
-// 2026-07-06: webhook_provider 필드 설명 보강 — 각 필드에 AXS 실제 스펙 예시 문자열 추가(inbound_route=/v1/webhooks/axs, sig_scheme=hmac-sha512·헤더 Signature·hex·서명대상 minified JSON, secret_ref=kms://…, *_path=$.messageId/$.organizationId/$.eventType). AXS를 1차 참고한 범용 유연 수신 레지스트리임을 Note에 명시(AXS 전용 아님). 스키마 불변(주석만).
-// 2026-07-06: webhook event_type 규칙 명확화 — webhook_provider.event_type_path로 payload에서 verbatim 추출(provider-owned free string·GW enum 아님·nullable, 의미=(provider,event_type)). 목적지 라우팅은 org_mapping(별개). §7.6.1.
-// 2026-07-06: MQTT 하행=범용 downlink 레일 재정의(§7.6.6, v1.0 webhook만·config/announce/command 예약) + device 원격 config(device.* 키·pull·push-notify)=gw/1.1+. v1.0 중앙 config는 GW-내부(gw.*)가 실사용. config 테이블·컬럼 불변(용도 범위만 조정).
-// 2026-07-06: MQTT 하행 토픽 규약 확정(§7.6.6) — clinic-scoped `gw/clinic/{clinicId}/{stream}`(stream=webhook/config), 리전 미포함. delivery_channel.endpoint(mqtt_edge)·webhook_event.dispatch_target 예시를 이 규약으로 구체화. 브로커 제품·문법 매핑만 #4 잔여.
-// 2026-07-06 (정합성 점검): webhook_event.target → dispatch_target 리네이밍·정의 명확화 — upstream_registry.target_id(아웃바운드 프록시 provider)와 이름 충돌 제거. 의미=실제 발행한 구체적 분배 목적지(delivery_channel 해석 스냅샷 {channel_type}:{endpoint}), clinic_id·region('어디')과 별개('어떤 채널·주소로'). Note의 "target에 저장"(clinic/region이 target에 들어간다는 모순) 수정.
-// 2026-07-06 (정합성 점검): webhook_provider.event_id_path 추가 — 멱등 키(event_id) 추출도 provider별 경로 config(예 AXS messageId), §7.6.1 "eventId 레지스트리 추출"과 정합(누락 보정). config.created_at 추가(policy·connector와 대칭). 헤더 jsonb 목록에 config.config_value 반영. org_mapping.provider → webhook_provider FK 통일(webhook_event.provider와 동일 인바운드 축·R8 검토 해소). (config.updated_by 중복·surrogate id 생성 규칙은 LLD)
-// 2026-07-06: **connector·upstream_registry·webhook_provider → `upstream` 1표로 병합(12→10 테이블)** — 셋은 한 연동 대상(예 axs)의 1:1 facet(라우팅/아웃바운드 자격/인바운드 webhook)이라 upstream 한 행에 통합. 표명=**upstream**(엔터티)·PK=**target_id**(=Vatech-Target 값=서브도메인 라벨). 중복 필드 정리: connector.endpoint 제거(upstream.host와 중복·base=https://{host}), enabled·created/updated_at 1쌍으로. upstream 하나 등록=1 insert. org_mapping·webhook_event·policy가 target_id를 FK 참조(구 connector 컬럼 policy.provider→policy.target_id). §6.4.1 "connector/provider 분리 유지" 결정 정정(병합). jsonb 앵커 → db-jsonb#upstream. (이름 후보 provider/target/upstream/integration 비교 후 upstream 확정 — 회의 어법 "신규 upstream=레지스트리 1행", Agenda R3)
-// 2026-07-06: delivery_channel 테이블·Enum delivery_channel_type 삭제(12 테이블) — v1.0 전 클리닉 edge(mqtt_edge)·토픽 결정적(clinic_id→gw/clinic/{clinicId}/webhook, §7.6.6)이라 저장 정보 0. 분배=org_mapping→clinic(→region 브로커)→MQTT 토픽 도출. 비-edge/클라우드 수신은 Appendix B #37(갈래B) 도입 시.
-// 2026-07-06: config 테이블 신설(13 테이블) — 중앙 Config(FR-CFG-01·§7.8.4) 구현 모델. Enum config_scope{global|region|clinic|device} + (scope_type,scope_id,config_key)당 1행·config_value jsonb·version(drift/캐시 무효화). 실효=키별 가장 구체 우선(override). 전달=pull(GET /v1/fleet/config·heartbeat configVersion)/push-notify(역방향 MQTT). 값 형식=db-jsonb#config.
-// 2026-07-01: 디바이스 인증=비대칭 private_key_jwt(개인키 서명→device.fingerprint 공개키 검증), 공유 secret 폐지(ADR-13·§7.1.1).
-// 2026-07-01: credential 테이블 삭제 → device로 통합(client_id를 device.client_id nullable로 이관, secret_ref 폐기, hw_key_bound는 gw/1.1 attestation으로 이관). 13 테이블.
-// 2026-07-01: token 테이블 삭제 — 무상태 JWT(서명 검증)·디바이스 단위 폐기라 발급 토큰 저장 불필요, 이력은 audit_log. 12 테이블.
-// 2026-07-01: device.fingerprint → device.client_public_key 리네이밍 — 실제로 키페어 공개키라 'fingerprint'(하드웨어 지문 연상·LM machine fingerprint 충돌)를 정확한 명칭으로 교체(§7.2.6).
-// 2026-07-01: clinic_region_mapping → clinic 승격(C안) — clinic_id를 5개 테이블이 참조하는 canonical 엔터티라 정명. region·mapping_version은 clinic 컬럼으로 유지(1:1 인라인). R8 "전용 clinic 테이블 분리" 해소.
-// 2026-07-09 (7/9 R2 A): **operator·operator_role 테이블 신설** — Console 인가=GW 자체(authN=Entra SSO만). operator(JIT·SSO·status active/suspended·비번 없음)+operator_role(RBAC 역할 앱상수+스코프·요청→승인/거부/회수). enum operator_status·grant_status. 이전 'operator 무상태' 반전(§7.1.4·§7.9.2). 13 테이블.
-// 2026-07-09 (7/9 R6): **엔티티 `upstream` → `target` 리네임**(마케팅·CS 이해 용이). Table target·Enum target_profile·FK `> target.target_id`(policy·webhook_event·org_mapping). PK 컬럼 `target_id`는 유지(자연키). 위 날짜 주석의 upstream/upstream_registry는 당시 기록이라 보존. dbml2sql OK(target 비예약어).
+// jsonb 컬럼(policy.allowed_endpoints·policy.scopes·target.egress_allowlist·target.source_ip_allowlist·config.config_value·audit_log.before_state·audit_log.after_state)의 형식·예시·검증 = design/db-jsonb-fields.md(구현 계약 SSOT). 컬럼 주석엔 shape 요약만. (target_registry.retry_policy는·제거 — 재시도=istio)
 
 Project vt_api_gateway {
   database_type: 'PostgreSQL'
@@ -87,7 +56,7 @@ Enum region_status {
 //  • PHI 미저장
 //  • lifecycle: pending → active → suspended → revoked (§7.2)
 //     - 미승인 pending: TTL(기본 7일·config) 후 자동 만료 (무인증 enroll abuse 방지 · Appendix B #43)
-//     - active 승인 경로: **v1.0=C/S 수동(A안)**. 유효 LMP attestation 자동(B안·§2.3.1)=**v1.0 미지원·LMP 재개발 후**(7/9 R4). 승인 방식은 audit_log 추적(별도 컬럼 없음)
+//     - active 승인 경로: **v1.0=C/S 수동(A안)**. 유효 LMP attestation 자동(B안·§2.3.1)=**v1.0 미지원·LMP 재개발 후**. 승인 방식은 audit_log 추적(별도 컬럼 없음)
 //  • region 컬럼 없음: device 리전 = clinic_id → clinic.region 파생 (§6.4.1 A안·region SSOT=clinic)
 //  • clinic_id·client_id nullable: 각각 clinic 비소속·client 자격 미발급 device 표현
 //  • 인증 = private_key_jwt(ADR-13): 개인키=디바이스 보유, GW는 공개키(client_public_key)만 검증(공유 secret 없음)
@@ -134,12 +103,12 @@ Table device {
 //  • 생성: EzServer enroll이 흡수(별도 등록 API 없음) — Clinic-ID로 upsert(§2.3.1). region 기본=GeoDNS 최근접(C/S override)·Admin 교정만(FR-RGN-04)
 //  • region: clinic과 1:1 → 컬럼 인라인(핫패스 조인 회피). relocation 시 mapping_version +1(값 이력=audit_log)
 //  • 표시·연락 속성(name·country_code·address·phone·website): LMP 발급(enroll 시 EzServer 전달)·LMP 변경 시 device 자가 갱신(PATCH /v1/clinics/{id}·self-only)·운영자 교정
-//     - **수집 확정(7/9 R3)**: name·country_code·address·phone·website(LMP 전부). **enroll 시점 스냅샷 — LMP에서 바뀌어도 GW 자동 sync 안 함**(갱신=(재)enroll 재포착 또는 운영자 수동 교정만). 저장=고정 컬럼(jsonb 아님) · country_code(국가)≠region(배포 리전)
+//     - **수집 확정**: name·country_code·address·phone·website(LMP 전부). **enroll 시점 스냅샷 — LMP에서 바뀌어도 GW 자동 sync 안 함**(갱신=(재)enroll 재포착 또는 운영자 수동 교정만). 저장=고정 컬럼(jsonb 아님) · country_code(국가)≠region(배포 리전)
 //  • 그 외 속성(상태·C/S 담당자·온보딩 시각 등)은 필요 시 추가(ERD 점선)
 Table clinic {
   clinic_id       varchar [pk]                                    // 클리닉 식별자 = **canonical 클리닉 엔터티**(device·org_mapping·webhook_event·policy가 참조하는 clinic_id의 원본). **LMP 발급 Clinic-ID·32자**(EzServer가 설치 시 수신·전달, §1.4). GW 생성 아님. 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`
   region          varchar [not null, ref: > region_catalog.region_id]  // 이 클리닉의 배정 리전(FK, region SSOT). clinic↔region 1:1이라 컬럼으로 인라인(조인 없음). 예 `apne2`
-  name            varchar                                         // 클리닉 표시명(LMP `clinic.name`·enroll 시 EzServer 전달·Console 식별). nullable. 예 `ES Clinic`. (수집 확정 7/9 R3·enroll 스냅샷·LMP 미sync)
+  name            varchar                                         // 클리닉 표시명(LMP `clinic.name`·enroll 시 EzServer 전달·Console 식별). nullable. 예 `ES Clinic`. (수집 확정·enroll 스냅샷·LMP 미sync)
   country_code    varchar                                         // 클리닉 국가(LMP `countyCode`=ISO 3166 Alpha-2). **GW region(배포 리전)과 별개** — region 추천/표시 참고. nullable. 예 `KR`
   address         varchar                                         // 클리닉 주소(LMP `clinic.address`)·C/S 연락. nullable. (환자 PHI 아님·clinic 업무정보)
   phone           varchar                                         // 클리닉 전화(LMP `clinic.phone`). nullable. 예 `02-1234-5678`
@@ -220,7 +189,7 @@ Enum audit_result {
   failure   // 시도했으나 실패(오류)
 }
 
-// 운영자 계정 상태 (§7.9.2 · 7/9 R2 A방안)
+// 운영자 계정 상태 (§7.9.2·A방안)
 Enum operator_status {
   active     // 정상(승인된 역할 있으면 이용·역할 0이면 "권한 요청" 화면)
   suspended  // 관리자 정지(오프보딩·차단) — 역할 무관 접근 거부
@@ -234,7 +203,7 @@ Enum grant_status {
   revoked    // 승인 후 회수
 }
 
-// 운영자 역할 (§7.9.2 · 7/9 R2 A) — **소스코드 enum으로 관리**(DB enum과 동일 선언·DBML→Prisma→TS 생성).
+// 운영자 역할 (§7.9.2·A) — **소스코드 enum으로 관리**(DB enum과 동일 선언·DBML→Prisma→TS 생성).
 //  • 역할 "목록"=여기 고정, 역할→허용 action 매핑=코드/OPA(앱 레벨·별도 permission 테이블 없음).
 //  • **역할 추가 시 = 이 enum + 소스코드(GW 권한 매핑 + GW Console UI) 를 함께 수정**(DB·GW·Console 동시·마이그레이션). 런타임 무릴리스 추가 없음.
 Enum operator_role_type {
@@ -245,7 +214,7 @@ Enum operator_role_type {
   // TBD 추가할 Role이 있으면 PR시 의견을 주세요.
 }
 
-// ── operator — GW Console 운영자(사내 직원) 신원 (§7.1.4 · 7/9 R2 A방안) ──
+// ── operator — GW Console 운영자(사내 직원) 신원 (§7.1.4·A방안) ──
 //  • authN=MS365/Entra SSO(직원 전원 로그인 가능) / authz=GW 자체(본 표). 이전 "operator 무상태·테이블 없음" 반전.
 //  • 첫 SSO 성공 시 JIT 생성(subject/email/display_name=Entra claim·status=active·역할 0). 비밀번호·시크릿 없음(SSO).
 //  • 오프보딩=Entra 비활성 + status=suspended. 실효 역할=operator_role.status=active.
@@ -258,7 +227,7 @@ Table operator {
   created_at   bigint                        // 최초 로그인(JIT) 시각(Unix ms)
   updated_at   bigint
 
-  Note: 'GW Console 운영자(사내 직원) 신원(§7.1.4·7/9 R2 A). authN=Entra SSO·authz=GW. 첫 SSO JIT 생성·비번 없음. 상세는 테이블 위 주석 참조.'
+  Note: 'GW Console 운영자(사내 직원) 신원(§7.1.4·A). authN=Entra SSO·authz=GW. 첫 SSO JIT 생성·비번 없음. 상세는 테이블 위 주석 참조.'
 }
 
 // ── operator_role — 운영자 역할 부여(요청→승인/거부/회수) (§7.9.2) ──
@@ -381,16 +350,16 @@ Table config {
 //  • 멱등: event_id=멱등 키(중복 수신 dedup·§7.6.4)
 //  • GW는 payload 비해석 → external_org_id로 org_mapping 조회 → 대상 clinic→region 해석(clinic_id·region 컬럼 저장)
 //  • 분배: clinic MQTT 토픽(gw/clinic/{clinicId}/webhook·§7.6.6 도출·별도 테이블 없음) · dispatch_target 스냅샷(clinic/region='어디', dispatch_target='어떤 채널로')
-//  • 본문(opaque·PHI 가능)은 **DB에 KMS envelope 암호화 저장**(payload_encrypted·복호화 가능·7/9 R7·§7.6.3). **S3 claim-check 폐기**. 리전 로컬(전역 복제 안 함·주권)·Console 조회 시 복호화→masking·**삭제 당분간 미고려**
+//  • 본문(opaque·PHI 가능)은 **DB에 KMS envelope 암호화 저장**(payload_encrypted·복호화 가능·§7.6.3). **S3 claim-check 폐기**. 리전 로컬(전역 복제 안 함·주권)·Console 조회 시 복호화→masking·**삭제 당분간 미고려**
 //  • 재시도 N회 실패 → dead_letter(DLQ) · 이벤트 메타 보존/payload TTL=Appendix B
 Table webhook_event {
   event_id        varchar [pk]                                        // 이벤트 식별자 = 멱등 키(중복 수신 dedup, §7.6.4). target.event_id_path로 payload에서 추출(예 AXS messageId) — target별 필드명 상이. 예 `c2f8aaf5-d6d1-4f8c-a4a8-c4e9b3cb3545`
   target_id       varchar [not null, ref: > target.target_id] // 발신 target(FK → target, target_id로 식별). 예 `axs`
   event_type      varchar                                             // 발신 이벤트 유형 — target.event_type_path로 payload에서 **verbatim 추출**. **발신 어휘 free string·GW enum 아님**, 의미=(target_id,event_type), 미추출 시 null. PHI-free. 용도=Console 필터·관측. **목적지 라우팅은 org_mapping(별개)**. 예 `patient.created`
-  external_org_id varchar                                             // target(발신)의 org 식별자 — 분배 대상 역조회 키. AXS=organizationId·UUID(organization.yml). 예 `e407b34d-c4b0-4db3-bbcd-cc11770eae7b`. 실제 값 7/9 R4 확정(#46)
+  external_org_id varchar                                             // target(발신)의 org 식별자 — 분배 대상 역조회 키. AXS=organizationId·UUID(organization.yml). 예 `e407b34d-c4b0-4db3-bbcd-cc11770eae7b`. 실제 값·확정(#46)
   clinic_id       varchar [ref: > clinic.clinic_id]    // 해석된 대상 클리닉(FK, org_mapping 조회 결과). 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`
   region          varchar [ref: > region_catalog.region_id]          // 해석된 대상 리전(FK, clinic 파생). 예 `apne2`
-  payload_encrypted bytea                                            // 이벤트 본문(payload)을 **KMS envelope 암호화**해 저장(복호화 가능·암호문+래핑 데이터키, 7/9 R7·§7.6.3). opaque·환자 PHI 포함 가능. Console 조회 시 GW가 복호화→**masking**(break-glass·§7.9.2·감사). **삭제 당분간 미고려**(일정기간 보관·retention #36). 평문·S3 미저장·리전 로컬(전역 복제 안 함)
+  payload_encrypted bytea                                            // 이벤트 본문(payload)을 **KMS envelope 암호화**해 저장(복호화 가능·암호문+래핑 데이터키,§7.6.3). opaque·환자 PHI 포함 가능. Console 조회 시 GW가 복호화→**masking**(break-glass·§7.9.2·감사). **삭제 당분간 미고려**(일정기간 보관·retention #36). 평문·S3 미저장·리전 로컬(전역 복제 안 함)
   state           webhook_state [not null, default: 'received']      // 처리 상태(received|dispatched|dead_letter). 예 `dispatched`
   dispatch_target varchar                                            // 실제 발행한 **구체적 분배 목적지** — 형식 `{channel_type}:{endpoint}`. v1.0은 clinic에서 도출한 MQTT 토픽(§7.6.6). **clinic_id·region('어디')과 별개로 '어떤 채널·주소로' 보냈나**(감사·디버깅). 발행 전 null. ※ target(아웃바운드 라우팅 대상)와 **무관**(분배 목적지 ≠ 호출 대상). 예 `mqtt_edge:gw/clinic/d3f1a9c07b6e4258af31c9d2e0b4a687/webhook`
   attempts        integer [not null, default: 0]                     // 분배 시도 횟수(N회 실패 → dead_letter·DLQ, §7.6.3). 예 `1`
@@ -398,7 +367,7 @@ Table webhook_event {
   received_at     bigint [not null]                                  // 수신 시각(Unix ms·insert 시 항상 설정). 예 `1720137600123`
   dispatched_at   bigint                                             // 분배 완료 시각(Unix ms). 예 `1720137600456` (미분배 시 null)
 
-  Note: '외부 webhook 수신·분배 상태(FR-WH-*·§7.6) — PHI-free 운영 메타(Console 필터) + 본문 payload_encrypted(KMS 암호화·masking·삭제 미고려·7/9 R7). 상세는 테이블 위 주석 참조.'
+  Note: '외부 webhook 수신·분배 상태(FR-WH-*·§7.6) — PHI-free 운영 메타(Console 필터) + 본문 payload_encrypted(KMS 암호화·masking·삭제 미고려). 상세는 테이블 위 주석 참조.'
   Indexes {
     target_id  // target별 조회
     event_type // 이벤트 유형별 필터(Console)
@@ -419,7 +388,7 @@ Table webhook_event {
 //  • 얇은 식별자 대응표일 뿐 — 인증·OAuth·webhook 검증·payload 해석은 target 테이블 담당(§6.4.1 경계). target_id=target FK
 Table org_mapping {
   target_id       varchar [not null, ref: > target.target_id] // 연동 대상 target(FK, target_id). 예 `axs`
-  external_org_id varchar [not null]                                  // target(발신)의 org 식별자. AXS=organizationId·UUID(organization.yml). 예 `e407b34d-c4b0-4db3-bbcd-cc11770eae7b`. 실제 값 7/9 R4 확정(#46)
+  external_org_id varchar [not null]                                  // target(발신)의 org 식별자. AXS=organizationId·UUID(organization.yml). 예 `e407b34d-c4b0-4db3-bbcd-cc11770eae7b`. 실제 값·확정(#46)
   clinic_id       varchar [not null, ref: > clinic.clinic_id]  // 대응 클리닉(FK). 예 `d3f1a9c07b6e4258af31c9d2e0b4a687`
   mapping_version integer [not null, default: 1]                      // 매핑 버전 — 변경마다 +1(단조). 캐시 무효화·CAS·drift 감지(§7.3.2). 값 이력=audit_log. 예 `2`
   created_at      bigint                                              // 생성 시각(Unix ms). 예 `1720137600000`
@@ -447,7 +416,7 @@ Table target {
   // ── ① 라우팅 (모든 대상) — GW edge `{target_id}.gw.vatech.com` → host ──
   host                varchar                              // 내부 매핑 host(클라이언트 비노출)·아웃바운드 base=`https://{host}`. 예 `api.eu.axs.straumann.com` (라우팅 대상이면 필수·v1.0 전부)
   profile             target_profile [not null]          // trust profile(internal=B / external=C). 예 `external`(axs) / `internal`(cleverspace)
-  connect_timeout_ms  bigint                               // GW→target 연결(TCP+TLS) 대기 — GW 자기 아웃바운드 timeout(D1·§7.5.4·R4). 예 `3000`(3s)
+  connect_timeout_ms  bigint                               // GW→target 연결(TCP+TLS) 대기 — GW 자기 아웃바운드 timeout(D1·§7.5.4). 예 `3000`(3s)
   response_timeout_ms bigint                               // GW→target 응답 대기, 초과 시 504 — GW 자기 timeout(D2·외부 AXS는 SLA 개별값). 예 `10000`
   total_deadline_ms   bigint                               // 프록시 호출 총 예산 — GW total_deadline < 클라이언트 타임아웃(D3, ≤80%). 예 `12000`
   enabled             boolean [not null, default: true]    // 활성 여부(라우팅·수신 on/off). 예 `true`
