@@ -17,7 +17,7 @@ OnePager §12 Decision Log와 동기. 상세는 각 절 참조.
 
 | # | 결정 | 내용 |
 |---|------|------|
-| D1 | **접목 범위** | Section 모듈은 **CW의 vtk 파이프라인 미접목**. Section 뷰(**WebGL, PoC 확장**)만 구현하고, CW가 우리 컴포넌트를 **embed**한다(§8·§9) |
+| D1 | **접목 범위** | Section 모듈은 **Cloud Web Viewer(CW)의 vtk 파이프라인 미접목**. Section 뷰(**WebGL, PoC 확장**)만 구현하고, CW가 우리 컴포넌트를 **embed**한다(§8·§9) |
 | D2 | **B/L 자동 판정** | **확정** — 기획 단일 규칙: P1→P2 선분에서 **CT 단면 중심 C가 있는 쪽=L, 반대=B**. 최초 2점으로 **1회 고정**, 이후 편집 재판정 없음, 변경은 수동 L/B Switching (§6.2) |
 | D4 | **접목 형태** | `@ewoosoft/scp-section-*` 패키지 + 공개 API `SectionViewer`(React)로 CW가 import. 순수 수학 코어는 프레임워크 독립 유지(OnePager §9.2·§9.8) |
 | D5 | **Save prj** | CW prj XML 스키마 호환 직렬화. 개발 중엔 동일 payload를 **브라우저 localStorage/export**로 임시 저장(§8.4) |

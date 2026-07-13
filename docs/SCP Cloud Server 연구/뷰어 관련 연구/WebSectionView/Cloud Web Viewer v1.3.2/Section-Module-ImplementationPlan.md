@@ -14,7 +14,7 @@
 | **현재 버전** | **v0.1 (초안 — baseline 미확정)** |
 | 관련 Spec 베이스라인 | Section OnePager **v1.5** (scp-architecture, **미커밋** — 커밋 후 SHA 동결) |
 | 구현 Repo | `scp-section-poc` @ `23ac6ef` |
-| 접목/참조 Repo | `cloudwebviewer` @ `d063ae2` (embed 대상, 읽기·계약 참조) |
+| 접목/참조 Repo | `cloudwebviewer` (Cloud Web Viewer, CW) @ `d063ae2` (embed 대상, 읽기·계약 참조) |
 | Operating Mode 디폴트 | **유인 (Task 단위, 사람 확인·커밋)** — 무인 루프 미사용 |
 | 단일/분리 세션 | **단일 세션** (Repo 1개·Task 24개·2주·1명 → ip-standard 4기준상 단일) |
 | Slack 채널 | (해당 시 지정) |
@@ -56,7 +56,7 @@
 
 #### T-P0-1 — 버전 핀 고정
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — DoD(§6) 항목 통과 시 체크 (install·build 4/4·dev :5173 확인)
 
 | 필드 | 값 |
 |------|------|
@@ -72,7 +72,7 @@
 
 #### T-P0-2 — UI 스택·registry 도입
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — DoD(§6) 항목 통과 시 체크 (MUI·Emotion·zustand·Lingui 설치·.npmrc·build 통과)
 
 | 필드 | 값 |
 |------|------|
