@@ -239,7 +239,7 @@
 
 #### T-P2-3 — 재생성 성능(캐싱·디바운스·표시 분리)
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-14 core `sectionCache.ts`(`makeSectionCacheKey`·`BoundedImageCache` LRU 24). SectionViewer: 재방문 window 캐시 hit 시 재생성·디바운스 skip, 디바운스 ≥48ms+seq 취소, 재생성 중 이전 이미지 유지(표시 분리), 볼륨 변경 시 cache clear. UT-SEC-021/022(+최근성) 통과 + 사용자 확인.
 
 | 필드 | 값 |
 |------|------|
