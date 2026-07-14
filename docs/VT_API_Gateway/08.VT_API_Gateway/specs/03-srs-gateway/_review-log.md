@@ -1,21 +1,22 @@
 # ③ GW SRS — 리뷰 코멘트 추적 (_review-log)
 
-> **작업용 문서**(드래프팅 repo). 정본 아님 · **vt-api-gateway로 이관하지 않음**. 반영 편집은 **vt-api-gateway PR 브랜치(`docs/gw-srs-initial`)** 에만. 코멘트는 **원문 그대로** 보존 · 답변/조치는 우리가 채움.
+> **작업용 문서**. 원문=리뷰어 코멘트만(cid 기록·답글 parentCommentId 추적). 우리(전규현) 답글은 cid만 기록·본문은 `- 답변:`. 반영 편집=vt-api-gateway PR 브랜치.
 
 - **PR**: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/11766
-- **리뷰어**: 필수 Scott·Thomas / 옵션 Jack·James·Larry·Nick
-- **상태 범례**: `대기` · `답변` · `반영예정` · `반영완료` · `해결`(PR Resolved) · `보류`
-- **최종 fetch**: 2026-07-14 · thread 21 (사람 리뷰어 Scott·Jack·Larry 코멘트 추가됨)
+- **리뷰어**: 필수 Scott·Thomas / 옵션 Jack·James·Larry·Nick · 우리=전규현(Jeon)
+- **상태 범례**: `대기`·`답변`·`반영완료`·`해결`·`보류` · cid=`{thread}.{comment}`
+- **최종 fetch**: 2026-07-14 · thread 21 · **리뷰어 재응답: 없음**
 
 ---
 
 ## C-01 · docs/specs/SRS.md:2278 · [thread 79265] · status=active
-- 리뷰어: 민진우(Thomas) · 2026-07-13T04:59
+- 리뷰어: 민진우(Thomas) · 2026-07-13T04:59 · [cid 79265.1]
 - 코멘트(원문):
 
   > From CodeReviewAgent(v0.4.1),
   > Appendix A Decision Log의 ADR-13 행이 공개키 컬럼을 `device.fingerprint`로 표기하고 있으나, 이 컬럼은 문서 전반(§1.4·§7.1.1·§7.2.6·DBML)에서 `device.client_public_key`로 명칭이 정정되었습니다. DBML 주석에도 "구 명칭 'fingerprint'을 정확화"라고 명시되어 있어, 본문 중 유일하게 남은 옛 명칭입니다. 구현자가 존재하지 않는 컬럼(`fingerprint`)을 참조하지 않도록 `device.client_public_key`로 통일해야 합니다.
 
+- 우리 답글 게시: cid 79265.2 (전규현)
 - 답변:
 
 맞습니다. Appendix A ADR-13 행의 device.fingerprint는 본문·DBML에서 이미 client_public_key로 정정된 컬럼의 옛 명칭입니다. 존재하지 않는 컬럼을 참조하지 않도록 그 행을 device.client_public_key로 통일하겠습니다.
@@ -23,12 +24,13 @@
 - 상태: 반영완료(로컬·미push)
 
 ## C-02 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2247 · [thread 79266] · status=active
-- 리뷰어: 민진우(Thomas) · 2026-07-13T04:59
+- 리뷰어: 민진우(Thomas) · 2026-07-13T04:59 · [cid 79266.1]
 - 코멘트(원문):
 
   > From CodeReviewAgent(v0.4.1),
   > `Target` 스키마의 timeout 예시값이 서로 모순됩니다. `connectTimeoutMs`(D1)=3000 + `responseTimeoutMs`(D2)=10000 = 13000ms 인데 `totalDeadlineMs`(D3)=12000ms 입니다. §7.5.4의 D1~D3 모델상 total_deadline은 프록시 호출 총 예산이므로, 연결에 3s를 쓰면 응답은 9s만에 잘려 D2(10s 응답 대기)가 실제로는 도달할 수 없게 됩니다. 예시값은 최소한 `connect + response ≤ total_deadline` 불변식을 만족하도록 조정하는 편이 좋습니다(예: total_deadline 14000 이상 또는 response_timeout 축소).
 
+- 우리 답글 게시: cid 79266.2 (전규현)
 - 답변:
 
 맞습니다. 예시값이 connect(3000)+response(10000)=13000 > total(12000)이라 §7.5.4의 connect+response ≤ total_deadline 불변식을 어깁니다. 예시를 불변식에 맞게 조정하겠습니다(예: totalDeadlineMs 14000). 이 수치는 예시이고 실제 값은 target SLA·§7.5.4·LLD 소관임을 함께 명시하겠습니다.
@@ -36,12 +38,13 @@
 - 상태: 반영완료(로컬·미push)
 
 ## C-03 · docs/specs/SRS.md:924 · [thread 79267] · status=active
-- 리뷰어: 민진우(Thomas) · 2026-07-13T04:59
+- 리뷰어: 민진우(Thomas) · 2026-07-13T04:59 · [cid 79267.1]
 - 코멘트(원문):
 
   > From CodeReviewAgent(v0.4.1),
   > "발행은 CI/ops 흐름이라 ... 별도 번호(§2.3.8)를 주지 않고 본 절에 함께 둔다"라고 서술하지만, 실제로 §2.3.8("운영자·Console 인증")이 다른 주제로 존재합니다. 매트릭스 발행 흐름에 부여하지 않겠다고 언급한 번호(§2.3.8)가 이미 별개 절에 사용되고 있어 독자가 혼동할 수 있습니다. 해당 괄호 참조를 삭제하거나 "별도 하위 절을 만들지 않는다" 정도로 표현을 완화하는 것이 좋습니다.
 
+- 우리 답글 게시: cid 79267.2 (전규현)
 - 답변:
 
 맞습니다. 매트릭스 발행 흐름에 '§2.3.8을 주지 않는다'고 썼는데 §2.3.8이 다른 주제(운영자·Console 인증)로 실재해 혼동됩니다. 해당 괄호 참조를 삭제하거나 '별도 하위 절을 만들지 않는다'로 완화하겠습니다.
@@ -49,20 +52,21 @@
 - 상태: 반영완료(로컬·미push)
 
 ## C-04 · docs/specs/SRS.md:1052 · [thread 79268] · status=active
-- 리뷰어: 민진우(Thomas) · 2026-07-13T04:59
+- 리뷰어: 민진우(Thomas) · 2026-07-13T04:59 · [cid 79268.1]
 - 코멘트(원문):
 
   > From CodeReviewAgent(v0.4.1),
   > 참조 표기 오타 — "FR-SES-06 해당 없음, §7.4·§7.4 FR-SES 매핑."에서 `§7.4`가 중복되어 있습니다(`§7.4·§7.4`). 하나로 정리하는 편이 좋습니다.
 
+- 우리 답글 게시: cid 79268.2 (전규현)
 - 답변:
 
 오타 맞습니다. '§7.4·§7.4' 중복을 하나로 정리하겠습니다.
 - 조치: §1052 §7.4·§7.4 → §7.4 — 확정 후 반영
 - 상태: 반영완료(로컬·미push)
 
-## C-05 · (파일 미지정 · 일반 코멘트) · [thread 79269] · status=active
-- 리뷰어: 민진우(Thomas) · 2026-07-13T04:59
+## C-05 · (파일 미지정·일반) · [thread 79269] · status=active
+- 리뷰어: 민진우(Thomas) · 2026-07-13T04:59 · [cid 79269.1]
 - 코멘트(원문):
 
   > From CodeReviewAgent(v0.4.1),
@@ -82,6 +86,7 @@
   >
   > 4 line-specific finding(s) were posted as inline comments.
 
+- 우리 답글 게시: cid 79269.2 (전규현)
 - 답변:
 
 세 가지 모두 반영하겠습니다.
@@ -95,12 +100,13 @@
 - 상태: 반영완료(로컬·미push)
 
 ## C-06 · docs/specs/SRS.md:1440 · [thread 79271] · status=active
-- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12
+- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12 · [cid 79271.1]
 - 코멘트(원문):
 
   > From CodeReviewAgent(v0.4.1),
   > §5.5의 `presigned URL TTL: 5~15분(§7.4.2)` 항목이 **존재하지 않는 하위 절 §7.4.2**를 참조한다. §7.4는 presigned 발급을 target(CleverSpace/AXS)에 위임하면서 하위 절(7.4.1~7.4.5)이 모두 제거된 flat 절이 되었는데, 옛 번호 참조만 남았다. 더구나 §7.4는 "GW는 presigned를 발급하지 않는다"고 명시하므로, presigned URL TTL(5~15분)을 GW의 성능 요구로 §5.5에 두고 §7.4.2로 연결하는 것은 위임 원칙과도 모순된다. TTL이 발급 주체(② One Pager/④) 소유임을 반영해 항목을 옮기거나 참조를 정정해야 한다(같은 §7.4.2 dangling 참조가 §6.1 line 1461에도 있음).
 
+- 우리 답글 게시: cid 79271.2 (전규현)
 - 답변:
 
 맞습니다. §7.4는 발급을 target에 위임하며 하위 절이 없어 §7.4.2는 dangling이고, presigned TTL을 GW 성능요구로 두는 것도 위임 원칙과 어긋납니다. TTL은 발급 주체(② One Pager/AXS④) 소유임을 반영해 항목을 옮기거나 참조를 정정하겠습니다.
@@ -108,12 +114,13 @@
 - 상태: 반영완료(로컬·미push)
 
 ## C-07 · docs/specs/SRS.md:1461 · [thread 79272] · status=active
-- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12
+- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12 · [cid 79272.1]
 - 코멘트(원문):
 
   > From CodeReviewAgent(v0.4.1),
   > §6.1의 안전 규칙 "객체 키·메타데이터에도 PHI를 담지 않는다(§7.4.2)"가 **존재하지 않는 §7.4.2**를 참조한다. §7.4에는 객체 키/메타데이터를 다루는 하위 절이 없다(GW가 storage·서명을 소유하지 않으므로). PHI 비저장 규칙은 안전성 크리티컬 항목이므로, 실재하는 절(§6.4 / §7.3.3 등)로 참조를 정정해야 traceability가 유지된다.
 
+- 우리 답글 게시: cid 79272.2 (전규현)
 - 답변:
 
 맞습니다. §7.4엔 객체키/메타데이터 하위 절이 없어 §7.4.2는 dangling입니다. 안전성 크리티컬 규칙이라 실재 절(§6.4/§7.3.3)로 참조를 정정해 traceability를 유지하겠습니다.
@@ -121,12 +128,13 @@
 - 상태: 반영완료(로컬·미push)
 
 ## C-08 · docs/specs/SRS.md:1476 · [thread 79273] · status=active
-- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12
+- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12 · [cid 79273.1]
 - 코멘트(원문):
 
   > From CodeReviewAgent(v0.4.1),
   > §6.2 보안 8항목 표의 Integrity 행이 **존재하지 않는 §7.4.5(checksum/ETag)·§7.4.4(idempotency)**를 참조한다. §7.4는 하위 절이 없고, 무결성·멱등은 §7.4 "위임 경계"상 발급 주체(CleverSpace②/AXS④) 책임으로 명시돼 있다. 같은 행의 `§7.6.4`(멱등)·`§7.6.2`(HMAC)는 실재하지만 `§7.4.4`·`§7.4.5`는 dangling이므로 참조를 제거·정정해야 한다.
 
+- 우리 답글 게시: cid 79273.2 (전규현)
 - 답변:
 
 맞습니다. 무결성·멱등은 §7.4 위임 경계상 발급 주체(CleverSpace②/AXS④) 책임이고 §7.4.4·§7.4.5는 dangling입니다. 같은 행의 §7.6.4·§7.6.2는 실재하니 §7.4.4·§7.4.5 참조만 제거·정정하겠습니다.
@@ -134,12 +142,13 @@
 - 상태: 반영완료(로컬·미push)
 
 ## C-09 · docs/specs/SRS.md:2227 · [thread 79274] · status=active
-- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12
+- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12 · [cid 79274.1]
 - 코멘트(원문):
 
   > From CodeReviewAgent(v0.4.1),
   > §7.9.1 관리 API 열거에 §7.8.5(line 2209)가 정의한 **전 클리닉 횡단 조회 `GET /v1/admin/clients`가 누락**되어 있다. §7.9.1은 클리닉 드릴다운 `GET /v1/admin/clinics/{clinicId}/clients`만 나열하는데, §7.8.5는 두 엔드포인트(횡단 + 드릴다운)를 모두 정의하며 "특정 버전 미만 클리닉 전체" 업그레이드 캠페인의 핵심은 횡단 API다. 관리 API 정본 절(§7.9.1)에도 `GET /v1/admin/clients`를 함께 명시해야 OpenAPI 계약과 정합한다(Appendix B #48도 드릴다운만 언급).
 
+- 우리 답글 게시: cid 79274.2 (전규현)
 - 답변:
 
 맞습니다. §7.8.5가 정의한 전 클리닉 횡단 조회 GET /v1/admin/clients가 §7.9.1 관리 API 열거에서 빠졌습니다. 업그레이드 캠페인의 핵심이라 §7.9.1에 추가해 OpenAPI 계약과 정합시키겠습니다(Appendix B #48도 함께 갱신).
@@ -147,12 +156,13 @@
 - 상태: 반영완료(로컬·미push)
 
 ## C-10 · docs/specs/SRS.md:1342 · [thread 79276] · status=active
-- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12
+- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12 · [cid 79276.1]
 - 코멘트(원문):
 
   > From CodeReviewAgent(v0.4.1),
   > §4.4 Software Interface 표가 캐시를 `Redis | 구현 시 확정`으로 적었으나, §3.1.2·§1.4·§6.4는 캐시 엔진을 **Valkey(Amazon ElastiCache for Valkey)로 이미 "채택/확정"**했다. 제품명(Redis vs Valkey)과 확정 상태("구현 시 확정" vs 이미 채택)가 다른 절과 어긋난다. §1.4가 정의한 "Redis(호환)=Valkey" 관례를 감안해도, 확정 사항을 미확정처럼 적어 혼동을 준다 — §3.1.2와 동일하게 `ElastiCache for Valkey(확정)`로 통일하는 것이 좋다.
 
+- 우리 답글 게시: cid 79276.2 (전규현)
 - 답변:
 
 맞습니다. §3.1.2·§1.4·§6.4는 캐시 엔진을 Valkey(Amazon ElastiCache for Valkey)로 확정했는데 §4.4 표만 'Redis | 구현 시 확정'이라 어긋납니다. §4.4를 'ElastiCache for Valkey(확정)'로 통일하겠습니다.
@@ -160,20 +170,21 @@
 - 상태: 반영완료(로컬·미push)
 
 ## C-11 · docs/specs/SRS.md:2294 · [thread 79278] · status=active
-- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12
+- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12 · [cid 79278.1]
 - 코멘트(원문):
 
   > From CodeReviewAgent(v0.4.1),
   > Appendix B #20이 "비AWS 포터블 배포(**§2.1.2** 초안) 폐기"라며 §2.1.2를 참조하지만 본 문서에는 §2.1.2가 없다(§2.1 → §2.1.1 → §2.2). 폐기된 초안 절 번호를 가리키는 dangling 참조라 독자가 근거를 찾을 수 없다. 참조를 삭제하거나 "구 §2.1.2 초안(현재 삭제)" 정도로 표기하는 것이 좋다.
 
+- 우리 답글 게시: cid 79278.2 (전규현)
 - 답변:
 
 동의합니다. Appendix B #20의 '§2.1.2 초안' 참조는 현재 문서에 없는 절 번호를 가리키는 dangling 참조입니다(§2.1 → §2.1.1 → §2.2). 해당 참조를 삭제하거나 '구 §2.1.2 초안(현재 삭제)' 정도로 표기해 독자가 근거를 찾을 수 있게 정정하겠습니다.
 - 조치: Appendix B #20의 §2.1.2 dangling 참조 삭제 또는 '구 §2.1.2 초안(삭제됨)'로 표기 — 확정 후 반영
 - 상태: 반영완료(로컬·미push)
 
-## C-12 · (파일 미지정 · 일반 코멘트) · [thread 79279] · status=active
-- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12
+## C-12 · (파일 미지정·일반) · [thread 79279] · status=active
+- 리뷰어: 민진우(Thomas) · 2026-07-13T05:12 · [cid 79279.1]
 - 코멘트(원문):
 
   > From CodeReviewAgent(v0.4.1),
@@ -189,18 +200,20 @@
   >
   > 6 line-specific finding(s) were posted as inline comments.
 
+- 우리 답글 게시: cid 79279.2 (전규현)
 - 답변:
 
 §7.4 dangling 등 재지적 사항은 각 라인 스레드(C-05·06·07 등)에서 처리하겠습니다. op 수치는 정본(redocly 기준·Appendix B #6=55)이 맞고, 결정로그 주석의 42·45는 작성 중 시점 스냅샷이라 현재 수치로 정합·정리하겠습니다.
 - 조치: Appendix B 결정로그 op 수치(42·45) → 현재 55로 정합/정리 — 확정 후 반영
 - 상태: 반영완료(로컬·미push)
 
-## C-13 · docs/specs/SRS.md:239 · [thread 79385] · status=active 🆕
-- 리뷰어: 임건혁(Jack) · 2026-07-13T06:34
+## C-13 · docs/specs/SRS.md:239 · [thread 79385] · status=active
+- 리뷰어: 임건혁(Jack) · 2026-07-13T06:34 · [cid 79385.1]
 - 코멘트(원문):
 
   > @<B62326D5-BE2F-6C22-BDD5-19CE8D112C90> @<8A8E7F25-5884-64CC-9CD9-804A85DF8F64> @<E616BABA-1CD7-6573-A367-AFAF4633BD3C> 현재 EKS 네트워크 구성 상 AWS Regional NAT Gateway를 사용 예정이고 해당 기능은 NAT Gateway의 ip가 고정 되지 않습니다. 외부 클라이언트 연동시 IP whitelist 방식만 지원하는 클라이언트가 있으면 비용 감수하더라도 ip 고정 NAT Gateway 사용이 필요합니다.
 
+- 우리 답글 게시: cid 79385.2 (전규현)
 - 답변:
 
 맞습니다. SRS도 같은 요구를 이미 담고 있습니다 — 외부(C) target이 IP whitelist를 요구하면 egress는 pod별 임시 IP가 아니라 AZ/리전별 NAT의 고정 EIP 집합이어야 한다는 요구입니다(§2.1.1·§7.5.3·§2.6·FR-INT-03). 다만 지적하신 대로 AWS Regional NAT Gateway의 기본 IP는 비고정이라, 이 요구를 실현하려면 말씀하신 고정 IP(EIP) 기반 NAT가 필요합니다. 비용을 감수하고 그렇게 provisioning하는 데 동의합니다.
@@ -211,11 +224,13 @@
 - 조치: §2.1.1/§7.5.3에 'Regional NAT 기본 IP 비고정 → requireStaticEgressIp 대상=고정 EIP egress·비용·③-I' 한 줄 명시 (요구 자체는 기존과 동일) — 확정 후 반영
 - 상태: 반영완료(로컬·미push)
 
-## C-14 · docs/specs/SRS.md:1103 · [thread 79387] · status=active 🆕
-- 리뷰어: 임건혁(Jack) · 2026-07-13T06:53
+## C-14 · docs/specs/SRS.md:1103 · [thread 79387] · status=active
+- 리뷰어: 임건혁(Jack) · 2026-07-13T06:53 · [cid 79387.1]
 - 코멘트(원문):
 
   > @<B62326D5-BE2F-6C22-BDD5-19CE8D112C90> @<8A8E7F25-5884-64CC-9CD9-804A85DF8F64> Aurora Postgres 15 버전 기준으로 커뮤니티 지원이 2027년 11월, Aurora DB는 2028년 2월 29일입니다. 가능하면 17 버전 사용을 권장하고 현재 사용중이거나 사용 예정인 Extension 등이 17 버전에서의 지원 여부는 리스트업 후 검토해보겠습니다.
+
+- 우리 답글 게시: cid 79387.2 (전규현)
 - 답변:
 
 좋습니다. 말씀하신 EOL 여유를 고려해 엔진 버전을 PostgreSQL 17로 올리겠습니다. 10월 릴리스 이후 다년 운영을 감안하면 15(커뮤니티 2027-11·Aurora 2028-02 EOL)보다 17이 지원 런웨이가 넉넉합니다. SRS의 '15.x 확정'을 '17.x'로 갱신하겠습니다(§3.1.2·§4.4·Appendix B #18). Aurora PostgreSQL·Global Database가 17을 지원하는 것도 확인해 반영하겠습니다.
@@ -224,21 +239,22 @@ Extension 17 호환은 말씀하신 대로 리스트업·검토 결과에 따르
 - 조치: §3.1.2·§4.4·Appendix B #18 'PostgreSQL 15.x → 17.x' 갱신 · Aurora/Global DB 17 지원 확인 · Extension 17 호환 검토 결과 반영(인프라/Jack) — 확정 후 반영
 - 상태: 반영완료(로컬·미push)
 
-## C-15 · docs/specs/SRS.md:1112 · [thread 79389] · status=active 🆕
-- 리뷰어: 임건혁(Jack) · 2026-07-13T06:55
+## C-15 · docs/specs/SRS.md:1112 · [thread 79389] · status=active
+- 리뷰어: 임건혁(Jack) · 2026-07-13T06:55 · [cid 79389.1]
 - 코멘트(원문):
 
   > @<B62326D5-BE2F-6C22-BDD5-19CE8D112C90> @<8A8E7F25-5884-64CC-9CD9-804A85DF8F64> @<E616BABA-1CD7-6573-A367-AFAF4633BD3C> 
   > 모니터링 스택은 Loki, Tempo, Mimir (Prometheus full compatible) 사용 및 중앙 Grafana에서 대시보드 + 알람 처리하고 있습니다.
 
+- 우리 답글 게시: cid 79389.2 (전규현)
 - 답변:
 
 공유 감사합니다. §6.3.2를 실제 중앙 스택에 맞춰 갱신하겠습니다 — GW는 구조화 로그(Pino)·OTel로 생성·노출하고, 중앙 수집·저장은 Loki·Tempo·Mimir(Prometheus 호환) + 중앙 Grafana(대시보드·알람)로 명시하겠습니다. 수집 에이전트·백엔드 세부는 인프라(③-I) 소관으로 둡니다.
 - 조치: §6.3.2 백엔드 스택을 Loki·Tempo·Mimir·중앙 Grafana로 갱신 — 확정 후 반영
 - 상태: 반영완료(로컬·미push)
 
-## C-16 · docs/specs/SRS.md:233 · [thread 79434] · status=active 🆕
-- 리뷰어: 김성훈(Scott) · 2026-07-13T10:30
+## C-16 · docs/specs/SRS.md:233 · [thread 79434] · status=active
+- 리뷰어: 김성훈(Scott) · 2026-07-13T10:30 · [cid 79434.1]
 - 코멘트(원문):
 
   > ### Webhook 수신·저장·분배 순서가 데이터 주권 요구와 충돌합니다.
@@ -259,6 +275,8 @@ Extension 17 호환은 말씀하신 대로 리스트업·검토 결과에 따르
   >
   > ### 요청 사항
   > §7.6.3 / §2.1.1에 **"payload는 대상(매핑) 리전에서만 at-rest 저장한다"** 는 요구를 명문화하고, 위 1안(권장)의 콜백 리전 전파를 §7.6.2 레지스트리 모델에 반영해 주십시오.
+
+- 우리 답글 게시: cid 79434.2 (전규현)
 - 답변:
 
 문서를 확인해 보니 말씀하신 대로였습니다. AXS webhook 구독(`POST /v1/webhook/subscribe`)의 요청 본문은 events·callbackUrl·hmac 세 필드뿐이고 organizationId가 없습니다. 인증도 파트너 단위 client_credentials 하나여서, 구독과 콜백은 통합 파트너 기준으로 이벤트 타입별 콜백 하나가 붙을 뿐이고 조직 구분은 전달되는 payload의 organizationId로만 옵니다. 게다가 AXS 서버가 US·EU 리전만 있어 발신도 그 두 곳에서 나옵니다. 그래서 클리닉별 리전 콜백을 등록하는 옵션①은 AXS로는 불가능합니다.
@@ -269,8 +287,9 @@ payload를 at-rest로 저장하는 곳은 대상(매핑) 리전뿐이라는 원�
 
 - 조치: §7.6.7 대상 리전 판정을 저장 前(수신 시점)으로 · §7.6.3 옵션② 위임·불변식·교차리전 ACK 여유 · §2.1.1 수신≠대상 시 경유·대상 리전만 at-rest · FR-RGN-03 링크 · Appendix B 주권 결정(옵션①=미래 target 노트) — 확정 후 반영
 - 상태: 반영완료(로컬·미push·Scott 합의 대기)
-## C-17 · docs/specs/SRS.md:1732 · [thread 79435] · status=active 🆕
-- 리뷰어: 김성훈(Scott) · 2026-07-13T10:34
+
+## C-17 · docs/specs/SRS.md:1732 · [thread 79435] · status=active
+- 리뷰어: 김성훈(Scott) · 2026-07-13T10:34 · [cid 79435.1]
 - 코멘트(원문):
 
   > ### private_key_jwt assertion 재사용 방지
@@ -284,14 +303,16 @@ payload를 at-rest로 저장하는 곳은 대상(매핑) 리전뿐이라는 원�
   > **권고** : iss / sub=client_id / 정확한 aud / 짧은 exp / iat / 고유 jti / 허용 알고리즘(공개키 alg 고정)을 명시하고, jti를 SET NX EX로 일회 소비.
   > RFC 7523 프로파일 고정. 이 지적은 RFC 7523 §3 권고와 정합합니다.
 
+- 우리 답글 게시: cid 79435.3 (전규현)
+- ⚠️ 빈 코멘트: cid 79435.2 (PR에서 삭제 권장)
 - 답변:
 
 맞습니다. 현재 Redis 용도에 assertion jti 일회 소비가 없어 탈취된 assertion이 exp 이내 재사용될 수 있습니다. RFC 7523 프로파일(iss·sub=client_id·정확한 aud·짧은 exp·iat·고유 jti·허용 alg 고정)을 §7.1.1에 명시하고, jti를 Redis SET NX EX로 일회 소비하도록 추가하겠습니다(키스페이스에 jti 소비 항목 신설). 이는 gw/1.1로 연기된 token_denylist(폐기 목록)와는 별개의 재사용 방지 통제입니다.
 - 조치: §7.1.1 RFC 7523 claim 프로파일 + jti 일회 소비(Redis SET NX EX) 추가·redis-keyspace에 jti 항목 신설 — 확정 후 반영
 - 상태: 반영완료(로컬·미push)
 
-## C-18 · docs/specs/SRS.md:1763 · [thread 79436] · status=active 🆕
-- 리뷰어: 김성훈(Scott) · 2026-07-13T10:37
+## C-18 · docs/specs/SRS.md:1763 · [thread 79436] · status=active
+- 리뷰어: 김성훈(Scott) · 2026-07-13T10:37 · [cid 79436.1]
 - 코멘트(원문):
 
   > ### Entra 토큰 검증 조건이 JWKS·subject 확인에 그침
@@ -304,14 +325,16 @@ payload를 at-rest로 저장하는 곳은 대상(매핑) 리전뿐이라는 원�
   > - Access token validation (https://learn.microsoft.com/en-us/entra/identity-platform/access-tokens)
   > - Claims validation (https://learn.microsoft.com/en-us/entra/identity-platform/claims-validation).
 
+- 우리 답글 게시: cid 79436.3 (전규현)
+- ⚠️ 빈 코멘트: cid 79436.2 (PR에서 삭제 권장)
 - 답변:
 
 맞습니다. Entra 토큰 검증이 서명·subject 확인에 그쳐 confused-deputy 위험이 있습니다. §7.1.4에 단일 tenant·정확한 iss·aud=GW Admin API·필수 scope·tid/oid 확인, 그리고 사용자 access token만 허용하고 app-only·ID token은 거부하는 조건을 명문화하겠습니다(MS access token/claims validation 가이드와 정합).
 - 조치: §7.1.4 Entra 토큰 검증 조건(iss·tenant·aud·scope·tid/oid·app-only/ID token 거부) 명문화 — 확정 후 반영
 - 상태: 반영완료(로컬·미push)
 
-## C-19 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1833 · [thread 79437] · status=active 🆕
-- 리뷰어: 김성훈(Scott) · 2026-07-13T10:43
+## C-19 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1833 · [thread 79437] · status=active
+- 리뷰어: 김성훈(Scott) · 2026-07-13T10:43 · [cid 79437.1]
 - 코멘트(원문):
 
   > ### 문제
@@ -327,6 +350,7 @@ payload를 at-rest로 저장하는 곳은 대상(매핑) 리전뿐이라는 원�
   >
   > 이미 private_key_jwt(RFC 7523)를 채택했으므로 wire format만 표준화하면 됩니다.
 
+- 우리 답글 게시: cid 79437.2 (전규현)
 - 답변:
 
 지적 정확합니다. §7.1.1과 OpenAPI가 "OAuth2 client_credentials + RFC 7521/7523"을 표방하면서도 실제 /v1/auth/token 계약은 표준 형태가 아니었습니다(application/json·camelCase·grant_type 없음·응답 accessToken/expiresAt(ms)). 이미 private_key_jwt(RFC 7523)를 인증 방식으로 택했으니 인증 메커니즘은 그대로 두고 wire format만 표준으로 맞추겠습니다.
@@ -339,12 +363,13 @@ RFC 7523·ADR-13(비대칭 private_key_jwt) 결정 자체는 그대로이고, �
 
 - 상태: 반영완료(로컬·미push)
 
-## C-20 · docs/specs/SRS.md:1727 · [thread 79438] · status=active 🆕
-- 리뷰어: 김성훈(Scott) · 2026-07-13T10:48
+## C-20 · docs/specs/SRS.md:1727 · [thread 79438] · status=active
+- 리뷰어: 김성훈(Scott) · 2026-07-13T10:48 · [cid 79438.1]
 - 코멘트(원문):
 
   > 여기서 선언한 "OAuth2 client_credentials + RFC 7523"과 실제 OpenAPI TokenRequest(L1833)의 계약이 불일치. 정합화 코멘트는 openapi.yaml L1833 참조.
 
+- 우리 답글 게시: cid 79438.2 (전규현)
 - 답변:
 
 앞의 comment와 같은 사안입니다. openapi.yaml L1833(C-19) 스레드에서 wire format을 OAuth2 표준(form-urlencoded·grant_type·client_assertion·access_token/expires_in)으로 맞추기로 했고, §7.1.1의 "OAuth2 client_credentials + RFC 7523" 선언도 그 표준 계약과 일치하도록 서술·예시를 갱신하겠습니다.
@@ -352,8 +377,8 @@ RFC 7523·ADR-13(비대칭 private_key_jwt) 결정 자체는 그대로이고, �
 - 조치: §7.1.1 선언 ↔ OpenAPI 계약 정합(C-19 연동)
 - 상태: 반영완료(로컬·미push)
 
-## C-21 · docs/specs/SRS.md:1862 · [thread 79449] · status=active 🆕
-- 리뷰어: 고형용(Larry) · 2026-07-13T13:31
+## C-21 · docs/specs/SRS.md:1862 · [thread 79449] · status=active
+- 리뷰어: 고형용(Larry) · 2026-07-13T13:31 · [cid 79449.1]
 - 코멘트(원문):
 
   > ## PreSigned Region 책임 경계가 모호합니다.
@@ -362,6 +387,8 @@ RFC 7523·ADR-13(비대칭 private_key_jwt) 결정 자체는 그대로이고, �
   > - 1321L: > **GW가 하지 않는 일**: presigned **직접 발급(서명)**·업로드 **세션 소유**·region **storage 소유** — **GW 범위 아님**. CleverSpace/AXS presign 스키마를 GW가 통합·변환하지도 않는다. GW는 발급 요청을 **중계**하고 정책(인증·버전·egress)만 적용한다.
   >
   > GW가 "리전 외 Storage/Endpoint 이동 차단"이 명시되어있어서, GW 책임은 Presigned URL 발급 요청 전 단계의 리전 등 라우팅으로 한정하고, CleverSpace는 GW가 해석한 리전에 맞는 presigned url을 발급해야 한다로 변경 제안드립니다.
+
+- 우리 답글 게시: cid 79449.2 (전규현)
 - 답변:
 
 동의합니다. 지적하신 대로 GW는 storage·presigned·리전 storage를 소유하지 않으니 "리전 밖 이동을 GW가 차단한다"는 표현은 정확하지 않습니다. GW는 파일 바이트를 보지도 않으므로 이미 발급된 URL을 사후에 막을 수단이 없습니다. 그래서 책임 경계를 제안하신 방향으로 정리하겠습니다.
@@ -379,14 +406,14 @@ GW의 책임은 발급 요청 전 단계로 한정합니다. 클리닉의 매핑
 - C-02 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2247 · `반영완료(로컬·미push)`
 - C-03 · docs/specs/SRS.md:924 · `반영완료(로컬·미push)`
 - C-04 · docs/specs/SRS.md:1052 · `반영완료(로컬·미push)`
-- C-05 · (파일 미지정 · 일반 코멘트) · `반영완료(로컬·미push)`
+- C-05 · (파일 미지정·일반) · `반영완료(로컬·미push)`
 - C-06 · docs/specs/SRS.md:1440 · `반영완료(로컬·미push)`
 - C-07 · docs/specs/SRS.md:1461 · `반영완료(로컬·미push)`
 - C-08 · docs/specs/SRS.md:1476 · `반영완료(로컬·미push)`
 - C-09 · docs/specs/SRS.md:2227 · `반영완료(로컬·미push)`
 - C-10 · docs/specs/SRS.md:1342 · `반영완료(로컬·미push)`
 - C-11 · docs/specs/SRS.md:2294 · `반영완료(로컬·미push)`
-- C-12 · (파일 미지정 · 일반 코멘트) · `반영완료(로컬·미push)`
+- C-12 · (파일 미지정·일반) · `반영완료(로컬·미push)`
 - C-13 · docs/specs/SRS.md:239 · `반영완료(로컬·미push)`
 - C-14 · docs/specs/SRS.md:1103 · `반영완료(로컬·미push)`
 - C-15 · docs/specs/SRS.md:1112 · `반영완료(로컬·미push)`
@@ -396,3 +423,4 @@ GW의 책임은 발급 요청 전 단계로 한정합니다. 클리닉의 매핑
 - C-19 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1833 · `반영완료(로컬·미push)`
 - C-20 · docs/specs/SRS.md:1727 · `반영완료(로컬·미push)`
 - C-21 · docs/specs/SRS.md:1862 · `반영완료(로컬·미push·Larry 합의 대기)`
+
