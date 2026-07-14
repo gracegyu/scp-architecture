@@ -189,7 +189,8 @@
 
 #### T-P1-4 — BL/LB 기준점
 
-- [x] **완료** — 2026-07-14 useCurveEditor `blRefArcMm`(기본 0=첫 점)·`setBlRefArcMm` 추가(B/L 극성 분리). ScoutView 연두 삼각형(size 14)+"BL/LB" 라벨, hover=move 커서, drag=section line(interval) 스냅 이동, 이동 시 blPolarity 불변. UT-BL-011 통과 + 사용자 시각 확인(#23). MMI 대비 삼각형 크기 조정 완료
+- [x] **완료(부분)** — 2026-07-14 useCurveEditor `blRefArcMm`(기본 0=첫 점)·`setBlRefArcMm` 추가(B/L 극성 분리). ScoutView 연두 삼각형(size 14)+"BL/LB" 라벨, hover=move 커서, drag=section line(interval) 스냅 이동, 이동 시 blPolarity 불변. UT-BL-011 통과 + 사용자 시각 확인(#23).
+- [ ] **잔여 — 삼각형 blPolarity 시각 반전(NEW, 2026-07-14):** L/B Switching으로 `blPolarity` 토글 시 삼각형 아이콘 방향·"BL/LB"↔"LB/BL" 텍스트도 반전(현재 CT중심 기하로만 그려져 blPolarity 무연동). MMI 1.3-8(삼각형이 B/L 방향 표시)·S-SPEC §5. **B/L Switching 연동 시 구현.** ⚠ 폐기된 1.3-8①(위치기반 자동반전, D2·D10)과 구분.
 
 | 필드 | 값 |
 |------|------|
@@ -199,9 +200,9 @@
 | spec_refs[] | S-SPEC §5(기준점)·§3.1(1.6·1.7), S-MMI §1.3#8 |
 | depends_on[] | T-P1-3 |
 | outputs[] | `packages/components/src/ScoutView.tsx` |
-| dod[] | UT-BL-011(기준점 이동 시 blPolarity 불변) + MT-BL-012 삼각형 표식 hover·drag |
-| estimate | 1.5h |
-| risk | MMI 1.3#8① 반전 폐기 정합(§5) |
+| dod[] | UT-BL-011(기준점 이동 시 blPolarity 불변) + MT-BL-012 삼각형 표식 hover·drag + **MT-BL-013(잔여) L/B Switching 시 삼각형 아이콘·텍스트 반전 시각 확인** |
+| estimate | 1.5h + 0.5h(잔여 반전) |
+| risk | MMI 1.3#8① *위치기반* 반전은 폐기 유지(§5·D2·D10). 본 태스크 잔여는 *현 blPolarity 시각반영*(별개 항목) |
 
 ### P2 — Section Slice 스크롤 (핵심 신규)
 
@@ -306,12 +307,12 @@
 
 #### T-P3-3 — Panorama thickness line
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-14 초록 한 쌍(±th/2)·**control point 곡선 시작점(s=0)·끝점(s=totalMm) 양쪽**(MMI image26)·대칭 드래그(잡은 끝점 법선 투영)→Pano thickness 실시간·30mm clamp(`clampThicknessMm`). thickness=0이면 커브에 겹쳐 collapse. UT-CTL-023 통과. Setting 다이얼로그(T-P3-4)에서 Th>0 설정 후 시각 확인.
 
 | 필드 | 값 |
 |------|------|
 | id | T-P3-3 |
-| title | thickness line control point 대칭 드래그 → Pano thickness 실시간, **combo와 동일 30mm cap**(단일 `MAX_THICKNESS_MM`) |
+| title | thickness line control point **양 끝(시작·끝)** 대칭 드래그 → Pano thickness 실시간, **combo와 동일 30mm cap**(단일 `MAX_THICKNESS_MM`) |
 | repo | scp-section-poc |
 | spec_refs[] | S-SPEC §3.1(1.3·1.7)·§8·§12-D8, S-MMI §1.7-3 |
 | depends_on[] | T-P3-2 |
@@ -322,7 +323,7 @@
 
 #### T-P3-4 — Thickness 0mm·Setting UI·ruler
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료(부분)** — `SettingDialog`(Popover, Thickness/Interval combo) 신설 + Scout/Panorama/Section 3뷰 기어에 배선. Thickness 뷰별 독립(Pano↔Section↔Scout), 선택 즉시 반영. 기존 dev 슬라이더는 다이얼로그 하단 '개발용' 블록으로 이동. **잔여**: Scout thickness는 placeholder(렌더 미적용, MPR 동기 예정), UT-SET-001/003 자동화. **세로 스케일 바(ruler) 2026-07-14 수정**: Scout 50mm/Panorama 20mm(공용 20→분리, MMI image19), 척도는 DICOM `spacing[1]`(Scout Y)·`spacing[2]`(Pano Z) 기반 확인. (Section 타일 10/20/30 눈금은 별도 T-P7-4.)
 
 | 필드 | 값 |
 |------|------|
@@ -343,7 +344,7 @@
 | 필드 | 값 |
 |------|------|
 | id | T-P3-5 |
-| title | 파노라마를 **thin 기본(Th0) 재슬라이스**로 정정 + **P/A 슬라이더 → 곡선 법선 offset 스윕**(navigator 위치에서 재생성) + Scout **Panorama navigator line** 동기 + **기본 투영 = 평균(mean)**(D12 확정, MIP는 Image Adjust 토글=T-P4-1). T-P7-3 Pano P/A 실배선 완성 |
+| title | 파노라마를 **thin 기본(Th0) 재슬라이스**로 정정 + **B/L 슬라이더(구 P/A) → 곡선 법선 offset 스윕**(navigator 위치에서 재생성, 스텝=Panorama interval) + Scout **Panorama navigator line** 동기 + **기본 투영 = 평균(mean)**(D12 확정, MIP는 Image Adjust 토글=T-P4-1). **슬라이더 라벨 B/L**(§12-D15, P/A→B/L 확정). T-P7-3 Pano 실배선 완성 |
 | repo | scp-section-poc |
 | spec_refs[] | S-SPEC §3.3·§3.1(1.3·1.8)·§12-D11·D12, S-MMI §1.3-5·§1.8-5, S-PLAN(2026-07-13 파노라마 회신) |
 | depends_on[] | T-P3-2 |
@@ -351,6 +352,22 @@
 | dod[] | UT-PAN-001(navigator offset≠0 시 재슬라이스 곡선이 법선방향 이동)·UT-PAN-002(투영 param MIP↔mean 전환)·UT-PAN-003(Th0 thin 경로) + MT-PAN-004 P/A 스윕 시 Scout navigator line 동기·파노라마 깊이 변화 |
 | estimate | 3h |
 | risk | offset 재슬라이스 곡선 생성 신규. (D12 확정: 기본 mean·MIP는 Image Adjust 토글) |
+
+#### T-P3-6 — 뷰별 독립 Interval (Scout/Panorama/Section)
+
+- [ ] **완료** — DoD(§6) 항목 통과 시 체크. ✅ **기획 확인 완료(§12-D15, 2026-07-14): 3뷰 독립 확정, Panorama=법선 offset 스텝, 슬라이더 P/A→B/L.** 착수 가능(T-P3-5와 함께 권장).
+
+| 필드 | 값 |
+|------|------|
+| id | T-P3-6 |
+| title | Interval을 **뷰별 독립 3개**로 분리: `scoutIntervalMm`(축 Z 스크롤·Voxel Based 기본·MPR 동기·Total Slice 구동), `panoramaIntervalMm`(P/A 스윕 slice 스텝, 기본 1mm), `sectionIntervalMm`(호 방향 단면 간격, 기본 1mm). **Scout·Panorama의 Section line/Active line 간격은 `sectionIntervalMm` 구동 유지**(MMI 1.10-3b). 각 Setting 다이얼로그를 자기 interval에 바인딩(현재 3뷰가 sectionInterval 공유 = 버그 정정) |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §1.10·§12-D15, S-MMI §1.10-3①·3③·3b·§1.10-2③·§1.8-5 |
+| depends_on[] | T-P3-4, T-P3-5 (Panorama interval=P/A 스텝이라 navigator/스윕과 함께 확정) |
+| outputs[] | `hooks/useScoutAxialUi.ts`(3 interval 상태), `components/src/{ScoutView,PanoramaView,SectionGrid,SettingDialog}.tsx` |
+| dod[] | UT-INT-001(Scout interval→Total Slice·Z 스텝, Section line 무영향)·UT-INT-002(Section interval→Scout·Pano Section line 간격 갱신)·UT-INT-003(Panorama interval 독립) + MT-INT-004 3뷰 Setting 각자 독립 확인 |
+| estimate | 2h |
+| risk | **Panorama interval 용도 미확정(D15)** — 기획 답변 전 착수 시 재작업 위험. Scout/Section 분리는 저위험이나 Panorama는 T-P3-5(navigator)와 묶어 진행 권장 |
 
 ### P4 — Windowing/Filter·계측·Overlay
 
@@ -705,6 +722,8 @@ flowchart LR
 
 | 일자 | 버전 | 인수자 | 내용 |
 |------|------|--------|------|
+| 2026-07-14 | v0.6 | — | **슬랩 두께 샘플링 voxel 연동 구현(§12-D16 확정)** — CW MPR 소스 분석으로 알고리즘 결정: `slabSampleStepMm` 기본 0=in-plane min voxel spacing 자동, `slabSampleOffsetsMm`(nHalf=round(half/step), 중앙 대칭·최소1) 헬퍼 신설. `panorama.ts`·`section.ts`·section-wasm 래퍼(0-step 무한루프 방지) 적용. sub-voxel(0·0.1mm)=단일 샘플. 단위테스트 UT-D16(resolveSlabStepMm·slabSampleOffsetsMm) 추가. OnePager §3.3 공식·§12-D16 동기. (CW 현행 MPR은 두께 미반영 stripped 상태 발견) |
+| 2026-07-14 | v0.5 | — | **신규 T-P3-6(뷰별 독립 Interval)** 추가 — MMI 1.10-3① 재검토 결과 Scout(Z축 스크롤·MPR 동기)·Section(호 방향·Section line 구동)·Panorama(P/A 스텝) Interval 의미가 상이하며 현 구현이 단일 공유(버그)임을 발견. **§12-D15 등록·Teams로 기획 문의**(Panorama Interval 용도 확인). T-P3-6은 기획 답변 후 착수(T-P3-4·T-P3-5 의존). OnePager §3.5·§12-D15 동기 |
 | 2026-07-14 | v0.4 | — | **CW 다이얼로그 이식 상세화** — T-P3-4를 CW `CTSliceSettingDialog`(Popover·Thickness/Interval combo·뷰별 독립 두께·기본 0)로, T-P4-1을 CW `ImageAdjustDialog`(W/L·필터 3×3 커널·배타·Revert)로 refine(OnePager §3.5·§3.6 신설). **thickness 뷰별 분리 버그 수정**(panorama↔section 독립, 기본 0). DoD에 UT-SET-005/006·UT-FLT-004 추가 |
 | 2026-07-13 | v0.3 | — | **MMI 전면 재검토(38 슬라이드 병렬 감사) — 파노라마 생성 모델 정정 반영**(OnePager v1.6 동기). **신규 T-P3-5**(파노라마 thin 재슬라이스 + P/A offset 스윕 + navigator 동기 + 투영 param) 추가. **T-P3-4 확장**(Thickness combo 옵션값·off-list drag·Voxel Based Interval·**Section slab 두께**). Phase P3 2.5일, 합계 12.5일, Task 31→32. DAG·DoD 동기(T3e·UT-PAN-*·UT-SET-005). D12(max/mean 투영) **기획 결정 대기**로 T-P3-5 risk 명시. T-P7-3 Pano P/A 실배선은 T-P3-5 의존으로 갱신 |
 | 2026-07-13 | v0.2 | — | **MMI UI 정합 갭 보강** — MMI §1.2(Section Layout Overview) 뷰 크롬·오버레이가 기존 IP에 전용 태스크로 없던 것을 감사·발견하여 **신규 Phase P7(6 Task: 글로벌 바·뷰 Title Bar·per-panel Slice Slider·Info Overlay·Scout/Pano 렌더 스타일) 추가**. Phase 표·DAG·DoD 매핑 동기화(Task 24→30, Phase 7→8). 행동(P1~P4)과 시각 정합(P7) 분리, 중복 항목 상호 참조(ruler=P3-4·slice number=P2-2·B/L=P1-3). Thickness 드래그 30mm cap 확정(§12-D8) 반영분 포함 |
