@@ -273,7 +273,7 @@
 
 #### T-P3-1 — Scout Active line 이동·폭 조절
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-14 core `sectionWidthFromHandleMm`(대칭 폭·clamp). ScoutView: 중앙 Active line 끝 control point 대칭 드래그로 Section 가로폭(draft→drop 커밋), 선 드래그로 위치 이동(clamped), hover 커서(끝=ew-resize·선=move). control point = **녹색 테두리·Section 선 방향 회전**. Sec 폭 슬라이더 병행 유지. UT-CTL-001 통과 + 사용자 확인.
 
 | 필드 | 값 |
 |------|------|
@@ -289,7 +289,7 @@
 
 #### T-P3-2 — Panorama 경계선·중심선 이동
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-14 core `sectionBand.ts`(resizeSectionBandSymmetric·moveSectionBandCenter·clampSectionZBand). PanoramaView: 경계선 대칭 드래그(중심 고정)·중심선(밴드 Z 중심) 드래그→3뷰 갱신·중심선 drop 시 Scout 위치선(sliceIndex) 동기·중심선(초록)/Scout 위치선(흰 점선) 렌더·**hover 커서**(경계·중심 ns-resize, Active line ew-resize, MMI 1.8-1a/2a/3a). UT-CTL-011/012 통과 + 사용자 확인.
 
 | 필드 | 값 |
 |------|------|
