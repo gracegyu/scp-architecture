@@ -562,12 +562,12 @@
 | 필드 | 값 |
 |------|------|
 | id | T-P7-4 |
-| title | 뷰별 정보 오버레이: Patient(좌상, Scout)·W/L+Filter(우상, 3뷰)·방향표기 R/L(Scout·Pano 상단)·B/L(Section 상단)·Th/INT/Total Slice(우하)·slice number(Section 좌상, center bold). MMI 위치 규격 정합 |
+| title | 뷰별 정보 오버레이: Patient(좌상, Scout)·W/L+Filter(우상, 3뷰)·방향표기 R/L(Scout 상단 고정)·**Panorama 상단 방향 라벨=Curve 시작/끝점 각도로 R/L·L/R·P/A·A/P 동적(§5.1 확정규칙: <45°=R/L·≥45°=P/A, 좌=Start·우=End 라벨)**·B/L(Section 상단)·Th/INT/Total Slice(우하)·slice number(Section 좌상, center bold). MMI 위치 규격 정합 |
 | repo | scp-section-poc |
-| spec_refs[] | S-SPEC §3.1(1.2·1.10)·§5, S-MMI §1.2-b·§1.10-3②③·§1.9-2 |
+| spec_refs[] | S-SPEC §3.1(1.2·1.10)·§5·**§5.1**, S-MMI §1.2-b·§1.10-3②③·§1.9-2·**EP01_F004 p.13-5(방향 라벨)** |
 | depends_on[] | T-P3-4, T-P4-1 |
-| outputs[] | `packages/components/src/SectionTileChrome.tsx`·`ScoutView.tsx`·`PanoramaView.tsx` |
-| dod[] | UT-UI-031(Th/INT/Total Slice 텍스트 값 반영)·UT-UI-032(center slice number bold) + MT-UI-033 Patient·W/L·Filter·방향표기 위치가 MMI와 정합 |
+| outputs[] | `packages/components/src/SectionTileChrome.tsx`·`ScoutView.tsx`·`PanoramaView.tsx`, `core`(순수함수 `panoramaDirectionLabels(start,end)`) |
+| dod[] | UT-UI-031(Th/INT/Total Slice 텍스트 값 반영)·UT-UI-032(center slice number bold)·**UT-UI-034(panoramaDirectionLabels: 4케이스 R/L·L/R·A/P·P/A)** + MT-UI-033 Patient·W/L·Filter·방향표기 위치가 MMI와 정합 |
 | estimate | 2h |
 | risk | W/L·Th/INT 값 소스(P3·P4) 선행. 미완 항목 placeholder |
 
