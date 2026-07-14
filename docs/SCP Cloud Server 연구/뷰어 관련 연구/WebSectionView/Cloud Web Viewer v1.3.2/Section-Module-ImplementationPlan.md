@@ -373,7 +373,7 @@
 
 #### T-P4-1 — Image Filter MPR→Section
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-14. `ImageAdjustDialog`(380px, W/L 슬라이더+필터 토글+Revert) 3뷰 배선. **W/L**(볼륨 기본값 기준 적응형 범위 `wlSliderRanges`)·**MIP**(projection mean↔mip, Panorama 재생성 dep 버그 수정)·**Smooth/Sharpen/MaxSharpen/Inverse**(core `applyImageFilter` 3×3 커널+inverse, Scout/Panorama/Section 후처리) 모두 동작. Revert(W/L 기본+필터 off). 전 뷰 **공유**(MMI 1.11-1②, Scout 포함 여부 **§12-D17 기획 확인 대기**). UT-FLT-001 통과(커널·inverse). 잔여: 필터 상태 좌상단 text(T-P7-4), Section 캐시키에 필터 포함(완료).
 
 | 필드 | 값 |
 |------|------|
