@@ -190,7 +190,7 @@
 #### T-P1-4 — BL/LB 기준점
 
 - [x] **완료(부분)** — 2026-07-14 useCurveEditor `blRefArcMm`(기본 0=첫 점)·`setBlRefArcMm` 추가(B/L 극성 분리). ScoutView 연두 삼각형(size 14)+"BL/LB" 라벨, hover=move 커서, drag=section line(interval) 스냅 이동, 이동 시 blPolarity 불변. UT-BL-011 통과 + 사용자 시각 확인(#23).
-- [ ] **잔여 — 삼각형 blPolarity 시각 반전(NEW, 2026-07-14):** L/B Switching으로 `blPolarity` 토글 시 삼각형 아이콘 방향·"BL/LB"↔"LB/BL" 텍스트도 반전(현재 CT중심 기하로만 그려져 blPolarity 무연동). MMI 1.3-8(삼각형이 B/L 방향 표시)·S-SPEC §5. **B/L Switching 연동 시 구현.** ⚠ 폐기된 1.3-8①(위치기반 자동반전, D2·D10)과 구분.
+- [x] **잔여 구현 — 삼각형 blPolarity 시각 반전(2026-07-14 자동):** L/B Switching으로 `blPolarity` 토글 시 삼각형 방향(inverted면 B 반대쪽 향함)·라벨 "BL/LB"↔"LB/BL" 반전. `curveEditor.blPolarity` deps 반영. MMI 1.3-8·S-SPEC §5. ⚠ 폐기된 1.3-8①(위치기반 자동반전, D2·D10)과 구분. **시각 확인 대기**(반전 방향이 MMI와 맞는지 사용자 확인).
 
 | 필드 | 값 |
 |------|------|
@@ -439,7 +439,7 @@
 
 #### T-P5-1 — 데이터 모델·CW prj 스키마 매핑
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-14(자동). `core/project/projectModel.ts`: `SectionProjectState`(version·curve{controlPoints·blPolarity·blRefArcMm}·scout·panorama·section·imaging{W/L·filter·projection}) + `emptySectionProjectState`(blank). CW 매핑 개념(curve↔CurveList·section↔SectionInfo·pano↔PanoInfo, 정확 필드는 D5). 회전 각도 제외(스펙아웃). 레이아웃/카메라/ShowGrid는 셸 공통이라 모듈 범위 밖 명시.
 
 | 필드 | 값 |
 |------|------|
@@ -455,7 +455,7 @@
 
 #### T-P5-2 — 직렬화 API·브라우저 임시저장
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료(부분)** — 2026-07-14(자동). `core/project/serialize.ts`: `serializeProject`(JSON)·`deserializeProject`(관대 파싱·버전 체크·손상 좌표 필터·부분 누락 blank 보정). `apps/section-demo/src/save/projectStorage.ts`: localStorage save/load/clear + 파일 export/import. UT-SAV-011(round-trip 무손실)·UT-SAV-012(blank 복원)+버전불일치/손상 케이스 통과. **잔여**: 데모 UI 버튼·axialUi에 상태 적용(setter 배선, MT-SAV-013) — 시각/UX라 사용자 확인 후.
 
 | 필드 | 값 |
 |------|------|
@@ -489,7 +489,7 @@
 
 #### T-P6-2 — 공개 API·인계 패키지
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료(부분)** — 2026-07-15(자동). `HANDOFF.md`(진입점·공개 표면 목록·CW 임베드 통합 지점 §9.2·Decision Log 요약·빌드/테스트/dev·재시작 주의) 작성. **잔여**: CW 임베드 실요구 확정 시 `SectionViewer` props 확장(curve·blPolarity·interaction·콜백)·prj 어댑터 실배선(D5).
 
 | 필드 | 값 |
 |------|------|
@@ -541,7 +541,7 @@
 
 #### T-P7-3 — Per-panel Slice Slider (H/F · P/A · R/L)
 
-- [ ] **완료** — (진행) 골격·방향 라벨(H/F·P/A·R/L) 렌더 완료. **Scout H/F → sliceIndex 실배선 완료**. Section R/L은 **T-P2-2**, **Pano P/A는 T-P3-5(파노라마 P/A offset 스윕)** 완료 후 실배선 (현재 시각 placeholder)
+- [x] **완료** — 2026-07-14. Scout H/F→sliceIndex, Section R/L→sectionSliceIndex(T-P2-2), **Pano 슬라이더→B/L navigator offset 실배선(T-P3-5, P/A→B/L 명칭 확정 §12-D15)**. step=panoramaInterval. 3뷰 슬라이더 모두 실동작.
 
 | 필드 | 값 |
 |------|------|
@@ -557,7 +557,7 @@
 
 #### T-P7-4 — Image Information Overlay (3뷰)
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료(부분)** — 2026-07-14(자동). `ViewInfoOverlay`(우상단 W/L+Filter·우하단 TH/INT/Total Slice) 3뷰 배선 + `imagingStatusLines` 헬퍼. **Panorama 상단 방향 라벨(§5.1)** 구현: core `panoramaDirectionLabels`(순수함수, UT-UI-034 5케이스) + Panorama 상단 좌/우 렌더. Section slice 번호(타일 좌상·center bold)는 기존. **잔여**: Patient 정보(좌상, 볼륨 메타 부재로 보류)·좌표 위치 픽셀 폴리시(MT-UI-033 시각 확인).
 
 | 필드 | 값 |
 |------|------|
@@ -722,6 +722,7 @@ flowchart LR
 
 | 일자 | 버전 | 인수자 | 내용 |
 |------|------|--------|------|
+| 2026-07-14 | v0.8 | — | **자동 배치(사용자 부재)** — 완료: T-P5-1(prj 데이터 모델)·T-P5-2 core(직렬화 round-trip+localStorage util)·T-P7-3(Pano B/L 슬라이더 실배선)·T-P4-1 Scout Z-slab·T-P1-4 잔여(삼각형 반전). 부분: T-P7-4(방향라벨 §5.1 순수함수+렌더·Info Overlay 3뷰; 잔여 Patient·위치폴리시). 신규 UT: UT-UI-034·UT-SAV-011/012. 시각 확인 대기: 삼각형 반전 방향·오버레이 위치. 미착수(확인/설계 필요): T-P4-2/3(측정·주석)·T-P4-4·T-P6-1(벤치)·T-P6-2(공개 API)·T-P7-5/6(시각 폴리시). |
 | 2026-07-14 | v0.7 | — | **Panorama 상단 방향 라벨 규칙 반영(기획 확정 §5.1)** — MMI 1.2-2② "R,L"은 Curve 시작/끝점 각도에 따라 R,L/L,R/P,A/A,P 동적(수평 <45°=R/L·≥45°=P/A, 좌=Start·우=End; R/L 좌측점=R, P/A 상단점=A). T-P7-4 title·spec_refs·DoD(UT-UI-034) 갱신, 순수함수 `panoramaDirectionLabels` outputs 추가. OnePager §5.1·§3.1(1.2)·변경이력 v1.20 동기. |
 | 2026-07-14 | v0.6 | — | **슬랩 두께 샘플링 voxel 연동 구현(§12-D16 확정)** — CW MPR 소스 분석으로 알고리즘 결정: `slabSampleStepMm` 기본 0=in-plane min voxel spacing 자동, `slabSampleOffsetsMm`(nHalf=round(half/step), 중앙 대칭·최소1) 헬퍼 신설. `panorama.ts`·`section.ts`·section-wasm 래퍼(0-step 무한루프 방지) 적용. sub-voxel(0·0.1mm)=단일 샘플. 단위테스트 UT-D16(resolveSlabStepMm·slabSampleOffsetsMm) 추가. OnePager §3.3 공식·§12-D16 동기. (CW 현행 MPR은 두께 미반영 stripped 상태 발견) |
 | 2026-07-14 | v0.5 | — | **신규 T-P3-6(뷰별 독립 Interval)** 추가 — MMI 1.10-3① 재검토 결과 Scout(Z축 스크롤·MPR 동기)·Section(호 방향·Section line 구동)·Panorama(P/A 스텝) Interval 의미가 상이하며 현 구현이 단일 공유(버그)임을 발견. **§12-D15 등록·Teams로 기획 문의**(Panorama Interval 용도 확인). T-P3-6은 기획 답변 후 착수(T-P3-4·T-P3-5 의존). OnePager §3.5·§12-D15 동기 |
