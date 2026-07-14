@@ -221,7 +221,7 @@ Title Bar의 **Image Adjust(대비) 아이콘** 클릭 → **Dialog**(폭 **380p
 - **Width / Level 슬라이더** — 범위(볼륨 min/max에서): `valueRange = max-min`, `center=(max+min)/2` → `level ∈ [center-valueRange, center+valueRange]`, `width ∈ [0, 2·valueRange]`. **Windowing 매핑**: `mappingMin = level - ceil(width/2)`, `mappingMax = level + ceil(width/2)` (그 밖은 clamp, 사이 선형).
 - **필터 토글 버튼(하단 좌측)** — **Smooth · Sharpen · Max Sharpen · Inverse · MIP** (CT 세트). on 색 `#00BEA5`(hover `#61F2DF`), off 흰색. **배타 규칙**: Smooth/Sharpen/MaxSharpen **상호 배타**(하나 켜면 나머지 off), Inverse는 공존 가능.
 - **Revert 버튼(우측, BackupIcon)** — tooltip "Revert to the original image." → W/L 기본 복원 + 모든 필터 off.
-- 적용: **전 단면 일괄**, 상태 text 좌상단(T-P7-4).
+- 적용: **전 단면 일괄(전역 공유, Scout 포함)** — §12-D17 확정. **근거(기획):** W/L·Filter는 판독자 개인 시각 기준·선호를 **View 전환에도 유지**해야 하므로 전역 동일(≠ Thickness/Interval은 진단 목적별 뷰별 독립). 상태 text 좌상단(T-P7-4).
 - **MPR 연동 미구현(§12-D18):** MMI 1.11-b①②의 "Image Adjust default·조정값이 **MPR 레이아웃과 연동**"은 **별도 MPR 서브모듈과의 크로스-모듈 동기**로, D1(MPR 미접목)에 따라 **standalone v1.3.2에서는 미구현**. Section 모듈 내 W/L·필터는 독립 동작하며, CW 임베드 시 MPR store와 배선한다.
 
 **필터 알고리즘 (CW `ESImageMapper` 3×3 커널 포팅 — Section은 canvas ImageData/셰이더 post-process):**
@@ -270,7 +270,7 @@ Title Bar의 **Image Adjust(대비) 아이콘** 클릭 → **Dialog**(폭 **380p
 - **입력:** Curve **시작점 Start(P1)·끝점 End(마지막 점)** — 3점 이상이어도 시작/끝만 비교(중간 점 무시).
 - **축 판정:** Start→End 벡터가 **수평축과 이루는 각**.
   - **< 45°(좌우 우세)** → **R/L 체계**.
-  - **≥ 45°(전후 우세)** → **P/A 체계**. (`|dx| ≥ |dy|` ⇔ R/L, 아니면 P/A. dx=End.x−Start.x, dy=End.y−Start.y, Scout 픽셀좌표.)
+  - **≥ 45°(전후 우세)** → **P/A 체계** (정확히 45°는 P/A, 기획 확인 2026-07-14). (`|dx| > |dy|` ⇔ R/L, 아니면(=이거나 같으면) P/A. dx=End.x−Start.x, dy=End.y−Start.y, Scout 픽셀좌표.)
 - **라벨 배치:** 두 점의 좌표를 상대 비교. **Panorama 좌측 = Start의 라벨, 우측 = End의 라벨.**
   - **R/L:** Scout에서 **더 좌측(x 작음) = R, 더 우측 = L**.
   - **P/A:** Scout에서 **더 상단(y 작음) = A, 더 하단 = P**.
@@ -435,7 +435,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | D13 | MMI 미명시 파라미터 범위 | **확정(개발실, 2026-07-14)** — MMI가 기본값만 준 값의 범위를 개발실이 정함: Section 가로폭 기본 30mm·**범위 20~80mm**, Section 세로폭 기본 60mm(§3.4). MMI/기획 갱신 시 갱신 | 개발실 정의 |
 | D14 | BL/LB 기준점(삼각형) 이동 기능 용도 | **미확정 — 기획 확인 대기.** D10으로 "기준점 위치 기반 B/L 반전"이 폐기되어 삼각형을 드래그해도 **기능적 효과가 없다**(순수 표식만 이동). MMI 1.6-8/1.7-7의 "기준점 이동"도 원래 *개발실 리뷰 후 적용 여부 확정(TBD)*. **선택지**: (a) 드래그 제거·시작점 **정적 표식**(D10과 가장 일관, 개발실 권장), (b) 이동에 별도 용도 부여, (c) 현행 유지(이동하나 무효과). 기획 회신 필요 | **기획 확인 대기** |
 | D18 | **MPR 서브모듈 연동 항목 (Scout Th/INT 동기 · Image Adjust 연동)** | **확정 — standalone 미구현, CW MPR 통합 시 배선(근거 §12-D1).** MMI 1.10-2③(Scout Th/INT ↔ **MPR 레이아웃** Axial 상호 동기)·1.11-b①②(Image Adjust default·조정값 ↔ MPR 레이아웃 연동)은 **Section 레이아웃 내부가 아니라 별도 MPR 서브모듈과의 크로스-모듈 동기**다. D1로 **MPR 미접목**이 확정돼 현재 연동 대상이 없음 → **v1.3.2 standalone에서는 미구현**. Scout `scoutThicknessMm`/`scoutIntervalMm`·Image Adjust W/L·필터는 **모듈 내에서 독립 동작**(기능 결함 아님). **CW 임베드(§9.2) 시 MPR store와 양방향 배선**하면 충족. → 미구현 표시: §1.10·§1.11·§3.5·§3.6. | 통합 시 구현 |
-| D17 | **Image Adjust 적용 범위 (전 뷰 공유 vs 뷰별)** | **미확정 — 기획 확인 대기(Teams 문의 2026-07-14).** MMI 1.11-1② "모든 단면에 한 번에 적용" → W/L·Filter는 **전 뷰 공유**로 해석·구현. 단 Thickness/Interval(1.10-3① "각기 다르게")과 반대라 확인 필요. **질문:** (Q1) W/L·Filter=3뷰 공유·Th/INT=뷰별 독립 정합, (Q2) "모든 단면"에 **Scout 포함** 여부(1.10-2③ Scout=MPR 속성·1.11-b② MPR 연동 근거로 포함 해석), (Q3) 두 기능 적용 방식이 다른 임상/사용성 의도. **현재 구현: W/L·Filter 3뷰 공유.** | **기획 확인 대기** |
+| D17 | **Image Adjust 적용 범위 (전 뷰 공유 vs 뷰별)** | **확정(기획 회신 2026-07-14).** (Q1) **W/L·Filter = 전 뷰 공유(전역)**, **Thickness/Interval = 뷰별 독립** — 맞음. (Q2) **W/L은 Scout 포함 전역**(회신 "전역 동일·View 전환 시에도 동일 기준" → 모든 단면 view 포함). (Q3) **근거(기획):** *W/L은 판독자 개인의 시각적 기준·선호를 View 전환에도 유지해야 하므로 전역 동일; Thickness/Interval은 뷰의 진단 목적에 따라(예: Pano 두껍게·Cross-section 얇게 병행) 의도적으로 다르게 두고 비교 판독하므로 뷰별 독립.* **현재 구현(W/L·Filter 3뷰 공유·Th/INT 뷰별)과 일치.** | 기획 회신 반영 완료 |
 | D16 | **슬랩 두께 샘플링 알고리즘 + sub-voxel(0.1mm) 처리** | **확정(개발실, 2026-07-14 — CW 소스 분석 근거).** MMI·기획 모두 알고리즘 미규정 → CW MPR 소스 분석으로 결정. **공식은 §3.3에 구현 수준으로 기재**: `stepMm=slabSampleStepMm>0?그값:max(1e-3,min(spacing[0],spacing[1]))`(기본 0=voxel 자동연동), `nHalf=max(0,round((thickness/2)/step))`, 샘플 `tmm=k·step (k=−nHalf..+nHalf)` → trilinear → mean(기본)/mip(토글). **sub-voxel(0·0.1mm)=단일 중앙 샘플 1장**, 평균/MIP는 `nHalf≥1`일 때만. CW 의도식 `max(1,round(thickness/voxelSpacing))` 동치. **CW 현행 MPR은 두께 미반영(reslice Z=1, stripped)** — 우리 엔진이 정상. 구현: `panorama.ts`·`section.ts`. | 개발실 정의(CW 분석) |
 | D15 | **Interval 뷰별 독립 + Panorama Interval 용도** | **확정(기획 회신 2026-07-14).** MMI 1.10-3① "각기 다르게 적용" = **3 뷰 Interval 독립**(CleverOne도 독립 동작 — A3). 의미: **Scout=축(Z) 슬라이스 스크롤(MPR 동기·Voxel Based)** (A1 확정), **Section=호 방향 단면 간격(Scout·Pano의 Section line 간격도 구동, 1.10-3b)** (A1 확정), **Panorama=곡선 법선방향 offset 스텝**(Interval만큼 offset 주며 파노라마 위치 이동, A2 확정). **★ 명칭 변경(A2 후속):** 파노라마 슬라이더 **`P/A` → `B/L`** — 법선 방향이 곧 Buccal/Lingual 축이며, arch가 아닌 curve(세로 등)에서는 P(Posterior)/A(Anterior)가 성립 안 함. 기획이 MMI를 B/L로 업데이트 예정. **구현:** 3뷰 독립 interval(T-P3-6) + 파노라마 슬라이더/ navigator B/L 표기(T-P3-5). | 기획 회신 반영 완료 |
 
