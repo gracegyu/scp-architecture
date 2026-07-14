@@ -104,7 +104,7 @@ MMI 정본(SharePoint PPT) Epic 1 Section Layout 전 항목. "MPR과 동일"로 
 | MMI | 기능 | 요구 상세 (MMI 정본) | 현재(poc) | Section 모듈 작업 | 상태 |
 |-----|------|----------------------|-----------|-------------------|------|
 | **1.1** | Layout 전환 | 기본 MPR. `[MPR]`·`[Section]` 토글, 활성 layout 표시 | 데모 탭만 | (2) 선택 UI + layout state. 라우팅은 접목 | 확정 |
-| **1.2** | 구성·정보 표시 | 3영역. 오버레이: Patient(좌상), W/L·Filter(우상), 상단 방향표기 = **R/L(Scout·Pano) / B/L(Section, Scout Section line 방향과 동일)**, thickness·interval·total slice(우하), ruler(우중앙). Slider(Scout H/F·**Pano B/L**(구 P/A, §12-D15)·Section R/L). Scout Axial은 **MPR Axial과 뷰 비연동**(단 Th/INT는 MPR 서브모듈과 동기, 1.10). Image Adjust/Setting/**최대화(3뷰 공통, 최대화 시 그 뷰만 전체·타이틀 유지)** = MPR 동일 | 대부분 보유 | 오버레이·라벨·slider image23 정합. **Section ruler = 가로·세로 전체 축**(PoC는 영상 폭). **최대화 버튼은 최대화 시 복원(최소화) 아이콘으로 토글**(CW `ContentTitleBar` `maximized`·`TitleMaximizeIcon`/`TitleNormalizeIcon` 정합, §9.5) | 확정(ruler 갭) |
+| **1.2** | 구성·정보 표시 | 3영역. 오버레이: Patient(좌상), W/L·Filter(우상), 상단 방향표기 = **R/L(Scout 고정) / Pano는 Curve 시작·끝점 각도로 R/L·L/R·P/A·A/P 동적(§5.1) / B/L(Section, Scout Section line 방향과 동일)**, thickness·interval·total slice(우하), ruler(우중앙). Slider(Scout H/F·**Pano B/L**(구 P/A, §12-D15)·Section R/L). Scout Axial은 **MPR Axial과 뷰 비연동**(단 Th/INT는 MPR 서브모듈과 동기, 1.10). Image Adjust/Setting/**최대화(3뷰 공통, 최대화 시 그 뷰만 전체·타이틀 유지)** = MPR 동일 | 대부분 보유 | 오버레이·라벨·slider image23 정합. **Section ruler = 가로·세로 전체 축**(PoC는 영상 폭). **최대화 버튼은 최대화 시 복원(최소화) 아이콘으로 토글**(CW `ContentTitleBar` `maximized`·`TitleMaximizeIcon`/`TitleNormalizeIcon` 정합, §9.5) | 확정(ruler 갭) |
 | **1.3** | Scout Curve 요소 | Curve, Section line(전체 slice·빨강 수직), Active section line(9개, 폭=Section 가로폭 기본 **30mm**), Center section line(5번째·노랑·control point), Panorama navigator line(초록), Panorama thickness line(초록 한 쌍·control point), L/B 표시(흰 text), **BL/LB 기준점**(첫 point·연두 삼각형) | 곡선·line·라벨 보유 | line 요소 명확화, **BL/LB 기준점 신규**, B/L 자동(§5) | 확정 |
 | **1.4** | Panorama Line 요소 | 경계선(노랑, 기본 거리 **100mm**), 중심선(초록), Scout 위치선(흰 점선, 기본=중심선), Active section line(중 Center 다른 색) | 부분 | 경계선 100mm, 각 line 오버레이 | 확정 |
 | **1.5** | Draw Curve | 좌클릭=추가, 우클릭=직전 취소(1점이면 불가), 더블클릭=종료. 미리보기 실시간. **Section·Panorama는 curve 완료 후 표시(완료 전 blank)**. §6 상세 | 부분(점마다 생성) | ESC 미적용·1점 더블클릭 무시·완료 후 1회·Active line 실시간(§6) | 확정 |
@@ -262,6 +262,20 @@ Title Bar의 **Image Adjust(대비) 아이콘** 클릭 → **Dialog**(폭 **380p
 - **예외:** 점이 1개뿐이면 P2 미정 → 라벨 미표시(2점 입력 시 확정·고정).
 
 **구현:** `packages/core/src/bl/blPolarity.ts` — (P1, P2, C) → `blPolarity`. **P1·P2 최초 확정 시 1회 계산 후 고정**(이후 편집 시 재계산 안 함), `SectionGrid` 타일 B/L text·`ScoutView` 라벨에 매핑. prj 저장은 `blPolarity`(B/L Switching 상태) + 기준점 좌표(§7).
+
+### 5.1 Panorama 상단 방향 라벨 (R/L · P/A) — 기획 확정 규칙 (2026-07-14)
+
+정본: 기획(Jessi) 회신 2026-07-14(MMI EP01_F004_PanoLineComponents p.13 5번 업데이트). MMI 1.2-2②는 "R, L 표시"로만 적었으나, 실제로는 **Curve 시작/끝점 각도에 따라 R,L / L,R / P,A / A,P로 바뀐다**. (B/L 판정과 유사하나 **B/L은 첫 2점, 방향 라벨은 시작점·끝점**을 쓰는 점이 다름.)
+
+- **입력:** Curve **시작점 Start(P1)·끝점 End(마지막 점)** — 3점 이상이어도 시작/끝만 비교(중간 점 무시).
+- **축 판정:** Start→End 벡터가 **수평축과 이루는 각**.
+  - **< 45°(좌우 우세)** → **R/L 체계**.
+  - **≥ 45°(전후 우세)** → **P/A 체계**. (`|dx| ≥ |dy|` ⇔ R/L, 아니면 P/A. dx=End.x−Start.x, dy=End.y−Start.y, Scout 픽셀좌표.)
+- **라벨 배치:** 두 점의 좌표를 상대 비교. **Panorama 좌측 = Start의 라벨, 우측 = End의 라벨.**
+  - **R/L:** Scout에서 **더 좌측(x 작음) = R, 더 우측 = L**.
+  - **P/A:** Scout에서 **더 상단(y 작음) = A, 더 하단 = P**.
+- **검증(MMI 이미지):** 정상 arch=R·L / 시작 우측 수평=L·R / 대각(시작 상단)=A·P / 수직(시작 하단)=P·A. 4케이스 모두 규칙과 일치.
+- **구현(예정):** 순수함수 `panoramaDirectionLabels(start, end) → {left, right}`, Panorama 상단 오버레이(T-P7-4)·좌/우 배치. Curve 편집 시 실시간 갱신(시작/끝 이동 반영).
 
 ## 6. Draw Curve / Edit Curve 상세
 
@@ -456,6 +470,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | **1.3** | **2026-07-13** | **접목 범위 확정(D1): CW vtk 미접목, Section(WebGL, poc 확장)만 구현 — §9 전면 재정리(스텁 채움 → embed 정합), §1·§2·Risk 재작성. B/L 새 규칙(D2): P1→P2 선분·C쪽=L 단일 규칙, 동적 반전 폐기 — §5 재작성. 접목 형태 패키지+공개 API(D4, §9.2). Save CW prj 호환+개발용 브라우저 임시 저장(D5, §7). 커버리지 poc 확장 전 기능(D6). 일정 목표1주/예상2주(D9)** |
 | **1.4** | **2026-07-13** | B/L **결정 시점 명확화(D10 확정)**: 최초 P1·P2로 1회 고정, 이후 P3+·P1/P2 이동 등 편집에 재판정 없음, 변경은 수동 L/B Switching만. 기준점 이동 B/L 무영향. §6에 **커브 종료=더블클릭**(우클릭=직전 취소) 행 명시 |
 | **1.5** | **2026-07-13** | **공유(VKS 리뷰)용 참조 정리**: "참조"를 org URL로 교체(MMI=SharePoint PPT, PLAN-1287=Jira, 개발실 리뷰=VKS), 내부 문서(개발계획·작업 가이드) 링크 제거. 본문 내부 인용(MMI.md 추출본·작업 가이드 §4.2) → 정본·출처 표기로 정리 |
+| **1.20** | **2026-07-14** | **§5.1 신설 — Panorama 상단 방향 라벨 규칙(기획 확정)**: MMI 1.2-2② "R,L"은 실제로 Curve 시작/끝점 각도에 따라 **R,L/L,R/P,A/A,P 동적**. 수평 기준 <45°=R/L·≥45°=P/A, 좌측=Start 라벨·우측=End 라벨(R/L: 좌측점=R·우측점=L / P/A: 상단점=A·하단점=P). MMI 이미지 4케이스 검증. §3.1(1.2) 갱신. 구현은 T-P7-4(방향 오버레이). |
 | **1.19** | **2026-07-14** | **Scout thickness 실동작(Z-slab)**: Scout를 단일 slice→ **현재 slice ±(th/2)를 Z축 mean/MIP 투영**(MIP는 Image Adjust MIP 토글 연동). thickness=0이면 단일 slice. Scout에서도 두께·MIP가 의미를 가짐. (Scout interval의 Z 스크롤·MPR 값 동기는 여전히 미구현 §12-D18.) |
 | **1.18** | **2026-07-14** | **T-P4-1 Image Adjust 완성**: `ImageAdjustDialog`(W/L·필터·Revert) 3뷰 배선. W/L 범위=볼륨 기본값 적응형(`wlSliderRanges`, 9000 등 큰 WW도 수용). MIP 재생성 버그 수정(Panorama). **필터 알고리즘** core `applyImageFilter`(3×3: Smooth 1/9·Sharpen 중심5/이웃−0.5·MaxSharpen 중심9/이웃−1 모두 합1, Inverse 255−v) Scout/Panorama/Section 후처리. Section 캐시키에 필터 포함. 전 뷰 공유(§12-D17 확인 대기). UT-FLT-001. |
 | **1.17** | **2026-07-14** | **Panorama 비율 정합(왜곡 수정)**: 파노라마 비트맵의 픽셀 비율(nCols:nRows)이 물리 비율(archMm:Zmm)과 달라(열 간격≠Z 간격) 왜곡·이상 여백 발생 → **행(Z)을 columnSpacing mm 간격으로 생성**해 **물리 정사각 픽셀**로 만들고, 표시는 **contain**(비율 유지 letterbox) 유지. arch 길면 상하 여백·짧으면 좌우 여백(Section 타일과 동일). (fit-width 시도는 폐기.) |
