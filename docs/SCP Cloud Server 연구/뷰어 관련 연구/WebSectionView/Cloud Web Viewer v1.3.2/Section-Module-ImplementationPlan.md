@@ -722,6 +722,7 @@ flowchart LR
 
 | 일자 | 버전 | 인수자 | 내용 |
 |------|------|--------|------|
+| 2026-07-14 | v0.7 | — | **Panorama 상단 방향 라벨 규칙 반영(기획 확정 §5.1)** — MMI 1.2-2② "R,L"은 Curve 시작/끝점 각도에 따라 R,L/L,R/P,A/A,P 동적(수평 <45°=R/L·≥45°=P/A, 좌=Start·우=End; R/L 좌측점=R, P/A 상단점=A). T-P7-4 title·spec_refs·DoD(UT-UI-034) 갱신, 순수함수 `panoramaDirectionLabels` outputs 추가. OnePager §5.1·§3.1(1.2)·변경이력 v1.20 동기. |
 | 2026-07-14 | v0.6 | — | **슬랩 두께 샘플링 voxel 연동 구현(§12-D16 확정)** — CW MPR 소스 분석으로 알고리즘 결정: `slabSampleStepMm` 기본 0=in-plane min voxel spacing 자동, `slabSampleOffsetsMm`(nHalf=round(half/step), 중앙 대칭·최소1) 헬퍼 신설. `panorama.ts`·`section.ts`·section-wasm 래퍼(0-step 무한루프 방지) 적용. sub-voxel(0·0.1mm)=단일 샘플. 단위테스트 UT-D16(resolveSlabStepMm·slabSampleOffsetsMm) 추가. OnePager §3.3 공식·§12-D16 동기. (CW 현행 MPR은 두께 미반영 stripped 상태 발견) |
 | 2026-07-14 | v0.5 | — | **신규 T-P3-6(뷰별 독립 Interval)** 추가 — MMI 1.10-3① 재검토 결과 Scout(Z축 스크롤·MPR 동기)·Section(호 방향·Section line 구동)·Panorama(P/A 스텝) Interval 의미가 상이하며 현 구현이 단일 공유(버그)임을 발견. **§12-D15 등록·Teams로 기획 문의**(Panorama Interval 용도 확인). T-P3-6은 기획 답변 후 착수(T-P3-4·T-P3-5 의존). OnePager §3.5·§12-D15 동기 |
 | 2026-07-14 | v0.4 | — | **CW 다이얼로그 이식 상세화** — T-P3-4를 CW `CTSliceSettingDialog`(Popover·Thickness/Interval combo·뷰별 독립 두께·기본 0)로, T-P4-1을 CW `ImageAdjustDialog`(W/L·필터 3×3 커널·배타·Revert)로 refine(OnePager §3.5·§3.6 신설). **thickness 뷰별 분리 버그 수정**(panorama↔section 독립, 기본 0). DoD에 UT-SET-005/006·UT-FLT-004 추가 |
