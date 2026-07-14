@@ -255,7 +255,7 @@
 
 #### T-P2-4 — 최대화
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-14 SectionViewer `maximizedView`(3뷰 공통, display 토글로 컨텍스트 보존). ViewTitleBar ⛶↔복원 토글(CW `TitleMaximizeIcon`/`TitleNormalizeIcon` SVG). 개별 tile 더블클릭 최대화/복원(callback ref로 draw 타이밍 버그 수정). UT-SEC-031 통과 + 사용자 확인. OnePager 1.2/1.9·IP 보강.
 
 | 필드 | 값 |
 |------|------|
