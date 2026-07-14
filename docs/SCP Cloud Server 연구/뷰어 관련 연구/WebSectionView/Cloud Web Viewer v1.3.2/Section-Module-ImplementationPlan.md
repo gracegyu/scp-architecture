@@ -260,12 +260,12 @@
 | 필드 | 값 |
 |------|------|
 | id | T-P2-4 |
-| title | 3×3 최대화 유지 확장 + 개별 slice 더블클릭 최대화 |
+| title | 뷰 최대화(Scout/Panorama/Section 각 ⛶ — SectionViewer `maximizedView`, MMI 1.2) + 최대화 시 **⛶↔복원(최소화) 아이콘 토글**(CW `TitleNormalizeIcon`) + Section 3×3 유지 확장 + 개별 slice 더블클릭 최대화/복원(MMI 1.9-3) |
 | repo | scp-section-poc |
-| spec_refs[] | S-SPEC §3.1(1.9), S-MMI §1.9-3 |
+| spec_refs[] | S-SPEC §3.1(1.2·1.9), S-MMI §1.9-3·§1.2, S-CW `lib/react-vtkjs/src/icon/TitleMaximizeIcon`·`TitleNormalizeIcon`·`ContentTitleBar`#maximized@d063ae2 |
 | depends_on[] | T-P2-2 |
-| outputs[] | `packages/components/src/SectionGrid.tsx` |
-| dod[] | UT-SEC-031(최대화 상태 전이) + MT-SEC-032 더블클릭 개별 최대화 |
+| outputs[] | `packages/components/src/SectionViewer.tsx`·`SectionGrid.tsx`·`ScoutView.tsx`·`PanoramaView.tsx`·`ViewTitleBar.tsx` |
+| dod[] | UT-SEC-031(최대화 상태 전이·개별 tile 토글) + MT-SEC-032 3뷰 ⛶ 최대화·복원 토글 + 개별 tile 더블클릭 최대화/복원 |
 | estimate | 1h |
 | risk | (낮음) |
 
