@@ -17,8 +17,10 @@
   > Appendix A Decision Log의 ADR-13 행이 공개키 컬럼을 `device.fingerprint`로 표기하고 있으나, 이 컬럼은 문서 전반(§1.4·§7.1.1·§7.2.6·DBML)에서 `device.client_public_key`로 명칭이 정정되었습니다. DBML 주석에도 "구 명칭 'fingerprint'을 정확화"라고 명시되어 있어, 본문 중 유일하게 남은 옛 명칭입니다. 구현자가 존재하지 않는 컬럼(`fingerprint`)을 참조하지 않도록 `device.client_public_key`로 통일해야 합니다.
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+맞습니다. Appendix A ADR-13 행의 device.fingerprint는 본문·DBML에서 이미 client_public_key로 정정된 컬럼의 옛 명칭입니다. 존재하지 않는 컬럼을 참조하지 않도록 그 행을 device.client_public_key로 통일하겠습니다.
+- 조치: Appendix A ADR-13 행 device.fingerprint → device.client_public_key — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-02 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2247 · [thread 79266] · status=active
 - 리뷰어: 민진우(Thomas) · 2026-07-13T04:59
@@ -28,8 +30,10 @@
   > `Target` 스키마의 timeout 예시값이 서로 모순됩니다. `connectTimeoutMs`(D1)=3000 + `responseTimeoutMs`(D2)=10000 = 13000ms 인데 `totalDeadlineMs`(D3)=12000ms 입니다. §7.5.4의 D1~D3 모델상 total_deadline은 프록시 호출 총 예산이므로, 연결에 3s를 쓰면 응답은 9s만에 잘려 D2(10s 응답 대기)가 실제로는 도달할 수 없게 됩니다. 예시값은 최소한 `connect + response ≤ total_deadline` 불변식을 만족하도록 조정하는 편이 좋습니다(예: total_deadline 14000 이상 또는 response_timeout 축소).
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+맞습니다. 예시값이 connect(3000)+response(10000)=13000 > total(12000)이라 §7.5.4의 connect+response ≤ total_deadline 불변식을 어깁니다. 예시를 불변식에 맞게 조정하겠습니다(예: totalDeadlineMs 14000). 이 수치는 예시이고 실제 값은 target SLA·§7.5.4·LLD 소관임을 함께 명시하겠습니다.
+- 조치: OpenAPI Target 예시 timeout 조정(connect+response ≤ total, 예 total 14000)+예시임 명시 — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-03 · docs/specs/SRS.md:924 · [thread 79267] · status=active
 - 리뷰어: 민진우(Thomas) · 2026-07-13T04:59
@@ -39,8 +43,10 @@
   > "발행은 CI/ops 흐름이라 ... 별도 번호(§2.3.8)를 주지 않고 본 절에 함께 둔다"라고 서술하지만, 실제로 §2.3.8("운영자·Console 인증")이 다른 주제로 존재합니다. 매트릭스 발행 흐름에 부여하지 않겠다고 언급한 번호(§2.3.8)가 이미 별개 절에 사용되고 있어 독자가 혼동할 수 있습니다. 해당 괄호 참조를 삭제하거나 "별도 하위 절을 만들지 않는다" 정도로 표현을 완화하는 것이 좋습니다.
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+맞습니다. 매트릭스 발행 흐름에 '§2.3.8을 주지 않는다'고 썼는데 §2.3.8이 다른 주제(운영자·Console 인증)로 실재해 혼동됩니다. 해당 괄호 참조를 삭제하거나 '별도 하위 절을 만들지 않는다'로 완화하겠습니다.
+- 조치: §924 §2.3.8 자기참조 삭제/완화 — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-04 · docs/specs/SRS.md:1052 · [thread 79268] · status=active
 - 리뷰어: 민진우(Thomas) · 2026-07-13T04:59
@@ -50,8 +56,10 @@
   > 참조 표기 오타 — "FR-SES-06 해당 없음, §7.4·§7.4 FR-SES 매핑."에서 `§7.4`가 중복되어 있습니다(`§7.4·§7.4`). 하나로 정리하는 편이 좋습니다.
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+오타 맞습니다. '§7.4·§7.4' 중복을 하나로 정리하겠습니다.
+- 조치: §1052 §7.4·§7.4 → §7.4 — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-05 · (파일 미지정 · 일반 코멘트) · [thread 79269] · status=active
 - 리뷰어: 민진우(Thomas) · 2026-07-13T04:59
@@ -94,8 +102,10 @@
   > §5.5의 `presigned URL TTL: 5~15분(§7.4.2)` 항목이 **존재하지 않는 하위 절 §7.4.2**를 참조한다. §7.4는 presigned 발급을 target(CleverSpace/AXS)에 위임하면서 하위 절(7.4.1~7.4.5)이 모두 제거된 flat 절이 되었는데, 옛 번호 참조만 남았다. 더구나 §7.4는 "GW는 presigned를 발급하지 않는다"고 명시하므로, presigned URL TTL(5~15분)을 GW의 성능 요구로 §5.5에 두고 §7.4.2로 연결하는 것은 위임 원칙과도 모순된다. TTL이 발급 주체(② One Pager/④) 소유임을 반영해 항목을 옮기거나 참조를 정정해야 한다(같은 §7.4.2 dangling 참조가 §6.1 line 1461에도 있음).
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+맞습니다. §7.4는 발급을 target에 위임하며 하위 절이 없어 §7.4.2는 dangling이고, presigned TTL을 GW 성능요구로 두는 것도 위임 원칙과 어긋납니다. TTL은 발급 주체(② One Pager/AXS④) 소유임을 반영해 항목을 옮기거나 참조를 정정하겠습니다.
+- 조치: §5.5 presigned TTL의 §7.4.2 dangling 정정·발급주체 소유로 이동 — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-07 · docs/specs/SRS.md:1461 · [thread 79272] · status=active
 - 리뷰어: 민진우(Thomas) · 2026-07-13T05:12
@@ -105,8 +115,10 @@
   > §6.1의 안전 규칙 "객체 키·메타데이터에도 PHI를 담지 않는다(§7.4.2)"가 **존재하지 않는 §7.4.2**를 참조한다. §7.4에는 객체 키/메타데이터를 다루는 하위 절이 없다(GW가 storage·서명을 소유하지 않으므로). PHI 비저장 규칙은 안전성 크리티컬 항목이므로, 실재하는 절(§6.4 / §7.3.3 등)로 참조를 정정해야 traceability가 유지된다.
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+맞습니다. §7.4엔 객체키/메타데이터 하위 절이 없어 §7.4.2는 dangling입니다. 안전성 크리티컬 규칙이라 실재 절(§6.4/§7.3.3)로 참조를 정정해 traceability를 유지하겠습니다.
+- 조치: §6.1 안전규칙 §7.4.2 → §6.4/§7.3.3 — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-08 · docs/specs/SRS.md:1476 · [thread 79273] · status=active
 - 리뷰어: 민진우(Thomas) · 2026-07-13T05:12
@@ -116,8 +128,10 @@
   > §6.2 보안 8항목 표의 Integrity 행이 **존재하지 않는 §7.4.5(checksum/ETag)·§7.4.4(idempotency)**를 참조한다. §7.4는 하위 절이 없고, 무결성·멱등은 §7.4 "위임 경계"상 발급 주체(CleverSpace②/AXS④) 책임으로 명시돼 있다. 같은 행의 `§7.6.4`(멱등)·`§7.6.2`(HMAC)는 실재하지만 `§7.4.4`·`§7.4.5`는 dangling이므로 참조를 제거·정정해야 한다.
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+맞습니다. 무결성·멱등은 §7.4 위임 경계상 발급 주체(CleverSpace②/AXS④) 책임이고 §7.4.4·§7.4.5는 dangling입니다. 같은 행의 §7.6.4·§7.6.2는 실재하니 §7.4.4·§7.4.5 참조만 제거·정정하겠습니다.
+- 조치: §6.2 Integrity 행 §7.4.4/§7.4.5 dangling 제거 — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-09 · docs/specs/SRS.md:2227 · [thread 79274] · status=active
 - 리뷰어: 민진우(Thomas) · 2026-07-13T05:12
@@ -127,8 +141,10 @@
   > §7.9.1 관리 API 열거에 §7.8.5(line 2209)가 정의한 **전 클리닉 횡단 조회 `GET /v1/admin/clients`가 누락**되어 있다. §7.9.1은 클리닉 드릴다운 `GET /v1/admin/clinics/{clinicId}/clients`만 나열하는데, §7.8.5는 두 엔드포인트(횡단 + 드릴다운)를 모두 정의하며 "특정 버전 미만 클리닉 전체" 업그레이드 캠페인의 핵심은 횡단 API다. 관리 API 정본 절(§7.9.1)에도 `GET /v1/admin/clients`를 함께 명시해야 OpenAPI 계약과 정합한다(Appendix B #48도 드릴다운만 언급).
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+맞습니다. §7.8.5가 정의한 전 클리닉 횡단 조회 GET /v1/admin/clients가 §7.9.1 관리 API 열거에서 빠졌습니다. 업그레이드 캠페인의 핵심이라 §7.9.1에 추가해 OpenAPI 계약과 정합시키겠습니다(Appendix B #48도 함께 갱신).
+- 조치: §7.9.1에 GET /v1/admin/clients 추가·Appendix B #48 갱신 — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-10 · docs/specs/SRS.md:1342 · [thread 79276] · status=active
 - 리뷰어: 민진우(Thomas) · 2026-07-13T05:12
@@ -138,8 +154,10 @@
   > §4.4 Software Interface 표가 캐시를 `Redis | 구현 시 확정`으로 적었으나, §3.1.2·§1.4·§6.4는 캐시 엔진을 **Valkey(Amazon ElastiCache for Valkey)로 이미 "채택/확정"**했다. 제품명(Redis vs Valkey)과 확정 상태("구현 시 확정" vs 이미 채택)가 다른 절과 어긋난다. §1.4가 정의한 "Redis(호환)=Valkey" 관례를 감안해도, 확정 사항을 미확정처럼 적어 혼동을 준다 — §3.1.2와 동일하게 `ElastiCache for Valkey(확정)`로 통일하는 것이 좋다.
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+맞습니다. §3.1.2·§1.4·§6.4는 캐시 엔진을 Valkey(Amazon ElastiCache for Valkey)로 확정했는데 §4.4 표만 'Redis | 구현 시 확정'이라 어긋납니다. §4.4를 'ElastiCache for Valkey(확정)'로 통일하겠습니다.
+- 조치: §4.4 캐시 'Redis/구현 시 확정' → 'ElastiCache for Valkey(확정)' — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-11 · docs/specs/SRS.md:2294 · [thread 79278] · status=active
 - 리뷰어: 민진우(Thomas) · 2026-07-13T05:12
@@ -172,8 +190,10 @@
   > 6 line-specific finding(s) were posted as inline comments.
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+§7.4 dangling 등 재지적 사항은 각 라인 스레드(C-05·06·07 등)에서 처리하겠습니다. op 수치는 정본(redocly 기준·Appendix B #6=55)이 맞고, 결정로그 주석의 42·45는 작성 중 시점 스냅샷이라 현재 수치로 정합·정리하겠습니다.
+- 조치: Appendix B 결정로그 op 수치(42·45) → 현재 55로 정합/정리 — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-13 · docs/specs/SRS.md:239 · [thread 79385] · status=active 🆕
 - 리뷰어: 임건혁(Jack) · 2026-07-13T06:34
@@ -212,8 +232,10 @@ Extension 17 호환은 말씀하신 대로 리스트업·검토 결과에 따르
   > 모니터링 스택은 Loki, Tempo, Mimir (Prometheus full compatible) 사용 및 중앙 Grafana에서 대시보드 + 알람 처리하고 있습니다.
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+공유 감사합니다. §6.3.2를 실제 중앙 스택에 맞춰 갱신하겠습니다 — GW는 구조화 로그(Pino)·OTel로 생성·노출하고, 중앙 수집·저장은 Loki·Tempo·Mimir(Prometheus 호환) + 중앙 Grafana(대시보드·알람)로 명시하겠습니다. 수집 에이전트·백엔드 세부는 인프라(③-I) 소관으로 둡니다.
+- 조치: §6.3.2 백엔드 스택을 Loki·Tempo·Mimir·중앙 Grafana로 갱신 — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-16 · docs/specs/SRS.md:233 · [thread 79434] · status=active 🆕
 - 리뷰어: 김성훈(Scott) · 2026-07-13T10:30
@@ -263,8 +285,10 @@ payload를 at-rest로 저장하는 곳은 대상(매핑) 리전뿐이라는 원�
   > RFC 7523 프로파일 고정. 이 지적은 RFC 7523 §3 권고와 정합합니다.
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+맞습니다. 현재 Redis 용도에 assertion jti 일회 소비가 없어 탈취된 assertion이 exp 이내 재사용될 수 있습니다. RFC 7523 프로파일(iss·sub=client_id·정확한 aud·짧은 exp·iat·고유 jti·허용 alg 고정)을 §7.1.1에 명시하고, jti를 Redis SET NX EX로 일회 소비하도록 추가하겠습니다(키스페이스에 jti 소비 항목 신설). 이는 gw/1.1로 연기된 token_denylist(폐기 목록)와는 별개의 재사용 방지 통제입니다.
+- 조치: §7.1.1 RFC 7523 claim 프로파일 + jti 일회 소비(Redis SET NX EX) 추가·redis-keyspace에 jti 항목 신설 — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-18 · docs/specs/SRS.md:1763 · [thread 79436] · status=active 🆕
 - 리뷰어: 김성훈(Scott) · 2026-07-13T10:37
@@ -281,8 +305,10 @@ payload를 at-rest로 저장하는 곳은 대상(매핑) 리전뿐이라는 원�
   > - Claims validation (https://learn.microsoft.com/en-us/entra/identity-platform/claims-validation).
 
 - 답변:
-- 조치:
-- 상태: 대기
+
+맞습니다. Entra 토큰 검증이 서명·subject 확인에 그쳐 confused-deputy 위험이 있습니다. §7.1.4에 단일 tenant·정확한 iss·aud=GW Admin API·필수 scope·tid/oid 확인, 그리고 사용자 access token만 허용하고 app-only·ID token은 거부하는 조건을 명문화하겠습니다(MS access token/claims validation 가이드와 정합).
+- 조치: §7.1.4 Entra 토큰 검증 조건(iss·tenant·aud·scope·tid/oid·app-only/ID token 거부) 명문화 — 확정 후 반영
+- 상태: 답변(확정 대기)
 
 ## C-19 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1833 · [thread 79437] · status=active 🆕
 - 리뷰어: 김성훈(Scott) · 2026-07-13T10:43
@@ -349,24 +375,24 @@ GW의 책임은 발급 요청 전 단계로 한정합니다. 클리닉의 매핑
 ---
 
 ## 인덱스 (위치·상태)
-- C-01 · docs/specs/SRS.md:2278 · `대기`
-- C-02 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2247 · `대기`
-- C-03 · docs/specs/SRS.md:924 · `대기`
-- C-04 · docs/specs/SRS.md:1052 · `대기`
+- C-01 · docs/specs/SRS.md:2278 · `답변(확정 대기)`
+- C-02 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2247 · `답변(확정 대기)`
+- C-03 · docs/specs/SRS.md:924 · `답변(확정 대기)`
+- C-04 · docs/specs/SRS.md:1052 · `답변(확정 대기)`
 - C-05 · (파일 미지정 · 일반 코멘트) · `답변(확정 대기)`
-- C-06 · docs/specs/SRS.md:1440 · `대기`
-- C-07 · docs/specs/SRS.md:1461 · `대기`
-- C-08 · docs/specs/SRS.md:1476 · `대기`
-- C-09 · docs/specs/SRS.md:2227 · `대기`
-- C-10 · docs/specs/SRS.md:1342 · `대기`
+- C-06 · docs/specs/SRS.md:1440 · `답변(확정 대기)`
+- C-07 · docs/specs/SRS.md:1461 · `답변(확정 대기)`
+- C-08 · docs/specs/SRS.md:1476 · `답변(확정 대기)`
+- C-09 · docs/specs/SRS.md:2227 · `답변(확정 대기)`
+- C-10 · docs/specs/SRS.md:1342 · `답변(확정 대기)`
 - C-11 · docs/specs/SRS.md:2294 · `답변(확정 대기)`
-- C-12 · (파일 미지정 · 일반 코멘트) · `대기`
+- C-12 · (파일 미지정 · 일반 코멘트) · `답변(확정 대기)`
 - C-13 · docs/specs/SRS.md:239 · `답변(확정 대기)`
 - C-14 · docs/specs/SRS.md:1103 · `답변(확정 대기)`
-- C-15 · docs/specs/SRS.md:1112 · `대기`
+- C-15 · docs/specs/SRS.md:1112 · `답변(확정 대기)`
 - C-16 · docs/specs/SRS.md:233 · `답변 게시함(Scott 합의 대기·차주 반영)`
-- C-17 · docs/specs/SRS.md:1732 · `대기`
-- C-18 · docs/specs/SRS.md:1763 · `대기`
+- C-17 · docs/specs/SRS.md:1732 · `답변(확정 대기)`
+- C-18 · docs/specs/SRS.md:1763 · `답변(확정 대기)`
 - C-19 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1833 · `답변(확정 대기)`
 - C-20 · docs/specs/SRS.md:1727 · `답변(확정 대기)`
 - C-21 · docs/specs/SRS.md:1862 · `답변(확정 대기)`
