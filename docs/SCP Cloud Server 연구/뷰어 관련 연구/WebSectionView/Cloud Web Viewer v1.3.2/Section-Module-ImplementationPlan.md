@@ -223,7 +223,7 @@
 
 #### T-P2-2 — Slice 이동·동기
 
-- [x] **완료** — 2026-07-14 core `clampSectionCenterMm`, `useScoutAxialUi` stepSectionSlice(휠)·setSectionSliceIndex(슬라이더)·arcTotalMm. SectionGrid 휠·R/L 슬라이더 실배선, 타일 번호=전체 slice(windowStart+i+1)·중앙 굵게·흰색. Scout/Pano Active line 자동 동기. Scout 선 위 1~9 라벨 제거. UT-SEC-011/012 통과 + 사용자 시각 확인(#36→수정). (WebGL/Canvas2D 두 타일 경로 모두 수정)
+- [x] **완료** — 2026-07-14 core `clampSectionCenterMm`, `useScoutAxialUi` stepSectionSlice(휠)·setSectionSliceIndex(슬라이더)·arcTotalMm. SectionGrid 휠·R/L 슬라이더 실배선, 타일 번호=전체 slice(windowStart+i+1)·중앙 굵게·흰색. Scout/Pano Active line 자동 동기. Scout 선 위 1~9 라벨 제거. UT-SEC-011/012 통과 + 사용자 시각 확인(#36→수정). (WebGL/Canvas2D 두 타일 경로 모두 수정) **정합 수정(2026-07-14)**: `clampSectionCenterMm`가 center를 interval 격자 스냅 + Scout tick을 archCtx 동일 소스(s=m·interval)로 통일 → tick·9 Active line·생성이 같은 slice 격자에 정확히 정합(UT-SEC-011b).
 
 | 필드 | 값 |
 |------|------|
@@ -273,7 +273,8 @@
 
 #### T-P3-1 — Scout Active line 이동·폭 조절
 
-- [x] **완료** — 2026-07-14 core `sectionWidthFromHandleMm`(대칭 폭·clamp). ScoutView: 중앙 Active line 끝 control point 대칭 드래그로 Section 가로폭(draft→drop 커밋), 선 드래그로 위치 이동(clamped), hover 커서(끝=ew-resize·선=move). control point = **녹색 테두리·Section 선 방향 회전**. Sec 폭 슬라이더 병행 유지. UT-CTL-001 통과 + 사용자 확인.
+- [x] **완료** — 2026-07-14. **조작**: core `sectionWidthFromHandleMm`(대칭 폭·clamp, 범위 20~80mm=§3.4·D13). Center line 끝 control point 대칭 드래그→Section 가로폭(draft→drop 커밋), 선 드래그→위치 이동(clamped), hover 커서(끝=ew-resize·선=move, MMI 1.7-1a). 폭 핸들 네모=**녹색 테두리·속 비침·Section 선 방향 회전**(hs 7). Sec 폭 슬라이더 병행.
+  **Scout curve 렌더 정합(MMI 1.3, T-P7-5 선반영)**: ① Curve 제어점=**연두 꽉찬 네모(테두리 없음, ~13px)** ② **9개 Active line 모두 섹션 폭 길이** ③ 커브 위 tick 짧게(길이 동일)·minor 두껍게(흐림 개선)·**20mm 배수 밝은 빨강 `#CB6163`** ④ **20mm마다 L(안쪽)에 호장(mm) 숫자** ⑤ Center line 노랑·가늘게(1.3px) ⑥ B/L 흰색·section line 연장선 위 ⑦ **z-order: 제어점→커브→빨강 tick→노랑/삼각형**(MMI #49·#50·#52). UT-CTL-001 통과 + 사용자 확인.
 
 | 필드 | 값 |
 |------|------|
@@ -507,7 +508,7 @@
 
 #### T-P7-2 — 3-뷰 Title Bar 골격 (라벨·Curve 관리·아이콘 클러스터)
 
-- [x] **완료** — 2026-07-13 공용 `ViewTitleBar.tsx` 신규(라벨·slider·Image Adjust/Setting/최대화 아이콘). Scout Curve 관리(Draw↔Curve1 chip+편집+삭제) 토글, dev 컨트롤은 Setting 뒤로. 사용자 시각 확인(골격 정합). 세부 픽셀 폴리시는 T-P7-4/5/6 병행
+- [x] **완료** — 2026-07-13 공용 `ViewTitleBar.tsx` 신규(라벨·slider·Image Adjust/Setting/최대화 아이콘). Scout Curve 관리(Draw↔Curve1 chip+편집+삭제) 토글, dev 컨트롤은 Setting 뒤로. 사용자 시각 확인(골격 정합). **아이콘은 CW 원본 SVG 사용**(2026-07-14): `TitleImageAdjustIcon`·`TitleSettingIcon`·`TitleMaximizeIcon`/`TitleNormalizeIcon`(fill=currentColor). 세부 픽셀 폴리시는 T-P7-4/5/6 병행
 
 | 필드 | 값 |
 |------|------|
