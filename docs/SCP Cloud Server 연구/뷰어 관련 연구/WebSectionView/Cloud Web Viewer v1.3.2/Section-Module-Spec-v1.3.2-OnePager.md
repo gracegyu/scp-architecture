@@ -151,6 +151,17 @@ Draw/Edit 모드에서 Panorama·Section 입력 영역(title 제외)은 disabled
 - **Section 단면도 동일**하게 slab 두께(0~30mm, §1.10)를 가지며 투영 방식은 파노라마와 같은 규칙(D12)을 따른다.
 - **엔진 영향(재작성 불필요):** `scp-section-core`의 slab 코드는 이미 두께·투영을 파라미터화한다. 필요한 변경은 (1) 기본 Thickness 0(thin), (2) 파노라마 재슬라이스를 **navigator offset 위치**에서 생성(P/A 스윕 신규), (3) 투영 기본값을 D12 확정값으로 설정. → IP T-P3-4·T-P3-5·T-P3-6.
 
+### 3.4 MMI 미명시 — 개발실 정의 값 (파라미터)
+
+MMI가 **기본값만 명시하고 범위/한계를 정하지 않은** UI 파라미터를 개발실이 확정한 값. MMI 갱신 또는 기획 회신 시 갱신한다. (기준: 2026-07-14 개발실)
+
+| 항목 | 개발실 확정 값 | MMI 명시 | 비고 |
+|------|--------------|----------|------|
+| **Section 가로폭**(Active section line 길이 = Buccolingual 폭) | 기본 **30mm**, 범위 **20~80mm** (control point 대칭 드래그·slider) | 기본 30mm만(1.3-3a), **범위 미명시** | 드래그/슬라이더 공통 clamp. `sectionWidthFromHandleMm(_, 20, 80)` |
+| **Section 세로폭**(Z 구간, 경계선 간격) | 기본 **60mm**(`DEFAULT_SECTION_HEIGHT_MM`) | Pano 경계선 기본 100mm(1.4-1)와 별개, Section Z 기본 미명시 | 경계선 대칭 드래그로 조절(T-P3-2) |
+
+> Thickness 범위(0~30mm)·combo 옵션은 MMI(Slide20)·CW `SLICE_THICKNESSES` 근거가 있어 여기 포함하지 않음(§1.10·§12-D8).
+
 ## 4. Overlay 표시 규칙 (MMI 1.13 §6)
 
 계측·주석(Length·Angle·Arrow·Free Draw) 귀속·표시. Clever One 기반. **MPR 레이아웃과 공유하지 않음.**
@@ -333,6 +344,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | D10 | B/L 결정 시점·기준점 역할 | **확정** — B/L은 최초 P1·P2로 **1회 고정**, 이후 편집(P3+·P1/P2 이동)에 재판정 없음. 변경은 수동 L/B Switching만. BL/LB 기준점 이동은 B/L 무영향(§5) | 기획 회신 반영 완료 |
 | D11 | 파노라마·단면 생성 모델 | **확정**(기획 2026-07-13) — 파노라마 = 곡선 따라 **가느다란(기본 Th0) 재슬라이스를 P/A로 offset 스윕**(navigator line). PoC의 thick-MIP 고정 모델은 **정정**. Section도 동일 slab 두께 보유. MMI·Ez3D-i·CleverOne 동일(§3.3). *이전 MMI 분석 누락분* | 기획 확인 반영 완료 |
 | D12 | 슬랩 투영 방식 (max vs mean) | **미확정** — Thickness>0 slab 투영을 **최댓값(MIP)** vs **평균(mean)** 중 무엇으로 할지. CleverOne=평균(흐림), PoC=MIP. 기본값 기획 결정 후 고정. 엔진은 둘 다 지원(§3.3) | **기획 결정 대기** |
+| D13 | MMI 미명시 파라미터 범위 | **확정(개발실, 2026-07-14)** — MMI가 기본값만 준 값의 범위를 개발실이 정함: Section 가로폭 기본 30mm·**범위 20~80mm**, Section 세로폭 기본 60mm(§3.4). MMI/기획 갱신 시 갱신 | 개발실 정의 |
 
 ---
 
@@ -365,4 +377,5 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | **1.3** | **2026-07-13** | **접목 범위 확정(D1): CW vtk 미접목, Section(WebGL, poc 확장)만 구현 — §9 전면 재정리(스텁 채움 → embed 정합), §1·§2·Risk 재작성. B/L 새 규칙(D2): P1→P2 선분·C쪽=L 단일 규칙, 동적 반전 폐기 — §5 재작성. 접목 형태 패키지+공개 API(D4, §9.2). Save CW prj 호환+개발용 브라우저 임시 저장(D5, §7). 커버리지 poc 확장 전 기능(D6). 일정 목표1주/예상2주(D9)** |
 | **1.4** | **2026-07-13** | B/L **결정 시점 명확화(D10 확정)**: 최초 P1·P2로 1회 고정, 이후 P3+·P1/P2 이동 등 편집에 재판정 없음, 변경은 수동 L/B Switching만. 기준점 이동 B/L 무영향. §6에 **커브 종료=더블클릭**(우클릭=직전 취소) 행 명시 |
 | **1.5** | **2026-07-13** | **공유(VKS 리뷰)용 참조 정리**: "참조"를 org URL로 교체(MMI=SharePoint PPT, PLAN-1287=Jira, 개발실 리뷰=VKS), 내부 문서(개발계획·작업 가이드) 링크 제거. 본문 내부 인용(MMI.md 추출본·작업 가이드 §4.2) → 정본·출처 표기로 정리 |
+| **1.7** | **2026-07-14** | **§3.4 신설 — MMI 미명시·개발실 정의 값**: Section 가로폭 기본 30mm·**범위 20~80mm**, 세로폭 기본 60mm(D13). MMI는 기본값만 명시(1.3-3a)해 범위를 개발실이 확정, 별도 항목으로 추적 |
 | **1.6** | **2026-07-13** | **MMI 전면 재검토(38 슬라이드) — 파노라마 생성 모델 정정 + 누락 보강.** ① **파노라마 = thin 재슬라이스(기본 Th0)를 P/A로 offset 스윕**(navigator line), thick-MIP 고정 모델 정정 — 신규 **§3.3**·D11. ② **슬랩 투영 max vs mean = 기획 결정 대기(D12)**, CleverOne=평균. ③ **Section도 slab Thickness(0~30) 보유** 명시(§1.10). ④ **Thickness combo 옵션 {0,0.1,0.5,1,2,3,5,10,20,30}mm** + drag off-list 값 + **Voxel Based Interval**(§1.10). ⑤ 1.8 P/A slice=offset 스윕 명시. (MMI 1.3#8① 기준점 반전은 이미 D10에서 폐기 — 정합) |
