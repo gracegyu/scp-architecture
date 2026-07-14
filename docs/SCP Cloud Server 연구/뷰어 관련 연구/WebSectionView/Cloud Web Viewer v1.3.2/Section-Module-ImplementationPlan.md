@@ -327,12 +327,12 @@
 | 필드 | 값 |
 |------|------|
 | id | T-P3-4 |
-| title | 각 뷰 Setting 다이얼로그(**Thickness combo {0,0.1,0.5,1,2,3,5,10,20,30}mm** + drag off-list 값·**Interval: Scout=Voxel Based·Pano/Section=1mm**)·**Section slab 두께 노출**(Scout·Pano·Section 전 뷰)·Th 기본 0mm(slabHalfWidthMm=0)·ruler 전체 축. 상한 30mm는 드래그와 단일 `MAX_THICKNESS_MM`(T-P3-3) |
+| title | **CW `CTSliceSettingDialog` 이식**(§3.5): 기어→Popover(184px, live-apply), **Thickness combo {0,0.1,0.5,1,2,3,5,10,20,30}mm**(기본 0)·**Interval combo [Voxel Based Interval,0.1~10]**(Voxel Based→0=min voxel spacing). **뷰별 독립**(Scout·Pano·Section slab 두께 각자). 기존 PoC 슬라이더 박스 교체. Th 기본 0(slabHalfWidthMm=0)·ruler 전체 축. 상한 30mm=단일 `MAX_THICKNESS_MM`(T-P3-3) |
 | repo | scp-section-poc |
-| spec_refs[] | S-SPEC §3.1(1.2·1.10)·§3.3·§8, S-MMI §1.10(Slide20·27)·§1.2, S-CW `types/core/src/setting.ts`#SLICE_THICKNESSES@d063ae2 |
+| spec_refs[] | S-SPEC §3.1(1.2·1.10)·§3.3·§3.5·§8, S-MMI §1.10(Slide20·27)·§1.2, S-CW `workSpace/…/ctContent/CTSliceSettingDialog.tsx`·`workSpace/setting/index.ts`#SLICE_THICKNESSES/getSliceIntervals·`types/core/src/setting.ts`#IMPRViewSetting@d063ae2 |
 | depends_on[] | T-P2-1 |
-| outputs[] | `packages/core/src/panorama/panorama.ts`·`section/section.ts`, `components/src/*`(Setting 다이얼로그·SectionTileChrome) |
-| dod[] | UT-SET-001(Th=0 경로 픽셀)·UT-SET-002(combo 옵션값·상한 30mm·off-list drag 값 표시)·UT-SET-005(Section slab 두께 적용)·UT-SET-003(ruler 전체 축 눈금) + MT-SET-004 Setting UI(Th combo·Interval Voxel Based) |
+| outputs[] | `packages/core/src/panorama/panorama.ts`·`section/section.ts`, `components/src/*`(SettingDialog·SectionTileChrome), `hooks/useScoutAxialUi.ts`(뷰별 두께·interval 상태) |
+| dod[] | UT-SET-001(Th=0 경로 픽셀)·UT-SET-002(combo 옵션값·상한 30mm)·UT-SET-005(**뷰별 두께 독립** — Pano 변경이 Section 무영향)·UT-SET-006(Interval Voxel Based→min voxel spacing)·UT-SET-003(ruler 전체 축) + MT-SET-004 Setting Popover(Thickness·Interval combo) |
 | estimate | 2.5h |
 | risk | Th=0 경계 케이스(슬랩 루프)·전 뷰 두께 배선 |
 
@@ -343,14 +343,14 @@
 | 필드 | 값 |
 |------|------|
 | id | T-P3-5 |
-| title | 파노라마를 **thin 기본(Th0) 재슬라이스**로 정정 + **P/A 슬라이더 → 곡선 법선 offset 스윕**(navigator 위치에서 재생성) + Scout **Panorama navigator line** 동기 + 투영 방식 파라미터(기본값 D12 대기, MIP/mean 전환 가능). T-P7-3 Pano P/A 실배선 완성 |
+| title | 파노라마를 **thin 기본(Th0) 재슬라이스**로 정정 + **P/A 슬라이더 → 곡선 법선 offset 스윕**(navigator 위치에서 재생성) + Scout **Panorama navigator line** 동기 + **기본 투영 = 평균(mean)**(D12 확정, MIP는 Image Adjust 토글=T-P4-1). T-P7-3 Pano P/A 실배선 완성 |
 | repo | scp-section-poc |
 | spec_refs[] | S-SPEC §3.3·§3.1(1.3·1.8)·§12-D11·D12, S-MMI §1.3-5·§1.8-5, S-PLAN(2026-07-13 파노라마 회신) |
 | depends_on[] | T-P3-2 |
 | outputs[] | `packages/core/src/panorama/panorama.ts`(offset 재슬라이스·투영 param), `components/src/PanoramaView.tsx`·`ScoutView.tsx`(navigator line·P/A slider) |
 | dod[] | UT-PAN-001(navigator offset≠0 시 재슬라이스 곡선이 법선방향 이동)·UT-PAN-002(투영 param MIP↔mean 전환)·UT-PAN-003(Th0 thin 경로) + MT-PAN-004 P/A 스윕 시 Scout navigator line 동기·파노라마 깊이 변화 |
 | estimate | 3h |
-| risk | **D12(max/mean) 미확정** — 기본 투영값은 파라미터로 두고 확정 시 스위치. offset 재슬라이스 곡선 생성 신규 |
+| risk | offset 재슬라이스 곡선 생성 신규. (D12 확정: 기본 mean·MIP는 Image Adjust 토글) |
 
 ### P4 — Windowing/Filter·계측·Overlay
 
@@ -361,14 +361,14 @@
 | 필드 | 값 |
 |------|------|
 | id | T-P4-1 |
-| title | W/L + Smooth/Sharpen/Max Sharpen/Inverse/MIP, 전 단면 일괄·좌상단 text·뷰 간 동기 |
+| title | **CW `ImageAdjustDialog` 이식**(§3.6, 380px): W/L 슬라이더(mappingMin/Max=level∓ceil(w/2)) + 필터 토글 **Smooth·Sharpen·Max Sharpen·Inverse·MIP**(Smooth/Sharpen/MaxSharpen 상호배타·Inverse 공존) + **Revert**(원복). 3×3 커널(Smooth box 1/9·Sharpen edge-0.5/center5·MaxSharpen edge-1/center9·Inverse 1-rgb·MIP=slab 최대투영/D12). 전 단면 일괄·좌상단 text·뷰 간 동기 |
 | repo | scp-section-poc |
-| spec_refs[] | S-SPEC §3.1(1.11), S-MMI §1.11, S-REVIEW §4.4 |
+| spec_refs[] | S-SPEC §3.1(1.11)·§3.6·§12-D12, S-MMI §1.11, S-REVIEW §4.4, S-CW `workSpace/…/common/ImageAdjustDialog.tsx`·`content/utils/imageAdjust.ts`·`lib/vtkjs-wrapper/…/ESImageMapper`(3×3 conv)·`VolumeObject2D`(windowing·MIP)@d063ae2 |
 | depends_on[] | T-P2-2 |
-| outputs[] | `packages/core/src/section/section.ts`·`panorama/panorama.ts`, `components/src/*` |
-| dod[] | UT-FLT-001(각 필터 커널)·UT-FLT-002(뷰 간 W/L 동기) + MT-FLT-003 필터 시각 |
-| estimate | 2h |
-| risk | 필터별 화질·성능 |
+| outputs[] | `packages/core/src/section/section.ts`·`panorama/panorama.ts`(필터 커널·windowing), `components/src/*`(ImageAdjustDialog) |
+| dod[] | UT-FLT-001(각 필터 커널: box 1/9·sharpen·maxsharpen·inverse)·UT-FLT-002(뷰 간 W/L 동기)·UT-FLT-004(Smooth/Sharpen/MaxSharpen 배타·Revert 원복) + MT-FLT-003 필터 시각 |
+| estimate | 3h |
+| risk | 필터별 화질·성능. MIP는 slab(thickness>0) 필요(단일 slice no-op) |
 
 #### T-P4-2 — 계측 Length/Angle·Free Draw
 
@@ -705,6 +705,7 @@ flowchart LR
 
 | 일자 | 버전 | 인수자 | 내용 |
 |------|------|--------|------|
+| 2026-07-14 | v0.4 | — | **CW 다이얼로그 이식 상세화** — T-P3-4를 CW `CTSliceSettingDialog`(Popover·Thickness/Interval combo·뷰별 독립 두께·기본 0)로, T-P4-1을 CW `ImageAdjustDialog`(W/L·필터 3×3 커널·배타·Revert)로 refine(OnePager §3.5·§3.6 신설). **thickness 뷰별 분리 버그 수정**(panorama↔section 독립, 기본 0). DoD에 UT-SET-005/006·UT-FLT-004 추가 |
 | 2026-07-13 | v0.3 | — | **MMI 전면 재검토(38 슬라이드 병렬 감사) — 파노라마 생성 모델 정정 반영**(OnePager v1.6 동기). **신규 T-P3-5**(파노라마 thin 재슬라이스 + P/A offset 스윕 + navigator 동기 + 투영 param) 추가. **T-P3-4 확장**(Thickness combo 옵션값·off-list drag·Voxel Based Interval·**Section slab 두께**). Phase P3 2.5일, 합계 12.5일, Task 31→32. DAG·DoD 동기(T3e·UT-PAN-*·UT-SET-005). D12(max/mean 투영) **기획 결정 대기**로 T-P3-5 risk 명시. T-P7-3 Pano P/A 실배선은 T-P3-5 의존으로 갱신 |
 | 2026-07-13 | v0.2 | — | **MMI UI 정합 갭 보강** — MMI §1.2(Section Layout Overview) 뷰 크롬·오버레이가 기존 IP에 전용 태스크로 없던 것을 감사·발견하여 **신규 Phase P7(6 Task: 글로벌 바·뷰 Title Bar·per-panel Slice Slider·Info Overlay·Scout/Pano 렌더 스타일) 추가**. Phase 표·DAG·DoD 매핑 동기화(Task 24→30, Phase 7→8). 행동(P1~P4)과 시각 정합(P7) 분리, 중복 항목 상호 참조(ruler=P3-4·slice number=P2-2·B/L=P1-3). Thickness 드래그 30mm cap 확정(§12-D8) 반영분 포함 |
 | 2026-07-13 | v0.1a | — | **T-P0-5 추가** — CT 공급 인터페이스(`SectionCtProvider`) 추상화 + 외부 좌측 CT 패널로 모듈 경계 명확화(§9.4). Phase P0 "환경 정렬·경계"로 확장, DAG·DoD·Phase 표 동기화. (구현 병행 반영: P0 T-P0-1~5·T-P1-1 완료 체크) |
