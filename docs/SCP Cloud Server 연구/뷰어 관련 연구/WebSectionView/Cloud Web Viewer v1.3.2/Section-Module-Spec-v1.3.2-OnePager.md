@@ -104,13 +104,13 @@ MMI 정본(SharePoint PPT) Epic 1 Section Layout 전 항목. "MPR과 동일"로 
 | MMI | 기능 | 요구 상세 (MMI 정본) | 현재(poc) | Section 모듈 작업 | 상태 |
 |-----|------|----------------------|-----------|-------------------|------|
 | **1.1** | Layout 전환 | 기본 MPR. `[MPR]`·`[Section]` 토글, 활성 layout 표시 | 데모 탭만 | (2) 선택 UI + layout state. 라우팅은 접목 | 확정 |
-| **1.2** | 구성·정보 표시 | 3영역. 오버레이: Patient(좌상), W/L·Filter(우상), 상단 방향표기 = **R/L(Scout·Pano) / B/L(Section, Scout Section line 방향과 동일)**, thickness·interval·total slice(우하), ruler(우중앙). Slider(Scout H/F·Pano P/A·Section R/L). Scout Axial은 **MPR Axial과 뷰 비연동**(단 Th/INT는 MPR 서브모듈과 동기, 1.10). Image Adjust/Setting/**최대화(3뷰 공통, 최대화 시 그 뷰만 전체·타이틀 유지)** = MPR 동일 | 대부분 보유 | 오버레이·라벨·slider image23 정합. **Section ruler = 가로·세로 전체 축**(PoC는 영상 폭). **최대화 버튼은 최대화 시 복원(최소화) 아이콘으로 토글**(CW `ContentTitleBar` `maximized`·`TitleMaximizeIcon`/`TitleNormalizeIcon` 정합, §9.5) | 확정(ruler 갭) |
+| **1.2** | 구성·정보 표시 | 3영역. 오버레이: Patient(좌상), W/L·Filter(우상), 상단 방향표기 = **R/L(Scout·Pano) / B/L(Section, Scout Section line 방향과 동일)**, thickness·interval·total slice(우하), ruler(우중앙). Slider(Scout H/F·**Pano B/L**(구 P/A, §12-D15)·Section R/L). Scout Axial은 **MPR Axial과 뷰 비연동**(단 Th/INT는 MPR 서브모듈과 동기, 1.10). Image Adjust/Setting/**최대화(3뷰 공통, 최대화 시 그 뷰만 전체·타이틀 유지)** = MPR 동일 | 대부분 보유 | 오버레이·라벨·slider image23 정합. **Section ruler = 가로·세로 전체 축**(PoC는 영상 폭). **최대화 버튼은 최대화 시 복원(최소화) 아이콘으로 토글**(CW `ContentTitleBar` `maximized`·`TitleMaximizeIcon`/`TitleNormalizeIcon` 정합, §9.5) | 확정(ruler 갭) |
 | **1.3** | Scout Curve 요소 | Curve, Section line(전체 slice·빨강 수직), Active section line(9개, 폭=Section 가로폭 기본 **30mm**), Center section line(5번째·노랑·control point), Panorama navigator line(초록), Panorama thickness line(초록 한 쌍·control point), L/B 표시(흰 text), **BL/LB 기준점**(첫 point·연두 삼각형) | 곡선·line·라벨 보유 | line 요소 명확화, **BL/LB 기준점 신규**, B/L 자동(§5) | 확정 |
 | **1.4** | Panorama Line 요소 | 경계선(노랑, 기본 거리 **100mm**), 중심선(초록), Scout 위치선(흰 점선, 기본=중심선), Active section line(중 Center 다른 색) | 부분 | 경계선 100mm, 각 line 오버레이 | 확정 |
 | **1.5** | Draw Curve | 좌클릭=추가, 우클릭=직전 취소(1점이면 불가), 더블클릭=종료. 미리보기 실시간. **Section·Panorama는 curve 완료 후 표시(완료 전 blank)**. §6 상세 | 부분(점마다 생성) | ESC 미적용·1점 더블클릭 무시·완료 후 1회·Active line 실시간(§6) | 확정 |
 | **1.6** | Edit Curve | curve 이동, point 이동(drop 시 갱신)·삭제·추가(context menu, 최소 2점), Curve 삭제(확인 box), **L/B Switching**(text만 반전, 영상 flip 없음), **BL/LB 기준점 이동**(section line 따라 한 칸) | 편집 보유, 기준점 없음 | context menu, 기준점 drag, 확인 다이얼로그 | 확정 |
 | **1.7** | Scout 조작 | Active line 이동·**길이 조절**(Center line control point 대칭 드래그 — PoC는 slider), Panorama thickness 조절(대칭, **combo와 동일 30mm cap** — §12-D8), Scout slice 변경(휠·slider → Pano 위치선), 삭제·L/B Switching·기준점(편집 모드 동일) | slider 기반 | 드래그 핸들, thickness line 드래그(30mm clamp) | 확정 |
-| **1.8** | Panorama 조작 | 경계선 이동(세로폭, 대칭), 중심선 이동(drop 시 3뷰 갱신·Scout 위치선 동기), Active line 이동, **P/A slice 변경 = 재슬라이스를 곡선 법선방향으로 offset 스윕**(휠·slider → Scout **navigator line** 이동, §3.3). **±45° 회전 스펙아웃** | 위치 이동 보유 | 경계선·중심선·active line 드래그, **P/A offset 스윕 신규**(§3.3, IP T-P3-5). 회전 제외 | 확정 / ±45° 스펙아웃 |
+| **1.8** | Panorama 조작 | 경계선 이동(세로폭, 대칭), 중심선 이동(drop 시 3뷰 갱신·Scout 위치선 동기), Active line 이동, **B/L slice 변경(구 P/A, §12-D15) = 재슬라이스를 곡선 법선방향으로 offset 스윕**(휠·slider → Scout **navigator line** 이동, §3.3). **±45° 회전 스펙아웃** | 위치 이동 보유 | 경계선·중심선·active line 드래그, **B/L offset 스윕 신규**(§3.3, IP T-P3-5). 회전 제외 | 확정 / ±45° 스펙아웃 |
 | **1.9** | Section 조작 | **Slice 변경**(휠·slider → 9장·slice number·Scout/Pano Active line 동기), Center slice(5번째 강조), 최대화(3×3 유지·타이틀 유지, ⛶↔복원 토글), **개별 slice 더블클릭 최대화(더블클릭으로 복원)** | 중심 9장만 | **전체 slice 인덱싱·스크롤·페이징 신규**(§8 성능 핵심), slice number, 더블클릭 최대화/복원 | 확정(핵심 신규) |
 | **1.10** | Thickness/Interval | 각 뷰 Title Bar **Setting** 다이얼로그에서 조절, MPR 동일. **Thickness combo 옵션 = {0, 0.1, 0.5, 1, 2, 3, 5, 10, 20, 30}mm**(drag로 off-list 값 시 combo 미선택·필드에 원값 표시, MMI 1.7-3b). 기본 Th **0mm** = **전 뷰(Scout·Pano·Section 모두 slab 두께 보유** — Active line 가로폭·경계선 세로폭 extent와 **별개**). INT: Scout=**Voxel Based Interval**(MPR 동기)·Pano/Section=1mm. 변경 시 오버레이·total slice·slider·line 간격 갱신, **Section INT 변경 시 Active line 재중심**. Draw 중 Scout Th/INT 조정 시 curve 취소 없음(즉시 적용) | INT 보유, Th UI 없음·기본 full 6mm(=half 3mm) | **Th 기본 0mm**, Setting combo(옵션값), **Section slab 두께 명시·뷰별 독립**(Scout·Pano·Section 각자), combo·drag 공통 상한 30mm(§12-D8·§9.5). **Setting 다이얼로그 상세 §3.5**, 생성 모델 §3.3 | 확정 |
 | **1.11** | Windowing/Filter | Image Adjust: W/L + Smooth/Sharpen/Max Sharpen/Inverse/MIP + Revert. 전 단면 일괄, 좌상단 text. **CW `ImageAdjustDialog` 이식(필터 알고리즘 포함) — 상세 §3.6** | Windowing만 | CW 다이얼로그·필터 커널 이식(§3.6), 뷰 간 동기 | 확정 |
@@ -146,21 +146,34 @@ Draw/Edit 모드에서 Panorama·Section 입력 영역(title 제외)은 disabled
 **정정 배경:** MMI 전면 재검토 + 기획 확인 결과, PoC의 "치열궁 곡선에 두꺼운 slab을 MIP(최댓값)로 투영해 **고정** 파노라마 생성" 모델은 MMI와 다르다. Ez3D-i·CleverOne·MMI 모두 아래 모델이며, 이전 MMI 분석에서 이 생성/네비 모델을 놓쳤다.
 
 - **파노라마 = 곡선을 따라가는 가느다란(기본 Thickness 0mm = 1 voxel) 재슬라이스.** 두꺼운 MIP가 기본이 아니다.
-- **P/A 슬라이더로 재슬라이스 위치를 곡선의 법선방향으로 offset 스윕**(안↔바깥). 이 위치를 Scout에 **Panorama navigator line**(곡선을 offset한 초록선, 기본 = 곡선 위)로 표시한다(MMI 1.3-5·1.8-5). 파노라마는 곡선 고정이 아니라 **이동식 offset 재슬라이스**다.
+- **B/L 슬라이더(구 P/A, §12-D15)로 재슬라이스 위치를 곡선의 법선방향으로 offset 스윕**(L 설측↔B 협측). 이 위치를 Scout에 **Panorama navigator line**(곡선을 offset한 초록선, 기본 = 곡선 위)로 표시한다(MMI 1.3-5·1.8-5). 파노라마는 곡선 고정이 아니라 **이동식 offset 재슬라이스**다. (법선=B/L 축이라 arch가 아닌 curve에서도 성립 — 그래서 P/A→B/L로 명칭 확정.)
 - **Thickness > 0일 때만 slab**이 되며, 투영 방식 **기본 = 평균(mean)** — 기획 확정(§12-D12, 2026-07-14). **최댓값(MIP)은 Image Adjust 필터 토글**로만(§3.6). 엔진은 둘 다 파라미터로 지원(기본 preset `mean`).
+- **슬랩 두께 샘플링 알고리즘(§12-D16, 개발실 정의 — CW 소스 분석 근거).** 슬랩은 XY 평면 내 방향(파노라마=곡선 법선, 단면=곡선 접선)으로 두께를 갖는다. **공식(구현 가능 수준):**
+  1. **샘플 스텝** `stepMm = slabSampleStepMm > 0 ? slabSampleStepMm : max(1e-3, min(spacing[0], spacing[1]))` — 명시값 없으면 **in-plane 최소 voxel spacing**에 자동 연동(스텝을 지정하지 않은 게 기본; 슬랩이 XY 평면이라 Z spacing 불필요).
+  2. **반쪽 샘플 수** `nHalf = max(0, round((thickness/2) / stepMm))`.
+  3. **샘플 offset(mm)** `tmm = k · stepMm`, `k = −nHalf … +nHalf` → 총 `2·nHalf+1`개, **중앙 대칭·최소 1개**.
+  4. 각 offset 위치(`pos + tmm·n̂`)에서 **trilinear 보간**으로 HU 추출 → 리스트를 `mean`(기본)/`mip`(토글, §3.6)로 축약.
+  - **sub-voxel 처리:** voxel(보통 0.2~0.4mm)보다 얇은 두께(0mm·0.1mm 등)는 `round((thickness/2)/step)=0` → `nHalf=0` → **단일 중앙 샘플 1장**(0mm와 동일, 평균/MIP 무의미). **평균/MIP는 `nHalf≥1`(≈두께 ≥ 1 voxel)일 때만 실효.**
+  - CW MPR 의도 공식 `max(1, round(thickness/voxelSpacing))`과 동치. ⚠ **CW 현행 MPR은 reslice Z=1 하드코딩으로 두께 미반영(stripped/미완성)** — 우리 엔진은 위 공식으로 정상 구현.
 - **Section 단면도 동일**하게 slab 두께(0~30mm, §1.10)를 가지며 투영 방식은 파노라마와 같은 규칙(D12)을 따른다.
-- **엔진 영향(재작성 불필요):** `scp-section-core`의 slab 코드는 이미 두께·투영을 파라미터화한다. 필요한 변경은 (1) 기본 Thickness 0(thin), (2) 파노라마 재슬라이스를 **navigator offset 위치**에서 생성(P/A 스윕 신규), (3) **기본 투영 = 평균(mean)**(D12 확정), MIP는 Image Adjust 토글. → IP T-P3-4·T-P3-5·T-P4-1.
+- **엔진 영향(재작성 불필요):** `scp-section-core`의 slab 코드는 이미 두께·투영을 파라미터화한다. 필요한 변경은 (1) 기본 Thickness 0(thin), (2) 파노라마 재슬라이스를 **navigator offset 위치**에서 생성(B/L 법선 스윕 신규, 구 P/A), (3) **기본 투영 = 평균(mean)**(D12 확정), MIP는 Image Adjust 토글. → IP T-P3-4·T-P3-5·T-P4-1.
 
 ### 3.4 MMI 미명시 — 개발실 정의 값 (파라미터)
 
-MMI가 **기본값만 명시하고 범위/한계를 정하지 않은** UI 파라미터를 개발실이 확정한 값. MMI 갱신 또는 기획 회신 시 갱신한다. (기준: 2026-07-14 개발실)
+MMI가 **값·범위·동작 방식·표기 의미를 명확히 규정하지 않은** UI 항목을 개발실이 확정한 값. (기본값만 주고 범위 미정, 또는 요소 명칭만 주고 의미/간격/렌더 방식 미정 등 모두 포함.) MMI 갱신 또는 기획 회신 시 갱신한다. (기준: 2026-07-14 개발실)
 
 | 항목 | 개발실 확정 값 | MMI 명시 | 비고 |
 |------|--------------|----------|------|
 | **Section 가로폭**(Active section line 길이 = Buccolingual 폭) | 기본 **30mm**, 범위 **20~80mm** (control point 대칭 드래그·slider) | 기본 30mm만(1.3-3a), **범위 미명시** | 드래그/슬라이더 공통 clamp. `sectionWidthFromHandleMm(_, 20, 80)` |
 | **Section 세로폭**(Z 구간, 경계선 간격) | 기본 **60mm**(`DEFAULT_SECTION_HEIGHT_MM`) | Pano 경계선 기본 100mm(1.4-1)와 별개, Section Z 기본 미명시 | 경계선 대칭 드래그로 조절(T-P3-2) |
+| **Panorama navigator line 가시성·기본 위치**(MMI 1.3-5) | **커브가 존재하는 모든 모드에서 상시 표시**(단선·초록). 기본 위치 = **커브와 겹침(offset 0)**, B/L 슬라이더(구 P/A)로만 이동(Scout에선 조작 불가·읽기전용, MMI 1.7-4①·1.8-5①) | 1.3-5① "Default=curve와 동일"·1.8-5(slider 이동)만. **가시 토글·offset 범위(스윕 폭) 미명시** | offset 0 기본이라 커브와 겹쳐 별도로 안 보이며, 슬라이더 이동 시에만 분리 표시. **B/L 스윕 mm 범위 미확정** → T-P3-5에서 개발실 잠정값 지정 후 여기 기록 |
+| **Panorama thickness line 가시성**(MMI 1.3-6) | **커브가 존재하는 모든 모드에서 상시 표시**(초록 한 쌍+control point). thickness=0이면 한 쌍이 커브에 겹쳐 사실상 안 보임. **조절(드래그)은 일반·Edit 모드만**(Draw 모드는 클릭=point 입력, Appendix 모드표) | 1.3-6(정의)·1.7-3(대칭 드래그)만. **별도 가시 토글 없음**(= 상시) | control point는 커브 시작점(s=0)·끝점(s=totalMm) 각 ±thickness/2에 표시(총 4개) |
+| **Scout 커브 눈금·숫자의 의미·간격**(MMI 1.3 Section line) | **slice 번호 기준**: 짧은 tick=매 slice(호장 s=m·interval), **major(밝은 빨강+흰 숫자)=매 `20`번째 slice(`m % 20 === 0`), 숫자=slice 번호 `m`**. 총 호장 길이(mm)는 커브 끝 별도 라벨(별개) | MMI 1.3은 요소 **명칭만** 규정, 커브 위 **숫자/눈금의 의미(mm? slice?)·라벨 간격(몇 배수?)** 미명시(image26은 도식·간격만 암시) | **근거:** MMI image19 실데이터의 Section 타일이 slice 번호(109·110…)·"Total Slice 635"로 인덱싱 → 커브 숫자도 동일 slice 번호여야 correlation. **major 간격 20 slice**는 image26이 20 배수로 보여 개발실이 채택(미명시). interval 변경 시 총 slice 수 따라 갱신 |
+| **Section 타일 이미지 fit 방식**(MMI 1.9) | **contain**(단면 W×H 전체가 보이게 종횡비 유지·letterbox) | MMI는 "꽉차게/여백" 명시 없음(image19는 거의 정사각 타일) | cover(꽉참)는 H>W 시 세로 crop되어 파노라마 H 조절이 안 보이는 문제 → contain 채택. 종횡비가 타일과 다르면 좌우 여백 불가피(§변경이력 1.13) |
 
 > Thickness 범위(0~30mm)·combo 옵션은 MMI(Slide20)·CW `SLICE_THICKNESSES` 근거가 있어 여기 포함하지 않음(§1.10·§12-D8).
+
+> **참고(2026-07-14):** 초기에 ScoutView가 그리던 **고정 offset 초록 한 쌍**(`COLOR_GUIDE` placeholder)은 MMI 1.3에 없는 요소라 **제거**했다. 이제 Scout의 초록 offset 한 쌍은 **thickness line(6번)으로 일원화** — 두께>0일 때만 ±(th/2)로 벌어져 보이고, 시작·끝점 각 ±half에 control point 4개가 **빨간 tick/Active line 위(맨 위 레이어)** 에 표시된다(image26). 두께=0이면 곡선 위로 collapse(네모는 시작·끝점에 위치, 드래그로 확장). (5) navigator(단선)는 아직 미구현 — **T-P3-5**.
 
 #### 3.4.1 오버레이 색상 (RGB) — 임시, GUI styleguide 확정 전
 
@@ -168,18 +181,20 @@ MMI가 **기본값만 명시하고 범위/한계를 정하지 않은** UI 파라
 
 | 요소 | RGB | 상수 |
 |------|-----|------|
-| Curve 선 | `#20EE31` (밝은 녹색) | `COLOR_CURVE` |
+| Curve 선(악궁 커브) | `#FFD21E` (**노랑** — MMI 1.3 정본; 타 슬라이드는 연두이나 1.3 우선) | `COLOR_CURVE` |
 | Curve 제어점 네모(내가 찍은 점) | `#30B138` | `COLOR_CTRL_POINT` |
 | BL/LB 시작점 삼각형 · "BL/LB" 글자 | `#30B138` | `COLOR_CTRL_POINT` |
 | B/L 폭 핸들(Center line control point) 테두리 | `#20EE31` | `COLOR_HANDLE_BORDER` |
-| 커브 바깥 가이드선(짧은 tick 바로 바깥) | `#1F8225` (어두운 녹색) | `COLOR_GUIDE` |
+| ~~커브 바깥 가이드선~~ | — (제거됨, 2026-07-14 — MMI 1.3 미존재 placeholder) | ~~`COLOR_GUIDE`~~ |
+| Panorama thickness line(초록 한 쌍+control point 4개) | `rgba(45,205,130,·)` (초록) | (리터럴) |
 | Center section line(중앙, 노랑) | `#FFE046` | `COLOR_SEC_CENTER` |
 | Section line 일반(minor tick·Active line) | `#683838` | `COLOR_SEC_MINOR` |
-| Section line 20mm 배수(major tick·Active line) | `#DB696B` | `COLOR_SEC_MAJOR` |
-| B/L 텍스트(**curve 양 끝점** 좌우, MMI 1.3-7c) · 20mm 호장 숫자 | `#FFFFFF` | — |
-| 호장 길이 라벨(시작점 `0.00 mm`, 끝점 `<총길이> mm`, 접선 바깥) | `#20EE31` | `COLOR_CURVE` |
+| Section line **20 배수 slice**(major tick·Active line) | `#DB696B` | `COLOR_SEC_MAJOR` |
+| B/L 텍스트(**curve 양 끝점** 좌우, MMI 1.3-7c) · **slice 번호(20 배수 slice)** | `#FFFFFF` | — |
+| 호장 길이 라벨(끝점 `<총길이> mm`, 접선 바깥; 시작점 `0.00 mm`는 제거) | `#20EE31` (초록) | `COLOR_ARC_LABEL` |
+| Panorama 두께값 라벨(시작 thickness 선 L쪽 `<두께> mm`) | `rgb(45,205,130)` (초록) | (리터럴) |
 
-> Section line 색 규칙: **중앙=노랑 / 20mm 배수=`#DB696B`(major) / 그 외=`#683838`(minor)** — 짧은 tick과 9개 Active line에 **동일 적용**. 9 window slice 위치엔 짧은 tick을 그리지 않는다(겹침 방지). 20mm 배수 호장 숫자는 L(안쪽)에 흰색·커브 접선에 평행.
+> **Scout 커브 눈금·숫자 = slice 번호 기준(호장 mm 아님, 2026-07-14 정정).** 짧은 tick = 매 slice(호장 s=m·interval), **major(밝은 빨강+흰 숫자) = 매 20번째 slice(`m % 20 === 0`), 숫자 = slice 번호 `m`**. MMI Section 타일 slice 번호(109·110…·Total Slice 635)와 동일 인덱싱 → 커브 위치↔타일 번호 correlation. **interval 변경 시 총 slice 수가 달라져 major 위치·개수가 갱신**된다. 총 호장 길이(mm)는 커브 끝의 별도 라벨. Section line 색 규칙(중앙=노랑 / 20배수 slice=`#DB696B` / 그 외=`#683838`)은 짧은 tick·9 Active line에 동일 적용, 9 window slice 위치엔 짧은 tick 생략(겹침 방지). 숫자는 L(안쪽)·흰색·접선 평행.
 
 ### 3.5 Setting 다이얼로그 (Thickness / Interval) — CW `CTSliceSettingDialog` 이식
 
@@ -194,6 +209,8 @@ MMI가 **기본값만 명시하고 범위/한계를 정하지 않은** UI 파라
 - 스키마: CW `IMPRViewSetting { defaultThickness, defaultInterval, defaultZoom }`(types/core `MPRViewThicknessType`·`MPRViewIntervalType`). Section 모듈은 이 값 형태를 재사용.
 - **combo이며 슬라이더/연속범위 아님**(원본 확정). "0.1~10"은 discrete 옵션 범위를 의미.
 - Scout Setting 버튼은 **기존 PoC 슬라이더 박스를 이 다이얼로그로 교체**(T-P3-4).
+
+> **구현 현황(2026-07-14, T-P3-4 부분 완료)**: `components/src/SettingDialog.tsx` 신설, Scout/Panorama/Section 3뷰 기어에 배선. Thickness는 뷰별 독립(`panoramaThicknessMm`/`sectionThicknessMm`/`scoutThicknessMm`). **잔여/편차**: (a) **Interval은 현재 3뷰가 단일 `curveEditor.sectionInterval`을 공유(버그)** — MMI 1.10-3①은 뷰별 독립(Scout=Z축 스크롤·Section=호 방향·Panorama=P/A 스텝, 각 의미 상이). **정정 대상 = §12-D15(기획 확인 완료 2026-07-14: 3뷰 독립·Panorama=법선 offset 스텝·슬라이더 B/L), IP T-P3-6.** (b) **Scout thickness는 placeholder**(상태만 존재, Scout 렌더 미적용 — MPR 슬랩 동기 예정). (c) 기존 dev 컨트롤(투영/렌더/연산 모드, WC/WW 슬라이더)은 다이얼로그 하단 '개발용' 블록으로 임시 이동(WC/WW는 T-P4-1 Image Adjust로 이전 예정).
 
 ### 3.6 Image Adjust 다이얼로그 (Windowing · Image Filter) — CW `ImageAdjustDialog` 이식
 
@@ -239,6 +256,7 @@ Title Bar의 **Image Adjust(대비) 아이콘** 클릭 → **Dialog**(폭 **380p
 - **결정 시점(1회 고정):** B/L은 **P1·P2가 처음 정해지는 순간 1회 결정**되고 그 값으로 **고정**된다. 이후 P3 이상 추가, 그리기 완료 후 P1/P2 이동 등 **어떤 곡선 편집에도 재판정하지 않는다.** 이후 방향 변경은 **수동 L/B Switching만**으로 한다.
 - **BL/LB 기준점:** 첫 점 P1 위치의 시각 표식(MMI 1.3 #8). **기준점 이동은 B/L에 영향 없음** — MMI 1.3 #8①의 "기준점 중심 반전"은 폐기(§12-D10). 방향 반전은 L/B Switching으로만. **이동 기능의 용도 자체는 미확정(§12-D14, 기획 확인 대기)** — 현재 드래그는 되나 무효과라 정적 표식으로 정리 검토.
 - **수동 override:** MMI 1.6 **L/B Switching**으로 `blPolarity` 토글(고정된 자동 판정을 사용자가 반전). 텍스트만 반전, 영상 flip 없음.
+- **BL/LB 기준점(삼각형)의 시각 반전 (NEW, 2026-07-14):** MMI 1.3-8은 "이 삼각형 아이콘의 **위치/방향을 기준으로** Section의 B/L 표기 방향이 결정된다"고 규정한다. 즉 삼각형은 현재 B/L 방향을 나타내는 표식이므로, **L/B Switching으로 `blPolarity`가 토글되면 Section·Scout 텍스트 라벨과 함께 삼각형(아이콘 방향 및 "BL/LB"↔"LB/BL" 텍스트)도 반전되어야 한다.** ← **현재 미구현**(삼각형은 CT중심 기준 기하로만 그려져 `blPolarity`와 무연동). **B/L Switching 작업 시 함께 구현**(IP T-P1-4 잔여 / B/L 스위치 연동). 이는 폐기된 1.3-8①(기준점 *위치*가 active line 중앙을 지나면 자동 반전)과는 **다른 항목**이다 — 1.3-8①은 D2·D10으로 폐기 유지, 본 항목은 "삼각형이 현 blPolarity를 시각적으로 반영"하는 것.
 - **예외:** 점이 1개뿐이면 P2 미정 → 라벨 미표시(2점 입력 시 확정·고정).
 
 **구현:** `packages/core/src/bl/blPolarity.ts` — (P1, P2, C) → `blPolarity`. **P1·P2 최초 확정 시 1회 계산 후 고정**(이후 편집 시 재계산 안 함), `SectionGrid` 타일 B/L text·`ScoutView` 라벨에 매핑. prj 저장은 `blPolarity`(B/L Switching 상태) + 기준점 좌표(§7).
@@ -400,6 +418,8 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | D12 | 슬랩 투영 방식 (max vs mean) | **확정(기획 2026-07-14)** — Thickness>0 slab 투영 **기본 = 평균(mean)**. **MIP(최댓값)는 Image Adjust 다이얼로그의 필터 토글**로만 선택(§3.6). (임상적으론 다소 이상하나 요구사항.) 엔진은 둘 다 지원, 기본 preset=`mean` | 기획 확인 반영 완료 |
 | D13 | MMI 미명시 파라미터 범위 | **확정(개발실, 2026-07-14)** — MMI가 기본값만 준 값의 범위를 개발실이 정함: Section 가로폭 기본 30mm·**범위 20~80mm**, Section 세로폭 기본 60mm(§3.4). MMI/기획 갱신 시 갱신 | 개발실 정의 |
 | D14 | BL/LB 기준점(삼각형) 이동 기능 용도 | **미확정 — 기획 확인 대기.** D10으로 "기준점 위치 기반 B/L 반전"이 폐기되어 삼각형을 드래그해도 **기능적 효과가 없다**(순수 표식만 이동). MMI 1.6-8/1.7-7의 "기준점 이동"도 원래 *개발실 리뷰 후 적용 여부 확정(TBD)*. **선택지**: (a) 드래그 제거·시작점 **정적 표식**(D10과 가장 일관, 개발실 권장), (b) 이동에 별도 용도 부여, (c) 현행 유지(이동하나 무효과). 기획 회신 필요 | **기획 확인 대기** |
+| D16 | **슬랩 두께 샘플링 알고리즘 + sub-voxel(0.1mm) 처리** | **확정(개발실, 2026-07-14 — CW 소스 분석 근거).** MMI·기획 모두 알고리즘 미규정 → CW MPR 소스 분석으로 결정. **공식은 §3.3에 구현 수준으로 기재**: `stepMm=slabSampleStepMm>0?그값:max(1e-3,min(spacing[0],spacing[1]))`(기본 0=voxel 자동연동), `nHalf=max(0,round((thickness/2)/step))`, 샘플 `tmm=k·step (k=−nHalf..+nHalf)` → trilinear → mean(기본)/mip(토글). **sub-voxel(0·0.1mm)=단일 중앙 샘플 1장**, 평균/MIP는 `nHalf≥1`일 때만. CW 의도식 `max(1,round(thickness/voxelSpacing))` 동치. **CW 현행 MPR은 두께 미반영(reslice Z=1, stripped)** — 우리 엔진이 정상. 구현: `panorama.ts`·`section.ts`. | 개발실 정의(CW 분석) |
+| D15 | **Interval 뷰별 독립 + Panorama Interval 용도** | **확정(기획 회신 2026-07-14).** MMI 1.10-3① "각기 다르게 적용" = **3 뷰 Interval 독립**(CleverOne도 독립 동작 — A3). 의미: **Scout=축(Z) 슬라이스 스크롤(MPR 동기·Voxel Based)** (A1 확정), **Section=호 방향 단면 간격(Scout·Pano의 Section line 간격도 구동, 1.10-3b)** (A1 확정), **Panorama=곡선 법선방향 offset 스텝**(Interval만큼 offset 주며 파노라마 위치 이동, A2 확정). **★ 명칭 변경(A2 후속):** 파노라마 슬라이더 **`P/A` → `B/L`** — 법선 방향이 곧 Buccal/Lingual 축이며, arch가 아닌 curve(세로 등)에서는 P(Posterior)/A(Anterior)가 성립 안 함. 기획이 MMI를 B/L로 업데이트 예정. **구현:** 3뷰 독립 interval(T-P3-6) + 파노라마 슬라이더/ navigator B/L 표기(T-P3-5). | 기획 회신 반영 완료 |
 
 ---
 
@@ -432,6 +452,11 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | **1.3** | **2026-07-13** | **접목 범위 확정(D1): CW vtk 미접목, Section(WebGL, poc 확장)만 구현 — §9 전면 재정리(스텁 채움 → embed 정합), §1·§2·Risk 재작성. B/L 새 규칙(D2): P1→P2 선분·C쪽=L 단일 규칙, 동적 반전 폐기 — §5 재작성. 접목 형태 패키지+공개 API(D4, §9.2). Save CW prj 호환+개발용 브라우저 임시 저장(D5, §7). 커버리지 poc 확장 전 기능(D6). 일정 목표1주/예상2주(D9)** |
 | **1.4** | **2026-07-13** | B/L **결정 시점 명확화(D10 확정)**: 최초 P1·P2로 1회 고정, 이후 P3+·P1/P2 이동 등 편집에 재판정 없음, 변경은 수동 L/B Switching만. 기준점 이동 B/L 무영향. §6에 **커브 종료=더블클릭**(우클릭=직전 취소) 행 명시 |
 | **1.5** | **2026-07-13** | **공유(VKS 리뷰)용 참조 정리**: "참조"를 org URL로 교체(MMI=SharePoint PPT, PLAN-1287=Jira, 개발실 리뷰=VKS), 내부 문서(개발계획·작업 가이드) 링크 제거. 본문 내부 인용(MMI.md 추출본·작업 가이드 §4.2) → 정본·출처 표기로 정리 |
+| **1.15** | **2026-07-14** | **Scout 커브 숫자 = slice 번호로 정정(중요)**: MMI 재검토 결과 커브 위 숫자는 **호장 mm가 아니라 slice 번호**(Section 타일 109·110…·Total Slice 635와 동일 인덱싱)임을 확인. 구현: 짧은 tick=매 slice, **major·숫자=매 20번째 slice(`m%20===0`), 라벨=slice 번호 `m`**, 9 Active line major도 slice 번호 %20. **interval 변경 시 총 slice 수가 달라져 major가 갱신**됨(이전 arc-mm 방식은 interval 무관하게 20mm 고정이라 "반영 안 됨"으로 보였음). v1.14(arc-length 접근)는 폐기. §3.4.1 정정 |
+| **1.14** | **2026-07-14** | **(폐기·discard됨) Scout 20mm major tick arc-length 접근**: 기존 index 기반(`m % round(20/intv)`)→**호장 20mm 배수에 가장 가까운 tick 1개**(`|s−round(s/20)·20| < interval/2`). interval을 바꿔도 항상 20mm마다 major 1개. minor 촘촘해도 묻히지 않게 **major tick을 더 길게(반장 5.5mm vs minor 2.2)·굵게(2px vs 1)**. 숫자 라벨=`nearest20`. 9개 Active line major도 동일 기준. |
+| **1.13** | **2026-07-14** | **Section 타일 ruler·레이아웃 정합(MMI image19)**: ① ruler·slice번호·B/L을 **오버레이**로(reserved strip 제거) — WebGL·Canvas2D 두 경로 모두. ② **가로 ruler = 타일 전체 폭 바**(눈금은 이미지 원점 기준 mm로 배치). ③ **눈금 5mm(보조)·10mm(주)**. ④ 스케일 = **contain(단면 W×H 전체가 보이게 종횡비 유지·letterbox)**. **(설계 결정)** 초기 cover(꽉참) 시도는 **H>W일 때 세로가 crop되어 파노라마 경계선으로 H를 키워도 반영 안 되는 버그**를 유발 → contain으로 확정. contain은 H 변경이 항상 반영되고 이미지가 안 잘림(임상 정확). **대가:** 종횡비(예 30w×60h)가 타일과 다르면 좌우 여백 발생(불가피). **주의:** Scout B/L 핸들(W)·파노라마 경계선(H)은 **독립 데이터**지만, contain은 두 축으로 스케일을 맞추므로 W 변경 시 표시 배율이 바뀌어 W·H 표시가 함께 변함(왜곡 없는 fit의 특성, 데이터 결합 아님). `SectionTileChrome` 재작성. |
+| **1.12** | **2026-07-14** | **세로 스케일 바(ruler) 뷰별 길이·DICOM 척도 정합**: Scout **50mm**/Panorama **20mm**(공용 20mm→분리, MMI image19). 척도(mm→px)는 **DICOM 값 기반 확인**: Scout=`spacing[1]`(PixelSpacing Y, 0028,0030), Panorama=`spacing[2]`(SpacingBetweenSlices Z, 0018,0088). ⚠ DICOM에 PixelSpacing 없으면 로더가 `1\1`로 fallback → 척도 오차 가능(데이터 의존). `ViewVerticalScaleBar`에 `lengthMm` prop 도입. **눈금 간격: 작은 눈금 5mm·큰 눈금 10mm**(기존 1mm→5mm, MMI). |
+| **1.11** | **2026-07-14** | **MMI 1.3/1.4 렌더 정합(구현)**: ① 악궁 Curve **노랑**(`#FFD21E`, MMI 1.3 정본; 길이 라벨은 초록 분리). ② Scout thickness line·control point 4개(시작·끝점)를 **빨간 선 위(맨 위 레이어)** 로 이동, placeholder 가이드선 제거. ③ 시작 `0.00mm` 제거·끝 총길이 라벨 근접·시작선 L쪽 두께값 라벨. ④ **Panorama 상하 경계선 = 노란 실선**(점선→실선, MMI 1.4-1). ⑤ **Panorama Active section line은 상하 경계선 사이에만**(전체높이→밴드내, MMI 1.4-4·Slide13). ⑥ **Panorama 세로 Center section line = 노랑**(cyan→노랑, MMI 1.4-4① "다른 색상"; 가로 중심선은 초록 유지 1.4-2). ⑦ **Center section line이 상·하 경계선과 만나는 지점에 녹색 원 2개**(control point, image19/Slide13). ⑧ Scout 오버레이 interval 의존성 명시(Section interval 변경→Scout section/active line 간격 갱신, MMI 1.10-3b) |
 | **1.10** | **2026-07-14** | **D12 확정(기획)** — slab 투영 **기본 = 평균(mean)**, **MIP는 Image Adjust 필터 토글**로만(임상적으론 이상하나 요구사항). §3.3·§3.6·D12·코드 기본 preset `mip→mean` 반영. IP T-P3-5 갱신 |
 | **1.9** | **2026-07-14** | **§3.5(Setting 다이얼로그)·§3.6(Image Adjust 다이얼로그) 신설 — CW 이식 구현 스펙**. Setting: 기어→Popover, Thickness combo(0~30)·Interval combo(Voxel Based~10), **thickness 뷰별 독립**(파노라마↔Section 분리·기본 0). Image Adjust: W/L(mappingMin/Max)·필터(Smooth/Sharpen/MaxSharpen box1÷9·edge/center 커널·Inverse 1−rgb·MIP=slab투영/D12)·배타규칙·Revert. §1.10·1.11 행 갱신 |
 | **1.8** | **2026-07-14** | **§3.4.1 신설 — 오버레이 색상(RGB) 임시 지정 정리**(기획 회신: GUI styleguide 전달 전 임의색 무관). Curve `#20EE31`·제어점/삼각형 `#30B138`·Section line 노랑`#FFE046`/major`#DB696B`/minor`#683838` 등. Section line 색 규칙(중앙/20배수/그외)을 짧은 tick·9 Active line에 동일 적용, window 위치 tick 생략(겹침 방지) |
