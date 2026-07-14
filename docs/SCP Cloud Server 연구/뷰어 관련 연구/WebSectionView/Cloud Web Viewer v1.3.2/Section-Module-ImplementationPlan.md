@@ -337,9 +337,9 @@
 | estimate | 2.5h |
 | risk | Th=0 경계 케이스(슬랩 루프)·전 뷰 두께 배선 |
 
-#### T-P3-5 — 파노라마 생성 모델 정정 (thin 재슬라이스 + P/A offset 스윕)
+#### T-P3-5 — 파노라마 생성 모델 정정 (thin 재슬라이스 + B/L offset 스윕)
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-14. 기본 Th0 thin + **기본 투영 mean**(D12) 이미 반영. **navigator line**(Scout 단선·초록, 커브 법선 offset, 기본 0=커브 위) + **B/L 슬라이더**(±20mm 잠정·step=panoramaInterval)로 offset 조작. `generatePanoramaImageData`에 **`navigatorOffsetMm`** 추가 → 재슬라이스 중심을 법선 바깥(B)/안(L) 이동, offset 변경 시 자동 재생성. Scout navigator·파노라마 깊이 동일 부호(CT중심 기준). 사용자 시각 확인(navigator 이동·파노라마 재슬라이스). 잔여: 스윕 범위 실측 튜닝, UT-PAN 자동화.
 
 | 필드 | 값 |
 |------|------|
@@ -355,7 +355,7 @@
 
 #### T-P3-6 — 뷰별 독립 Interval (Scout/Panorama/Section)
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크. ✅ **기획 확인 완료(§12-D15, 2026-07-14): 3뷰 독립 확정, Panorama=법선 offset 스텝, 슬라이더 P/A→B/L.** 착수 가능(T-P3-5와 함께 권장).
+- [x] **완료** — 2026-07-14. 3뷰 독립 interval: `scoutIntervalMm`(축 Z·placeholder·Voxel Based 기본), `panoramaIntervalMm`(B/L navigator 슬라이더 step, 기본 1), `sectionIntervalMm`(=`curveEditor.sectionInterval`, 호 방향·Scout/Pano section line 구동, MMI 1.10-3b). 각 Setting 다이얼로그가 자기 interval에 바인딩(기존 단일 공유 버그 해소). 기획 확인 완료(§12-D15). 잔여: Scout interval의 Z 스크롤 실적용(MPR 동기).
 
 | 필드 | 값 |
 |------|------|
