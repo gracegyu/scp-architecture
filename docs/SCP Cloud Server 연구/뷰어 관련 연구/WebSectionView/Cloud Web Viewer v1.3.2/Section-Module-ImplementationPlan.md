@@ -223,7 +223,7 @@
 
 #### T-P2-2 — Slice 이동·동기
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-14 core `clampSectionCenterMm`, `useScoutAxialUi` stepSectionSlice(휠)·setSectionSliceIndex(슬라이더)·arcTotalMm. SectionGrid 휠·R/L 슬라이더 실배선, 타일 번호=전체 slice(windowStart+i+1)·중앙 굵게·흰색. Scout/Pano Active line 자동 동기. Scout 선 위 1~9 라벨 제거. UT-SEC-011/012 통과 + 사용자 시각 확인(#36→수정). (WebGL/Canvas2D 두 타일 경로 모두 수정)
 
 | 필드 | 값 |
 |------|------|
