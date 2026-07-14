@@ -162,6 +162,25 @@ MMI가 **기본값만 명시하고 범위/한계를 정하지 않은** UI 파라
 
 > Thickness 범위(0~30mm)·combo 옵션은 MMI(Slide20)·CW `SLICE_THICKNESSES` 근거가 있어 여기 포함하지 않음(§1.10·§12-D8).
 
+#### 3.4.1 오버레이 색상 (RGB) — 임시, GUI styleguide 확정 전
+
+**기획팀 회신(2026-07-14):** *"UI는 추후 VT UI/UX팀이 GUI styleguide를 제작해 전달 예정. MMI의 색상이 최종 반영 색이 아니므로 임의 색상 지정 무관. styleguide 일정은 미확정."* → 아래 색은 **개발실 임시 지정**이며 styleguide 전달 시 교체한다. Scout 오버레이 색은 `ScoutView.tsx` 상단 `COLOR_*` 상수로 일원화.
+
+| 요소 | RGB | 상수 |
+|------|-----|------|
+| Curve 선 | `#20EE31` (밝은 녹색) | `COLOR_CURVE` |
+| Curve 제어점 네모(내가 찍은 점) | `#30B138` | `COLOR_CTRL_POINT` |
+| BL/LB 시작점 삼각형 · "BL/LB" 글자 | `#30B138` | `COLOR_CTRL_POINT` |
+| B/L 폭 핸들(Center line control point) 테두리 | `#20EE31` | `COLOR_HANDLE_BORDER` |
+| 커브 바깥 가이드선(짧은 tick 바로 바깥) | `#1F8225` (어두운 녹색) | `COLOR_GUIDE` |
+| Center section line(중앙, 노랑) | `#FFE046` | `COLOR_SEC_CENTER` |
+| Section line 일반(minor tick·Active line) | `#683838` | `COLOR_SEC_MINOR` |
+| Section line 20mm 배수(major tick·Active line) | `#DB696B` | `COLOR_SEC_MAJOR` |
+| B/L 텍스트(**curve 양 끝점** 좌우, MMI 1.3-7c) · 20mm 호장 숫자 | `#FFFFFF` | — |
+| 호장 길이 라벨(시작점 `0.00 mm`, 끝점 `<총길이> mm`, 접선 바깥) | `#20EE31` | `COLOR_CURVE` |
+
+> Section line 색 규칙: **중앙=노랑 / 20mm 배수=`#DB696B`(major) / 그 외=`#683838`(minor)** — 짧은 tick과 9개 Active line에 **동일 적용**. 9 window slice 위치엔 짧은 tick을 그리지 않는다(겹침 방지). 20mm 배수 호장 숫자는 L(안쪽)에 흰색·커브 접선에 평행.
+
 ## 4. Overlay 표시 규칙 (MMI 1.13 §6)
 
 계측·주석(Length·Angle·Arrow·Free Draw) 귀속·표시. Clever One 기반. **MPR 레이아웃과 공유하지 않음.**
@@ -183,7 +202,7 @@ MMI가 **기본값만 명시하고 범위/한계를 정하지 않은** UI 파라
 - **판정식:** 방향 선분 P1→P2에 대한 C의 부호 `s = sign( (P2 − P1) × (C − P1) )` (2D 외적 z성분). `s`가 가리키는 쪽(= C가 있는 쪽) = **L**, 반대 = **B**.
 - **출력:** curve 전역 `blPolarity`. Section 타일 좌·우 라벨 및 픽셀 열 반전(`nU-1-iu`)과 일관 연동.
 - **결정 시점(1회 고정):** B/L은 **P1·P2가 처음 정해지는 순간 1회 결정**되고 그 값으로 **고정**된다. 이후 P3 이상 추가, 그리기 완료 후 P1/P2 이동 등 **어떤 곡선 편집에도 재판정하지 않는다.** 이후 방향 변경은 **수동 L/B Switching만**으로 한다.
-- **BL/LB 기준점:** 첫 점 P1 위치의 시각 표식(MMI 1.3 #8). **기준점 이동은 B/L에 영향 없음** — MMI 1.3 #8①의 "기준점 중심 반전"은 폐기(§12-D10). 방향 반전은 L/B Switching으로만.
+- **BL/LB 기준점:** 첫 점 P1 위치의 시각 표식(MMI 1.3 #8). **기준점 이동은 B/L에 영향 없음** — MMI 1.3 #8①의 "기준점 중심 반전"은 폐기(§12-D10). 방향 반전은 L/B Switching으로만. **이동 기능의 용도 자체는 미확정(§12-D14, 기획 확인 대기)** — 현재 드래그는 되나 무효과라 정적 표식으로 정리 검토.
 - **수동 override:** MMI 1.6 **L/B Switching**으로 `blPolarity` 토글(고정된 자동 판정을 사용자가 반전). 텍스트만 반전, 영상 flip 없음.
 - **예외:** 점이 1개뿐이면 P2 미정 → 라벨 미표시(2점 입력 시 확정·고정).
 
@@ -345,6 +364,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | D11 | 파노라마·단면 생성 모델 | **확정**(기획 2026-07-13) — 파노라마 = 곡선 따라 **가느다란(기본 Th0) 재슬라이스를 P/A로 offset 스윕**(navigator line). PoC의 thick-MIP 고정 모델은 **정정**. Section도 동일 slab 두께 보유. MMI·Ez3D-i·CleverOne 동일(§3.3). *이전 MMI 분석 누락분* | 기획 확인 반영 완료 |
 | D12 | 슬랩 투영 방식 (max vs mean) | **미확정** — Thickness>0 slab 투영을 **최댓값(MIP)** vs **평균(mean)** 중 무엇으로 할지. CleverOne=평균(흐림), PoC=MIP. 기본값 기획 결정 후 고정. 엔진은 둘 다 지원(§3.3) | **기획 결정 대기** |
 | D13 | MMI 미명시 파라미터 범위 | **확정(개발실, 2026-07-14)** — MMI가 기본값만 준 값의 범위를 개발실이 정함: Section 가로폭 기본 30mm·**범위 20~80mm**, Section 세로폭 기본 60mm(§3.4). MMI/기획 갱신 시 갱신 | 개발실 정의 |
+| D14 | BL/LB 기준점(삼각형) 이동 기능 용도 | **미확정 — 기획 확인 대기.** D10으로 "기준점 위치 기반 B/L 반전"이 폐기되어 삼각형을 드래그해도 **기능적 효과가 없다**(순수 표식만 이동). MMI 1.6-8/1.7-7의 "기준점 이동"도 원래 *개발실 리뷰 후 적용 여부 확정(TBD)*. **선택지**: (a) 드래그 제거·시작점 **정적 표식**(D10과 가장 일관, 개발실 권장), (b) 이동에 별도 용도 부여, (c) 현행 유지(이동하나 무효과). 기획 회신 필요 | **기획 확인 대기** |
 
 ---
 
@@ -377,5 +397,6 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | **1.3** | **2026-07-13** | **접목 범위 확정(D1): CW vtk 미접목, Section(WebGL, poc 확장)만 구현 — §9 전면 재정리(스텁 채움 → embed 정합), §1·§2·Risk 재작성. B/L 새 규칙(D2): P1→P2 선분·C쪽=L 단일 규칙, 동적 반전 폐기 — §5 재작성. 접목 형태 패키지+공개 API(D4, §9.2). Save CW prj 호환+개발용 브라우저 임시 저장(D5, §7). 커버리지 poc 확장 전 기능(D6). 일정 목표1주/예상2주(D9)** |
 | **1.4** | **2026-07-13** | B/L **결정 시점 명확화(D10 확정)**: 최초 P1·P2로 1회 고정, 이후 P3+·P1/P2 이동 등 편집에 재판정 없음, 변경은 수동 L/B Switching만. 기준점 이동 B/L 무영향. §6에 **커브 종료=더블클릭**(우클릭=직전 취소) 행 명시 |
 | **1.5** | **2026-07-13** | **공유(VKS 리뷰)용 참조 정리**: "참조"를 org URL로 교체(MMI=SharePoint PPT, PLAN-1287=Jira, 개발실 리뷰=VKS), 내부 문서(개발계획·작업 가이드) 링크 제거. 본문 내부 인용(MMI.md 추출본·작업 가이드 §4.2) → 정본·출처 표기로 정리 |
+| **1.8** | **2026-07-14** | **§3.4.1 신설 — 오버레이 색상(RGB) 임시 지정 정리**(기획 회신: GUI styleguide 전달 전 임의색 무관). Curve `#20EE31`·제어점/삼각형 `#30B138`·Section line 노랑`#FFE046`/major`#DB696B`/minor`#683838` 등. Section line 색 규칙(중앙/20배수/그외)을 짧은 tick·9 Active line에 동일 적용, window 위치 tick 생략(겹침 방지) |
 | **1.7** | **2026-07-14** | **§3.4 신설 — MMI 미명시·개발실 정의 값**: Section 가로폭 기본 30mm·**범위 20~80mm**, 세로폭 기본 60mm(D13). MMI는 기본값만 명시(1.3-3a)해 범위를 개발실이 확정, 별도 항목으로 추적 |
 | **1.6** | **2026-07-13** | **MMI 전면 재검토(38 슬라이드) — 파노라마 생성 모델 정정 + 누락 보강.** ① **파노라마 = thin 재슬라이스(기본 Th0)를 P/A로 offset 스윕**(navigator line), thick-MIP 고정 모델 정정 — 신규 **§3.3**·D11. ② **슬랩 투영 max vs mean = 기획 결정 대기(D12)**, CleverOne=평균. ③ **Section도 slab Thickness(0~30) 보유** 명시(§1.10). ④ **Thickness combo 옵션 {0,0.1,0.5,1,2,3,5,10,20,30}mm** + drag off-list 값 + **Voxel Based Interval**(§1.10). ⑤ 1.8 P/A slice=offset 스윕 명시. (MMI 1.3#8① 기준점 반전은 이미 D10에서 폐기 — 정합) |
