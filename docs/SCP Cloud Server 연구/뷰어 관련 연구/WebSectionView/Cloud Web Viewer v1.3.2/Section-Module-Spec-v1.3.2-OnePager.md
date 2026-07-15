@@ -198,6 +198,27 @@ MMI가 **값·범위·동작 방식·표기 의미를 명확히 규정하지 않
 
 > **Scout 커브 눈금·숫자 = slice 번호 기준(호장 mm 아님, 2026-07-14 정정).** 짧은 tick = 매 slice(호장 s=m·interval), **major(밝은 빨강+흰 숫자) = 매 20번째 slice(`m % 20 === 0`), 숫자 = slice 번호 `m`**. MMI Section 타일 slice 번호(109·110…·Total Slice 635)와 동일 인덱싱 → 커브 위치↔타일 번호 correlation. **interval 변경 시 총 slice 수가 달라져 major 위치·개수가 갱신**된다. 총 호장 길이(mm)는 커브 끝의 별도 라벨. Section line 색 규칙(중앙=노랑 / 20배수 slice=`#DB696B` / 그 외=`#683838`)은 짧은 tick·9 Active line에 동일 적용, 9 window slice 위치엔 짧은 tick 생략(겹침 방지). 숫자는 L(안쪽)·흰색·접선 평행.
 
+#### 3.4.2 MMI 미명확 동작·상호작용 — 개발실 해석/처리 (§4.3)
+
+MMI가 **동작·상호작용을 명확히 규정하지 않거나 문구가 모호한** 경우의 처리 원칙과 확정 사례. (값·범위는 §3.4, 색은 §3.4.1.)
+
+**처리 원칙(우선순위):**
+1. **MMI 본문 vs PPT comment 상충 → comment(최신) 우선**(§6). MMI 이미지(실데이터)로 교차검증.
+2. MMI 미명확 시 **CW 소스·관례·타 조항으로 유추** → 근거와 함께 개발실 확정, 여기/§12에 기록.
+3. 임상/UX 판단이 필요하면 **기획(Jessi) 문의 → §12 Decision Log** 등재 후 확정.
+
+**확정 사례:**
+| 항목 | MMI 모호점 | 개발실 해석/처리 |
+|------|-----------|-----------------|
+| **Add Point(컨텍스트 메뉴)** | 1.6-①"전후 order 사이 순번"이 애매 | **두 점 사이 삽입(insert)** 확정 — 클릭 위치를 최근접 세그먼트에 끼워넣음. **끝에 추가는 좌클릭**(별개). Add Point는 **커브 위/근처 우클릭에서만** 제공(먼 빈 공간의 중간 삽입 혼란 방지) (§6) |
+| **컨텍스트 메뉴 발견성** | "커브 위" 한정이라 얇은 선 우클릭이 어려움 | 우클릭이 커브서 벗어나도 **메뉴는 표시**(L/B·Delete Curve), 단 Add Point만 커브 근처 제한. 항목은 MMI 유지(§6) |
+| **Edit 점 추가 버튼** | 좌/우클릭 역할 불명확 | **좌클릭만** 추가/이동/선택, **우클릭=컨텍스트 메뉴 전용**(Draw 모드와 동일, §6) |
+| **Edit 제어점 hover 커서** | 미규정 | **모든 제어점** 위 hover 시 이동(`move`) 커서(시작/끝뿐 아니라 전체) |
+| **Scout 커브 숫자 의미** | mm vs slice 불명확 | **slice 번호**(§3.4·§3.4.1 주석) |
+| **R/L 방향 유도** | 방향 태그 사용 여부 불명확 | **표준 axial 가정, 방향 태그 미독해**(CW 동일, §3.4·§12-D19) |
+| **fit 방식(Section/Panorama)** | "꽉차게/여백" 미명시 | **contain**(§3.4) |
+| **W/L·Filter 적용 범위** | "모든 단면"에 Scout 포함 여부 | **전 뷰 공유(Scout 포함)**(§12-D17) |
+
 ### 3.5 Setting 다이얼로그 (Thickness / Interval) — CW `CTSliceSettingDialog` 이식
 
 각 뷰 Title Bar의 **Setting(기어) 아이콘** 클릭 → **Popover**(기어에 anchor, 폭 **184px**, 반투명 blur 배경, chromeless, **OK/Cancel 없이 선택 즉시 반영**, 바깥 클릭 시 닫힘). CW 원본: `packages/core/.../ctContent/CTSliceSettingDialog.tsx`.
@@ -292,6 +313,8 @@ MMI 본문과 PPT comment(기획 Jessi, 7/7~8) 상충 시 **comment(최신) 우�
 | **Section 이미지 시점** | **curve 완료 후 1회 생성**(완료 전 blank), Active line만 점마다 갱신 | MMI 1.5(289행)+개발실 §5 |
 | Draw 중 Th/INT 변경 | curve 취소 없음, 즉시 적용 | PLAN-1287·개발실 §4.3 |
 | Edit point 최소 | 2점 미만이면 삭제·context menu 불가 | MMI 1.6 |
+| **Edit 점 추가 버튼** | **좌클릭만** point 추가/이동/선택. **우클릭은 컨텍스트 메뉴 전용**(직접 추가 아님). Draw 모드와 동일하게 좌클릭 전용 | MMI 1.6(추가=context menu)·2026-07-15 버그수정(우클릭이 점 추가하던 것 차단) |
+| **Edit/일반 컨텍스트 메뉴** | **우클릭**: Edit **point 위=[Delete Point]**, **커브 선 위/근처=[Add Point]·[L/B Switching]·[Delete Curve]**, **커브서 먼 빈 공간=[L/B Switching]·[Delete Curve]**(Add Point 없음). 일반 모드=[L/B Switching]·[Delete Curve]. **[Add Point]=두 점 사이 삽입**(MMI 1.6-①: 전후 order 사이 순번, 클릭 위치를 최근접 세그먼트에 insert). **끝에 추가는 좌클릭**(별개). 곡선 없으면 메뉴 미표시. 발견성 위해 빈 공간에서도 L/B/Delete는 뜨나 **Add Point는 커브 근처(hit='curve')로 제한**(먼 빈 공간의 중간 삽입 혼란 방지) | MMI 1.6-2·3·4·1.7 |
 
 ## 7. Save Project 데이터 모델 (MMI 1.14)
 
