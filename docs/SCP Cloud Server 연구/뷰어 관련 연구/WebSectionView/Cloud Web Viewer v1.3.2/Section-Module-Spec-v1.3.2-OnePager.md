@@ -198,6 +198,24 @@ MMI가 **값·범위·동작 방식·표기 의미를 명확히 규정하지 않
 
 > **Scout 커브 눈금·숫자 = slice 번호 기준(호장 mm 아님, 2026-07-14 정정).** 짧은 tick = 매 slice(호장 s=m·interval), **major(밝은 빨강+흰 숫자) = 매 20번째 slice(`m % 20 === 0`), 숫자 = slice 번호 `m`**. MMI Section 타일 slice 번호(109·110…·Total Slice 635)와 동일 인덱싱 → 커브 위치↔타일 번호 correlation. **interval 변경 시 총 slice 수가 달라져 major 위치·개수가 갱신**된다. 총 호장 길이(mm)는 커브 끝의 별도 라벨. Section line 색 규칙(중앙=노랑 / 20배수 slice=`#DB696B` / 그 외=`#683838`)은 짧은 tick·9 Active line에 동일 적용, 9 window slice 위치엔 짧은 tick 생략(겹침 방지). 숫자는 L(안쪽)·흰색·접선 평행.
 
+#### 3.4.1a CW UI 크롬 색·치수 통일 (2026-07-15, CW 소스 대조 확정)
+
+Section 모듈 셸(툴바·뷰 헤더·뷰 배경·아이콘)을 **CloudWebViewer와 시각 통일**. 사용자가 구동 화면에서 측정한 값을 **CW 소스코드(`cloudwebviewer`)에서 직접 대조** → 일부 항목이 측정값과 불일치(스포이드 오차 추정)하여 **소스 정본값을 채택**(Jessi 확정 2026-07-15). 오버레이 색(§3.4.1)과 별개의 **크롬(frame) 팔레트**이며, 이 역시 GUI styleguide 전달 시 교체 대상.
+
+| 요소 | 정본값(적용) | 측정값(참고) | 위치(CW 소스) |
+|------|-----|-----|------|
+| Top Toolbar 배경 · 높이 | `#141414` · ~**60px** | 동일 | `toolbar/component/Toolbar.tsx`(btn36+pad12×2 파생) |
+| 각 뷰 상단 헤더 배경 · 높이 | `#333333` · **32px** | `#2D2D2D`·34 | `lib/react-vtkjs …/color.ts` `getViewFrameNormalColor`, `const.ts` THICKNESS 32 |
+| 각 뷰 배경 | `#000000` | 동일 | `ViewFrame.tsx`(`black`) |
+| 아이콘 기본색 | `#FFFFFF` | 동일 | `ToolBtn.tsx`(`white`) |
+| 아이콘 hover(비활성) · active | `#00BEA5` (teal) | `#16B69C` | `ToolBtn.tsx`, theme `primary.dark` |
+| 아이콘 active + hover | `#61F2DF` (밝은 teal) | `#5BF0DB` | `ToolBtn.tsx`(`:hover`) |
+| 아이콘 비활성(disabled) | **white @ opacity 0.3** | `#5B5B5B` | theme `MuiIconButton.disabled` |
+| active 토글(데모 MPR/Section) 배경 | `#00BEA5` | `#16B69C` | `App.tsx` `activeToggleStyle` |
+
+> **MPR/Section 전환 바**: CW엔 별도 전환 바가 없고 툴바 내 single/dual 버튼으로 처리. 데모에는 전환 UX용으로만 존재(BG `#3B3B3B`·h34, `App.tsx` `selectBarStyle`) — **접목 시 제거/대체**(Jessi 확정 2026-07-15).
+> **아이콘 hover는 배경이 아닌 fill(글자색) 변경**으로 표현(CW 아이콘 SVG가 `fill` prop 사용). 기존 `rgba(0,190,165,0.4)` 배경 hover는 제거. **CustomMPRSlider류 슬라이더**의 teal(`#00B1A2`/`rgb(0,177,162)`)은 크롬 아이콘 팔레트와 구분해 **그대로 유지**.
+
 #### 3.4.2 MMI 미명확 동작·상호작용 — 개발실 해석/처리 (§4.3)
 
 MMI가 **동작·상호작용을 명확히 규정하지 않거나 문구가 모호한** 경우의 처리 원칙과 확정 사례. (값·범위는 §3.4, 색은 §3.4.1.)
@@ -496,6 +514,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | **1.3** | **2026-07-13** | **접목 범위 확정(D1): CW vtk 미접목, Section(WebGL, poc 확장)만 구현 — §9 전면 재정리(스텁 채움 → embed 정합), §1·§2·Risk 재작성. B/L 새 규칙(D2): P1→P2 선분·C쪽=L 단일 규칙, 동적 반전 폐기 — §5 재작성. 접목 형태 패키지+공개 API(D4, §9.2). Save CW prj 호환+개발용 브라우저 임시 저장(D5, §7). 커버리지 poc 확장 전 기능(D6). 일정 목표1주/예상2주(D9)** |
 | **1.4** | **2026-07-13** | B/L **결정 시점 명확화(D10 확정)**: 최초 P1·P2로 1회 고정, 이후 P3+·P1/P2 이동 등 편집에 재판정 없음, 변경은 수동 L/B Switching만. 기준점 이동 B/L 무영향. §6에 **커브 종료=더블클릭**(우클릭=직전 취소) 행 명시 |
 | **1.5** | **2026-07-13** | **공유(VKS 리뷰)용 참조 정리**: "참조"를 org URL로 교체(MMI=SharePoint PPT, PLAN-1287=Jira, 개발실 리뷰=VKS), 내부 문서(개발계획·작업 가이드) 링크 제거. 본문 내부 인용(MMI.md 추출본·작업 가이드 §4.2) → 정본·출처 표기로 정리 |
+| **1.22** | **2026-07-15** | **CW UI 크롬 색·치수 통일(§3.4.1a 신설)**: 사용자 측정값을 **CW 소스코드에서 직접 대조** → teal·헤더 색/높이가 불일치하여 **소스 정본값 채택(Jessi 확정)**. Top Toolbar `#141414`·h60(`CwToolbar` 44→60), 뷰 헤더 **`#333333`·h32**(`ViewTitleBar` 26→32), 뷰 배경 `#000`. **아이콘 색 모델**: 기본 `#FFFFFF`·hover/active **`#00BEA5`**·active+hover **`#61F2DF`**·disabled **white@opacity0.3**, **hover는 배경 대신 fill 변경**(`rgba(0,190,165,0.4)` 배경 hover 제거). 기존 `rgb(0,190,165)`(=`#00BEA5`)는 CW 정본과 일치해 유지. **MPR/Section 전환 바는 CW에 없음** → 데모 전용(`#3B3B3B`·h34)으로 명시, 접목 시 제거. (측정값 `#16B69C`/`#5BF0DB`/`#2D2D2D`/`#5B5B5B`은 스포이드 오차로 판단·미채택.) |
 | **1.21** | **2026-07-14** | **자동 배치(사용자 부재 중)**: ① 방향 라벨 `panoramaDirectionLabels`(§5.1) core 구현 + Panorama 상단 렌더 + UT-UI-034. ② **prj 저장 모델·직렬화**(core `project/`: `SectionProjectState`·serialize/deserialize round-trip, T-P5-1/2) + 데모 localStorage/export·import. ③ **Info Overlay**(우상 W/L+Filter·우하 TH/INT/Slice) 3뷰(T-P7-4 부분). ④ **B/L 삼각형 blPolarity 반전**(방향·"BL/LB"↔"LB/BL", 시각확인 대기). ⑤ T-P7-3(Pano 슬라이더 B/L 실배선) 완료 체크. |
 | **1.20** | **2026-07-14** | **§5.1 신설 — Panorama 상단 방향 라벨 규칙(기획 확정)**: MMI 1.2-2② "R,L"은 실제로 Curve 시작/끝점 각도에 따라 **R,L/L,R/P,A/A,P 동적**. 수평 기준 <45°=R/L·≥45°=P/A, 좌측=Start 라벨·우측=End 라벨(R/L: 좌측점=R·우측점=L / P/A: 상단점=A·하단점=P). MMI 이미지 4케이스 검증. §3.1(1.2) 갱신. 구현은 T-P7-4(방향 오버레이). |
 | **1.19** | **2026-07-14** | **Scout thickness 실동작(Z-slab)**: Scout를 단일 slice→ **현재 slice ±(th/2)를 Z축 mean/MIP 투영**(MIP는 Image Adjust MIP 토글 연동). thickness=0이면 단일 slice. Scout에서도 두께·MIP가 의미를 가짐. (Scout interval의 Z 스크롤·MPR 값 동기는 여전히 미구현 §12-D18.) |
