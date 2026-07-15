@@ -389,7 +389,7 @@
 
 #### T-P4-2 — 계측 Length/Angle·Free Draw
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [~] **구현 완료·MT 확인 대기(2026-07-15)** — core `measure/measurement.ts`(정규화 타일좌표 length mm·angle deg·폴리라인·타일 clamp) + `SectionMeasureOverlay.tsx`(그리드 전체 오버레이 캔버스, 타일 hit-test로 첫 점 타일에 귀속→section 스코프, 렌더모드/최대화 무관). Toolbar interaction→`SectionViewer.measureTool`→`SectionGrid` 배선(App `useToolStore` 구독, showOverlays 연동). Length=2클릭·Angle=3클릭·FreeDraw=드래그, 우클릭/Esc 취소. **UT-MEA-001**(length·angle·폴리라인)·**UT-MEA-002**(clamp/isInTile 스코프) `measurement.test.ts` 13케이스 통과. **잔여**: MT-MEA-003(dev 서버 상호작용 시각 확인), 계측 삭제 UI·slice 스크롤 시 앵커(현재 타일 인덱스 귀속) 정책은 후속.
 
 | 필드 | 값 |
 |------|------|
