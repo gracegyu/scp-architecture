@@ -487,7 +487,7 @@
 
 #### T-P5-1 — 데이터 모델·CW prj 스키마 매핑
 
-- [x] **완료** — 2026-07-14(자동). `core/project/projectModel.ts`: `SectionProjectState`(version·curve{controlPoints·blPolarity·blRefArcMm}·scout·panorama·section·imaging{W/L·filter·projection}) + `emptySectionProjectState`(blank). CW 매핑 개념(curve↔CurveList·section↔SectionInfo·pano↔PanoInfo, 정확 필드는 D5). 회전 각도 제외(스펙아웃). 레이아웃/카메라/ShowGrid는 셸 공통이라 모듈 범위 밖 명시.
+- [x] **완료(부분)** — 2026-07-14(자동). `core/project/projectModel.ts`: `SectionProjectState`(version·curve{controlPoints·blPolarity·blRefArcMm}·scout·panorama·section·imaging{W/L·filter·projection}) + `emptySectionProjectState`(blank). CW 매핑 개념(curve↔CurveList·section↔SectionInfo·pano↔PanoInfo, 정확 필드는 D5). 회전 각도 제외(스펙아웃). **MMI 1.14-c ①~⑫ 전수 대조(2026-07-15, §7 표)**: 현재 모델은 ⑤⑪⑫(curve)·②⑥⑦(위치)·⑧(Th/INT)·⑩(W-L/filter) **보유**. ①레이아웃·④ShowGrid = **셸 소유**(D24, 모듈 범위 밖). **미보유 2건**: ③ 카메라(Pan/Zoom)·⑨ Overlay 계측 → **T-P5-4에서 모델 확장**(D25·D26). (기존 "카메라 모듈 범위 밖" 서술은 D25로 정정.)
 
 | 필드 | 값 |
 |------|------|
@@ -503,19 +503,19 @@
 
 #### T-P5-2 — 직렬화 API·브라우저 임시저장
 
-- [x] **완료(부분)** — 2026-07-14(자동). `core/project/serialize.ts`: `serializeProject`(JSON)·`deserializeProject`(관대 파싱·버전 체크·손상 좌표 필터·부분 누락 blank 보정). `apps/section-demo/src/save/projectStorage.ts`: localStorage save/load/clear + 파일 export/import. UT-SAV-011(round-trip 무손실)·UT-SAV-012(blank 복원)+버전불일치/손상 케이스 통과. **잔여**: 데모 UI 버튼·axialUi에 상태 적용(setter 배선, MT-SAV-013) — 시각/UX라 사용자 확인 후. (**CW prj 필드 어댑터·조각 시뮬레이션은 T-P5-3로 분리**.)
+- [x] **완료(부분)** — 2026-07-14(자동). `core/project/serialize.ts`: `serializeProject`(JSON)·`deserializeProject`(관대 파싱·버전 체크·손상 좌표 필터·부분 누락 blank 보정). `apps/section-demo/src/save/projectStorage.ts`: localStorage save/load/clear + 파일 export/import. UT-SAV-011(round-trip 무손실)·UT-SAV-012(blank 복원)+버전불일치/손상 케이스 통과. **잔여(2026-07-15 범위 확정)**: **완전한 Save 흐름** — ① 데모에 **Save 버튼** → **CT 식별 키(Study/Series UID, 없으면 PatientID+StudyDate 폴백)로 localStorage 저장**, ② **동일 CT 재오픈 시 자동 로드→상태 적용**(axialUi setter 배선), ③ 저장된 상태(커브·섹션 파라미터·계측)가 올바르게 복원·적용되는지 검증(MT-SAV-013). 접목 시 저장 계층만 호스트로 교체. (**저장 payload를 CW 필드 조각으로 맞추는 건 T-P5-3**.)
 
 | 필드 | 값 |
 |------|------|
 | id | T-P5-2 |
-| title | serialize/deserialize API + localStorage/export·import(우리 `SectionProjectState` payload) |
+| title | serialize/deserialize API + **CT별 키 localStorage 저장 + 동일 CT 재오픈 자동 복원·적용** + export/import |
 | repo | scp-section-poc |
 | spec_refs[] | S-SPEC §7(개발 임시저장), S-MMI §1.14-2 |
 | depends_on[] | T-P5-1 |
-| outputs[] | `packages/core/src/project/serialize.ts`, `apps/section-demo/src/save/` |
-| dod[] | UT-SAV-011(직렬화 round-trip 무손실)·UT-SAV-012(Curve 없음→blank 복원) + MT-SAV-013 데모 저장/재오픈 |
-| estimate | 2h |
-| risk | prj Curve 없음 예외(§7) |
+| outputs[] | `packages/core/src/project/serialize.ts`, `apps/section-demo/src/save/`(CT키 storage·Save 버튼·자동 복원 배선) |
+| dod[] | UT-SAV-011(round-trip 무손실)·UT-SAV-012(Curve 없음→blank 복원) + **MT-SAV-013 데모 Save→동일 CT 재오픈 시 상태(커브·섹션 파라미터·계측) 자동 복원·적용** |
+| estimate | 2h(+버튼·자동복원 배선 1h) |
+| risk | prj Curve 없음 예외(§7) · CT 식별 키 부재 시 폴백(PatientID+StudyDate) |
 
 #### T-P5-3 — CW prj 필드 어댑터 + 조각 시뮬레이션
 
@@ -532,6 +532,22 @@
 | dod[] | UT-SAV-014(어댑터 상태↔CW 필드 조각 round-trip)·UT-SAV-015(누락 필드 관대 복원) + MT-SAV-016 데모 조각 저장·재오픈·(선택)XML 미리보기 |
 | estimate | 1.5~2h |
 | risk | CW 필드 정확 대응·역호환은 D5(CW 팀 확인) — 확인된 필드로 구현·불확실분 표시 |
+
+#### T-P5-4 — 저장 모델 갭 보완 (③ 카메라 · ⑨ Overlay 계측)
+
+- [ ] **미구현(2026-07-15 신설)** — MMI 1.14-c 전수 대조(§7 표)에서 발견된 **모듈 소유 미보유 2건**을 `SectionProjectState`에 추가. ① **⑨ Overlay 계측**(D26): `measurements[]` 필드 추가 — `core/measure/measurement.ts` 모델 재사용, 뷰(Scout/Pano/Section)·slice/arc 앵커 포함, 재오픈 재표시 로직과 정합. ② **③ 카메라 Pan/Zoom**(D25): 뷰별 pan offset·zoom 필드 추가 — **T-P4-6(Pan/Zoom 구현) 완료 후**에만 착수(그 전엔 저장 제외·기본 뷰 복원). serialize/deserialize·어댑터(T-P5-3)·CT키 저장(T-P5-2)에 신규 필드 반영. ①레이아웃·④ShowGrid는 셸 소유라 제외(D24).
+
+| 필드 | 값 |
+|------|------|
+| id | T-P5-4 |
+| title | `SectionProjectState` 확장 — `measurements[]`(⑨) + 뷰별 카메라(③, T-P4-6 후) |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §7(1.14 대조표)·§12-D25·D26, S-MMI §1.14-c ③⑨ |
+| depends_on[] | T-P5-1, T-P5-2, T-P5-3 · (③ 부분은 T-P4-6) |
+| outputs[] | `packages/core/src/project/projectModel.ts`·`serialize.ts`·`cwPrjAdapter.ts`(신규 필드) |
+| dod[] | UT-SAV-017(계측 round-trip·뷰/앵커 보존)·UT-SAV-018(카메라 round-trip) + MT-SAV-019(재오픈 시 계측·뷰 복원) |
+| estimate | ⑨ 1.5h + ③ 1h(T-P4-6 후) |
+| risk | ⑨ 계측 좌표계(tile u,v + 3D 앵커) 역호환 · ③ 카메라 필드는 CW prj에 대응 필드 있는지 D5 확인 |
 
 ### P6 — NFR·인계
 

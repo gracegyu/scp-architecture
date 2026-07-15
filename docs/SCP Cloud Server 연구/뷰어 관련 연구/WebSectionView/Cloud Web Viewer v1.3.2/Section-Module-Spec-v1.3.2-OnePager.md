@@ -391,12 +391,34 @@ MMI 본문과 PPT comment(기획 Jessi, 7/7~8) 상충 시 **comment(최신) 우�
 
 **소유·기여 구조(중요):** Save Project는 **우리 모듈 기능이 아니라 상위(CleverSpace 컨테이너 + api-server) 소유**다 — Save 버튼("Your changes have been saved" 다이얼로그)·저장 flow·**`.e3prj` XML 직렬화**·**S3 저장/로드**(api-server `*.e3prj`)는 호스트가 처리한다. **각 Content는 `ContentHandler`를 통해 자기 데이터를 prj에 기여**한다(CW `CTContentHandler`가 `projectData`(CurveList/SectionInfo/PanoInfo)를 read/write). → **우리 Section 모듈의 역할 = Section 상태를 prj 필드로 직렬화/역직렬화해 상위 save에 기여**(Save 자체를 구현하지 않음). 접목 시 `SectionContentHandler`(§9.5·9.7)가 상위 save/load 훅에서 core `serializeProject`/`deserializeProject` 결과를 CW `projectFile.ts` 필드에 매핑한다(D5).
 
-- **저장 항목(회전 각도 삭제):** 레이아웃(MPR/Section), 각 뷰 slice·Active line 위치, 카메라, ShowGrid, **Curve(point 좌표)**, Panorama 경계선·중심선, 각 단면 Thickness/Interval, Overlay, Windowing/Filter, **B/L Switching**, **BL/LB 기준점**.
+**저장 항목 대조표 (MMI 1.14-c ①~⑫ ↔ 소유·모델 필드·상태, 2026-07-15):** 회전 각도는 삭제(§11 이월). 소유 = **모듈**(우리 payload에 직렬화) / **셸**(CleverSpace 컨테이너·CW 워크스페이스가 저장, 모듈 payload 아님).
+
+| # | MMI 1.14 저장 항목 | 소유 | 저장 모델 필드(`SectionProjectState`) | 상태 |
+|---|---|------|------|------|
+| ① | 마지막 레이아웃 (MPR / Section) | **셸** | — (CW 컨테이너 소유) | 셸 저장 |
+| ② | 각 단면 View 위치 (slice·Active section line) | 모듈 | `scout.sliceIndex`·`section.centerMm`(Active line)·`panorama.navigatorOffsetMm` | ✅ 보유 |
+| ③ | 각 단면 카메라 상태 (Position·Panning) | 모듈 | **미보유 → 추가 필요**(뷰별 pan offset·zoom) | ⚠ 갭 — **T-P4-6(Pan/Zoom) 의존** |
+| ④ | ShowGrid 표시 여부 | **셸** | — (CW `workspaceViewFeatures.showGrid` 소유; 모듈은 표시에 반영) | 셸 저장(§12-D24) |
+| ⑤ | Section Curve (Point 좌표) | 모듈 | `curve.controlPoints` | ✅ 보유 |
+| ⑥ | Panorama 가로선 위치 (이미지 경계선) | 모듈 | `section.topMm`·`section.bottomMm`(상하 Z 경계, 파노라마 경계선과 공유) | ✅ 보유 |
+| ⑦ | Panorama 중심선 위치 | 모듈 | `panorama.navigatorOffsetMm`(B/L navigator) | ✅ 보유 |
+| ⑧ | 각 단면 Thickness / Interval | 모듈 | `scout`·`panorama`·`section`의 `thicknessMm`·`intervalMm` | ✅ 보유 |
+| ⑨ | 각 단면 Overlay 입력값 (Length·Angle·Arrow·FreeDraw) | 모듈 | **미보유 → 추가 필요**(`measurements[]`, `core/measure/measurement.ts` 모델 재사용, 뷰·slice/arc 앵커 포함) | ⚠ 갭 |
+| ⑩ | 각 단면 Windowing / Image Filter | 모듈 | `imaging.{windowCenter,windowWidth,filterMode,inverse,projection}` | ✅ 보유 |
+| ⑪ | B/L Switching 상태 | 모듈 | `curve.blPolarity` | ✅ 보유 |
+| ⑫ | BL/LB 기준점 위치 | 모듈 | `curve.blRefArcMm` | ✅ 보유 |
+
+> **갭 정리:** 모듈 저장 모델(`SectionProjectState`)은 ⑤·⑪·⑫(curve), ②·⑥·⑦(위치), ⑧(thickness/interval), ⑩(windowing/filter)을 보유. **미보유 2건**: **③ 카메라(pan/zoom)** — Pan/Zoom 자체가 미구현이라 **T-P4-6 완료 후** 뷰별 카메라 필드 추가(§12-D25); **⑨ Overlay 계측** — 계측 로직·모델(`measurement.ts`)은 구현됐으나 저장 모델에 미포함 → `measurements[]` 필드 추가(§12-D26). **셸 소유 2건**: ① 레이아웃·④ ShowGrid는 CW 컨테이너/워크스페이스가 저장(우리 payload 아님, §12-D24).
 - **호환(§12-D5 확정):** 최종 직렬화는 **CW prj(XML)와 호환**되게 한다. CW prj는 `vtkjs-wrapper/projectFile.ts`가 소유하며 **`CurveList`·`CurveInfo`·`SectionInfo`·`PanoInfo`·`SectionalPos`·`SectionInterval`·`SectionalNum`·`AutoCurveInfo` 필드가 이미 존재**하므로, Section 저장 항목은 **자유 설계가 아니라 이 필드에 매핑**한다. 좌표계는 환자 볼륨 3D(§4). 호환 방향은 Desktop→Web 단방향 우선(개발실 §4.1).
 - **개발 중 임시 저장(시뮬레이션 방침, 2026-07-15):** 실제 prj 파일 I/O·S3는 상위 몫이므로, 데모는 **`localStorage`(또는 export/import)로 저장/로드**를 시뮬레이션한다. **단, 저장 내용은 `.e3prj` 전체가 아니라 우리가 기여하는 "Section 조각"** 이다 — `.e3prj`엔 호스트 소유 필드(레이아웃·카메라·환자·타 content)가 대부분이라 전체를 지어내면 실제와 어긋난다. 따라서:
   - **core `SectionProjectState`(순수 모델) 유지** + **어댑터로 CW prj 필드 형태(`CurveList`·`SectionInfo{Width,Height,Interval,Thickness}`·`PanoInfo`, `projectFile.ts` 정본)로 변환** — 이 어댑터가 접목 시 기여 지점이자 매핑(D5) 검증 대상.
   - 데모는 그 **CW 필드 형태의 Section 조각**을 localStorage에 round-trip. **포맷은 객체(JSON)로 충분**(CW `projectFile.ts`도 객체(XML-attr 키 `@_…`), 객체↔XML 직렬화는 호스트 몫 — 우리 책임은 "필드 객체 산출"). 필요 시 **`.e3prj` XML 미리보기(export)** 로 실제 파일 모양 확인.
   - 접목 시 **저장 계층만 호스트 I/O로 교체**하고, 우리 조각은 `SectionContentHandler`가 상위 prj에 병합.
+- **데모 완전 Save 흐름(범위, 2026-07-15):** Save 버튼 → **CT별 키로 localStorage 저장** → **동일 CT 재오픈 시 자동 로드·적용**. 접목 시엔 다르게 배선되지만, **저장 상태가 올바르게 복원·적용되는지 검증**이 목적. (구현은 T-P5-2 잔여 + T-P5-3, 미착수 — 문서만.)
+- **구현 노트(2026-07-15 코드 조사):**
+  - **저장 상태 소재:** 라이브 상태는 `SectionViewer` 내부 `useScoutAxialUi`(slice·thickness·interval·window·filter·section center/width/top/bottom·pano navigator/interval)와 `useCurveEditor`(controlPoints·blPolarity·blRefArcMm·sectionInterval)에 분산. → Save/Load하려면 **현재 상태 캡처 + 로드 상태 적용** 경로가 필요(예: `SectionViewer` `forwardRef` + `useImperativeHandle`로 `getProjectState()`/`applyProjectState()` 노출, 또는 상태 상위 lift). ShowGrid·interaction은 `apps/section-demo`의 CW `toolStore`(`workspaceViewFeatures`)에 있음(→ ④ 셸 소유 근거).
+  - **CT 식별 키:** localStorage 키 = **SeriesInstanceUID `(0020,000E)` 우선, 없으면 PatientID `(0010,0020)` + StudyDate `(0008,0020)` 폴백**. 현재 `CTVolumeLoader`는 UID 미파싱 → 키 도입 시 **UID 태그 파싱 추가** 필요(`VolumeMetadata`에 `seriesInstanceUID?`·`studyInstanceUID?`).
+  - **재오픈 자동 복원:** volume 로드 시 CT 키로 저장본 조회 → 있으면 `applyProjectState`로 setter 배선(curve·section·pano·windowing 등) 적용, 없으면 blank(§7 기획 확정).
 - **범위:** Section 모듈 = **Section 상태 serialize/deserialize + prj 필드 매핑 어댑터 + `SectionContentHandler`의 save/load 기여** + 개발용 임시 저장. **Save 버튼·flow·`.e3prj` XML I/O·S3 저장·자동저장·Desktop→Web 업로드 = 상위(CleverSpace 컨테이너 + api-server) 몫.** (근거: ezcloud `api-server`(`*.e3prj` S3), CW `CTContentHandler`(`projectData` read/write)·`projectFile.ts`.)
 
 ## 8. NFR (성능·환경)
@@ -644,6 +666,9 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 | D12 | 슬랩 투영 방식 (max vs mean) | **확정(기획 2026-07-14)** — Thickness>0 slab 투영 **기본 = 평균(mean)**. **MIP(최댓값)는 Image Adjust 다이얼로그의 필터 토글**로만 선택(§3.6). (임상적으론 다소 이상하나 요구사항.) 엔진은 둘 다 지원, 기본 preset=`mean` | 기획 확인 반영 완료 |
 | D13 | MMI 미명시 파라미터 범위 | **확정(개발실, 2026-07-14)** — MMI가 기본값만 준 값의 범위를 개발실이 정함: Section 가로폭 기본 30mm·**범위 20~80mm**, Section 세로폭 기본 60mm(§3.4). MMI/기획 갱신 시 갱신 | 개발실 정의 |
 | D14 | BL/LB 기준점(삼각형) 이동 기능 용도 | **미확정 — 기획 확인 대기.** D10으로 "기준점 위치 기반 B/L 반전"이 폐기되어 삼각형을 드래그해도 **기능적 효과가 없다**(순수 표식만 이동). MMI 1.6-8/1.7-7의 "기준점 이동"도 원래 *개발실 리뷰 후 적용 여부 확정(TBD)*. **선택지**: (a) 드래그 제거·시작점 **정적 표식**(D10과 가장 일관, 개발실 권장), (b) 이동에 별도 용도 부여, (c) 현행 유지(이동하나 무효과). 기획 회신 필요 | **기획 확인 대기** |
+| D26 | **Save ⑨ Overlay 계측 저장 항목** | **확정(2026-07-15) — 모듈 소유, 저장 모델 추가 예정.** MMI 1.14-⑨(Length·Angle·Arrow·FreeDraw)는 우리 계측이라 모듈 payload에 포함. 계측 로직·모델(`core/measure/measurement.ts`)은 구현됐으나 `SectionProjectState`에 미포함 → **`measurements[]` 필드 추가**(뷰·slice/arc 앵커 포함, 재오픈 시 재표시 로직과 정합). 좌표는 tile-normalized(u,v)+환자 3D 앵커(§4·§3.4.2). 구현=IP T-P5-4. | 확정(구현 T-P5-4) |
+| D25 | **Save ③ 카메라(Pan/Zoom) 저장 항목** | **확정(2026-07-15) — 모듈 소유, T-P4-6 완료 후 추가.** MMI 1.14-③(각 단면 Position·Panning)은 우리 뷰 상호작용이라 모듈 payload에 포함하나, **Pan/Zoom 자체가 미구현(T-P4-6)** 이라 그 완료 후 뷰별 카메라 필드(pan offset·zoom)를 `SectionProjectState`에 추가. 그 전엔 저장 모델에서 제외(복원 시 기본 뷰). 구현=IP T-P5-4(T-P4-6 의존). | 확정(T-P4-6 후) |
+| D24 | **Save ①레이아웃·④ShowGrid 소유** | **확정(2026-07-15) — 셸(호스트) 소유, 모듈 payload 아님.** MMI 1.14-①(MPR/Section 레이아웃)·④(ShowGrid)는 **CW 컨테이너/워크스페이스 공통 상태**(레이아웃=컨테이너 슬롯 D22 연장, ShowGrid=CW `workspaceViewFeatures.showGrid` 워크스페이스 뷰기능). 상위 Save가 저장·복원하고 **모듈은 표시에 반영만** 한다. 전체 prj엔 존재하나 우리 `SectionContentHandler` 조각엔 미포함. | 확정 |
 | D23 | **국제화(i18n) 정책·구조·지원 언어** | **추천안·회의/기획 결정 대기(2026-07-15)** — CleverSpace·CW 모두 Lingui이나 **지원 언어 목록이 다르고**(CleverSpace en/ko vs CW en/es/fr/ko/pt) **언어 선택은 CleverSpace가 소유**해 CW의 es/fr/pt는 선택 불가·죽은 번역, 정작 한국어는 CW 비어있음(§9.11-CW-2). **추천: 지원 언어를 셋 모두 한/영(en_US·ko_KR)으로 통일 + CleverSpace 연동 국제화**. Section=CW와 동일 Lingui 구조(문자열 `t\`\`` 매크로·en/ko 카탈로그, 선행 한국어 통일, IP T-P4-7). CW=ko 채우고 es/fr/pt 정리 권고. **결정 요청(기획 Scott):** 한/영 통일 여부·CW 언어목록 정리 — 언어/시장 정책이라 기획 판단. | 회의/기획 결정 |
 | D22 | **Single/Dual Layout · View Original 지원 범위** | **확정(2026-07-15) — CW 컨테이너/셸 레벨, Section 모듈 standalone 미구현·접목 시 CW 담당.** MMI 1.13-4가 Section 공통툴로 나열("MPR 동일")하나: **View Original**=압축본→원본 CT 재로드(CW CT 파이프라인, §9.4·D20 연장), **Single/Dual Layout**=CW 워크스페이스 1/2 슬롯+외부 CT 썸네일 패널 연동(다중 CT). 둘 다 **외부 패널·CT 파이프라인 전제**라 standalone 불가·실익 없음. Section 모듈 역할 최소(View Original=재공급 volume 재렌더 / Layout=슬롯 채움·리사이즈 대응, 이미 ResizeObserver 보유). 데모 툴바는 시각 정합 stub. → §11. | 통합 시 구현(CW) |
 | D21 | **계측/주석 적용 뷰 범위** | **확정(Jessi, 2026-07-15) — Length·Angle·Free Draw·Arrow 4개 공통툴 모두 Scout·Panorama·Section 3뷰에서 동작.** 각 뷰는 자기 영역/슬라이스 스코프로 제한(Scout=Scout 영역 내·Panorama=Panorama 영역 내·Section=해당 slice 내, 경계 넘나들 불가). Arrow·FreeDraw는 MMI 1.12에 3뷰 명시돼 있었고, Length·Angle은 미명시라 확인 → 동일 적용 확정(§3.4.2). 구현: `SectionMeasureOverlay`를 Scout/Panorama 단일 영역 오버레이로 재사용. | 확정 |
@@ -679,6 +704,7 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.41 | 2026-07-15 | **Save 저장 항목 MMI 1.14-c ①~⑫ 전수 대조표(§7)**: 소유(모듈/셸)·모델 필드·상태 표로 정리. **갭 2건** — ③ 카메라(Pan/Zoom, D25·T-P4-6 후)·⑨ Overlay 계측(D26·`measurements[]`). **셸 소유 2건** — ①레이아웃·④ShowGrid(D24). 데모 완전 Save 흐름(CT별 키·재오픈 자동복원)·구현 노트(상태 소재·CT키=SeriesUID/폴백·캡처·적용 경로) 추가. D24·D25·D26 신설. |
 | 1.40 | 2026-07-15 | **Save 시뮬레이션 방침(§7·IP T-P5-2)**: 데모는 `localStorage`에 **`.e3prj` 전체가 아닌 "CW 필드 형태의 Section 조각"**(CurveList/SectionInfo/PanoInfo 객체)을 round-trip. core `SectionProjectState` 유지 + **CW prj 필드 어댑터** 신설(접목 기여 지점·D5 매핑 검증). 포맷은 객체(JSON), 객체↔XML은 호스트 몫(선택 XML 미리보기). |
 | 1.39 | 2026-07-15 | **Save Project 소유·기여 구조 명확화(§7·D5)**: Save는 **우리 모듈이 아니라 상위(CleverSpace 컨테이너+api-server) 소유** — Save 버튼·flow·**`.e3prj` XML**·**S3 저장**은 호스트, 각 content는 **`ContentHandler`로 prj에 기여**(CW `CTContentHandler` `projectData`). Section 모듈=상태 serialize/deserialize + `SectionContentHandler` 기여 + 필드 매핑. CW `projectFile.ts` 필드 확인(`CurveList`·`SectionInfo{Width,Height,Interval,Thickness}`·`PanoInfo` 등). §7 소유·기여 구조·범위 명시, D5 보강. |
 | 1.38 | 2026-07-15 | **국제화(i18n) 현황 정리 + 방침(§9.11-CW-2·§12-D23)**: CleverSpace·CW 모두 Lingui이나 **CW 한국어 카탈로그 비어 영어 폴백**·**지원 언어 목록 불일치**(CleverSpace en/ko vs CW en/es/fr/ko/pt, 언어 선택은 CleverSpace 소유→CW es/fr/pt는 죽은 번역)·우리 모듈 미적용(한영 혼재). 현황 비교 표 §9.11. **추천안: 지원 언어 한/영(en/ko) 통일 + CleverSpace 연동 국제화**(Section=CW 동일 Lingui·한국어 통일, CW=ko 채우고 es/fr/pt 정리, IP T-P4-7). 지원 언어·정리는 **기획(Scott) 결정**. Agenda 공유. |
