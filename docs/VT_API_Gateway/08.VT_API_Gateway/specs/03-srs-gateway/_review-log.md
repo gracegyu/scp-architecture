@@ -469,9 +469,11 @@
   >
   > EzServer와 같은 network에 있는 아무 client 에서 헤더에 Vatech-Target: axs 혹은 cleverspace 등을 넣어서 호출하면 axs, cleverspace의 공격을 GW 를 통해서 하게 되는데요. GW가 공격의 Proxy 역할을 할 수도 있지 않을까 합니다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- 다음 답변(초안):
+
+  맞습니다 — EzServer는 클리닉 내부망 전제라 이 시나리오는 '이미 내부망에 들어온 공격자'를 가정합니다. 구조적으로 보면 GW에 인증하는 주체가 EzServer 자신이라, GW ingress 인증만으로는 EzServer 상류(client→EzServer) 트래픽의 출처를 가려낼 수 없습니다. 즉 이 구간은 GW가 관측할 수 없는 지점이라, 인증을 EzServer 계층(③-P-EZ)에서 함께 다뤄야 하는 부분입니다. 내부망을 계속 신뢰할지 zero-trust로 강화할지는 EzServer 위협모델에서 정하면 되고, 어느 쪽이든 GW 통제는 그대로입니다. GW는 이 구간이 뚫려도 blast radius를 제한합니다: 목적지를 등록 target으로 고정(임의 host SSRF 차단)·scope·rate-limit. 그리고 target 자체 인증·입력검증이 최종 방어선입니다. 정리하면 GW·EzServer가 계층을 나눠 막는 구조이며, §4.1.2에 이 신뢰경계를 명시했습니다.
+- 조치: §4.1.2 note 신뢰경계 반영 — GW 인증 주체=EzServer(디바이스)라 (client→EzServer) 구간은 GW 관측 밖·EzServer 계층(③-P-EZ)에서 인증(계층 분담); 내부망 무신뢰 전환 여부=③-P-EZ 위협모델(GW 통제 불변); GW는 목적지 고정·scope·rate-limit로 blast radius 제한, target 자체 인증이 최종 방어선
+- 상태: 반영완료(로컬·미push)
 
 ## C-29 · docs/specs/SRS.md:28 · [thread 79585]
 - **[김기영(Eric) · 2026-07-14T06:48 · cid 79585.1]**
@@ -490,9 +492,29 @@
 
   > GW 온보딩 Fail시의 Rollback 또는 Workaround가 있는지 확인이 필요합니다. (정확히는 GW 온보딩이 실패하여도 기존 Usecase는 정상 동작하는지가 궁금합니다.)
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- 다음 답변(초안):
+
+**결론:** GW 온보딩이 실패해도 **기존(레거시) usecase는 정상 동작**합니다. 단, GW 신규 기능 자체는 온보딩 성공이 전제입니다.
+
+먼저 용어를 맞추면, 여기서 **"기존 usecase" = GW 도입 전부터 돌던 레거시(비-GW) 흐름**입니다 — 현행 CleverOne↔CleverSpace 직결(경로 B), 현행 EzServer↔CleverSpace.
+
+**1. 레거시 흐름 — 온보딩과 무관하게 계속 동작**
+- GW 온보딩에 의존하지 않음 → 온보딩이 실패해도 레거시 경로로 계속 동작(EOS 전까지 병행·회귀 없음).
+- 즉 온보딩 실패가 기존 서비스를 중단시키지 않습니다.
+
+**2. GW 신규 기능(AXS 연동·GW 경유 라우팅) — 온보딩 성공이 전제**
+- 온보딩이 실패하면 GW는 못 씁니다(레거시 fallback이 없는 net-new 클리닉·GW 전용 기능 포함).
+- 단 enroll은 **비파괴·멱등** → 실패해도 device는 `pending`에 머물 뿐(활성 바인딩·토큰 미생성 · pending은 TTL 자동 만료). 깨진 상태가 남지 않습니다.
+
+**Rollback / Workaround**
+- 되돌릴 부분 커밋이 없어 **별도 rollback 불요**, **재시도로 복구**합니다.
+
+**참고:** 경로 B EOS로 GW 경유로 완전 이관한 뒤에는 GW가 런타임 의존이 됩니다 — 그건 온보딩이 아니라 **GW HA(≥2 복제·Multi-AZ·§6.3.1)** 로 보장합니다.
+
+§2.8에 이 구분을 확정 반영했습니다.
+
+- 조치: §2.8 '온보딩 실패 시 기존 흐름 지속성·rollback' bullet 명확화 — '기존 usecase=레거시(비-GW) 흐름' 정의 + (1)레거시=GW 비의존 (2)GW 신규 기능=온보딩 성공 전제·enroll 비파괴 멱등(재시도 복구) 구분; 이관 후 런타임 의존=GW HA(§6.3.1)
+- 상태: 반영완료(로컬·미push)
 
 ## C-31 · docs/specs/SRS.md:550 · [thread 79587]
 - **[김기영(Eric) · 2026-07-14T06:54 · cid 79587.1]**
