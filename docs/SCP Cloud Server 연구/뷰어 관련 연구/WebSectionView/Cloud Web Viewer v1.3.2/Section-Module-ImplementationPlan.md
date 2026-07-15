@@ -435,6 +435,38 @@
 | estimate | 2h |
 | risk | normal 허용 오차 5° 튜닝(D3, 상수 분리) |
 
+#### T-P4-5 — Show/Hide Grid (격자 오버레이)
+
+- [x] **완료(2026-07-15)** — MMI 1.13-2a 기능이 초기 구현에서 누락(스토어·툴바만·뷰 미배선)이었음을 확인·보완. CW `@ewoosoft/es-view-info` GridView 정합: **물리 10mm 간격**(px=round(mm×뷰px/뷰mm))·`#A9A9A9`·opacity 0.7·1px·점선 `[1,1]`·**셀 중앙 원점 양방향**·Canvas 2D. `GridOverlay.tsx` 신설, Scout·Panorama(단일 영역·letterbox contentRect)·Section(타일별 tileMmMetrics)에 마운트. `showGrid` 배선(App `useToolStore`→SectionViewer→3뷰). 전 모드 표시(Appendix). §3.4.1(색)·§3.4.2(간격 정본) 등재. **잔여**: 간격 설정 UI(1~50mm, CW Setting) — 현재 10mm 고정. MT 시각 확인.
+
+| 필드 | 값 |
+|------|------|
+| id | T-P4-5 |
+| title | Show/Hide Grid — 3뷰 격자 오버레이(물리 10mm·#A9A9A9·점선), `showGrid` 배선 |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §3.4.1·§3.4.2, S-MMI §1.13-2a·Appendix, S-CW `@ewoosoft/es-view-info` GridView |
+| depends_on[] | T-P0-3, T-P2-2 |
+| outputs[] | `components/src/GridOverlay.tsx`, `ScoutView.tsx`·`PanoramaView.tsx`·`SectionGrid.tsx`, `App.tsx` |
+| dod[] | MT-GRID-001 3뷰 격자 표시·토글·10mm 물리 간격 시각 확인 |
+| estimate | 1.5h |
+| risk | (낮음) 간격 UI는 후속 |
+
+#### T-P4-6 — 공통 뷰 조작 (Pan / Zoom / Reset View / Pointer)
+
+- [ ] **미구현(2026-07-15 신설)** — MMI 1.13-1a "MPR 동일" 규정이나 초기 구현에서 **interaction이 뷰 변환에 미연결**(계측만 연결). §3.7 정의대로 각 뷰에 pan offset·zoom scale 상태 도입, 이미지+오버레이(ruler·grid·계측) 동일 transform 공유. Pointer=도구 해제, Pan=좌드래그 이동, Zoom=드래그/휠 배율, Reset View=초기화.
+
+| 필드 | 값 |
+|------|------|
+| id | T-P4-6 |
+| title | Pan/Zoom/Reset View/Pointer — 뷰 transform(pan·zoom) 상태+오버레이 정합, MPR 제스처 정합 |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §3.7·§3.4.2, S-MMI §1.13-1a·Appendix, S-CW `ES3DRenderWindowInteractor`·`ActionState` |
+| depends_on[] | T-P0-3, T-P2-2 |
+| outputs[] | `ScoutView.tsx`·`PanoramaView.tsx`·`SectionGrid.tsx`(+공용 transform 훅), `App.tsx` |
+| dod[] | UT-NAV-001(pan/zoom transform 좌표 변환)·MT-NAV-002 3뷰 pan·zoom·reset 동작·오버레이 정합 |
+| estimate | 4h |
+| risk | 휠 = Zoom vs Section slice 스크롤 충돌 정책·오버레이 transform 동기 |
+
 ### P5 — Save Project
 
 #### T-P5-1 — 데이터 모델·CW prj 스키마 매핑

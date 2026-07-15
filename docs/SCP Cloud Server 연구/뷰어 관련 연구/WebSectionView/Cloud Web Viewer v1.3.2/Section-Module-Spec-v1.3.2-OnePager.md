@@ -209,6 +209,7 @@ MMI가 **값·범위·동작 방식·표기 의미를 명확히 규정하지 않
 | B/L 텍스트(**curve 양 끝점** 좌우, MMI 1.3-7c) · **slice 번호(20 배수 slice)** | `#FFFFFF` | — |
 | 호장 길이 라벨(끝점 `<총길이> mm`, 접선 바깥; 시작점 `0.00 mm`는 제거) | `#20EE31` (초록) | `COLOR_ARC_LABEL` |
 | Panorama 두께값 라벨(시작 thickness 선 L쪽 `<두께> mm`) | `rgb(45,205,130)` (초록) | (리터럴) |
+| **Show/Hide Grid 격자**(MMI 1.13-2a) | `#A9A9A9`·opacity **0.7**·1px·점선 `setLineDash([1,1])` (**CW `@ewoosoft/es-view-info` GridView 정본**) | `GridOverlay.tsx` |
 
 > **Scout 커브 눈금·숫자 = slice 번호 기준(호장 mm 아님, 2026-07-14 정정).** 짧은 tick = 매 slice(호장 s=m·interval), **major(밝은 빨강+흰 숫자) = 매 20번째 slice(`m % 20 === 0`), 숫자 = slice 번호 `m`**. MMI Section 타일 slice 번호(109·110…·Total Slice 635)와 동일 인덱싱 → 커브 위치↔타일 번호 correlation. **interval 변경 시 총 slice 수가 달라져 major 위치·개수가 갱신**된다. 총 호장 길이(mm)는 커브 끝의 별도 라벨. Section line 색 규칙(중앙=노랑 / 20배수 slice=`#DB696B` / 그 외=`#683838`)은 짧은 tick·9 Active line에 동일 적용, 9 window slice 위치엔 짧은 tick 생략(겹침 방지). 숫자는 L(안쪽)·흰색·접선 평행.
 
@@ -252,6 +253,8 @@ MMI가 **동작·상호작용을 명확히 규정하지 않거나 문구가 모�
 | **Edit 모드 시각 어포던스** | 미규정 | Edit 모드 상호작용은 **제어점·BL/LB 삼각형뿐**(width/thickness 핸들은 Edit에서 비활성)이므로, **제어점·삼각형만 밝게** 두고 **나머지(커브·section tick·9 active line·navigator·thickness·라벨)는 dim(opacity ≈0.28)** 처리해 "점 편집 중" 상태를 명확히. **임시 dev 스타일**(GUI styleguide 확정 시 교체, §3.4.1). 개발실 제안(2026-07-15) |
 | **Scout 커브 숫자 의미** | mm vs slice 불명확 | **slice 번호**(§3.4·§3.4.1 주석) |
 | **계측/주석 적용 뷰 범위(Length·Angle)** | 1.13-1에 공통툴로 나열되나 **적용 뷰 미명시**(Arrow·FreeDraw는 1.12에 3뷰 명시) | **Jessi 확정(2026-07-15, §12-D21): Length·Angle도 Arrow·Free Draw와 동일하게 Scout·Panorama·Section 3뷰 모두 동작.** 각 뷰는 **자기 영역/슬라이스 스코프**(Scout=Scout 영역·Panorama=Panorama 영역·Section=해당 slice, 경계 넘나들 불가) |
+| **Show/Hide Grid 간격·스타일** | 1.13-2a에 기능만 있고 **간격·색·선 스타일 미명시** | **CW 소스(`@ewoosoft/es-view-info` GridView) 정본 채택**: 간격 = **물리 10mm**(px=round(mm×뷰px/뷰mm), zoom 무관·설정 1~50mm), 색 `#A9A9A9`·opacity 0.7·1px·점선 `[1,1]`, **원점 = 각 영역(셀) 중앙 양방향**. 3뷰(Scout·Pano·Section 타일별). Canvas 2D `GridOverlay`. (측정치 `#636363`은 검은 배경 0.7 불투명 렌더의 스포이드값으로 판단, §3.4.1a 선례.) **주: 이 기능은 우리 초기 구현에서 누락(스토어·툴바만·뷰 미배선)이었고 2026-07-15 보완.** |
+| **Pan/Zoom/Reset View/Pointer 동작** | 1.13-1a "MPR 레이아웃과 동일"로만 규정·상세 미명시 | **MPR 동일 정의(§3.7)**: Pointer=기본(도구 해제), Pan=좌드래그 뷰 평행이동, Zoom=드래그/휠 배율(이미지 확대·축소), Reset View=Pan/Zoom 초기화. 정확한 제스처·중심은 **CW MPR interactor(`ES3DRenderWindowInteractor` 등) 정합**(구현 시 확인). 우리 초기 구현에서 **미배선**(interaction이 뷰 변환에 미연결)이라 보완 대상(IP T-P4-6) |
 | **R/L 방향 유도** | 방향 태그 사용 여부 불명확 | **표준 axial 가정, 방향 태그 미독해**(CW 동일, §3.4·§12-D19). Scout 오버레이 **좌 가장자리=R·우 가장자리=L**(세로 중앙, 곡선과 무관하게 고정) |
 | **환자정보 오버레이(MMI 1.2)** | 표시 필드·포맷·태그 미명시 | Scout **좌상단**에 line1=`[<성별>] <나이>`·line2=`<촬영일 YYYYMMDD>`. DICOM 태그 = Sex(0010,0040)·Age(0010,1010)·**StudyDate(0008,0020) 우선, 없으면 AcquisitionDate(0008,0022)**. 값 없는 필드는 생략(태그 전무 시 미표시). 오버레이 Age는 DICOM 원문(`034Y`) 그대로 |
 | **환자 배너 타이틀(MMI 1.2)** | 필드·포맷 미명시 | 셸 상단 배너 = `<ID> <이름> <나이>`(예 `123456789-123 Jane Doe 34Y`). DICOM ID(0010,0020)·Name(0010,0010)·Age(0010,1010). **이름 = PN `Family^Given^Middle` → `Given Middle Family`**(빈 컴포넌트 제외, `^` 없으면 원문). **타이틀 Age = 앞 0 제거**(`034Y`→`34Y`). 값 없으면 안내 문구. 헬퍼 `patientTitle`/`formatPatientName`/`formatPatientAge`(components) |
@@ -295,6 +298,19 @@ Title Bar의 **Image Adjust(대비) 아이콘** 클릭 → **Dialog**(폭 **380p
 | **MIP** | slab 투영을 **기본 평균(mean) → 최댓값(MIP)로 전환**하는 토글(§12-D12 확정: 기본 mean, MIP는 이 토글로만). Thickness>0 필요, 단일 slice면 no-op |
 
 - CW ref: `ImageAdjustDialog.tsx`·`imageAdjust.ts`(toggle/exclusivity/default)·`lib/vtkjs-wrapper/.../ESImageMapper`(3×3 conv+inverse GLSL)·`VolumeObject2D`(windowing·MIP blend). (2D 경로는 5×5 sharpen 커널이나, Section은 CT형이라 3×3 채택.)
+
+### 3.7 공통 뷰 조작 도구 (Pan / Zoom / Reset View / Pointer) — MPR 동일
+
+MMI 1.13-1a는 이 4개를 "동작 방식 MPR과 동일"로만 규정(상세 미명시). MPR 정합 기준 동작을 아래로 정의한다(§3.4.2). 3뷰(Scout·Panorama·Section) 공통, **일반 모드 전용**(Draw/Edit 모드에선 비활성, Appendix 매트릭스), toolbar `interaction`(`useToolStore`)로 구동(§9.6).
+
+| 도구 | 동작(MPR 동일 목표) | 비고 |
+|------|------|------|
+| **Pointer** | 기본 상태(도구 해제). 계측/조작 도구 활성 해제, 커브·section line 등 뷰 고유 상호작용 허용 | interaction=null 상태 |
+| **Pan** | 좌드래그로 뷰 이미지 **평행이동**(translate). 배율 유지 | 뷰 로컬 transform(pan offset) |
+| **Zoom** | 드래그(상하) 또는 **휠**로 배율 확대·축소. 커서/중앙 기준 | 뷰 로컬 transform(scale). Section slice 휠 스크롤과 충돌 주의(Zoom 활성 시 휠=zoom) |
+| **Reset View** | Pan/Zoom transform **초기화**(기본 fit 상태 복귀). Windowing/Curve는 무관 | command형 |
+
+**구현 메모(IP T-P4-6, 미구현 → 보완 예정)**: 현재 interaction이 뷰 변환에 **미연결**(계측만 연결됨). 각 뷰(Canvas 2D/WebGL 표시)에 pan offset·zoom scale 상태를 두고, 이미지·오버레이 렌더에 동일 transform 적용. **정확한 제스처(버튼·방향·중심)·감도는 CW MPR interactor(`lib/vtkjs-wrapper/.../ES3DRenderWindowInteractor`, `ActionState`) 정합**으로 구현 시 확인. ruler·grid·계측 오버레이는 동일 transform을 공유해야 정렬 유지. **접목 시**엔 CW가 이 조작을 제공할 수 있어(§9.6 컨테이너 계약), standalone 데모 우선.
 
 ## 4. Overlay 표시 규칙 (MMI 1.13 §6)
 
@@ -526,6 +542,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 - **Web→Desktop / 양방향 prj** — Desktop→Web 단방향 우선(개발실 §4.1).
 - **CW vtk `Layout3DPAN` 파이프라인 사용·구현** — 본 모듈은 WebGL Section만 제공(§9.1, §12-D1).
 - **B/L 드로잉 중 극성 반전 로직** — 새 단일 규칙(§5)으로 불필요(폐기).
+- **Single/Dual Layout 전환 · View Original — standalone 미구현(CW 컨테이너 몫, §12-D22).** MMI 1.13-4는 Section 레이아웃 공통툴로 나열("MPR 동일")하나 실동작은 **CW 셸/워크스페이스 레벨**이다. **View Original** = 압축본→원본 CT 재로드(CW CT 파이프라인, §9.4·§12-D20). **Single/Dual** = 워크스페이스 1/2 슬롯 분할 + 2번째 슬롯을 **외부 CT 썸네일 패널**에서 선택(다중 CT). 둘 다 외부 패널·CT 파이프라인 전제라 standalone 불가. **Section 모듈 역할은 최소**(View Original=재공급된 `CTVolume`로 재렌더 / Layout=배정된 슬롯만 채움·리사이즈 대응). 데모 툴바는 시각 정합 stub. **접목 시 CW 컨테이너가 완성.**
 - **계측 크로스뷰 트래킹** — **후속.** 계측/주석은 뷰별 독립 캔버스라, 드래그·미리보기 중 커서가 다른 뷰(S↔P↔S)나 창 밖으로 빠르게 나가면 원래 뷰의 입력이 경계에서 멈춘다(버그 아님·뷰별 스코프 D21의 자연스러운 경계 행동). 창 내 연속 추적은 `setPointerCapture`(Free Draw 드래그)+window `mousemove`/`mouseup` 리스너(클릭 미리보기·유실 방지)로 가능하나 빠른 출시 우선으로 이연.
 - **실제 WebGL2 GPU 리슬라이스(볼륨 3D 텍스처 → 프래그먼트 셰이더 단면 샘플링)** — **이번 범위 밖, 숙제로 남김(빠른 출시 우선, D20)**. 현재 9단면은 **CPU(WASM-resident 기본/JS 폴백)로 생성 후 WebGL은 텍스처 표시만** 한다(§8이 서술한 "채택안"과의 간극). 두꺼운 슬랩 실시간 스크롤(≤33ms)의 근본 해결책이나 큰 공수 → **Phase 5/6 후속**(GPU reslice 셰이더 구현). 현행은 완충책(캐시·디바운스·표시분리)+WASM으로 체감 유지.
 
@@ -547,6 +564,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | D12 | 슬랩 투영 방식 (max vs mean) | **확정(기획 2026-07-14)** — Thickness>0 slab 투영 **기본 = 평균(mean)**. **MIP(최댓값)는 Image Adjust 다이얼로그의 필터 토글**로만 선택(§3.6). (임상적으론 다소 이상하나 요구사항.) 엔진은 둘 다 지원, 기본 preset=`mean` | 기획 확인 반영 완료 |
 | D13 | MMI 미명시 파라미터 범위 | **확정(개발실, 2026-07-14)** — MMI가 기본값만 준 값의 범위를 개발실이 정함: Section 가로폭 기본 30mm·**범위 20~80mm**, Section 세로폭 기본 60mm(§3.4). MMI/기획 갱신 시 갱신 | 개발실 정의 |
 | D14 | BL/LB 기준점(삼각형) 이동 기능 용도 | **미확정 — 기획 확인 대기.** D10으로 "기준점 위치 기반 B/L 반전"이 폐기되어 삼각형을 드래그해도 **기능적 효과가 없다**(순수 표식만 이동). MMI 1.6-8/1.7-7의 "기준점 이동"도 원래 *개발실 리뷰 후 적용 여부 확정(TBD)*. **선택지**: (a) 드래그 제거·시작점 **정적 표식**(D10과 가장 일관, 개발실 권장), (b) 이동에 별도 용도 부여, (c) 현행 유지(이동하나 무효과). 기획 회신 필요 | **기획 확인 대기** |
+| D22 | **Single/Dual Layout · View Original 지원 범위** | **확정(2026-07-15) — CW 컨테이너/셸 레벨, Section 모듈 standalone 미구현·접목 시 CW 담당.** MMI 1.13-4가 Section 공통툴로 나열("MPR 동일")하나: **View Original**=압축본→원본 CT 재로드(CW CT 파이프라인, §9.4·D20 연장), **Single/Dual Layout**=CW 워크스페이스 1/2 슬롯+외부 CT 썸네일 패널 연동(다중 CT). 둘 다 **외부 패널·CT 파이프라인 전제**라 standalone 불가·실익 없음. Section 모듈 역할 최소(View Original=재공급 volume 재렌더 / Layout=슬롯 채움·리사이즈 대응, 이미 ResizeObserver 보유). 데모 툴바는 시각 정합 stub. → §11. | 통합 시 구현(CW) |
 | D21 | **계측/주석 적용 뷰 범위** | **확정(Jessi, 2026-07-15) — Length·Angle·Free Draw·Arrow 4개 공통툴 모두 Scout·Panorama·Section 3뷰에서 동작.** 각 뷰는 자기 영역/슬라이스 스코프로 제한(Scout=Scout 영역 내·Panorama=Panorama 영역 내·Section=해당 slice 내, 경계 넘나들 불가). Arrow·FreeDraw는 MMI 1.12에 3뷰 명시돼 있었고, Length·Angle은 미명시라 확인 → 동일 적용 확정(§3.4.2). 구현: `SectionMeasureOverlay`를 Scout/Panorama 단일 영역 오버레이로 재사용. | 확정 |
 | D20 | **Section 생성 기본 연산 경로 + GPU 리슬라이스 범위** | **확정(2026-07-15) — 기본 `wasm-resident`(JS 자동 폴백), 실제 GPU 리슬라이스는 숙제로 이연.** T-P6-1 측정: 두꺼운 슬랩(Th30mm) worst-case JS mean 1484·max 1787ms vs WASM-resident mean 1225·max 1336ms → **WASM이 mean −17%·max −25%·저분산**, 출력은 JS와 동일. 제품엔 연산 선택 UI가 없으므로 **기본값을 `wasm-resident`로 고정**(`useScoutAxialUi`), **WASM init/실행 실패 시 JS로 자동 폴백**(`SectionViewer`, 빈 화면 방지). 둘 다 30FPS(33ms) 미달이나 **근본해결(WebGL2 GPU 리슬라이스)은 공수 큼 → 빠른 출시 우선으로 이번 범위 밖(§11)**, 완충책(캐시·디바운스·표시분리)으로 체감 유지. **메모리:** resident는 볼륨을 WASM 힙에 상주(100~250MB, 예산 내). | 확정 |
 | D19 | **DICOM 방향 태그 처리 (R/L 방향 유도)** | **확정(2026-07-15) — 표준 axial 방향 가정, 방향 태그 미독해.** 화면 좌=R·우=L(방사선 관례). `CTVolumeLoader`는 `(0020,0037)`ImageOrientationPatient·`(0018,5100)`PatientPosition **미독해**. **CloudWebViewer도 동일**(코드 조사: IOP는 파싱하나 "do not consider image orientation" 주석으로 **무시**, direction 행렬 항등 하드코딩[`io/Dicoms/common/utils.ts:395`], PatientPosition 미독해, R/L 라벨 월드축 고정매핑[`common/utility/volumeUtility.ts`]). **근거:** Vatech dental CBCT는 표준 HFS·axial LPS 저장. **비표준 방향(뒤집힌 FFS·IOP 부호 반전) 데이터는 범위 밖** — CW/우리 모두 좌우 반대로 표시될 수 있으나 실제 유입 없음. CW팀 부재로 현행 유지. 향후 필요 시 direction cosine·PatientPosition 유도로 견고화(개선 여지, §3.4). | 확정(현행 유지) |
@@ -580,6 +598,8 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.32 | 2026-07-15 | **Single/Dual Layout·View Original 범위 확정(D22)**: CW 셸/워크스페이스 레벨(다중 CT·CT 파이프라인·외부 썸네일 패널 전제)이라 Section 모듈 standalone 미구현·접목 시 CW 담당. Section 역할 최소(재공급 volume 재렌더/슬롯 채움). §11·D22 등재, 데모 툴바는 시각 stub 유지. |
+| 1.31 | 2026-07-15 | **Show/Hide Grid 구현 + Pan/Zoom/Reset/Pointer 문서화(누락 보완)**: ① **Grid**(MMI 1.13-2a, 초기 미배선 누락 보완) — CW `es-view-info` GridView 정본(물리 10mm·`#A9A9A9`·0.7·점선 `[1,1]`·셀 중앙 원점) `GridOverlay.tsx`로 3뷰 구현, `showGrid` 배선. §3.4.1·§3.4.2 등재(IP T-P4-5 완료). ② **Pan/Zoom/Reset View/Pointer** — MMI "MPR 동일"만 있고 상세·구현 미비 → **§3.7 신설**(동작 정의)·§3.4.2 등재·IP T-P4-6(미구현, 4h) 추가. |
 | 1.30 | 2026-07-15 | **계측/주석 3뷰 확장(D21, Jessi 확정)**: Length·Angle·Free Draw·Arrow 4개 툴이 **Scout·Panorama·Section 모두**에서 동작(각 뷰 영역/슬라이스 스코프). `SectionMeasureOverlay`에 `contentRect`(letterbox 보정) 추가·helper를 base rect 기반으로 일반화, Scout/Panorama에 단일 영역(rows=cols=1)으로 마운트. §3.4.2 모호점 해소 등재. |
 | 1.29 | 2026-07-15 | **Section 생성 기본 = WASM-resident + JS 폴백(D20)**: 기본 연산 경로를 `js`→`wasm-resident`로 변경(`useScoutAxialUi`), WASM init/실행 실패 시 JS 자동 폴백(`SectionViewer`, 빈 화면 방지). 근거=T-P6-1(WASM mean −17%·max −25%·저분산). **실제 WebGL2 GPU 리슬라이스는 이번 범위 밖·숙제**로 §11 명시(현행 WebGL=CPU 결과 텍스처 표시-only, §8 간극). 빠른 출시 우선. |
 | 1.28 | 2026-07-15 | **T-P4-4·T-P6-1**: ① **Overlay 3D 평면 귀속**(core `overlayPlane.ts`: 거리≤±Int/2 & normal≤5° `OVERLAY_NORMAL_TOLERANCE_DEG` D3 분리, UT-OVL-001/002/003 12케이스) + UI 호장 앵커 재표시(계측이 생성 slice에서만 보임·스크롤 앵커 해소). ② **Slice 스크롤 벤치마크**(core `sectionGenBench.ts`·dev 훅, UT-NFR-001): Th30mm worst-case **JS 1484/1787ms·WASM-resident 1225/1336ms**(30FPS 40~54× 초과)→§8 반영. 계측 도구(Length/Angle/FreeDraw/Arrow) 계속 Section 한정 상태(Scout/Pano 확장은 Jessi 답변 대기). |
