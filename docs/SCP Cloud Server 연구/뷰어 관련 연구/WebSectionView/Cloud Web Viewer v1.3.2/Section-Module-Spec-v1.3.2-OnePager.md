@@ -51,6 +51,20 @@ Section 뷰는 **기존 PoC(`scp-section-poc`, WebGL)를 확장해 MMI 전 기�
 | 4 | 성능 벤치마크(§8) | Section Slice 스크롤 worst-case → NFR 수치 | M4 NFR 확정 |
 | 5 | 인계(§10) | 패키지·공개 API·데모·embed 매핑(§9.7)·Known gaps | M5 인계 |
 
+### 저장소 · 데모 사이트
+
+본 모듈은 **PoC 모노레포 `scp-section-poc`를 그대로 확장**해 구현한다(별도 신규 repo 생성 없음). 저장소·배포 인프라는 [WebSectionView PoC OnePager](../PoC/WebSectionView_PoC_OnePager.md) 「소스코드 저장소 / Demo Site 구축」과 동일하다.
+
+| 항목 | 값 |
+|------|-----|
+| **Repository** | Azure DevOps `prototypes/scp-section-poc` — [https://dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc](https://dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc) |
+| **모노레포 구조** | pnpm workspaces + Turborepo. `packages/core`(`@ewoosoft/scp-section-core`)·`packages/components`(`@ewoosoft/scp-section-components`)·`packages/section-wasm`·`apps/section-demo` |
+| **데모 사이트** | [http://scp-section-demo.test.scp.esclouddev.com/](http://scp-section-demo.test.scp.esclouddev.com/) (AWS S3 정적 호스팅, 계정 767397951498 SCPSharedDev, 리전 ap-northeast-2) |
+| **CT 데이터(S3)** | 버킷 `scp-section-ct-data` — `https://scp-section-ct-data.s3.ap-northeast-2.amazonaws.com/ct-data/{파일}.zip` (퍼블릭 읽기, PoC 전용) |
+| **CI/CD** | `azure-pipelines.yml` — main/develop push 트리거 → pnpm build → `aws s3 sync apps/section-demo/dist s3://scp-section-demo.test.scp.esclouddev.com/ --delete` |
+
+> **범위 경계**: 위 저장소·데모·S3는 **Section 모듈(WebGL) 개발·검증용**이다. CW 접목 시에는 이 데모 셸(`apps/section-demo`) 대신 CW가 `@ewoosoft/scp-section-*` 패키지를 소비하며(§9.2), CT도 데모 S3 provider가 아니라 CW/Clever Space가 공급한다(§9.4·§1). 데모 사이트는 **접목 전 기능·UX 확인용 레퍼런스**로 유지한다.
+
 ---
 
 # Technical Description
@@ -370,13 +384,17 @@ MMI 본문과 PPT comment(기획 Jessi, 7/7~8) 상충 시 **comment(최신) 우�
 
 > 참고: CW엔 Section용 레이아웃 슬롯(`CTViewerLayout.Layout3DPAN`)과 vtk 뷰 **스텁**(각 ~25줄, 빈 상속)이 있으나 본 모듈 범위 밖이다. embed 시 CW는 이 슬롯 대신 우리 컴포넌트를 새 content로 연결한다(§9.7).
 
-### 9.2 접목 형태 — CW가 embed할 수 있는 패키지 (§12-D4)
+### 9.2 접목 형태 — 소스 병합(권장) vs 패키지 (§12-D4)
 
-가장 접목 용이한 형태로 인계한다.
+**권장 = CW 모노레포로 소스 이동 병합.** 별도 npm publish/Federation remote가 아니라, `scp-section-poc`의 소스를 CW 모노레포(`cloudwebviewer`)로 옮겨 **단일 빌드·단일 버전**으로 관리한다. 근거(2026-07-15 D4 개정):
 
-- Section 뷰를 **`@ewoosoft/scp-section-*` 패키지 + 공개 API를 가진 React 컴포넌트(`SectionViewer`)**로 제공한다. CW는 이를 npm/워크스페이스 패키지(또는 Module Federation remote)로 import한다.
-- 공개 API는 CW store·toolbar·prj와 배선할 수 있도록 설계한다(§10): `volume`, `curve`, `blPolarity`, active `interaction`, 이벤트 콜백(slice 변경·overlay·save) 등을 주입/수신.
-- **순수 수학 코어**(`scp-section-core`의 곡선·9단면·파노라마 — Catmull-Rom·trilinear·slab)는 **프레임워크 독립**으로 유지해, CW가 어떤 렌더 경로를 쓰든 재사용·검증 가능하게 한다.
+- **이미 결합도가 높다.** Section 모듈은 CW 내부(`ContentHandler`·`useBoundStore` zustand singleton·`ContentTitleBar`·`ImageAdjustDialog`·`CTSliceSettingDialog`)를 깊게 재사용하고, `InteractionType`에 `arrow`를 **CW 측에 추가**해야 한다(§9.5~9.7). 패키지 경계가 사실상 의미가 없다.
+- **소비자가 CW 하나뿐.** 여러 host가 소비하지 않으므로 private registry·`.npmrc`·변경마다 republish 마찰의 이점이 없고, Federation `shared`(react·zustand) singleton 버전 불일치 런타임 버그 위험만 남는다.
+- **소유권·진화.** 접목 후 CW 팀이 한 코드베이스로 소유하고, API를 cross-repo 버전 범프 없이 함께 리팩터한다.
+
+**단, 순수 코어는 CW 내부 워크스페이스 패키지로 유지한다.** `scp-section-core`(Catmull-Rom·trilinear·slab·prj 직렬화 등 프레임워크 독립 로직)는 CW `packages/`에 **publish하지 않는 내부 패키지**로 넣어 단일 버전·마찰 제로를 유지하면서 **WebGL/React 없이 단위 테스트 가능**하게 남긴다. React 뷰(`components`)는 CW 컴포넌트 트리에 병합한다. 구체 절차는 **§9.9**.
+
+**대안(패키지/Federation):** 접목을 미루고 독립 평가만 할 때(또는 여러 host 소비가 생길 때)는 `@ewoosoft/scp-section-*` 패키지 + Federation remote로 제공할 수 있다. 이때 공개 API는 CW store·toolbar·prj와 배선 가능하도록 설계한다(§10: `volume`·`curve`·`blPolarity`·active `interaction`·이벤트 콜백). **현 결정은 소스 병합 우선**이며 패키지는 fallback이다.
 
 ### 9.3 환경 일치 (버전)
 
@@ -387,9 +405,9 @@ poc가 CW와 look&feel·의존성이 맞도록 major/정확 버전 정합. 구�
 | Node / pnpm | 20.x / **9.15.9** | ≥18 / 9.1.1 | 20.x / **9.15.9** |
 | React / TS / Vite | 18.2 / 5.2.2 / 5.0.8 | ^18 / ^5 / **6.0** | 18.2 / 5.2 / **5.0** |
 | MUI / Emotion / zustand | 5.15 / 11.11 / 4.4.7(+immer) | 없음 | 동일 major |
-| registry | `.npmrc` Azure DevOps `@ewoosoft` private | 없음 | CW `.npmrc` 설정 공유(`@ewoosoft/*` 인증) |
-| Federation | `@originjs/vite-plugin-federation` ^1.3, `shared: react·react-dom·zustand·@lingui/react` | 없음 | 접목 검증 시 shared 버전 정합 |
-| 패키지 스코프 | `@cloudwebviewer/*` | `@ewoosoft/scp-section-*` | 유지(인계 시 API 문서화) |
+| registry | `.npmrc` Azure DevOps `@ewoosoft` private | 없음 | **소스 병합 시 불필요**(publish 안 함, §9.2). 패키지 fallback 시에만 `.npmrc` 스코프 인증 |
+| Federation | `@originjs/vite-plugin-federation` ^1.3, `shared: react·react-dom·zustand·@lingui/react` | 없음 | **소스 병합 시 불필요**(remote 아님). 패키지 fallback 시에만 shared 버전 정합 |
+| 패키지 스코프 | `@cloudwebviewer/*` | `@ewoosoft/scp-section-*` | **병합 시 `@cloudwebviewer/section-core`·`@cloudwebviewer/section`으로 개명**(§9.9 1b). 패키지 fallback 시 `@ewoosoft/*` 유지 |
 
 ### 9.4 Interface 일치 (타입 계약)
 
@@ -448,6 +466,50 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 
 [https://container.test.ezcloud.ezcld.net/](https://container.test.ezcloud.ezcld.net/) — Clever Space 내 Cloud Web Viewer. MPR·Toolbar·ContentTitleBar·Pan/Zoom/계측 UX 정본(조직 계정). Section Layout 미탑재 → MPR만 참고. Section 데모는 `scp-section-poc` `section-demo`.
 
+### 9.9 접목 실행 절차 (Step-by-step, CW 개발자용)
+
+§9.1~9.8이 "무엇을 무엇에 맞추는가"(정합 대상)라면, 이 절은 **CW 팀이 실제로 어떤 순서로 무엇을 하면 embed되는가**를 구체 단계로 기술한다. 각 단계는 위 절의 근거를 참조한다.
+
+**0단계 — 전제.** Section 모듈은 CW의 vtk 파이프라인을 쓰지 않고, **`SectionViewer` React 컴포넌트를 CW content로 embed**하는 방식이다(§9.1). CW가 손대는 것은 셸 계약(store·toolbar·content·title bar·prj)뿐이며 Section 내부 렌더(WebGL)는 블랙박스다.
+
+**1단계 — 소스 병합(§9.2 권장안).** `scp-section-poc` 소스를 CW 모노레포(`cloudwebviewer`, pnpm@9.15.9·`packages/*`·`types/*`·`lib/*`·스코프 `@cloudwebviewer/*`)로 이동한다. **core는 내부 패키지 유지, components는 CW 트리에 병합**한다.
+
+1a. **디렉터리 이동.** PoC의 `packages/core`·`packages/components`·`packages/section-wasm`를 CW `packages/` 아래로 옮긴다. 권장 배치:
+   - `packages/section-core/`  ← `scp-section-core`(순수 로직·dicom·webgl·curve·panorama·section·직렬화). **내부 패키지**(publish 안 함).
+   - `packages/section/`       ← `scp-section-components`(React 뷰 `SectionViewer`·`ScoutView`…·`SectionContentHandler`). `@cloudwebviewer/core`·`section-core`에 의존.
+   - `packages/section-wasm/`  ← WASM 빌드(그대로 이동, 또는 `section-core`에 흡수).
+
+1b. **패키지 스코프·이름 변경.** `@ewoosoft/scp-section-core`→`@cloudwebviewer/section-core`, `@ewoosoft/scp-section-components`→`@cloudwebviewer/section`. 각 `package.json` `name`과 **모든 import 경로**를 일괄 치환. CW `pnpm-workspace.yaml`은 이미 `packages/*`를 포함하므로 자동 인식(수정 불필요).
+
+1c. **의존성 정리.** PoC의 React·zustand·MUI·Emotion·lingui 버전을 CW 버전(React 18.2·zustand 4.4.7·MUI 5.15 등, §9.3)에 맞춰 `package.json`에서 제거·정렬 → CW 루트가 단일 버전으로 hoist. **중복 명시 금지**(singleton 보장).
+
+1d. **빌드·테스트 편입.** CW `turbo`/빌드 파이프라인에 `section-core`·`section` 빌드 태스크 추가. `section-core`의 단위 테스트(vitest)는 CW 테스트 스위트에 편입해 **프레임워크 독립 검증 유지**(WebGL/React 불필요).
+
+1e. **데모 셸 분리.** PoC `apps/section-demo`(및 데모 전용 `cw/` stub 툴바·`App.tsx` 3층 셸)는 **이동하지 않는다.** CW가 자체 Toolbar·Content·TitleBar를 제공하므로(3~7단계), 데모 셸은 `scp-section-poc` repo에 남겨 접목 전 레퍼런스로만 유지(§Resource 「저장소·데모 사이트」).
+
+**2단계 — 환경 게이트(§9.3).** 소스 병합이므로 버전은 CW 루트로 hoist되지만, 착수 전 정합을 확인한다: Node 20.x/pnpm 9.15.9, React 18.2/TS 5.2/Vite 5.0, MUI 5.15/Emotion 11/zustand 4.4.7. **zustand·react는 CW 루트 단일 버전으로 hoist**되어 singleton 보장(1c에서 하위 패키지 중복 명시 제거). 불일치 시 이 단계에서 차단.
+
+**3단계 — Content 등록(§9.4·§9.5·§9.7).** CW의 content 시스템에 Section을 붙인다:
+1. `SectionContentHandler`를 `ContentHandler`(추상) 상속으로 작성 — 내부에 `SectionViewer` ref를 들고, `changeInteraction`·`showOverlay`·`showGrid`를 컴포넌트 API로 중계.
+2. `ContentHandlerFactory.addHandler(...)`로 Section 핸들러 등록.
+3. `ContentDialog`의 `contentType` 분기에 Section 케이스 추가 → 해당 슬롯에서 `SectionContentHandler`가 `SectionViewer`를 렌더. (CW의 `Layout3DPAN` vtk 스텁 슬롯은 쓰지 않고 새 content로 연결, §9.1 참고.)
+
+**4단계 — Store 배선(§9.5·§9.6).** Section 상태가 필요하면 `ISectionSlice`를 CW `RootStoreState`에 `ImmerStateCreator<T>` 동일 시그니처로 병합(`store/index.ts`). toolbar/workspace slice는 **재구현 금지, 구독만** 한다.
+
+**5단계 — Toolbar 구독(§9.6).** Section 뷰가 `useSyncToolWithWorkspaceContext(id)` 패턴으로 store를 구독해 active interaction(pointer·pan·zoom·length·angle·freeDraw)·feature(showGrid·showOverlays)·command(resetView 등)를 받아 처리한다. **`arrow`는 CW `InteractionType`에 없는 신규 타입**이므로 CW 측에 type + `TOOL_POLICY`(`toolbar/const.ts`) + `convertInteractionTypeToCTActionInfo` 추가가 선행돼야 한다. 계측/Arrow는 각 section slice 내부 스코프(MMI 1.13).
+
+**6단계 — CT 공급 배선(§9.4·§1).** 데모의 `SectionCtProvider`(S3 ZIP→`CTVolume`) 자리에 **CW/Clever Space provider**를 주입한다. CW는 이미 로드한 CT 볼륨을 `CTVolume`(`{data: Int16Array, metadata}`) 형태로 어댑트해 `SectionViewer`의 `volume` prop으로 전달. 환자정보(§3.4.2)는 `metadata.patient`로 함께 넘긴다. Section 모듈은 취득 방식(S3/CW/DICOM)을 모른다.
+
+**7단계 — Title bar · 다이얼로그 재사용(§9.5).** Scout/Pano/Section 헤더는 CW `ContentTitleBar` props(`{id,activated,maximized,imageAdjustRef,open2DImageAdjustDialog}`) 패턴으로 맞추고, Image Adjust(1.11)·Setting Th/INT(1.10)는 CW `ImageAdjustDialog`·`CTSliceSettingDialog`와 동일 스키마(`IMPRViewSetting`)로 배선한다.
+
+**8단계 — Save/Load 매핑(§7·§9.7).** core `serializeProject(state)` 결과(CurveList·SectionInfo·PanoInfo)를 CW `projectFile.ts`의 prj XML 필드에 어댑터로 매핑. **정확한 CW prj 필드 구조는 §12-D5(CW팀 확인 대기)** — 확정 후 어댑터 완성. 역방향(`deserializeProject`)으로 prj 로드 시 곡선·B/L·Section 위치 복원.
+
+**9단계 — MPR 연동(§12-D18, 접목 시).** MMI 1.10-2③ "Scout Th/INT ↔ MPR Axial 값 상호 동기", Image Adjust ↔ MPR 연동은 **크로스-모듈**이라 standalone에서는 미구현. CW embed 시 CW MPR store와 양방향 배선한다(standalone 렌더 동작은 정상, 값 동기만 추가).
+
+**10단계 — 검증.** EzCloud Test 컨테이너([§9.8](https://container.test.ezcloud.ezcld.net/))에서 Toolbar·ContentTitleBar·Pan/Zoom/계측 UX 정합을 확인. (현재 Section Layout 미탑재 → 접목 후 최초 통합 지점.)
+
+> **접목 시 최소 변경 요약**: CW가 **소스 병합**하는 것 = `section-core`(내부 패키지)·`section`(뷰, CW 트리 병합)(1단계). CW가 새로 **작성**하는 것 = `SectionContentHandler`(3단계)·`arrow` 툴 정의(5단계)·CT provider 어댑터(6단계)·prj 어댑터(8단계). CW가 **재사용**하는 것 = store/toolbar/title bar/다이얼로그/prj 파일(구독·매핑만). **이동 안 함** = 데모 셸 `apps/section-demo`(1e). **미결 선행조건** = §12-D5(prj 필드)·D18(MPR 연동 범위).
+
 ## 10. 공개 API · 인계물
 
 - 현재 표면: `@ewoosoft/scp-section-components` `SectionViewer({volume})`·`ScoutView`·`PanoramaView`·`SectionGrid`·`CTLoader`. `@ewoosoft/scp-section-core` `curve`·`panorama`·`section`·`webgl`·`dicom`.
@@ -471,7 +533,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | D1 | 접목 범위 (VTK 여부) | **확정** — Section 모듈은 CW vtk **미접목**, Section 뷰(WebGL, poc 확장)만 구현. 접목은 CW가 우리 컴포넌트를 embed(§9.1) | — |
 | D2 | B/L 자동 판정 | **확정** — 기획 단일 규칙(§5): P1→P2 선분, C가 있는 쪽=L. 동적 반전·반구·기준점 중심 반전(MMI 1.3#8①) 폐기 | 기획 회신 반영 완료 |
 | D3 | Overlay Normal 허용 오차(§4) | 초기값 5° 제안 → 구현 초기 튜닝 후 고정. **사용자 결정 불필요** | 구현 초기 |
-| D4 | 접목 형태(§9.2) | **확정** — `@ewoosoft/scp-section-*` 패키지 + 공개 API `SectionViewer`로 CW embed, 순수 core 프레임워크 독립 | — |
+| D4 | 접목 형태(§9.2) | **개정(2026-07-15)** — **소스 병합 우선**: `scp-section-poc` 소스를 CW 모노레포로 이동, `section-core`는 CW 내부 패키지(publish 안 함·단위 테스트 유지)·`section`(뷰)은 CW 트리 병합(§9.9 1단계). 근거 = 이미 CW 내부(store·toolbar·title bar·다이얼로그) 결합도 높음·소비자 CW 하나뿐·publish/Federation 마찰. 패키지(`@ewoosoft/scp-section-*`)+공개 API는 **fallback**(독립 평가·다중 host 시). 기존 "패키지 확정"(v1.3)에서 전환 | — |
 | D5 | Save prj(§7) | **확정** — CW prj XML 스키마 호환 직렬화. 개발 중엔 동일 payload를 브라우저 `localStorage`/export로 임시 저장. 호환 방향 Desktop→Web 우선 | CW 팀(스키마 필드 확인) |
 | D6 | 구현 커버리지 | **확정** — poc를 확장해 MMI 1.1~1.13 **전 기능** | — |
 | D7 | Section Slice 스크롤 NFR(§8) | 벤치마크 결과로 목표 수치 확정. **사용자 결정 불필요** | 구현 초기 |
@@ -513,6 +575,8 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.25 | 2026-07-15 | **접목 형태 = 소스 병합으로 D4 개정**: 패키지/Federation → **CW 모노레포 소스 병합 우선**(`section-core`=CW 내부 패키지·`section`=CW 트리 병합). §9.2 재작성, §9.9 1단계를 1a~1e 상세 절차(디렉터리 이동·스코프 개명·의존성 hoist·빌드/테스트 편입·데모 셸 분리)로 확장, §9.3 registry/Federation/스코프 행 갱신, 2단계·최소변경요약 정정, D4 개정. 패키지는 fallback으로 유지. |
+| 1.24 | 2026-07-15 | **저장소·데모 사이트 명시 + 접목 실행 절차(§9.9) 신설**: Resource에 「저장소·데모 사이트」 표 추가(repo `dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc`·데모 `scp-section-demo.test.scp.esclouddev.com`·CT S3·CI/CD, WebSectionView PoC OnePager 참조). §9에 **10단계 접목 how-to**(패키지 설치→환경 게이트→Content 등록→Store→Toolbar→CT 공급→Title bar/다이얼로그→Save/Load→MPR 연동→검증) + 최소 변경 요약 추가. |
 | 0.1~0.6 | 2026-07-09~10 | 초안 — B/L·환경 정렬·pnpm link·EzCloud·화면 3분할 |
 | 1.0 | 2026-07-13 | MMI 1.1~1.14 전 매핑·모드 표. Overlay·Draw curve·Save·NFR 신설. cloudwebviewer 실조사 반영 §9 |
 | 1.1~1.2 | 2026-07-13 | 접목 방식 검토, spec-reviewer 리뷰 반영(8필드·중복 최소화·N/A·측정가능 NFR·MMI 정합 보정) |
