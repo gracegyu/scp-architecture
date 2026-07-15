@@ -818,6 +818,8 @@
 
 - 공유 사항 (결정 아님 · 정보 공유)
   - **S1. v1.0 전략 조정 반영 — Straumann IO Scanner 우선 (7/9 결정)** — v1.0 AXS 연동 = **IO Scanner만**, **CleverOne 연동은 post-v1.0**로 이관. GW 기본(호환성·인증·라우팅·target 프록시)은 originator 무관 공통이라 **v1.0 포함**. **스펙 초안 담당**: CleverOne=**Nick** · EzServer=**Thomas**(GW는 표준 계약만 제공·Raymond 초안 미작성). **반영 완료**: SRS §1.2·§2.7 · ④/③-P-EZ/③-P-CO seed · 정본 Roadmap §3.9.
+    - **단계 개요(0~5 · 0단계 신설 공유)** — v1.0(IO Scanner 우선)으로 **0단계(IO Scanner↔EzServer 수집·선결·수집 제품/방식 R1 미정)** 를 앞에 신설(기존 1~5 번호·정의 불변): **0** IO Scanner↔EzServer 수집(v1.0 선결·R1) · **1** API 호환성 · **2** presigned · **3** GW 일원화 · **4** 멀티 Region · **5** Straumann(AXS). 정본=Roadmap §3.1·§4.
+    - **⚠ 스펙 단위(원문자) ≠ 로드맵 단계(숫자)** — 원문자(①②③④·③-C·③-P·③-I)는 **스펙 문서 번호(불변)**, 0~5는 **진행 단계**. 매핑: **①→1단계 · ②→2단계 · ③→3·4단계(GW 본체) · ④→5단계(Straumann) · ③-P-EZ→각 단계+0단계(IO 수집·R1)**. 예) **④ AXS Sub-SRS = 5단계**(4단계 아님), v1.0은 IO Scanner scope. 0단계(IO Scanner→EzServer 수집)는 ④가 아니라 ③-P-EZ/R1 소관.
   - **S2. 프로젝트 일정(Gantt) — 7/16 스냅샷** — 스펙 생애주기(작성→PR→baseline)+GW 구현 타임라인. **정본=[개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정은 그쪽 먼저·동기화 완료). **7/9 대비 변경**: v1.0 범위=IO Scanner로 축소 · 각 스펙 **작성/PR 분리** · CleverOne·②Presigned·CleverSpace=**deferred(post-v1.0)** 섹션 · **담당 표기**.
     - 막대 색: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 빨강=외부/미정 선결. **선결(빨강)**: IO Scanner↔EzServer 연동방식(미정·R1)·AXS sandbox 자격(Straumann). **목표=10월 출시**(역산·잠정). **병행 별도 프로젝트**: `SectionView Module 구현`(7/13~2주·Raymond·**GW 아님**)을 별도 섹션 `▷ 병행`에 **다른 색(crit)** 으로 표기 — GW 일정과 자원 경합(부분투입) 가시화용.
 
@@ -838,8 +840,8 @@
         PR 리뷰·수정                  :op1pr, after op1w, 7d
         baseline                      :milestone, op1bl, after op1pr, 0d
 
-        section ④ AXS Sub-SRS (v1.0 = IO Scanner 한정 · Raymond)
-        작성 (IO Scanner scope)        :axsw, 2026-07-14, 21d
+        section ④ AXS Sub-SRS (=5단계 Straumann · v1.0=IO Scanner scope · R1 후 착수 · Raymond)
+        작성 (IO Scanner scope · R1 후) :axsw, 2026-07-21, 21d
         PR 리뷰·수정                  :axspr, after axsw, 14d
         baseline                      :milestone, axsbl, after axspr, 0d
         AXS sandbox 자격(Straumann·선결) :crit, cred, 2026-08-18, 21d
@@ -881,6 +883,24 @@
     - **주요 반영**: 프록시 남용·SSRF 방어와 신뢰경계(§4.1.2) · 온보딩 실패 시 기존(레거시) usecase 지속성·rollback(§2.8) · 경로 B EOS workaround(§2.8) · Region Resolver 계약 정합(`ClinicResolution` 신설·§7.3.1) · Aurora Global DB write-forwarding 감안(§2.1.1·gw/1.2).
     - **남은 절차**: 필수 리뷰어(Scott·Thomas) 재승인 → **baseline v1.0**(7/23 리뷰 완료 후).
     - **[크로스팀 · R1 연계]** Thomas의 프록시 남용 우려 검토 결과 — GW에 인증하는 주체가 EzServer라 `client→EzServer` 내부 구간 인증은 GW 신뢰경계 밖·**EzServer(③-P-EZ) 계층 소관**으로 정리(내부망 무신뢰 강화 여부는 EzServer 위협모델 판단). EzServer 스펙(R1·Thomas)에서 다룰 항목.
+
+  - **S4. 스펙 작성 테이블 — 제품별 개발 항목 종합 (제품 × 단계) · 매주 스냅샷** · 정본=[Roadmap §4](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>) (수정은 그쪽 먼저)
+    - **각 셀 앞 이모지 = 그 항목을 다루는 스펙의 작성 진행**: ✅ baseline · 🟢 PR · 🟡 작성중 · ⬜ 미작성 (— = 해당 없음)
+
+      | 제품 | 0단계(IO Scanner 수집·v1.0 선결·R1) | 1단계(호환성) | 2단계(presigned) | 3단계(GW 일원화) | 4단계(멀티리전) | 5단계(Straumann) | 후속 | 스펙 산출물(단위·유형) |
+      | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+      | **CleverSpace** | — | ⬜ 서버 버전 체크·well-known·오류코드 | ⬜ presigned 발급 신규 | ⬜ GW 경유 수신 정합 | ⬜ 멀티 Region 구축 | — | — | ① OnePager · ② OnePager · ③-P-CS |
+      | **CleverOne**(post-v1.0) | — | ⬜ Vatech-\* 헤더·well-known·fallback | ⬜ 업로드 흐름 연계 | ⬜ Direct→GW 경유 | ⬜ Region 선택 UI(대안)·ClinicID | — | — | ① · ② · ③-P-CO OnePager |
+      | **EzServer(EZ)** | ⬜ IO Scanner 데이터 수신(방식 R1·미정) | ⬜ 헤더 대리 전달 | ⬜ 전송 로직(presigned 직접) | ⬜ GW 경유 전환 | ⬜ ClinicID·Region·클리닉 등록(잠정) | ⬜ IO Scanner 연동·AXS(갈래A)·presigned 직접 | ⬜ Rust 재개발 | ①·②·③-P-EZ(Thomas)·④(갈래A) |
+      | **IO Scanner(Straumann 장비·수집 제품 미정)** | ⬜ 스캔 데이터→EzServer 유입(수집 제품·방식 R1·미정) | — | — | — | — | (AXS 워크플로 대상) | — | R1 확정 후 ③-P-EZ(수신)·④(AXS scope) |
+      | **CleverLab** | — | — | — | — | — | ⬜ AXS 오더·상태·확정(갈래B)·presigned | — | ④ Sub-SRS(갈래B) |
+      | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 Region 분배·HA(K8s)·Route53·Postgres | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS 🟢(단일·전 단계 통합)** · ④ connector 🟡 |
+      | **GW Console** | — | — | — | — | ⬜ Admin Web Console(③-C) | ⬜ 온보딩·Org-ID 관리 화면 | — | ③-C Sub-SRS |
+      | **인프라** | — | ⬜ 단일 Region | — | ⬜ 단일 Region GW | ⬜ Route53·K8s·비-AWS minio | ⬜ AXS 고정IP·샌드박스 | — | ③-I IaC 계획서 |
+      | **외부(Straumann AXS)** | — | — | — | — | — | ⬜ API·OAuth·샌드박스·자격증명(선결) | — | ④ 입력(외부 제공) |
+      | **LMP(License Portal, 바텍)** | — | — | — | — | — | — | ⬜ (조건부) 제3자 서명 attestation | **enroll B안 시만**·ES 라이선스팀(R9·B-42) |
+
+      > **7/16 진행**: ③ GW SRS(+OpenAPI·DBML) = **🟢 PR(7/13~7/23)** → baseline 후 나머지 착수 · **① One Pager = 🟡 작성 착수(7/14)** · **④ AXS Sub-SRS = R1(IO Scanner↔EzServer 방식) 결정 후 다음 주(~7/21) 착수**(그 전 착수 시 재작업 위험). **0단계(IO Scanner 수집)** = v1.0 선결·수집 제품/방식 미정(R1). v1.0 범위 = **Straumann IO Scanner** 한정 → **CleverOne 연동 post-v1.0 deferred**. 순서·의존 = [Roadmap §3.9].
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
