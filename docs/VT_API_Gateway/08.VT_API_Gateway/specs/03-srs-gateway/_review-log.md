@@ -432,9 +432,11 @@
   > mqtt 서버의 주소/포트 정보가 명시가 되어 있지 않아 보입니다.
   > 추가로 mqtt 프로토콜(native or over websocket, TLS 여부)의 버전 등도 명시를 해야 하지 않을까 합니다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- 다음 답변(초안):
+
+  MQTT 서버 주소·포트는 브로커 제품(#4·③-I) 확정 사항이라 SRS에 고정 값을 박지 않고, GW가 region resolution·enrollment config로 EzServer에 하달합니다(§7.6.6 'endpoint 획득'에 이미 규정 — 리전별·브로커별로 다르고 인프라 소유이기 때문). 프로토콜은 §7.6.6에 논리 요구를 보강했습니다: TLS 필수·QoS1·persistent·cert 인증은 스펙 불변 요구, MQTT 버전(3.1.1/5.0)·전송(native TCP/over-WebSocket)은 브로커 제품 확정 시 결정합니다. 구체 endpoint·버전·전송은 ③-I 소관입니다.
+- 조치: §7.6.6에 프로토콜·전송·보안 논리 요구 note 추가(TLS·QoS1·persistent·cert 불변·버전/전송/endpoint=#4·③-I) — 반영
+- 상태: 반영완료(로컬·미push)
 
 ## C-26 · docs/specs/SRS.md:1983 · [thread 79558]
 - **[민진우(Thomas) · 2026-07-14T05:31 · cid 79558.1]**
