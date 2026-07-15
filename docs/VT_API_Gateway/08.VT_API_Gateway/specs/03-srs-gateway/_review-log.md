@@ -389,11 +389,11 @@
   > 이 spec 문서는 타계열사 (EVN, VFR 등)에서 볼일이 있지 않을까요?
   > 있다면 영문으로도 제공을 하는 건 어떤가요?
 
-- 다음 답변(초안):
-  
-  좋은 지적 감사합니다. 다만 한/영 이중언어 SRS를 함께 유지하면 SSOT가 둘이 되어 drift 위험이 커, 본 문서는 한국어를 SSOT로 유지하겠습니다. 타계열사(EVN·VFR 등)가 참조할 경우 요즘 AI 번역 품질이 높으니 한국어 원본을 받아 AI로 번역해 보시는 것을 권장합니다 — 우리가 번역본을 별도 유지하면 원본과 drift가 생기고 유지 부담도 커집니다.
+- 답변(게시본):
 
-  번역 제공 여부·범위는 SRS baseline에서 결정할 사안이 아니라 계열사 조율 차원의 관리 결정이므로, 실제 수요가 생기면 관리자(PM/조직) 판단으로 진행하는 것이 맞다고 봅니다. 본 스레드는 SRS 변경 사항이 없어 여기서 정리(Resolve)하겠습니다.
+좋은 지적 감사합니다. 다만 한/영 이중언어 SRS를 함께 유지하면 SSOT가 둘이 되어 drift 위험이 커, 본 문서는 한국어를 SSOT로 유지하겠습니다. 타계열사(EVN·VFR 등)가 참조할 경우 요즘 AI 번역 품질이 높으니 한국어 원본을 받아 AI로 번역해 보시는 것을 권장합니다 — 우리가 번역본을 별도 유지하면 원본과 drift가 생기고 유지 부담도 커집니다.
+
+번역 제공 여부·범위는 SRS baseline에서 결정할 사안이 아니라 계열사 조율 차원의 관리 결정이므로, 실제 수요가 생기면 관리자(PM/조직) 판단으로 진행하는 것이 맞다고 봅니다. 본 스레드는 SRS 변경 사항이 없어 여기서 정리(Resolve)하겠습니다.
 
 - 조치: SRS 변경 없음 — 한국어 SSOT 유지·번역=온디맨드(수요처 AI)·제공 여부는 관리(PM/조직) 결정(baseline 밖)
 - 상태: 답변·Resolve 권장(SRS 밖·조치 없음)
@@ -404,9 +404,10 @@
   > 하나의 target에 대한 production 외 staging/test/dev 환경에 대한 domain 은 어떻게 되나요? 그리고, 각 환경과 연계되는 AXS 환경은 어떻게 될까요? 
   > webhook url 도 함께 고려 부탁드립니다.
 
-- 다음 답변(초안):
+- 답변(게시본):
 
-  AXS 환경 매핑은 이미 §3.3(환경 표)에 있습니다 — dev→AXS sandbox(unstable, ESIP-14)/미수령 시 mock, test·staging→sandbox, prod→production. 비-prod 도메인·webhook URL은 §4.5.1에 '환경-한정 네임스페이스' 규칙을 보강했습니다: prod 호스트 구조를 env-한정으로 복제(예 {env}.gw.vatech.com·{target}.webhook.{env}…), 각 GW 환경의 target 레지스트리가 대응 AXS 환경을 가리키고 AXS는 그 env의 webhook URL로 구독합니다. 구체 도메인 문자열·zone·인증서·환경 프로비저닝은 ③-I(Appendix B-24·B-2), AXS 환경별 자격은 ④/target config로 둡니다 — GW SRS는 논리 규칙까지입니다.
+  AXS 환경 매핑은 이미 §3.3(환경 표)에 있습니다 — dev→AXS sandbox(unstable, ESIP-14)/미수령 시 mock, test·staging→sandbox, prod→production. 비-prod 도메인·webhook URL은 §4.5.1에 '환경-한정 네임스페이스' 규칙을 보강했습니다: prod 호스트 구조를 env-한정으로 복제(예 {env}.gw.vatech.com·{target}.webhook.{env}…), 각 GW 환경의 target 레지스트리가 대응 AXS 환경을 가리키고 AXS는 그 env의 webhook URL로 구독합니다. 구체 도메인 문자열·zone·인증서·환경 프로비저닝은 ③-I(Appendix B #24·#2), AXS 환경별 자격은 ④/target config로 둡니다 — GW SRS는 논리 규칙까지입니다.
+
 - 조치: §4.5.1에 환경-한정 도메인/webhook URL 규칙 note 추가·§3.3 AXS 환경 매핑 참조·구체=③-I(#24·#2)·④ — 반영
 - 상태: 반영완료(로컬·미push)
 
@@ -432,9 +433,10 @@
   > mqtt 서버의 주소/포트 정보가 명시가 되어 있지 않아 보입니다.
   > 추가로 mqtt 프로토콜(native or over websocket, TLS 여부)의 버전 등도 명시를 해야 하지 않을까 합니다.
 
-- 다음 답변(초안):
+- 답변(게시본):
 
-  MQTT 서버 주소·포트는 브로커 제품(Appendix B-4·③-I) 확정 사항이라 SRS에 고정 값을 박지 않고, GW가 region resolution·enrollment config로 EzServer에 하달합니다(§7.6.6 'endpoint 획득'에 이미 규정 — 리전별·브로커별로 다르고 인프라 소유이기 때문). 프로토콜은 §7.6.6에 논리 요구를 보강했습니다: TLS 필수·QoS1·persistent·cert 인증은 스펙 불변 요구, MQTT 버전(3.1.1/5.0)·전송(native TCP/over-WebSocket)은 브로커 제품 확정 시 결정합니다. 구체 endpoint·버전·전송은 ③-I 소관입니다.
+  MQTT 서버 주소·포트는 브로커 제품(#4·③-I) 확정 사항이라 SRS에 고정 값을 박지 않고, GW가 region resolution·enrollment config로 EzServer에 하달합니다(§7.6.6 'endpoint 획득'에 이미 규정 — 리전별·브로커별로 다르고 인프라 소유이기 때문). 프로토콜은 §7.6.6에 논리 요구를 보강했습니다: TLS 필수·QoS1·persistent·cert 인증은 스펙 불변 요구, MQTT 버전(3.1.1/5.0)·전송(native TCP/over-WebSocket)은 브로커 제품 확정 시 결정합니다. 구체 endpoint·버전·전송은 ③-I 소관입니다.
+
 - 조치: §7.6.6에 프로토콜·전송·보안 논리 요구 note 추가(TLS·QoS1·persistent·cert 불변·버전/전송/endpoint=#4·③-I) — 반영
 - 상태: 반영완료(로컬·미push)
 
@@ -456,9 +458,10 @@
 
   > 호환 포기로 경로 B(CleverOne이 EzServer를 거치지 않고 CleverSpace와 연동하는 경우)가 EOS 되는 경우의 Workaround가 궁금합니다.
 
-- 다음 답변(초안):
+- 답변(게시본):
 
   경로 B가 EOS되어도 해당 사용자의 기능이 사라지는 게 아니라, 표준 GW 경유 경로(CleverOne→EzServer→GW→target)로 이관하는 것이 workaround입니다 — 직결(CleverOne↔CleverSpace)만 폐지되고 동일 기능은 GW 경로로 보존됩니다(GW 도입 취지). §2.8에 이 workaround를 명시했습니다. EOS 시점·이관 계획·고객 안내는 PM(제품, Appendix B-3)·③-P(CleverOne/CleverSpace 팀) 소관입니다.
+
 - 조치: §2.8 호환 포기 bullet에 'workaround=GW 경유 이관·기능 보존' 명시·시점/계획=PM#3·③-P — 반영
 - 상태: 반영완료(로컬·미push)
 
@@ -469,9 +472,10 @@
   >
   > EzServer와 같은 network에 있는 아무 client 에서 헤더에 Vatech-Target: axs 혹은 cleverspace 등을 넣어서 호출하면 axs, cleverspace의 공격을 GW 를 통해서 하게 되는데요. GW가 공격의 Proxy 역할을 할 수도 있지 않을까 합니다.
 
-- 다음 답변(초안):
+- 답변(게시본):
 
-  맞습니다 — EzServer는 클리닉 내부망 전제라 이 시나리오는 '이미 내부망에 들어온 공격자'를 가정합니다. 구조적으로 보면 GW에 인증하는 주체가 EzServer 자신이라, GW ingress 인증만으로는 EzServer 상류(client→EzServer) 트래픽의 출처를 가려낼 수 없습니다. 즉 이 구간은 GW가 관측할 수 없는 지점이라, 인증을 EzServer 계층(③-P-EZ)에서 함께 다뤄야 하는 부분입니다. 내부망을 계속 신뢰할지 zero-trust로 강화할지는 EzServer 위협모델에서 정하면 되고, 어느 쪽이든 GW 통제는 그대로입니다. GW는 이 구간이 뚫려도 blast radius를 제한합니다: 목적지를 등록 target으로 고정(임의 host SSRF 차단)·scope·rate-limit. 그리고 target 자체 인증·입력검증이 최종 방어선입니다. 정리하면 GW·EzServer가 계층을 나눠 막는 구조이며, §4.1.2에 이 신뢰경계를 명시했습니다.
+ 맞습니다 — EzServer는 클리닉 내부망 전제라 이 시나리오는 '이미 내부망에 들어온 공격자'를 가정합니다. 구조적으로 보면 GW에 인증하는 주체가 EzServer 자신이라, GW ingress 인증만으로는 EzServer 상류(client→EzServer) 트래픽의 출처를 가려낼 수 없습니다. 즉 이 구간은 GW가 관측할 수 없는 지점이라, 인증을 EzServer 계층(③-P-EZ)에서 함께 다뤄야 하는 부분입니다. 내부망을 계속 신뢰할지 zero-trust로 강화할지는 EzServer 위협모델에서 정하면 되고, 어느 쪽이든 GW 통제는 그대로입니다. GW는 이 구간이 뚫려도 blast radius를 제한합니다: 목적지를 등록 target으로 고정(임의 host SSRF 차단)·scope·rate-limit. 그리고 target 자체 인증·입력검증이 최종 방어선입니다. 정리하면 GW·EzServer가 계층을 나눠 막는 구조이며, §4.1.2에 이 신뢰경계를 명시했습니다.
+
 - 조치: §4.1.2 note 신뢰경계 반영 — GW 인증 주체=EzServer(디바이스)라 (client→EzServer) 구간은 GW 관측 밖·EzServer 계층(③-P-EZ)에서 인증(계층 분담); 내부망 무신뢰 전환 여부=③-P-EZ 위협모델(GW 통제 불변); GW는 목적지 고정·scope·rate-limit로 blast radius 제한, target 자체 인증이 최종 방어선
 - 상태: 반영완료(로컬·미push)
 
@@ -492,7 +496,7 @@
 
   > GW 온보딩 Fail시의 Rollback 또는 Workaround가 있는지 확인이 필요합니다. (정확히는 GW 온보딩이 실패하여도 기존 Usecase는 정상 동작하는지가 궁금합니다.)
 
-- 다음 답변(초안):
+- 답변(게시본):
 
 **결론:** GW 온보딩이 실패해도 **기존(레거시) usecase는 정상 동작**합니다. 단, GW 신규 기능 자체는 온보딩 성공이 전제입니다.
 
@@ -555,7 +559,7 @@
   >      * GW 1.0은 단일 리전만 지원
   >   - Test Environment : Dev, Test/Staging, PROD 중 어떤 환경에서 QA 하는지
 
-- 다음 답변(초안):
+- 답변(게시본):
 
 공유 감사합니다. QA 전략 방향이 SRS와 잘 맞습니다. 대응되는 SRS 앵커와, 적어주신 열린 질문 중 SRS가 이미 정한 것들을 정리해 드립니다.
 
@@ -583,7 +587,7 @@ QA 전략 자체는 QA(James·Eric) 소관이라 SRS 변경은 없고, 위 앵�
   > https://docs.aws.amazon.com/ko_kr/AmazonRDS/latest/AuroraUserGuide/aurora-global-database-write-forwarding-apg.html
   > 현재 VPC 구성상 Aurora Global Database 사용시 쓰기 forward를 활성화 하고 리전별 앱들은 해당 리전의 엔드포인트를 사용하면 되는데 사용자 지정 함수나 사용자 정의 프로시저를 지원하지 않는 등 제약이 있습니다. 또한 Aurora Global Database여도 쓰기는 primary region의 DB로 전달되기 때문에 secondary 리전 앱에서 쓰기 작업을 수행할 경우 latency가 상당 부분 증가하므로 감안 부탁드립니다. Global Database로 멀티리전에서 성능상 이득을 볼 수 있는 부분은 Read만 가능합니다.
 
-- 다음 답변(초안):
+- 답변(게시본):
 
 좋은 검토 감사합니다. 지적하신 write-forwarding 특성은 GW 데이터 구분과 정합적이라, gw/1.2 멀티 리전 설계에 그대로 반영하겠습니다.
 
@@ -611,7 +615,7 @@ GW는 데이터를 두 부류로 나눕니다(§2.1.1·§6.4):
   > From CodeReviewAgent(v0.4.1),
   > `Clinic` 스키마가 SRS가 규정한 Region Resolver 출력 계약과 어긋난다. SRS §7.3.1은 `GET /v1/clinics/me`의 출력을 **"(`Clinic`, OpenAPI)"** 로 명시하며 `regionDisplayName`·`endpoint`·`status`(active/draining/planned)·`cacheTtlSeconds`·`hosts`(apex·webhookHostPattern)·`sovereigntyPolicy`(dataResidencyRegion·phiEgressAllowed·crossBorder·storage…)를 반환한다고 규정하고, §2.3.3의 시퀀스 주석("region(ID·표시명·endpoint·status) + clinicId·mappingVersion·cacheTtl + 주권 정책")도 동일하다. 그러나 이 `Clinic` 스키마(= `GET /v1/clinics/me`·`GET /v1/admin/clinics/{clinicId}` 공통 응답)에는 `clinicId·region·name·countryCode·address·phone·website·mappingVersion·createdAt·updatedAt`만 있고 위 resolver 전용 필드가 하나도 없다. `endpoint`·`displayName`·`status`는 별도 `Region` 스키마에만 존재하고, `cacheTtlSeconds`·`sovereigntyPolicy`·`hosts`는 어느 스키마에도 정의돼 있지 않다. 즉 SRS가 `Clinic`로 서빙하겠다고 한 데이터 주권·캐시 TTL·엔드포인트 정보를 현재 OpenAPI 계약으로는 전달할 수 없다 — resolver 응답 필드를 `Clinic`에 보강하거나 별도 resolver 응답 스키마를 신설하고 §7.3.1의 "(`Clinic`, OpenAPI)" 참조를 그쪽으로 정정해야 한다.
 
-- 다음 답변(초안):
+- 답변(게시본):
 
 정확한 지적 감사합니다. SRS↔OpenAPI 계약 드리프트가 맞아, resolver 출력 전용 스키마를 신설해 정정했습니다.
 
@@ -632,11 +636,11 @@ GW는 데이터를 두 부류로 나눕니다(§2.1.1·§6.4):
   > From CodeReviewAgent(v0.4.1),
   > Appendix B #42가 enroll B안(LMP 자동승인)의 예약 필드를 **"`EnrollStartRequest.licenseAttestation` optional 필드 예약 완료(OpenAPI·v1.0 미사용)"** 로 기재하나, 실제 OpenAPI는 이 필드를 `EnrollCompleteRequest`에 두었다(`EnrollCompleteRequest.licenseAttestation`, nullable·예약). `EnrollStartRequest` 스키마에는 `bootstrap`·`serial`만 있고 `licenseAttestation`이 없다. §2.3.1의 B안 시퀀스도 `POST /v1/enroll/complete (nonceSignature, clientPublicKey, licenseAttestation)`로 **complete 단계**에서 attestation을 제출하도록 그려져 있어(nonce 서명·공개키와 함께 검증) OpenAPI 배치가 옳고, Appendix B #42의 `EnrollStartRequest.licenseAttestation` 표기가 오기다. baseline 추적표는 개발자가 예약 필드를 찾는 근거이므로 `EnrollCompleteRequest.licenseAttestation`으로 정정해야 한다.
 
-- 다음 답변(초안):
+- 답변(게시본):
 
 맞습니다 — 오기 정정했습니다.
 
-- Appendix B-42의 예약 필드 경로를 **`EnrollStartRequest.licenseAttestation` → `EnrollCompleteRequest.licenseAttestation`** 으로 수정.
+- Appendix B #42의 예약 필드 경로를 **`EnrollStartRequest.licenseAttestation` → `EnrollCompleteRequest.licenseAttestation`** 으로 수정.
 - 근거: attestation은 nonce 서명·공개키와 함께 **complete 단계**에서 제출·검증됩니다(§2.3.1 B안 시퀀스 `POST /v1/enroll/complete`). OpenAPI 배치(`EnrollCompleteRequest.licenseAttestation`)가 옳고 추적표 문구가 틀렸던 것입니다.
 
 baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 경로에 맞췄습니다.
@@ -650,7 +654,7 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
   > From CodeReviewAgent(v0.4.1),
   > `WebhookEnvelope.eventType`를 `required`(line 2328)로 두고 **"이벤트 유형(분배 라우팅 키)"** 로 설명한 것이 GW의 분배 설계와 모순된다. SRS §7.6.1은 "**목적지 라우팅은 `event_type`이 아니라 `org_mapping`** 이 결정한다"고 못 박고, `event_type_path` 미추출 시 event_type은 `null`(관측·필터용 부가정보)이라고 규정한다(§4.1.3도 "목적지 결정 = 매핑이다"). 실제 같은 파일의 `WebhookEvent.eventType`도 `nullable: true`다. 이 envelope가 "확정 계약 아님·논리 예시"임을 감안해도, eventType을 "분배 라우팅 키"로 규정하고 필수 필드로 만든 것은 (a) 실 라우팅 키(`org_mapping`→org id)와 모순되고 (b) event_type이 null일 수 있다는 §7.6.1 규정과도 어긋나 구현자를 event_type 기반 분배로 오도할 수 있다. 설명을 "관측·필터용 이벤트 유형(라우팅 키 아님·null 가능)"으로 고치고 required에서 빼는 것이 맞다.
 
-- 다음 답변(초안):
+- 답변(게시본):
 
 맞습니다 — §7.6.1과 모순이라 정정했습니다.
 
@@ -668,7 +672,7 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
   > From CodeReviewAgent(v0.4.1),
   > `Region.endpoint` 예시 `https://apne2.internal.gw.vatech.com`가 SRS §4.5.1이 정의한 리전 내부 호스트 네이밍 규약과 다른 스킴을 쓴다. §4.5.1은 리전별 내부 엔드포인트를 `gw-<region>.vatech.com`(예: `gw-apne2.vatech.com`)으로 예약한다고 명시(line 1365·1384)하는데, OpenAPI는 `{region}.internal.gw.vatech.com` 형태를 예시로 든다. 둘 다 내부·인프라 소유 예시이나 같은 대상(리전 내부 엔드포인트)에 서로 다른 네이밍 규약이 공존해 혼동을 준다 — §4.5.1 규약(`gw-<region>.vatech.com`)에 맞춰 예시를 통일하는 것이 좋다. (경미)
 
-- 다음 답변(초안):
+- 답변(게시본):
 
 맞습니다 — 예시를 §4.5.1 규약으로 통일했습니다.
 
@@ -694,7 +698,7 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
   >
   > 4 line-specific finding(s) were posted as inline comments.
 
-- 다음 답변(초안):
+- 답변(게시본):
 
 총평 감사합니다. 이전 리뷰 6건(dangling cross-reference) 해소와 ADR-13 컬럼명·Target timeout 예시 정합 확인 감사합니다. 이번 라인 지적 4건은 모두 반영했습니다.
 
