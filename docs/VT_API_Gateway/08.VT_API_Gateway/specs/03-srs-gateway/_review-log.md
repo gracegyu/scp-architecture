@@ -650,9 +650,17 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
   > From CodeReviewAgent(v0.4.1),
   > `WebhookEnvelope.eventType`를 `required`(line 2328)로 두고 **"이벤트 유형(분배 라우팅 키)"** 로 설명한 것이 GW의 분배 설계와 모순된다. SRS §7.6.1은 "**목적지 라우팅은 `event_type`이 아니라 `org_mapping`** 이 결정한다"고 못 박고, `event_type_path` 미추출 시 event_type은 `null`(관측·필터용 부가정보)이라고 규정한다(§4.1.3도 "목적지 결정 = 매핑이다"). 실제 같은 파일의 `WebhookEvent.eventType`도 `nullable: true`다. 이 envelope가 "확정 계약 아님·논리 예시"임을 감안해도, eventType을 "분배 라우팅 키"로 규정하고 필수 필드로 만든 것은 (a) 실 라우팅 키(`org_mapping`→org id)와 모순되고 (b) event_type이 null일 수 있다는 §7.6.1 규정과도 어긋나 구현자를 event_type 기반 분배로 오도할 수 있다. 설명을 "관측·필터용 이벤트 유형(라우팅 키 아님·null 가능)"으로 고치고 required에서 빼는 것이 맞다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- 다음 답변(초안):
+
+맞습니다 — §7.6.1과 모순이라 정정했습니다.
+
+- `WebhookEnvelope.eventType`을 **required에서 제거**하고 **`nullable: true`** 로 변경.
+- 설명을 **"관측·필터용 이벤트 유형(라우팅 키 아님·`event_type_path` 미추출 시 null·§7.6.1)"** 으로 수정하고, 목적지 라우팅은 `org_mapping`(externalOrgId→clinicId→region)이 결정함을 명시(§7.6.1·§4.1.3).
+
+이로써 `WebhookEvent.eventType`(이미 nullable)과도 일관되고, 구현자를 event_type 기반 분배로 오도할 여지가 없어졌습니다.
+
+- 조치: WebhookEnvelope.eventType required 제거·nullable:true·설명 '관측/필터용(라우팅 키 아님·null 가능·§7.6.1)'로 수정. redocly valid
+- 상태: 반영완료(로컬·미push)
 
 ## C-37 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2612 · [thread 79684] ★리뷰어 대기(자동리뷰)
 - **[민진우(Thomas) · 2026-07-15T01:18 · cid 79684.1]**
@@ -721,6 +729,6 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
 - C-33 · docs/specs/SRS.md:323 · `대기` ★
 - C-34 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2543 · `반영완료(로컬·미push)`
 - C-35 · docs/specs/SRS.md:2322 · `반영완료(로컬·미push)`
-- C-36 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2336 · `대기` ★
+- C-36 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2336 · `반영완료(로컬·미push)`
 - C-37 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2612 · `대기` ★
 - C-38 · (파일 미지정·일반) · `대기` ★
