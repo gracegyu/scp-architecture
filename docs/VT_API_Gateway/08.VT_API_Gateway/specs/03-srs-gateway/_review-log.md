@@ -636,7 +636,7 @@ GW는 데이터를 두 부류로 나눕니다(§2.1.1·§6.4):
 
 맞습니다 — 오기 정정했습니다.
 
-- Appendix B #42의 예약 필드 경로를 **`EnrollStartRequest.licenseAttestation` → `EnrollCompleteRequest.licenseAttestation`** 으로 수정.
+- Appendix B-42의 예약 필드 경로를 **`EnrollStartRequest.licenseAttestation` → `EnrollCompleteRequest.licenseAttestation`** 으로 수정.
 - 근거: attestation은 nonce 서명·공개키와 함께 **complete 단계**에서 제출·검증됩니다(§2.3.1 B안 시퀀스 `POST /v1/enroll/complete`). OpenAPI 배치(`EnrollCompleteRequest.licenseAttestation`)가 옳고 추적표 문구가 틀렸던 것입니다.
 
 baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 경로에 맞췄습니다.
@@ -668,9 +668,15 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
   > From CodeReviewAgent(v0.4.1),
   > `Region.endpoint` 예시 `https://apne2.internal.gw.vatech.com`가 SRS §4.5.1이 정의한 리전 내부 호스트 네이밍 규약과 다른 스킴을 쓴다. §4.5.1은 리전별 내부 엔드포인트를 `gw-<region>.vatech.com`(예: `gw-apne2.vatech.com`)으로 예약한다고 명시(line 1365·1384)하는데, OpenAPI는 `{region}.internal.gw.vatech.com` 형태를 예시로 든다. 둘 다 내부·인프라 소유 예시이나 같은 대상(리전 내부 엔드포인트)에 서로 다른 네이밍 규약이 공존해 혼동을 준다 — §4.5.1 규약(`gw-<region>.vatech.com`)에 맞춰 예시를 통일하는 것이 좋다. (경미)
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- 다음 답변(초안):
+
+맞습니다 — 예시를 §4.5.1 규약으로 통일했습니다.
+
+- `Region.endpoint` 예시를 **`https://apne2.internal.gw.vatech.com` → `https://gw-apne2.vatech.com`** 로 수정하고, §4.5.1(`gw-<region>.vatech.com`·GeoDNS 백엔드·인프라 소유·클라이언트 미노출) 참조를 description에 명시.
+- 앞서 신설한 `ClinicResolution.endpoint`도 동일 규약(`gw-apne2.vatech.com`)으로 맞춰, 리전 내부 엔드포인트 예시가 문서 전체에서 일관됩니다.
+
+- 조치: Region.endpoint 예시 apne2.internal.gw.vatech.com→gw-apne2.vatech.com(§4.5.1 규약)·description 보강. ClinicResolution.endpoint도 동일 규약. redocly valid
+- 상태: 반영완료(로컬·미push)
 
 ## C-38 · (파일 미지정·일반) · [thread 79685] ★리뷰어 대기(자동리뷰)
 - **[민진우(Thomas) · 2026-07-15T01:18 · cid 79685.1]**
@@ -688,9 +694,19 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
   >
   > 4 line-specific finding(s) were posted as inline comments.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- 다음 답변(초안):
+
+총평 감사합니다. 이전 리뷰 6건(dangling cross-reference) 해소와 ADR-13 컬럼명·Target timeout 예시 정합 확인 감사합니다. 이번 라인 지적 4건은 모두 반영했습니다.
+
+- **§7.3.1 Region Resolver 계약 드리프트**: `ClinicResolution` 스키마를 신설(`Clinic` allOf + resolver 필드: regionDisplayName·endpoint·status·cacheTtlSeconds·hosts·sovereigntyPolicy)하고 `GET /v1/clinics/me` 응답을 교체, §7.3.1 참조를 정정했습니다. (요구사항↔인터페이스 추적성 확보)
+- **Appendix B-42 예약 필드 경로 오기**: `EnrollStartRequest` → `EnrollCompleteRequest.licenseAttestation`으로 정정(§2.3.1 complete 단계 제출과 일치).
+- **WebhookEnvelope.eventType 설계 모순**: required 제거·nullable·"관측/필터용(라우팅 키 아님·null 가능)"으로 수정(§7.6.1 org_mapping 라우팅과 정합).
+- **Region.endpoint 네이밍 불일치**: §4.5.1 규약 `gw-<region>.vatech.com`으로 예시 통일.
+
+아키텍처·데이터 모델 자체 결함이 없다는 평가와, ProxyError·Target*·Vatech-* 미참조가 verbatim bypass 의도임을 인지해 지적에서 제외해 주신 점 확인했습니다. 위 수정은 redocly lint valid(기존 5 warnings 동일)이며, 로컬 반영 후 일괄 push 예정입니다.
+
+- 조치: 정보성(Update 2 총평·아키텍처 결함 없음). 라인 지적 4건(C-34~C-37) 반영 확인 회신. SRS/OpenAPI 추가 변경 없음
+- 상태: 답변(정보성·수정 없음)
 ---
 
 ## 인덱스 (위치·상태)
@@ -730,5 +746,5 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
 - C-34 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2543 · `반영완료(로컬·미push)`
 - C-35 · docs/specs/SRS.md:2322 · `반영완료(로컬·미push)`
 - C-36 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2336 · `반영완료(로컬·미push)`
-- C-37 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2612 · `대기` ★
-- C-38 · (파일 미지정·일반) · `대기` ★
+- C-37 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2612 · `반영완료(로컬·미push)`
+- C-38 · (파일 미지정·일반) · `답변(정보성·수정 없음)`
