@@ -526,6 +526,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 - **Web→Desktop / 양방향 prj** — Desktop→Web 단방향 우선(개발실 §4.1).
 - **CW vtk `Layout3DPAN` 파이프라인 사용·구현** — 본 모듈은 WebGL Section만 제공(§9.1, §12-D1).
 - **B/L 드로잉 중 극성 반전 로직** — 새 단일 규칙(§5)으로 불필요(폐기).
+- **계측 크로스뷰 트래킹** — **후속.** 계측/주석은 뷰별 독립 캔버스라, 드래그·미리보기 중 커서가 다른 뷰(S↔P↔S)나 창 밖으로 빠르게 나가면 원래 뷰의 입력이 경계에서 멈춘다(버그 아님·뷰별 스코프 D21의 자연스러운 경계 행동). 창 내 연속 추적은 `setPointerCapture`(Free Draw 드래그)+window `mousemove`/`mouseup` 리스너(클릭 미리보기·유실 방지)로 가능하나 빠른 출시 우선으로 이연.
 - **실제 WebGL2 GPU 리슬라이스(볼륨 3D 텍스처 → 프래그먼트 셰이더 단면 샘플링)** — **이번 범위 밖, 숙제로 남김(빠른 출시 우선, D20)**. 현재 9단면은 **CPU(WASM-resident 기본/JS 폴백)로 생성 후 WebGL은 텍스처 표시만** 한다(§8이 서술한 "채택안"과의 간극). 두꺼운 슬랩 실시간 스크롤(≤33ms)의 근본 해결책이나 큰 공수 → **Phase 5/6 후속**(GPU reslice 셰이더 구현). 현행은 완충책(캐시·디바운스·표시분리)+WASM으로 체감 유지.
 
 ## 12. Decision Log / 미확정 (TBD)
