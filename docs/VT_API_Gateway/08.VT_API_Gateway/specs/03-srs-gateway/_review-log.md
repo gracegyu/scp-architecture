@@ -632,9 +632,17 @@ GW는 데이터를 두 부류로 나눕니다(§2.1.1·§6.4):
   > From CodeReviewAgent(v0.4.1),
   > Appendix B #42가 enroll B안(LMP 자동승인)의 예약 필드를 **"`EnrollStartRequest.licenseAttestation` optional 필드 예약 완료(OpenAPI·v1.0 미사용)"** 로 기재하나, 실제 OpenAPI는 이 필드를 `EnrollCompleteRequest`에 두었다(`EnrollCompleteRequest.licenseAttestation`, nullable·예약). `EnrollStartRequest` 스키마에는 `bootstrap`·`serial`만 있고 `licenseAttestation`이 없다. §2.3.1의 B안 시퀀스도 `POST /v1/enroll/complete (nonceSignature, clientPublicKey, licenseAttestation)`로 **complete 단계**에서 attestation을 제출하도록 그려져 있어(nonce 서명·공개키와 함께 검증) OpenAPI 배치가 옳고, Appendix B #42의 `EnrollStartRequest.licenseAttestation` 표기가 오기다. baseline 추적표는 개발자가 예약 필드를 찾는 근거이므로 `EnrollCompleteRequest.licenseAttestation`으로 정정해야 한다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- 다음 답변(초안):
+
+맞습니다 — 오기 정정했습니다.
+
+- Appendix B #42의 예약 필드 경로를 **`EnrollStartRequest.licenseAttestation` → `EnrollCompleteRequest.licenseAttestation`** 으로 수정.
+- 근거: attestation은 nonce 서명·공개키와 함께 **complete 단계**에서 제출·검증됩니다(§2.3.1 B안 시퀀스 `POST /v1/enroll/complete`). OpenAPI 배치(`EnrollCompleteRequest.licenseAttestation`)가 옳고 추적표 문구가 틀렸던 것입니다.
+
+baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 경로에 맞췄습니다.
+
+- 조치: SRS Appendix B #42 예약필드 경로 오기 정정 EnrollStartRequest→EnrollCompleteRequest(+complete 단계 제출 근거 §2.3.1). fence 52
+- 상태: 반영완료(로컬·미push)
 
 ## C-36 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2336 · [thread 79683] ★리뷰어 대기(자동리뷰)
 - **[민진우(Thomas) · 2026-07-15T01:18 · cid 79683.1]**
@@ -712,7 +720,7 @@ GW는 데이터를 두 부류로 나눕니다(§2.1.1·§6.4):
 - C-32 · (파일 미지정·일반) · `답변(정보성·QA 소관)`
 - C-33 · docs/specs/SRS.md:323 · `대기` ★
 - C-34 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2543 · `반영완료(로컬·미push)`
-- C-35 · docs/specs/SRS.md:2322 · `대기` ★
+- C-35 · docs/specs/SRS.md:2322 · `반영완료(로컬·미push)`
 - C-36 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2336 · `대기` ★
 - C-37 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2612 · `대기` ★
 - C-38 · (파일 미지정·일반) · `대기` ★
