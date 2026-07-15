@@ -389,7 +389,7 @@
 
 #### T-P4-2 — 계측 Length/Angle·Free Draw
 
-- [x] **완료(2026-07-15)** — core `measure/measurement.ts`(정규화 타일좌표 length mm·angle deg·폴리라인·타일 clamp) + `SectionMeasureOverlay.tsx`(그리드 전체 오버레이 캔버스, 타일 hit-test로 첫 점 타일에 귀속→section 스코프, 렌더모드/최대화 무관). Toolbar interaction→`SectionViewer.measureTool`→`SectionGrid` 배선(App `useToolStore` 구독, showOverlays 연동). Length=2클릭(mm)·Angle=3클릭(화면좌표 °, 등방 불변)·FreeDraw=드래그(점 없이 선만), 타일 밖 클릭은 경계 clamp, 우클릭/Esc 취소. **UT-MEA-001/002** `measurement.test.ts` 13케이스 통과. **MT-MEA-003 사용자 시각 확인 완료**(각도 화면일치·FreeDraw 선만·경계 clamp 수정 반영). **후속**: 계측 삭제 UI·slice 스크롤 시 앵커 정책.
+- [x] **완료(2026-07-15)** — core `measure/measurement.ts`(정규화 타일좌표 length mm·angle deg·폴리라인·타일 clamp) + `SectionMeasureOverlay.tsx`(오버레이 캔버스, hit-test로 첫 점 영역에 귀속→스코프, 렌더모드/최대화 무관, `contentRect`로 letterbox 보정). Toolbar interaction→`SectionViewer.measureTool`→3뷰 배선. Length=2클릭(mm)·Angle=3클릭(화면좌표 °)·FreeDraw=드래그(선만), 영역 밖 클릭 경계 clamp, 우클릭/Esc 취소. **UT-MEA-001/002** 13케이스 통과. MT-MEA-003 확인 완료. **3뷰 확장(§12-D21, Jessi 확정 2026-07-15)**: Scout·Panorama에도 `SectionMeasureOverlay`를 단일 영역(rows=cols=1·letterbox `contentRect`·물리 mm)으로 마운트 → 4개 툴이 Scout(영역)·Panorama(영역)·Section(slice) 모두 동작. **잔여**: 계측 삭제 UI, Scout Z-slice/Panorama offset별 오버레이 평면 귀속(현재 뷰 내 상시 표시).
 
 | 필드 | 값 |
 |------|------|
