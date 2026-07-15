@@ -71,57 +71,35 @@
 
 ---
 
-# Cloud Web Viewer v1.3.2 Section 모듈 — 7/16 주간회의 Agenda
+# Cloud Web Viewer v1.3.2 Section 모듈 — 7/23 주간회의 Agenda
 
-> **Spec 완성·VKS 리뷰 요청 시점 스냅샷.** OnePager v1.5 완성 후 공유·리뷰 요청, 구현 착수 직전.
+> **구현 진행(~70%) 스냅샷.** (이전 7/16 = Spec 완성·VKS 리뷰 요청 시점 — 완료 항목은 아래 "확정·정리됨"에 반영.)
 
-- 이번 주 진행 (7/10 이후 · 회의 전까지 갱신)
-  - **OnePager Spec v1.5 완성** — MMI 1.1~1.14 전 기능 매핑·모드표, 접목 정합(환경·인터페이스·common/core·Toolbar 통신), Overlay·Draw curve·Save·NFR. spec-reviewer 독립 검토 반영
-  - **VKS 등록·리뷰 요청** — [OnePager (VKS)](https://vks.vatech.com/spaces/ESDEVELOPER/pages/320005969/Cloud+Web+Viewer+v1.3.2+%E2%80%94+Section+Module+%EA%B0%9C%EB%B0%9C+OnePager) (→ S1)
-  - **B/L 자동 판정 확정** (기획 회신 7/13) — P1→P2 선분에서 CT 단면 중심 C쪽=L, **최초 2점 1회 고정**, 이후 편집 무영향·변경은 수동 L/B Switching (구 동적 반전 초안 폐기)
-  - **접목 방식 확정** — CW vtk 미접목, Section(WebGL, PoC 확장)만 구현 + CW가 embed. 조사: `@cloudwebviewer/core`는 Module Federation 앱이라 Toolbar 직접 import 불가 → `core-types`만 link, 데모는 CW-스타일 stub
-  - **개발계획 v0.9 현행화 · 구현계획서(IP) v0.1 작성** — IP 표준 8섹션·24 Task(완료 체크박스)·의존성 DAG. ip-reviewer 점검(잔여 BLOCKER 1건 = 문서 커밋 후 SHA 동결)
-  - cloudwebviewer 실조사 — Module Federation·prj 스키마(Curve/Section/Pano 필드 기존재)·버전 정본(pnpm 9.15.9·React 18.2·Vite 5·MUI 5.15) 확인
+- 참조 정보
+  - [OnePager (VKS)](https://vks.vatech.com/x/UecSEw)
+  - [Demo 사이트](http://scp-section-demo.test.scp.esclouddev.com)
+  - Repository: [Azure DevOps `scp-section-poc`](https://dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc)
+  - VTS: [PLAN-1287](https://vts.vatech.com/browse/PLAN-1287)
+
+- 이번 주 진행 (구현 ~70% · scp-section-poc)
+  - **계측·주석** — Length/Angle/Free Draw(T-P4-2)·**Arrow 신규**(T-P4-3). **3뷰 확장**(Scout·Panorama·Section, 기획 Jessi 확정 §D21). 각 뷰 영역/슬라이스 스코프.
+  - **Overlay 3D 평면 귀속(T-P4-4 핵심)** — 생성 시점 평면(거리≤±INT/2·normal≤5°)에 귀속·slice 스크롤 시 재표시(core `overlayPlane`).
+  - **Show/Hide Grid(T-P4-5)** — CW `es-view-info` GridView 정합(물리 10mm·점선·뷰 전체·ruler 정렬). Grid 기능이 초기 미배선이던 것 보완.
+  - **Slice 스크롤 벤치마크(T-P6-1)** — Th30mm worst-case **JS 1484 / WASM-resident 1225ms**(둘 다 30FPS 초과). → **기본 연산 = WASM-resident + JS 폴백(§D20)**. 실시간 근본해결(GPU 리슬라이스)은 **범위 밖·숙제(§11)** — 빠른 출시 우선.
+  - **환자정보/타이틀 실데이터**(DICOM Sex/Age/ID/Name·촬영일)·R/L 방향, 렌더 스타일 토큰화(T-P7-5/6).
+  - **CW UI 통일** — 색 팔레트(§3.4.1a)·아이콘 크기·HQ(View Original) 위치·Arrow 아이콘·커브 편집버튼·폰트 정합(§9.11).
+  - **접목 설계 정리** — 접목 방식 **소스 병합으로 개정(§D4)**·§9.9 접목 절차(10단계)·§9.10 중복 제거·§9.11 CW 폰트 버그. **Single/Dual·View Original = CW 컨테이너 몫 확정(§D22)**. 저장소·데모 사이트 OnePager 명시.
+  - **미구현/잔여(~30%)** — Pan/Zoom/Reset/Pointer(T-P4-6, 커서 에셋만 준비)·계측 삭제 UI·Overlay normal의 UI 배선·시각 폴리시·GPU 리슬라이스(숙제).
 
 - 논의 사항
-  - **R1. Spec 리뷰 데드라인·참석·착수 gate** — OnePager VKS 등록 완료. **결정 요청:** 리뷰 회신 기한, 필수 참석(기획 Jessi·CW Viewer 담당), 리뷰-구현 착수 병행 여부.
-    - **성격:** [논의]
-
-  - **R2. Save prj — CW 스키마 필드 확인** — 방향 확정(CW prj XML 호환 + 개발 중 브라우저 임시저장, OnePager §7). **CW팀 확인 요청:** `vtkjs-wrapper/…/projectFile.ts`의 Section/Curve/Pano 필드 실제 구조·매핑 가능성.
-    - **성격:** [논의] · 담당: CW Viewer
-
-  - **R3. 구현 착수 승인** — 문서 3종 커밋 → IP §2 SHA 동결 → IP v1.0 baseline 후 P0(환경 정렬)부터 착수. **결정 요청:** 커밋·착수 시점.
-    - **성격:** [논의] · 담당: Raymond + PL
-  - **R4. CW 폰트 override 수정 (누가/어떻게)** — CW `index.css`의 `* {font-family:'Segoe UI','Roboto' !important}`가 **호스트(CleverSpace) Noto Sans를 덮어쓰고 CW는 그 폰트를 로드하지 않아**, 접목 시 Section/CW 텍스트가 나머지 CleverSpace UI와 다르고 **환경(OS)별로 제각각**이 됨(§S6·OnePager §9.11). **결정 요청:** ① CW가 override 제거→호스트 폰트 상속(권장·주 원인 해소), ② styleguide(VT UI/UX)가 org 전역 단일 폰트 확정. (최소한 미제공 폰트를 `!important`로 강제 금지.)
+  - **R1. CW 폰트 override 수정 (누가/어떻게)** — CW `index.css`의 `* {font-family:'Segoe UI','Roboto' !important}`가 **호스트(CleverSpace) Noto Sans를 덮어쓰고 CW는 그 폰트를 로드하지 않아**, 접목 시 Section/CW 텍스트가 나머지 CleverSpace UI와 다르고 **환경(OS)별로 제각각**이 됨(§S3·OnePager §9.11). **결정 요청:** ① CW가 override 제거→호스트 폰트 상속(권장·주 원인 해소), ② styleguide(VT UI/UX)가 org 전역 단일 폰트 확정. (최소한 미제공 폰트를 `!important`로 강제 금지.)
     - **성격:** [논의] · 수정 주체 = **CW 팀**(override 제거) + **styleguide**(단일 폰트). CleverSpace·우리 모듈은 정상.
     - **전제:** CW-1 미수정 시 CW가 우리 텍스트까지 덮어써 폰트 일관성 불가.
 
 - 공유 사항
-  - **S1. OnePager VKS 등록·리뷰 요청** — [Cloud Web Viewer v1.3.2 — Section Module 개발 OnePager (VKS)](https://vks.vatech.com/spaces/ESDEVELOPER/pages/320005969/Cloud+Web+Viewer+v1.3.2+%E2%80%94+Section+Module+%EA%B0%9C%EB%B0%9C+OnePager). 기획·CW Viewer 팀 리뷰 요청.
-  - **S2. 현재 단계** — `PoC 완료 → Spec 완성·VKS 리뷰 요청 [지금] → (병행) 환경 정렬·구현 착수 → 인계 → CW embed·접목`
-  - **S3. 문서 상태** — OnePager **v1.5** / 개발계획 **v0.9** / IP **v0.1**(3종 미커밋 — 커밋 시 IP SHA 동결·v1.0 baseline).
-  - **S4. 일정** — **구현 7/13부터 2주**(환경 정렬·Slice 스크롤 벤치마크 포함), 이후 **CW 팀 접목**. Slice 스크롤 성능은 구현 중 벤치마크(별도 PoC 아님). Raymond **VT API Gateway 병행(부분투입)** — 주간 갱신.
-
-    ```mermaid
-    gantt
-        title Section 모듈 — 잠정 일정 (7/16 스냅샷)
-        dateFormat YYYY-MM-DD
-        axisFormat %m/%d
-        todayMarker stroke-width:2px,stroke:#d33,opacity:0.5
-
-        section 문서·Spec
-        OnePager Spec v1.5 완성 + VKS 등록   :done, spec, 2026-07-10, 4d
-        Spec 리뷰 (기획 + CW)                :active, specrv, 2026-07-13, 7d
-
-        section 구현 (scp-section-poc)
-        모듈 구현 (Section View · 환경 정렬 · Slice 벤치마크 포함)  :active, impl, 2026-07-13, 14d
-
-        section 접목 (CW 팀)
-        인계 → CW Viewer embed·접목           :integ, after impl, 14d
-    ```
-
-  - **S5. Known gaps** — Arrow 툴 CW `InteractionType` 미포함(접목 시 core 반영) · Scout=MPR Axial 접목 교체 전제 · Overlay Normal 허용 오차 5° 튜닝 · Slice 스크롤 NFR 벤치마크.
-  - **S6. 폰트 설정 불일치 발견 (CleverSpace ≠ CW)** — Section 구현 중 CW/CleverSpace 소스 대조에서 발견. 두 앱이 **다른 폰트 스택**을 쓰고, CW가 `!important`로 호스트 폰트를 덮어씀. **현재 문제는 CW 하나**이고, 그 결과 **상황(OS·환경)에 따라 폰트가 다르게 렌더됨**(→ 맞음). 상세: [OnePager §9.11](./Cloud%20Web%20Viewer%20v1.3.2/Section-Module-Spec-v1.3.2-OnePager.md). (→ 결정은 R4)
+  - **S1. 현재 단계** — `PoC 완료 → Spec·VKS 리뷰(공유됨) → 구현 진행 중(~70%) [지금] → 잔여 구현·인계 → CW embed·접목`.
+  - **S2. 문서 상태** — [**OnePager (VKS)**](https://vks.vatech.com/x/UecSEw) **v1.37**(구현 반영·§9.9~9.11·D19~D22 등). 개발계획 v0.9 / IP 갱신(P4·P6·P7-5/6 진행). 커밋 시점은 별도 관리.
+  - **S3. 폰트 설정 불일치 발견 (CleverSpace ≠ CW)** — Section 구현 중 소스 대조로 발견. **현재 문제는 CW 하나**이고, 그 결과 **상황(OS·환경)에 따라 폰트가 다르게 렌더됨**(맞음). 결정은 **R1**. 상세: [OnePager §9.11](./Cloud%20Web%20Viewer%20v1.3.2/Section-Module-Spec-v1.3.2-OnePager.md).
 
     | 대상 | 폰트 스택 | 웹폰트 로드 | `!important` | 맥 | Windows | ChromeOS |
     | --- | --- | :---: | :---: | --- | --- | --- |
@@ -129,23 +107,41 @@
     | **CW** | `'Segoe UI','Roboto'` | ❌ 없음 | ✅ `* !important` | **Helvetica**(폴백) | Segoe UI | Roboto |
     | **우리 Section/데모** | `= CleverSpace 스택` | ✅(데모) | ✗ | Noto Sans | Noto Sans | Noto Sans |
 
-    - **문제점(정리):**
-      1. **CW만 문제** — CleverSpace(호스트)와 우리 모듈은 폰트를 로드하고 일관 렌더. CW는 자기 폰트(Segoe UI/Roboto)를 **로드하지 않고** `!important`로 강제.
-      2. **환경(OS)마다 폰트가 다름** — CW는 `Segoe UI`(Win 전용)·`Roboto`(미로드) 미가용 환경에서 폴백 → Windows=Segoe UI, ChromeOS=Roboto, **맥/리눅스=Helvetica**로 **사용자마다 제각각**.
-      3. **호스트와 불일치** — CW `!important`가 CleverSpace의 Noto Sans를 덮어써, **CW 영역만 나머지 CleverSpace UI와 다른 폰트**.
-      4. **접목 파급** — CW-1 미수정 시 CW가 우리 Section 텍스트까지 덮어써(§접목), 우리가 Noto Sans로 맞춰도 **CW 안에선 CW 폰트로 강제**됨.
-    - **근거:** CW `packages/core/src/index.css:24` · ezcloud(CleverSpace) `container-app/index.html`(Noto Sans Google Fonts)·`common-ui/customTheme.ts`.
-    - **우리 대응:** 합집합 아님 — **호스트(CleverSpace) 스택(Noto Sans)에 정렬**(폰트 소유는 호스트 몫). 데모는 Noto Sans 로드해 실제 배포 룩 미리보기.
+    - **문제점:** ①**CW만 문제**(호스트·우리 모듈은 폰트 로드·일관) ②**환경(OS)별 제각각**(Win=Segoe UI·ChromeOS=Roboto·맥=Helvetica) ③**호스트 UI와 불일치**(CW `!important`가 Noto Sans 덮어씀) ④**접목 파급**(CW-1 미수정 시 우리 텍스트까지 강제).
+    - **근거:** CW `index.css:24` · ezcloud `container-app/index.html`(Noto Sans Google Fonts)·`common-ui/customTheme.ts`.
+    - **우리 대응:** 합집합 아님 — **호스트(CleverSpace) 스택(Noto Sans)에 정렬**(폰트 소유는 호스트 몫).
+  - **S4. GPU 리슬라이스 = 숙제(빠른 출시 우선)** — 두꺼운 슬랩 실시간 스크롤 근본해결은 WebGL2 GPU 리슬라이스이나 공수 커서 이번 범위 밖(§11·D20). 완충책(캐시·디바운스·표시분리)+WASM으로 체감 유지.
+  - **S5. 일정** — 구현 7/13~ 2주 중 **~70% 진행**. 이후 잔여 구현·**CW 팀 접목**(소스 병합·§9.9). Raymond VT API Gateway 병행(부분투입).
 
-- 이월 논의 사항 (7/16 기준 · 미결)
+    ```mermaid
+    gantt
+        title Section 모듈 — 잠정 일정 (7/23 스냅샷)
+        dateFormat YYYY-MM-DD
+        axisFormat %m/%d
+        todayMarker stroke-width:2px,stroke:#d33,opacity:0.5
+
+        section 문서·Spec
+        OnePager Spec 완성·VKS·리뷰       :done, spec, 2026-07-10, 10d
+
+        section 구현 (scp-section-poc)
+        모듈 구현(계측·Grid·벤치마크·CW통일) ~70%→완료  :active, impl, 2026-07-13, 2026-07-23
+
+        section 접목 (CW 팀)
+        인계 → CW embed·접목(소스 병합)      :integ, after impl, 14d
+    ```
+
+  - **S6. Known gaps** — Pan/Zoom/Reset/Pointer 미구현(T-P4-6, 커서 준비) · Arrow 툴 CW `InteractionType` 미포함(접목 시 core 반영) · Scout=MPR Th/INT·Image Adjust 동기 접목 시 배선(§D18) · 계측 삭제 UI·크로스뷰 트래킹(§11) · GPU 리슬라이스(숙제).
+
+- 이월 논의 사항 (7/23 기준 · 재정리)
 
   | #   | 항목                            | 타입   | 상태                                         |
   | --- | ------------------------------- | ------ | -------------------------------------------- |
-  | 1   | Overlay Normal 허용 오차(°)     | [정보] | 초기값 5° 제안 — 구현 초기 튜닝 후 고정      |
-  | 2   | Section Slice 스크롤 NFR(ms)    | [정보] | 개발실 리뷰 최대 리스크 — 구현 초기 벤치마크 |
-  | 3   | Save Project — CW prj 필드 확인 | [논의] | 방향 확정, CW 팀 스키마 확인 (→ R2)          |
-  | 4   | 문서 커밋·IP baseline·착수      | [선결] | 3종 커밋→SHA 동결→IP v1.0 (→ R3)             |
-  | 5   | CW 폰트 override 수정(CW-1)      | [논의] | CW가 호스트 Noto Sans 덮어씀·환경별 제각각 — CW 팀 수정·styleguide 단일화 (→ R4·§9.11) |
+  | 1   | CW 폰트 override 수정(CW-1)      | [논의] | **활성** — CW 팀 수정·styleguide 단일화 (→ R1·§9.11) |
+  | 2   | Save Project — CW prj 필드      | [정보] | 방향 확정. CW 소스 분석해 진행, 정확 필드는 접목 시 CW팀 확인(§D5) |
+  | 3   | Overlay Normal 허용 오차(°)     | [정보] | **구현됨**(기본 5° 상수, T-P4-4) — 실사용 튜닝만 |
+  | 4   | 문서 커밋·IP baseline           | [선결] | 구현 진행 중 — 적절 시점 커밋·baseline 동결   |
+  - **확정·정리됨:** B/L 자동판정(§5) · 접목=소스병합(§D4) · R/L 방향(§D19) · WASM 기본·GPU 숙제(§D20) · 계측 3뷰(§D21) · Single/Dual·View Original 범위(§D22) · **Slice 스크롤 NFR 측정 완료(§8, JS 1484/WASM 1225ms)** · Show/Hide Grid 구현.
+  - **해소(이전 이월):** Section Slice 스크롤 NFR(측정 완료) · Spec 리뷰/착수 gate/구현 착수(진행 중이라 논의 불요).
   - **확정·정리됨 (이번 주):** B/L 자동 판정(확정, OnePager §5) · 접목 방식(D1 — CW vtk 미접목·WebGL embed) · 개발 레포 방안 1 · Scout 명칭 유지(D8) · MMI drift(OnePager 반영).
   - **차주 이월 후보:** R1(리뷰 기한) 미확정 · R2(CW 필드) 회신 지연 시 Save 구현 순연.
 
