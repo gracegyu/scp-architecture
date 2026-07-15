@@ -253,7 +253,8 @@ MMI가 **동작·상호작용을 명확히 규정하지 않거나 문구가 모�
 | **Edit 모드 시각 어포던스** | 미규정 | Edit 모드 상호작용은 **제어점·BL/LB 삼각형뿐**(width/thickness 핸들은 Edit에서 비활성)이므로, **제어점·삼각형만 밝게** 두고 **나머지(커브·section tick·9 active line·navigator·thickness·라벨)는 dim(opacity ≈0.28)** 처리해 "점 편집 중" 상태를 명확히. **임시 dev 스타일**(GUI styleguide 확정 시 교체, §3.4.1). 개발실 제안(2026-07-15) |
 | **Scout 커브 숫자 의미** | mm vs slice 불명확 | **slice 번호**(§3.4·§3.4.1 주석) |
 | **계측/주석 적용 뷰 범위(Length·Angle)** | 1.13-1에 공통툴로 나열되나 **적용 뷰 미명시**(Arrow·FreeDraw는 1.12에 3뷰 명시) | **Jessi 확정(2026-07-15, §12-D21): Length·Angle도 Arrow·Free Draw와 동일하게 Scout·Panorama·Section 3뷰 모두 동작.** 각 뷰는 **자기 영역/슬라이스 스코프**(Scout=Scout 영역·Panorama=Panorama 영역·Section=해당 slice, 경계 넘나들 불가) |
-| **Show/Hide Grid 간격·스타일** | 1.13-2a에 기능만 있고 **간격·색·선 스타일 미명시** | **CW 소스(`@ewoosoft/es-view-info` GridView) 정본 채택**: 간격 = **물리 10mm**(px=round(mm×뷰px/뷰mm), zoom 무관·설정 1~50mm), 색 `#A9A9A9`·opacity 0.7·1px·점선 `[1,1]`, **원점 = 각 영역(셀) 중앙 양방향**. 3뷰(Scout·Pano·Section 타일별). Canvas 2D `GridOverlay`. (측정치 `#636363`은 검은 배경 0.7 불투명 렌더의 스포이드값으로 판단, §3.4.1a 선례.) **주: 이 기능은 우리 초기 구현에서 누락(스토어·툴바만·뷰 미배선)이었고 2026-07-15 보완.** |
+| **Show/Hide Grid 간격·스타일** | 1.13-2a에 기능만 있고 **간격·색·선 스타일 미명시** | **CW 소스(`@ewoosoft/es-view-info` GridView) 정본 채택**: 간격 = **물리 10mm**(등방 isotropic `pxPerMm`, 설정 1~50mm), 색 `#A9A9A9`·opacity 0.7·1px·점선 `[1,1]`. **뷰(셀) 전체를 채움**(이미지 letterbox 여백 포함, zoom out 시에도), **원점 = 뷰 좌·상단(0mm)** = ruler 눈금과 정렬(MMI: view 시작=0). zoom/pan 시 뷰 transform 따라 스케일·이동해도 전체 유지(§3.7·T-P4-6). 3뷰 공통. Canvas 2D `GridOverlay`. (측정치 `#636363`은 검은 배경 0.7 불투명 렌더의 스포이드값으로 판단, §3.4.1a 선례.) **주: 초기 구현에서 누락(스토어·툴바만·뷰 미배선)이었고 2026-07-15 보완.** |
+| **Ruler 원점·범위(Section)** | image19에 눈금은 있으나 원점·범위 미명시 | **원점 0 = 뷰(셀) 좌·상단**(이미지 시작 아님, MMI "view 시작=0" 확인 2026-07-15), 눈금·라벨 **뷰 전체**에 걸침(letterbox 여백 포함). 5mm 보조·10mm 주(숫자). 등방 `pxPerMm`(이미지와 동일 스케일). zoom/pan 시 뷰 transform 반영(§3.7·T-P4-6). `SectionTileChrome` |
 | **Pan/Zoom/Reset View/Pointer 동작** | 1.13-1a "MPR 레이아웃과 동일"로만 규정·상세 미명시 | **MPR 동일 정의(§3.7)**: Pointer=기본(도구 해제), Pan=좌드래그 뷰 평행이동, Zoom=드래그/휠 배율(이미지 확대·축소), Reset View=Pan/Zoom 초기화. 정확한 제스처·중심은 **CW MPR interactor(`ES3DRenderWindowInteractor` 등) 정합**(구현 시 확인). 우리 초기 구현에서 **미배선**(interaction이 뷰 변환에 미연결)이라 보완 대상(IP T-P4-6) |
 | **R/L 방향 유도** | 방향 태그 사용 여부 불명확 | **표준 axial 가정, 방향 태그 미독해**(CW 동일, §3.4·§12-D19). Scout 오버레이 **좌 가장자리=R·우 가장자리=L**(세로 중앙, 곡선과 무관하게 고정) |
 | **환자정보 오버레이(MMI 1.2)** | 표시 필드·포맷·태그 미명시 | Scout **좌상단**에 line1=`[<성별>] <나이>`·line2=`<촬영일 YYYYMMDD>`. DICOM 태그 = Sex(0010,0040)·Age(0010,1010)·**StudyDate(0008,0020) 우선, 없으면 AcquisitionDate(0008,0022)**. 값 없는 필드는 생략(태그 전무 시 미표시). 오버레이 Age는 DICOM 원문(`034Y`) 그대로 |
@@ -306,11 +307,20 @@ MMI 1.13-1a는 이 4개를 "동작 방식 MPR과 동일"로만 규정(상세 미
 | 도구 | 동작(MPR 동일 목표) | 비고 |
 |------|------|------|
 | **Pointer** | 기본 상태(도구 해제). 계측/조작 도구 활성 해제, 커브·section line 등 뷰 고유 상호작용 허용 | interaction=null 상태 |
-| **Pan** | 좌드래그로 뷰 이미지 **평행이동**(translate). 배율 유지 | 뷰 로컬 transform(pan offset) |
-| **Zoom** | 드래그(상하) 또는 **휠**로 배율 확대·축소. 커서/중앙 기준 | 뷰 로컬 transform(scale). Section slice 휠 스크롤과 충돌 주의(Zoom 활성 시 휠=zoom) |
+| **Pan** | **마우스 이동(드래그)** 으로 뷰 이미지 **평행이동**(translate). 배율 유지 | 뷰 로컬 transform(pan offset), **뷰마다 독립** |
+| **Zoom** | **마우스 우클릭 드래그**: **위로=확대·아래로=축소**(상하 이동량 기준). 화면 세로 방향을 확대/축소로 매핑(4분면 상/하 반 기준) | 뷰 로컬 transform(scale), **뷰마다 독립**. Section slice 휠 스크롤과 별개(휠은 slice 유지) |
 | **Reset View** | Pan/Zoom transform **초기화**(기본 fit 상태 복귀). Windowing/Curve는 무관 | command형 |
 
-**구현 메모(IP T-P4-6, 미구현 → 보완 예정)**: 현재 interaction이 뷰 변환에 **미연결**(계측만 연결됨). 각 뷰(Canvas 2D/WebGL 표시)에 pan offset·zoom scale 상태를 두고, 이미지·오버레이 렌더에 동일 transform 적용. **정확한 제스처(버튼·방향·중심)·감도는 CW MPR interactor(`lib/vtkjs-wrapper/.../ES3DRenderWindowInteractor`, `ActionState`) 정합**으로 구현 시 확인. ruler·grid·계측 오버레이는 동일 transform을 공유해야 정렬 유지. **접목 시**엔 CW가 이 조작을 제공할 수 있어(§9.6 컨테이너 계약), standalone 데모 우선.
+**Pan·Zoom은 뷰별 독립 적용**(Scout·Panorama·Section 각자 pan offset·zoom scale — MPR 각 단면이 독립이듯). **입력은 마우스 이동(드래그)**: Pan=드래그 평행이동, Zoom=**우클릭 드래그 상하**(위=확대·아래=축소).
+
+**커서 = CW 정본 그대로**(2026-07-15, `components/src/cursors.ts`에 복사): 도구 활성 시 뷰 커서를 CW `CURSORS`(`cloudwebviewer/.../workSpace/setting/index.ts`)의 커스텀 SVG 커서로 바꾼다. **Pan = 손(panning) 아이콘(핫스팟 16,16)**, **Zoom = 돋보기(핫스팟 13,13)**, Pointer = 화살표(7,6), 입력 불가 영역 = DISABLE(금지, 3,3). 자기완결 base64 SVG data-URI라 §9.5 에셋 복사 허용(로직 아님, CW 변경 시 수동 동기화).
+
+**Grid·Ruler는 zoom/pan 후에도 항상 뷰 전체를 채운다(중요):** zoom out으로 이미지가 작아지고 여백이 커져도, **격자·눈금은 뷰 전체(여백 포함)에 물리 간격대로 계속 표시**된다. 즉 격자/눈금은 이미지가 아니라 **현재 뷰 transform(pan+zoom) 기준**으로 그린다:
+- 유효 `pxPerMm = fitPxPerMm × zoomScale`. zoom out이면 pxPerMm↓ → 같은 뷰에 **더 많은 mm(더 촘촘한 라벨)** 이 들어옴, 여전히 뷰 좌상단=이동된 원점 기준으로 뷰 끝까지 채움.
+- ruler 0 원점은 **뷰(콘텐츠 영역) 기준**이며 pan에 따라 함께 이동, zoom에 따라 간격 스케일. 격자도 동일 transform·동일 원점으로 정렬.
+- 즉 grid/ruler/계측 오버레이는 **모두 같은 뷰 transform을 공유**해야 정렬이 유지된다.
+
+**구현 메모(IP T-P4-6, 미구현 → 보완 예정)**: 현재 interaction이 뷰 변환에 **미연결**(계측만 연결됨). 각 뷰(Canvas 2D/WebGL 표시)에 `panX/panY`·`zoomScale` 상태를 두고, **이미지 + grid + ruler + 계측**을 동일 transform으로 렌더. `GridOverlay`·`SectionTileChrome` ruler는 이미 "뷰 전체·isotropic·뷰 원점" 방식이라, `pxPerMm`에 zoom을 곱하고 pan offset을 더하면 확장 가능. **정확한 감도·제스처는 CW MPR interactor(`lib/vtkjs-wrapper/.../ES3DRenderWindowInteractor`·`ActionState`) 정합**으로 구현 시 확인. 휠은 Section slice 스크롤 유지(Zoom은 우클릭 드래그로 분리). **접목 시** CW 컨테이너가 제공 가능(§9.6), standalone 데모 우선.
 
 ## 4. Overlay 표시 규칙 (MMI 1.13 §6)
 
@@ -525,7 +535,27 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 
 **10단계 — 검증.** EzCloud Test 컨테이너([§9.8](https://container.test.ezcloud.ezcld.net/))에서 Toolbar·ContentTitleBar·Pan/Zoom/계측 UX 정합을 확인. (현재 Section Layout 미탑재 → 접목 후 최초 통합 지점.)
 
-> **접목 시 최소 변경 요약**: CW가 **소스 병합**하는 것 = `section-core`(내부 패키지)·`section`(뷰, CW 트리 병합)(1단계). CW가 새로 **작성**하는 것 = `SectionContentHandler`(3단계)·`arrow` 툴 정의(5단계)·CT provider 어댑터(6단계)·prj 어댑터(8단계). CW가 **재사용**하는 것 = store/toolbar/title bar/다이얼로그/prj 파일(구독·매핑만). **이동 안 함** = 데모 셸 `apps/section-demo`(1e). **미결 선행조건** = §12-D5(prj 필드)·D18(MPR 연동 범위).
+> **접목 시 최소 변경 요약**: CW가 **소스 병합**하는 것 = `section-core`(내부 패키지)·`section`(뷰, CW 트리 병합)(1단계). CW가 새로 **작성**하는 것 = `SectionContentHandler`(3단계)·`arrow` 툴 정의(5단계)·CT provider 어댑터(6단계)·prj 어댑터(8단계). CW가 **재사용**하는 것 = store/toolbar/title bar/다이얼로그/prj 파일(구독·매핑만). **이동 안 함** = 데모 셸 `apps/section-demo`(1e). **CW 정본으로 대체·중복 제거** = 커서·Grid·색 토큰·다이얼로그 등(**§9.10**). **미결 선행조건** = §12-D5(prj 필드)·D18(MPR 연동 범위).
+
+### 9.10 접목 시 중복 제거 — CW 정본으로 대체 (필수)
+
+standalone에서는 CW를 import할 수 없어(Module Federation·CW 의존성 없음) **CW 자산을 복사·미러**했다. **소스 병합(§9.2·D4) 시 CW 원본과 중복**되므로, 아래 원칙으로 정리한다.
+
+**원칙:** ① **데모 셸(`apps/section-demo/`)에 있는 미러/stub은 이동하지 않으므로 중복 아님**(§9.9-1e, PoC repo에 잔류·소멸). ② **모듈(`packages/`)로 병합되는 복사본은 접목 시 CW 정본 import로 교체하고 우리 복사본 삭제**(단일 정본 유지). 복사는 "standalone 실행을 위한 임시 미러"이지 유지 대상이 아니다.
+
+| 아티팩트 | 위치 | 성격 | CW 정본 | 접목 시 조치 |
+|---|---|---|---|---|
+| Toolbar 아이콘 SVG | `apps/section-demo/src/cw/icons/` | 데모 stub 복사 | CW 아이콘 에셋 | **이동 안 함**(데모 잔류). 중복 아님 |
+| Tool store/contract 미러 | `apps/section-demo/src/cw/{toolStore,toolContract,cwTypes}.ts` | 데모 미러 | CW `useBoundStore`·`toolbar/type.ts` | **이동 안 함**. 접목 뷰는 CW store 직접 구독(§9.6) |
+| `CwToolbar` stub | `apps/section-demo/src/cw/CwToolbar.tsx` | 데모 stub | CW `Toolbar` | **이동 안 함**. CW Toolbar가 제공 |
+| **커서 `CW_CURSORS`** | `packages/components/src/cursors.ts` | 모듈 복사(§3.7) | CW `workSpace/setting` `CURSORS` | **CW `CURSORS` import로 교체·복사본 삭제** |
+| **Grid 렌더** | `packages/components/src/GridOverlay.tsx` | 모듈 복제(알고리즘·값) | CW `@ewoosoft/es-view-info` `GridView` | **CW `GridView` 사용 검토·교체**(값 동일). 불가 시 정본 참조 주석 유지 |
+| **색 토큰**(teal·크롬) | `ViewTitleBar.tsx`·`App.tsx` 등 하드코딩 | 모듈 복사(§3.4.1a) | CW `theme.ts`(`primary.dark` 등) | **CW theme 토큰 import로 교체** |
+| **Title bar** | `ViewTitleBar.tsx` | 모듈 이식(패턴) | CW `ContentTitleBar` | CW 컴포넌트/토큰에 정합·중복 로직 제거(§9.5) |
+| **Image Adjust·Setting 다이얼로그** | `ImageAdjustDialog.tsx`·`SettingDialog.tsx` | 모듈 이식 | CW `ImageAdjustDialog`·`CTSliceSettingDialog` | CW 공통 다이얼로그 재사용으로 교체(§9.5) |
+| 곡선·9단면·slab·필터·직렬화 등 | `section-core` | **우리 고유 로직**(복사 아님) | — | **유지**(내부 패키지, §9.2) |
+
+> **요지**: 복사/미러는 전부 "standalone 임시"다. **데모 셸 것은 버려지고, 모듈 것은 CW 정본 import로 대체**한다. 각 복사 파일 상단 주석에 CW 정본 경로를 명시해 교체 지점을 표시한다(예: `cursors.ts`·`GridOverlay.tsx`). 아이콘·커서 같은 자기완결 에셋은 §9.5 예외로 복사 허용이나, 병합 후 CW 원본이 있으면 그쪽을 단일 정본으로 삼는다.
 
 ## 10. 공개 API · 인계물
 
@@ -598,6 +628,9 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.35 | 2026-07-15 | **접목 시 중복 제거 가이드 신설(§9.10)**: standalone용 CW 복사/미러(커서·Grid·색 토큰·Title bar·다이얼로그·데모 툴바/store 미러/아이콘)를 접목 시 어떻게 정리할지 표로 명시 — 데모 셸(`apps/section-demo/cw/`)은 이동 안 해 중복 아님, 모듈(`packages/`) 복사본은 **CW 정본 import로 교체·복사본 삭제**(단일 정본). 각 복사 파일 상단에 CW 정본 경로 주석 유지. §9.9 요약에 링크. |
+| 1.34 | 2026-07-15 | **Pan/Zoom 커서 = CW 정본 복사**: CW `CURSORS`(`workSpace/setting/index.ts`)의 커스텀 SVG 커서(Pan=손 핫스팟 16,16·Zoom=돋보기 13,13·Pointer 7,6·Disable 3,3)를 `components/src/cursors.ts`에 base64 그대로 복사(§9.5 에셋 허용). §3.7·IP T-P4-6에 커서 사양 반영(구현 시 뷰 cursor에 배선). |
+| 1.33 | 2026-07-15 | **Grid·Ruler 뷰 전체 정합 + Pan/Zoom 상세(§3.7·T-P4-6)**: ① Grid·Section ruler **원점=뷰 좌상단(0mm)**·**뷰 전체**(letterbox 여백 포함)로 그림(등방 10mm, ruler 라벨도 뷰 전체). MMI "view 시작=0" 반영, §3.4.2 2행. ② **Pan/Zoom = 뷰별 독립·마우스 드래그**(Zoom=우클릭 상하: 위 확대·아래 축소), **zoom out으로 여백 커져도 grid/ruler는 뷰 transform 기준으로 전체 유지** — §3.7 상세·IP T-P4-6 보강(useViewTransform, 이미지+grid+ruler+계측 동일 transform, 5h). |
 | 1.32 | 2026-07-15 | **Single/Dual Layout·View Original 범위 확정(D22)**: CW 셸/워크스페이스 레벨(다중 CT·CT 파이프라인·외부 썸네일 패널 전제)이라 Section 모듈 standalone 미구현·접목 시 CW 담당. Section 역할 최소(재공급 volume 재렌더/슬롯 채움). §11·D22 등재, 데모 툴바는 시각 stub 유지. |
 | 1.31 | 2026-07-15 | **Show/Hide Grid 구현 + Pan/Zoom/Reset/Pointer 문서화(누락 보완)**: ① **Grid**(MMI 1.13-2a, 초기 미배선 누락 보완) — CW `es-view-info` GridView 정본(물리 10mm·`#A9A9A9`·0.7·점선 `[1,1]`·셀 중앙 원점) `GridOverlay.tsx`로 3뷰 구현, `showGrid` 배선. §3.4.1·§3.4.2 등재(IP T-P4-5 완료). ② **Pan/Zoom/Reset View/Pointer** — MMI "MPR 동일"만 있고 상세·구현 미비 → **§3.7 신설**(동작 정의)·§3.4.2 등재·IP T-P4-6(미구현, 4h) 추가. |
 | 1.30 | 2026-07-15 | **계측/주석 3뷰 확장(D21, Jessi 확정)**: Length·Angle·Free Draw·Arrow 4개 툴이 **Scout·Panorama·Section 모두**에서 동작(각 뷰 영역/슬라이스 스코프). `SectionMeasureOverlay`에 `contentRect`(letterbox 보정) 추가·helper를 base rect 기반으로 일반화, Scout/Panorama에 단일 영역(rows=cols=1)으로 마운트. §3.4.2 모호점 해소 등재. |
