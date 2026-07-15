@@ -1,6 +1,6 @@
 # ③ GW SRS — 리뷰 코멘트 추적 (_review-log)
 
-> **작업용 문서**. 각 스레드=**시간순 대화**(리뷰어·우리 전규현 코멘트 verbatim·cid·↳parent). `다음 답변(초안)`=아직 미게시 답변. 반영=vt-api-gateway PR 브랜치.
+> **작업용 문서**. 각 스레드=시간순 대화(cid·↳parent). `다음 답변(초안)`=미게시 답변. 반영=vt-api-gateway PR 브랜치.
 
 - **PR**: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/11766
 - **리뷰어**: Scott·Thomas(필수)·Jack·James·Larry·Eric · 우리=전규현
@@ -194,7 +194,7 @@
 - 조치: Appendix B 결정로그 op 수치(42·45) → 현재 55로 정합/정리 — 확정 후 반영
 - 상태: 반영완료(로컬·미push)
 
-## C-13 · docs/specs/SRS.md:239 · [thread 79385] ★리뷰어 대기
+## C-13 · docs/specs/SRS.md:239 · [thread 79385]
 - **[임건혁(Jack) · 2026-07-13T06:34 · cid 79385.1]**
 
   > @<B62326D5-BE2F-6C22-BDD5-19CE8D112C90> @<8A8E7F25-5884-64CC-9CD9-804A85DF8F64> @<E616BABA-1CD7-6573-A367-AFAF4633BD3C> 현재 EKS 네트워크 구성 상 AWS Regional NAT Gateway를 사용 예정이고 해당 기능은 NAT Gateway의 ip가 고정 되지 않습니다. 외부 클라이언트 연동시 IP whitelist 방식만 지원하는 클라이언트가 있으면 비용 감수하더라도 ip 고정 NAT Gateway 사용이 필요합니다.
@@ -211,14 +211,14 @@
 
   > @<B62326D5-BE2F-6C22-BDD5-19CE8D112C90> Regional NAT Gateway도 고정 ip를 할당할 수 있는 대신 새로운 az로 워크로드 확장시 인프라의 수동 개입이 필요합니다. AZ를 추가하는 빈도가 흔하지 않고 손이 많이 가는 작업은 아니기에 그대로 진행하셔도 됩니다. 다만 Straumann에 ip 허용 요청할때 각 prod 리전의 NAT Gateway에 붙은 IP를 전부 요청해주시면 됩니다. 해당 클라이언트에서 등록 ip 개수를 제한하는 경우가 있다면 말씀 부탁드립니다.
 
-- 다음 답변(초안):
+- **[전규현(우리) · 2026-07-15T01:02 · cid 79385.4 ↳1]**
 
-  감사합니다. 그대로 진행하겠습니다 — Regional NAT Gateway 방식으로 두고, 새 AZ 확장 시 수동 IP 추가가 드물게 필요하다는 점 인지했습니다. Straumann whitelist 요청 시 각 prod 리전 NAT Gateway의 egress IP를 전부 제출하겠습니다. AXS 문서를 확인하니 IP whitelist(및 등록 IP 개수 제한) 언급이 없고, AXS의 'whitelist'는 애플리케이션(client) 승인이라 IP 기반이 아닙니다 — 즉 문서상 개수 제한은 없습니다. prod 리전도 소수라 리전당 egress IP가 몇 개 수준이어서 제한 우려는 낮습니다. 향후 IP whitelist를 요구하는 다른 target이 생기면 그때 개수 제한을 확인하겠습니다.
-
-  GW SRS에는 '고정·유한·열거 가능한 egress IP 집합을 whitelist에 등록한다'는 논리 요구까지만 두고, NAT Gateway 구성·AZ 확장 시 IP 추가·리전별 IP 목록 같은 구체 구현은 ③-I(Infra Sub-스펙)에 정리하겠습니다.
+  > 감사합니다. 그대로 진행하겠습니다 — Regional NAT Gateway 방식으로 두고, 새 AZ 확장 시 수동 IP 추가가 드물게 필요하다는 점 인지했습니다. Straumann whitelist 요청 시 각 prod 리전 NAT Gateway의 egress IP를 전부 제출하겠습니다. AXS 문서를 확인하니 IP whitelist(및 등록 IP 개수 제한) 언급이 없고, AXS의 'whitelist'는 애플리케이션(client) 승인이라 IP 기반이 아닙니다 — 즉 문서상 개수 제한은 없습니다. prod 리전도 소수라 리전당 egress IP가 몇 개 수준이어서 제한 우려는 낮습니다. 향후 IP whitelist를 요구하는 다른 target이 생기면 그때 개수 제한을 확인하겠습니다.
+  >
+  > GW SRS에는 '고정·유한·열거 가능한 egress IP 집합을 whitelist에 등록한다'는 논리 요구까지만 두고, NAT Gateway 구성·AZ 확장 시 IP 추가·리전별 IP 목록 같은 구체 구현은 ③-I(Infra Sub-스펙)에 정리하겠습니다.
 
 - 조치: §2.1.1 NAT note 논리화(구체=③-I)·Straumann whitelist에 전 prod 리전 egress IP 등록·**AXS 문서상 IP whitelist/개수 제한 없음(확인 완료)**·NAT/AZ 구체=③-I seed
-- 상태: 반영완료(로컬)·Jack 재응답에 재답변 게시 대기
+- 상태: 반영완료(로컬)·Jack에 재답변 게시함(수긍 대기)
 
 ## C-14 · docs/specs/SRS.md:1103 · [thread 79387]
 - **[임건혁(Jack) · 2026-07-13T06:53 · cid 79387.1]**
@@ -403,7 +403,7 @@
 - 조치: 
 - 상태: 대기
 
-## C-24 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1733 · [thread 79534] ★리뷰어 대기
+## C-24 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1733 · [thread 79534]
 - **[민진우(Thomas) · 2026-07-14T04:24 · cid 79534.1]**
 
   > webhooks.md 문서에는 키가 Signature로 되어 있습니다.
@@ -412,9 +412,12 @@
   >       name: Signature
   > ```
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- **[전규현(우리) · 2026-07-15T01:07 · cid 79534.2 ↳1]**
+
+  > 맞습니다. AXS webhooks.md와 DBML(webhook_provider.sig_scheme) 모두 헤더명이 Signature인데 OpenAPI webhookHmac만 X-Signature로 어긋나 있었습니다. OpenAPI를 Signature로 맞췄습니다. webhook 헤더명은 target별 레지스트리(sig_scheme) 값이라 target마다 다를 수 있고, AXS의 실제 값이 Signature입니다.
+
+- 조치: OpenAPI webhookHmac 헤더 X-Signature→Signature(DBML·AXS와 정합) — 반영
+- 상태: 반영완료(로컬·미push)
 
 ## C-25 · docs/specs/SRS.md:2006 · [thread 79556] ★리뷰어 대기
 - **[민진우(Thomas) · 2026-07-14T05:23 · cid 79556.1]**
@@ -426,15 +429,18 @@
 - 조치: 
 - 상태: 대기
 
-## C-26 · docs/specs/SRS.md:1983 · [thread 79558] ★리뷰어 대기
+## C-26 · docs/specs/SRS.md:1983 · [thread 79558]
 - **[민진우(Thomas) · 2026-07-14T05:31 · cid 79558.1]**
 
   > 예를 들어 AXS에서 받은 webhook payload는 GW 통해서 변형없이 그대로 EzServer로 전달되나요?
   > 혹시, 다른 format이라면 wrapper format 에 대한 메시지 정의가 필요할 거 같습니다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- **[전규현(우리) · 2026-07-15T01:08 · cid 79558.2 ↳1]**
+
+  > AXS webhook payload는 GW가 해석·변형하지 않고 opaque verbatim으로 둡니다(§7.6.1). 다만 EzServer 하행(MQTT)에서는 EzServer가 어떤 target·이벤트인지 알아야 하므로 GW가 얇은 envelope(target·eventId·eventType·clinicId·ts + 원 payload)로 감싸 전달합니다 — 원 payload는 그 안에 변형 없이 담깁니다. 즉 wrapper는 있으나 내용 변형은 없습니다. envelope 정의를 §7.6.6에 명시했습니다(필드 상세=LLD).
+
+- 조치: §7.6.6에 하행 envelope 정의 추가(원 payload verbatim·GW 메타만 래핑) — 반영
+- 상태: 반영완료(로컬·미push)
 
 ## C-27 · docs/specs/SRS.md:1059 · [thread 79570] ★리뷰어 대기
 - **[김기영(Eric) · 2026-07-14T05:46 · cid 79570.1]**
@@ -456,14 +462,17 @@
 - 조치: 
 - 상태: 대기
 
-## C-29 · docs/specs/SRS.md:28 · [thread 79585] ★리뷰어 대기
+## C-29 · docs/specs/SRS.md:28 · [thread 79585]
 - **[김기영(Eric) · 2026-07-14T06:48 · cid 79585.1]**
 
   > 경로 B와 동일(유사)한 경우가 더 있는지 문의드립니다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- **[전규현(우리) · 2026-07-15T01:12 · cid 79585.2 ↳1]**
+
+  > 경로 B(CleverOne이 EzServer를 거치지 않고 CleverSpace와 직접 연동)가 확인된 우회 패턴입니다. 그 외 흐름은 모두 EzServer→GW를 경유합니다(CleverOne→EzServer→GW). 현재 SRS 범위에서 경로 B 외의 GW-우회 직결은 식별되지 않았으나, 레거시 직결 경로가 더 있는지는 제품/현장팀과 확인해 있으면 동일 방침(GW 경유로 수렴·해당 직결 deprecate)으로 처리하겠습니다.
+
+- 조치: 경로 B 외 우회 없음 확인·추가 발견 시 §2.8 반영(제품/현장팀 확인) — 문서 변경 없음
+- 상태: 답변(팀 확인 병행)
 
 ## C-30 · docs/specs/SRS.md:515 · [thread 79586] ★리뷰어 대기
 - **[김기영(Eric) · 2026-07-14T06:52 · cid 79586.1]**
@@ -474,14 +483,17 @@
 - 조치: 
 - 상태: 대기
 
-## C-31 · docs/specs/SRS.md:550 · [thread 79587] ★리뷰어 대기
+## C-31 · docs/specs/SRS.md:550 · [thread 79587]
 - **[김기영(Eric) · 2026-07-14T06:54 · cid 79587.1]**
 
   > GW 도입시, 기존 User 관점에서 환경 세팅 및 Usecase 등이 달라지는게 있는지 확인이 필요합니다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- **[전규현(우리) · 2026-07-15T01:13 · cid 79587.2 ↳1]**
+
+  > 하위호환이 원칙입니다(§2.8). 기존 사용자의 기존 usecase(EzServer→CleverSpace/CleverOne 경유)는 그대로 동작하며, GW는 앞단에 삽입되어 EzServer가 GW를 경유하도록 라우팅합니다. 새로 생기는 것은 GW 온보딩(enroll)과 AXS 연동뿐이고 기존 흐름 계약은 바뀌지 않습니다. 예외는 경로 B(CleverOne↔CleverSpace 직결)로 deprecate→EOS 대상이라 해당 사용자는 GW 경유로 이관해야 합니다(시점=PM·#3). 구체 환경 세팅 변화·전환 절차는 §2.5·§2.8 + ③-P(EzServer/CleverOne) 스펙에서 정리합니다.
+
+- 조치: 기존 §2.8/§2.5로 답변·필요 시 §2.8에 '기존 usecase 불변·GW=앞단 삽입' 한 줄 보강 검토
+- 상태: 답변
 
 ## C-32 · (파일 미지정·일반) · [thread 79669] ★리뷰어 대기
 - **[김기영(Eric) · 2026-07-14T14:25 · cid 79669.1]**
@@ -540,7 +552,7 @@
 - C-10 · docs/specs/SRS.md:1342 · `반영완료(로컬·미push)`
 - C-11 · docs/specs/SRS.md:2294 · `반영완료(로컬·미push)`
 - C-12 · (파일 미지정·일반) · `반영완료(로컬·미push)`
-- C-13 · docs/specs/SRS.md:239 · `반영완료(로컬)·Jack 재응답에 재답변 게시 대기` ★
+- C-13 · docs/specs/SRS.md:239 · `반영완료(로컬)·Jack에 재답변 게시함(수긍 대기)`
 - C-14 · docs/specs/SRS.md:1103 · `반영완료(로컬·미push)`
 - C-15 · docs/specs/SRS.md:1112 · `반영완료(로컬·미push)`
 - C-16 · docs/specs/SRS.md:233 · `반영완료(로컬·미push·Scott 합의 대기)`
@@ -551,14 +563,14 @@
 - C-21 · docs/specs/SRS.md:1862 · `반영완료(로컬·미push·Larry 합의 대기)`
 - C-22 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1 · `대기` ★
 - C-23 · docs/specs/SRS.md:1678 · `대기` ★
-- C-24 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1733 · `대기` ★
+- C-24 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1733 · `반영완료(로컬·미push)`
 - C-25 · docs/specs/SRS.md:2006 · `대기` ★
-- C-26 · docs/specs/SRS.md:1983 · `대기` ★
+- C-26 · docs/specs/SRS.md:1983 · `반영완료(로컬·미push)`
 - C-27 · docs/specs/SRS.md:1059 · `대기` ★
 - C-28 · docs/specs/SRS.md:552 · `대기` ★
-- C-29 · docs/specs/SRS.md:28 · `대기` ★
+- C-29 · docs/specs/SRS.md:28 · `답변(팀 확인 병행)`
 - C-30 · docs/specs/SRS.md:515 · `대기` ★
-- C-31 · docs/specs/SRS.md:550 · `대기` ★
+- C-31 · docs/specs/SRS.md:550 · `답변`
 - C-32 · (파일 미지정·일반) · `대기` ★
 - C-33 · docs/specs/SRS.md:323 · `대기` ★
 
