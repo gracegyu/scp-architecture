@@ -211,10 +211,13 @@ Section 모듈 셸(툴바·뷰 헤더·뷰 배경·아이콘)을 **CloudWebViewe
 | 아이콘 hover(비활성) · active | `#00BEA5` (teal) | `#16B69C` | `ToolBtn.tsx`, theme `primary.dark` |
 | 아이콘 active + hover | `#61F2DF` (밝은 teal) | `#5BF0DB` | `ToolBtn.tsx`(`:hover`) |
 | 아이콘 비활성(disabled) | **white @ opacity 0.3** | `#5B5B5B` | theme `MuiIconButton.disabled` |
+| **Top Toolbar 아이콘 크기** | **36×36** (버튼 36 content-box 꽉 채움) | — | `Toolbar.tsx`(btn 36·pad 0), 아이콘 SVG `viewBox 0 0 36 36` |
+| **뷰 헤더 아이콘 크기** | **24×24** (버튼 ~28, 헤더 32) | — | `lib/react-vtkjs …/const.ts` `TITLE_BAR_STYLE.ICON_SIZE=24` |
 | active 토글(데모 MPR/Section) 배경 | `#00BEA5` | `#16B69C` | `App.tsx` `activeToggleStyle` |
 
 > **MPR/Section 전환 바**: CW엔 별도 전환 바가 없고 툴바 내 single/dual 버튼으로 처리. 데모에는 전환 UX용으로만 존재(BG `#3B3B3B`·h34, `App.tsx` `selectBarStyle`) — **접목 시 제거/대체**(Jessi 확정 2026-07-15).
 > **아이콘 hover는 배경이 아닌 fill(글자색) 변경**으로 표현(CW 아이콘 SVG가 `fill` prop 사용). 기존 `rgba(0,190,165,0.4)` 배경 hover는 제거. **CustomMPRSlider류 슬라이더**의 teal(`#00B1A2`/`rgb(0,177,162)`)은 크롬 아이콘 팔레트와 구분해 **그대로 유지**.
+> **아이콘 크기(2026-07-15 정합)**: 초기 구현이 CW보다 작아(툴바 22·헤더 15) CW 소스 기준으로 확대. 우리 아이콘 에셋은 CW와 **동일 viewBox(툴바 36)** 복사본이므로, 툴바는 축소 없이 **36으로 꽉 채우고**(버튼 36·content-box·padding 0), 헤더는 CW `ICON_SIZE=24`에 맞춰 **24**(버튼 28). 툴바 아이콘 확대에 맞춰 버튼 간격도 소폭 확대.
 
 #### 3.4.2 MMI 미명확 동작·상호작용 — 개발실 해석/처리 (§4.3)
 
@@ -234,7 +237,9 @@ MMI가 **동작·상호작용을 명확히 규정하지 않거나 문구가 모�
 | **Edit 제어점 hover 커서** | 미규정 | **모든 제어점** 위 hover 시 이동(`move`) 커서(시작/끝뿐 아니라 전체) |
 | **Edit 모드 시각 어포던스** | 미규정 | Edit 모드 상호작용은 **제어점·BL/LB 삼각형뿐**(width/thickness 핸들은 Edit에서 비활성)이므로, **제어점·삼각형만 밝게** 두고 **나머지(커브·section tick·9 active line·navigator·thickness·라벨)는 dim(opacity ≈0.28)** 처리해 "점 편집 중" 상태를 명확히. **임시 dev 스타일**(GUI styleguide 확정 시 교체, §3.4.1). 개발실 제안(2026-07-15) |
 | **Scout 커브 숫자 의미** | mm vs slice 불명확 | **slice 번호**(§3.4·§3.4.1 주석) |
-| **R/L 방향 유도** | 방향 태그 사용 여부 불명확 | **표준 axial 가정, 방향 태그 미독해**(CW 동일, §3.4·§12-D19) |
+| **R/L 방향 유도** | 방향 태그 사용 여부 불명확 | **표준 axial 가정, 방향 태그 미독해**(CW 동일, §3.4·§12-D19). Scout 오버레이 **좌 가장자리=R·우 가장자리=L**(세로 중앙, 곡선과 무관하게 고정) |
+| **환자정보 오버레이(MMI 1.2)** | 표시 필드·포맷·태그 미명시 | Scout **좌상단**에 line1=`[<성별>] <나이>`·line2=`<촬영일 YYYYMMDD>`. DICOM 태그 = Sex(0010,0040)·Age(0010,1010)·**StudyDate(0008,0020) 우선, 없으면 AcquisitionDate(0008,0022)**. 값 없는 필드는 생략(태그 전무 시 미표시). 오버레이 Age는 DICOM 원문(`034Y`) 그대로 |
+| **환자 배너 타이틀(MMI 1.2)** | 필드·포맷 미명시 | 셸 상단 배너 = `<ID> <이름> <나이>`(예 `123456789-123 Jane Doe 34Y`). DICOM ID(0010,0020)·Name(0010,0010)·Age(0010,1010). **이름 = PN `Family^Given^Middle` → `Given Middle Family`**(빈 컴포넌트 제외, `^` 없으면 원문). **타이틀 Age = 앞 0 제거**(`034Y`→`34Y`). 값 없으면 안내 문구. 헬퍼 `patientTitle`/`formatPatientName`/`formatPatientAge`(components) |
 | **fit 방식(Section/Panorama)** | "꽉차게/여백" 미명시 | **contain**(§3.4) |
 | **W/L·Filter 적용 범위** | "모든 단면"에 Scout 포함 여부 | **전 뷰 공유(Scout 포함)**(§12-D17) |
 
@@ -514,7 +519,8 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | **1.3** | **2026-07-13** | **접목 범위 확정(D1): CW vtk 미접목, Section(WebGL, poc 확장)만 구현 — §9 전면 재정리(스텁 채움 → embed 정합), §1·§2·Risk 재작성. B/L 새 규칙(D2): P1→P2 선분·C쪽=L 단일 규칙, 동적 반전 폐기 — §5 재작성. 접목 형태 패키지+공개 API(D4, §9.2). Save CW prj 호환+개발용 브라우저 임시 저장(D5, §7). 커버리지 poc 확장 전 기능(D6). 일정 목표1주/예상2주(D9)** |
 | **1.4** | **2026-07-13** | B/L **결정 시점 명확화(D10 확정)**: 최초 P1·P2로 1회 고정, 이후 P3+·P1/P2 이동 등 편집에 재판정 없음, 변경은 수동 L/B Switching만. 기준점 이동 B/L 무영향. §6에 **커브 종료=더블클릭**(우클릭=직전 취소) 행 명시 |
 | **1.5** | **2026-07-13** | **공유(VKS 리뷰)용 참조 정리**: "참조"를 org URL로 교체(MMI=SharePoint PPT, PLAN-1287=Jira, 개발실 리뷰=VKS), 내부 문서(개발계획·작업 가이드) 링크 제거. 본문 내부 인용(MMI.md 추출본·작업 가이드 §4.2) → 정본·출처 표기로 정리 |
-| **1.22** | **2026-07-15** | **CW UI 크롬 색·치수 통일(§3.4.1a 신설)**: 사용자 측정값을 **CW 소스코드에서 직접 대조** → teal·헤더 색/높이가 불일치하여 **소스 정본값 채택(Jessi 확정)**. Top Toolbar `#141414`·h60(`CwToolbar` 44→60), 뷰 헤더 **`#333333`·h32**(`ViewTitleBar` 26→32), 뷰 배경 `#000`. **아이콘 색 모델**: 기본 `#FFFFFF`·hover/active **`#00BEA5`**·active+hover **`#61F2DF`**·disabled **white@opacity0.3**, **hover는 배경 대신 fill 변경**(`rgba(0,190,165,0.4)` 배경 hover 제거). 기존 `rgb(0,190,165)`(=`#00BEA5`)는 CW 정본과 일치해 유지. **MPR/Section 전환 바는 CW에 없음** → 데모 전용(`#3B3B3B`·h34)으로 명시, 접목 시 제거. (측정값 `#16B69C`/`#5BF0DB`/`#2D2D2D`/`#5B5B5B`은 스포이드 오차로 판단·미채택.) |
+| **1.23** | **2026-07-15** | **Scout 환자정보·R/L 오버레이(MMI 1.2)**: Scout 좌상단에 환자 **성별·나이·촬영일**(line1 `[F] 034Y`·line2 `20240919`) 표시, 좌우 가장자리에 방향 **R/L**(좌=R·우=L, 표준 axial 고정 §D19). core `VolumeMetadata.patient`(DICOM Sex 0010,0040·Age 0010,1010·StudyDate 0008,0020↣AcquisitionDate 0008,0022) 신설·파싱, `ViewInfoOverlay`에 `topLeft`·`leftCenter`/`rightCenter`·`patientInfoLines()` 추가. 값 없으면 미표시. §3.4.2 처리 2행 등재. **셸 상단 배너**도 하드코딩 stub→실데이터 `<ID> <이름> <나이>`(이름 PN 파싱·나이 앞0 제거, 헬퍼 `patientTitle` 등 components export). |
+| **1.22** | **2026-07-15** | **CW UI 크롬 색·치수 통일(§3.4.1a 신설)**: 사용자 측정값을 **CW 소스코드에서 직접 대조** → teal·헤더 색/높이가 불일치하여 **소스 정본값 채택(Jessi 확정)**. Top Toolbar `#141414`·h60(`CwToolbar` 44→60), 뷰 헤더 **`#333333`·h32**(`ViewTitleBar` 26→32), 뷰 배경 `#000`. **아이콘 색 모델**: 기본 `#FFFFFF`·hover/active **`#00BEA5`**·active+hover **`#61F2DF`**·disabled **white@opacity0.3**, **hover는 배경 대신 fill 변경**(`rgba(0,190,165,0.4)` 배경 hover 제거). 기존 `rgb(0,190,165)`(=`#00BEA5`)는 CW 정본과 일치해 유지. **MPR/Section 전환 바는 CW에 없음** → 데모 전용(`#3B3B3B`·h34)으로 명시, 접목 시 제거. (측정값 `#16B69C`/`#5BF0DB`/`#2D2D2D`/`#5B5B5B`은 스포이드 오차로 판단·미채택.) **아이콘 크기도 CW 정합**: 툴바 22→**36**(버튼 꽉 채움), 뷰 헤더 15→**24**(CW `ICON_SIZE`, 버튼 22→28), 툴바 버튼 간격 소폭 확대. |
 | **1.21** | **2026-07-14** | **자동 배치(사용자 부재 중)**: ① 방향 라벨 `panoramaDirectionLabels`(§5.1) core 구현 + Panorama 상단 렌더 + UT-UI-034. ② **prj 저장 모델·직렬화**(core `project/`: `SectionProjectState`·serialize/deserialize round-trip, T-P5-1/2) + 데모 localStorage/export·import. ③ **Info Overlay**(우상 W/L+Filter·우하 TH/INT/Slice) 3뷰(T-P7-4 부분). ④ **B/L 삼각형 blPolarity 반전**(방향·"BL/LB"↔"LB/BL", 시각확인 대기). ⑤ T-P7-3(Pano 슬라이더 B/L 실배선) 완료 체크. |
 | **1.20** | **2026-07-14** | **§5.1 신설 — Panorama 상단 방향 라벨 규칙(기획 확정)**: MMI 1.2-2② "R,L"은 실제로 Curve 시작/끝점 각도에 따라 **R,L/L,R/P,A/A,P 동적**. 수평 기준 <45°=R/L·≥45°=P/A, 좌측=Start 라벨·우측=End 라벨(R/L: 좌측점=R·우측점=L / P/A: 상단점=A·하단점=P). MMI 이미지 4케이스 검증. §3.1(1.2) 갱신. 구현은 T-P7-4(방향 오버레이). |
 | **1.19** | **2026-07-14** | **Scout thickness 실동작(Z-slab)**: Scout를 단일 slice→ **현재 slice ±(th/2)를 Z축 mean/MIP 투영**(MIP는 Image Adjust MIP 토글 연동). thickness=0이면 단일 slice. Scout에서도 두께·MIP가 의미를 가짐. (Scout interval의 Z 스크롤·MPR 값 동기는 여전히 미구현 §12-D18.) |
