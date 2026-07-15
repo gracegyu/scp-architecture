@@ -573,7 +573,7 @@
 
 #### T-P7-5 — Scout Curve 렌더 스타일 정합 (MMI §1.3)
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-15. Scout 요소 색·글리프·라벨을 MMI 1.3과 정합(v1.11~1.16 렌더 구현 + 최근 dim 어포던스). **색/굵기 토큰화**: `overlayStyle.ts` `SCOUT_OVERLAY_COLORS`로 분리, `ScoutView` COLOR_*가 이를 참조(risk 해소). **UT-UI-041**(색·9 section line 호장 좌표 산출) `overlayStyle.test.ts` 통과. MT-UI-042 사용자 시각 확인 완료.
 
 | 필드 | 값 |
 |------|------|
@@ -589,7 +589,7 @@
 
 #### T-P7-6 — Panorama 렌더 스타일 정합 (MMI §1.4)
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료** — 2026-07-15. Panorama 선(경계 노랑·중심 초록·Scout 위치선 흰 점선·Active/Center section line)을 MMI 1.4와 정합(v1.11·1.16). **색/굵기 토큰화**: `overlayStyle.ts` `PANORAMA_OVERLAY_COLORS`+`rgbaDim`으로 분리, `PanoramaView`가 참조(인라인 rgba 제거, 출력 동일). 9 section line 호장 좌표는 공용 `nineSectionArcOffsetsMm` 사용. **UT-UI-051** `overlayStyle.test.ts` 통과. MT-UI-052 사용자 시각 확인 완료.
 
 | 필드 | 값 |
 |------|------|

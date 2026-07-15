@@ -193,7 +193,7 @@ MMI가 **값·범위·동작 방식·표기 의미를 명확히 규정하지 않
 
 #### 3.4.1 오버레이 색상 (RGB) — 임시, GUI styleguide 확정 전
 
-**기획팀 회신(2026-07-14):** *"UI는 추후 VT UI/UX팀이 GUI styleguide를 제작해 전달 예정. MMI의 색상이 최종 반영 색이 아니므로 임의 색상 지정 무관. styleguide 일정은 미확정."* → 아래 색은 **개발실 임시 지정**이며 styleguide 전달 시 교체한다. Scout 오버레이 색은 `ScoutView.tsx` 상단 `COLOR_*` 상수로 일원화.
+**기획팀 회신(2026-07-14):** *"UI는 추후 VT UI/UX팀이 GUI styleguide를 제작해 전달 예정. MMI의 색상이 최종 반영 색이 아니므로 임의 색상 지정 무관. styleguide 일정은 미확정."* → 아래 색은 **개발실 임시 지정**이며 styleguide 전달 시 교체한다. Scout·Panorama 오버레이 색·굵기는 **`components/src/overlayStyle.ts` 토큰**(`SCOUT_OVERLAY_COLORS`·`PANORAMA_OVERLAY_COLORS`)으로 일원화(T-P7-5/6, 2026-07-15) — styleguide 전달 시 이 파일만 교체.
 
 | 요소 | RGB | 상수 |
 |------|-----|------|
@@ -575,6 +575,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.26 | 2026-07-15 | **T-P7-5/6 마감(오버레이 스타일 토큰화)**: Scout·Panorama 오버레이 색·굵기를 `components/src/overlayStyle.ts`(`SCOUT_OVERLAY_COLORS`·`PANORAMA_OVERLAY_COLORS`·`rgbaDim`)로 분리, 두 뷰가 참조(인라인 rgba 제거·출력 동일). 9 Active section line 호장 좌표를 공용 `nineSectionArcOffsetsMm`로 추출. UT-UI-041/051(`overlayStyle.test.ts` 6케이스) 통과. §3.4.1 색 소스 위치 갱신. |
 | 1.25 | 2026-07-15 | **접목 형태 = 소스 병합으로 D4 개정**: 패키지/Federation → **CW 모노레포 소스 병합 우선**(`section-core`=CW 내부 패키지·`section`=CW 트리 병합). §9.2 재작성, §9.9 1단계를 1a~1e 상세 절차(디렉터리 이동·스코프 개명·의존성 hoist·빌드/테스트 편입·데모 셸 분리)로 확장, §9.3 registry/Federation/스코프 행 갱신, 2단계·최소변경요약 정정, D4 개정. 패키지는 fallback으로 유지. |
 | 1.24 | 2026-07-15 | **저장소·데모 사이트 명시 + 접목 실행 절차(§9.9) 신설**: Resource에 「저장소·데모 사이트」 표 추가(repo `dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc`·데모 `scp-section-demo.test.scp.esclouddev.com`·CT S3·CI/CD, WebSectionView PoC OnePager 참조). §9에 **10단계 접목 how-to**(패키지 설치→환경 게이트→Content 등록→Store→Toolbar→CT 공급→Title bar/다이얼로그→Save/Load→MPR 연동→검증) + 최소 변경 요약 추가. |
 | 0.1~0.6 | 2026-07-09~10 | 초안 — B/L·환경 정렬·pnpm link·EzCloud·화면 3분할 |
