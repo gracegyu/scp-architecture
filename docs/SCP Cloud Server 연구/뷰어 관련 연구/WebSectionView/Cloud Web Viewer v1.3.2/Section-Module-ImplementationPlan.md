@@ -453,19 +453,19 @@
 
 #### T-P4-6 — 공통 뷰 조작 (Pan / Zoom / Reset View / Pointer)
 
-- [ ] **미구현(2026-07-15 신설)** — MMI 1.13-1a "MPR 동일" 규정이나 초기 구현에서 **interaction이 뷰 변환에 미연결**(계측만 연결). §3.7 정의대로 각 뷰에 pan offset·zoom scale 상태 도입, 이미지+오버레이(ruler·grid·계측) 동일 transform 공유. Pointer=도구 해제, Pan=좌드래그 이동, Zoom=드래그/휠 배율, Reset View=초기화.
+- [ ] **미구현(2026-07-15 신설·2026-07-15 보강)** — MMI 1.13-1a "MPR 동일" 규정이나 초기 구현에서 **interaction이 뷰 변환에 미연결**(계측만 연결). §3.7 정의대로 각 뷰에 **뷰별 독립** `panX/panY`·`zoomScale` 상태 도입, **이미지 + grid + ruler + 계측을 동일 transform**으로 렌더. **입력=마우스 이동(드래그)**: **Pan**=드래그 평행이동, **Zoom**=**우클릭 드래그 상하(위=확대·아래=축소)**(4분면 상/하 반 기준), **Pointer**=도구 해제, **Reset View**=fit 초기화. **핵심 요구: zoom out으로 이미지가 작아져 여백이 커져도 grid·ruler는 뷰 전체를 채워야 함**(유효 `pxPerMm=fitPxPerMm×zoomScale`, ruler 0 원점=뷰 기준·pan 따라 이동). `GridOverlay`·`SectionTileChrome` ruler가 이미 "뷰 전체·isotropic·뷰 원점" 구조라 pxPerMm에 zoom 곱·pan offset 더하면 확장 가능. 휠은 Section slice 스크롤 유지(Zoom과 분리). **커서**: Pan/Zoom 활성 시 CW `CURSORS` 커스텀 SVG 커서(Pan=손 16,16·Zoom=돋보기 13,13·Pointer 7,6·Disable 3,3) 적용 — **에셋 `components/src/cursors.ts`에 CW 정본 그대로 복사 완료(2026-07-15)**, 구현 시 뷰 `style.cursor`에 배선만.
 
 | 필드 | 값 |
 |------|------|
 | id | T-P4-6 |
-| title | Pan/Zoom/Reset View/Pointer — 뷰 transform(pan·zoom) 상태+오버레이 정합, MPR 제스처 정합 |
+| title | Pan/Zoom/Reset View/Pointer — **뷰별 독립** transform(pan·zoom, 마우스 드래그·Zoom=우클릭 상하) + 이미지·grid·ruler·계측 동일 transform 공유(zoom out 시도 grid/ruler 뷰 전체 유지) |
 | repo | scp-section-poc |
 | spec_refs[] | S-SPEC §3.7·§3.4.2, S-MMI §1.13-1a·Appendix, S-CW `ES3DRenderWindowInteractor`·`ActionState` |
-| depends_on[] | T-P0-3, T-P2-2 |
-| outputs[] | `ScoutView.tsx`·`PanoramaView.tsx`·`SectionGrid.tsx`(+공용 transform 훅), `App.tsx` |
-| dod[] | UT-NAV-001(pan/zoom transform 좌표 변환)·MT-NAV-002 3뷰 pan·zoom·reset 동작·오버레이 정합 |
-| estimate | 4h |
-| risk | 휠 = Zoom vs Section slice 스크롤 충돌 정책·오버레이 transform 동기 |
+| depends_on[] | T-P0-3, T-P2-2, T-P4-5(grid) |
+| outputs[] | 공용 `useViewTransform` 훅(pan/zoom) + `ScoutView.tsx`·`PanoramaView.tsx`·`SectionGrid.tsx`·`GridOverlay.tsx`·`SectionTileChrome.tsx`(transform 적용), **`components/src/cursors.ts`(CW `CURSORS` 복사 — 완료)**, `App.tsx` |
+| dod[] | UT-NAV-001(pan/zoom→screen 좌표·유효 pxPerMm 변환)·UT-NAV-002(zoom out 시 grid/ruler 뷰 전체 커버 산출) + MT-NAV-003 3뷰 독립 pan·zoom(우클릭 상하)·reset·오버레이 정합·zoom out 여백에도 grid/ruler·**Pan/Zoom 활성 시 CW 커서(손/돋보기) 표시** |
+| estimate | 5h |
+| risk | 뷰별 transform·오버레이(이미지/grid/ruler/계측) 동기, Zoom 우클릭 vs 컨텍스트 메뉴(Scout 커브) 충돌 정책, 감도 CW 정합 |
 
 ### P5 — Save Project
 
