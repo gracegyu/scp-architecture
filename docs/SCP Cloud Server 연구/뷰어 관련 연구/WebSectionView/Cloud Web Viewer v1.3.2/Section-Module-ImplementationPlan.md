@@ -453,7 +453,7 @@
 
 #### T-P4-6 — 공통 뷰 조작 (Pan / Zoom / Reset View / Pointer)
 
-- [ ] **미구현(2026-07-15 신설·2026-07-15 보강)** — MMI 1.13-1a "MPR 동일" 규정이나 초기 구현에서 **interaction이 뷰 변환에 미연결**(계측만 연결). §3.7 정의대로 각 뷰에 **뷰별 독립** `panX/panY`·`zoomScale` 상태 도입, **이미지 + grid + ruler + 계측을 동일 transform**으로 렌더. **입력=마우스 이동(드래그)**: **Pan**=드래그 평행이동, **Zoom**=**우클릭 드래그 상하(위=확대·아래=축소)**(4분면 상/하 반 기준), **Pointer**=도구 해제, **Reset View**=fit 초기화. **핵심 요구: zoom out으로 이미지가 작아져 여백이 커져도 grid·ruler는 뷰 전체를 채워야 함**(유효 `pxPerMm=fitPxPerMm×zoomScale`, ruler 0 원점=뷰 기준·pan 따라 이동). `GridOverlay`·`SectionTileChrome` ruler가 이미 "뷰 전체·isotropic·뷰 원점" 구조라 pxPerMm에 zoom 곱·pan offset 더하면 확장 가능. 휠은 Section slice 스크롤 유지(Zoom과 분리). **커서**: Pan/Zoom 활성 시 CW `CURSORS` 커스텀 SVG 커서(Pan=손 16,16·Zoom=돋보기 13,13·Pointer 7,6·Disable 3,3) 적용 — **에셋 `components/src/cursors.ts`에 CW 정본 그대로 복사 완료(2026-07-15)**, 구현 시 뷰 `style.cursor`에 배선만.
+- [x] **구현 완료(2026-07-15) — 사용자 시각 검증 대기.** 공용 `useViewTransform` 훅(뷰별 `panX/panY/zoom` + Pan=좌드래그·Zoom=우클릭/상하드래그·Reset=tick 초기화·CW 커서). 3뷰 모두 **이미지(및 이미지 앵커 계측)만 transform**(이미지 CSS translate+scale origin 중앙, 계측 오버레이 동일 transform) + 히트테스트 역변환(Scout `screenToSliceCoords`·Panorama `clientToCanvas` 부모rect+역변환). **Grid·Ruler는 Pan/Zoom 미적용 고정**(§12-D27b, 2026-07-15 사용자 피드백 — Grid는 뷰 전체 고정 10mm, Ruler는 뷰/타일 하단·우측 고정; GridOverlay·SectionTileChrome·스케일바 transform 제거). Section 3×3은 **9뷰가 하나의 transform으로 함께**(2026-07-15 최종 확정, §12-D27 — 각 뷰 자기 중앙 기준 제자리 확대·타일 클립, 뭉쳐 스프레드 아님): 단일 `useViewTransform`, WebGL은 **타일별 `gl.viewport`에 같은 transform을 각 타일 중앙 기준 적용 + `gl.scissor` 클립**, canvas2d·크롬 그리드·최대화는 셀별 CSS transform + `overflow:hidden`, 오버레이는 단일 `transform`을 **각 셀 중앙 기준**으로 적용·타일 클립. (초안의 타일별 독립 9-transform은 slice 스크롤 배율 혼선·Save 9벌 문제로 배제 — D27.) Panorama 콘텐츠 컨테이너 `overflow:hidden` 추가(확대 시 뷰 밖 넘침 수정). 휠=Section slice 스크롤 유지(zoom과 분리). Store에 `resetView()`·`resetViewTick` 추가, CwToolbar `resetView` 배선, App `toNavTool`(pan/zoom) 전달. **UT-NAV-001·002 통과**(useViewTransform.test.ts 9케이스). 커서 = `components/src/cursors.ts` CW 정본. **Ruler 적응형 눈금(2026-07-15 추가, §D27b)**: 위치 고정이되 Zoom에 따라 단위·간격·표시 mm 변경(스케일바 표시 mm=base/zoom, 예 2×→25mm) — core `view/rulerTicks.ts` `chooseRulerSteps`(1·5·10·50·100mm, 확대 시 1mm까지) 3뷰 공통, `ViewVerticalScaleBar`·`SectionTileChrome`에 `zoom` 배선. UT: rulerTicks.test.ts 8케이스 통과. **잔여(사용자 확인):** pan/zoom·reset·오버레이 정합·grid 고정·ruler 단위 변경·CW 커서 시각 확인(MT-NAV-003), 감도(ZOOM_SENSITIVITY 0.005) 튜닝.
 
 | 필드 | 값 |
 |------|------|
@@ -482,6 +482,22 @@
 | dod[] | MT-I18N-001 문자열 한국어 통일(혼재 제거) · MT-I18N-002 CW Lingui 구조로 locale 전환 시 언어 반영(en/ko) |
 | estimate | 3~4h (문자열 수에 따라) |
 | risk | 접목 시 CW `useBoundStore i18nStore` locale 구독 배선 · CW 한국어 카탈로그 누락(CW-2)과 동반 개선 필요 |
+
+#### T-P4-8 — Pointer 주석 도구 (CW PointerDialog/PointerCanvas 포트)
+
+- [x] **구현 완료(2026-07-15) — 사용자 시각 검증 대기.** CW 조사(Explore) 후 **소스 포트**: `PointerCanvas`(전체 오버레이 Canvas2D·`Path2D` 자유곡선 다중 요소·Eraser `isPointInStroke`(15px) 1요소 삭제·`resetPointer` ref·Pen/Eraser 커서) + `PointerDialog`(Pen·Eraser·두께 1~5[기본2]·색 스와치/커스텀·Reset·Close·경량 드래그). App(WorkSpace 상당)이 `interaction==='pointer'`에서 오버레이+다이얼로그 렌더, **Close=deactivate→언마운트→그림 소거**(임시). 커서 `ERASE` CW 정본 복사(`cursors.ts`). **CW 의존(react-rnd·react-color·MUI)은 경량 대체**(닫힌 다이얼로그 근접, 그라디언트 picker만 미복제). **모달**: backdrop이 뒤 UI 클릭 전부 차단, 드로잉 캔버스는 **본문(뷰) rect에만** 겹쳐 Toolbar엔 안 그려짐(CW 정합, 2026-07-16 수정). 기본색 `#FFDD40`. Pointer는 **CW 셸(WorkSpace) 소유** — 접목 시 우리 포트 삭제·CW가 제공(§9.10). **1안 확정**(verbatim 2안 배제: throwaway 의존). **잔여(사용자 확인):** 그리기·Eraser·색/두께·Reset·Close 소거·툴바 차단 시각 확인(MT-PTR-001~004).
+
+| 필드 | 값 |
+|------|------|
+| id | T-P4-8 |
+| title | Pointer 주석 — CW `PointerDialog`/`PointerCanvas` 포트(FreeDraw 다중·Eraser·두께·색·Reset·Close=소거) |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §3.8·§12-D28·§9.10, S-MMI §1.13-1a(Pointer), S-CW `workSpace/layout/components/{PointerDialog,PointerCanvas}.tsx`·`workSpace/setting/index.ts`(CURSORS.ERASE·STROKE_WIDTH) |
+| depends_on[] | T-P0-3(toolStore interaction) |
+| outputs[] | `packages/components/src/PointerCanvas.tsx`·`PointerDialog.tsx`, `cursors.ts`(ERASE), `apps/section-demo/src/App.tsx`(배선) |
+| dod[] | MT-PTR-001 3뷰 위 자유곡선 다중 요소 · MT-PTR-002 Eraser로 1요소 삭제 · MT-PTR-003 두께·색 변경/Reset·Close 시 전부 소거 |
+| estimate | 3h(포트) |
+| risk | 접목 시 CW 컴포넌트로 교체(중복 금지 §9.10) · Path2D `isPointInStroke` 브라우저 지원(모던 OK) |
 
 ### P5 — Save Project
 
