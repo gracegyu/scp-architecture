@@ -237,17 +237,7 @@
       baseline              :milestone, infbl, after infpr, 0d
   ```
 
-- 이월 논의 사항 (6/25 미결 — 계속) 
-  | # | 항목 | 타입 | 상태 | 
-  | --- | --- | --- | --- | 
-  | 4 | Webhook 클라우드 분배(CleverLab 갈래B) | [논의] | v1.0 제외 — Open 후 결정 | 
-  | 6 | AXS sandbox 자격증명(Straumann 제공) | [정보] | pilot(08-15) 블로커 — 확보 시점? | 
-  | 7 | 경로 B EOS 시점 | [논의] | ① One Pager 확정 의존 | 
-  | 8 | v1.0 목표 RPS·동시 세션 | [정보] | 인프라/규모 PL 입력 대기 | 
-  | 9 | RTO/RPO·유지보수 윈도우 | [정보] | 인프라 설계 단계 | 
-  | 10 | 감사·consent 보존 기간 | [정보] | 법무 확인 대기 | 
-  | 11 | 호환성 매트릭스 확정본 | [정보] | ① One Pager 의존 |
-
+- 이월 논의 사항 (6/25 미결 — 계속) | # | 항목 | 타입 | 상태 | | --- | --- | --- | --- | | 4 | Webhook 클라우드 분배(CleverLab 갈래B) | [논의] | v1.0 제외 — Open 후 결정 | | 6 | AXS sandbox 자격증명(Straumann 제공) | [정보] | pilot(08-15) 블로커 — 확보 시점? | | 7 | 경로 B EOS 시점 | [논의] | ① One Pager 확정 의존 | | 8 | v1.0 목표 RPS·동시 세션 | [정보] | 인프라/규모 PL 입력 대기 | | 9 | RTO/RPO·유지보수 윈도우 | [정보] | 인프라 설계 단계 | | 10 | 감사·consent 보존 기간 | [정보] | 법무 확인 대기 | | 11 | 호환성 매트릭스 확정본 | [정보] | ① One Pager 의존 |
 
 # 7/2 주간회의 결정사항
 
@@ -350,7 +340,7 @@
     - (결정) 수집하기로 한다.
       - 하지만 LMP의 Clinic 정보가 바뀌어도, VAG에 sync 하지 않는다.
     - **LMP 제공(원문 확인)**: `licenseapi.yaml` `GET /licenses` 응답 `clinic` = {`name`·`address`·`phone`·`countyCode`(국가 ISO 3166)·`website`}. EzServer가 enroll 시 전달 → GW `clinic` 저장. LMP 변경 시 `PATCH /v1/clinics/{clinicId}`(device 자가 동기화·self-only)로 갱신.
-    - **추천안 = LMP가 주는 전부 수집**(name·country_code·address·phone·website) — LMP 응답에 공짜로 함께 오고, 이름·국가=식별, 주소·전화=C/S 연락에 유용, **환자 PHI 아님(clinic 업무정보)**. _(최소안 = name + country_code, 식별만.)_
+    - **추천안 = LMP가 주는 전부 수집**(name·country*code·address·phone·website) — LMP 응답에 공짜로 함께 오고, 이름·국가=식별, 주소·전화=C/S 연락에 유용, **환자 PHI 아님(clinic 업무정보)**. *(최소안 = name + country*code, 식별만.)*
     - **유의**: LMP `country_code`(clinic 국가) ≠ GW `region`(배포 리전) — 별개 컬럼.
     - **성격**: [논의·결정] — **수집 필드셋만 승인**(추천=전부). DBML(clinic 5컬럼 고정 필드)·OpenAPI(`ClinicInfo`·enroll·`PATCH /v1/clinics/{clinicId}`)·§2.3.1은 **선반영 완료(필드셋 TBD)**. 잔여 확인(EzServer/LMP·③-P-EZ): 신규 클리닉 시 정보 시점·실제 형식.
 
@@ -544,7 +534,7 @@
       | **B** |                ✓                 |      ✗       | **AXS org 확보**(생성·개통 방식=확인 대상) → `link` → org-binding                           |
       | **C** |                ✗                 |      ✗       | **범위 밖** — Straumann 가입은 클리닉↔Straumann 영업 과정(우리 SW 무관) · 가입하면 B로 합류 |
       - **C 취급(권고)**: 전제 미충족이라 AXS 연동 자체 불가(AXS=Straumann 플랫폼). flow로 만들지 않되 **"범위 밖·가입 시 B 수렴"으로 경계만 명시**(추후 "비고객은?" 재질문 차단).
-      - **opt-in 전제(중요)**: AXS 연동은 **선택** — **가맹(A/B)이어도 연동 안 하는 클리닉은 `[3]` 자체를 건너뜀**(org_mapping 없음·enroll 등 정상·새 처리 불요). 위 A/B/C는 _연동하는_ 클리닉의 전제 상태다. 조사 시 **"연동 안 함" 비율**도 함께 파악하면 EzServer가 link flow를 얼마나 자주 타는지 가늠에 도움.
+      - **opt-in 전제(중요)**: AXS 연동은 **선택** — **가맹(A/B)이어도 연동 안 하는 클리닉은 `[3]` 자체를 건너뜀**(org*mapping 없음·enroll 등 정상·새 처리 불요). 위 A/B/C는 *연동하는\_ 클리닉의 전제 상태다. 조사 시 **"연동 안 함" 비율**도 함께 파악하면 EzServer가 link flow를 얼마나 자주 타는지 가늠에 도움.
 
     - **② 묻는 것 (조사 질문)**: A/B/C **분포**(대부분 A? B 상당? C 무시 가능?) · **B의 AXS org 확보 방식**(`link`가 자동 생성/개통 vs Straumann 별도 개통 — 핵심 미지) · A의 **Vatech 기연동 여부** · `customerNumber` **취득 경로**(설치 입력/LMP/포털·_“Straumann 고객이면 있다”는 가정_) · consent 주체·타이밍.
     - **③ 상태 B(연결 필요) 절차는? (어디서·누가·어떤 UI)**:
@@ -815,16 +805,7 @@
     - **관리 방식(§7.7.5)**: 서빙 JSON은 **손편집 아님**(원본→CI 생성→S3). GW는 런타임 read+cache라 **매트릭스만 바뀌면 앱 재배포 0**(`config/**` path-scoped 발행 파이프라인). S3는 **CI만 쓰기**, Console은 **읽기 전용 뷰어**.
     - **논의 씨앗**: 현재 스키마는 `minClientVersion` 이분법(미만=거부)만 표현 → **§7.7.3의 3단계 반응(major=차단/minor=경고/patch=무시)은 아직 스키마에 없음** → 값 확정(① One Pager) 시 tier/경고 필드 도입 검토. **이번 주는 형식·구조 공유가 목적**(값·스키마 확정은 ①).
 
-- 이월 논의 사항 (6/25·7/2 미결 — 계속)
-  | # | 항목 | 타입 | 상태 |
-  | --- | --- | --- | --- |
-  | 4 | Webhook 클라우드 분배(CleverLab 갈래B) | [논의] | v1.0 제외 — Open 후 결정 |
-  | 6 | AXS sandbox 자격증명(Straumann 제공) | [정보] | pilot(08-15) 블로커 — 확보 시점? (R4 Tech support 채널과 함께 요청) |
-  | 7 | 경로 B EOS 시점 | [논의] | ① One Pager 확정 의존 |
-  | 8 | v1.0 목표 RPS·동시 세션 | [정보] | 인프라/규모 PL 입력 대기 |
-  | 9 | RTO/RPO·유지보수 윈도우 | [정보] | 인프라 설계 단계 |
-  | 10 | 감사·consent 보존 기간 | [정보] | 법무 확인 대기 |
-  | 11 | 호환성 매트릭스 확정본 | [정보] | ① One Pager 의존 |
+- 이월 논의 사항 (6/25·7/2 미결 — 계속) | # | 항목 | 타입 | 상태 | | --- | --- | --- | --- | | 4 | Webhook 클라우드 분배(CleverLab 갈래B) | [논의] | v1.0 제외 — Open 후 결정 | | 6 | AXS sandbox 자격증명(Straumann 제공) | [정보] | pilot(08-15) 블로커 — 확보 시점? (R4 Tech support 채널과 함께 요청) | | 7 | 경로 B EOS 시점 | [논의] | ① One Pager 확정 의존 | | 8 | v1.0 목표 RPS·동시 세션 | [정보] | 인프라/규모 PL 입력 대기 | | 9 | RTO/RPO·유지보수 윈도우 | [정보] | 인프라 설계 단계 | | 10 | 감사·consent 보존 기간 | [정보] | 법무 확인 대기 | | 11 | 호환성 매트릭스 확정본 | [정보] | ① One Pager 의존 |
   - **차주 이월 후보**: R4(AXS Org-ID 취득 경로·절차)가 이번 회의에서 확정/조사경로 미정이면 다음 주 이월 논의에 등재.
 
 # VT API Gateway — 7/16 주간회의 Agenda
@@ -849,7 +830,7 @@
 
         section ③ GW SRS + API/DBML (계약 SSOT · Raymond·부분투입)
         작성 (본문+OpenAPI·DBML)       :done, srsw, 2026-06-15, 28d
-        PR 리뷰·수정                  :active, srspr, 2026-07-13, 21d
+        PR 리뷰·수정                  :active, srspr, 2026-07-13, 2026-07-23
         baseline v1.0                 :milestone, srsbl, after srspr, 0d
 
         section ① API 호환성 One Pager (GW 기본 — v1.0 포함)
@@ -891,19 +872,26 @@
         CleverSpace 적응 작성 (③-P-CS)  :csdef, after rel, 14d
 
         section ▷ 병행 · 별도 프로젝트 (GW 아님)
-        SectionView Module 구현 (Raymond 병행) :crit, sv, 2026-07-13, 14d
+        SectionView Module 구현 (Raymond 병행) :crit, sv, 2026-07-13, 2026-07-23
     ```
+
+  - **S3. ③ GW SRS PR 등록·리뷰 대응 현황 (정보 공유)** — ③ GW SRS(+OpenAPI·DBML)를 `vt-api-gateway` 레포 `docs/gw-srs-initial` 브랜치 **PR로 등록(7/13)**. 리뷰 코멘트 **38 스레드 전부 대응 완료** · **PR 리뷰 완료 목표 = 7/23**.
+    - **리뷰어**: Scott·Thomas·Jack·Eric·Larry·James + CodeReviewAgent(자동리뷰 2회).
+    - **성격**: 대부분 **문서·계약 정합/서술 명확화** — 아키텍처·데이터 모델 변경 없음. SRS·OpenAPI 반영은 **로컬 완료·검증 통과**(redocly valid·SRS 코드펜스 정합), **금일 일괄 push 예정**.
+    - **주요 반영**: 프록시 남용·SSRF 방어와 신뢰경계(§4.1.2) · 온보딩 실패 시 기존(레거시) usecase 지속성·rollback(§2.8) · 경로 B EOS workaround(§2.8) · Region Resolver 계약 정합(`ClinicResolution` 신설·§7.3.1) · Aurora Global DB write-forwarding 감안(§2.1.1·gw/1.2).
+    - **남은 절차**: 필수 리뷰어(Scott·Thomas) 재승인 → **baseline v1.0**(7/23 리뷰 완료 후).
+    - **[크로스팀 · R1 연계]** Thomas의 프록시 남용 우려 검토 결과 — GW에 인증하는 주체가 EzServer라 `client→EzServer` 내부 구간 인증은 GW 신뢰경계 밖·**EzServer(③-P-EZ) 계층 소관**으로 정리(내부망 무신뢰 강화 여부는 EzServer 위협모델 판단). EzServer 스펙(R1·Thomas)에서 다룰 항목.
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
-  | #    | 항목                                   | 타입        | 상태                          |
-  | ---- | -------------------------------------- | ----------- | ----------------------------- |
-  | 4    | Webhook 클라우드 분배(CleverLab 갈래B) | [논의]      | v1.0 제외 — Open 후 결정      |
-  | 6    | AXS sandbox 자격증명(Straumann 제공)   | [정보]      | pilot·E2E 블로커 — 확보 시점? |
-  | 7    | 경로 B EOS 시점                        | [논의]      | ① One Pager 확정 의존         |
-  | 8    | v1.0 목표 RPS·동시 세션                | [정보]      | 인프라/규모 PL 입력 대기      |
-  | 9    | RTO/RPO·유지보수 윈도우                | [정보]      | 인프라 설계 단계              |
-  | 10   | 감사·consent 보존 기간                 | [정보]      | 법무 확인 대기                |
-  | 11   | 호환성 매트릭스 확정본                 | [정보]      | ① One Pager 의존              |
-  | 신규 | IO Scanner↔EzServer 연동 방식          | [논의·선결] | 미정 → 이번 주 R1로 승격      |
+  | #    | 항목                                   | 타입        | 상태                                                         |
+  | ---- | -------------------------------------- | ----------- | ------------------------------------------------------------ |
+  | 4    | Webhook 클라우드 분배(CleverLab 갈래B) | [논의]      | v1.0 제외 — Open 후 결정                                     |
+  | 6    | AXS sandbox 자격증명(Straumann 제공)   | [정보]      | pilot·E2E 블로커 — 확보 시점?                                |
+  | 7    | 경로 B EOS 시점                        | [논의]      | 리뷰서 workaround·지속성 확정(§2.8) — EOS *시점*만 PM/① 미정 |
+  | 8    | v1.0 목표 RPS·동시 세션                | [정보]      | 인프라/규모 PL 입력 대기                                     |
+  | 9    | RTO/RPO·유지보수 윈도우                | [정보]      | 인프라 설계 단계                                             |
+  | 10   | 감사·consent 보존 기간                 | [정보]      | 법무 확인 대기                                               |
+  | 11   | 호환성 매트릭스 확정본                 | [정보]      | ① One Pager 의존                                             |
+  | 신규 | IO Scanner↔EzServer 연동 방식          | [논의·선결] | 미정 → 이번 주 R1로 승격                                     |
   - **차주 이월 후보**: R1(IO Scanner↔EzServer 연동 방식)·R2(목표일정) 미확정 시 다음 주 이월.
