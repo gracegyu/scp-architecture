@@ -233,9 +233,9 @@ Section 모듈 셸(툴바·뷰 헤더·뷰 배경·아이콘)을 **CloudWebViewe
 > **MPR/Section 전환 바**: CW엔 별도 전환 바가 없고 툴바 내 single/dual 버튼으로 처리. 데모에는 전환 UX용으로만 존재(BG `#3B3B3B`·h34, `App.tsx` `selectBarStyle`) — **접목 시 제거/대체**(Jessi 확정 2026-07-15).
 > **아이콘 hover는 배경이 아닌 fill(글자색) 변경**으로 표현(CW 아이콘 SVG가 `fill` prop 사용). 기존 `rgba(0,190,165,0.4)` 배경 hover는 제거. **CustomMPRSlider류 슬라이더**의 teal(`#00B1A2`/`rgb(0,177,162)`)은 크롬 아이콘 팔레트와 구분해 **그대로 유지**.
 > **아이콘 크기(2026-07-15 정합)**: 초기 구현이 CW보다 작아(툴바 22·헤더 15) CW 소스 기준으로 확대. 우리 아이콘 에셋은 CW와 **동일 viewBox(툴바 36)** 복사본이므로, 툴바는 축소 없이 **36으로 꽉 채우고**(버튼 36·content-box·padding 0), 헤더는 CW `ICON_SIZE=24`에 맞춰 **24**(버튼 28). 툴바 아이콘 확대에 맞춰 버튼 간격도 소폭 확대.
-> **폰트(2026-07-15 확정)**: CW 전역 폰트 = `'Segoe UI', 'Roboto'`(CW `index.css`, **웹폰트 미번들**). 우리도 **동일 스택 `'Segoe UI', 'Roboto', sans-serif`만 선언, 웹폰트 embed 안 함**(데모 `body` 상속 + 컴포넌트 인라인, monospace 숫자 유지). **폰트 embed·관리는 우리 모듈이 아니라 CW/CleverSpace 전역 styleguide 소관**(§9.10) — 우리는 스택만 CW와 맞춘다.
-> **실제 렌더 폰트는 환경 의존이라 접목 시 확인 필요**: 스택에 generic 외 실물 폰트가 없으면 OS·브라우저 폴백으로 렌더된다. Windows=`Segoe UI`, **Roboto가 시스템에 설치된 환경(ChromeOS·CleverSpace 배포 타깃, 또는 Roboto 설치된 맥)=`Roboto`**, 그 외=폴백(맥 기본 Helvetica류). **접목 시 CW·CleverSpace 배포 환경에서 의도한 폰트(Segoe UI/Roboto)로 일관 렌더되는지 검증**하고, 필요 시 CW/호스트가 웹폰트 embed로 확정한다. (@fontsource/roboto 임시 embed는 시도 후 제거 — 폰트 소유는 호스트 몫.)
-> **참고(Roboto/Chrome 오해)**: Chrome이 Roboto를 웹에 기본 제공한다는 건 오해다. **Android·ChromeOS에서만 Roboto가 시스템 폰트**라 웹 `font-family:'Roboto'`가 잡히고, **macOS·Windows Chrome은 내장 Roboto를 웹페이지에 노출하지 않는다**(OS에 별도 설치돼 있어야 잡힘). 관측 사례: 동일 맥에서 우리 앱은 (맥에 Roboto 설치돼 있어) Roboto로, CW는 폴백(Helvetica)으로 렌더된 차이가 있었음 → CW/호스트 측 폰트 로딩 확인 대상(우리 구현은 선언 스택대로 정상 동작).
+> **폰트(2026-07-15 최종)**: **실제 호스트(CleverSpace) 폰트에 맞춘다** = `'Noto Sans', 'Noto Sans KR', 'Segoe UI', sans-serif`(ezcloud `container-app`·`common-ui`·`policy-app` 정본). CleverSpace는 **Noto Sans를 Google Fonts로 로드**하므로 데모도 동일 로드(`index.html` `<link>`)해 실제 배포 룩을 미리보기. 컴포넌트 인라인도 동일 스택(monospace 숫자 유지). **폰트 소유·embed는 CW/CleverSpace 전역 styleguide 몫**(모듈은 스택만 맞추고 강제하지 않음, §9.10).
+> ⚠️ **CW는 다른 폰트를 강제(`'Segoe UI','Roboto' !important`)해 호스트와 불일치**(§9.11-CW-1 버그). 그래서 앞서 CW의 Roboto에 맞추려던 시도(@fontsource/roboto embed 등)는 폐기하고, **올바른 정본인 CleverSpace 호스트 폰트(Noto Sans)** 로 정렬했다. CW-1이 수정돼야 접목 시 우리 텍스트도 호스트 Noto Sans로 일관 렌더된다.
+> **참고(Roboto/Chrome 오해)**: Chrome이 Roboto를 웹에 기본 제공한다는 건 오해다. **Android·ChromeOS에서만 Roboto가 시스템 폰트**라 웹 `font-family:'Roboto'`가 잡히고, **macOS·Windows Chrome은 내장 Roboto를 웹페이지에 노출하지 않는다**. 그래서 맥에서 CW의 미embed `'Roboto'`는 폴백(Helvetica)으로 보였다.
 
 #### 3.4.2 MMI 미명확 동작·상호작용 — 개발실 해석/처리 (§4.3)
 
@@ -561,6 +561,30 @@ standalone에서는 CW를 import할 수 없어(Module Federation·CW 의존성 �
 
 > **요지**: 복사/미러는 전부 "standalone 임시"다. **데모 셸 것은 버려지고, 모듈 것은 CW 정본 import로 대체**한다. 각 복사 파일 상단 주석에 CW 정본 경로를 명시해 교체 지점을 표시한다(예: `cursors.ts`·`GridOverlay.tsx`). 아이콘·커서 같은 자기완결 에셋은 §9.5 예외로 복사 허용이나, 병합 후 CW 원본이 있으면 그쪽을 단일 정본으로 삼는다.
 
+### 9.11 개발 중 발견한 CW 이슈 (접목 전 개선 권고)
+
+Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견한 CW 측 이슈. 우리 모듈 범위 밖이나 **접목 품질에 영향**을 주므로 CW 팀에 전달·개선 권고한다.
+
+**CW-1: 폰트 설정 불일치 (CleverSpace ≠ CW).** CleverSpace(호스트)와 CW가 **서로 다른 폰트 스택**을 쓰고, CW는 그것을 **`!important`로 강제**해 호스트 폰트를 덮어쓴다. 게다가 CW는 자기 폰트를 로드(embed)하지 않아 환경마다 렌더가 제각각이다. **우리 모듈은 이 둘의 합집합이 아니라 "호스트(CleverSpace) 스택에 정렬"** 했다.
+
+**현재 폰트 현황 비교:**
+| 대상 | 폰트 스택 | 웹폰트 로드 | `!important` | 맥 렌더 | Windows | ChromeOS |
+|------|-----------|:---:|:---:|------|------|------|
+| **CleverSpace**(ezcloud 호스트) | `'Noto Sans','Noto Sans KR','Segoe UI', sans-serif` | ✅ Noto Sans/KR **Google Fonts 로드** | ✗ | **Noto Sans** | Noto Sans | Noto Sans |
+| **CW**(cloudwebviewer) | `'Segoe UI','Roboto'` | ❌ 없음 | ✅ `* !important` | **Helvetica**(폴백) | Segoe UI | Roboto |
+| **우리 Section/데모** | `'Noto Sans','Noto Sans KR','Segoe UI', sans-serif`(=CleverSpace) | ✅ 데모가 Noto Sans **Google Fonts 로드** | ✗ | **Noto Sans** | Noto Sans | Noto Sans |
+
+**문제 요약:** ① CleverSpace·CW 스택이 다름(Noto Sans vs Segoe UI/Roboto). ② CW의 `* !important`가 **호스트의 로드된 Noto Sans를 덮어씀** → CW 영역만 CleverSpace 나머지 UI와 폰트가 다름. ③ CW는 `'Segoe UI'`(Win 전용)·`'Roboto'`(미embed·CleverSpace 미로드)를 **로드하지 않아** 없는 환경(맥/리눅스)에선 폴백(Helvetica)으로 **환경별 제각각**. (근거: CW `index.css:24`, ezcloud `container-app/index.html`·`common-ui/customTheme.ts`. 관측: 동일 맥에서 CleverSpace=Noto Sans, CW=Helvetica.)
+
+**추후 수정 방향(누가 무엇을):**
+| 주체 | 조치 | 우선 |
+|------|------|:---:|
+| **CW** | `index.css`의 `* { font-family:'Segoe UI','Roboto' !important }` **override 제거** → 호스트(CleverSpace) 폰트 상속. (특정 폰트 필요 시 미제공 폰트를 강제하지 말고 호스트처럼 **웹폰트 로드**) | **높음(주 원인)** |
+| **CleverSpace** | 현재 정상(Noto Sans 로드). embed content(CW·Section)에도 호스트 폰트가 상속되는지 확인 | 중 |
+| **styleguide(VT UI/UX)** | org 전역 **단일 폰트 스택 확정**(호스트 Noto Sans 유력) → CW·Section 모두 그 하나를 따름 | 중(확정 시 정본) |
+
+> **우리 모듈 대응(최종):** 폰트 소유는 호스트 몫(§9.10)이라 Section·데모는 **CleverSpace 호스트 스택에 정렬**(데모는 Noto Sans를 Google Fonts로 로드해 실제 배포 룩 미리보기). 접목 시 우리는 폰트를 강제하지 않고 호스트를 상속한다. **단 CW-1(CW의 Roboto 강제)이 남으면 CW가 우리 텍스트까지 덮어쓰므로, CW-1 수정이 폰트 일관성의 전제**다. → §3.4.1a. 주간회의 공유(Agenda).
+
 ## 10. 공개 API · 인계물
 
 - 현재 표면: `@ewoosoft/scp-section-components` `SectionViewer({volume})`·`ScoutView`·`PanoramaView`·`SectionGrid`·`CTLoader`. `@ewoosoft/scp-section-core` `curve`·`panorama`·`section`·`webgl`·`dicom`.
@@ -632,6 +656,7 @@ standalone에서는 CW를 import할 수 없어(Module Federation·CW 의존성 �
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.37 | 2026-07-15 | **폰트 정본 = CleverSpace 호스트(Noto Sans)로 정정 + CW 폰트 버그(§9.11-CW-1) 발견·정리**: ezcloud(=CleverSpace) 확인 결과 호스트는 `'Noto Sans','Noto Sans KR','Segoe UI',sans-serif`(Noto Sans Google Fonts 로드). CW는 `'Segoe UI','Roboto' !important`로 **호스트 폰트를 덮어쓰고 자기 폰트는 미로드** → 환경별 제각각(맥=Helvetica)·호스트 UI와 불일치 = **CW 버그**. 우리 모듈·데모를 **호스트 Noto Sans 스택에 정렬**(합집합 아님), 데모는 Noto Sans 로드. §9.11 신설(현황 비교 표·수정 주체 표), §3.4.1a 정정, 주간회의 Agenda S6/R4 공유. |
 | 1.36 | 2026-07-15 | **폰트 = CW 동일 스택·embed 안 함(접목 시 렌더 검증)**: 전역 폰트를 CW 스택 `'Segoe UI','Roboto',sans-serif`로 선언(`body` 상속 + 컴포넌트 인라인, monospace 숫자 유지). **웹폰트 embed는 안 함**(폰트 소유는 CW/CleverSpace 전역 styleguide 몫). 실제 렌더는 환경 의존(Windows=Segoe UI, Roboto 설치 환경=Roboto, 그 외 폴백)이라 **접목 시 배포 환경에서 의도 폰트로 일관 렌더되는지 검증** 필요. `@fontsource/roboto` 시도했다 제거. Chrome Roboto는 Android/ChromeOS만 웹 노출(맥/윈도우 미노출) 분석 포함. §3.4.1a. |
 | 1.35 | 2026-07-15 | **접목 시 중복 제거 가이드 신설(§9.10)**: standalone용 CW 복사/미러(커서·Grid·색 토큰·Title bar·다이얼로그·데모 툴바/store 미러/아이콘)를 접목 시 어떻게 정리할지 표로 명시 — 데모 셸(`apps/section-demo/cw/`)은 이동 안 해 중복 아님, 모듈(`packages/`) 복사본은 **CW 정본 import로 교체·복사본 삭제**(단일 정본). 각 복사 파일 상단에 CW 정본 경로 주석 유지. §9.9 요약에 링크. |
 | 1.34 | 2026-07-15 | **Pan/Zoom 커서 = CW 정본 복사**: CW `CURSORS`(`workSpace/setting/index.ts`)의 커스텀 SVG 커서(Pan=손 핫스팟 16,16·Zoom=돋보기 13,13·Pointer 7,6·Disable 3,3)를 `components/src/cursors.ts`에 base64 그대로 복사(§9.5 에셋 허용). §3.7·IP T-P4-6에 커서 사양 반영(구현 시 뷰 cursor에 배선). |
