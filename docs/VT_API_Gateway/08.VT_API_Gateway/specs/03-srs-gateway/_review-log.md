@@ -555,9 +555,26 @@
   >      * GW 1.0은 단일 리전만 지원
   >   - Test Environment : Dev, Test/Staging, PROD 중 어떤 환경에서 QA 하는지
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- 다음 답변(초안):
+
+공유 감사합니다. QA 전략 방향이 SRS와 잘 맞습니다. 대응되는 SRS 앵커와, 적어주신 열린 질문 중 SRS가 이미 정한 것들을 정리해 드립니다.
+
+**방향 정합성**
+- 목적(하위호환·기존 usecase 동작 확인): §2.8(기존 usecase 불변)과 일치합니다. 특히 "온보딩 실패 시에도 기존 usecase가 동작하는지"는 §2.8에 확정 반영했습니다 — 레거시 흐름은 GW에 비의존이라 계속 동작하고, GW 신규 기능만 온보딩 성공이 전제입니다.
+- Test 환경 구분(기존 User: 기존 환경 → GW 온보딩 → AXS / 신규 User: EzServer 설치 → LMP → GW 온보딩 → AXS): §2.3.1 온보딩 여정과 정확히 일치합니다.
+- 경로 A/B: §2.3.0(경로 A 골격)·§2.8(경로 B)에 정의돼 있습니다.
+
+**열린 질문 중 SRS가 이미 정한 것**
+- 경로 B "호환 포기 시점": SRS는 EOS 시점을 PM(제품)이 확정하도록 두었습니다(§2.8). 즉 QA가 "일단 동작 확인"하는 것이 맞고, 폐지 전까지 경로 B는 계속 동작해야 합니다(경로 B의 대체 workaround = GW 경유 이관, §2.8).
+- "유사한 경우가 더 있는지": 경로는 A(EzServer 경유)·B(직결) 두 갈래로 정의돼 있고(§2.3.0·§4.1.2), 그 외 라우팅은 미등록=404로 차단됩니다.
+- 멀티 서버 / 멀티 리전 QA: GW v1.0은 단일 리전(서울)이라 v1.0 QA는 단일 리전 기준입니다. 멀티 리전은 gw/1.2(§2.7.1·§7.3.5). 단 멀티 서버(리전 내 Multi-AZ 복제·HA)는 v1.0부터 대상입니다(§6.3.1).
+- 테스트 환경(Dev / Test-Staging / PROD): §3.1 환경 매트릭스를 참조하세요 — PHI는 PROD만 실데이터, Dev·Test는 더미만(§6.4·§6.5), E2E 게이트=§3.6.2. AXS는 dev/test=sandbox·prod=production, EzServer는 dev=에뮬레이터입니다.
+- 기존 제품 Test Version 정책(직전/그 이전 버전): 버전 호환은 §7.7(버전 게이팅)과 호환 매트릭스(클라이언트 × API 최소버전)로 관리하며, 매트릭스 확정본은 ① 운영 호환성 매트릭스에 의존합니다(Appendix B-8). QA의 "테스트 버전 협의"는 이 매트릭스 대상 버전과 맞추면 됩니다.
+
+QA 전략 자체는 QA(James·Eric) 소관이라 SRS 변경은 없고, 위 앵커로 상호 참조만 맞췄습니다. James와의 추가 논의에서 SRS에 반영할 점이 나오면 반영하겠습니다.
+
+- 조치: 정보성(QA 전략 Draft 공유)·QA(James·Eric) 소관 → SRS 변경 없음. 전략 방향↔SRS 앵커 매핑(§2.8·§2.3.1·§2.3.0·§3.1·§7.7·§6.3.1·Appendix B-8), 열린 질문 중 SRS 확정분 회신. James 추가 논의 결과 반영 대기
+- 상태: 답변(정보성·QA 소관·SRS 변경 없음)
 
 ## C-33 · docs/specs/SRS.md:323 · [thread 79671] ★리뷰어 대기
 - **[임건혁(Jack) · 2026-07-15T00:36 · cid 79671.1]**
@@ -566,9 +583,26 @@
   > https://docs.aws.amazon.com/ko_kr/AmazonRDS/latest/AuroraUserGuide/aurora-global-database-write-forwarding-apg.html
   > 현재 VPC 구성상 Aurora Global Database 사용시 쓰기 forward를 활성화 하고 리전별 앱들은 해당 리전의 엔드포인트를 사용하면 되는데 사용자 지정 함수나 사용자 정의 프로시저를 지원하지 않는 등 제약이 있습니다. 또한 Aurora Global Database여도 쓰기는 primary region의 DB로 전달되기 때문에 secondary 리전 앱에서 쓰기 작업을 수행할 경우 latency가 상당 부분 증가하므로 감안 부탁드립니다. Global Database로 멀티리전에서 성능상 이득을 볼 수 있는 부분은 Read만 가능합니다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- 다음 답변(초안):
+
+좋은 검토 감사합니다. 지적하신 write-forwarding 특성은 GW 데이터 구분과 정합적이라, gw/1.2 멀티 리전 설계에 그대로 반영하겠습니다.
+
+GW는 데이터를 두 부류로 나눕니다(§2.1.1·§6.4):
+
+**① 전역 일관 데이터 — 매핑·레지스트리·정책·JWKS**
+- 핫패스는 **읽기**이고 **쓰기는 드뭅니다**(운영자·enroll 시점). → 리전 로컬 read endpoint로 저지연 조회하고, write-forwarding latency는 저빈도 쓰기에만 걸려 수용 가능합니다. GW는 Global DB에서 *쓰기 확장*을 기대하지 않습니다(말씀하신 "이득은 Read"와 일치).
+
+**② PHI·운영 데이터 — webhook payload·audit**
+- **리전 로컬**입니다(데이터 주권 FR-RGN-03 — PHI는 대상 리전에만 at-rest). → 애초에 다른 리전으로 forwarding하지 않으므로 데이터 핫패스에 교차 리전 쓰기 latency가 없습니다.
+
+**③ custom function / stored procedure 미지원 제약**
+- GW는 **code-first(Prisma/NestJS)** 로 비즈니스 로직이 앱 계층에 있고 stored procedure·DB custom function을 쓰지 않습니다. → 실질 영향이 없습니다.
+
+**정리**
+- v1.0은 단일 리전(서울)이고 멀티 리전은 gw/1.2입니다. write-forwarding·primary 배치·리전별 엔드포인트 등 구체 설계는 ③-I 인프라(Appendix B-15) 소관으로 두되, 위 특성을 §2.1.1에 명시적으로 감안 note로 남겼습니다.
+
+- 조치: §2.1.1에 'Aurora Global DB write-forwarding 특성(gw/1.2 감안)' note 추가 — ①전역 일관=읽기 핫패스·쓰기 드묾→latency 수용 ②PHI·운영=리전 로컬(주권)→forwarding 무관 ③code-first(Prisma)라 stored proc 미사용; 구체 설계=③-I(Appendix B #15)
+- 상태: 반영완료(로컬·미push)
 
 ---
 
@@ -604,6 +638,6 @@
 - C-29 · docs/specs/SRS.md:28 · `답변(팀 확인 병행)`
 - C-30 · docs/specs/SRS.md:515 · `대기` ★
 - C-31 · docs/specs/SRS.md:550 · `답변`
-- C-32 · (파일 미지정·일반) · `대기` ★
+- C-32 · (파일 미지정·일반) · `답변(정보성·QA 소관)`
 - C-33 · docs/specs/SRS.md:323 · `대기` ★
 
