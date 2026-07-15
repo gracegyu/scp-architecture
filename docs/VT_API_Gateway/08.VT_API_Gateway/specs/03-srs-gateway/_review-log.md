@@ -604,6 +604,77 @@ GW는 데이터를 두 부류로 나눕니다(§2.1.1·§6.4):
 - 조치: §2.1.1에 'Aurora Global DB write-forwarding 특성(gw/1.2 감안)' note 추가 — ①전역 일관=읽기 핫패스·쓰기 드묾→latency 수용 ②PHI·운영=리전 로컬(주권)→forwarding 무관 ③code-first(Prisma)라 stored proc 미사용; 구체 설계=③-I(Appendix B #15)
 - 상태: 반영완료(로컬·미push)
 
+
+## C-34 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2543 · [thread 79681] ★리뷰어 대기(자동리뷰)
+- **[민진우(Thomas) · 2026-07-15T01:17 · cid 79681.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > `Clinic` 스키마가 SRS가 규정한 Region Resolver 출력 계약과 어긋난다. SRS §7.3.1은 `GET /v1/clinics/me`의 출력을 **"(`Clinic`, OpenAPI)"** 로 명시하며 `regionDisplayName`·`endpoint`·`status`(active/draining/planned)·`cacheTtlSeconds`·`hosts`(apex·webhookHostPattern)·`sovereigntyPolicy`(dataResidencyRegion·phiEgressAllowed·crossBorder·storage…)를 반환한다고 규정하고, §2.3.3의 시퀀스 주석("region(ID·표시명·endpoint·status) + clinicId·mappingVersion·cacheTtl + 주권 정책")도 동일하다. 그러나 이 `Clinic` 스키마(= `GET /v1/clinics/me`·`GET /v1/admin/clinics/{clinicId}` 공통 응답)에는 `clinicId·region·name·countryCode·address·phone·website·mappingVersion·createdAt·updatedAt`만 있고 위 resolver 전용 필드가 하나도 없다. `endpoint`·`displayName`·`status`는 별도 `Region` 스키마에만 존재하고, `cacheTtlSeconds`·`sovereigntyPolicy`·`hosts`는 어느 스키마에도 정의돼 있지 않다. 즉 SRS가 `Clinic`로 서빙하겠다고 한 데이터 주권·캐시 TTL·엔드포인트 정보를 현재 OpenAPI 계약으로는 전달할 수 없다 — resolver 응답 필드를 `Clinic`에 보강하거나 별도 resolver 응답 스키마를 신설하고 §7.3.1의 "(`Clinic`, OpenAPI)" 참조를 그쪽으로 정정해야 한다.
+
+- 다음 답변(초안):
+
+정확한 지적 감사합니다. SRS↔OpenAPI 계약 드리프트가 맞아, resolver 출력 전용 스키마를 신설해 정정했습니다.
+
+**수정 내용**
+- **`ClinicResolution` 스키마 신설** — `Clinic`(레코드)을 `allOf`로 합성한 뒤 resolver 출력 필드를 추가: `regionDisplayName`·`endpoint`·`status`(active/draining/planned)·`cacheTtlSeconds`·`hosts`(`apex`·`webhookHostPattern`)·`sovereigntyPolicy`(`dataResidencyRegion`·`phiEgressAllowed`·`crossBorder`·`storage{hostedBy·kind·regionBound}`).
+- **`GET /v1/clinics/me`** 응답을 `Clinic` → `ClinicResolution`으로 교체(device-self = Region Resolver 출력, §7.3.1).
+- **`Clinic`** 은 순수 레코드로 정리 — `GET /v1/admin/clinics/{clinicId}`(운영자 레코드 조회)·`ClinicResolution`의 베이스로만.
+- **SRS §7.3.1**의 `(Clinic, OpenAPI)` 참조를 `(ClinicResolution, OpenAPI)`로 정정.
+
+**결과**: 요구사항↔인터페이스 추적성이 맞춰졌고(레코드 vs 런타임 해석 분리), redocly lint valid(기존 5 warnings 동일)입니다. `endpoint` 예시는 §4.5.1 규약(`gw-<region>.vatech.com`)으로 맞췄습니다(관련: C-37).
+
+- 조치: ClinicResolution 스키마 신설(allOf Clinic+resolver 필드)·GET /v1/clinics/me 응답 교체·Clinic 설명 정리·SRS §7.3.1 참조 (Clinic)→(ClinicResolution) 정정. redocly valid(5 warn)·fence 52
+- 상태: 반영완료(로컬·미push)
+
+## C-35 · docs/specs/SRS.md:2322 · [thread 79682] ★리뷰어 대기(자동리뷰)
+- **[민진우(Thomas) · 2026-07-15T01:17 · cid 79682.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > Appendix B #42가 enroll B안(LMP 자동승인)의 예약 필드를 **"`EnrollStartRequest.licenseAttestation` optional 필드 예약 완료(OpenAPI·v1.0 미사용)"** 로 기재하나, 실제 OpenAPI는 이 필드를 `EnrollCompleteRequest`에 두었다(`EnrollCompleteRequest.licenseAttestation`, nullable·예약). `EnrollStartRequest` 스키마에는 `bootstrap`·`serial`만 있고 `licenseAttestation`이 없다. §2.3.1의 B안 시퀀스도 `POST /v1/enroll/complete (nonceSignature, clientPublicKey, licenseAttestation)`로 **complete 단계**에서 attestation을 제출하도록 그려져 있어(nonce 서명·공개키와 함께 검증) OpenAPI 배치가 옳고, Appendix B #42의 `EnrollStartRequest.licenseAttestation` 표기가 오기다. baseline 추적표는 개발자가 예약 필드를 찾는 근거이므로 `EnrollCompleteRequest.licenseAttestation`으로 정정해야 한다.
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 상태: 대기
+
+## C-36 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2336 · [thread 79683] ★리뷰어 대기(자동리뷰)
+- **[민진우(Thomas) · 2026-07-15T01:18 · cid 79683.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > `WebhookEnvelope.eventType`를 `required`(line 2328)로 두고 **"이벤트 유형(분배 라우팅 키)"** 로 설명한 것이 GW의 분배 설계와 모순된다. SRS §7.6.1은 "**목적지 라우팅은 `event_type`이 아니라 `org_mapping`** 이 결정한다"고 못 박고, `event_type_path` 미추출 시 event_type은 `null`(관측·필터용 부가정보)이라고 규정한다(§4.1.3도 "목적지 결정 = 매핑이다"). 실제 같은 파일의 `WebhookEvent.eventType`도 `nullable: true`다. 이 envelope가 "확정 계약 아님·논리 예시"임을 감안해도, eventType을 "분배 라우팅 키"로 규정하고 필수 필드로 만든 것은 (a) 실 라우팅 키(`org_mapping`→org id)와 모순되고 (b) event_type이 null일 수 있다는 §7.6.1 규정과도 어긋나 구현자를 event_type 기반 분배로 오도할 수 있다. 설명을 "관측·필터용 이벤트 유형(라우팅 키 아님·null 가능)"으로 고치고 required에서 빼는 것이 맞다.
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 상태: 대기
+
+## C-37 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2612 · [thread 79684] ★리뷰어 대기(자동리뷰)
+- **[민진우(Thomas) · 2026-07-15T01:18 · cid 79684.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > `Region.endpoint` 예시 `https://apne2.internal.gw.vatech.com`가 SRS §4.5.1이 정의한 리전 내부 호스트 네이밍 규약과 다른 스킴을 쓴다. §4.5.1은 리전별 내부 엔드포인트를 `gw-<region>.vatech.com`(예: `gw-apne2.vatech.com`)으로 예약한다고 명시(line 1365·1384)하는데, OpenAPI는 `{region}.internal.gw.vatech.com` 형태를 예시로 든다. 둘 다 내부·인프라 소유 예시이나 같은 대상(리전 내부 엔드포인트)에 서로 다른 네이밍 규약이 공존해 혼동을 준다 — §4.5.1 규약(`gw-<region>.vatech.com`)에 맞춰 예시를 통일하는 것이 좋다. (경미)
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 상태: 대기
+
+## C-38 · (파일 미지정·일반) · [thread 79685] ★리뷰어 대기(자동리뷰)
+- **[민진우(Thomas) · 2026-07-15T01:18 · cid 79685.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > ## Code Review (Other) — Update 2
+  >
+  > 이 증분 diff는 (1) 이전 리뷰가 SRS.md에 지적한 6건의 dangling cross-reference를 수정하고, (2) placeholder였던 **OpenAPI(약 2,638줄)** 와 **Redis 키스페이스 카탈로그(신규)** 를 정본 초안으로 채워 넣은 대규모 커밋이다. 이번 리뷰는 이전에 지적되지 않은 신규 결함만 보고했다.
+  >
+  > **[Previous Review] findings 처리 결과 — 6건 전부 해소.** ① §5.5의 presigned TTL 참조는 `§7.4.2`→`§7.4`로(line 1440 인근), ② §6.1 PHI 비저장 규칙은 `§7.4.2`→`§6.4·§7.4`로, ③ §6.2 Integrity 행은 `§7.4.5/§7.4.4`→`§7.4·§7.6.4·§7.6.2`(실재 절)로, ④ §7.9.1 관리 API 열거에 횡단 `GET /v1/admin/clients`가 추가되어(드릴다운과 병기), ⑤ §4.4 캐시 항목이 `Redis|구현 시 확정`→`Valkey(ElastiCache for Valkey)|확정`으로, ⑥ Appendix B #20이 `§2.1.2 초안 폐기`→`구 §2.1.2 초안(현재 삭제)`으로 각각 정정되어 §7.4 위임 원칙과 정합해졌다. 또한 이전 리뷰가 "미해소"로 남겨 둔 항목 중 **ADR-13 행의 옛 컬럼명 `device.fingerprint`도 `device.client_public_key`로 교정**되었고(현 본문에 `device.fingerprint`·`§7.4·§7.4` 중복 문자열 모두 부재), 이전에 거론된 **OpenAPI Target timeout 예시**도 현재 `Target` 스키마 예시(connect 3000 / response 10000 / total 14000 — connect+response ≤ total, 그리고 §7.5.4의 클라이언트 30s 대비 ≤24s 불변식 충족)로 내부 일관성을 갖췄다.
+  >
+  > **신규 결함의 공통 뿌리 — SRS ↔ OpenAPI 계약 드리프트.** 이전 리뷰는 SRS 내부 절 번호 정합에 집중했고, 이번에 새로 편입된 OpenAPI가 SRS 본문의 규정과 어긋나는 지점이 신규 결함의 축이다. 가장 중요한 것은 **§7.3.1 Region Resolver 출력 계약**으로, SRS는 `GET /v1/clinics/me`가 `Clinic` 스키마로 리전 표시명·endpoint·상태·cacheTtl·주권 정책·hosts까지 반환한다고 규정하지만 OpenAPI `Clinic` 스키마는 순수 clinic 레코드(이름·주소·연락처 + region + mappingVersion)일 뿐이라 그 데이터를 서빙할 수 없다 — 통제 문서(IEC 62304)의 요구사항↔인터페이스 추적성 관점에서 우선 정정 대상이다. 그 밖에 baseline 추적표(Appendix B #42)의 예약 필드 경로 오기(`EnrollStartRequest`→실제 `EnrollCompleteRequest`), Webhook 수신 envelope의 eventType을 "분배 라우팅 키"로 규정한 설계 모순, 리전 내부 호스트 예시 네이밍 불일치를 라인 코멘트로 지적했다. 모두 문서·계약 정합 수준의 문제이며 아키텍처·데이터 모델 자체를 바꾸는 결함은 발견되지 않았다.
+  >
+  > **참고(지적 제외).** OpenAPI의 `ProxyError`·`Target*` 응답·`Vatech-*` 헤더가 정의만 되고 미참조인 점은 프록시 경로가 bypass라 OpenAPI에 정의되지 않기 때문이며 파일 주석이 "redocly no-unused-components 경고는 의도된 것"이라고 명시하므로(리뷰 지침상 주석이 해당 이슈를 명시적으로 인지한 경우 제외) 지적에서 뺐다. Redis 키스페이스 카탈로그는 SRS §3.1.2·§6.4·§2.1.1·§7.x의 캐시/휘발 상태 모델과 대체로 정합하며(폐기 denylist·jti 소비·webhook dedup·compat는 AppConfig 위임 등), 재구성 출처(SSOT) 표기도 일관되어 신규 결함으로 볼 만한 항목은 발견하지 못했다.
+  >
+  > 4 line-specific finding(s) were posted as inline comments.
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 상태: 대기
 ---
 
 ## 인덱스 (위치·상태)
@@ -640,4 +711,8 @@ GW는 데이터를 두 부류로 나눕니다(§2.1.1·§6.4):
 - C-31 · docs/specs/SRS.md:550 · `답변`
 - C-32 · (파일 미지정·일반) · `답변(정보성·QA 소관)`
 - C-33 · docs/specs/SRS.md:323 · `대기` ★
-
+- C-34 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2543 · `반영완료(로컬·미push)`
+- C-35 · docs/specs/SRS.md:2322 · `대기` ★
+- C-36 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2336 · `대기` ★
+- C-37 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2612 · `대기` ★
+- C-38 · (파일 미지정·일반) · `대기` ★
