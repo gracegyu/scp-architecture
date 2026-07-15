@@ -585,6 +585,23 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 
 > **우리 모듈 대응(최종):** 폰트 소유는 호스트 몫(§9.10)이라 Section·데모는 **CleverSpace 호스트 스택에 정렬**(데모는 Noto Sans를 Google Fonts로 로드해 실제 배포 룩 미리보기). 접목 시 우리는 폰트를 강제하지 않고 호스트를 상속한다. **단 CW-1(CW의 Roboto 강제)이 남으면 CW가 우리 텍스트까지 덮어쓰므로, CW-1 수정이 폰트 일관성의 전제**다. → §3.4.1a. 주간회의 공유(Agenda).
 
+**CW-2: 국제화(i18n) 현황 불일치.** CW·CleverSpace 모두 **Lingui** i18n을 쓰나 **CW의 한국어 카탈로그가 비어** 한국어 사용자에게 영어로 표시된다. 우리 Section 모듈은 i18n 프레임워크가 없고 한/영 문자열이 혼재한다. 셋의 국제화 구조·언어를 일치시켜야 접목 시 언어가 일관된다.
+
+**현재 국제화 현황 비교:**
+| 대상 | i18n 프레임워크 | 지원 locale | 한국어 상태 |
+|------|----------------|-------------|-------------|
+| **CleverSpace**(ezcloud 호스트) | Lingui(`@lingui/*` 4.7) | `en_US, ko_KR` | ✅ 번역됨(한국어 정상) |
+| **CW**(cloudwebviewer) | Lingui(`i18n.load/activate`·`t\`\`` 238곳) | `en_US, es_MX, fr_FR, ko_KR, pt_BR` | ❌ **`ko_KR_core.po` 163개 전부 빈 translation** → 한국어에서 영어 폴백(es/fr/pt는 번역됨) |
+| **우리 Section 모듈** | **없음** | — | ❌ i18n 미적용, 한/영 하드코딩 혼재 |
+
+**문제점:** ① 우리 모듈은 i18n 미적용·한영 혼재(가장 불일치). ② CW는 인프라는 있으나 **한국어 번역 누락**(CleverSpace는 한국어 되는데 CW 영역만 영어로 튐 — 폰트 CW-1과 같은 종류의 불일치). ③ **지원 언어 목록 불일치**: **언어 선택(변경) UI는 CleverSpace(호스트)가 소유**하고 CleverSpace는 `en_US·ko_KR`만 제공하는데, **CW는 en/es/fr/ko/pt로 더 많다** → CW가 번역한 **es/fr/pt는 CleverSpace에서 선택조차 불가한 "죽은 번역"**이고, 정작 선택 가능한 **한국어는 CW가 비어 있다.** (근거: CW `packages/core/i18n/*.po`(5개 locale, ko 비어있음)·`src/App.tsx`(`i18n.load/activate`, locale=`useBoundStore i18nStore`) · ezcloud `i18n/ko_KR_EzCloud.po`·`lingui.config.ts` `locales:['en_US','ko_KR']`.)
+
+**방침(추천, §12-D23 — 회의/기획 결정 대기):** **지원 언어를 셋 모두 한/영(`en_US`·`ko_KR`)으로 통일**하고, **CleverSpace 연동으로 CW·Section 모두 국제화 적용**. 근거: 언어 선택이 **CleverSpace(en/ko)에 종속**되므로 지원 언어는 CleverSpace 기준으로 맞추는 게 맞다(그 이상은 선택 불가·무의미). 구체:
+> ① **Section 모듈** = CW와 동일 **Lingui 구조 채택**(문자열 `t\`\`` 매크로화, `@lingui/react` federation shared §9.3), **en/ko 카탈로그** 제공. 선행으로 UI 문자열 한국어 통일(한영 혼재 제거).
+> ② **CW**(권고) = **비어 있는 ko_KR 채우고**, 선택 불가한 **es/fr/pt는 정리**(유지 부담만·CleverSpace 미선택). → CleverSpace와 언어 목록 일치.
+>
+> **결정 필요(회의·기획 Scott):** (a) 지원 언어 = 한/영 통일(추천) 여부, (b) CW의 언어 목록 정리·ko 채우기(CW 팀). 언어/시장 정책이라 **기획(Scott) 판단**. 프레임워크 정합(Lingui)은 기술적 당연.
+
 ## 10. 공개 API · 인계물
 
 - 현재 표면: `@ewoosoft/scp-section-components` `SectionViewer({volume})`·`ScoutView`·`PanoramaView`·`SectionGrid`·`CTLoader`. `@ewoosoft/scp-section-core` `curve`·`panorama`·`section`·`webgl`·`dicom`.
@@ -622,6 +639,7 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 | D12 | 슬랩 투영 방식 (max vs mean) | **확정(기획 2026-07-14)** — Thickness>0 slab 투영 **기본 = 평균(mean)**. **MIP(최댓값)는 Image Adjust 다이얼로그의 필터 토글**로만 선택(§3.6). (임상적으론 다소 이상하나 요구사항.) 엔진은 둘 다 지원, 기본 preset=`mean` | 기획 확인 반영 완료 |
 | D13 | MMI 미명시 파라미터 범위 | **확정(개발실, 2026-07-14)** — MMI가 기본값만 준 값의 범위를 개발실이 정함: Section 가로폭 기본 30mm·**범위 20~80mm**, Section 세로폭 기본 60mm(§3.4). MMI/기획 갱신 시 갱신 | 개발실 정의 |
 | D14 | BL/LB 기준점(삼각형) 이동 기능 용도 | **미확정 — 기획 확인 대기.** D10으로 "기준점 위치 기반 B/L 반전"이 폐기되어 삼각형을 드래그해도 **기능적 효과가 없다**(순수 표식만 이동). MMI 1.6-8/1.7-7의 "기준점 이동"도 원래 *개발실 리뷰 후 적용 여부 확정(TBD)*. **선택지**: (a) 드래그 제거·시작점 **정적 표식**(D10과 가장 일관, 개발실 권장), (b) 이동에 별도 용도 부여, (c) 현행 유지(이동하나 무효과). 기획 회신 필요 | **기획 확인 대기** |
+| D23 | **국제화(i18n) 정책·구조·지원 언어** | **추천안·회의/기획 결정 대기(2026-07-15)** — CleverSpace·CW 모두 Lingui이나 **지원 언어 목록이 다르고**(CleverSpace en/ko vs CW en/es/fr/ko/pt) **언어 선택은 CleverSpace가 소유**해 CW의 es/fr/pt는 선택 불가·죽은 번역, 정작 한국어는 CW 비어있음(§9.11-CW-2). **추천: 지원 언어를 셋 모두 한/영(en_US·ko_KR)으로 통일 + CleverSpace 연동 국제화**. Section=CW와 동일 Lingui 구조(문자열 `t\`\`` 매크로·en/ko 카탈로그, 선행 한국어 통일, IP T-P4-7). CW=ko 채우고 es/fr/pt 정리 권고. **결정 요청(기획 Scott):** 한/영 통일 여부·CW 언어목록 정리 — 언어/시장 정책이라 기획 판단. | 회의/기획 결정 |
 | D22 | **Single/Dual Layout · View Original 지원 범위** | **확정(2026-07-15) — CW 컨테이너/셸 레벨, Section 모듈 standalone 미구현·접목 시 CW 담당.** MMI 1.13-4가 Section 공통툴로 나열("MPR 동일")하나: **View Original**=압축본→원본 CT 재로드(CW CT 파이프라인, §9.4·D20 연장), **Single/Dual Layout**=CW 워크스페이스 1/2 슬롯+외부 CT 썸네일 패널 연동(다중 CT). 둘 다 **외부 패널·CT 파이프라인 전제**라 standalone 불가·실익 없음. Section 모듈 역할 최소(View Original=재공급 volume 재렌더 / Layout=슬롯 채움·리사이즈 대응, 이미 ResizeObserver 보유). 데모 툴바는 시각 정합 stub. → §11. | 통합 시 구현(CW) |
 | D21 | **계측/주석 적용 뷰 범위** | **확정(Jessi, 2026-07-15) — Length·Angle·Free Draw·Arrow 4개 공통툴 모두 Scout·Panorama·Section 3뷰에서 동작.** 각 뷰는 자기 영역/슬라이스 스코프로 제한(Scout=Scout 영역 내·Panorama=Panorama 영역 내·Section=해당 slice 내, 경계 넘나들 불가). Arrow·FreeDraw는 MMI 1.12에 3뷰 명시돼 있었고, Length·Angle은 미명시라 확인 → 동일 적용 확정(§3.4.2). 구현: `SectionMeasureOverlay`를 Scout/Panorama 단일 영역 오버레이로 재사용. | 확정 |
 | D20 | **Section 생성 기본 연산 경로 + GPU 리슬라이스 범위** | **확정(2026-07-15) — 기본 `wasm-resident`(JS 자동 폴백), 실제 GPU 리슬라이스는 숙제로 이연.** T-P6-1 측정: 두꺼운 슬랩(Th30mm) worst-case JS mean 1484·max 1787ms vs WASM-resident mean 1225·max 1336ms → **WASM이 mean −17%·max −25%·저분산**, 출력은 JS와 동일. 제품엔 연산 선택 UI가 없으므로 **기본값을 `wasm-resident`로 고정**(`useScoutAxialUi`), **WASM init/실행 실패 시 JS로 자동 폴백**(`SectionViewer`, 빈 화면 방지). 둘 다 30FPS(33ms) 미달이나 **근본해결(WebGL2 GPU 리슬라이스)은 공수 큼 → 빠른 출시 우선으로 이번 범위 밖(§11)**, 완충책(캐시·디바운스·표시분리)으로 체감 유지. **메모리:** resident는 볼륨을 WASM 힙에 상주(100~250MB, 예산 내). | 확정 |
@@ -656,6 +674,7 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.38 | 2026-07-15 | **국제화(i18n) 현황 정리 + 방침(§9.11-CW-2·§12-D23)**: CleverSpace·CW 모두 Lingui이나 **CW 한국어 카탈로그 비어 영어 폴백**·**지원 언어 목록 불일치**(CleverSpace en/ko vs CW en/es/fr/ko/pt, 언어 선택은 CleverSpace 소유→CW es/fr/pt는 죽은 번역)·우리 모듈 미적용(한영 혼재). 현황 비교 표 §9.11. **추천안: 지원 언어 한/영(en/ko) 통일 + CleverSpace 연동 국제화**(Section=CW 동일 Lingui·한국어 통일, CW=ko 채우고 es/fr/pt 정리, IP T-P4-7). 지원 언어·정리는 **기획(Scott) 결정**. Agenda 공유. |
 | 1.37 | 2026-07-15 | **폰트 정본 = CleverSpace 호스트(Noto Sans)로 정정 + CW 폰트 버그(§9.11-CW-1) 발견·정리**: ezcloud(=CleverSpace) 확인 결과 호스트는 `'Noto Sans','Noto Sans KR','Segoe UI',sans-serif`(Noto Sans Google Fonts 로드). CW는 `'Segoe UI','Roboto' !important`로 **호스트 폰트를 덮어쓰고 자기 폰트는 미로드** → 환경별 제각각(맥=Helvetica)·호스트 UI와 불일치 = **CW 버그**. 우리 모듈·데모를 **호스트 Noto Sans 스택에 정렬**(합집합 아님), 데모는 Noto Sans 로드. §9.11 신설(현황 비교 표·수정 주체 표), §3.4.1a 정정, 주간회의 Agenda S6/R4 공유. |
 | 1.36 | 2026-07-15 | **폰트 = CW 동일 스택·embed 안 함(접목 시 렌더 검증)**: 전역 폰트를 CW 스택 `'Segoe UI','Roboto',sans-serif`로 선언(`body` 상속 + 컴포넌트 인라인, monospace 숫자 유지). **웹폰트 embed는 안 함**(폰트 소유는 CW/CleverSpace 전역 styleguide 몫). 실제 렌더는 환경 의존(Windows=Segoe UI, Roboto 설치 환경=Roboto, 그 외 폴백)이라 **접목 시 배포 환경에서 의도 폰트로 일관 렌더되는지 검증** 필요. `@fontsource/roboto` 시도했다 제거. Chrome Roboto는 Android/ChromeOS만 웹 노출(맥/윈도우 미노출) 분석 포함. §3.4.1a. |
 | 1.35 | 2026-07-15 | **접목 시 중복 제거 가이드 신설(§9.10)**: standalone용 CW 복사/미러(커서·Grid·색 토큰·Title bar·다이얼로그·데모 툴바/store 미러/아이콘)를 접목 시 어떻게 정리할지 표로 명시 — 데모 셸(`apps/section-demo/cw/`)은 이동 안 해 중복 아님, 모듈(`packages/`) 복사본은 **CW 정본 import로 교체·복사본 삭제**(단일 정본). 각 복사 파일 상단에 CW 정본 경로 주석 유지. §9.9 요약에 링크. |

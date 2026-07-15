@@ -95,6 +95,8 @@
   - **R1. CW 폰트 override 수정 (누가/어떻게)** — CW `index.css`의 `* {font-family:'Segoe UI','Roboto' !important}`가 **호스트(CleverSpace) Noto Sans를 덮어쓰고 CW는 그 폰트를 로드하지 않아**, 접목 시 Section/CW 텍스트가 나머지 CleverSpace UI와 다르고 **환경(OS)별로 제각각**이 됨(§S3·OnePager §9.11). **결정 요청:** ① CW가 override 제거→호스트 폰트 상속(권장·주 원인 해소), ② styleguide(VT UI/UX)가 org 전역 단일 폰트 확정. (최소한 미제공 폰트를 `!important`로 강제 금지.)
     - **성격:** [논의] · 수정 주체 = **CW 팀**(override 제거) + **styleguide**(단일 폰트). CleverSpace·우리 모듈은 정상.
     - **전제:** CW-1 미수정 시 CW가 우리 텍스트까지 덮어써 폰트 일관성 불가.
+  - **R2. 국제화(i18n) 정책 — 지원 언어·한국어 지원** — 언어 선택은 **CleverSpace(en/ko)가 소유**하는데 CW는 en/es/fr/ko/pt로 목록이 달라 **CW의 es/fr/pt는 선택 불가·죽은 번역**, 한국어는 CW 비어있음. 우리 모듈은 i18n 미적용(§S7·OnePager §D23). **결정 요청:** ① **지원 언어를 셋 모두 한/영(en/ko)으로 통일 + CleverSpace 연동 국제화** — 추천(Section=Lingui·한국어 통일, CW=ko 채우고 es/fr/pt 정리), vs ② 현행 유지. **언어/시장 정책이라 기획(Scott) 판단.** (프레임워크 정합=Lingui는 기술적 당연.) 결정 후 IP 국제화 Task 착수.
+    - **성격:** [논의] · 결정: **기획(Scott)**. CW 한국어 카탈로그 누락·언어목록 정리도 함께 권고(CW 팀).
 
 - 공유 사항
   - **S1. 현재 단계** — `PoC 완료 → Spec·VKS 리뷰(공유됨) → 구현 진행 중(~70%) [지금] → 잔여 구현·인계 → CW embed·접목`.
@@ -131,15 +133,26 @@
     ```
 
   - **S6. Known gaps** — Pan/Zoom/Reset/Pointer 미구현(커서 준비) · Arrow 툴 CW `InteractionType` 미포함(접목 시 core 반영) · Scout=MPR Th/INT·Image Adjust 동기 접목 시 배선(§D18) · 계측 삭제 UI·크로스뷰 트래킹(§11) · GPU 리슬라이스(숙제).
+  - **S7. 국제화(i18n) 현황 불일치 발견** — CleverSpace·CW 모두 **Lingui**이나 **CW 한국어 카탈로그가 비어** 한국어에서 영어로 폴백, 우리 모듈은 i18n 미적용·한영 혼재. 결정은 **R2**. 상세: [OnePager §9.11-CW-2·§D23](https://vks.vatech.com/x/UecSEw).
+
+    | 대상 | i18n | 지원 locale | 한국어 |
+    | --- | --- | --- | --- |
+    | **CleverSpace**(호스트) | Lingui | en_US, ko_KR | ✅ 번역됨 |
+    | **CW** | Lingui | en_US, es_MX, fr_FR, ko_KR, pt_BR | ❌ **ko_KR 카탈로그 비어 영어 폴백**(es/fr/pt는 번역) |
+    | **우리 Section 모듈** | ❌ 없음 | — | ❌ 미적용·한영 혼재 |
+
+    - **문제점:** ①우리 모듈 i18n 미적용·한영 혼재 ②CW **한국어 번역 누락**(CleverSpace는 한국어 되는데 CW만 영어) ③**지원 언어 목록 불일치** — **언어 선택은 CleverSpace(en/ko)가 소유**하니 CW의 es/fr/pt는 **선택조차 못 하는 죽은 번역**이고 정작 한국어는 CW 비어있음.
+    - **추천안:** **지원 언어를 셋 모두 한/영(en/ko)으로 통일 + CleverSpace 연동 국제화** — Section=CW 동일 Lingui 구조·한국어 통일(IP Task), CW=ko 채우고 es/fr/pt 정리 권고. (선택 불가한 언어는 무의미하니 CleverSpace 기준으로 맞춤.)
 
 - 이월 논의 사항 (7/16 기준 · 재정리)
 
   | #   | 항목                            | 타입   | 상태                                         |
   | --- | ------------------------------- | ------ | -------------------------------------------- |
   | 1   | CW 폰트 override 수정(CW-1)      | [논의] | **활성** — CW 팀 수정·styleguide 단일화 (→ R1·§9.11) |
-  | 2   | Save Project — CW prj 필드      | [정보] | 방향 확정. CW 소스 분석해 진행, 정확 필드는 접목 시 CW팀 확인(§D5) |
-  | 3   | Overlay Normal 허용 오차(°)     | [정보] | **구현됨**(기본 5° 상수) — 실사용 튜닝만 |
-  | 4   | 문서(OnePager·개발계획) 커밋    | [정보] | 구현 진행 중 — 적절 시점 커밋                 |
+  | 2   | 국제화(i18n) 정책·지원 언어      | [논의] | **활성** — 추천: 한/영(en/ko) 통일·CleverSpace 연동. CW es/fr/pt 죽은 번역·ko 누락. 기획(Scott) 결정 (→ R2·§D23) |
+  | 3   | Save Project — CW prj 필드      | [정보] | 방향 확정. CW 소스 분석해 진행, 정확 필드는 접목 시 CW팀 확인(§D5) |
+  | 4   | Overlay Normal 허용 오차(°)     | [정보] | **구현됨**(기본 5° 상수) — 실사용 튜닝만 |
+  | 5   | 문서(OnePager·개발계획) 커밋    | [정보] | 구현 진행 중 — 적절 시점 커밋                 |
   - **확정·정리됨:** B/L 자동판정(§5) · 접목=소스병합(§D4) · R/L 방향(§D19) · WASM 기본·GPU 숙제(§D20) · 계측 3뷰(§D21) · Single/Dual·View Original 범위(§D22) · **Slice 스크롤 NFR 측정 완료(§8, JS 1484/WASM 1225ms)** · Show/Hide Grid 구현.
   - **해소(이전 이월):** Section Slice 스크롤 NFR(측정 완료) · Spec 리뷰·착수 gate·구현 착수(진행 중이라 논의 불요).
 
