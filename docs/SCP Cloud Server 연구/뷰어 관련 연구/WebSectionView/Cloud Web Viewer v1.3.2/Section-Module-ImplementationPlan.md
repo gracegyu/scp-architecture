@@ -421,7 +421,7 @@
 
 #### T-P4-4 — Overlay 표시 규칙(3D 좌표)
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [~] **핵심 완료·MT 확인 대기(2026-07-15)** — core `overlay/overlayPlane.ts`: `OverlayPlane`(point·normal 3D mm)·`planeSignedDistanceMm`·`planeNormalAngleDeg`·`isOverlayVisibleOnPlane`(거리≤±Interval/2 **AND** normal≤허용오차)·`isOverlayVisibleOnArc`(동일 Curve slice 1D 특수화). **D3 = `OVERLAY_NORMAL_TOLERANCE_DEG`(5°) 상수 분리**. **UT-OVL-001**(거리)·**UT-OVL-002**(normal 각 임계·커스텀)·**UT-OVL-003**(interval 변경 재판정·원위치 복귀) `overlayPlane.test.ts` 12케이스 통과. **UI 통합(호장 앵커)**: 계측을 생성 호장(mm)에 귀속(`SectionMeasureOverlay` `arcMm=(windowStart+tile)*interval`), slice 스크롤/interval 변경 시 `round(arc/interval)` 타일로 재표시·윈도우 밖이면 숨김 → "스크롤 앵커" 한계 해소·1.13-6-4 구현. **잔여**: MT-OVL-004(dev 스크롤 재표시 시각 확인) + Curve 변경 시 normal 기반 미표시는 core 함수는 준비됐으나 UI가 curve tangent 미수신이라 미배선(Scout/Pano 확장 배치와 함께 처리 예정, §후속).
 
 | 필드 | 값 |
 |------|------|
@@ -473,7 +473,7 @@
 
 #### T-P6-1 — Slice 스크롤 벤치마크→NFR
 
-- [ ] **완료** — DoD(§6) 항목 통과 시 체크
+- [x] **완료(2026-07-15)** — core `bench/sectionGenBench.ts`(`buildSectionGenSample`·`summarizeSectionGenSamples`·`FRAME_BUDGET_MS`=33.3) + `SectionViewer` 수집·dev 훅 `window.__sectionGenBench.summary()/reset()`. **UT-NFR-001** `sectionGenBench.test.ts` 6케이스 통과. **MT-NFR-002 측정 완료**(사용자 dev, Th 30mm worst-case): **JS mean 1484·max 1787ms / WASM-resident mean 1225·max 1336ms**, 둘 다 30FPS(33ms) 예산 40~54× 초과. WASM이 두꺼운 슬랩에서 JS 대비 −17%~25%·저분산. 결과·해석 `docs/benchmark-section-scroll.md`(poc), OnePager §8 반영. 결론: CPU 경로 두꺼운 슬랩 실시간 스크롤 불가 → 완충책+WebGL2 GPU 경로(§12-D7). (얇은 단면 스크롤 보강 측정은 후속.)
 
 | 필드 | 값 |
 |------|------|

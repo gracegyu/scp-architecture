@@ -367,8 +367,8 @@ MMI 본문과 PPT comment(기획 Jessi, 7/7~8) 상충 시 **comment(최신) 우�
 
 | 항목 | 기준 |
 |------|------|
-| 9단면 생성 | 측정 JS 평균 **393ms**(362~427). 기본 JS(WASM 이점 제한적) |
-| Section Slice 스크롤 | 30 FPS(**33ms**) 미달 = 최대 리스크. **디바운스(≥48ms)·캐싱(생성 slice 재사용)·표시 분리(이전 이미지 유지)·Thickness 상한**. 구현 초기 worst-case 벤치마크 → NFR 목표 확정(§12-D7) |
+| 9단면 생성 | 얇은 단면 측정 JS 평균 **393ms**(362~427). **두꺼운 슬랩(Th 30mm) worst-case: JS mean 1484ms·max 1787ms / WASM-resident mean 1225ms·max 1336ms**(T-P6-1, 2026-07-15). WASM이 두꺼운 슬랩에선 JS 대비 mean −17%·max −25%·저분산(얇은 단면에선 이점 제한적) |
+| Section Slice 스크롤 | 30 FPS(**33ms**) 미달 = 최대 리스크. **측정(T-P6-1): CPU 경로 두꺼운 슬랩 재생성 1.2~1.8s로 예산의 ~40~54× 초과** → CPU만으로 두꺼운 슬랩 실시간 스크롤 불가. **완충책(디바운스 ≥48ms·캐싱[재방문 slice ~72ms]·표시 분리[이전 이미지 유지]·Thickness 상한 30mm)으로 체감 보전**, 실시간 리슬라이스는 **WebGL2 GPU 경로**(§8 채택안)·필요 시 프리페치. 얇은 단면(≤2mm) 스크롤 수치는 보강 측정 예정. 상세 `docs/benchmark-section-scroll.md`(poc) (§12-D7) |
 | Thickness 0mm | `slabHalfWidthMm=0` 경로 검증(현 기본 half 3mm=full 6mm). 상한 **30mm — combo·드래그 공통**(단일 `MAX_THICKNESS_MM`, §12-D8) |
 | 입력 | v1.3.2 **마우스 전용**(모바일/터치 스펙아웃) |
 | 브라우저·메모리 | Chrome 기준. CT 볼륨 100~250MB 수용. WebGL Context 3개 전략(CONTEXT_LOST 방지) |
@@ -525,6 +525,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 - **Web→Desktop / 양방향 prj** — Desktop→Web 단방향 우선(개발실 §4.1).
 - **CW vtk `Layout3DPAN` 파이프라인 사용·구현** — 본 모듈은 WebGL Section만 제공(§9.1, §12-D1).
 - **B/L 드로잉 중 극성 반전 로직** — 새 단일 규칙(§5)으로 불필요(폐기).
+- **실제 WebGL2 GPU 리슬라이스(볼륨 3D 텍스처 → 프래그먼트 셰이더 단면 샘플링)** — **이번 범위 밖, 숙제로 남김(빠른 출시 우선, D20)**. 현재 9단면은 **CPU(WASM-resident 기본/JS 폴백)로 생성 후 WebGL은 텍스처 표시만** 한다(§8이 서술한 "채택안"과의 간극). 두꺼운 슬랩 실시간 스크롤(≤33ms)의 근본 해결책이나 큰 공수 → **Phase 5/6 후속**(GPU reslice 셰이더 구현). 현행은 완충책(캐시·디바운스·표시분리)+WASM으로 체감 유지.
 
 ## 12. Decision Log / 미확정 (TBD)
 
@@ -544,6 +545,7 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 | D12 | 슬랩 투영 방식 (max vs mean) | **확정(기획 2026-07-14)** — Thickness>0 slab 투영 **기본 = 평균(mean)**. **MIP(최댓값)는 Image Adjust 다이얼로그의 필터 토글**로만 선택(§3.6). (임상적으론 다소 이상하나 요구사항.) 엔진은 둘 다 지원, 기본 preset=`mean` | 기획 확인 반영 완료 |
 | D13 | MMI 미명시 파라미터 범위 | **확정(개발실, 2026-07-14)** — MMI가 기본값만 준 값의 범위를 개발실이 정함: Section 가로폭 기본 30mm·**범위 20~80mm**, Section 세로폭 기본 60mm(§3.4). MMI/기획 갱신 시 갱신 | 개발실 정의 |
 | D14 | BL/LB 기준점(삼각형) 이동 기능 용도 | **미확정 — 기획 확인 대기.** D10으로 "기준점 위치 기반 B/L 반전"이 폐기되어 삼각형을 드래그해도 **기능적 효과가 없다**(순수 표식만 이동). MMI 1.6-8/1.7-7의 "기준점 이동"도 원래 *개발실 리뷰 후 적용 여부 확정(TBD)*. **선택지**: (a) 드래그 제거·시작점 **정적 표식**(D10과 가장 일관, 개발실 권장), (b) 이동에 별도 용도 부여, (c) 현행 유지(이동하나 무효과). 기획 회신 필요 | **기획 확인 대기** |
+| D20 | **Section 생성 기본 연산 경로 + GPU 리슬라이스 범위** | **확정(2026-07-15) — 기본 `wasm-resident`(JS 자동 폴백), 실제 GPU 리슬라이스는 숙제로 이연.** T-P6-1 측정: 두꺼운 슬랩(Th30mm) worst-case JS mean 1484·max 1787ms vs WASM-resident mean 1225·max 1336ms → **WASM이 mean −17%·max −25%·저분산**, 출력은 JS와 동일. 제품엔 연산 선택 UI가 없으므로 **기본값을 `wasm-resident`로 고정**(`useScoutAxialUi`), **WASM init/실행 실패 시 JS로 자동 폴백**(`SectionViewer`, 빈 화면 방지). 둘 다 30FPS(33ms) 미달이나 **근본해결(WebGL2 GPU 리슬라이스)은 공수 큼 → 빠른 출시 우선으로 이번 범위 밖(§11)**, 완충책(캐시·디바운스·표시분리)으로 체감 유지. **메모리:** resident는 볼륨을 WASM 힙에 상주(100~250MB, 예산 내). | 확정 |
 | D19 | **DICOM 방향 태그 처리 (R/L 방향 유도)** | **확정(2026-07-15) — 표준 axial 방향 가정, 방향 태그 미독해.** 화면 좌=R·우=L(방사선 관례). `CTVolumeLoader`는 `(0020,0037)`ImageOrientationPatient·`(0018,5100)`PatientPosition **미독해**. **CloudWebViewer도 동일**(코드 조사: IOP는 파싱하나 "do not consider image orientation" 주석으로 **무시**, direction 행렬 항등 하드코딩[`io/Dicoms/common/utils.ts:395`], PatientPosition 미독해, R/L 라벨 월드축 고정매핑[`common/utility/volumeUtility.ts`]). **근거:** Vatech dental CBCT는 표준 HFS·axial LPS 저장. **비표준 방향(뒤집힌 FFS·IOP 부호 반전) 데이터는 범위 밖** — CW/우리 모두 좌우 반대로 표시될 수 있으나 실제 유입 없음. CW팀 부재로 현행 유지. 향후 필요 시 direction cosine·PatientPosition 유도로 견고화(개선 여지, §3.4). | 확정(현행 유지) |
 | D18 | **MPR 서브모듈 연동 항목 (Scout Th/INT 동기 · Image Adjust 연동)** | **확정 — standalone 미구현, CW MPR 통합 시 배선(근거 §12-D1).** MMI 1.10-2③(Scout Th/INT ↔ **MPR 레이아웃** Axial 상호 동기)·1.11-b①②(Image Adjust default·조정값 ↔ MPR 레이아웃 연동)은 **Section 레이아웃 내부가 아니라 별도 MPR 서브모듈과의 크로스-모듈 동기**다. D1로 **MPR 미접목**이 확정돼 현재 연동 대상이 없음 → **v1.3.2 standalone에서는 미구현**. Scout `scoutThicknessMm`/`scoutIntervalMm`·Image Adjust W/L·필터는 **모듈 내에서 독립 동작**(기능 결함 아님). **CW 임베드(§9.2) 시 MPR store와 양방향 배선**하면 충족. → 미구현 표시: §1.10·§1.11·§3.5·§3.6. | 통합 시 구현 |
 | D17 | **Image Adjust 적용 범위 (전 뷰 공유 vs 뷰별)** | **확정(기획 회신 2026-07-14).** (Q1) **W/L·Filter = 전 뷰 공유(전역)**, **Thickness/Interval = 뷰별 독립** — 맞음. (Q2) **W/L은 Scout 포함 전역**(회신 "전역 동일·View 전환 시에도 동일 기준" → 모든 단면 view 포함). (Q3) **근거(기획):** *W/L은 판독자 개인의 시각적 기준·선호를 View 전환에도 유지해야 하므로 전역 동일; Thickness/Interval은 뷰의 진단 목적에 따라(예: Pano 두껍게·Cross-section 얇게 병행) 의도적으로 다르게 두고 비교 판독하므로 뷰별 독립.* **현재 구현(W/L·Filter 3뷰 공유·Th/INT 뷰별)과 일치.** | 기획 회신 반영 완료 |
@@ -575,6 +577,9 @@ CW는 Toolbar·뷰가 단일 zustand `useBoundStore`로 통신. Section도 MPR �
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.29 | 2026-07-15 | **Section 생성 기본 = WASM-resident + JS 폴백(D20)**: 기본 연산 경로를 `js`→`wasm-resident`로 변경(`useScoutAxialUi`), WASM init/실행 실패 시 JS 자동 폴백(`SectionViewer`, 빈 화면 방지). 근거=T-P6-1(WASM mean −17%·max −25%·저분산). **실제 WebGL2 GPU 리슬라이스는 이번 범위 밖·숙제**로 §11 명시(현행 WebGL=CPU 결과 텍스처 표시-only, §8 간극). 빠른 출시 우선. |
+| 1.28 | 2026-07-15 | **T-P4-4·T-P6-1**: ① **Overlay 3D 평면 귀속**(core `overlayPlane.ts`: 거리≤±Int/2 & normal≤5° `OVERLAY_NORMAL_TOLERANCE_DEG` D3 분리, UT-OVL-001/002/003 12케이스) + UI 호장 앵커 재표시(계측이 생성 slice에서만 보임·스크롤 앵커 해소). ② **Slice 스크롤 벤치마크**(core `sectionGenBench.ts`·dev 훅, UT-NFR-001): Th30mm worst-case **JS 1484/1787ms·WASM-resident 1225/1336ms**(30FPS 40~54× 초과)→§8 반영. 계측 도구(Length/Angle/FreeDraw/Arrow) 계속 Section 한정 상태(Scout/Pano 확장은 Jessi 답변 대기). |
+| 1.27 | 2026-07-15 | **T-P4-2/3 계측·주석**: Section 타일 Length(mm)·Angle(화면좌표°)·Free Draw(선)·Arrow(2클릭+화살촉). core `measure/measurement.ts`(정규화좌표·타일 clamp) + `SectionMeasureOverlay`(그리드 오버레이·타일 hit-test 스코프) + Toolbar 배선. UT-MEA-001/002·UT-ARR-001/002. |
 | 1.26 | 2026-07-15 | **T-P7-5/6 마감(오버레이 스타일 토큰화)**: Scout·Panorama 오버레이 색·굵기를 `components/src/overlayStyle.ts`(`SCOUT_OVERLAY_COLORS`·`PANORAMA_OVERLAY_COLORS`·`rgbaDim`)로 분리, 두 뷰가 참조(인라인 rgba 제거·출력 동일). 9 Active section line 호장 좌표를 공용 `nineSectionArcOffsetsMm`로 추출. UT-UI-041/051(`overlayStyle.test.ts` 6케이스) 통과. §3.4.1 색 소스 위치 갱신. |
 | 1.25 | 2026-07-15 | **접목 형태 = 소스 병합으로 D4 개정**: 패키지/Federation → **CW 모노레포 소스 병합 우선**(`section-core`=CW 내부 패키지·`section`=CW 트리 병합). §9.2 재작성, §9.9 1단계를 1a~1e 상세 절차(디렉터리 이동·스코프 개명·의존성 hoist·빌드/테스트 편입·데모 셸 분리)로 확장, §9.3 registry/Federation/스코프 행 갱신, 2단계·최소변경요약 정정, D4 개정. 패키지는 fallback으로 유지. |
 | 1.24 | 2026-07-15 | **저장소·데모 사이트 명시 + 접목 실행 절차(§9.9) 신설**: Resource에 「저장소·데모 사이트」 표 추가(repo `dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc`·데모 `scp-section-demo.test.scp.esclouddev.com`·CT S3·CI/CD, WebSectionView PoC OnePager 참조). §9에 **10단계 접목 how-to**(패키지 설치→환경 게이트→Content 등록→Store→Toolbar→CT 공급→Title bar/다이얼로그→Save/Load→MPR 연동→검증) + 최소 변경 요약 추가. |
