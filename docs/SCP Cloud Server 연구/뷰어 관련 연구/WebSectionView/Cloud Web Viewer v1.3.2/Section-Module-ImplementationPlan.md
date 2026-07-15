@@ -467,6 +467,22 @@
 | estimate | 5h |
 | risk | 뷰별 transform·오버레이(이미지/grid/ruler/계측) 동기, Zoom 우클릭 vs 컨텍스트 메뉴(Scout 커브) 충돌 정책, 감도 CW 정합 |
 
+#### T-P4-7 — 국제화(i18n) — CW Lingui 구조 정합
+
+- [ ] **미구현·회의/기획(Scott) 결정 대기(2026-07-15 신설)** — 현재 모듈은 i18n 미적용·한/영 문자열 혼재. CleverSpace·CW 모두 Lingui(§9.11-CW-2). **§D23 추천안 = CleverSpace 연동·한국어 지원**. **선행: 모듈 UI 문자열을 한국어로 통일**(현재 "Draw Curve"·"Curve 1" 등 영어와 "취소"·"Section 생성 중…" 등 한국어 혼재 → 한국어 기준으로 통일). 이후 **CW와 동일 Lingui 구조 채택**(문자열 `t\`\`` 매크로화, `@lingui/react` federation shared 재사용, 카탈로그 en_US/ko_KR). **회의 결정 후 착수**(한국어 지원 여부·대상 언어 = 기획 Scott 판단).
+
+| 필드 | 값 |
+|------|------|
+| id | T-P4-7 |
+| title | 국제화 — UI 문자열 한국어 통일 → CW Lingui 구조 채택(`t\`\`` 매크로·카탈로그), 한국어 지원(§D23) |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §9.11-CW-2·§12-D23, S-CW `packages/core/src/App.tsx`(i18n.load/activate)·`i18n/*.po`, ezcloud `lingui.config.ts` |
+| depends_on[] | (회의/기획 Scott 결정) |
+| outputs[] | `packages/components/src/*`(문자열 `t\`\``화)·`packages/core/src/*`·i18n 카탈로그(en_US/ko_KR) |
+| dod[] | MT-I18N-001 문자열 한국어 통일(혼재 제거) · MT-I18N-002 CW Lingui 구조로 locale 전환 시 언어 반영(en/ko) |
+| estimate | 3~4h (문자열 수에 따라) |
+| risk | 접목 시 CW `useBoundStore i18nStore` locale 구독 배선 · CW 한국어 카탈로그 누락(CW-2)과 동반 개선 필요 |
+
 ### P5 — Save Project
 
 #### T-P5-1 — 데이터 모델·CW prj 스키마 매핑
