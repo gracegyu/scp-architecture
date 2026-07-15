@@ -389,10 +389,15 @@ MMI 본문과 PPT comment(기획 Jessi, 7/7~8) 상충 시 **comment(최신) 우�
 
 기획 확정: MPR 동일, Desktop→Web 최초 업로드만, 이후 Clever One sync 없음. proj Curve 있으면 복원, 없으면 blank(Clever One에서 Section 미오픈 prj 포함).
 
+**소유·기여 구조(중요):** Save Project는 **우리 모듈 기능이 아니라 상위(CleverSpace 컨테이너 + api-server) 소유**다 — Save 버튼("Your changes have been saved" 다이얼로그)·저장 flow·**`.e3prj` XML 직렬화**·**S3 저장/로드**(api-server `*.e3prj`)는 호스트가 처리한다. **각 Content는 `ContentHandler`를 통해 자기 데이터를 prj에 기여**한다(CW `CTContentHandler`가 `projectData`(CurveList/SectionInfo/PanoInfo)를 read/write). → **우리 Section 모듈의 역할 = Section 상태를 prj 필드로 직렬화/역직렬화해 상위 save에 기여**(Save 자체를 구현하지 않음). 접목 시 `SectionContentHandler`(§9.5·9.7)가 상위 save/load 훅에서 core `serializeProject`/`deserializeProject` 결과를 CW `projectFile.ts` 필드에 매핑한다(D5).
+
 - **저장 항목(회전 각도 삭제):** 레이아웃(MPR/Section), 각 뷰 slice·Active line 위치, 카메라, ShowGrid, **Curve(point 좌표)**, Panorama 경계선·중심선, 각 단면 Thickness/Interval, Overlay, Windowing/Filter, **B/L Switching**, **BL/LB 기준점**.
 - **호환(§12-D5 확정):** 최종 직렬화는 **CW prj(XML)와 호환**되게 한다. CW prj는 `vtkjs-wrapper/projectFile.ts`가 소유하며 **`CurveList`·`CurveInfo`·`SectionInfo`·`PanoInfo`·`SectionalPos`·`SectionInterval`·`SectionalNum`·`AutoCurveInfo` 필드가 이미 존재**하므로, Section 저장 항목은 **자유 설계가 아니라 이 필드에 매핑**한다. 좌표계는 환자 볼륨 3D(§4). 호환 방향은 Desktop→Web 단방향 우선(개발실 §4.1).
-- **개발 중 임시 저장(확정):** 실제 prj 파일 I/O는 CW 팀 몫이므로, 개발·데모 단계에서는 **동일 직렬화 payload를 브라우저 `localStorage`(또는 파일 export/import)로 임시 저장/로드**해 복원을 검증한다. **저장 위치만 다르고 payload 구조는 CW prj 스키마와 동일**하게 유지해, 접목 시 저장 계층만 CW I/O로 교체하면 되도록 한다.
-- **범위:** Section 모듈 = 저장 항목·스키마 매핑 + serialize/deserialize API + 개발용 임시 저장. 실제 prj 파일 I/O·자동저장·Desktop→Web 업로드 = CW 팀.
+- **개발 중 임시 저장(시뮬레이션 방침, 2026-07-15):** 실제 prj 파일 I/O·S3는 상위 몫이므로, 데모는 **`localStorage`(또는 export/import)로 저장/로드**를 시뮬레이션한다. **단, 저장 내용은 `.e3prj` 전체가 아니라 우리가 기여하는 "Section 조각"** 이다 — `.e3prj`엔 호스트 소유 필드(레이아웃·카메라·환자·타 content)가 대부분이라 전체를 지어내면 실제와 어긋난다. 따라서:
+  - **core `SectionProjectState`(순수 모델) 유지** + **어댑터로 CW prj 필드 형태(`CurveList`·`SectionInfo{Width,Height,Interval,Thickness}`·`PanoInfo`, `projectFile.ts` 정본)로 변환** — 이 어댑터가 접목 시 기여 지점이자 매핑(D5) 검증 대상.
+  - 데모는 그 **CW 필드 형태의 Section 조각**을 localStorage에 round-trip. **포맷은 객체(JSON)로 충분**(CW `projectFile.ts`도 객체(XML-attr 키 `@_…`), 객체↔XML 직렬화는 호스트 몫 — 우리 책임은 "필드 객체 산출"). 필요 시 **`.e3prj` XML 미리보기(export)** 로 실제 파일 모양 확인.
+  - 접목 시 **저장 계층만 호스트 I/O로 교체**하고, 우리 조각은 `SectionContentHandler`가 상위 prj에 병합.
+- **범위:** Section 모듈 = **Section 상태 serialize/deserialize + prj 필드 매핑 어댑터 + `SectionContentHandler`의 save/load 기여** + 개발용 임시 저장. **Save 버튼·flow·`.e3prj` XML I/O·S3 저장·자동저장·Desktop→Web 업로드 = 상위(CleverSpace 컨테이너 + api-server) 몫.** (근거: ezcloud `api-server`(`*.e3prj` S3), CW `CTContentHandler`(`projectData` read/write)·`projectFile.ts`.)
 
 ## 8. NFR (성능·환경)
 
@@ -629,7 +634,7 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 | D2 | B/L 자동 판정 | **확정** — 기획 단일 규칙(§5): P1→P2 선분, C가 있는 쪽=L. 동적 반전·반구·기준점 중심 반전(MMI 1.3#8①) 폐기 | 기획 회신 반영 완료 |
 | D3 | Overlay Normal 허용 오차(§4) | 초기값 5° 제안 → 구현 초기 튜닝 후 고정. **사용자 결정 불필요** | 구현 초기 |
 | D4 | 접목 형태(§9.2) | **개정(2026-07-15)** — **소스 병합 우선**: `scp-section-poc` 소스를 CW 모노레포로 이동, `section-core`는 CW 내부 패키지(publish 안 함·단위 테스트 유지)·`section`(뷰)은 CW 트리 병합(§9.9 1단계). 근거 = 이미 CW 내부(store·toolbar·title bar·다이얼로그) 결합도 높음·소비자 CW 하나뿐·publish/Federation 마찰. 패키지(`@ewoosoft/scp-section-*`)+공개 API는 **fallback**(독립 평가·다중 host 시). 기존 "패키지 확정"(v1.3)에서 전환 | — |
-| D5 | Save prj(§7) | **확정** — CW prj XML 스키마 호환 직렬화. 개발 중엔 동일 payload를 브라우저 `localStorage`/export로 임시 저장. 호환 방향 Desktop→Web 우선 | CW 팀(스키마 필드 확인) |
+| D5 | Save prj(§7) | **확정·구조 파악(2026-07-15 보강)** — Save는 **상위(CleverSpace 컨테이너+api-server) 소유**: prj=**`.e3prj` XML**·**S3 저장**(api-server), 각 content는 **`ContentHandler`로 기여**(CW `CTContentHandler`가 `projectData` read/write). Section 모듈=상태 serialize/deserialize + `SectionContentHandler` 기여 + prj 필드 매핑. **CW `projectFile.ts` 필드 확인됨**: `CurveList`·**`SectionInfo{Width,Height,Interval,Thickness}`**·`PanoInfo`·`SectionalPos`·`SectionInterval`·`SectionalNum`·`AutoCurveInfo`. 개발 중엔 동일 payload를 `localStorage`/export 임시. **잔여(CW 팀):** 매핑 세부(우리 상태↔필드 정확 대응)·역호환 확인 | CW 팀(매핑 세부) |
 | D6 | 구현 커버리지 | **확정** — poc를 확장해 MMI 1.1~1.13 **전 기능** | — |
 | D7 | Section Slice 스크롤 NFR(§8) | 벤치마크 결과로 목표 수치 확정. **사용자 결정 불필요** | 구현 초기 |
 | D8 | Scout 명칭 / Thickness drag cap | Scout 유지(기획 검토). **Thickness 드래그도 combo와 동일 30mm cap 확정**(2026-07-13, 개발실) — 정합성 + Section scroll 성능 예산(§8, Thickness 상한이 완화책) + 단일 `MAX_THICKNESS_MM` 재사용. clamp 한 줄이라 가역적 | 기획 / 개발실 |
@@ -674,6 +679,8 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.40 | 2026-07-15 | **Save 시뮬레이션 방침(§7·IP T-P5-2)**: 데모는 `localStorage`에 **`.e3prj` 전체가 아닌 "CW 필드 형태의 Section 조각"**(CurveList/SectionInfo/PanoInfo 객체)을 round-trip. core `SectionProjectState` 유지 + **CW prj 필드 어댑터** 신설(접목 기여 지점·D5 매핑 검증). 포맷은 객체(JSON), 객체↔XML은 호스트 몫(선택 XML 미리보기). |
+| 1.39 | 2026-07-15 | **Save Project 소유·기여 구조 명확화(§7·D5)**: Save는 **우리 모듈이 아니라 상위(CleverSpace 컨테이너+api-server) 소유** — Save 버튼·flow·**`.e3prj` XML**·**S3 저장**은 호스트, 각 content는 **`ContentHandler`로 prj에 기여**(CW `CTContentHandler` `projectData`). Section 모듈=상태 serialize/deserialize + `SectionContentHandler` 기여 + 필드 매핑. CW `projectFile.ts` 필드 확인(`CurveList`·`SectionInfo{Width,Height,Interval,Thickness}`·`PanoInfo` 등). §7 소유·기여 구조·범위 명시, D5 보강. |
 | 1.38 | 2026-07-15 | **국제화(i18n) 현황 정리 + 방침(§9.11-CW-2·§12-D23)**: CleverSpace·CW 모두 Lingui이나 **CW 한국어 카탈로그 비어 영어 폴백**·**지원 언어 목록 불일치**(CleverSpace en/ko vs CW en/es/fr/ko/pt, 언어 선택은 CleverSpace 소유→CW es/fr/pt는 죽은 번역)·우리 모듈 미적용(한영 혼재). 현황 비교 표 §9.11. **추천안: 지원 언어 한/영(en/ko) 통일 + CleverSpace 연동 국제화**(Section=CW 동일 Lingui·한국어 통일, CW=ko 채우고 es/fr/pt 정리, IP T-P4-7). 지원 언어·정리는 **기획(Scott) 결정**. Agenda 공유. |
 | 1.37 | 2026-07-15 | **폰트 정본 = CleverSpace 호스트(Noto Sans)로 정정 + CW 폰트 버그(§9.11-CW-1) 발견·정리**: ezcloud(=CleverSpace) 확인 결과 호스트는 `'Noto Sans','Noto Sans KR','Segoe UI',sans-serif`(Noto Sans Google Fonts 로드). CW는 `'Segoe UI','Roboto' !important`로 **호스트 폰트를 덮어쓰고 자기 폰트는 미로드** → 환경별 제각각(맥=Helvetica)·호스트 UI와 불일치 = **CW 버그**. 우리 모듈·데모를 **호스트 Noto Sans 스택에 정렬**(합집합 아님), 데모는 Noto Sans 로드. §9.11 신설(현황 비교 표·수정 주체 표), §3.4.1a 정정, 주간회의 Agenda S6/R4 공유. |
 | 1.36 | 2026-07-15 | **폰트 = CW 동일 스택·embed 안 함(접목 시 렌더 검증)**: 전역 폰트를 CW 스택 `'Segoe UI','Roboto',sans-serif`로 선언(`body` 상속 + 컴포넌트 인라인, monospace 숫자 유지). **웹폰트 embed는 안 함**(폰트 소유는 CW/CleverSpace 전역 styleguide 몫). 실제 렌더는 환경 의존(Windows=Segoe UI, Roboto 설치 환경=Roboto, 그 외 폴백)이라 **접목 시 배포 환경에서 의도 폰트로 일관 렌더되는지 검증** 필요. `@fontsource/roboto` 시도했다 제거. Chrome Roboto는 Android/ChromeOS만 웹 노출(맥/윈도우 미노출) 분석 포함. §3.4.1a. |

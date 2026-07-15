@@ -503,12 +503,12 @@
 
 #### T-P5-2 — 직렬화 API·브라우저 임시저장
 
-- [x] **완료(부분)** — 2026-07-14(자동). `core/project/serialize.ts`: `serializeProject`(JSON)·`deserializeProject`(관대 파싱·버전 체크·손상 좌표 필터·부분 누락 blank 보정). `apps/section-demo/src/save/projectStorage.ts`: localStorage save/load/clear + 파일 export/import. UT-SAV-011(round-trip 무손실)·UT-SAV-012(blank 복원)+버전불일치/손상 케이스 통과. **잔여**: 데모 UI 버튼·axialUi에 상태 적용(setter 배선, MT-SAV-013) — 시각/UX라 사용자 확인 후.
+- [x] **완료(부분)** — 2026-07-14(자동). `core/project/serialize.ts`: `serializeProject`(JSON)·`deserializeProject`(관대 파싱·버전 체크·손상 좌표 필터·부분 누락 blank 보정). `apps/section-demo/src/save/projectStorage.ts`: localStorage save/load/clear + 파일 export/import. UT-SAV-011(round-trip 무손실)·UT-SAV-012(blank 복원)+버전불일치/손상 케이스 통과. **잔여**: 데모 UI 버튼·axialUi에 상태 적용(setter 배선, MT-SAV-013) — 시각/UX라 사용자 확인 후. (**CW prj 필드 어댑터·조각 시뮬레이션은 T-P5-3로 분리**.)
 
 | 필드 | 값 |
 |------|------|
 | id | T-P5-2 |
-| title | serialize/deserialize API + localStorage/export·import(payload=CW prj 구조 동일) |
+| title | serialize/deserialize API + localStorage/export·import(우리 `SectionProjectState` payload) |
 | repo | scp-section-poc |
 | spec_refs[] | S-SPEC §7(개발 임시저장), S-MMI §1.14-2 |
 | depends_on[] | T-P5-1 |
@@ -516,6 +516,22 @@
 | dod[] | UT-SAV-011(직렬화 round-trip 무손실)·UT-SAV-012(Curve 없음→blank 복원) + MT-SAV-013 데모 저장/재오픈 |
 | estimate | 2h |
 | risk | prj Curve 없음 예외(§7) |
+
+#### T-P5-3 — CW prj 필드 어댑터 + 조각 시뮬레이션
+
+- [ ] **미구현(2026-07-15 신설)** — Save는 상위 소유이고 우리는 **Section 조각을 기여**하는 구조(§7 소유·기여). T-P5-2의 `SectionProjectState`(우리 순수 모델)를 **CW prj 필드 형태로 변환하는 어댑터** 신설 → 접목 기여 지점이자 매핑(D5) 검증. 데모는 **`.e3prj` 전체가 아니라 "CW 필드 형태의 Section 조각"**(`CurveList`·`SectionInfo{Width,Height,Interval,Thickness}`·`PanoInfo`, `projectFile.ts`)을 localStorage에 round-trip. 포맷=객체(JSON, 객체↔XML은 호스트 몫); 선택적으로 **`.e3prj` XML 미리보기 export**. 접목 시 이 조각을 `SectionContentHandler`가 상위 prj에 병합.
+
+| 필드 | 값 |
+|------|------|
+| id | T-P5-3 |
+| title | `cwPrjAdapter`(SectionProjectState ↔ CurveList/SectionInfo/PanoInfo) + 데모 조각 저장·선택 XML 미리보기 |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §7·§12-D5, S-CW `lib/vtkjs-wrapper/src/common/defines/projectFile.ts`(CurveList·SectionInfo·PanoInfo) |
+| depends_on[] | T-P5-1, T-P5-2 |
+| outputs[] | `packages/core/src/project/cwPrjAdapter.ts`, `apps/section-demo/src/save/`(조각 저장·XML 미리보기) |
+| dod[] | UT-SAV-014(어댑터 상태↔CW 필드 조각 round-trip)·UT-SAV-015(누락 필드 관대 복원) + MT-SAV-016 데모 조각 저장·재오픈·(선택)XML 미리보기 |
+| estimate | 1.5~2h |
+| risk | CW 필드 정확 대응·역호환은 D5(CW 팀 확인) — 확인된 필드로 구현·불확실분 표시 |
 
 ### P6 — NFR·인계
 
