@@ -92,6 +92,9 @@
 
   - **R3. 구현 착수 승인** — 문서 3종 커밋 → IP §2 SHA 동결 → IP v1.0 baseline 후 P0(환경 정렬)부터 착수. **결정 요청:** 커밋·착수 시점.
     - **성격:** [논의] · 담당: Raymond + PL
+  - **R4. CW 폰트 override 수정 (누가/어떻게)** — CW `index.css`의 `* {font-family:'Segoe UI','Roboto' !important}`가 **호스트(CleverSpace) Noto Sans를 덮어쓰고 CW는 그 폰트를 로드하지 않아**, 접목 시 Section/CW 텍스트가 나머지 CleverSpace UI와 다르고 **환경(OS)별로 제각각**이 됨(§S6·OnePager §9.11). **결정 요청:** ① CW가 override 제거→호스트 폰트 상속(권장·주 원인 해소), ② styleguide(VT UI/UX)가 org 전역 단일 폰트 확정. (최소한 미제공 폰트를 `!important`로 강제 금지.)
+    - **성격:** [논의] · 수정 주체 = **CW 팀**(override 제거) + **styleguide**(단일 폰트). CleverSpace·우리 모듈은 정상.
+    - **전제:** CW-1 미수정 시 CW가 우리 텍스트까지 덮어써 폰트 일관성 불가.
 
 - 공유 사항
   - **S1. OnePager VKS 등록·리뷰 요청** — [Cloud Web Viewer v1.3.2 — Section Module 개발 OnePager (VKS)](https://vks.vatech.com/spaces/ESDEVELOPER/pages/320005969/Cloud+Web+Viewer+v1.3.2+%E2%80%94+Section+Module+%EA%B0%9C%EB%B0%9C+OnePager). 기획·CW Viewer 팀 리뷰 요청.
@@ -118,6 +121,21 @@
     ```
 
   - **S5. Known gaps** — Arrow 툴 CW `InteractionType` 미포함(접목 시 core 반영) · Scout=MPR Axial 접목 교체 전제 · Overlay Normal 허용 오차 5° 튜닝 · Slice 스크롤 NFR 벤치마크.
+  - **S6. 폰트 설정 불일치 발견 (CleverSpace ≠ CW)** — Section 구현 중 CW/CleverSpace 소스 대조에서 발견. 두 앱이 **다른 폰트 스택**을 쓰고, CW가 `!important`로 호스트 폰트를 덮어씀. **현재 문제는 CW 하나**이고, 그 결과 **상황(OS·환경)에 따라 폰트가 다르게 렌더됨**(→ 맞음). 상세: [OnePager §9.11](./Cloud%20Web%20Viewer%20v1.3.2/Section-Module-Spec-v1.3.2-OnePager.md). (→ 결정은 R4)
+
+    | 대상 | 폰트 스택 | 웹폰트 로드 | `!important` | 맥 | Windows | ChromeOS |
+    | --- | --- | :---: | :---: | --- | --- | --- |
+    | **CleverSpace**(호스트) | `'Noto Sans','Noto Sans KR','Segoe UI',sans-serif` | ✅ Google Fonts | ✗ | Noto Sans | Noto Sans | Noto Sans |
+    | **CW** | `'Segoe UI','Roboto'` | ❌ 없음 | ✅ `* !important` | **Helvetica**(폴백) | Segoe UI | Roboto |
+    | **우리 Section/데모** | `= CleverSpace 스택` | ✅(데모) | ✗ | Noto Sans | Noto Sans | Noto Sans |
+
+    - **문제점(정리):**
+      1. **CW만 문제** — CleverSpace(호스트)와 우리 모듈은 폰트를 로드하고 일관 렌더. CW는 자기 폰트(Segoe UI/Roboto)를 **로드하지 않고** `!important`로 강제.
+      2. **환경(OS)마다 폰트가 다름** — CW는 `Segoe UI`(Win 전용)·`Roboto`(미로드) 미가용 환경에서 폴백 → Windows=Segoe UI, ChromeOS=Roboto, **맥/리눅스=Helvetica**로 **사용자마다 제각각**.
+      3. **호스트와 불일치** — CW `!important`가 CleverSpace의 Noto Sans를 덮어써, **CW 영역만 나머지 CleverSpace UI와 다른 폰트**.
+      4. **접목 파급** — CW-1 미수정 시 CW가 우리 Section 텍스트까지 덮어써(§접목), 우리가 Noto Sans로 맞춰도 **CW 안에선 CW 폰트로 강제**됨.
+    - **근거:** CW `packages/core/src/index.css:24` · ezcloud(CleverSpace) `container-app/index.html`(Noto Sans Google Fonts)·`common-ui/customTheme.ts`.
+    - **우리 대응:** 합집합 아님 — **호스트(CleverSpace) 스택(Noto Sans)에 정렬**(폰트 소유는 호스트 몫). 데모는 Noto Sans 로드해 실제 배포 룩 미리보기.
 
 - 이월 논의 사항 (7/16 기준 · 미결)
 
@@ -127,6 +145,7 @@
   | 2   | Section Slice 스크롤 NFR(ms)    | [정보] | 개발실 리뷰 최대 리스크 — 구현 초기 벤치마크 |
   | 3   | Save Project — CW prj 필드 확인 | [논의] | 방향 확정, CW 팀 스키마 확인 (→ R2)          |
   | 4   | 문서 커밋·IP baseline·착수      | [선결] | 3종 커밋→SHA 동결→IP v1.0 (→ R3)             |
+  | 5   | CW 폰트 override 수정(CW-1)      | [논의] | CW가 호스트 Noto Sans 덮어씀·환경별 제각각 — CW 팀 수정·styleguide 단일화 (→ R4·§9.11) |
   - **확정·정리됨 (이번 주):** B/L 자동 판정(확정, OnePager §5) · 접목 방식(D1 — CW vtk 미접목·WebGL embed) · 개발 레포 방안 1 · Scout 명칭 유지(D8) · MMI drift(OnePager 반영).
   - **차주 이월 후보:** R1(리뷰 기한) 미확정 · R2(CW 필드) 회신 지연 시 Save 구현 순연.
 
