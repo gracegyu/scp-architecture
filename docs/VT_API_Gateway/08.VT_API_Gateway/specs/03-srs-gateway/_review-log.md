@@ -389,9 +389,14 @@
   > 이 spec 문서는 타계열사 (EVN, VFR 등)에서 볼일이 있지 않을까요?
   > 있다면 영문으로도 제공을 하는 건 어떤가요?
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- 다음 답변(초안):
+  
+  좋은 지적 감사합니다. 다만 한/영 이중언어 SRS를 함께 유지하면 SSOT가 둘이 되어 drift 위험이 커, 본 문서는 한국어를 SSOT로 유지하겠습니다. 타계열사(EVN·VFR 등)가 참조할 경우 요즘 AI 번역 품질이 높으니 한국어 원본을 받아 AI로 번역해 보시는 것을 권장합니다 — 우리가 번역본을 별도 유지하면 원본과 drift가 생기고 유지 부담도 커집니다.
+
+  번역 제공 여부·범위는 SRS baseline에서 결정할 사안이 아니라 계열사 조율 차원의 관리 결정이므로, 실제 수요가 생기면 관리자(PM/조직) 판단으로 진행하는 것이 맞다고 봅니다. 본 스레드는 SRS 변경 사항이 없어 여기서 정리(Resolve)하겠습니다.
+
+- 조치: SRS 변경 없음 — 한국어 SSOT 유지·번역=온디맨드(수요처 AI)·제공 여부는 관리(PM/조직) 결정(baseline 밖)
+- 상태: 답변·Resolve 권장(SRS 밖·조치 없음)
 
 ## C-23 · docs/specs/SRS.md:1678 · [thread 79527] ★리뷰어 대기
 - **[민진우(Thomas) · 2026-07-14T03:17 · cid 79527.1]**
@@ -399,9 +404,11 @@
   > 하나의 target에 대한 production 외 staging/test/dev 환경에 대한 domain 은 어떻게 되나요? 그리고, 각 환경과 연계되는 AXS 환경은 어떻게 될까요? 
   > webhook url 도 함께 고려 부탁드립니다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 상태: 대기
+- 다음 답변(초안):
+
+  AXS 환경 매핑은 이미 §3.3(환경 표)에 있습니다 — dev→AXS sandbox(unstable, ESIP-14)/미수령 시 mock, test·staging→sandbox, prod→production. 비-prod 도메인·webhook URL은 §4.5.1에 '환경-한정 네임스페이스' 규칙을 보강했습니다: prod 호스트 구조를 env-한정으로 복제(예 {env}.gw.vatech.com·{target}.webhook.{env}…), 각 GW 환경의 target 레지스트리가 대응 AXS 환경을 가리키고 AXS는 그 env의 webhook URL로 구독합니다. 구체 도메인 문자열·zone·인증서·환경 프로비저닝은 ③-I(Appendix B #24·#2), AXS 환경별 자격은 ④/target config로 둡니다 — GW SRS는 논리 규칙까지입니다.
+- 조치: §4.5.1에 환경-한정 도메인/webhook URL 규칙 note 추가·§3.3 AXS 환경 매핑 참조·구체=③-I(#24·#2)·④ — 반영
+- 상태: 반영완료(로컬·미push)
 
 ## C-24 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1733 · [thread 79534]
 - **[민진우(Thomas) · 2026-07-14T04:24 · cid 79534.1]**
