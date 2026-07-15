@@ -30,10 +30,11 @@
 - CleverSpace를 **여러 Region에 두고**, GW가 **ClinicID 기준으로 분배**하며, EzServer는 **Route 53 GeoDNS로 가장 가까운 GW**에 연결된다.
 - EzServer는 **현장의 Edge로 유지**한다(추후 Rust 전면 재개발은 별도 후속 트랙).
 
-**Roadmap(5단계, 기능 응집·의존 순서 기준).** 목표 기한은 6개월이며, 단계는 기능 묶음으로 나눈다. 의존 순서상 **API 호환성(즉시 착수) → presigned 데이터 경로 → GW 일원화 → 멀티 Region → Straumann 외부 연동** 으로 진행한다.
+**Roadmap(0~5단계, 기능 응집·의존 순서 기준).** 목표 기한은 6개월이며, 단계는 기능 묶음으로 나눈다. 의존 순서상 **IO Scanner↔EzServer 수집(v1.0 선결·방식 R1) → API 호환성(즉시 착수) → presigned 데이터 경로 → GW 일원화 → 멀티 Region → Straumann 외부 연동** 으로 진행한다. **0단계는 v1.0(Straumann IO Scanner 우선, 7/9 결정)으로 앞에 붙는 선결 단계이며, 기존 1~5단계 번호·정의는 불변**(방식은 R1·2026-07-16 논의).
 
 | 단계      | 한 줄 정의                         | 결과                                                                               |
 | --------- | ---------------------------------- | ---------------------------------------------------------------------------------- |
+| **0단계** | IO Scanner↔EzServer 수집(v1.0 선결·방식 R1) | 스캔 데이터를 EzServer로 유입 — v1.0 첫 연동의 데이터 소스 확보(수집 제품·방식 미정·R1) |
 | **1단계** | API 버전 호환성 해결(GW 없이 즉시) | 식별 헤더·서버 버전 체크·well-known 공시로 원인불명 실패 제거                      |
 | **2단계** | presigned 데이터 경로              | 대용량 데이터 직접 업로드 경로 완성(GW 일원화의 선행 요건)                         |
 | **3단계** | GW 신설·일원화                     | `EZ → GW → 대상` 단일 경유 + 인증 일원화 + 경로 B 흡수·Deprecated                  |
@@ -368,6 +369,7 @@ CleverOne은 이미 결과 중계에 **MQTT**를 쓰고 있다(§1 AS-IS의 EZ�
 
 | 단계 | 기능 묶음 | 핵심 산출물 | 완료 의미 |
 | --- | --- | --- | --- |
+| **0단계** | IO Scanner↔EzServer 수집(v1.0 선결) | IO Scanner 스캔 데이터 EzServer 유입 연동(수집 제품·방식 R1·미정) | v1.0 첫 연동의 데이터 소스 확보 |
 | **1단계** | API 호환성(즉시) | Vatech-\* 식별 헤더(제품·버전·OS)·서버 버전 체크(validate-limits)·well-known 런타임 버전 공시·오류코드 매핑/fallback·호환성 매트릭스 | GW 없이 기존 경로에서 버전 호환 해결, 원인불명 실패 제거 |
 | **2단계** | presigned 데이터 경로 | CleverSpace presigned 발급 신규 개발·EZ 전송 로직 변경(Direct→presigned 직접) | 대용량 데이터 직접 업로드 경로 완성(GW 선행 요건) |
 | **3단계** | GW 신설·일원화 | GW 본체·EZ→GW 전환·경로 B 흡수(Deprecated)·presigned 발급 GW 경유 전환 | `EZ → GW → 대상` 단일 경유 + 인증 일원화(단일 Region) |
@@ -744,17 +746,22 @@ gantt
 
 > 맨 오른쪽 **스펙 산출물** 열 = 제품 변경이 *어느 스펙 단위·유형*으로 작성되는가. 단위·유형 정본은 [PRD §12.1](<../VT API Gateway — PRD (v2).md>). 제품 적응(③-P\*/③-I)은 GW 소유자가 1차 초안 후 각 제품 담당자에게 인계한다.
 
-| 제품 | 1단계(호환성) | 2단계(presigned) | 3단계(GW 일원화) | 4단계(멀티리전) | 5단계(Straumann) | 후속 | 스펙 산출물(단위·유형) |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| **CleverSpace** | 서버 버전 체크·well-known 공시·오류코드 정리 | **presigned 발급 신규 개발** | GW 경유 수신 정합 | 멀티 Region 구축 | — | — | ① One Pager · ② One Pager · ③-P-CS Sub-SRS(멀티Region 크면)/One Pager |
-| **CleverOne** | Vatech-\* 헤더·well-known 인지·fallback | 업로드 흐름 연계 | Direct→GW 경유 전환 | Region 선택 UI(**대안 주체**)·ClinicID | — | — | ① One Pager · ② One Pager · ③-P-CO One Pager |
-| **EzServer(EZ)** | 헤더 대리 전달 | 전송 로직 변경(presigned 직접) | GW 경유 전환 | ClinicID 포함·Region 인지 · **GW 클리닉 등록(Console: region 선택·Clinic-ID) — 잠정 주체** | AXS 연동 FE/BE(갈래 A)·presigned 직접 업로드 | **Rust 전면 재개발** | ① One Pager · ② One Pager · ③-P-EZ One Pager · ④ Sub-SRS(갈래 A) · (Rust=후속 별도) |
-| **CleverLab** | — | — | — | — | **AXS 오더·상태·확정 연동(갈래 B)**·presigned | — | ④ Sub-SRS(갈래 B) |
-| **VatechAPIGateway** | — | — | 본체·라우팅·인증 연계·호환 집행·presigned 발급 중계·경로 B 흡수 | Region 분배·HA(K8s)·Route 53·저장소(Postgres) | AXS OAuth 중계·Org-ID 매핑·온보딩·인바운드 중계·고정 egress IP | — | ③ SRS (계약 SSOT) · ④는 그 위 connector |
-| **GW Console** | — | — | — | Admin Web Console (**③-C Sub-SRS**) | 온보딩·Org-ID 관리 화면 | — | ③-C Sub-SRS |
-| **인프라** | 단일 Region | — | 단일 Region GW | Route 53·K8s·비-AWS minio | AXS whitelist용 고정 IP·샌드박스 | — | ③-I IaC 구축 계획서 |
-| **외부(Straumann AXS)** | — | — | — | — | API 스펙·OAuth·샌드박스·자격증명 제공(선결) | — | ④ Sub-SRS 입력(외부 제공물) |
-| **LMP (License Portal, 바텍)** | — | — | — | — | — | (조건부) 제3자 서명 attestation 발급 | **enroll B안(제3자 서명 자동승인) 채택 시만** — 서명 키·JWKS·attestation 발급 개발(ES 라이선스/ELM 팀·크로스팀·Roadmap 추가). v1.0=A안(C/S 승인)이면 무변경. 상세=Agenda R9·Appendix B #42 |
+| 제품 | 0단계(IO Scanner 수집·v1.0 선결·R1) | 1단계(호환성) | 2단계(presigned) | 3단계(GW 일원화) | 4단계(멀티리전) | 5단계(Straumann) | 후속 | 스펙 산출물(단위·유형) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **CleverSpace** | — | 서버 버전 체크·well-known 공시·오류코드 정리 | **presigned 발급 신규 개발** | GW 경유 수신 정합 | 멀티 Region 구축 | — | — | ① One Pager · ② One Pager · ③-P-CS Sub-SRS(멀티Region 크면)/One Pager |
+| **CleverOne** | — | Vatech-\* 헤더·well-known 인지·fallback | 업로드 흐름 연계 | Direct→GW 경유 전환 | Region 선택 UI(**대안 주체**)·ClinicID | — | — | ① One Pager · ② One Pager · ③-P-CO One Pager |
+| **EzServer(EZ)** | **IO Scanner 데이터 수신·수집(방식 R1·미정)** | 헤더 대리 전달 | 전송 로직 변경(presigned 직접) | GW 경유 전환 | ClinicID 포함·Region 인지 · **GW 클리닉 등록(Console: region 선택·Clinic-ID) — 잠정 주체** | AXS 연동 FE/BE(갈래 A)·presigned 직접 업로드 | **Rust 전면 재개발** | ① One Pager · ② One Pager · ③-P-EZ One Pager · ④ Sub-SRS(갈래 A) · (Rust=후속 별도) |
+| **IO Scanner(Straumann 장비·수집 제품 미정)** | 스캔 데이터 출력 → EzServer 유입(수집 제품·방식 R1·미정) | — | — | — | — | (AXS 워크플로 대상) | — | R1 확정 후 ③-P-EZ(수신)·④(AXS scope) |
+| **CleverLab** | — | — | — | — | — | **AXS 오더·상태·확정 연동(갈래 B)**·presigned | — | ④ Sub-SRS(갈래 B) |
+| **VatechAPIGateway** | — | ↳ 3단계에서 흡수(호환 게이트·well-known·compat matrix·§7.7) | ↳ 3단계에서 흡수(presigned 중계·bypass·§4.1.4) | 본체·라우팅·인증 연계·호환 집행·presigned 발급 중계·경로 B 흡수 | Region 분배·HA(K8s)·Route 53·저장소(Postgres) | AXS OAuth 중계·Org-ID 매핑·온보딩·인바운드 중계·고정 egress IP | — | ③ SRS (계약 SSOT) · ④는 그 위 connector |
+| **GW Console** | — | — | — | — | Admin Web Console (**③-C Sub-SRS**) | 온보딩·Org-ID 관리 화면 | — | ③-C Sub-SRS |
+| **인프라** | — | 단일 Region | — | 단일 Region GW | Route 53·K8s·비-AWS minio | AXS whitelist용 고정 IP·샌드박스 | — | ③-I IaC 구축 계획서 |
+| **외부(Straumann AXS)** | — | — | — | — | — | API 스펙·OAuth·샌드박스·자격증명 제공(선결) | — | ④ Sub-SRS 입력(외부 제공물) |
+| **LMP (License Portal, 바텍)** | — | — | — | — | — | — | (조건부) 제3자 서명 attestation 발급 | **enroll B안(제3자 서명 자동승인) 채택 시만** — 서명 키·JWKS·attestation 발급 개발(ES 라이선스/ELM 팀·크로스팀·Roadmap 추가). v1.0=A안(C/S 승인)이면 무변경. 상세=Agenda R9·Appendix B #42 |
+
+> **0단계(IO Scanner 수집)**: v1.0(Straumann IO Scanner 우선·7/9) 도입으로 앞에 붙는 **선결 단계**. IO Scanner→EzServer **수집 제품·방식은 미정(R1·2026-07-16 논의)**, 상세 §3.x는 R1 결정 후 보강한다. 기존 1~5단계 번호·정의는 불변.
+
+> **GW의 단계별 스펙**: VatechAPIGateway는 **3단계에 신설**되므로 0~2단계 열은 '—'/포인터(↳)다. 0단계(IO 수집)는 GW 무관, **1·2단계 기능(호환 게이트·presigned 중계)은 GW가 3단계에서 흡수**해 규정한다. 따라서 **GW의 스펙 산출물 = 단일 ③ SRS**(단계별 별도 스펙 없음) — ↳는 "③ SRS 안에서 다룬다"는 표시다.
 
 > **클리닉 GW 등록 주체(TBD)**: 클리닉 = **CleverOne 다수 + EzServer 1개**. 따라서 클리닉당 1회의 GW 등록(region 선택·Clinic-ID, 이후 외부 연동 시 Org-ID)은 **EzServer의 Console에서 하는 것을 잠정안**으로 한다(클리닉당 단일). **각 CleverOne(PC)에서 하는 대안도 가능 — 주체 확정은 ③-P-EZ(잠정)/③-P-CO(대안)** 에서. region 선택 UI도 이 주체에 따른다. 매핑은 온보딩 자가 등록이며 Admin은 교정만(SRS §2.3.1·§7.3·Appendix B #17).
 
