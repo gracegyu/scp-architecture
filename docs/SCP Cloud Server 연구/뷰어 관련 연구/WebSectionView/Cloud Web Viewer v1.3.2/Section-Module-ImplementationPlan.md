@@ -469,7 +469,7 @@
 
 #### T-P4-7 — 국제화(i18n) — CW Lingui 구조 정합
 
-- [ ] **미구현 · 착수 가능(2026-07-16 회의 결정)** — **지원 언어 = 3개 제품 모두 한/영(en/ko)으로 통일** 확정(§D23·회의). 현재 모듈은 i18n 미적용·한/영 문자열 혼재. CleverSpace·CW 모두 Lingui(§9.11-CW-2). **선행: 모듈 UI 문자열을 한국어로 통일**(현재 "Draw Curve"·"Curve 1" 등 영어와 "취소"·"Section 생성 중…" 등 한국어 혼재 → 한국어 기준으로 통일). 이후 **CW와 동일 Lingui 구조 채택**(문자열 `t\`\`` 매크로화, `@lingui/react` federation shared 재사용, 카탈로그 **en_US/ko_KR 2종**). CW ko 채우기·es/fr/pt 정리는 CW 팀 권고(동반). 더 이상 결정 대기 아님.
+- [~] **진행 중(2026-07-16) — CW 동일 Lingui 매크로 채택.** 소스=영어, **`i18n._(t\`\`)`·`msg\`\``·`<Trans>` + `useLingui()`**(CW `MeasurementSetting`/`SettingDialog` 정합). **왜 이 형태**: `t\`\`` 매크로만 `lingui extract`로 추출 가능(일반 `t('...')`는 불가) → 접목 시 CW 원샷 추출. **우리는 추출·컴파일·번역 미실행** — 접목 시 CW가 `lingui extract`(→po)·`lingui compile`(`compileNamespace:'es'`→mjs)로 일괄. **인프라(완료)**: 데모 vite `@lingui/vite-plugin`+babel macros(components/core src alias 컴파일 시 매크로 변환), `main.tsx` `<I18nProvider>`+`i18n.load({en:{},ko})`+`activate`, 데모 `src/i18n/ko.ts` 소형 카탈로그 + EN/한 토글, `components` tsup `@lingui/*` external, vitest `@lingui/macro` 스텁 alias. **래핑(완료)**: App·CwToolbar(ITEMS `msg`)·ScoutView(커브 UI·힌트·뷰명)·SettingDialog·ImageAdjustDialog·AnnotationPropertyDialog·ViewTitleBar(툴팁)·SectionGrid(뷰명·자동생성 힌트)·PanoramaView(뷰명)·SectionMeasureOverlay(컨텍스트 메뉴 Property/Delete). **의도적 미래핑**: 기술 오버레이(W/L·Filter 상태 = 방사선 표준 용어)·`PointerDialog`(아이콘 기반·CW 소유 포트, 접목 시 삭제)·`CtSourcePanel`(데모 외부, §9.4). 데모 `ko.ts` 카탈로그에 한국어 시연 번역, EN/한 토글 동작. 빌드 5/5·테스트 통과. **접목 시 국제화 TODO는 §3.11 참조.**
 
 | 필드 | 값 |
 |------|------|
