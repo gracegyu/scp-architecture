@@ -499,6 +499,22 @@
 | estimate | 3h(포트) |
 | risk | 접목 시 CW 컴포넌트로 교체(중복 금지 §9.10) · Path2D `isPointInStroke` 브라우저 지원(모던 OK) |
 
+#### T-P4-9 — 계측/주석 편집 (Edit · Property · Context Menu)
+
+- [x] **구현 완료(2026-07-16) — 사용자 시각 검증 대기.** CW `es-pixi-wrapper` 편집 UX를 Canvas2D로 이식(§3.9·§12-D29). `SectionMeasureOverlay`에: 도구 미선택 시 **hover→이동커서(`MOVE`=CW `overlaySelectedCursor` 복사)**, **선 드래그=통째 이동**(bbox clamp), **속빈 네모 핸들 드래그=점 편집**(길이·각도 실시간), **단일 선택**(activeTool 활성 시 해제), **우클릭=편집+컨텍스트 메뉴**(흰 바탕 검정, Property/Delete). **Property 다이얼로그**(`AnnotationPropertyDialog`=CW `OverlayPropertyDialog` 포트): Line/Font Color·Font Size(6~20)·Save/Cancel, **선색=핸들색**. 계측 모델 `style{lineColor,fontColor,fontSize}` 추가(→Save ⑨). 편집 오버레이는 **hover일 때만 입력 캡처**(window mousemove로 `pointerEvents` 토글)해 커브/Pan-Zoom 방해 없음. 라벨 검정박스 제거(흰 글씨). **UT-ANN-001**(스타일 기본·병합·폰트옵션) 통과. **잔여(사용자 확인):** 선택·이동·핸들 편집·각도/길이 갱신·Property 색/크기·Delete·메뉴 시각 확인(MT-ANN-001~004). 접목 시 CW PIXI/`OverlayPropertyDialog`/`CustomMenu`로 교체(§9.10).
+
+| 필드 | 값 |
+|------|------|
+| id | T-P4-9 |
+| title | 계측/주석 편집 — 선택·이동·핸들 점편집·컨텍스트 메뉴(Property/Delete)·Property 다이얼로그(선색/글자색/크기) |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §3.9·§12-D29·§7-⑨·§9.10, S-MMI MPR참조(AngleEdit·AnnotationProperty·Annotation), S-CW `es-pixi-wrapper`(MeasurementOverlay/DrawingOverlay/SquareItem)·`OverlayPropertyDialog`·`CustomMenu`·`vtkjs-wrapper cursor.ts`(overlaySelectedCursor) |
+| depends_on[] | T-P4-2, T-P4-3 |
+| outputs[] | `packages/core/src/measure/measurement.ts`(style)·`packages/components/src/SectionMeasureOverlay.tsx`·`AnnotationPropertyDialog.tsx`·`cursors.ts`(MOVE) |
+| dod[] | UT-ANN-001(스타일 병합·폰트옵션) + MT-ANN-001 선택·이동 · MT-ANN-002 핸들 점편집→각도/길이 갱신 · MT-ANN-003 Property 선색/글자색/크기·핸들색 · MT-ANN-004 우클릭 메뉴 Property/Delete |
+| estimate | 5h |
+| risk | Canvas2D 이식 vs CW PIXI 미세 UX 차이(접목 시 CW 정본 교체로 수렴) · Save ⑨(T-P5-4) 연동 필요 |
+
 ### P5 — Save Project
 
 #### T-P5-1 — 데이터 모델·CW prj 스키마 매핑

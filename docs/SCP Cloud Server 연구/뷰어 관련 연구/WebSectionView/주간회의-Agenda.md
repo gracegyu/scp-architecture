@@ -73,7 +73,7 @@
 
 # Cloud Web Viewer v1.3.2 Section 모듈 — 7/16 주간회의 Agenda
 
-> **구현 진행(~70%) 스냅샷.** (Spec 완성·VKS 리뷰 요청 이후 — 완료 항목은 아래 "확정·정리됨"에 반영.)
+> **구현 대부분 완료(~90%) 스냅샷.** MMI 전 기능 구현 완료, 잔여는 Save 배선·i18n(회의 결정 대기)·시각 폴리시. **담주 초 구현 완료 예정 → 기획팀 테스트(데모사이트) → CW 팀 접목** 순서(→ R3).
 
 - 참조 정보
   - [OnePager (VKS)](https://vks.vatech.com/x/UecSEw)
@@ -81,15 +81,14 @@
   - Repository: [Azure DevOps `scp-section-poc`](https://dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc)
   - VTS: [PLAN-1287](https://vts.vatech.com/browse/PLAN-1287)
 
-- 이번 주 진행 (구현 ~70% · scp-section-poc)
-  - **계측·주석** — Length/Angle/Free Draw·**Arrow 신규**. **3뷰 확장**(Scout·Panorama·Section, 기획 Jessi 확정 §D21). 각 뷰 영역/슬라이스 스코프.
-  - **Overlay 3D 평면 귀속** — 생성 시점 평면(거리≤±INT/2·normal≤5°)에 귀속·slice 스크롤 시 재표시.
-  - **Show/Hide Grid** — CW `es-view-info` GridView 정합(물리 10mm·점선·뷰 전체·ruler 정렬). Grid 기능이 초기 미배선이던 것 보완.
-  - **Slice 스크롤 벤치마크** — Th30mm worst-case **JS 1484 / WASM-resident 1225ms**(둘 다 30FPS 초과). → **기본 연산 = WASM-resident + JS 폴백(§D20)**. 실시간 근본해결(GPU 리슬라이스)은 **범위 밖·숙제(§11)** — 빠른 출시 우선.
-  - **환자정보/타이틀 실데이터**(DICOM Sex/Age/ID/Name·촬영일)·R/L 방향, 렌더 스타일 토큰화.
-  - **CW UI 통일** — 색 팔레트(§3.4.1a)·아이콘 크기·HQ(View Original) 위치·Arrow 아이콘·커브 편집버튼·폰트 정합(§9.11).
-  - **접목 설계 정리** — 접목 방식 **소스 병합으로 개정(§D4)**·§9.9 접목 절차(10단계)·§9.10 중복 제거·§9.11 CW 폰트 버그. **Single/Dual·View Original = CW 컨테이너 몫 확정(§D22)**. 저장소·데모 사이트 OnePager 명시.
-  - **미구현/잔여(~30%)** — Pan/Zoom/Reset/Pointer(커서 에셋만 준비)·계측 삭제 UI·Overlay normal의 UI 배선·시각 폴리시·GPU 리슬라이스(숙제).
+- 이번 주 진행 (구현 ~90% · scp-section-poc)
+  - **Pan/Zoom/Reset View/Pointer(공통 뷰 조작, §3.7·T-P4-6)** — 뷰별 독립 transform. 이미지·계측만 변환, **Grid는 고정·Ruler는 위치 고정+눈금 단위/표시 mm는 배율 반영**(적응형 `chooseRulerSteps`). Zoom=우클릭·X+Y 합산(위·우=확대). Section 3×3은 9뷰가 하나로 함께(§D27). CW 커서 정본.
+  - **Pointer 주석(§3.8·T-P4-8)** — CW `PointerDialog`/`PointerCanvas` 포트(FreeDraw식 다중·Eraser·두께·색·Reset·Close=소거). **모달**(Toolbar 등 차단). Pointer는 CW 셸 소유 → 접목 시 CW 것 사용(§9.9-8b).
+  - **계측/주석 편집(§3.9·T-P4-9)** — 생성 후 **선택·통째 이동·속빈 네모 핸들로 점 편집(각도/길이 실시간)·단일 선택**. 우클릭→**컨텍스트 메뉴(Property/Delete)**. **Property 다이얼로그**(선색·글자색·글자크기, CW `OverlayPropertyDialog` 포트). 편집 커서=CW `overlaySelectedCursor`. 속성은 Save ⑨로 저장.
+  - **계측·주석 생성** — Length/Angle/Free Draw·**Arrow 신규**. **3뷰 확장**(§D21). 도구별 CW 커서(length/angle/freeDraw). 라벨 흰 글씨(박스 제거).
+  - **Overlay 3D 평면 귀속**·**Show/Hide Grid**(CW GridView 정합)·**Slice 스크롤 벤치마크**(JS 1484/WASM-resident 1225ms → 기본 WASM-resident+JS 폴백 §D20).
+  - **환자정보/타이틀 실데이터**·R/L 방향·**CW UI 통일**(색·아이콘·폰트 §9.11)·**접목 설계**(소스 병합 §D4·§9.9 접목 절차·§9.10 중복 제거·Single/Dual·View Original CW 몫 §D22).
+  - **잔여(~10%)** — Save Project 배선·CW 필드 어댑터·⑨계측/③카메라 저장(T-P5-2/3/4)·국제화(회의 결정 대기 R2/T-P4-7)·시각 폴리시·GPU 리슬라이스(숙제 §11)·Arrow 전용 커서(기획 §11).
 
 - 논의 사항
   - **R1. CW 폰트 override 수정 (누가/어떻게)** — CW `index.css`의 `* {font-family:'Segoe UI','Roboto' !important}`가 **호스트(CleverSpace) Noto Sans를 덮어쓰고 CW는 그 폰트를 로드하지 않아**, 접목 시 Section/CW 텍스트가 나머지 CleverSpace UI와 다르고 **환경(OS)별로 제각각**이 됨(§S3·OnePager §9.11). **결정 요청:** ① CW가 override 제거→호스트 폰트 상속(권장·주 원인 해소), ② styleguide(VT UI/UX)가 org 전역 단일 폰트 확정. (최소한 미제공 폰트를 `!important`로 강제 금지.)
@@ -97,10 +96,13 @@
     - **전제:** CW-1 미수정 시 CW가 우리 텍스트까지 덮어써 폰트 일관성 불가.
   - **R2. 국제화(i18n) 정책 — 지원 언어·한국어 지원** — 언어 선택은 **CleverSpace(en/ko)가 소유**하는데 CW는 en/es/fr/ko/pt로 목록이 달라 **CW의 es/fr/pt는 선택 불가·죽은 번역**, 한국어는 CW 비어있음. 우리 모듈은 i18n 미적용(§S7·OnePager §D23). **결정 요청:** ① **지원 언어를 셋 모두 한/영(en/ko)으로 통일 + CleverSpace 연동 국제화** — 추천(Section=Lingui·한국어 통일, CW=ko 채우고 es/fr/pt 정리), vs ② 현행 유지. **언어/시장 정책이라 기획(Scott) 판단.** (프레임워크 정합=Lingui는 기술적 당연.) 결정 후 IP 국제화 Task 착수.
     - **성격:** [논의] · 결정: **기획(Scott)**. CW 한국어 카탈로그 누락·언어목록 정리도 함께 권고(CW 팀).
+  - **R3. 향후 진행 계획 & 버그 리포트 채널** — 제안 순서: **① 담주 초 구현 완료 → ② 기획팀 테스트(전달 = [데모 사이트](http://scp-section-demo.test.scp.esclouddev.com)) → ③ CW 팀이 CloudWebViewer에 접목(소스 병합, §9.9)**. **결정 요청:** 기획팀 테스트에서 나온 **버그/이슈를 [PLAN-1287](https://vts.vatech.com/browse/PLAN-1287) Sub-Task로 하나씩 등록**하는 방식으로 할지(각 Sub-Task = 1 버그, 상태·담당 추적). 대안: 별도 QA 이슈타입/스프레드시트.
+    - **성격:** [논의] · 결정: **팀 합의**(기획·개발). 확정 시 기획팀에 데모사이트 URL + 리포트 템플릿(재현·기대·실제·스샷) 공유.
+    - **참고:** 접목은 CW 팀 소관(우리는 인계·지원). 데모는 접목 전 기능·UX 확인용(§OnePager Resource).
 
 - 공유 사항
-  - **S1. 현재 단계** — `PoC 완료 → Spec·VKS 리뷰(공유됨) → 구현 진행 중(~70%) [지금] → 잔여 구현·인계 → CW embed·접목`.
-  - **S2. 문서 상태** — [**OnePager (VKS)**](https://vks.vatech.com/x/UecSEw) **v1.37**(구현 반영·§9.9~9.11·D19~D22 등)·개발계획 v0.9. 커밋 시점은 별도 관리.
+  - **S1. 현재 단계** — `PoC 완료 → Spec·VKS 리뷰(공유됨) → 구현 대부분 완료(~90%) [지금] → 담주 초 완료 → 기획팀 테스트(데모사이트) → CW embed·접목(CW 팀)` (→ R3).
+  - **S2. 문서 상태** — [**OnePager (VKS)**](https://vks.vatech.com/x/UecSEw) **v1.51**(Pan/Zoom §3.7·Pointer §3.8·계측 편집 §3.9·D19~D29 등)·개발계획 v0.9. 커밋 시점은 별도 관리.
   - **S3. 폰트 설정 불일치 발견 (CleverSpace ≠ CW)** — Section 구현 중 소스 대조로 발견. **현재 문제는 CW 하나**이고, 그 결과 **상황(OS·환경)에 따라 폰트가 다르게 렌더됨**(맞음). 결정은 **R1**. 상세: [OnePager §9.11](./Cloud%20Web%20Viewer%20v1.3.2/Section-Module-Spec-v1.3.2-OnePager.md).
 
     | 대상 | 폰트 스택 | 웹폰트 로드 | `!important` | 맥 | Windows | ChromeOS |
@@ -113,7 +115,7 @@
     - **근거:** CW `index.css:24` · ezcloud `container-app/index.html`(Noto Sans Google Fonts)·`common-ui/customTheme.ts`.
     - **우리 대응:** 합집합 아님 — **호스트(CleverSpace) 스택(Noto Sans)에 정렬**(폰트 소유는 호스트 몫).
   - **S4. GPU 리슬라이스 = 숙제(빠른 출시 우선)** — 두꺼운 슬랩 실시간 스크롤 근본해결은 WebGL2 GPU 리슬라이스이나 공수 커서 이번 범위 밖(§11·D20). 완충책(캐시·디바운스·표시분리)+WASM으로 체감 유지.
-  - **S5. 일정** — 구현 7/13~ 2주 중 **~70% 진행**. 이후 잔여 구현·**CW 팀 접목**(소스 병합·§9.9). Raymond VT API Gateway 병행(부분투입).
+  - **S5. 일정** — 구현 **~90%**(MMI 전 기능 완료), **담주 초 마무리**(Save 배선·폴리시) → **기획팀 테스트(데모사이트)** → **CW 팀 접목**(소스 병합·§9.9). Raymond VT API Gateway 병행(부분투입).
 
     ```mermaid
     gantt
@@ -126,13 +128,17 @@
         OnePager Spec 완성·VKS·리뷰       :done, spec, 2026-07-10, 10d
 
         section 구현 (scp-section-poc)
-        모듈 구현(계측·Grid·벤치마크·CW통일) ~70%→완료  :active, impl, 2026-07-13, 2026-07-23
+        모듈 구현(계측·Pan/Zoom·Pointer·편집) ~90%   :active, impl, 2026-07-13, 2026-07-21
+        Save 배선·폴리시 마무리                        :impl2, 2026-07-21, 2d
+
+        section 기획팀 테스트
+        데모사이트 테스트·버그 리포트(R3)              :qa, after impl2, 5d
 
         section 접목 (CW 팀)
-        인계 → CW embed·접목(소스 병합)      :integ, after impl, 14d
+        인계 → CW embed·접목(소스 병합)      :integ, after qa, 14d
     ```
 
-  - **S6. Known gaps** — Pan/Zoom/Reset/Pointer 미구현(커서 준비) · Arrow 툴 CW `InteractionType` 미포함(접목 시 core 반영) · Scout=MPR Th/INT·Image Adjust 동기 접목 시 배선(§D18) · 계측 삭제 UI·크로스뷰 트래킹(§11) · GPU 리슬라이스(숙제).
+  - **S6. Known gaps** — Save Project 배선·CW 필드 어댑터·⑨계측/③카메라 저장(T-P5) · 국제화(R2 결정 대기) · Arrow 툴 CW `InteractionType` 미포함(접목 시 core 반영)·Arrow 전용 커서(기획 §11) · Scout=MPR Th/INT·Image Adjust 동기 접목 시 배선(§D18) · 크로스뷰 트래킹·GPU 리슬라이스(숙제 §11). **Pan/Zoom/Pointer/계측 편집은 구현 완료.**
   - **S7. 국제화(i18n) 현황 불일치 발견** — CleverSpace·CW 모두 **Lingui**이나 **CW 한국어 카탈로그가 비어** 한국어에서 영어로 폴백, 우리 모듈은 i18n 미적용·한영 혼재. 결정은 **R2**. 상세: [OnePager §9.11-CW-2·§D23](https://vks.vatech.com/x/UecSEw).
 
     | 대상 | i18n | 지원 locale | 한국어 |
@@ -151,9 +157,9 @@
   | 1   | CW 폰트 override 수정(CW-1)      | [논의] | **활성** — CW 팀 수정·styleguide 단일화 (→ R1·§9.11) |
   | 2   | 국제화(i18n) 정책·지원 언어      | [논의] | **활성** — 추천: 한/영(en/ko) 통일·CleverSpace 연동. CW es/fr/pt 죽은 번역·ko 누락. 기획(Scott) 결정 (→ R2·§D23) |
   | 3   | Save Project — CW prj 필드      | [정보] | 방향 확정. CW 소스 분석해 진행, 정확 필드는 접목 시 CW팀 확인(§D5) |
-  | 4   | Overlay Normal 허용 오차(°)     | [정보] | **구현됨**(기본 5° 상수) — 실사용 튜닝만 |
-  | 5   | 문서(OnePager·개발계획) 커밋    | [정보] | 구현 진행 중 — 적절 시점 커밋                 |
-  - **확정·정리됨:** B/L 자동판정(§5) · 접목=소스병합(§D4) · R/L 방향(§D19) · WASM 기본·GPU 숙제(§D20) · 계측 3뷰(§D21) · Single/Dual·View Original 범위(§D22) · **Slice 스크롤 NFR 측정 완료(§8, JS 1484/WASM 1225ms)** · Show/Hide Grid 구현.
+  | 4   | 향후 계획·버그 리포트 채널       | [논의] | **신규** — 구현완료→기획 테스트(데모)→CW 접목. 버그=PLAN-1287 Sub-Task? (→ R3) |
+  | 5   | 문서(OnePager·개발계획) 커밋    | [정보] | 구현 대부분 완료 — 적절 시점 커밋                 |
+  - **확정·정리됨:** B/L 자동판정(§5) · 접목=소스병합(§D4) · R/L 방향(§D19) · WASM 기본·GPU 숙제(§D20) · 계측 3뷰(§D21) · Single/Dual·View Original 범위(§D22) · Slice NFR 측정(§8) · Show/Hide Grid · **Pan/Zoom/Reset/Pointer(§D27·§3.7)** · **Pointer 주석(§D28·§3.8)** · **계측 편집·Property(§D29·§3.9)** · **적응형 Ruler·Grid/Ruler 고정(§D27b)**.
   - **해소(이전 이월):** Section Slice 스크롤 NFR(측정 완료) · Spec 리뷰·착수 gate·구현 착수(진행 중이라 논의 불요).
 
 ---
