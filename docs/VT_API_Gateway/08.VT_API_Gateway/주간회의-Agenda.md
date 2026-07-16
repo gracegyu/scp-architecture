@@ -814,7 +814,13 @@
 
 - 논의 사항 (7/9 결정 → 적용/후속 · 신규 결정 요청)
   - **R1. IO(IntraOral) Scanner ↔ EzServer 연동 방식 확정 (선결·중요)** — v1.0 범위를 **Straumann IO Scanner**로 좁혔으나(7/9), **IO Scanner와 EzServer가 어떻게 연동되는지 미정**이다. 이는 **③-P-EZ EzServer 스펙·④ AXS 시나리오·GW E2E의 최대 선결**이라 조기 확정이 필요하다. **정할 것 = 방식·결정 주체·기한**(미정 시 아래 이월 논의로).
+    - (결정) 아직 협의 중
   - **R2. Straumann 연동 목표일정 확정 — 잠정 10월 중** — 10월 출시 역산 Gantt(아래 S2)를 **확정/조정**한다. Raymond는 **SectionView 병행(부분투입)** 이라 이를 반영한 기간이며, 착수 후 재산정.
+    - (결정) 10월 중으로 production 연동 완료
+    - 9월 중으로 개발 환경 연동 완료 (IOScanner, EzServer 수정, GW가 AXS 연동)
+      - Infra 구축 및 자동배포는 8월에 되어야 한다.
+  -  **R3. sub-Spec 초안 작성** - Infra Sub Spec 은 Raymond가 기본 Diagram 을 그려주면 Detail한 거는 Jack 이 작성한다. 
+    - (결정) EzServer 연동 Spec의 초안 작성은 Raymond가 해서 Thomas 에게 전달한다. 
 
 - 공유 사항 (결정 아님 · 정보 공유)
   - **S1. v1.0 전략 조정 반영 — Straumann IO Scanner 우선 (7/9 결정)** — v1.0 AXS 연동 = **IO Scanner만**, **CleverOne 연동은 post-v1.0**로 이관. GW 기본(호환성·인증·라우팅·target 프록시)은 originator 무관 공통이라 **v1.0 포함**. **스펙 초안 담당**: CleverOne=**Nick** · EzServer=**Thomas**(GW는 표준 계약만 제공·Raymond 초안 미작성). **반영 완료**: SRS §1.2·§2.7 · ④/③-P-EZ/③-P-CO seed · 정본 Roadmap §3.9.
@@ -915,3 +921,7 @@
   | 11   | 호환성 매트릭스 확정본                 | [정보]      | ① One Pager 의존                                             |
   | 신규 | IO Scanner↔EzServer 연동 방식          | [논의·선결] | 미정 → 이번 주 R1로 승격                                     |
   - **차주 이월 후보**: R1(IO Scanner↔EzServer 연동 방식)·R2(목표일정) 미확정 시 다음 주 이월.
+
+
+
+# VT API Gateway — 7/23 주간회의 Agenda
