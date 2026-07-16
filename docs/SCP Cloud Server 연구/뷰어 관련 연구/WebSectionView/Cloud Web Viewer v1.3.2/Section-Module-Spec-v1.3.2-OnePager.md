@@ -414,14 +414,30 @@ MMI 1.13-1a 툴바의 두 command형 초기화 버튼. **둘 다 CW 정본**(`pa
 **스펙 요구사항(확정 · §12-D23):** 본 모듈을 포함한 **3개 제품(CleverSpace·CW·Section)의 지원 언어를 한/영 `en_US`·`ko_KR` 2종으로 통일**하고, **CleverSpace(호스트) 연동으로 국제화를 적용**한다. (현황·불일치 배경·근거는 §9.11-CW-2 참조 — 여기서는 우리 모듈이 만족해야 할 요구를 규정한다.)
 
 **요구 상세:**
-1. **i18n 프레임워크 = Lingui(CW 정합).** 본 모듈은 현재 i18n 미적용·한/영 문자열 하드코딩 혼재 상태 → **모든 UI 문자열을 `t\`\`` 매크로로 외부화**하고 **`en_US`·`ko_KR` 카탈로그**를 제공한다. `@lingui/react`는 접목 시 CW/호스트와 **federation shared**로 공유(§9.3).
-2. **선행: UI 문자열 한국어 통일.** 현재 "Draw Curve"·"Curve 1" 등 영어와 "취소"·"Section 생성 중…" 등 한국어가 혼재 → **한국어 기준으로 통일**한 뒤 카탈로그화(혼재 제거가 1차 목표).
+1. **소스 문자열 = 영어, CW와 동일한 Lingui 매크로로 외부화.** Lingui 관례상 **msgid=영어 소스**, 번역은 카탈로그가 담는다. 본 모듈은 UI 문자열을 영어로 통일해 **CW와 완전히 동일한 형태**로 감싼다(2026-07-16 결정):
+   - **JSX 속성/문자열**: `i18n._(t\`Save Project\`)` (`i18n`은 `useLingui()`).
+   - **데이터/배열 라벨**(예: 툴바 ITEMS): `msg\`Reset View\``(defineMessage)로 선언 후 `i18n._(it.label)`.
+   - **JSX 자식**: `<Trans>…</Trans>` 도 가능.
+   - **왜 `i18n._(t\`\`)` 인가**: `t\`\``(=@lingui/macro 매크로)는 **빌드 타임에 추출 가능한 MessageDescriptor로 변환** → `lingui extract`가 스캔; `i18n._()`는 **런타임에 활성 locale로 조회**. 일반 런타임 `t('문자열')`은 **추출되지 않으므로** 이 형태가 필수(그래야 접목 시 CW가 우리 메시지를 원샷 추출).
+2. **우리는 추출·컴파일·번역을 돌리지 않는다.** 소스만 CW 동일 매크로로 두고, **`lingui extract`(→po)·`lingui compile`(po→mjs)·ko 번역은 접목 시 CW가 일괄 수행**(§9.3 federation shared `@lingui/react`). 데모는 **실제 `@lingui/core` `i18n` 인스턴스 + 손수 만든 소형 ko 카탈로그**(`apps/section-demo/src/i18n/ko.ts`)로 locale 전환을 시연한다(EN/한 토글).
 3. **Locale 선택은 CleverSpace(호스트) 소유.** 언어 변경 UI는 호스트가 제공하며, 본 모듈·CW는 **호스트의 활성 locale(`en_US`/`ko_KR`)을 구독**해 따른다(자체 언어 선택 UI 없음). 접목 시 CW `useBoundStore i18nStore` locale 구독에 배선.
-4. **지원 언어는 정확히 en/ko 2종.** 그 외(CW의 `es`/`fr`/`pt`)는 **비지원**(CleverSpace에서 선택 불가) — 우리 카탈로그에 추가하지 않는다. CW 측 `ko_KR` 채우기·`es`/`fr`/`pt` 정리는 **CW 팀 권고**(우리 범위 밖, §9.11-CW-2).
+4. **지원 언어는 정확히 en/ko 2종.** 그 외(CW의 `es`/`fr`/`pt`)는 **비지원** — 카탈로그에 추가 안 함. CW 측 `ko_KR` 채우기·`es`/`fr`/`pt` 정리는 **CW 팀 권고**(우리 범위 밖, §9.11-CW-2).
 
-**범위·소유:** 문자열 외부화·카탈로그는 **본 모듈 소유**(우리 컴포넌트/코어 문자열). locale 선택·전역 i18n provider 배선은 **호스트(CleverSpace)/CW 셸 소유** — 접목 시 그쪽 provider 아래에서 우리 카탈로그가 활성화된다.
+**CW i18n 스택·파이프라인(정합 대상):**
+- `@lingui/macro`(`t\`\``·`msg\`\``·`<Trans>`) → `@lingui/vite-plugin`+babel `plugins:['macros']`가 빌드 시 변환.
+- `@lingui/core` `i18n`(`.load`·`.activate`·`._`), `@lingui/react`(`useLingui()`·`<I18nProvider>`).
+- `@lingui/cli`: **`lingui extract`**(→`i18n/{locale}_core.po`) · **`lingui compile`+`compileNamespace:'es'`**(→`i18n/{locale}_core.mjs` 런타임 카탈로그; 이것이 "po→mjs"). 앱은 `.mjs`를 `i18n.load`→`i18n.activate`.
 
-**구현:** IP **T-P4-7**(회의 결정 완료·착수 가능). DoD: 문자열 한국어 통일(혼재 제거)·Lingui 구조로 locale 전환 시 en/ko 반영.
+**본 모듈 구현(T-P4-7):** 데모 vite에 `@lingui/vite-plugin`+babel macros 추가(데모가 components/core src를 alias로 컴파일하므로 그쪽 매크로도 변환). `components` tsup 빌드는 `@lingui/*` external(접목 시 peer). vitest는 `@lingui/macro`를 스텁 alias(테스트는 문자열 렌더 안 함). `<I18nProvider>`+`i18n.load({en:{}, ko})`+`i18n.activate('en')`(`main.tsx`), 데모 EN/한 토글은 `i18n.activate`. **소스 래핑 완료**(App·CwToolbar·ScoutView·SettingDialog·ImageAdjustDialog·AnnotationPropertyDialog·ViewTitleBar·SectionGrid·PanoramaView·SectionMeasureOverlay). **의도적 미래핑**: 기술 오버레이(W/L·Filter 상태)·`PointerDialog`(아이콘·CW 소유 포트)·`CtSourcePanel`(데모 외부).
+
+**접목(CW 통합) 시 국제화 TODO:**
+1. **빌드**: 데모 전용 `@lingui/vite-plugin`+babel macros·`lingui.config.ts`·`main.tsx`의 `I18nProvider`/`i18n.load`/`activate`·데모 `ko.ts`·vitest 매크로 스텁은 **제거**(CW 워크스페이스가 provider·카탈로그·locale 구독 제공). 우리 소스의 `i18n._(t\`\`)`/`msg`/`<Trans>`는 **그대로 유지**.
+2. **추출·컴파일**: CW 레포에서 `lingui extract`로 우리 메시지를 CW `*_core.po`에 병합 → **ko 번역 채움** → `lingui compile`(→`.mjs`).
+3. **locale 구독**: 컴포넌트는 이미 `useLingui()`를 쓰므로 CW `<I18nProvider>`(호스트 locale=`useBoundStore i18nStore`) 아래에서 자동 반영.
+4. **components 빌드**: 접목 배포 방식에 맞춰 `@lingui/*`를 peer/shared로 제공(tsup external 유지) — 또는 CW가 src를 직접 번들.
+5. **CW 팀 동반(권고)**: 비어 있는 `ko_KR` 카탈로그 채우기·선택 불가한 `es`/`fr`/`pt` 정리(§9.11-CW-2).
+
+**범위·소유:** `t\`\``/`msg`/`<Trans>` **소스 래핑 = 본 모듈 소유(영구)**. 추출·컴파일·번역·locale provider·전환 UI = **호스트(CleverSpace)/CW 셸 소유(데모 구현분은 접목 시 교체)**.
 
 ## 4. Overlay 표시 규칙 (MMI 1.13 §6)
 
@@ -781,7 +797,7 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 | D26 | **Save ⑨ Overlay 계측(Ann) 저장 항목** | **확정(2026-07-15, 명확화 2026-07-16) — 모듈 소유(CW도 저장하므로 우리도 저장).** MMI 1.14-⑨(Length·Angle·Arrow·FreeDraw)는 우리 계측이라 모듈 payload에 포함. `SectionProjectState`에 **`measurements[]` 필드 추가** — **뷰별(Scout·Panorama·Section)로 각각** 저장하고, **Section 주석은 어느 섹션(타일/번호)에 속하는지**(`tileIndex` + slice/arc 앵커)와 **스타일(선색·글자색·크기)** 포함. 좌표는 tile-normalized(u,v). 재오픈 시 재표시 로직과 정합. 구현=IP T-P5-4. | 확정(구현 T-P5-4) |
 | D25 | **Save ③ = 뷰별 Pan/Zoom(우리에겐 3D 카메라 아님)** | **확정(2026-07-15, 명확화 2026-07-16) — 모듈 소유.** MMI 1.14-③(각 단면 Position·Panning)은 MPR이 **3D라 카메라(보는 방향+Zoom)** 를 저장하는 항목이나, **본 Section 모듈은 3D 카메라가 없다** → **각 View(Scout·Panorama·Section)의 Pan offset·Zoom 배율만** `SectionProjectState`에 저장한다(뷰당 1세트, Section 3×3은 9뷰 공통 단일 transform=§D27). Pan/Zoom 구현(**T-P4-6 완료**)됐으므로 추가 착수 가능. 구현=IP T-P5-4. | 확정 |
 | D24 | **Save ①레이아웃·④ShowGrid(+Overlay 가시성) 소유** | **확정(2026-07-15, 보강 2026-07-16) — 셸(호스트) 소유, 모듈 payload 아님.** MMI 1.14-①(MPR/Section 레이아웃)·**④(ShowGrid, MMI 저장 항목)**는 **CW 컨테이너/워크스페이스 공통 상태**(레이아웃=컨테이너 슬롯 D22, ShowGrid=CW `workspaceViewFeatures.showGrid`). Overlay 표시 토글(Show/Hide Overlay)도 같은 워크스페이스 뷰기능(MMI ①~⑫엔 별도 항목 아님·⑨는 주석 "입력값"). **상위 Save가 저장·복원하고 모듈은 표시 반영만** → 모듈 `SectionProjectState` 조각엔 미포함. **단 데모 파리티**: `apps/section-demo`가 이 셸 토글(`showGrid`·`showOverlays`)을 **모듈 조각과 분리된 별도 localStorage 키**(`scp-section-viewfeatures:<CT키>`)로 저장·복원해 재오픈 시 Grid·주석 가시성까지 재현(2026-07-16). 접목 시 CW 워크스페이스가 정본. | 확정 |
-| D23 | **국제화(i18n) 정책·구조·지원 언어** | **결정됨(2026-07-16 회의)** — **지원 언어를 3개 제품(CleverSpace·CW·Section) 모두 한/영(en_US·ko_KR)으로 통일 + CleverSpace 연동 국제화**. 배경: 언어 선택은 CleverSpace(en/ko)가 소유하는데 CW는 en/es/fr/ko/pt로 목록이 달라 es/fr/pt는 선택 불가·죽은 번역, 한국어는 CW 비어있음(§9.11-CW-2). Section=CW와 동일 Lingui 구조(문자열 `t\`\`` 매크로·en/ko 카탈로그, 선행 한국어 통일, **스펙 §3.11**, IP T-P4-7 **착수 가능**). CW=ko 채우고 es/fr/pt 정리는 CW 팀 권고. | 2026-07-16 회의 |
+| D23 | **국제화(i18n) 정책·구조·지원 언어** | **결정됨(2026-07-16 회의)** — **지원 언어를 3개 제품(CleverSpace·CW·Section) 모두 한/영(en_US·ko_KR)으로 통일 + CleverSpace 연동 국제화**. 배경: 언어 선택은 CleverSpace(en/ko)가 소유하는데 CW는 en/es/fr/ko/pt로 목록이 달라 es/fr/pt는 선택 불가·죽은 번역, 한국어는 CW 비어있음(§9.11-CW-2). Section=문자열을 **영어 소스로 `t()` 래핑**(한국어 통일 아님 — Lingui 관례상 msgid=영어, ko는 카탈로그; 2026-07-16 정정). **우리는 추출·컴파일·번역 파이프라인을 돌리지 않고**(접목 시 CW가 `lingui extract`→po·`lingui compile`(compileNamespace es)→mjs로 일괄 수행), 데모는 경량 `t()`+소형 카탈로그로 시연. **스펙 §3.11**, IP T-P4-7. CW=ko 채우고 es/fr/pt 정리는 CW 팀 권고. | 2026-07-16 회의 |
 | D22 | **Single/Dual Layout · View Original 지원 범위** | **확정(2026-07-15) — CW 컨테이너/셸 레벨, Section 모듈 standalone 미구현·접목 시 CW 담당.** MMI 1.13-4가 Section 공통툴로 나열("MPR 동일")하나: **View Original**=압축본→원본 CT 재로드(CW CT 파이프라인, §9.4·D20 연장), **Single/Dual Layout**=CW 워크스페이스 1/2 슬롯+외부 CT 썸네일 패널 연동(다중 CT). 둘 다 **외부 패널·CT 파이프라인 전제**라 standalone 불가·실익 없음. Section 모듈 역할 최소(View Original=재공급 volume 재렌더 / Layout=슬롯 채움·리사이즈 대응, 이미 ResizeObserver 보유). 데모 툴바는 시각 정합 stub. → §11. | 통합 시 구현(CW) |
 | D21 | **계측/주석 적용 뷰 범위** | **확정(Jessi, 2026-07-15) — Length·Angle·Free Draw·Arrow 4개 공통툴 모두 Scout·Panorama·Section 3뷰에서 동작.** 각 뷰는 자기 영역/슬라이스 스코프로 제한(Scout=Scout 영역 내·Panorama=Panorama 영역 내·Section=해당 slice 내, 경계 넘나들 불가). Arrow·FreeDraw는 MMI 1.12에 3뷰 명시돼 있었고, Length·Angle은 미명시라 확인 → 동일 적용 확정(§3.4.2). 구현: `SectionMeasureOverlay`를 Scout/Panorama 단일 영역 오버레이로 재사용. | 확정 |
 | D20 | **Section 생성 기본 연산 경로 + GPU 리슬라이스 범위** | **확정(2026-07-15) — 기본 `wasm-resident`(JS 자동 폴백), 실제 GPU 리슬라이스는 숙제로 이연.** T-P6-1 측정: 두꺼운 슬랩(Th30mm) worst-case JS mean 1484·max 1787ms vs WASM-resident mean 1225·max 1336ms → **WASM이 mean −17%·max −25%·저분산**, 출력은 JS와 동일. 제품엔 연산 선택 UI가 없으므로 **기본값을 `wasm-resident`로 고정**(`useScoutAxialUi`), **WASM init/실행 실패 시 JS로 자동 폴백**(`SectionViewer`, 빈 화면 방지). 둘 다 30FPS(33ms) 미달이나 **근본해결(WebGL2 GPU 리슬라이스)은 공수 큼 → 빠른 출시 우선으로 이번 범위 밖(§11)**, 완충책(캐시·디바운스·표시분리)으로 체감 유지. **메모리:** resident는 볼륨을 WASM 힙에 상주(100~250MB, 예산 내). | 확정 |
@@ -816,6 +832,8 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.66 | 2026-07-16 | **국제화 문자열 래핑 완료(§3.11·T-P4-7)**: 사용자 노출 UI 문자열을 `i18n._(t\`\`)`/`msg\`\``로 래핑 완료 — App·CwToolbar·ScoutView·SettingDialog·ImageAdjustDialog·AnnotationPropertyDialog·ViewTitleBar·SectionGrid·PanoramaView·SectionMeasureOverlay. 한국어 하드코딩은 영어 소스로 전환. 데모 `ko.ts` 시연 번역 확장(EN/한 토글). 의도적 미래핑=기술 오버레이(W/L·Filter)·PointerDialog(아이콘·CW 포트)·CtSourcePanel(데모 외부). 빌드 5/5·테스트 통과. |
+| 1.65 | 2026-07-16 | **국제화(i18n) = CW 동일 Lingui 매크로 채택·인프라(§3.11·T-P4-7)**: 소스=영어, `i18n._(t\`\`)`·`msg\`\``·`<Trans>`+`useLingui()`(CW 정합). **왜 `i18n._(t\`\`)`**: `t\`\`` 매크로만 `lingui extract` 추출 가능(일반 `t('...')` 불가) → 접목 시 CW 원샷 추출. 데모 vite에 `@lingui/vite-plugin`+babel macros, `<I18nProvider>`+`i18n.load/activate`, 소형 ko 카탈로그+EN/한 토글; components tsup `@lingui/*` external; vitest 매크로 스텁. 래핑 App·CwToolbar·ScoutView 커브·SettingDialog 완료(나머지 순차). **접목 시 국제화 TODO를 §3.11에 정리**(데모 provider/카탈로그/빌드셋업 제거·CW extract/compile·ko 번역·locale 구독). 빌드 5/5. |
 | 1.64 | 2026-07-16 | **Initialize All 구현·의미 정의(§3.10·§3.4.2·T-P5-5)**: MMI 미정의 항목이라 의미를 정의 — **"데이터·값" 초기화(Curve 제거→파노라마/섹션 blank·계측 제거·Pan/Zoom 값→identity·WL 볼륨 기본·파라미터 기본) + "모드·토글" 유지(활성 도구·Show/Hide Overlay·Grid)**. 결과=CT 최초 로드처럼 Scout만(파생 영상 없음). 재오픈 복원(저장본)과 별개. `SectionViewer.initializeAll()`(Save 스냅샷 인프라 재사용, view는 identity로 리셋)·`toolStore` tick·`CwToolbar`·App effect(toolStore 미변경으로 모드 유지) 배선. **Reset Cloud Work=미구현→"접목 시 지원" 안내만**. IP T-P5-5 완료. |
 | 1.63 | 2026-07-16 | **Save 복원 StrictMode 버그 수정 + 셸 뷰 토글(ShowGrid·Overlay) 데모 저장(§7-④·§12-D24)**: ① 재오픈 복원이 안 되던 원인 = **React StrictMode effect 이중 실행**으로 `useCurveEditor` 볼륨 리셋이 2회 도는데 복원은 가드로 1회만 적용 → 리셋이 이김. 복원 effect 가드 제거·deps=`[volume, initialProjectState]`로 각 pass가 "리셋→복원" 순서 보장(멱등). ② **ShowGrid는 MMI ④ 저장 항목**(셸 소유)·Overlay 가시성 토글이 데모에서 저장 안 돼 재오픈 시 주석이 안 보이던 것 → 데모가 셸 토글을 **별도 키**(`scp-section-viewfeatures:<CT키>`)로 저장·복원(D24 보강). |
 | 1.62 | 2026-07-16 | **Save Project 전체 흐름 구현(§7·T-P5-2·3·4)**: 저장 모델에 **계측(⑨, 뷰별 `measurements`)·뷰별 Pan/Zoom(③, `views`)** 추가(D25/D26; ③=3D 카메라 아닌 pan/zoom 확정). 계측·view transform을 **`useScoutAxialUi` 공유 상태로 승격**(overlay·useViewTransform이 사용). `cwPrjAdapter`에 계측→`OverlayList{Scout,Panorama,Section}` 문자열·views→`_pendingD5` 반영. 데모 **Save 버튼 배선**: `SectionViewer` ref(`getProjectState`/`applyProjectState`) → CT별 키(PatientID+StudyDate) localStorage 저장 → **CW `MessageDialog` 파리티**(로딩→"Your changes have been saved."+OK) → 동일 CT 재오픈 자동 복원. UT-SAV-014/015/017/018 포함 core 102·components 32·demo 8 통과. |
