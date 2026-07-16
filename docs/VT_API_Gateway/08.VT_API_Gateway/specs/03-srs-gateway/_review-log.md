@@ -954,9 +954,16 @@ device는 공개 apex/GeoDNS로 접속하고 리전 선택은 서버측 `clinic.
   >
   > 3 line-specific finding(s) were posted as inline comments.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 반영: 대기
+- 답변(초안):
+
+총평 감사합니다. 이전 지적 3건(리전 endpoint 노출·target 시크릿 제출 경로·webhookHmac 헤더명)이 해소된 것으로 확인해 주셔서 감사하고, 이번에 새로 짚어주신 세 가지도 모두 반영했습니다 — §7.3.6 리전 목록에서 남아 있던 endpoint를 마저 제거했고, C/S 리전 선택을 `GET /v1/admin/regions`(operatorAuth)로 정정했으며, Appendix B의 DBML 테이블 수 표기를 13으로 맞췄습니다(client_inventory 포함).
+
+readOnly 관찰도 좋은 제안입니다. `createdAt`·`updatedAt`·`version` 같은 서버 관리 필드에 `readOnly: true`가 빠져 코드젠 클라이언트에 입력 필드로 보이는 점은 계약 명확성 이슈가 맞습니다(서버가 무시하므로 동작·보안 문제는 아님). 다만 지금 스키마마다 일일이 넣기보다, baseline 이후 OpenAPI를 code-first(@nestjs/swagger)로 정본 승계할 때 일원화하는 게 깔끔합니다 — 그때는 스키마가 코드에서 생성되어 `readOnly`가 일관되게 붙습니다. 이 항목을 Appendix B의 code-first 승계 잔여에 명시해 두었습니다.
+
+프록시 미참조 컴포넌트를 verbatim bypass 의도로 인지해 지적에서 제외해 주신 점도 확인했습니다. 감사합니다.
+
+- 조치: 정보성(Update 4 총평·아키텍처 결함 없음). 라인 3건(§7.3.6 endpoint·C/S admin/regions·DBML 수) 반영 확인 회신. readOnly 일원화=code-first 승계 시(Appendix B #6에 명시)
+- 반영: 답변(정보성)·readOnly는 code-first 승계로 위임
 - 상태: Active
 ---
 
