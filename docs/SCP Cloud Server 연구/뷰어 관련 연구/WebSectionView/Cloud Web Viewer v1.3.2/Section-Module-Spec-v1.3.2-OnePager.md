@@ -256,6 +256,7 @@ MMI가 **동작·상호작용을 명확히 규정하지 않거나 문구가 모�
 | **Edit 모드 시각 어포던스** | 미규정 | Edit 모드 상호작용은 **제어점·BL/LB 삼각형뿐**(width/thickness 핸들은 Edit에서 비활성)이므로, **제어점·삼각형만 밝게** 두고 **나머지(커브·section tick·9 active line·navigator·thickness·라벨)는 dim(opacity ≈0.28)** 처리해 "점 편집 중" 상태를 명확히. **임시 dev 스타일**(GUI styleguide 확정 시 교체, §3.4.1). 개발실 제안(2026-07-15) |
 | **Scout 커브 숫자 의미** | mm vs slice 불명확 | **slice 번호**(§3.4·§3.4.1 주석) |
 | **계측/주석 적용 뷰 범위(Length·Angle)** | 1.13-1에 공통툴로 나열되나 **적용 뷰 미명시**(Arrow·FreeDraw는 1.12에 3뷰 명시) | **Jessi 확정(2026-07-15, §12-D21): Length·Angle도 Arrow·Free Draw와 동일하게 Scout·Panorama·Section 3뷰 모두 동작.** 각 뷰는 **자기 영역/슬라이스 스코프**(Scout=Scout 영역·Panorama=Panorama 영역·Section=해당 slice, 경계 넘나들 불가) |
+| **모드 상호 배타 (Curve Draw/Edit ↔ toolbar 도구)** | MMI 미명시 | **한 번에 한 모드만.** ① **Draw Curve/Edit Curve 버튼 클릭 시 활성 toolbar interaction(Pan/Zoom/계측/Pointer)을 해제**(`onClearInteraction`→`deactivateInteraction`)하고 커브 모드 시작. ② 반대로 **toolbar 도구가 활성화되면 진행 중 Curve Draw/Edit를 취소**(ScoutView 효과). ③ 커브 Draw/Edit 중엔 계측 오버레이 입력 차단(`SectionMeasureOverlay disabled`)·Pan/Zoom 비활성. 근거: 여러 모드 동시 활성 시 클릭이 엉킴(사용자 피드백 2026-07-16). 개발실 결정 |
 | **계측/주석 도구 커서**(§3.7·§3.8) | MMI에 도구별 커서 미명시 | **CW `CURSORS` 정본 그대로**(도구→커서 매핑도 CW `ContentDialog.getSupportedCursorIcon` 정합): length→LENGTH(자), angle→ANGLE(각도), freeDraw→FREEDRAW(펜), pan→PAN(손), zoom→ZOOM(돋보기), Pointer Pen→POINTER·Eraser→ERASE, **편집 hover/선택→MOVE**(CW `overlaySelectedCursor`=화살표+십자, §3.9). **Arrow(v1.3.2 신규)는 CW에 전용 커서가 없어 임시로 FREEDRAW(펜) 사용** → **기획이 Arrow 전용 커서 제작 후 교체 필요(§11 숙제)**. `components/src/cursors.ts`(CW 복사)·`SectionMeasureOverlay` 배선. 2026-07-16 |
 | **Section Pan/Zoom 적용 단위**(§3.7·§12-D27) | 1.13-1a "MPR 동일"만 있고 **3×3 내부 9뷰에 어떻게 적용하는지 미명시** | **9개 뷰가 하나의 transform으로 함께** Pan/Zoom(각 뷰 자기 중앙 기준 제자리 확대·타일 클립, 뭉쳐 스프레드 아님). **근거:** slice 스크롤(타일↔슬라이스 재매핑)·Save Project 단순화 — 뷰당 1개 상태. 타일별 독립(9개)은 스크롤 시 배율 혼선·저장 9벌로 복잡해 배제. "뷰 모드" 단일 상태. 개발실 결정(2026-07-15) |
 | **Show/Hide Grid 간격·스타일** | 1.13-2a에 기능만 있고 **간격·색·선 스타일 미명시** | **CW 소스(`@ewoosoft/es-view-info` GridView) 정본 채택**: 간격 = **물리 10mm**(등방 isotropic `pxPerMm`, 설정 1~50mm), 색 `#A9A9A9`·opacity 0.7·1px·점선 `[1,1]`. **뷰(셀) 전체를 채움**(이미지 letterbox 여백 포함, zoom out 시에도), **원점 = 뷰 좌·상단(0mm)** = ruler 눈금과 정렬(MMI: view 시작=0). **Pan/Zoom에 반응하지 않는 고정 오버레이**(이미지만 확대/이동, 격자는 base 10mm 그대로 뷰 전체 유지 — §3.7·§12-D27, 2026-07-15). 3뷰 공통. Canvas 2D `GridOverlay`. (측정치 `#636363`은 검은 배경 0.7 불투명 렌더의 스포이드값으로 판단, §3.4.1a 선례.) **주: 초기 구현에서 누락(스토어·툴바만·뷰 미배선)이었고 2026-07-15 보완.** |
@@ -352,12 +353,14 @@ MMI 1.13-1a Pointer는 **일시 주석(임시 그리기)** 도구다. **동작·
 
 ### 3.9 계측/주석 편집 (Edit · Property) — CW 정합
 
-length·angle·freeDraw·arrow 계측/주석은 **생성 후 편집**할 수 있다(CW `es-pixi-wrapper` 정합; CW는 PIXI, 우리는 Canvas 2D에 동일 UX 이식). **도구 미선택(neutral) 상태에서 동작**하며(그리기 도구 활성 시 편집 비활성), **한 번에 하나만** 선택된다(다른 것 선택 시 이전 해제).
+length·angle·freeDraw·arrow 계측/주석은 **생성 후 편집**할 수 있다(CW `es-pixi-wrapper` 정합; CW는 PIXI, 우리는 Canvas 2D에 동일 UX 이식). **도구 미선택(neutral) 상태에서 동작**한다(그리기 도구 활성 시 편집 비활성).
+
+**선택 규칙(단일 선택 · CW 정합):** 한 번에 **하나만** 선택된다. 선택 해제는 ① **다른 주석 선택**, 또는 ② **빈 배경 클릭(좌/우 버튼 모두)** — 주석이 아닌 뷰 배경을 클릭하면 해제된다. (구현: 오버레이는 주석 위에서만 입력을 캡처하므로, 빈 배경 클릭은 `window` mousedown으로 감지해 해제.)
 
 **좌클릭:**
 - 주석 선 위 hover → **이동 커서**(CW `overlaySelectedCursor` = 화살표+십자, §3.4.2). 선을 드래그하면 **통째 이동**(모든 점 같은 delta, 타일 밖으로 안 나가게 clamp).
-- 선택되면 각 점이 **속 빈 네모 핸들**(색=선색)로 표시되고, 핸들을 드래그하면 그 점만 이동 → **길이·각도 실시간 갱신**. arrow·length·freeDraw도 동일.
-- 빈 곳 클릭 → 선택 해제.
+- 선택되면 각 점이 **속 빈 네모 핸들**(색=선색)로 표시되고, 핸들을 드래그하면 그 점만 이동 → **길이·각도 실시간 갱신**. **length·angle·arrow**에 적용.
+- **FreeDraw는 점별 핸들 없음(CW `FreedrawOverlay` 정합)** — 점이 많아 per-point 편집이 번잡하므로 CW처럼 **선택 시 선을 굵게** 표시하고 **통째 이동·Property·Delete만** 지원(점 편집 없음).
 
 **우클릭:** 주석 위에서 → **편집 진입 + 컨텍스트 메뉴**(흰 바탕·검정 글씨, CW `CustomMenu` 정합):
 - **Property** → Property 다이얼로그(**Line Color · Font Color · Font Size**[6·8·10·12·14·16·18·20] · Save/Cancel). **선색을 바꾸면 핸들 색도 함께** 바뀐다.
@@ -761,6 +764,9 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.54 | 2026-07-16 | **주석 선택 해제 = 빈 배경 클릭(좌/우) (§3.9)**: 선택 후 다른 주석 선택 전엔 해제 안 되던 것 수정 — CW처럼 **주석 아닌 뷰 배경 클릭(좌/우)** 시 해제. 오버레이가 주석 위에서만 캡처하므로 `window` mousedown으로 배경 클릭 감지. §3.9 단일 선택·해제 규칙 명문화. |
+| 1.53 | 2026-07-16 | **FreeDraw 편집 = CW 정합(점 핸들 없음, §3.9)**: CW `FreedrawOverlay` 조사 — FreeDraw는 `select()`가 선을 굵게만 하고 per-point 핸들 없이 **통째 이동·Property·Delete**만. 우리도 FreeDraw는 점 핸들 제거·선택 시 굵은 선(length/angle/arrow는 핸들 유지). |
+| 1.52 | 2026-07-16 | **모드 상호 배타(§3.4.2)**: Draw Curve/Edit Curve 클릭 시 활성 toolbar interaction(Pan/Zoom/계측/Pointer) 해제 후 시작(충돌 방지, 사용자 피드백). 반대로 toolbar 도구 활성 시 커브 Draw/Edit 취소. 커브 모드 중 계측 오버레이 입력 차단(`disabled` prop). `onClearInteraction` 콜백 App→SectionViewer→ScoutView 배선. |
 | 1.51 | 2026-07-16 | **계측/주석 편집(Edit·Property) 신설(§3.9·§12-D29·§9.10·T-P4-9)**: length·angle·freeDraw·arrow 생성 후 편집 — hover 이동커서(CW `overlaySelectedCursor` `MOVE` 복사)·선 드래그 이동·속빈 네모 핸들 편집(길이·각도 실시간)·단일 선택·우클릭 컨텍스트 메뉴(Property/Delete)·Property 다이얼로그(선색·글자색·글자크기 6~20, `AnnotationPropertyDialog`=CW `OverlayPropertyDialog` 포트). 계측 모델에 `style` 추가→Save ⑨ 저장(D26). 계측 라벨 검정 박스 제거(흰 글씨). 접목 시 CW PIXI 엔진/다이얼로그로 교체(§9.10). |
 | 1.50 | 2026-07-16 | **계측/주석 도구별 커서(§3.4.2·§11)**: 그리는 도구에 따라 전용 커서 — CW `CURSORS` 정본 복사(LENGTH·ANGLE·FREEDRAW 추가) + CW `ContentDialog` 매핑 정합(length→LENGTH·angle→ANGLE·freeDraw→FREEDRAW). **Arrow는 CW에 전용 커서 부재(v1.3.2 신규)라 임시 FreeDraw 펜 커서** 사용, 기획이 전용 커서 제작 후 교체(§11 숙제). `SectionMeasureOverlay`에 배선. |
 | 1.49 | 2026-07-16 | **Pointer 접목 절차 상세화(§9.9-8b단계)**: 접목 시 Pointer 처리를 단계별로 명시 — Pointer는 CW WorkSpace 셸 레벨이라 우리 포트(`PointerDialog`·`PointerCanvas`·App 모달 배선) **삭제**, CW가 자체 제공(단일 오버레이라 Section 뷰 위 자동 드로잉), 커서 CW import 대체, 검증 항목까지. §9.10 표·최소 변경 요약에 링크. |
