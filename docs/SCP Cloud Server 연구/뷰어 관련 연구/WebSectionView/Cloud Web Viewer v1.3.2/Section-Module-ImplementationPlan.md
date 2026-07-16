@@ -535,7 +535,7 @@
 
 #### T-P5-2 — 직렬화 API·브라우저 임시저장
 
-- [x] **완료(부분)** — 2026-07-14(자동). `core/project/serialize.ts`: `serializeProject`(JSON)·`deserializeProject`(관대 파싱·버전 체크·손상 좌표 필터·부분 누락 blank 보정). `apps/section-demo/src/save/projectStorage.ts`: localStorage save/load/clear + 파일 export/import. UT-SAV-011(round-trip 무손실)·UT-SAV-012(blank 복원)+버전불일치/손상 케이스 통과. **잔여(2026-07-15 범위 확정)**: **완전한 Save 흐름** — ① 데모에 **Save 버튼** → **CT 식별 키(Study/Series UID, 없으면 PatientID+StudyDate 폴백)로 localStorage 저장**, ② **동일 CT 재오픈 시 자동 로드→상태 적용**(axialUi setter 배선), ③ 저장된 상태(커브·섹션 파라미터·계측)가 올바르게 복원·적용되는지 검증(MT-SAV-013). 접목 시 저장 계층만 호스트로 교체. (**저장 payload를 CW 필드 조각으로 맞추는 건 T-P5-3**.)
+- [x] **완료(2026-07-16).** `core/project/serialize.ts`: `serializeProject`(JSON)·`deserializeProject`(관대 파싱·버전 체크·손상 필터·blank 보정). `apps/section-demo/src/save/projectStorage.ts`: localStorage save/load/clear + export/import. **완전한 Save 흐름 완성**: ① 데모 상단바 **Save 버튼** → `SectionViewer` ref(`getProjectState`)로 현재 상태 수집 → **CT 식별 키(PatientID+StudyDate 폴백, `ctStorageKey`)로 localStorage 저장** → **CW MessageDialog 파리티 다이얼로그**(로딩 스피너 → "Your changes have been saved." + teal OK, `cw/MessageDialog.tsx`), ② **동일 CT 재오픈 시 자동 로드→`applyProjectState`로 상태 적용**(App effect가 자식 볼륨-리셋 뒤 실행돼 복원 우선). 저장 payload는 **CW 필드 조각(T-P5-3)**. UT-SAV-011/012 통과. 접목 시 저장 계층·다이얼로그는 CW 셸로 교체(§9.10).
 
 | 필드 | 값 |
 |------|------|
@@ -567,7 +567,7 @@
 
 #### T-P5-4 — 저장 모델 갭 보완 (③ 카메라 · ⑨ Overlay 계측)
 
-- [ ] **미구현(2026-07-15 신설)** — MMI 1.14-c 전수 대조(§7 표)에서 발견된 **모듈 소유 미보유 2건**을 `SectionProjectState`에 추가. ① **⑨ Overlay 계측**(D26): `measurements[]` 필드 추가 — `core/measure/measurement.ts` 모델 재사용, 뷰(Scout/Pano/Section)·slice/arc 앵커 포함, 재오픈 재표시 로직과 정합. ② **③ 카메라 Pan/Zoom**(D25): 뷰별 pan offset·zoom 필드 추가 — **T-P4-6(Pan/Zoom 구현) 완료 후**에만 착수(그 전엔 저장 제외·기본 뷰 복원). serialize/deserialize·어댑터(T-P5-3)·CT키 저장(T-P5-2)에 신규 필드 반영. ①레이아웃·④ShowGrid는 셸 소유라 제외(D24).
+- [x] **구현 완료(2026-07-16).** `SectionProjectState`에 **`measurements`(⑨, 뷰별 `PerView<AnchoredMeasurement[]>`)** + **`views`(③, 뷰별 `{panX,panY,zoom}`)** 추가(§7·D25·D26). `AnchoredMeasurement`를 core로 이동(뷰별·`tileIndex`=섹션 번호 앵커·style 포함). serialize/deserialize·`cwPrjAdapter`(계측→`OverlayList{Scout,Panorama,Section}` 문자열, views→`_pendingD5`)에 신규 필드 반영. **공유 store 승격**: `useScoutAxialUi`가 `measurements`/`viewTransforms`(+안정 dispatcher)를 보유, `SectionMeasureOverlay`·`useViewTransform`이 로컬 useState 대신 이를 사용(3뷰 배선). ③ 카메라 = MPR 3D 카메라 아닌 **뷰별 Pan/Zoom**으로 확정(D25). **UT-SAV-017/018**(뷰별 Pan/Zoom·계측 round-trip)·손상 계측 드롭 통과. ①레이아웃·④ShowGrid는 셸 소유 제외(D24).
 
 | 필드 | 값 |
 |------|------|
