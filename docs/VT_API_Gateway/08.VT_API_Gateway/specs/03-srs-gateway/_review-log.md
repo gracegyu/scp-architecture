@@ -980,6 +980,45 @@ readOnly 관찰도 좋은 제안입니다. `createdAt`·`updatedAt`·`version` �
 - 조치: 정보성(Update 4 총평·아키텍처 결함 없음). 라인 3건(§7.3.6 endpoint·C/S admin/regions·DBML 수) 반영 확인 회신. readOnly 일원화=code-first 승계 시(Appendix B #6에 명시)
 - 반영: 답변(정보성)·readOnly는 code-first 승계로 위임
 - 상태: Active
+
+## C-49 · docs/specs/design/dbml/vt-api-gateway.dbml:135 · [thread 79966] ★리뷰어 대기(자동리뷰 Update 5)
+- **[민진우(Thomas) · 2026-07-16T06:37 · cid 79966.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > `region_catalog` 테이블이 여전히 **`endpoint` 컬럼**을 보유하고(line 135), 그 테이블 주석이 이를 **`GET /v1/regions`의 출력/SSOT 구성요소로 명시**한다 — line 128 "GW 서비스 리전의 목록·표시명·**endpoint**·운영상태·기본값. **`GET /v1/regions`의 SSOT**", line 141 Note "region list API(**`GET /v1/regions`**·§7.3.6)의 SSOT". 이는 이번 변경에서 **해소된** 직전 리뷰 지적(리전 내부 endpoint 노출)과 정면으로 어긋난다: SRS는 §7.3.6(line 1903)에서 `GET /v1/regions` 출력을 "region_id·표시명·status"로 한정하고 "**리전 내부 endpoint는 미노출**(§4.5.1·§7.3.1 정합)"으로 못 박았으며, `ClinicResolution`/`Region` 스키마에서도 endpoint를 제거했다. 즉 **endpoint 제거 정합화 스윕이 DBML을 누락**해, 계약 정본(§7.3.6·OpenAPI)과 데이터 모델 정본(DBML)이 SSOT 차원에서 상충한다(SRS↔DBML 추적성 훼손). 최소한 주석의 "endpoint … `GET /v1/regions`의 SSOT" 서술을 §7.3.6과 일치시키고(엔드포인트는 조회 API 출력이 아님), endpoint 컬럼을 유지한다면 "**클라이언트 미노출·내부 운영 전용**"임을 명시해야 한다. 덧붙여 컬럼 예시 `https://apne2.internal.gw.vatech.com`는 §4.5.1의 리전 내부 호스트 네이밍 규약 `gw-<region>.vatech.com`(예 `gw-apne2.vatech.com`)과도 어긋나므로 함께 정합화가 필요하다.
+
+- 답변(초안):
+
+맞습니다. endpoint 제거 정합화 스윕이 DBML `region_catalog` 주석을 놓쳤습니다. `endpoint` 컬럼은 리전 내부(server-side·라우팅용) 값이라 그대로 두되, 이를 `GET /v1/regions` 출력/SSOT로 기술한 주석(테이블 위·컬럼·Note)을 "출력은 region_id·표시명·status, endpoint는 내부·미노출(§4.5.1·§7.3.6)"로 정정했습니다. 컬럼 예시도 옛 `apne2.internal.gw.vatech.com`에서 §4.5.1 규약 `gw-apne2.vatech.com`으로 맞췄습니다. 이제 SRS §7.3.6·OpenAPI·DBML이 endpoint 미노출로 일치합니다.
+
+- 조치: DBML region_catalog 주석/Note/컬럼 예시 정정 — endpoint를 'GET /v1/regions 출력 SSOT'에서 '리전 내부·server-side·미노출'로·예시 gw-apne2.vatech.com. endpoint 정합화 SRS·OpenAPI·DBML 완결
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
+
+## C-50 · (파일 미지정·일반) · [thread 79967] ★리뷰어 대기(자동리뷰 Update 5)
+- **[민진우(Thomas) · 2026-07-16T06:37 · cid 79967.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > ## Code Review (Other) — Update 5
+  >
+  > 이번 증분 diff는 직전 커밋 메시지("리뷰 후속 — 데이터 토폴로지(2-cluster)·clinic_id 불변·리전 endpoint 미노출 정합")대로 **[Previous Review]의 3건을 모두 해소**했다. ① **§7.3.6 `GET /v1/regions` endpoint 잔존**(line 1903) — 조회 출력을 "region_id·표시명·status"로 한정하고 "리전 내부 endpoint 미노출(§4.5.1·§7.3.1 정합)"로 교정해 나머지 문서와 통일. ② **§2.3.1 C/S 리전 선택의 device 대면 endpoint 귀속**(line 661) — C/S(운영자)의 리전 override를 device-facing `GET /v1/regions`(deviceAuth)가 아니라 **`GET /v1/admin/regions`(operatorAuth)** 로 정정하고, device용 공개 조회와 별개 면임을 명시(enroll 시점 device는 `pending`이라 토큰 없음도 부기). ③ **Appendix B DBML 테이블 수 상충**(#48↔#6) — #48을 "DBML **13** 테이블(client_inventory 포함·#6과 일치)"로 맞춰 #6과 동일 수치로 정렬했고, 실제 DBML 테이블도 13개(device·clinic·region_catalog·policy·audit_log·operator·operator_role·fleet_state·client_inventory·config·webhook_event·org_mapping·target)로 확인되어 내부 정합이 성립한다.
+  >
+  > **신규 결함은 모두 경미하며 문서·형상관리 위생 수준**으로, 아키텍처·데이터 모델을 바꾸거나 계약을 깨는 결함은 없다. 두 건 다 **직전 리뷰의 endpoint 제거·정합화 작업이 남긴 잔여**다: (1) 검증 부산물 **빈 `dbml-error.log`가 커밋**되어 저장소 위생을 해치고, (2) **DBML `region_catalog`가 endpoint 컬럼을 유지한 채 주석으로 이를 `GET /v1/regions` SSOT로 서술**해, SRS 쪽 endpoint-미노출 정정과 DBML 사이에 SSOT 상충이 남았다(SRS는 정정 완료, DBML은 누락). 통제 문서의 SRS↔DBML 추적성 관점에서 (2)를 우선 정정하고 (1)을 함께 제거하면 endpoint 제거 스윕이 완결된다.
+  >
+  > 1 line-specific finding(s) were posted as inline comments.
+  >
+  > ### Findings without a matching diff location
+  >
+  > **dbml-error.log:1**
+  > 이번 diff가 **빈 파일 `dbml-error.log`(0 byte·blob `e69de29`)를 신규 추가**한다. 이는 DBML 툴체인(`dbml2sql`/`@dbml/cli`)이 검증 과정에서 뱉은 **에러 로그 산출물**로, 리포지토리에 커밋될 대상이 아니다(빌드·검증 부산물). 파일 내용이 비어 있어(검증 통과) 정보 가치도 없고, `*-error.log`라는 이름이 저장소에 남으면 이후 리뷰어가 실제 오류로 오인할 소지가 있다. **삭제하고 `.gitignore`에 로그 산출물 패턴을 추가**해 재유입을 막는 것이 옳다. (통제 문서 저장소의 형상관리 위생 §3.6 관점.)
+
+- 답변(초안):
+
+Update 5 총평 감사합니다. 직전 3건(§7.3.6 endpoint 잔존·§2.3.1 C/S admin/regions·Appendix B 테이블 수)이 해소된 것으로 확인해 주셔서 감사합니다. 이번에 지적된 DBML `region_catalog` endpoint 주석 잔재도 방금 정정해, endpoint 미노출 정합화를 SRS·OpenAPI·DBML 전체에서 마무리했습니다.
+
+- 조치: 정보성(Update 5 총평). C-49 반영 확인 회신. 추가 변경 없음
+- 반영: 답변(정보성)
+- 상태: Active
 ---
 
 ## 인덱스 (위치·상태)
@@ -1032,3 +1071,5 @@ readOnly 관찰도 좋은 제안입니다. `createdAt`·`updatedAt`·`version` �
 - C-46 · docs/specs/SRS.md:656 · `Active`
 - C-47 · docs/specs/SRS.md:2329 · `Active`
 - C-48 · (파일 미지정·일반) · `Active`
+- C-49 · docs/specs/design/dbml/vt-api-gateway.dbml:135 · `Active`
+- C-50 · (파일 미지정·일반) · `Active`
