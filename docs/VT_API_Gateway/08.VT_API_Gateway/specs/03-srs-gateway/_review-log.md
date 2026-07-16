@@ -930,9 +930,14 @@ device는 공개 apex/GeoDNS로 접속하고 리전 선택은 서버측 `clinic.
   > From CodeReviewAgent(v0.4.1),
   > Appendix B #48이 산출물 상태를 "redocly valid·**DBML 11**"로 표기하나, 바로 위 #6(line 2328)은 "**DBML 13 테이블**(dbml2sql OK)"로 적고 있어 테이블 수가 상충한다. 더욱이 #48 자체가 **신규 `client_inventory` 테이블**을 추가했으므로 13 → 14가 되어야 하며 "11"은 어느 기준으로도 맞지 않는다. 상태 주석(비규범)이지만 통제 문서의 내부 정합성 차원에서 수치를 하나로 맞춰야 한다. (경미)
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 반영: 대기
+- 답변(초안):
+
+확인해 보니 실제 테이블 수는 13개이고(client_inventory 포함), Appendix B #6의 'DBML 13 테이블'이 맞습니다. #48의 'DBML 11'이 오기여서 13으로 정정했습니다.
+
+한 가지 덧붙이면, client_inventory는 이미 그 13에 포함돼 있어서 14가 아니라 13입니다 — 지적하신 상충은 #48의 수치 오기였고, 이제 #6·#48·실제 스키마가 모두 13으로 일치합니다.
+
+- 조치: Appendix B #48 'DBML 11'→'DBML 13 테이블(client_inventory 포함)' 정정. 실제 grep=13개·#6과 일치. (리뷰어 제안 14는 client_inventory 중복 계산 오해)
+- 반영: 반영완료(로컬·미push)
 - 상태: Active
 
 ## C-48 · (파일 미지정·일반) · [thread 79899] ★리뷰어 대기(자동리뷰 Update 4)
