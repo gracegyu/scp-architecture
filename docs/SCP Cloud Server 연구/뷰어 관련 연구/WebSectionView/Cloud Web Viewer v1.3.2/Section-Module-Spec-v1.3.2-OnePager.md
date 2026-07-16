@@ -253,9 +253,10 @@ MMI가 **동작·상호작용을 명확히 규정하지 않거나 문구가 모�
 | **컨텍스트 메뉴 발견성** | "커브 위" 한정이라 얇은 선 우클릭이 어려움 | 우클릭이 커브서 벗어나도 **메뉴는 표시**(L/B·Delete Curve), 단 Add Point만 커브 근처 제한. 항목은 MMI 유지(§6) |
 | **Edit 점 추가 버튼** | 좌/우클릭 역할 불명확 | **좌클릭만** 추가/이동/선택, **우클릭=컨텍스트 메뉴 전용**(Draw 모드와 동일, §6) |
 | **Edit 제어점 hover 커서** | 미규정 | **모든 제어점** 위 hover 시 이동(`move`) 커서(시작/끝뿐 아니라 전체) |
-| **Edit 모드 시각 어포던스** | 미규정 | Edit 모드 상호작용은 **제어점·BL/LB 삼각형뿐**(width/thickness 핸들은 Edit에서 비활성)이므로, **제어점·삼각형만 밝게** 두고 **나머지(커브·section tick·9 active line·navigator·thickness·라벨)는 dim(opacity ≈0.28)** 처리해 "점 편집 중" 상태를 명확히. **임시 dev 스타일**(GUI styleguide 확정 시 교체, §3.4.1). 개발실 제안(2026-07-15) |
+| **Edit 모드 시각 어포던스** | 미규정 | Edit 모드 상호작용은 **제어점·BL/LB 삼각형뿐**(width/thickness 핸들은 Edit에서 비활성)이므로, **제어점·삼각형만 밝게** 두고 **나머지(커브·section tick·9 active line·navigator·thickness·라벨)는 dim** 처리해 "점 편집 중" 상태를 명확히. **dim opacity는 상수 `EDIT_MODE_DIM_OPACITY`(현재 0.45)** 한 곳에서 조정(2026-07-16 상향, 이전 0.28은 너무 흐림). **겹침 예외(2026-07-16):** 정본 겹침 순서(MMI #49)는 제어점이 맨 아래이나, **Edit 모드에서는 편집 대상인 제어점을 최상단으로 올려**(흐려진 빨간 Section line 위) 밝게 표시 → 클릭·식별 용이. **비-Edit는 MMI #49 순서 불변.** **임시 dev 스타일**(GUI styleguide 확정 시 교체, §3.4.1). 개발실 제안(2026-07-15) |
 | **Scout 커브 숫자 의미** | mm vs slice 불명확 | **slice 번호**(§3.4·§3.4.1 주석) |
 | **계측/주석 적용 뷰 범위(Length·Angle)** | 1.13-1에 공통툴로 나열되나 **적용 뷰 미명시**(Arrow·FreeDraw는 1.12에 3뷰 명시) | **Jessi 확정(2026-07-15, §12-D21): Length·Angle도 Arrow·Free Draw와 동일하게 Scout·Panorama·Section 3뷰 모두 동작.** 각 뷰는 **자기 영역/슬라이스 스코프**(Scout=Scout 영역·Panorama=Panorama 영역·Section=해당 slice, 경계 넘나들 불가) |
+| **Section slice 휠 스크롤 임계값** | MMI 1.9-1은 휠 스크롤만 명시(민감도 미정) | **누적 임계값 방식**(`SectionGrid onWheel`): deltaY를 누적해 **24 이상일 때 1칸** 스텝. 트랙패드 미세 스크롤·우클릭 제스처가 유발하는 작은 wheel로 slice가 튀는 것을 방지. 개발실 결정(2026-07-16) |
 | **모드 상호 배타 (Curve Draw/Edit ↔ toolbar 도구)** | MMI 미명시 | **한 번에 한 모드만.** ① **Draw Curve/Edit Curve 버튼 클릭 시 활성 toolbar interaction(Pan/Zoom/계측/Pointer)을 해제**(`onClearInteraction`→`deactivateInteraction`)하고 커브 모드 시작. ② 반대로 **toolbar 도구가 활성화되면 진행 중 Curve Draw/Edit를 취소**(ScoutView 효과). ③ 커브 Draw/Edit 중엔 계측 오버레이 입력 차단(`SectionMeasureOverlay disabled`)·Pan/Zoom 비활성. 근거: 여러 모드 동시 활성 시 클릭이 엉킴(사용자 피드백 2026-07-16). 개발실 결정 |
 | **계측/주석 도구 커서**(§3.7·§3.8) | MMI에 도구별 커서 미명시 | **CW `CURSORS` 정본 그대로**(도구→커서 매핑도 CW `ContentDialog.getSupportedCursorIcon` 정합): length→LENGTH(자), angle→ANGLE(각도), freeDraw→FREEDRAW(펜), pan→PAN(손), zoom→ZOOM(돋보기), Pointer Pen→POINTER·Eraser→ERASE, **편집 hover/선택→MOVE**(CW `overlaySelectedCursor`=화살표+십자, §3.9). **Arrow(v1.3.2 신규)는 CW에 전용 커서가 없어 임시로 FREEDRAW(펜) 사용** → **기획이 Arrow 전용 커서 제작 후 교체 필요(§11 숙제)**. `components/src/cursors.ts`(CW 복사)·`SectionMeasureOverlay` 배선. 2026-07-16 |
 | **Section Pan/Zoom 적용 단위**(§3.7·§12-D27) | 1.13-1a "MPR 동일"만 있고 **3×3 내부 9뷰에 어떻게 적용하는지 미명시** | **9개 뷰가 하나의 transform으로 함께** Pan/Zoom(각 뷰 자기 중앙 기준 제자리 확대·타일 클립, 뭉쳐 스프레드 아님). **근거:** slice 스크롤(타일↔슬라이스 재매핑)·Save Project 단순화 — 뷰당 1개 상태. 타일별 독립(9개)은 스크롤 시 배율 혼선·저장 9벌로 복잡해 배제. "뷰 모드" 단일 상태. 개발실 결정(2026-07-15) |
@@ -355,7 +356,7 @@ MMI 1.13-1a Pointer는 **일시 주석(임시 그리기)** 도구다. **동작·
 
 length·angle·freeDraw·arrow 계측/주석은 **생성 후 편집**할 수 있다(CW `es-pixi-wrapper` 정합; CW는 PIXI, 우리는 Canvas 2D에 동일 UX 이식). **도구 미선택(neutral) 상태에서 동작**한다(그리기 도구 활성 시 편집 비활성).
 
-**선택 규칙(단일 선택 · CW 정합):** 한 번에 **하나만** 선택된다. 선택 해제는 ① **다른 주석 선택**, 또는 ② **빈 배경 클릭(좌/우 버튼 모두)** — 주석이 아닌 뷰 배경을 클릭하면 해제된다. (구현: 오버레이는 주석 위에서만 입력을 캡처하므로, 빈 배경 클릭은 `window` mousedown으로 감지해 해제.)
+**선택 규칙(단일 선택 · CW 정합):** 한 번에 **하나만** 선택된다. 선택 해제는 ① **다른 주석 선택**, 또는 ② **빈 배경 클릭(좌/우 버튼 모두)** — 주석이 아닌 뷰 배경을 클릭하면 해제된다.
 
 **좌클릭:**
 - 주석 선 위 hover → **이동 커서**(CW `overlaySelectedCursor` = 화살표+십자, §3.4.2). 선을 드래그하면 **통째 이동**(모든 점 같은 delta, 타일 밖으로 안 나가게 clamp).
@@ -365,12 +366,13 @@ length·angle·freeDraw·arrow 계측/주석은 **생성 후 편집**할 수 있
 **우클릭:** 주석 위에서 → **편집 진입 + 컨텍스트 메뉴**(흰 바탕·검정 글씨, CW `CustomMenu` 정합):
 - **Property** → Property 다이얼로그(**Line Color · Font Color · Font Size**[6·8·10·12·14·16·18·20] · Save/Cancel). **선색을 바꾸면 핸들 색도 함께** 바뀐다.
 - **Delete** → 해당 주석 삭제.
+- (구현 주의) 우클릭은 `mousedown button===2`가 아니라 **`contextmenu` 이벤트**로 처리한다 — Mac control-click은 mousedown button이 0이라 button 검사로는 놓친다.
 
 **저장:** 편집된 점 + 스타일(선색·글자색·글자크기)은 **계측 모델 `style`**(`measurement.ts`)에 담겨 **Save Project ⑨(Overlay, §7·§12-D26·T-P5-4)** 로 저장된다.
 
-**모드 충돌 회피(중요):** 편집 오버레이는 **주석 위 hover일 때만 입력을 캡처**(window mousemove로 판정해 `pointerEvents` 토글)하고, 그 외엔 통과시켜 **Scout 커브 편집·Pan/Zoom 등 뷰 고유 조작을 막지 않는다.**
+**모드 충돌 회피(중요):** **편집 모드(도구 미선택)에서 계측이 하나라도 있으면 오버레이가 그 뷰를 캡처**(`pointerEvents:auto`)해 선택·이동·우클릭 메뉴가 확실히 동작한다. 계측이 없으면 캡처하지 않아 뷰 조작을 막지 않는다. **Pan/Zoom·Pointer·Curve Draw/Edit 활성 시에는 오버레이를 `disabled`**(각 뷰가 `navTool`/curve 상태로 판정)로 그 모드가 우선이다.
 
-**구현(T-P4-9, 완료):** `SectionMeasureOverlay`에 편집 상태(selectedId·핸들 드래그·이동·컨텍스트 메뉴)·hit-test(선분 거리·핸들)·스타일 렌더(선색/글자색/글자크기·속빈 네모 핸들) 추가. **편집 입력은 `window` 캡처 단계 리스너**(mousedown/move/up/contextmenu)에서 직접 처리 — hover 기반 `pointerEvents` 캡처 타이밍에 의존하지 않아 우클릭 메뉴·선택·드래그가 항상 동작하고, 주석 hit 시 `stopPropagation`으로 아래 뷰(커브·Pan/Zoom) 클릭 차단(hover 커서만 pointerEvents로 표시). 메뉴/다이얼로그는 `data-ann-ui`로 표식해 리스너가 건너뜀. `AnnotationPropertyDialog`(CW `OverlayPropertyDialog` 포트, 경량). 커서 `MOVE`(CW `overlaySelectedCursor`) `cursors.ts`에 복사. Scout는 Curve Draw/Edit 중 오버레이 `disabled`. **접목 시** 편집·Property·메뉴는 CW `es-pixi-wrapper`/`OverlayPropertyDialog`/`CustomMenu` 정본으로 교체(§9.10).
+**구현(T-P4-9, 완료):** `SectionMeasureOverlay`에 편집 상태(selectedId·핸들 드래그·이동·컨텍스트 메뉴)·hit-test(선분 거리·핸들)·스타일 렌더(선색/글자색/글자크기·속빈 네모 핸들) 추가. 우클릭 메뉴는 `onContextMenu`, 좌클릭 선택·드래그는 `onMouseDown/Move/Up`. `AnnotationPropertyDialog`(CW `OverlayPropertyDialog` 포트, 경량). 커서 `MOVE`(CW `overlaySelectedCursor`) `cursors.ts`에 복사. **접목 시** 편집·Property·메뉴는 CW `es-pixi-wrapper`/`OverlayPropertyDialog`/`CustomMenu` 정본으로 교체(§9.10).
 
 ## 4. Overlay 표시 규칙 (MMI 1.13 §6)
 
@@ -678,11 +680,11 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 
 **문제점:** ① 우리 모듈은 i18n 미적용·한영 혼재(가장 불일치). ② CW는 인프라는 있으나 **한국어 번역 누락**(CleverSpace는 한국어 되는데 CW 영역만 영어로 튐 — 폰트 CW-1과 같은 종류의 불일치). ③ **지원 언어 목록 불일치**: **언어 선택(변경) UI는 CleverSpace(호스트)가 소유**하고 CleverSpace는 `en_US·ko_KR`만 제공하는데, **CW는 en/es/fr/ko/pt로 더 많다** → CW가 번역한 **es/fr/pt는 CleverSpace에서 선택조차 불가한 "죽은 번역"**이고, 정작 선택 가능한 **한국어는 CW가 비어 있다.** (근거: CW `packages/core/i18n/*.po`(5개 locale, ko 비어있음)·`src/App.tsx`(`i18n.load/activate`, locale=`useBoundStore i18nStore`) · ezcloud `i18n/ko_KR_EzCloud.po`·`lingui.config.ts` `locales:['en_US','ko_KR']`.)
 
-**방침(추천, §12-D23 — 회의/기획 결정 대기):** **지원 언어를 셋 모두 한/영(`en_US`·`ko_KR`)으로 통일**하고, **CleverSpace 연동으로 CW·Section 모두 국제화 적용**. 근거: 언어 선택이 **CleverSpace(en/ko)에 종속**되므로 지원 언어는 CleverSpace 기준으로 맞추는 게 맞다(그 이상은 선택 불가·무의미). 구체:
+**방침(결정 · §12-D23, 2026-07-16 회의):** **지원 언어를 셋(CleverSpace·CW·Section) 모두 한/영(`en_US`·`ko_KR`)으로 통일**하고, **CleverSpace 연동으로 CW·Section 모두 국제화 적용**. 근거: 언어 선택이 **CleverSpace(en/ko)에 종속**되므로 지원 언어는 CleverSpace 기준으로 맞춘다(그 이상은 선택 불가·무의미). 구체:
 > ① **Section 모듈** = CW와 동일 **Lingui 구조 채택**(문자열 `t\`\`` 매크로화, `@lingui/react` federation shared §9.3), **en/ko 카탈로그** 제공. 선행으로 UI 문자열 한국어 통일(한영 혼재 제거).
 > ② **CW**(권고) = **비어 있는 ko_KR 채우고**, 선택 불가한 **es/fr/pt는 정리**(유지 부담만·CleverSpace 미선택). → CleverSpace와 언어 목록 일치.
 >
-> **결정 필요(회의·기획 Scott):** (a) 지원 언어 = 한/영 통일(추천) 여부, (b) CW의 언어 목록 정리·ko 채우기(CW 팀). 언어/시장 정책이라 **기획(Scott) 판단**. 프레임워크 정합(Lingui)은 기술적 당연.
+> **결정됨(2026-07-16 회의):** 지원 언어 = **한/영(en/ko) 통일**로 3개 제품 모두 확정. CW의 언어 목록 정리·ko 채우기는 **CW 팀**에 권고. 프레임워크 정합(Lingui)은 기술적 당연. → IP **T-P4-7 착수 가능**(더 이상 결정 대기 아님).
 
 ## 10. 공개 API · 인계물
 
@@ -729,7 +731,7 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 | D26 | **Save ⑨ Overlay 계측 저장 항목** | **확정(2026-07-15) — 모듈 소유, 저장 모델 추가 예정.** MMI 1.14-⑨(Length·Angle·Arrow·FreeDraw)는 우리 계측이라 모듈 payload에 포함. 계측 로직·모델(`core/measure/measurement.ts`)은 구현됐으나 `SectionProjectState`에 미포함 → **`measurements[]` 필드 추가**(뷰·slice/arc 앵커 포함, 재오픈 시 재표시 로직과 정합). 좌표는 tile-normalized(u,v)+환자 3D 앵커(§4·§3.4.2). 구현=IP T-P5-4. | 확정(구현 T-P5-4) |
 | D25 | **Save ③ 카메라(Pan/Zoom) 저장 항목** | **확정(2026-07-15) — 모듈 소유, T-P4-6 완료 후 추가.** MMI 1.14-③(각 단면 Position·Panning)은 우리 뷰 상호작용이라 모듈 payload에 포함하나, **Pan/Zoom 자체가 미구현(T-P4-6)** 이라 그 완료 후 뷰별 카메라 필드(pan offset·zoom)를 `SectionProjectState`에 추가. 그 전엔 저장 모델에서 제외(복원 시 기본 뷰). 구현=IP T-P5-4(T-P4-6 의존). | 확정(T-P4-6 후) |
 | D24 | **Save ①레이아웃·④ShowGrid 소유** | **확정(2026-07-15) — 셸(호스트) 소유, 모듈 payload 아님.** MMI 1.14-①(MPR/Section 레이아웃)·④(ShowGrid)는 **CW 컨테이너/워크스페이스 공통 상태**(레이아웃=컨테이너 슬롯 D22 연장, ShowGrid=CW `workspaceViewFeatures.showGrid` 워크스페이스 뷰기능). 상위 Save가 저장·복원하고 **모듈은 표시에 반영만** 한다. 전체 prj엔 존재하나 우리 `SectionContentHandler` 조각엔 미포함. | 확정 |
-| D23 | **국제화(i18n) 정책·구조·지원 언어** | **추천안·회의/기획 결정 대기(2026-07-15)** — CleverSpace·CW 모두 Lingui이나 **지원 언어 목록이 다르고**(CleverSpace en/ko vs CW en/es/fr/ko/pt) **언어 선택은 CleverSpace가 소유**해 CW의 es/fr/pt는 선택 불가·죽은 번역, 정작 한국어는 CW 비어있음(§9.11-CW-2). **추천: 지원 언어를 셋 모두 한/영(en_US·ko_KR)으로 통일 + CleverSpace 연동 국제화**. Section=CW와 동일 Lingui 구조(문자열 `t\`\`` 매크로·en/ko 카탈로그, 선행 한국어 통일, IP T-P4-7). CW=ko 채우고 es/fr/pt 정리 권고. **결정 요청(기획 Scott):** 한/영 통일 여부·CW 언어목록 정리 — 언어/시장 정책이라 기획 판단. | 회의/기획 결정 |
+| D23 | **국제화(i18n) 정책·구조·지원 언어** | **결정됨(2026-07-16 회의)** — **지원 언어를 3개 제품(CleverSpace·CW·Section) 모두 한/영(en_US·ko_KR)으로 통일 + CleverSpace 연동 국제화**. 배경: 언어 선택은 CleverSpace(en/ko)가 소유하는데 CW는 en/es/fr/ko/pt로 목록이 달라 es/fr/pt는 선택 불가·죽은 번역, 한국어는 CW 비어있음(§9.11-CW-2). Section=CW와 동일 Lingui 구조(문자열 `t\`\`` 매크로·en/ko 카탈로그, 선행 한국어 통일, IP T-P4-7 **착수 가능**). CW=ko 채우고 es/fr/pt 정리는 CW 팀 권고. | 2026-07-16 회의 |
 | D22 | **Single/Dual Layout · View Original 지원 범위** | **확정(2026-07-15) — CW 컨테이너/셸 레벨, Section 모듈 standalone 미구현·접목 시 CW 담당.** MMI 1.13-4가 Section 공통툴로 나열("MPR 동일")하나: **View Original**=압축본→원본 CT 재로드(CW CT 파이프라인, §9.4·D20 연장), **Single/Dual Layout**=CW 워크스페이스 1/2 슬롯+외부 CT 썸네일 패널 연동(다중 CT). 둘 다 **외부 패널·CT 파이프라인 전제**라 standalone 불가·실익 없음. Section 모듈 역할 최소(View Original=재공급 volume 재렌더 / Layout=슬롯 채움·리사이즈 대응, 이미 ResizeObserver 보유). 데모 툴바는 시각 정합 stub. → §11. | 통합 시 구현(CW) |
 | D21 | **계측/주석 적용 뷰 범위** | **확정(Jessi, 2026-07-15) — Length·Angle·Free Draw·Arrow 4개 공통툴 모두 Scout·Panorama·Section 3뷰에서 동작.** 각 뷰는 자기 영역/슬라이스 스코프로 제한(Scout=Scout 영역 내·Panorama=Panorama 영역 내·Section=해당 slice 내, 경계 넘나들 불가). Arrow·FreeDraw는 MMI 1.12에 3뷰 명시돼 있었고, Length·Angle은 미명시라 확인 → 동일 적용 확정(§3.4.2). 구현: `SectionMeasureOverlay`를 Scout/Panorama 단일 영역 오버레이로 재사용. | 확정 |
 | D20 | **Section 생성 기본 연산 경로 + GPU 리슬라이스 범위** | **확정(2026-07-15) — 기본 `wasm-resident`(JS 자동 폴백), 실제 GPU 리슬라이스는 숙제로 이연.** T-P6-1 측정: 두꺼운 슬랩(Th30mm) worst-case JS mean 1484·max 1787ms vs WASM-resident mean 1225·max 1336ms → **WASM이 mean −17%·max −25%·저분산**, 출력은 JS와 동일. 제품엔 연산 선택 UI가 없으므로 **기본값을 `wasm-resident`로 고정**(`useScoutAxialUi`), **WASM init/실행 실패 시 JS로 자동 폴백**(`SectionViewer`, 빈 화면 방지). 둘 다 30FPS(33ms) 미달이나 **근본해결(WebGL2 GPU 리슬라이스)은 공수 큼 → 빠른 출시 우선으로 이번 범위 밖(§11)**, 완충책(캐시·디바운스·표시분리)으로 체감 유지. **메모리:** resident는 볼륨을 WASM 힙에 상주(100~250MB, 예산 내). | 확정 |
@@ -764,7 +766,10 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
-| 1.55 | 2026-07-16 | **주석 편집 입력을 window 캡처 처리로 견고화(§3.9)**: 우클릭 컨텍스트 메뉴(Property/Delete)·선택·드래그가 hover-캡처 타이밍에 따라 안 뜨던 문제 수정 — 편집 입력을 `window` 캡처 단계 리스너로 직접 처리(주석 hit 시 `stopPropagation`로 뷰 클릭 차단, 메뉴/다이얼로그는 `data-ann-ui` 예외). |
+| 1.58 | 2026-07-16 | **국제화(i18n) 정책 결정(§12-D23·§9.11-CW-2)**: 2026-07-16 회의에서 **지원 언어를 3개 제품(CleverSpace·CW·Section) 모두 한/영(en/ko)으로 통일** + CleverSpace 연동 국제화로 확정. D23 상태를 "결정 대기"→"결정됨"으로, §9.11 방침을 결정문으로 갱신. IP **T-P4-7 결정 대기 해제·착수 가능**. CW ko 채우기·es/fr/pt 정리는 CW 팀 권고. |
+| 1.57 | 2026-07-16 | **우클릭 메뉴 = contextmenu 이벤트 + Section 휠 임계값(§3.9·§3.4.2)**: 우클릭 컨텍스트 메뉴를 `mousedown button===2`→**`contextmenu` 이벤트**로 처리(Mac control-click 대응, 메뉴 안 뜨던 문제 해결). Section slice 휠은 **누적 임계값 24**로 미세 스크롤 무시(우클릭 제스처가 slice 튀게 하던 문제 해결). §3.9의 옛 window-리스너 서술 정정(오버레이 뷰 캡처 방식으로). |
+| 1.56 | 2026-07-16 | **주석 편집 캡처 방식 재정비(§3.9)**: window 전역 리스너 방식(부작용: 메뉴 안 뜸·Section 미끄러짐)을 제거하고, **편집 모드에서 계측이 있으면 오버레이가 뷰를 직접 캡처**하도록 단순화 — 우클릭 메뉴·선택·드래그가 확실히 동작. **Pan/Zoom·Curve Draw/Edit 시에는 오버레이 `disabled`**(그때는 measureTool null이라 오작동하던 것 차단). 계측 없으면 캡처 안 함. |
+| 1.55 | 2026-07-16 | **주석 편집 입력을 window 캡처 처리로 견고화(§3.9)**: (v1.56에서 재정비) |
 | 1.54 | 2026-07-16 | **주석 선택 해제 = 빈 배경 클릭(좌/우) (§3.9)**: 선택 후 다른 주석 선택 전엔 해제 안 되던 것 수정 — CW처럼 **주석 아닌 뷰 배경 클릭(좌/우)** 시 해제. 오버레이가 주석 위에서만 캡처하므로 `window` mousedown으로 배경 클릭 감지. §3.9 단일 선택·해제 규칙 명문화. |
 | 1.53 | 2026-07-16 | **FreeDraw 편집 = CW 정합(점 핸들 없음, §3.9)**: CW `FreedrawOverlay` 조사 — FreeDraw는 `select()`가 선을 굵게만 하고 per-point 핸들 없이 **통째 이동·Property·Delete**만. 우리도 FreeDraw는 점 핸들 제거·선택 시 굵은 선(length/angle/arrow는 핸들 유지). |
 | 1.52 | 2026-07-16 | **모드 상호 배타(§3.4.2)**: Draw Curve/Edit Curve 클릭 시 활성 toolbar interaction(Pan/Zoom/계측/Pointer) 해제 후 시작(충돌 방지, 사용자 피드백). 반대로 toolbar 도구 활성 시 커브 Draw/Edit 취소. 커브 모드 중 계측 오버레이 입력 차단(`disabled` prop). `onClearInteraction` 콜백 App→SectionViewer→ScoutView 배선. |

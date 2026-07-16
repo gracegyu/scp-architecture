@@ -469,7 +469,7 @@
 
 #### T-P4-7 — 국제화(i18n) — CW Lingui 구조 정합
 
-- [ ] **미구현·회의/기획(Scott) 결정 대기(2026-07-15 신설)** — 현재 모듈은 i18n 미적용·한/영 문자열 혼재. CleverSpace·CW 모두 Lingui(§9.11-CW-2). **§D23 추천안 = CleverSpace 연동·한국어 지원**. **선행: 모듈 UI 문자열을 한국어로 통일**(현재 "Draw Curve"·"Curve 1" 등 영어와 "취소"·"Section 생성 중…" 등 한국어 혼재 → 한국어 기준으로 통일). 이후 **CW와 동일 Lingui 구조 채택**(문자열 `t\`\`` 매크로화, `@lingui/react` federation shared 재사용, 카탈로그 en_US/ko_KR). **회의 결정 후 착수**(한국어 지원 여부·대상 언어 = 기획 Scott 판단).
+- [ ] **미구현 · 착수 가능(2026-07-16 회의 결정)** — **지원 언어 = 3개 제품 모두 한/영(en/ko)으로 통일** 확정(§D23·회의). 현재 모듈은 i18n 미적용·한/영 문자열 혼재. CleverSpace·CW 모두 Lingui(§9.11-CW-2). **선행: 모듈 UI 문자열을 한국어로 통일**(현재 "Draw Curve"·"Curve 1" 등 영어와 "취소"·"Section 생성 중…" 등 한국어 혼재 → 한국어 기준으로 통일). 이후 **CW와 동일 Lingui 구조 채택**(문자열 `t\`\`` 매크로화, `@lingui/react` federation shared 재사용, 카탈로그 **en_US/ko_KR 2종**). CW ko 채우기·es/fr/pt 정리는 CW 팀 권고(동반). 더 이상 결정 대기 아님.
 
 | 필드 | 값 |
 |------|------|
