@@ -443,11 +443,12 @@ MMI 1.13-1a 툴바의 두 command형 초기화 버튼. **둘 다 CW 정본**(`pa
 
 계측·주석(Length·Angle·Arrow·Free Draw) 귀속·표시. Clever One 기반. **MPR 레이아웃과 공유하지 않음.**
 
-- **귀속:** Overlay는 Curve + 생성 시점 평면(point, normal)에 귀속. v1.3.2 단일 Curve(차기 다중 Curve 대비 설계).
-- **Section 표시 조건(둘 다 충족):** (1) 현재 슬라이스 평면과 저장 평면 **거리 ≤ ±Interval/2**, (2) **Normal 허용 오차** — MMI "별도 정의" → **Spec 수치화 필요**. 초기값(제안) 두 normal 각 **≤ 5°**(`dot ≥ cos5° ≈ 0.9962`), 상수 분리·실사용 튜닝. **미확정(§12-D3).**
-- **Curve point 변경:** 일시 미표시 가능, **데이터 삭제 아님** — 평면 조건 복귀 시 재표시.
-- **Interval 변경:** normal 유지 → 원위치 복귀 시 재표시. **Thickness 변경:** 표시 조건 무영향.
-- **좌표계:** 계측·주석·Curve 제어점은 **환자 볼륨 3D 좌표** 저장(개발실 §3.3). 2D 픽셀만 저장 시 Curve/Interval 변경으로 무효.
+**중요 — "3D 좌표"는 렌더링이 아니라 "앵커링"이다(2026-07-16 명확화):** 본 Section 뷰는 2D지만 단면들은 **3D CT 볼륨을 곡선 따라 잘라낸 것**이다. 계측을 화면 2D 픽셀로만 저장하면 slice 스크롤·Interval 변경 시 타일↔슬라이스 매핑이 바뀌어 위치가 어긋나거나 사라진다. 따라서 **기하에 앵커링해 저장**하고, "어느 단면에서 보일지"를 판정한다.
+
+- **우리 구현 = 호장(arc mm) 1D 앵커(정본).** 본 모듈은 **곡선 따라** 자르므로 완전한 3D(point+normal)까지 필요 없고, **"곡선상 어느 호장 위치냐(`arcMm`)"** 라는 1D 앵커로 충분하다. 계측을 생성 시 호장(`arcMm=(windowStart+tile)*interval`)에 귀속하고, slice 스크롤/Interval 변경 시 `round(arcMm/interval)` 단면으로 재표시, 9-window 밖이면 숨김(데이터 유지). `core/overlay/overlayPlane.ts`의 `isOverlayVisibleOnArc`.
+- **Interval 변경:** 호장 유지 → 원위치 복귀 시 재표시. **Thickness 변경:** 표시 조건 무영향. **Curve 변경:** 일시 미표시 가능·**데이터 삭제 아님**(조건 복귀 시 재표시).
+- **MMI 일반형(평면 point+normal) = 미배선·향후 대비.** MMI 1.13-6 원문은 "평면 거리 **≤ ±Interval/2** AND **normal 각 ≤ 5°**"라는 **일반(MPR·임의 평면)** 규칙이다. core에 일반형(`OverlayPlane`·`planeSignedDistanceMm`·`planeNormalAngleDeg`·`isOverlayVisibleOnPlane`, normal 허용오차 `OVERLAY_NORMAL_TOLERANCE_DEG=5°` §12-D3)을 구현·테스트해 뒀으나, **단일 곡선 Section에는 과하여 UI에 배선하지 않는다**(호장 1D 앵커가 정본). 다중 Curve/MPR 공유가 생기면 이 일반형으로 승격.
+- **좌표계 저장:** Save Project(§7-⑨)엔 계측을 **tile-normalized(u,v) + 호장(arcMm) 앵커**로 저장(3D 절대좌표 아님). Curve 제어점은 Scout 픽셀좌표(§7-⑤). — 2D 픽셀 "만" 저장하면 무효라는 §3.3 취지를 **호장 앵커**로 충족.
 
 ## 5. B/L 자동 판정 알고리즘 (기획 확정 규칙 — 2026-07-13)
 
