@@ -231,7 +231,7 @@
 
 - 조치: §2.1.1 NAT note 논리화(구체=③-I)·Straumann whitelist에 전 prod 리전 egress IP 등록·**AXS 문서상 IP whitelist/개수 제한 없음(확인 완료)**·NAT/AZ 구체=③-I seed
 - 반영: 반영완료(로컬)·Jack에 재답변 게시함(수긍 대기)
-- 상태: Active
+- 상태: Resolved
 
 ## C-14 · docs/specs/SRS.md:1103 · [thread 79387]
 - **[임건혁(Jack) · 2026-07-13T06:53 · cid 79387.1]**
@@ -246,7 +246,7 @@
 
 - 조치: §3.1.2·§4.4·Appendix B #18 'PostgreSQL 15.x → 17.x' 갱신 · Aurora/Global DB 17 지원 확인 · Extension 17 호환 검토 결과 반영(인프라/Jack) — 확정 후 반영
 - 반영: 반영완료(로컬·미push)
-- 상태: Active
+- 상태: Resolved
 
 ## C-15 · docs/specs/SRS.md:1112 · [thread 79389]
 - **[임건혁(Jack) · 2026-07-13T06:55 · cid 79389.1]**
@@ -260,7 +260,7 @@
 
 - 조치: §6.3.2 백엔드 스택을 Loki·Tempo·Mimir·중앙 Grafana로 갱신 — 확정 후 반영
 - 반영: 반영완료(로컬·미push)
-- 상태: Active
+- 상태: Resolved
 
 ## C-16 · docs/specs/SRS.md:233 · [thread 79434]
 - **[김성훈(Scott) · 2026-07-13T10:30 · cid 79434.1]**
@@ -494,7 +494,7 @@
 
 - 조치: §2.8 호환 포기 bullet에 'workaround=GW 경유 이관·기능 보존' 명시·시점/계획=PM#3·③-P — 반영
 - 반영: 반영완료(로컬·미push)
-- 상태: Active
+- 상태: Resolved
 
 ## C-28 · docs/specs/SRS.md:552 · [thread 79571] ★리뷰어 대기
 - **[민진우(Thomas) · 2026-07-14T05:57 · cid 79571.1]**
@@ -522,7 +522,7 @@
 
 - 조치: 경로 B 외 우회 없음 확인·추가 발견 시 §2.8 반영(제품/현장팀 확인) — 문서 변경 없음
 - 반영: 답변(팀 확인 병행)
-- 상태: Active
+- 상태: Resolved
 
 ## C-30 · docs/specs/SRS.md:515 · [thread 79586] ★리뷰어 대기
 - **[김기영(Eric) · 2026-07-14T06:52 · cid 79586.1]**
@@ -552,7 +552,7 @@
 
 - 조치: §2.8 '온보딩 실패 시 기존 흐름 지속성·rollback' bullet 명확화 — '기존 usecase=레거시(비-GW) 흐름' 정의 + (1)레거시=GW 비의존 (2)GW 신규 기능=온보딩 성공 전제·enroll 비파괴 멱등(재시도 복구) 구분; 이관 후 런타임 의존=GW HA(§6.3.1)
 - 반영: 반영완료(로컬·미push)
-- 상태: Active
+- 상태: Resolved
 
 ## C-31 · docs/specs/SRS.md:550 · [thread 79587]
 - **[김기영(Eric) · 2026-07-14T06:54 · cid 79587.1]**
@@ -565,7 +565,7 @@
 
 - 조치: 기존 §2.8/§2.5로 답변·필요 시 §2.8에 '기존 usecase 불변·GW=앞단 삽입' 한 줄 보강 검토
 - 반영: 답변
-- 상태: Active
+- 상태: Resolved
 
 ## C-32 · (파일 미지정·일반) · [thread 79669] ★리뷰어 대기
 - **[김기영(Eric) · 2026-07-14T14:25 · cid 79669.1]**
@@ -614,7 +614,7 @@ QA 전략 자체는 QA(James·Eric) 소관이라 SRS 변경은 없고, 위 앵�
 
 - 조치: 정보성(QA 전략 Draft 공유)·QA(James·Eric) 소관 → SRS 변경 없음. 전략 방향↔SRS 앵커 매핑(§2.8·§2.3.1·§2.3.0·§3.1·§7.7·§6.3.1·Appendix B-8), 열린 질문 중 SRS 확정분 회신. James 추가 논의 결과 반영 대기
 - 반영: 답변(정보성·QA 소관·SRS 변경 없음)
-- 상태: Active
+- 상태: Resolved
 
 ## C-33 · docs/specs/SRS.md:323 · [thread 79671] ★리뷰어 대기
 - **[임건혁(Jack) · 2026-07-15T00:36 · cid 79671.1]**
@@ -641,8 +641,19 @@ GW는 데이터를 두 부류로 나눕니다(§2.1.1·§6.4):
 **정리**
 - v1.0은 단일 리전(서울)이고 멀티 리전은 gw/1.2입니다. write-forwarding·primary 배치·리전별 엔드포인트 등 구체 설계는 ③-I 인프라(Appendix B-15) 소관으로 두되, 위 특성을 §2.1.1에 명시적으로 감안 note로 남겼습니다.
 
-- 조치: §2.1.1에 'Aurora Global DB write-forwarding 특성(gw/1.2 감안)' note 추가 — ①전역 일관=읽기 핫패스·쓰기 드묾→latency 수용 ②PHI·운영=리전 로컬(주권)→forwarding 무관 ③code-first(Prisma)라 stored proc 미사용; 구체 설계=③-I(Appendix B #15)
-- 반영: 반영완료(로컬·미push)
+- **[임건혁(Jack) · 2026-07-16T04:08 · cid 79671.3 ↳1]**
+
+  > ② PHI·운영 데이터가 리전 로컬이면, 이 DB는 Aurora Global Postgres db가 아닌 별도의 db가 뜨는 건지 여쭙습니다.
+
+- 다음 답변(초안):
+
+네, 맞습니다 — 정확히는 별도 클러스터입니다. Global DB는 클러스터(스토리지) 단위로 복제해 특정 테이블만 뺄 수 없어서, 저장소를 둘로 나눕니다: 전역 일관 클러스터(Aurora Global DB·매핑·정책 등 non-PHI·복제)와 리전 로컬 클러스터(webhook_event(payload=PHI)·audit·fleet·복제 안 함). 불변식은 'PHI는 교차 리전 복제되는 클러스터에 두지 않는다'입니다.
+
+audit·fleet도 리전 로컬이라 리전 로컬 클러스터는 어차피 필요하므로, payload는 그 DB에 관계형으로 그대로 둡니다(현행 webhook_event.payload_encrypted 유지·별도 스토어 불요). 대신 리전 로컬 테이블은 전역 테이블로 하드 FK를 걸 수 없어 soft reference(값 보유 + 앱레벨 무결성)로 정리했습니다(DBML 반영).
+
+이 내용은 §2.1.1 본문·다이어그램에 정리했고, v1.0은 단일 리전이라 단순 구성으로 시작합니다. 실제 인스턴스 구성·사이징·비용은 ③-I와 협의하겠습니다. 감사합니다.
+- 조치: §2.1.1(note·캡션·다이어그램)에 '저장소 2분(전역 Global DB 클러스터 / 리전 로컬 클러스터)' + 불변식 명시. payload는 리전 로컬 관계형 유지(audit·fleet가 어차피 리전 로컬이라 별도 스토어 불요·현행 payload_encrypted)·S3/DynamoDB는 후속 옵션. 인스턴스·비용=③-I 협의. webhook_event(target·clinic·region)·fleet_state(device) 하드 FK→soft ref(cross-cluster 불가)·DBML 데이터클래스 범례 추가. Jack 후속(cid 79671.3) 답변 간결화
+- 반영: 반영완료(로컬·미push)·Jack 후속 답변 게시 대기
 - 상태: Active
 
 
@@ -862,7 +873,7 @@ target 시크릿 제출 경로는, 운영자가 원문을 write-only로 제출�
 
 - 조치: §7.6.6에 '연결·브로커 장애 시 처리(무유실)' note 추가 — 발행 전=SQS 재시도·DLQ, 발행 후=QoS1·persistent 재전달, 재접속=③-P-EZ·브로커 HA=③-I·멱등
 - 반영: 반영완료(로컬)·게시됨
-- 상태: Active
+- 상태: Resolved
 
 ## C-44 · docs/specs/SRS.md:1846 · [thread 79844] ★리뷰어 대기(정지홍(Teddy))
 - **[정지홍(Teddy) · 2026-07-15T14:57 · cid 79844.1]**
@@ -882,6 +893,58 @@ target 시크릿 제출 경로는, 운영자가 원문을 write-only로 제출�
 - 조치: §7.3에 'clinic_id 불변(정체성 앵커)' note 추가 + Teddy에게 확인질문(clinic_id 변경 실제 시나리오·데이터 연속성 요구 여부 — 있으면 이관 절차 별도 논의). 구조상 rename 미지원(자연키·다참조)임을 답변에 명시
 - 반영: 반영완료(로컬)·게시됨(확인질문 포함·최신본)
 - 상태: Active
+
+## C-45 · docs/specs/SRS.md:1898 · [thread 79896] ★리뷰어 대기(자동리뷰 Update 4)
+- **[민진우(Thomas) · 2026-07-16T03:43 · cid 79896.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > §7.3.6 조회 API 설명이 여전히 **`endpoint`를 `GET /v1/regions` 출력에 포함**시킨다("운영 리전 목록(region_id·표시명·**endpoint**·status…)"). 이는 이번 변경에서 이전 리뷰 지적(리전 내부 endpoint 노출)을 해소하며 **`Region`/`ClinicResolution` 스키마에서 `endpoint`를 제거**하고 §2.3.3(line 734 "라우팅은 공개 apex/GeoDNS, **리전 내부 endpoint는 미노출**")·§7.3.1(line 1866 output이 `hosts`=`apex`·`webhookHostPattern`만, endpoint 없음)·§4.5.1(리전별 내부 호스트 `gw-<region>.vatech.com` "**클라이언트엔 노출하지 않음**")로 통일한 것과 정면으로 모순된다. 게다가 `GET /v1/regions`는 **deviceAuth(클라이언트 대면)** 라(OpenAPI `getRegions` security=`deviceAuth`), 이 문구는 바로 그 "클라이언트에 노출하면 안 되는 리전 내부 endpoint"를 다시 device 응답 계약에 되살린다. 실제로 device는 항상 공개 apex/GeoDNS로만 접속하고 리전 선택은 서버측 `clinic.region` 배정으로 처리되므로 device-facing 리전 목록에 endpoint는 개념적으로도 불필요하다. endpoint 제거 수정이 §7.3.6에서 누락되었으므로, 이 문구에서 `endpoint`를 삭제해 OpenAPI `Region` 스키마·§4.5.1·§7.3.1과 정합화해야 한다(통제 문서 요구사항↔인터페이스 추적성).
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 반영: 대기
+- 상태: Active
+
+## C-46 · docs/specs/SRS.md:656 · [thread 79897] ★리뷰어 대기(자동리뷰 Update 4)
+- **[민진우(Thomas) · 2026-07-16T03:43 · cid 79897.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > §2.3.1이 온보딩 시 리전 선택 주체를 **"C/S는 현장에서 `GET /v1/regions` 선택지로 다른 region을 지정"**(line 683 시퀀스 노트도 동일)이라고 기술하나, `GET /v1/regions`는 OpenAPI에서 **`deviceAuth`(디바이스 토큰)** 로만 접근하는 device 대면 엔드포인트다(provenance 표 line 491도 "device 공개"로 명시). 반면 C/S는 **운영자=`operatorAuth`(직원 IdP/Entra)** 이고, enroll 시점의 device는 `pending`이라 아직 토큰이 없어 어느 쪽도 이 endpoint를 정상 호출할 수 없다. 운영자용 리전 목록은 이번에 신설된 **`GET /v1/admin/regions`(operatorAuth·getAdminRegions)** 이므로, C/S 동작에 device 대면 endpoint를 귀속시킨 것은 인증 스킴 모델(§4.1.2-5 "인증 스킴을 전 오퍼레이션에 명시")과 어긋난다 — C/S 리전 선택은 `GET /v1/admin/regions`로 정정하는 것이 정합적이다. (경미)
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 반영: 대기
+- 상태: Active
+
+## C-47 · docs/specs/SRS.md:2329 · [thread 79898] ★리뷰어 대기(자동리뷰 Update 4)
+- **[민진우(Thomas) · 2026-07-16T03:43 · cid 79898.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > Appendix B #48이 산출물 상태를 "redocly valid·**DBML 11**"로 표기하나, 바로 위 #6(line 2328)은 "**DBML 13 테이블**(dbml2sql OK)"로 적고 있어 테이블 수가 상충한다. 더욱이 #48 자체가 **신규 `client_inventory` 테이블**을 추가했으므로 13 → 14가 되어야 하며 "11"은 어느 기준으로도 맞지 않는다. 상태 주석(비규범)이지만 통제 문서의 내부 정합성 차원에서 수치를 하나로 맞춰야 한다. (경미)
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 반영: 대기
+- 상태: Active
+
+## C-48 · (파일 미지정·일반) · [thread 79899] ★리뷰어 대기(자동리뷰 Update 4)
+- **[민진우(Thomas) · 2026-07-16T03:43 · cid 79899.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > ## Code Review (Other) — Update 4
+  >
+  > 이번 증분 diff는 직전 커밋 메시지("리뷰 후속 반영 — 리전 endpoint 미노출·target secret write-only·webhookHmac·MQTT 장애·clinic_id 불변")대로 **[Previous Review]의 3건을 모두 해소**했다. ① **Region.endpoint 노출** — `Region`·`ClinicResolution` 스키마에서 `endpoint`를 제거하고 `hosts`(공개 apex·webhook 패턴, GeoDNS라 리전 불변)로 대체, §2.3.3·§7.3.1 output도 "리전 내부 endpoint 미노출"로 정정해 §4.5.1과 정합화. ② **target 시크릿 제출 경로 공백** — `Target` 스키마에 write-only `credential`·`secret` 입력 필드를 추가하고(원문→KMS 저장, `credentialRef`·`secretRef`는 read-only 참조만) §2.3.4 등록 시퀀스 서술도 "원문 write-only 제출 → GW가 KMS 저장" 흐름으로 일치. ③ **webhookHmac 헤더명 불일치** — `X-Signature` 예시를 제거하고 "`name: Signature`는 v1.0(AXS) 기본값이며 헤더명은 `sig_scheme`마다 다를 수 있다"로 설명을 교정.
+  >
+  > **신규 결함은 모두 문서·계약 정합 수준**이며, 아키텍처·데이터 모델을 바꾸거나 build(redocly)를 막는 결함은 없다. 가장 중요한 것은 **endpoint 제거 수정의 누락 지점(§7.3.6 line 1898)** 으로, 나머지 전 문서·OpenAPI가 "리전 내부 endpoint 미노출"로 통일된 가운데 device-facing `GET /v1/regions` 출력 서술에만 `endpoint`가 잔존해 이전 리뷰가 지적한 노출 모순을 부분적으로 되살린다 — 통제 문서 추적성 관점에서 우선 정정 대상이다. 나머지 두 건(C/S의 device 대면 `GET /v1/regions` 귀속·auth 스킴 불일치, DBML 테이블 수 표기 상충)은 경미하다.
+  >
+  > **추가 관찰(라인 미지정·개선 제안).** OpenAPI 여러 스키마(`Target`·`ConfigEntry`·`Policy`·`OrgMapping`·`Region` 등)의 `createdAt`·`updatedAt`·`version`·`updatedBy`가 설명 텍스트로만 "서버 설정·읽기 전용"이라 명시될 뿐 OpenAPI `readOnly: true` 키워드가 없다(같은 파일의 `credentialRef`·`secretRef`는 올바르게 `readOnly: true` 사용). upsert 계약(예 `postAdminTargets`·`putAdminConfig`·`postAdminPolicies`)이 동일 스키마를 요청 본문으로 재사용하므로, 코드젠 클라이언트에는 이 서버 관리 필드들이 입력 가능 필드로 노출된다(서버가 무시하므로 보안 결함은 아니나 계약 명확성 저하). 추후 code-first 승계 시 `readOnly: true`로 일원화 권장. 또한 프록시 미참조 컴포넌트(`ProxyError`·`Target*` 응답·`Vatech*` 헤더)의 redocly `no-unused-components` 경고는 파일 주석이 "의도된 것"으로 명시하므로 리뷰 지침에 따라 지적에서 제외했다.
+  >
+  > 3 line-specific finding(s) were posted as inline comments.
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 반영: 대기
+- 상태: Active
 ---
 
 ## 인덱스 (위치·상태)
@@ -898,26 +961,26 @@ target 시크릿 제출 경로는, 운영자가 원문을 write-only로 제출�
 - C-10 · docs/specs/SRS.md:1342 · `Active`
 - C-11 · docs/specs/SRS.md:2294 · `Active`
 - C-12 · (파일 미지정·일반) · `Active`
-- C-13 · docs/specs/SRS.md:239 · `Active` ⚠미반영
-- C-14 · docs/specs/SRS.md:1103 · `Active`
-- C-15 · docs/specs/SRS.md:1112 · `Active`
+- C-13 · docs/specs/SRS.md:239 · `Resolved`
+- C-14 · docs/specs/SRS.md:1103 · `Resolved`
+- C-15 · docs/specs/SRS.md:1112 · `Resolved`
 - C-16 · docs/specs/SRS.md:233 · `Resolved`
 - C-17 · docs/specs/SRS.md:1732 · `Resolved`
 - C-18 · docs/specs/SRS.md:1763 · `Resolved`
 - C-19 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1833 · `Resolved`
 - C-20 · docs/specs/SRS.md:1727 · `Resolved`
-- C-21 · docs/specs/SRS.md:1862 · `Active` ⚠미반영
+- C-21 · docs/specs/SRS.md:1862 · `Active`
 - C-22 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1 · `Resolved`
 - C-23 · docs/specs/SRS.md:1678 · `Active`
 - C-24 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1733 · `Active`
 - C-25 · docs/specs/SRS.md:2006 · `Active`
 - C-26 · docs/specs/SRS.md:1983 · `Active`
-- C-27 · docs/specs/SRS.md:1059 · `Active`
+- C-27 · docs/specs/SRS.md:1059 · `Resolved`
 - C-28 · docs/specs/SRS.md:552 · `Active`
-- C-29 · docs/specs/SRS.md:28 · `Active`
-- C-30 · docs/specs/SRS.md:515 · `Active`
-- C-31 · docs/specs/SRS.md:550 · `Active`
-- C-32 · (파일 미지정·일반) · `Active`
+- C-29 · docs/specs/SRS.md:28 · `Resolved`
+- C-30 · docs/specs/SRS.md:515 · `Resolved`
+- C-31 · docs/specs/SRS.md:550 · `Resolved`
+- C-32 · (파일 미지정·일반) · `Resolved`
 - C-33 · docs/specs/SRS.md:323 · `Active`
 - C-34 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2543 · `Active`
 - C-35 · docs/specs/SRS.md:2322 · `Active`
@@ -925,8 +988,12 @@ target 시크릿 제출 경로는, 운영자가 원문을 write-only로 제출�
 - C-37 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2612 · `Active`
 - C-38 · (파일 미지정·일반) · `Active`
 - C-39 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2658 · `Active`
-- C-40 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2259 · `Active` ⚠미반영
-- C-41 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1734 · `Active` ⚠미반영
-- C-42 · (파일 미지정·일반) · `Active` ⚠미반영
-- C-43 · docs/specs/SRS.md:2019 · `Active` ⚠미반영
-- C-44 · docs/specs/SRS.md:1846 · `Active` ⚠미반영
+- C-40 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2259 · `Active`
+- C-41 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1734 · `Active`
+- C-42 · (파일 미지정·일반) · `Active`
+- C-43 · docs/specs/SRS.md:2019 · `Resolved`
+- C-44 · docs/specs/SRS.md:1846 · `Active`
+- C-45 · docs/specs/SRS.md:1898 · `Active`
+- C-46 · docs/specs/SRS.md:656 · `Active`
+- C-47 · docs/specs/SRS.md:2329 · `Active`
+- C-48 · (파일 미지정·일반) · `Active`
