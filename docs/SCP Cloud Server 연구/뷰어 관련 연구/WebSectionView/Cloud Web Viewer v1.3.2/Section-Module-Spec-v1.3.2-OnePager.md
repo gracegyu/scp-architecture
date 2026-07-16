@@ -370,9 +370,9 @@ length·angle·freeDraw·arrow 계측/주석은 **생성 후 편집**할 수 있
 
 **저장:** 편집된 점 + 스타일(선색·글자색·글자크기)은 **계측 모델 `style`**(`measurement.ts`)에 담겨 **Save Project ⑨(Overlay, §7·§12-D26·T-P5-4)** 로 저장된다.
 
-**모드 충돌 회피(중요):** **편집 모드(도구 미선택)에서 계측이 하나라도 있으면 오버레이가 그 뷰를 캡처**(`pointerEvents:auto`)해 선택·이동·우클릭 메뉴가 확실히 동작한다. 계측이 없으면 캡처하지 않아 뷰 조작을 막지 않는다. **Pan/Zoom·Pointer·Curve Draw/Edit 활성 시에는 오버레이를 `disabled`**(각 뷰가 `navTool`/curve 상태로 판정)로 그 모드가 우선이다.
+**모드 충돌 회피(중요 · hover 기반 캡처):** 편집 오버레이는 뷰 전체를 덮지만, **실제로 주석 위(hover)이거나·주석을 드래그 중이거나·컨텍스트 메뉴가 열렸을 때만** 입력을 캡처(`pointerEvents:auto`)한다. **빈 영역이나 뷰 고유 요소(커브·section line·Panorama 상하 경계선/중앙선) 위에서는 캡처하지 않아**(`pointerEvents:none`) 뷰 고유 조작이 그대로 동작한다. hover 판정은 **window `mousemove`**로 하여 `pointerEvents:none`인 동안에도 주석 진입 순간을 잡는다. (초기에는 "계측이 하나라도 있으면 뷰 전체 캡처" 방식이었으나, 이 방식은 **주석이 있으면 Panorama 상하 경계선(섹션 높이)·중앙선 드래그, Scout 조작 등 뷰 고유 neutral 조작을 막는 회귀**를 유발 → 2026-07-16 hover 기반으로 교체.) **Pan/Zoom·Pointer·Curve Draw/Edit 활성 시에는 오버레이를 `disabled`**(각 뷰가 `navTool`/curve 상태로 판정)로 그 모드가 우선이다.
 
-**구현(T-P4-9, 완료):** `SectionMeasureOverlay`에 편집 상태(selectedId·핸들 드래그·이동·컨텍스트 메뉴)·hit-test(선분 거리·핸들)·스타일 렌더(선색/글자색/글자크기·속빈 네모 핸들) 추가. 우클릭 메뉴는 `onContextMenu`, 좌클릭 선택·드래그는 `onMouseDown/Move/Up`. `AnnotationPropertyDialog`(CW `OverlayPropertyDialog` 포트, 경량). 커서 `MOVE`(CW `overlaySelectedCursor`) `cursors.ts`에 복사. **접목 시** 편집·Property·메뉴는 CW `es-pixi-wrapper`/`OverlayPropertyDialog`/`CustomMenu` 정본으로 교체(§9.10).
+**구현(T-P4-9, 완료):** `SectionMeasureOverlay`에 편집 상태(selectedId·핸들 드래그·이동·컨텍스트 메뉴)·hit-test(선분 거리·핸들)·스타일 렌더(선색/글자색/글자크기·속빈 네모 핸들) 추가. 우클릭 메뉴는 `onContextMenu`, 좌클릭 선택·드래그는 `onMouseDown/Move/Up`. hover 캡처는 window `mousemove`가 `editCapture`를, 드래그 지속은 `annDragging`이 담당(`captured = active || menu || annDragging || (canEdit && editCapture)`). `AnnotationPropertyDialog`(CW `OverlayPropertyDialog` 포트, 경량). 커서 `MOVE`(CW `overlaySelectedCursor`) `cursors.ts`에 복사. **접목 시** 편집·Property·메뉴는 CW `es-pixi-wrapper`/`OverlayPropertyDialog`/`CustomMenu` 정본으로 교체(§9.10).
 
 ## 4. Overlay 표시 규칙 (MMI 1.13 §6)
 
@@ -766,6 +766,7 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.59 | 2026-07-16 | **주석 편집 캡처 = hover 기반으로 교체(회귀 수정, §3.9) + Setting 개발용 컨트롤 정리**: 주석이 있으면 오버레이가 뷰 전체를 캡처해 **Panorama 상하 경계선(섹션 높이)·중앙선 드래그가 막히던 회귀**를 hover 기반 캡처(window mousemove로 주석 위일 때만 `pointerEvents:auto`)로 해결. Scout도 동일. **Setting "개발용(임시)" 컨트롤 제거**: Scout Slice/WC/WW/INT·Sec 폭(대체 UI 존재), Panorama 투영 백분위·생성 버튼·타이밍(자동 생성·ImageAdjust로 대체), Section 렌더/연산 모드·타이밍. Scout **Sec 높이 슬라이더만 유지**(§3.4.2 Edit 제어점 최상단 예외와 별개). |
 | 1.58 | 2026-07-16 | **국제화(i18n) 정책 결정(§12-D23·§9.11-CW-2)**: 2026-07-16 회의에서 **지원 언어를 3개 제품(CleverSpace·CW·Section) 모두 한/영(en/ko)으로 통일** + CleverSpace 연동 국제화로 확정. D23 상태를 "결정 대기"→"결정됨"으로, §9.11 방침을 결정문으로 갱신. IP **T-P4-7 결정 대기 해제·착수 가능**. CW ko 채우기·es/fr/pt 정리는 CW 팀 권고. |
 | 1.57 | 2026-07-16 | **우클릭 메뉴 = contextmenu 이벤트 + Section 휠 임계값(§3.9·§3.4.2)**: 우클릭 컨텍스트 메뉴를 `mousedown button===2`→**`contextmenu` 이벤트**로 처리(Mac control-click 대응, 메뉴 안 뜨던 문제 해결). Section slice 휠은 **누적 임계값 24**로 미세 스크롤 무시(우클릭 제스처가 slice 튀게 하던 문제 해결). §3.9의 옛 window-리스너 서술 정정(오버레이 뷰 캡처 방식으로). |
 | 1.56 | 2026-07-16 | **주석 편집 캡처 방식 재정비(§3.9)**: window 전역 리스너 방식(부작용: 메뉴 안 뜸·Section 미끄러짐)을 제거하고, **편집 모드에서 계측이 있으면 오버레이가 뷰를 직접 캡처**하도록 단순화 — 우클릭 메뉴·선택·드래그가 확실히 동작. **Pan/Zoom·Curve Draw/Edit 시에는 오버레이 `disabled`**(그때는 measureTool null이라 오작동하던 것 차단). 계측 없으면 캡처 안 함. |
