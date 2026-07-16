@@ -551,7 +551,7 @@
 
 #### T-P5-3 — CW prj 필드 어댑터 + 조각 시뮬레이션
 
-- [ ] **미구현(2026-07-15 신설)** — Save는 상위 소유이고 우리는 **Section 조각을 기여**하는 구조(§7 소유·기여). T-P5-2의 `SectionProjectState`(우리 순수 모델)를 **CW prj 필드 형태로 변환하는 어댑터** 신설 → 접목 기여 지점이자 매핑(D5) 검증. 데모는 **`.e3prj` 전체가 아니라 "CW 필드 형태의 Section 조각"**(`CurveList`·`SectionInfo{Width,Height,Interval,Thickness}`·`PanoInfo`, `projectFile.ts`)을 localStorage에 round-trip. 포맷=객체(JSON, 객체↔XML은 호스트 몫); 선택적으로 **`.e3prj` XML 미리보기 export**. 접목 시 이 조각을 `SectionContentHandler`가 상위 prj에 병합.
+- [x] **구현 완료(2026-07-16).** `packages/core/src/project/cwPrjAdapter.ts` 신설 — `SectionProjectState` ↔ **CW 필드 형태 조각**(`CurveList.Curve[].CurveShape.ControlPointList`·`LBBasePos`·`SectionSliceInfo`·`PanoSliceInfo` + Tab `SectionInfo{Width,Height,Interval,Thickness}` + `Windowing{Width=WW,Level=WC}`, CW `projectFile.ts` 기준). `toCwFragment`/`fromCwFragment`(관대 파싱)·`encode/decodeControlPointList`(`"x,y x,y"` 문자열, CW ControlPointList 형태)·`fragmentToXmlPreview`(`.e3prj` 유사 XML)·`serialize/deserializeCwFragment`(JSON). **매핑 신뢰도(§12-D5):** 확정=제어점·Section/Pano의 Width/Height/Interval/Thickness; 불확실(형태만·값 보존)=FocusedNumber(arc↔index)·BLMarkingNumber·LBBasePos(arc↔3D); **CW 확정 필드 미보유(모듈 전용)**=blPolarity·section top/bottom 분해·scout·필터/invert/투영 → 손실 없는 round-trip 위해 `_pendingD5` 블록에 명시 보존(접목 시 재매핑 = "불확실분 표시"). 데모 `projectStorage.ts`에 `saveCwFragmentToLocal`/`loadCwFragmentFromLocal`/`previewCwFragmentXml` 추가(별도 LS 키). **UT-SAV-014**(상태↔조각·JSON round-trip 무손실)·**UT-SAV-015**(누락 필드 관대 복원)+blank/버전불일치/인코딩 역함수/XML 미리보기 = 9케이스 통과. 접목 시 이 조각을 `SectionContentHandler`가 상위 prj에 병합.
 
 | 필드 | 값 |
 |------|------|
@@ -580,6 +580,22 @@
 | dod[] | UT-SAV-017(계측 round-trip·뷰/앵커 보존)·UT-SAV-018(카메라 round-trip) + MT-SAV-019(재오픈 시 계측·뷰 복원) |
 | estimate | ⑨ 1.5h + ③ 1h(T-P4-6 후) |
 | risk | ⑨ 계측 좌표계(tile u,v + 3D 앵커) 역호환 · ③ 카메라 필드는 CW prj에 대응 필드 있는지 D5 확인 |
+
+#### T-P5-5 — 초기화 명령 (Initialize All · Reset Cloud Work) — Save Project 이후
+
+- [ ] **미구현(2026-07-16 신설) · Save Project(T-P5-1~4) 완료 후 착수.** Initialize All = **default project file 상태로 복귀**(§3.10·§12-D30, CW `CTViewerControllerCore.initializeAll`→`reloadDefaultProjectFile` 정본). **초기화 대상 = Save 항목(§7 ①~⑫)의 역연산**이라 Save 데이터 모델(`SectionProjectState`, T-P5-1·4)이 확정된 뒤에 구현해야 대상·기준이 일치한다(그래서 P5 말미에 배치). **구현:** `CwToolbar commandHandler`에 `initializeAll` 배선 → 전 뷰의 계측/주석·Pointer 그림 제거 + WL/필터/Inverse 기본값 + Pan/Zoom(=Reset View) + Curve·섹션 파라미터(두께/간격/폭/높이·B/L·center) default + neutral 도구; 파노라마·섹션은 default Curve로 재계산(default Curve 없으면 blank). 본 모듈 "default" = **콘텐츠 오픈 시 로드된 초기 상태**(저장 prj 있으면 그 값, 없으면 blank) — 로드 시 스냅샷을 보관해 그 값으로 복원. **`resetCloudWork`는 구현하지 않는다(구현 불가)** — `resetMetaData`=`ioApis.resetMetaData`(CW 호스트 주입 클라우드 서버 IO)·`reloadState.requestReload`(CW 워크스페이스 리로드) 의존, standalone 모듈에 없음. **버튼 클릭 시 "추후 CW 접목 시 지원됩니다" 안내(toast/알림)만** 표시하고 아무 상태도 바꾸지 않는다(로컬 initializeAll로 대체하지 않음 — 서버 저장분 폐기·리로드라 의미가 다름). 실제 동작은 **접목 시 CW 제공**(§9.10). `requiresEditControl` 게이팅은 CW 셸 책임(데모 생략 가능).
+
+| 필드 | 값 |
+|------|------|
+| id | T-P5-5 |
+| title | Initialize All — 로드 스냅샷(default)으로 전 뷰 상태 복원; Reset Cloud Work=미구현(클릭 시 "접목 시 지원" 안내), 실제 동작은 접목 시 CW 소유 |
+| repo | scp-section-poc |
+| spec_refs[] | S-SPEC §3.10·§12-D30·§7·§9.10, S-CW `vtkjs-wrapper CTViewerControllerCore.initializeAll`(reloadDefaultProjectFile)·`workSpace/content/handler/*ContentHandler`·`toolbar/const.ts`(requiresEditControl) |
+| depends_on[] | **T-P5-1·T-P5-4(Save 데이터 모델 — 선행 필수)**, T-P4-6(Reset View), T-P4-8(Pointer), T-P4-9(계측) |
+| outputs[] | `apps/section-demo/src/cw/CwToolbar.tsx`(commandHandler)·`toolStore.ts`(초기화 액션)·로드 스냅샷 보관·각 뷰 상태 리셋 배선·Reset Cloud Work "접목 시 지원" 안내(toast) |
+| dod[] | MT-INIT-001 Initialize All → 전 뷰 계측·Pointer·WL·Pan/Zoom·Curve/섹션 파라미터가 로드 상태(default)로 복귀·파생물 재계산·neutral 도구 · MT-INIT-002 default Curve 없을 때 blank · MT-INIT-003 Reset Cloud Work 클릭 시 "접목 시 지원" 안내 표시·상태 불변(로컬 초기화 안 함) |
+| estimate | 2h(데모 로컬만) |
+| risk | 실제 클라우드 리셋·리로드는 CW 인프라 의존(데모 미검증) → 접목 시 CW 핸들러로 대체·검증 · "default" 스냅샷 시점을 Save 로드 로직과 정확히 일치시켜야 함 |
 
 ### P6 — NFR·인계
 
