@@ -256,7 +256,7 @@ MMI가 **동작·상호작용을 명확히 규정하지 않거나 문구가 모�
 | **Edit 모드 시각 어포던스** | 미규정 | Edit 모드 상호작용은 **제어점·BL/LB 삼각형뿐**(width/thickness 핸들은 Edit에서 비활성)이므로, **제어점·삼각형만 밝게** 두고 **나머지(커브·section tick·9 active line·navigator·thickness·라벨)는 dim(opacity ≈0.28)** 처리해 "점 편집 중" 상태를 명확히. **임시 dev 스타일**(GUI styleguide 확정 시 교체, §3.4.1). 개발실 제안(2026-07-15) |
 | **Scout 커브 숫자 의미** | mm vs slice 불명확 | **slice 번호**(§3.4·§3.4.1 주석) |
 | **계측/주석 적용 뷰 범위(Length·Angle)** | 1.13-1에 공통툴로 나열되나 **적용 뷰 미명시**(Arrow·FreeDraw는 1.12에 3뷰 명시) | **Jessi 확정(2026-07-15, §12-D21): Length·Angle도 Arrow·Free Draw와 동일하게 Scout·Panorama·Section 3뷰 모두 동작.** 각 뷰는 **자기 영역/슬라이스 스코프**(Scout=Scout 영역·Panorama=Panorama 영역·Section=해당 slice, 경계 넘나들 불가) |
-| **계측/주석 도구 커서**(§3.7·§3.8) | MMI에 도구별 커서 미명시 | **CW `CURSORS` 정본 그대로**(도구→커서 매핑도 CW `ContentDialog.getSupportedCursorIcon` 정합): length→LENGTH(자), angle→ANGLE(각도), freeDraw→FREEDRAW(펜), pan→PAN(손), zoom→ZOOM(돋보기), Pointer Pen→POINTER·Eraser→ERASE. **Arrow(v1.3.2 신규)는 CW에 전용 커서가 없어 임시로 FREEDRAW(펜) 사용** → **기획이 Arrow 전용 커서 제작 후 교체 필요(§11 숙제)**. `components/src/cursors.ts`(CW 복사)·`SectionMeasureOverlay` 배선. 2026-07-16 |
+| **계측/주석 도구 커서**(§3.7·§3.8) | MMI에 도구별 커서 미명시 | **CW `CURSORS` 정본 그대로**(도구→커서 매핑도 CW `ContentDialog.getSupportedCursorIcon` 정합): length→LENGTH(자), angle→ANGLE(각도), freeDraw→FREEDRAW(펜), pan→PAN(손), zoom→ZOOM(돋보기), Pointer Pen→POINTER·Eraser→ERASE, **편집 hover/선택→MOVE**(CW `overlaySelectedCursor`=화살표+십자, §3.9). **Arrow(v1.3.2 신규)는 CW에 전용 커서가 없어 임시로 FREEDRAW(펜) 사용** → **기획이 Arrow 전용 커서 제작 후 교체 필요(§11 숙제)**. `components/src/cursors.ts`(CW 복사)·`SectionMeasureOverlay` 배선. 2026-07-16 |
 | **Section Pan/Zoom 적용 단위**(§3.7·§12-D27) | 1.13-1a "MPR 동일"만 있고 **3×3 내부 9뷰에 어떻게 적용하는지 미명시** | **9개 뷰가 하나의 transform으로 함께** Pan/Zoom(각 뷰 자기 중앙 기준 제자리 확대·타일 클립, 뭉쳐 스프레드 아님). **근거:** slice 스크롤(타일↔슬라이스 재매핑)·Save Project 단순화 — 뷰당 1개 상태. 타일별 독립(9개)은 스크롤 시 배율 혼선·저장 9벌로 복잡해 배제. "뷰 모드" 단일 상태. 개발실 결정(2026-07-15) |
 | **Show/Hide Grid 간격·스타일** | 1.13-2a에 기능만 있고 **간격·색·선 스타일 미명시** | **CW 소스(`@ewoosoft/es-view-info` GridView) 정본 채택**: 간격 = **물리 10mm**(등방 isotropic `pxPerMm`, 설정 1~50mm), 색 `#A9A9A9`·opacity 0.7·1px·점선 `[1,1]`. **뷰(셀) 전체를 채움**(이미지 letterbox 여백 포함, zoom out 시에도), **원점 = 뷰 좌·상단(0mm)** = ruler 눈금과 정렬(MMI: view 시작=0). **Pan/Zoom에 반응하지 않는 고정 오버레이**(이미지만 확대/이동, 격자는 base 10mm 그대로 뷰 전체 유지 — §3.7·§12-D27, 2026-07-15). 3뷰 공통. Canvas 2D `GridOverlay`. (측정치 `#636363`은 검은 배경 0.7 불투명 렌더의 스포이드값으로 판단, §3.4.1a 선례.) **주: 초기 구현에서 누락(스토어·툴바만·뷰 미배선)이었고 2026-07-15 보완.** |
 | **Scout 커브 편집/삭제 버튼(연필·휴지통) 스타일** | MMI는 **흰 바탕·검은 아이콘**이나 이는 PPT 임시 버튼(styleguide 아님)·식별성 낮음 | MMI placeholder 미채택. **CW 아이콘 버튼 컨벤션 재사용**(§3.4.1a·CW `ToolBtn`): 흰 아이콘·투명 배경·**hover/active teal `#00BEA5`**, 헤더 `IconBtn` 공용(28px·아이콘 18px), 연필/휴지통 글리프를 또렷한 Material edit/delete로 확대. **임시 dev 스타일**(styleguide 확정 시 교체, §3.4.1). CW엔 Section 커브 버튼 원본 없음(신규)이라 개별 매칭 대신 규칙 일치 |
@@ -349,6 +349,25 @@ MMI 1.13-1a Pointer는 **일시 주석(임시 그리기)** 도구다. **동작·
 **소유(중요):** Pointer는 **CW 워크스페이스(셸) 레벨** 기능이다 — CW `WorkSpace`가 `interaction==='pointer'`에서 전역 `PointerDialog`/`PointerCanvas`를 직접 렌더한다(Section content가 기여하지 않음, Save Project와 유사한 셸 소유). 따라서 **접목 시 우리 포트는 삭제**하고 CW WorkSpace가 그대로 제공한다. 우리 포트는 **standalone 데모 파리티용**일 뿐이다.
 
 **구현(T-P4-8, 완료):** `packages/components`에 `PointerCanvas`(드로잉·Eraser·Reset ref)·`PointerDialog`(Pen/Eraser/두께/단일 컬러버튼+팝오버/Reset/Close) 포트. App이 `interaction==='pointer'`에서 **전체 화면 모달 레이어(zIndex 1000)** = backdrop(뒤 UI 차단) + **본문 rect에만 겹치는** 드로잉 캔버스 + 다이얼로그. 기본색 `#FFDD40`. **CW는 react-rnd·react-color(SketchPicker)·MUI 사용**하나 본 포트는 의존성 최소화를 위해 **경량 드래그 + 컬러버튼 스와치 팝오버**로 대체(닫힌 다이얼로그 레이아웃·색·동작은 근접; 그라디언트 picker만 미복제). **1안 채택(2026-07-16):** verbatim 복제(2안)는 react-rnd·react-color를 들여왔다가 접목 시 다시 버리는 낭비라, **경량 포트 유지 + 접목 시 CW 컴포넌트로 대체**(§9.10). 픽셀 동일 picker가 데모에 필요하면 그때 react-color 추가.
+
+### 3.9 계측/주석 편집 (Edit · Property) — CW 정합
+
+length·angle·freeDraw·arrow 계측/주석은 **생성 후 편집**할 수 있다(CW `es-pixi-wrapper` 정합; CW는 PIXI, 우리는 Canvas 2D에 동일 UX 이식). **도구 미선택(neutral) 상태에서 동작**하며(그리기 도구 활성 시 편집 비활성), **한 번에 하나만** 선택된다(다른 것 선택 시 이전 해제).
+
+**좌클릭:**
+- 주석 선 위 hover → **이동 커서**(CW `overlaySelectedCursor` = 화살표+십자, §3.4.2). 선을 드래그하면 **통째 이동**(모든 점 같은 delta, 타일 밖으로 안 나가게 clamp).
+- 선택되면 각 점이 **속 빈 네모 핸들**(색=선색)로 표시되고, 핸들을 드래그하면 그 점만 이동 → **길이·각도 실시간 갱신**. arrow·length·freeDraw도 동일.
+- 빈 곳 클릭 → 선택 해제.
+
+**우클릭:** 주석 위에서 → **편집 진입 + 컨텍스트 메뉴**(흰 바탕·검정 글씨, CW `CustomMenu` 정합):
+- **Property** → Property 다이얼로그(**Line Color · Font Color · Font Size**[6·8·10·12·14·16·18·20] · Save/Cancel). **선색을 바꾸면 핸들 색도 함께** 바뀐다.
+- **Delete** → 해당 주석 삭제.
+
+**저장:** 편집된 점 + 스타일(선색·글자색·글자크기)은 **계측 모델 `style`**(`measurement.ts`)에 담겨 **Save Project ⑨(Overlay, §7·§12-D26·T-P5-4)** 로 저장된다.
+
+**모드 충돌 회피(중요):** 편집 오버레이는 **주석 위 hover일 때만 입력을 캡처**(window mousemove로 판정해 `pointerEvents` 토글)하고, 그 외엔 통과시켜 **Scout 커브 편집·Pan/Zoom 등 뷰 고유 조작을 막지 않는다.**
+
+**구현(T-P4-9, 완료):** `SectionMeasureOverlay`에 편집 상태(selectedId·핸들 드래그·이동·컨텍스트 메뉴)·hit-test(선분 거리·핸들)·스타일 렌더(선색/글자색/글자크기·속빈 네모 핸들) 추가. `AnnotationPropertyDialog`(CW `OverlayPropertyDialog` 포트, 경량). 커서 `MOVE`(CW `overlaySelectedCursor`) `cursors.ts`에 복사. **접목 시** 편집·Property·메뉴는 CW `es-pixi-wrapper`/`OverlayPropertyDialog`/`CustomMenu` 정본으로 교체(§9.10).
 
 ## 4. Overlay 표시 규칙 (MMI 1.13 §6)
 
@@ -610,7 +629,8 @@ standalone에서는 CW를 import할 수 없어(Module Federation·CW 의존성 �
 | Toolbar 아이콘 SVG | `apps/section-demo/src/cw/icons/` | 데모 stub 복사 | CW 아이콘 에셋 | **이동 안 함**(데모 잔류). 중복 아님 |
 | Tool store/contract 미러 | `apps/section-demo/src/cw/{toolStore,toolContract,cwTypes}.ts` | 데모 미러 | CW `useBoundStore`·`toolbar/type.ts` | **이동 안 함**. 접목 뷰는 CW store 직접 구독(§9.6) |
 | `CwToolbar` stub | `apps/section-demo/src/cw/CwToolbar.tsx` | 데모 stub | CW `Toolbar` | **이동 안 함**. CW Toolbar가 제공 |
-| **커서 `CW_CURSORS`**(Pan·Zoom·Pointer·Disable·Erase·**Length·Angle·FreeDraw**) | `packages/components/src/cursors.ts` | 모듈 복사(§3.7·§3.8·§3.4.2) | CW `workSpace/setting` `CURSORS` | **CW `CURSORS` import로 교체·복사본 삭제**. Arrow 임시(FreeDraw)는 기획 전용 커서로 교체(§11) |
+| **커서 `CW_CURSORS`**(Pan·Zoom·Pointer·Disable·Erase·Length·Angle·FreeDraw·**Move**) | `packages/components/src/cursors.ts` | 모듈 복사(§3.7·§3.8·§3.4.2·§3.9) | CW `workSpace/setting` `CURSORS` + `vtkjs-wrapper` `overlaySelectedCursor`(Move) | **CW import로 교체·복사본 삭제**. Arrow 임시(FreeDraw)는 기획 전용 커서로 교체(§11) |
+| **계측/주석 편집 + Property**(`SectionMeasureOverlay` 편집 로직·`AnnotationPropertyDialog`) | `packages/components/src/SectionMeasureOverlay.tsx`·`AnnotationPropertyDialog.tsx` | 모듈 구현/포트(§3.9) | CW `es-pixi-wrapper`(편집 엔진)·`OverlayPropertyDialog`·`CustomMenu` | **CW 정본으로 교체**(편집·Property·컨텍스트 메뉴). 우리는 Canvas2D UX 이식본이라 접목 시 CW PIXI 엔진/다이얼로그 사용 |
 | **Pointer 주석**(`PointerDialog`·`PointerCanvas` + App 배선) | `packages/components/src/PointerDialog.tsx`·`PointerCanvas.tsx`, `apps/section-demo/src/App.tsx`(모달 레이어·backdrop·bodyRect) | 모듈 포트(§3.8) | CW `workSpace/layout/components/PointerDialog`·`PointerCanvas` (WorkSpace가 자체 렌더) | **삭제**(CW 셸이 제공 — Section content 기여 없음). 상세 절차 **§9.9-8b단계**. CW는 react-rnd·react-color·MUI 정본; 우리 경량 대체본 폐기 |
 | **Grid 렌더** | `packages/components/src/GridOverlay.tsx` | 모듈 복제(알고리즘·값) | CW `@ewoosoft/es-view-info` `GridView` | **CW `GridView` 사용 검토·교체**(값 동일). 불가 시 정본 참조 주석 유지 |
 | **색 토큰**(teal·크롬) | `ViewTitleBar.tsx`·`App.tsx` 등 하드코딩 | 모듈 복사(§3.4.1a) | CW `theme.ts`(`primary.dark` 등) | **CW theme 토큰 import로 교체** |
@@ -699,6 +719,7 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 | D12 | 슬랩 투영 방식 (max vs mean) | **확정(기획 2026-07-14)** — Thickness>0 slab 투영 **기본 = 평균(mean)**. **MIP(최댓값)는 Image Adjust 다이얼로그의 필터 토글**로만 선택(§3.6). (임상적으론 다소 이상하나 요구사항.) 엔진은 둘 다 지원, 기본 preset=`mean` | 기획 확인 반영 완료 |
 | D13 | MMI 미명시 파라미터 범위 | **확정(개발실, 2026-07-14)** — MMI가 기본값만 준 값의 범위를 개발실이 정함: Section 가로폭 기본 30mm·**범위 20~80mm**, Section 세로폭 기본 60mm(§3.4). MMI/기획 갱신 시 갱신 | 개발실 정의 |
 | D14 | BL/LB 기준점(삼각형) 이동 기능 용도 | **미확정 — 기획 확인 대기.** D10으로 "기준점 위치 기반 B/L 반전"이 폐기되어 삼각형을 드래그해도 **기능적 효과가 없다**(순수 표식만 이동). MMI 1.6-8/1.7-7의 "기준점 이동"도 원래 *개발실 리뷰 후 적용 여부 확정(TBD)*. **선택지**: (a) 드래그 제거·시작점 **정적 표식**(D10과 가장 일관, 개발실 권장), (b) 이동에 별도 용도 부여, (c) 현행 유지(이동하나 무효과). 기획 회신 필요 | **기획 확인 대기** |
+| D29 | **계측/주석 편집(Edit·Property) = CW 정합 이식, 속성 저장** | **확정(2026-07-16) — §3.9.** length·angle·freeDraw·arrow는 생성 후 편집: 도구 미선택 시 hover→이동커서(CW `overlaySelectedCursor`)·선 드래그 통째 이동·속빈 네모 핸들 드래그로 점 편집(길이·각도 실시간)·단일 선택. 우클릭→편집+컨텍스트 메뉴(흰 바탕 검정, Property/Delete). Property=선색·글자색·글자크기(6~20), **선색 바꾸면 핸들색도**. 속성·편집점은 계측 `style`로 **Save ⑨ 저장**(D26·T-P5-4). CW는 PIXI(`es-pixi-wrapper`)·`OverlayPropertyDialog`·`CustomMenu` 정본 → 우리는 Canvas2D에 동일 UX 이식, **접목 시 CW 정본으로 교체**(§9.10). 편집 오버레이는 hover 시에만 입력 캡처해 커브/Pan-Zoom 방해 안 함. 구현=T-P4-9. | 확정 |
 | D28 | **Pointer 주석 = CW 컴포넌트 포트, 임시(저장 안 함)** | **확정(2026-07-15) — CW `PointerDialog`/`PointerCanvas`가 정본.** MMI 1.13-1a Pointer는 일시 주석(그리기) 도구다. CW 조사: 순수 React+Canvas2D(`Path2D`)·vtk 무관, 전역 오버레이 캔버스에 FreeDraw식 다중 요소·Eraser(클릭 1요소 삭제, `isPointInStroke` 15px)·두께(1~5, 기본 2)·색(기본 노랑 `#FFD64A`, CW settings 실제값)·Reset, **모달(뒤 UI 전부 차단)**, **Close=비활성→언마운트→그림 전부 소거**(임시, prj 저장 안 함). 본 모듈은 **소스 포트**(components), 커서 Pen=`POINTER`·Eraser=`ERASE`(신규 복사). **접목 시 CW 컴포넌트로 교체·포트 삭제**(§9.10). CW 의존(react-rnd·react-color·MUI)은 포트에서 경량 대체(드래그·color input)나 기능 동일. 구현=T-P4-8. | 확정 |
 | D27b | **Pan/Zoom 대상 = 이미지·계측만; Grid 완전 고정; Ruler 위치 고정·단위는 배율 반영** | **확정(2026-07-15) — 모든 뷰.** Pan/Zoom은 **이미지(및 이미지 앵커 계측)에만** 위치·배율 적용. **Grid는 완전 고정**(pan 이동·zoom 스케일 안 함, 뷰 전체 덮는 고정 10mm). **Ruler는 위치 고정**(뷰/타일 하단·우측)이나 **눈금 단위·간격·표시 mm는 Zoom 반영**(스케일 바 픽셀길이 고정·표시 mm=base/zoom, 예 2×→25mm; 소·대눈금은 `chooseRulerSteps` 공통 규칙 1·5·10·50·100mm). 근거: Grid가 pan 따라 흔들리면 기준자로 혼란(고정), Ruler는 확대 시 실제 척도를 보여야 유용(단위 갱신)(사용자 피드백). 구현: GridOverlay transform 미적용, `ViewVerticalScaleBar`·`SectionTileChrome`에 `zoom` 전달(단위 갱신·위치 고정), 이미지(WebGL viewport/CSS)·`SectionMeasureOverlay`만 transform. | 확정 |
 | D27 | **Section Pan/Zoom 적용 단위(3×3)** | **확정(2026-07-15) — 9개 뷰가 하나의 transform으로 함께 Pan/Zoom.** MMI 1.13-1a는 "MPR 동일"만 규정, 3×3 내부 처리 미명시. 각 뷰는 **자기 중앙 기준 제자리 확대·타일 클립**(뭉쳐 스프레드 아님)이되 **9개 모두 같은 값**으로 움직인다. **근거:** ① slice 스크롤 시 타일↔슬라이스가 재매핑되는데 칸마다 배율이 다르면 스크롤 때 배율이 뒤섞여 매우 복잡, ② Save Project가 뷰당 1개 상태로 단순(9벌 저장 불필요). "뷰 모드" 단일 상태로 처리. 타일별 독립(초안)은 위 이유로 배제. 구현: `useViewTransform`(단일) → WebGL `gl.viewport`+`scissor` 타일별 적용·오버레이 셀별 중앙 기준(§3.7·T-P4-6). | 확정 |
@@ -740,6 +761,7 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.51 | 2026-07-16 | **계측/주석 편집(Edit·Property) 신설(§3.9·§12-D29·§9.10·T-P4-9)**: length·angle·freeDraw·arrow 생성 후 편집 — hover 이동커서(CW `overlaySelectedCursor` `MOVE` 복사)·선 드래그 이동·속빈 네모 핸들 편집(길이·각도 실시간)·단일 선택·우클릭 컨텍스트 메뉴(Property/Delete)·Property 다이얼로그(선색·글자색·글자크기 6~20, `AnnotationPropertyDialog`=CW `OverlayPropertyDialog` 포트). 계측 모델에 `style` 추가→Save ⑨ 저장(D26). 계측 라벨 검정 박스 제거(흰 글씨). 접목 시 CW PIXI 엔진/다이얼로그로 교체(§9.10). |
 | 1.50 | 2026-07-16 | **계측/주석 도구별 커서(§3.4.2·§11)**: 그리는 도구에 따라 전용 커서 — CW `CURSORS` 정본 복사(LENGTH·ANGLE·FREEDRAW 추가) + CW `ContentDialog` 매핑 정합(length→LENGTH·angle→ANGLE·freeDraw→FREEDRAW). **Arrow는 CW에 전용 커서 부재(v1.3.2 신규)라 임시 FreeDraw 펜 커서** 사용, 기획이 전용 커서 제작 후 교체(§11 숙제). `SectionMeasureOverlay`에 배선. |
 | 1.49 | 2026-07-16 | **Pointer 접목 절차 상세화(§9.9-8b단계)**: 접목 시 Pointer 처리를 단계별로 명시 — Pointer는 CW WorkSpace 셸 레벨이라 우리 포트(`PointerDialog`·`PointerCanvas`·App 모달 배선) **삭제**, CW가 자체 제공(단일 오버레이라 Section 뷰 위 자동 드로잉), 커서 CW import 대체, 검증 항목까지. §9.10 표·최소 변경 요약에 링크. |
 | 1.48 | 2026-07-16 | **Pointer 그리기 뷰 스코프·CW 근접 정합·소유 명확화(§3.8·§9.10)**: 드로잉 캔버스를 **본문(뷰) rect에만** 겹쳐 Toolbar 위엔 안 그려지게(backdrop이 나머지 클릭만 차단, CW 정합). 다이얼로그를 CW 닫힘 레이아웃(다크 패널·헤더 divider·teal 펜·"2" 드롭다운·노란 스와치·Reset)에 근접화, 기본색 `#FFDD40`(소스 확인). **1안 확정**: 경량 포트 유지 + 접목 시 CW 컴포넌트로 대체(verbatim 2안은 throwaway 의존이라 배제). Pointer는 **CW 셸(WorkSpace) 소유** 명시. |
