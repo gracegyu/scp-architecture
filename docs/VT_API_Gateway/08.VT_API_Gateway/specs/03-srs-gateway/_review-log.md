@@ -900,9 +900,14 @@ target 시크릿 제출 경로는, 운영자가 원문을 write-only로 제출�
   > From CodeReviewAgent(v0.4.1),
   > §7.3.6 조회 API 설명이 여전히 **`endpoint`를 `GET /v1/regions` 출력에 포함**시킨다("운영 리전 목록(region_id·표시명·**endpoint**·status…)"). 이는 이번 변경에서 이전 리뷰 지적(리전 내부 endpoint 노출)을 해소하며 **`Region`/`ClinicResolution` 스키마에서 `endpoint`를 제거**하고 §2.3.3(line 734 "라우팅은 공개 apex/GeoDNS, **리전 내부 endpoint는 미노출**")·§7.3.1(line 1866 output이 `hosts`=`apex`·`webhookHostPattern`만, endpoint 없음)·§4.5.1(리전별 내부 호스트 `gw-<region>.vatech.com` "**클라이언트엔 노출하지 않음**")로 통일한 것과 정면으로 모순된다. 게다가 `GET /v1/regions`는 **deviceAuth(클라이언트 대면)** 라(OpenAPI `getRegions` security=`deviceAuth`), 이 문구는 바로 그 "클라이언트에 노출하면 안 되는 리전 내부 endpoint"를 다시 device 응답 계약에 되살린다. 실제로 device는 항상 공개 apex/GeoDNS로만 접속하고 리전 선택은 서버측 `clinic.region` 배정으로 처리되므로 device-facing 리전 목록에 endpoint는 개념적으로도 불필요하다. endpoint 제거 수정이 §7.3.6에서 누락되었으므로, 이 문구에서 `endpoint`를 삭제해 OpenAPI `Region` 스키마·§4.5.1·§7.3.1과 정합화해야 한다(통제 문서 요구사항↔인터페이스 추적성).
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 반영: 대기
+- 답변(초안):
+
+맞습니다. §7.3.6의 `GET /v1/regions` 출력 설명에 `endpoint`가 남아 있었습니다 — 앞선 endpoint 제거(§4.5.1·§7.3.1)에서 이 한 곳이 누락됐습니다. 목록을 `region_id·표시명·status`로 정정해 리전 내부 endpoint를 뺐습니다.
+
+device는 공개 apex/GeoDNS로 접속하고 리전 선택은 서버측 `clinic.region` 배정으로 처리하므로, device 대면 리전 목록에 내부 endpoint는 개념적으로도 불필요합니다. 이로써 §4.5.1·§7.3.1·OpenAPI Region 스키마와 정합됩니다.
+
+- 조치: §7.3.6 `GET /v1/regions` 출력에서 endpoint 제거(region_id·표시명·status)·§4.5.1/§7.3.1 정합. C-39 누락분
+- 반영: 반영완료(로컬·미push)
 - 상태: Active
 
 ## C-46 · docs/specs/SRS.md:656 · [thread 79897] ★리뷰어 대기(자동리뷰 Update 4)
