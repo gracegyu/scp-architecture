@@ -676,7 +676,7 @@ flowchart LR
 
 **각 스펙은 `작성 → PR(리뷰·수정) → baseline(동결)` 3단계**를 거친다 — "PR(리뷰·수정)"이 곧 리뷰·반영 단계이고, **baseline은 PR 머지로 동결**된다. ③ GW SRS가 **계약 SSOT**라 가장 먼저 작성·PR(7/9~)을 거쳐 baseline된다. ③ GW SRS가 **PR에 진입(작성 완료)하는 7/9 시점에 ①·②(One Pager)와 ④(AXS Sub-SRS)를 동시 착수**(병행 작성)한다 — ④는 ③ baseline을 기다리지 않으며 **전체 Sub-SRS를 2주에 작성**한다(pilot 전 완료). **AXS sandbox 자격(B-2 #6)은 스펙 *작성* 엔 불요**하고 E2E·pilot 직전에 필요하므로 그 시점(확보 시점 TBD)에 둔다. ③-C·③-P·③-I는 ③ 계약을 참조하므로 **③ baseline 이후** — 특히 **③-I는 GW가 1주 초안 → 인프라 담당이 완성**한다.
 
-> **v1.0 범위 재조정 (7/9 결정) — Straumann IO Scanner 우선.** 시간 제약상 v1.0의 Straumann(5단계) 연동을 **IO(IntraOral) Scanner로 한정**하고 **CleverOne 연동은 post-v1.0로 미룬다**. GW 기본(호환성·인증·라우팅·target 프록시)은 originator 무관 공통이라 v1.0 포함. **목표=10월 출시**(역산·잠정·Raymond는 SectionView 병행 부분투입). **IO Scanner↔EzServer 연동 방식 미정**(추후 확정). **스펙 초안 담당**: CleverOne=**Nick** · EzServer=**Thomas**(GW는 표준 계약만 제공·초안 미작성). IO Scanner에 불필요한 스펙(② presigned·CleverSpace·CleverOne 적응)은 최대한 후행. 상세=아래 Gantt·SRS §1.2·§2.7.
+> **v1.0 범위 재조정 (7/9 결정) — Straumann IO Scanner 우선.** 시간 제약상 v1.0의 Straumann(5단계) 연동을 **IO(IntraOral) Scanner로 한정**하고 **CleverOne 연동은 post-v1.0로 미룬다**. GW 기본(호환성·인증·라우팅·target 프록시)은 originator 무관 공통이라 v1.0 포함. **목표=10월 출시**(역산·잠정·Raymond는 SectionView 병행 부분투입). **IO Scanner↔EzServer 연동 방식 미정**(추후 확정). **스펙 초안 담당(7/16 R3)**: CleverOne=**Nick** · **EzServer 연동 Spec 초안=Raymond→Thomas** · **③-I Infra Sub-Spec=Raymond diagram→Jack detail**. (7/16 회의: SRS baseline 7/20(월)·③-I·③-P-EZ 초안 7/20 착수·①·④·③-C 연기) IO Scanner에 불필요한 스펙(② presigned·CleverSpace·CleverOne 적응)은 최대한 후행. 상세=아래 Gantt·SRS §1.2·§2.7.
 
 | 순서 | 스펙 | 현재 단계 | 전제·선결 | 비고 |
 | --- | --- | --- | --- | --- |
@@ -689,53 +689,58 @@ flowchart LR
 
 ```mermaid
 gantt
-    title v1.0 = Straumann IO Scanner 연동 — 10월 출시 목표(역산·잠정) · 7/9 결정
+    title v1.0 = Straumann IO Scanner 연동 — 10월 출시 목표(역산·잠정) · 7/9 결정 반영
     dateFormat YYYY-MM-DD
     axisFormat %m/%d
     todayMarker stroke-width:3px,stroke:#d33,opacity:0.6
 
     section ③ GW SRS + API/DBML (계약 SSOT · Raymond·부분투입)
-    작성 (본문+OpenAPI·DBML)       :done, srsw, 2026-06-15, 24d
-    PR 리뷰·수정                  :active, srspr, 2026-07-09, 21d
-    baseline v1.0                 :milestone, srsbl, after srspr, 0d
+    작성 (본문+OpenAPI·DBML)       :done, srsw, 2026-06-15, 28d
+    PR 리뷰·수정                  :active, srspr, 2026-07-13, 2026-07-20
+    baseline v1.0 (7/20 월 확정)     :milestone, srsbl, after srspr, 0d
 
-    section ① API 호환성 One Pager (GW 기본 — v1.0 포함)
-    작성                          :op1w, 2026-07-14, 10d
+    section ① API 호환성 One Pager (연기 · GW 기본 — v1.0 포함)
+    작성 (2주 더 연기·8월 초)       :op1w, 2026-08-03, 10d
     PR 리뷰·수정                  :op1pr, after op1w, 7d
     baseline                      :milestone, op1bl, after op1pr, 0d
 
-    section ④ AXS Sub-SRS (v1.0 = IO Scanner 한정 · Raymond)
-    작성 (IO Scanner scope)        :axsw, 2026-07-14, 21d
+    section ④ AXS Sub-SRS (=5단계 Straumann · v1.0=IO Scanner scope · 연기·7/16 · Raymond)
+    작성 (IO Scanner scope·연기·EzServer 초안 후) :axsw, after ezw, 21d
     PR 리뷰·수정                  :axspr, after axsw, 14d
     baseline                      :milestone, axsbl, after axspr, 0d
     AXS sandbox 자격(Straumann·선결) :crit, cred, 2026-08-18, 21d
 
-    section ③-P-EZ EzServer 스펙 (Thomas 작성 · GW 표준 제공)
-    IO Scanner↔EzServer 연동방식 확정(미정·선결) :crit, ezm, 2026-07-21, 21d
-    작성 (Thomas)                  :ezw, after ezm, 21d
+    section ③-P-EZ EzServer 연동 스펙 (초안 Raymond 7/20 착수→Thomas · R3·7/16)
+    IO Scanner↔EzServer 연동방식 확정(미정·선결·R1) :crit, ezm, 2026-07-21, 21d
+    초안 Raymond(IO Scanner+기본 GW연동)→Thomas :ezw, 2026-07-20, 21d
     PR 리뷰·수정                  :ezpr, after ezw, 14d
     baseline                      :milestone, ezbl, after ezpr, 0d
 
-    section ③-I 인프라 IaC (AppConfig·4-way·egress)
-    GW 초안                        :infw1, after srsbl, 7d
-    인프라 담당 작성               :infw2, after infw1, 14d
+    section ③-I 인프라 IaC (초안 Raymond diagram 7/20 착수→Jack detail · R3·7/16)
+    Raymond diagram 초안(7/20 착수)  :infw1, 2026-07-20, 7d
+    Jack detail 작성               :infw2, after infw1, 14d
     PR 리뷰·수정                  :infpr, after infw2, 14d
     baseline                      :milestone, infbl, after infpr, 0d
+    Infra 구축·자동배포 완료(8월·R2) :milestone, infra8, 2026-08-31, 0d
 
-    section ③-C GW Console (v1.0 최소 — 온보딩·Org 관리)
-    작성                          :conw, after srsbl, 14d
+    section ③-C GW Console (연기·후순위 — 온보딩·Org 관리)
+    작성 (연기·후순위)              :conw, after axsbl, 14d
     PR 리뷰·수정                  :conpr, after conw, 14d
     baseline                      :milestone, conbl, after conpr, 0d
 
     section GW 구현 → E2E → 출시 (Raymond 부분투입·SectionView 병행)
-    GW 구현 (IO Scanner MVP)        :active, impl, after axsbl, 50d
+    GW 구현 (IO Scanner MVP·AXS draft 후·압축) :active, impl, after axsw, 40d
     AXS E2E (sandbox)              :e2e, after impl, 14d
-    v1.0 출시 (IO Scanner)          :milestone, rel, 2026-10-31, 0d
+    개발환경 연동 완료(9월·R2)       :milestone, dev9, 2026-09-30, 0d
+    v1.0 production 연동 완료(10월·R2) :milestone, rel, 2026-10-31, 0d
 
     section v1.0 이후 (deferred · post-v1.0)
     CleverOne 연동 스펙 작성 (Nick) :codef, after rel, 14d
     ② Presigned One Pager 작성     :pdef, after rel, 14d
     CleverSpace 적응 작성 (③-P-CS)  :csdef, after rel, 14d
+
+    section ▷ 병행 · 별도 프로젝트 (GW 아님)
+    SectionView Module 구현 (Raymond 병행) :crit, sv, 2026-07-13, 2026-07-23
 ```
 
 > 각 섹션 = **스펙 단위(①·②·③·③-C·④·③-P·③-I)** 1개, 막대 = `작성 / PR(리뷰·수정) / baseline` 생애주기 단계. **막대 색: 작성=기본색 · PR(리뷰·수정)=강조(밝은색) · ◆=baseline/마일스톤 · 회색=완료(done) · 빨강=외부 선결(sandbox 자격)**. **gantt는 스펙 단위 생애주기·순서만** 보이고, 제품×단계별 문서는 **[§4 표](#4-제품별-개발-항목-종합-제품--단계)** 가 정본(gantt 미표기). **날짜·기간은 순서·의존 표현용 잠정값**이며 일정 약속이 아니다 — 특히 **pilot 2026-08-15는 개발계획서(착수 품의·미승인) 내부 목표**이지 외부 확정 요구가 아니다(확정 일정은 PM/품의). **③-P·③-I는 GW가 초안만, PR·baseline은 제품팀/인프라 레포**. 핵심: **③ PR 시작(7/9)에 ①·②·④ 동시 착수(병행)**, ③ baseline이 ③-C·③-P·③-I의 선행, ④(AXS)는 **전체 Sub-SRS를 2주 작성**. **`③ GW SRS + 구현` 섹션의 `GW 구현` 막대 = R7 채택=1안**(④ AXS baseline 후 즉시·스펙 병행). *(2안=전 스펙 완료 후는 반려·7/2 R7.)* **기간 미정(SRS 확정 후 재산정)**. 구현은 ④ AXS 연동(첫 연동·테스트 필수) 이후. **AXS sandbox 자격(B-2 #6)은 스펙 작성엔 불요하고 E2E·pilot 직전에 필요**하므로 그 시점(7월 말~pilot 전)에 배치(확보 시점 TBD). **③-I는 GW가 1주 초안 → 인프라 담당이 완성·PR·baseline**. 단위·유형 정본 [PRD §12.1](<../VT API Gateway — PRD (v2).md>).

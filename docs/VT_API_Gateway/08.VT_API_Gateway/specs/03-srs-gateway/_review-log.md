@@ -760,9 +760,18 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
   > From CodeReviewAgent(v0.4.1),
   > `Region.endpoint`(line 2658)는 설명에서 "리전 내부 엔드포인트(§4.5.1 gw-<region>.vatech.com…**클라이언트 미노출**)"이라고 명시하지만, 이 `Region` 스키마는 **deviceAuth로 보호되는 `GET /v1/regions`**(line 218–220, security=`deviceAuth`)의 응답 배열 요소다. 즉 "클라이언트에 노출하지 않는다"고 표기한 리전 내부 호스트를 클라이언트(device)에게 그대로 반환한다. 같은 값이 `ClinicResolution.endpoint`(line 2576)에도 있어 deviceAuth `GET /v1/clinics/me`로도 노출되고, SRS §7.3.1 output(SRS.md line 1864)도 `endpoint`를 resolver 출력에 포함시켜 §4.5.1(SRS.md line 1373 "리전 내부 엔드포인트 … 클라이언트엔 노출하지 않음")와 정면으로 모순된다. 특히 `ClinicResolution.hosts`(line 2583)는 "공개 호스트 참고 — 모두 GeoDNS라 리전 불변"만 담아 리전-특정 내부 호스트를 일부러 배제했는데, `endpoint`가 바로 그 배제 대상(리전 고정 내부 호스트)을 노출한다. 이는 이번 diff에서 이전 리뷰 지적(§7.3.1 Clinic 계약 미비)을 `ClinicResolution` 신설로 해소하는 과정에서 새로 유입된 모순이다 — GeoDNS apex로만 접속시키려는 설계 의도를 device가 우회할 수 있으므로, `endpoint`를 device-facing 응답에서 제거하거나 "클라이언트 미노출" 표기를 정정해 일관화해야 한다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 반영: 대기
+- 답변(초안):
+
+**결론:** 지적대로 §4.5.1("리전 내부 호스트=클라이언트 미노출")과 모순이라, device-facing 응답에서 리전 내부 `endpoint`를 제거했습니다.
+
+**수정**
+- `ClinicResolution`·`Region` 스키마에서 `endpoint`(내부 `gw-<region>.vatech.com`) 필드 제거. device는 공개 apex(`hosts.apex`)/GeoDNS로 라우팅하므로 리전 내부 endpoint가 불필요합니다.
+- SRS §7.3.1 resolver 출력·§2.3.3 시퀀스·§7.3 intro에서도 `endpoint` 제거, "라우팅은 공개 apex/GeoDNS, 리전 내부 endpoint 미노출(§4.5.1)"을 명시.
+
+이렇게 하면 디바이스는 공개 GeoDNS apex 하나로만 접속하게 되어 리전을 우회할 수 없고, §4.5.1 불변식과 다시 일치합니다. 수정 후 OpenAPI는 redocly lint를 정상 통과하며, 기존 경고 5건 외에 새로 생긴 것은 없습니다.
+
+- 조치: ClinicResolution·Region에서 endpoint 제거(required 조정)·SRS §7.3.1/§2.3.3/§7.3 endpoint 제거·apex/GeoDNS 라우팅 명시
+- 반영: 반영완료(로컬)·게시됨(최신 smoothed본)
 - 상태: Active
 
 ## C-40 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2259 · [thread 79749] ★리뷰어 대기(자동리뷰)
@@ -771,9 +780,18 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
   > From CodeReviewAgent(v0.4.1),
   > `postAdminTargets`(line 1282)의 요청 본문 스키마 `Target`은 아웃바운드 OAuth 자격·인바운드 HMAC 시크릿을 **`credentialRef`(line 2259)·`secretRef`(line 2295) = KMS 참조(`kms://alias/…`·"원문 미저장")** 로만 받는다. 그러나 SRS §2.3.4는 "**자격·시크릿은 KMS에 저장하고 DB엔 참조만 둔다**"(SRS.md line 757)라고 하면서 등록 시퀀스(SRS.md line 767–768)에서 운영자가 POST 본문에 **실 자격·secret**을 실어 보내고(`[egress·OAuth 자격]`·`[… sig_scheme·secret …]`) **GW가 이를 KMS에 저장해 `credential_ref`·`secret_ref`를 생성**("GW->>KMS: 자격·시크릿 저장")한다고 규정한다. 즉 계약상 원문 secret을 제출할 입력 필드가 스키마에 전혀 없어, SRS가 기술한 "GW가 raw secret을 수신→KMS 저장" 흐름을 현재 OpenAPI로는 표현할 수 없다. 스키마에 write-only 원문 자격/secret 입력 필드를 추가하거나, 반대로 "운영자가 KMS에 사전 적재 후 참조만 전달"하는 모델로 §2.3.4 시퀀스(GW가 KMS에 저장하는 부분)를 정정해 SRS↔OpenAPI를 정합화해야 한다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 반영: 대기
+- 답변(초안):
+
+지적하신 대로 계약(`Target` 스키마)에 원문 secret을 받을 입력이 없어서, "운영자가 원문을 제출하면 GW가 KMS에 저장한다"는 §2.3.4 흐름을 스키마가 그대로 표현하도록 고쳤습니다.
+
+`Target` 스키마에 원문을 넣는 write-only 입력 필드를 새로 뒀습니다. OAuth 원문 자격은 `credential`(object), HMAC 원문 시크릿은 `secret`(string)으로 받는데, 둘 다 write-only여서 응답으로는 절대 돌려주지 않고 DB에도 원문을 남기지 않습니다. 운영자가 이 값을 실어 보내면 GW가 즉시 KMS에 저장하고, 그 참조인 `credentialRef`·`secretRef`를 만들어 DB에 둡니다. 그래서 이 두 참조 필드는 read-only로 명확히 표시했습니다.
+
+SRS §2.3.4에도 "원문은 write-only 입력으로 제출하고 GW가 KMS에 저장한 뒤 참조만 read-only로 남긴다"는 문장을 덧붙여, 스키마와 본문이 같은 이야기를 하도록 맞췄습니다.
+
+정리하면 §2.3.4가 규정하던 'GW가 원문 secret을 받아 KMS에 저장하고 참조를 생성'하는 흐름을 이제 OpenAPI가 그대로 표현합니다. redocly lint도 통과합니다.
+
+- 조치: OpenAPI Target에 write-only credential·secret 입력 추가·Ref readOnly 명시·SRS §2.3.4 포인터. redocly valid
+- 반영: 반영완료(로컬)·게시됨(최신 서술문본)
 - 상태: Active
 
 ## C-41 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1734 · [thread 79750] ★리뷰어 대기(자동리뷰)
@@ -782,9 +800,17 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
   > From CodeReviewAgent(v0.4.1),
   > `webhookHmac` 보안 스킴(line 1731~)은 `name: Signature`(line 1734)로 서명 헤더명을 `Signature`로 선언하지만, 바로 아래 설명(line 1738)은 "(여기 `X-Signature`는 예시)"라며 다른 헤더명을 든다. 헤더명이 target 규약(`sig_scheme`)마다 다르다는 취지는 이해되나, 같은 블록에서 스킴 선언값(`Signature`)과 설명의 예시(`X-Signature`)가 불일치해 구현·툴링(OpenAPI 클라이언트 생성 등)에 혼동을 준다 — 예시 헤더명을 `Signature`로 맞추거나 설명 문구를 정정해 일치시키는 것이 좋다. (경미)
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 반영: 대기
+- 답변(초안):
+
+맞습니다 — 스킴 선언(`name: Signature`)과 설명 예시(`X-Signature`)가 어긋나 정정했습니다.
+
+- 설명의 `X-Signature` 예시를 제거하고, **`name: Signature`가 v1.0(AXS) 기본값**임을 명시.
+- 헤더명이 target `sig_scheme`에 따라 달라질 수 있다는 취지는 유지하되, 선언값과 설명이 일치하도록 문구를 정리했습니다.
+
+이렇게 스킴 선언과 설명, 그리고 툴링 생성이 서로 어긋나지 않도록 맞췄고, 수정 후에도 OpenAPI는 redocly lint를 정상 통과합니다.
+
+- 조치: webhookHmac 설명의 X-Signature 예시 제거·name: Signature 기본값 일관화. redocly valid
+- 반영: 반영완료(로컬)·게시됨(최신 smoothed본)
 - 상태: Active
 
 ## C-42 · (파일 미지정·일반) · [thread 79751] ★리뷰어 대기(자동리뷰)
@@ -803,9 +829,20 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
   >
   > 3 line-specific finding(s) were posted as inline comments.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 반영: 대기
+- 답변(초안):
+
+총평 감사합니다. 이전 리뷰에서 지적된 계약 드리프트 4건(Region Resolver 출력·예약 필드 경로·eventType·endpoint 예시)이 해소된 것으로 확인해 주셔서 감사하고, 이번에 새로 짚어주신 세 가지도 모두 반영했습니다.
+
+먼저 리전 내부 endpoint 노출 문제는, device-facing 응답에서 그 필드를 아예 빼는 방향으로 정리했습니다. `Region`과 `ClinicResolution`에서 리전 내부 endpoint를 제거하고, 디바이스는 공개 apex(GeoDNS)로만 접속하도록 해 §4.5.1의 '내부 호스트 미노출' 원칙과 다시 일치시켰습니다.
+
+target 시크릿 제출 경로는, 운영자가 원문을 write-only로 제출하면 GW가 KMS에 저장하고 참조를 만드는 흐름을 스키마가 표현하도록 고쳤습니다. `Target`에 write-only인 `credential`·`secret` 입력 필드를 두고, 기존 `credentialRef`·`secretRef`는 GW가 생성하는 read-only 참조로 명시해 §2.3.4 규정과 계약이 일치합니다.
+
+마지막으로 webhookHmac 스킴은 설명의 `X-Signature` 예시를 없애고 선언값 `Signature`(v1.0 AXS 기본값)로 통일했습니다.
+
+세 건 모두 문서·계약 정합 수준이라는 평가에 동의하며, 프록시 미정의 컴포넌트의 미참조가 verbatim bypass 의도임을 인지해 지적에서 제외해 주신 점도 확인했습니다. 위 수정은 모두 로컬에 반영해 두었고, 일괄 push 예정입니다.
+
+- 조치: 정보성(Update 3 총평·아키텍처 결함 없음). 라인 지적 3건(endpoint 노출/target secret/webhookHmac) 반영 확인 회신. 추가 문서 변경 없음
+- 반영: 반영완료(로컬)·게시됨(Update 3 ack·최신본)
 - 상태: Active
 
 ## C-43 · docs/specs/SRS.md:2019 · [thread 79842] ★리뷰어 대기(정지홍(Teddy))
@@ -813,9 +850,18 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
 
   > EzServer, GW, MQTT 최초 연동 이후 MQTT 서버 장애로 연동 실패 시의 처리 방안에 대해 문의드립니다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 반영: 대기
+- 답변(초안):
+
+좋은 질문입니다. 최초 연동 이후 MQTT 서버(브로커)가 장애를 겪어도 이벤트가 유실되지 않도록 두 겹으로 설계돼 있습니다.
+
+먼저 아직 EzServer로 발행되기 전 단계라면, 이벤트는 GW 내부 큐(SQS)에 그대로 남아 있습니다. Webhook Dispatcher가 발행을 시도하다 브로커에 닿지 못하면 재시도·백오프를 하고, 정해진 횟수를 넘기면 DLQ로 보내며 알람을 올립니다(§7.6.7·§7.6.3). 즉 브로커가 복구될 때까지 큐에서 대기할 뿐 사라지지 않습니다.
+
+이미 발행된 하행 메시지는 MQTT를 QoS1·persistent로 쓰기 때문에, 연결이 끊겼다가 EzServer가 다시 붙으면 브로커에 버퍼돼 있던 메시지가 재전달됩니다. EzServer는 자기 리전 브로커로 자동 재접속하고(persistent 세션), 재접속·백오프 정책 자체는 EzServer 쪽(③-P-EZ) 몫입니다. 브로커 자체의 이중화·failover는 관리형 브로커(AWS IoT Core / Amazon MQ)가 담당하며 인프라(③-I) 소관입니다.
+
+재전달이 일어나도 eventId 기반 멱등 처리(§7.6.4) 덕분에 중복으로 두 번 반영되는 일은 없습니다. 정리하면 브로커 장애의 최악 상황은 '유실'이 아니라 '전달 지연 + 지속 실패 시 DLQ·알람'이고, 이 내용을 §7.6.6에 '연결·브로커 장애 시 처리(무유실)' 항목으로 명시해 두었습니다.
+
+- 조치: §7.6.6에 '연결·브로커 장애 시 처리(무유실)' note 추가 — 발행 전=SQS 재시도·DLQ, 발행 후=QoS1·persistent 재전달, 재접속=③-P-EZ·브로커 HA=③-I·멱등
+- 반영: 반영완료(로컬)·게시됨
 - 상태: Active
 
 ## C-44 · docs/specs/SRS.md:1846 · [thread 79844] ★리뷰어 대기(정지홍(Teddy))
@@ -823,9 +869,18 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
 
   > 최초 연동한 clinic_id가 변경 되는 경우에 대해 처리 방안 문의드립니다.
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 반영: 대기
+- 답변(초안):
+
+좋은 질문입니다. 먼저 설계 관점을 말씀드리면, clinic_id는 LMP가 발급하는 Clinic-ID를 그대로 쓰는 '정체성 앵커'여서, 값을 제자리에서 바꾸는(rename) 것을 구조적으로 지원하지 않도록 설계돼 있습니다. clinic_id는 clinic 레코드의 PK이면서 device·webhook 이벤트·org 매핑 등이 참조하는 기준이고, 분배 MQTT 토픽(gw/clinic/{clinicId}/webhook)에도 값이 그대로 들어갑니다. 그래서 이 값을 바꾸려면 여러 참조와 라우팅·저장된 스냅샷을 한꺼번에 갈아야 하므로, 애초에 '제자리 변경'을 열어두지 않았습니다(rename API도 없습니다).
+
+그래서 운영 중 실제로 바뀌는 것은 clinic_id가 아니라 그 클리닉의 region(relocation·§7.3.4)이나 이름·주소 같은 정보(PATCH)입니다. 재설치·키 회전(§7.2.7)도 회전 게이트에서 '동일 clinic_id'를 요구하므로 디바이스 키가 바뀌어도 clinic_id는 유지됩니다.
+
+만약 LMP가 같은 클리닉에 아예 다른 Clinic-ID를 새로 발급하는 상황이라면, GW는 이를 'id 변경'이 아니라 새로운 클리닉으로 인식합니다 — 새 clinic 레코드가 생기고 해당 EzServer는 새 Clinic-ID로 재-enroll하며, 기존 clinic_id에 딸린 매핑·정책·device 바인딩은 자동으로 옮겨가지 않습니다. 이 내용을 §7.3에 'clinic_id 불변(정체성 앵커)'로 명시해 두었습니다.
+
+한 가지 여쭙고 싶습니다. clinic_id가 바뀌는 구체적인 시나리오가 실제로 있는지(예: 라이선스 재발급·클리닉 병합 등), 그리고 그런 경우 기존 클리닉의 데이터(매핑·정책·이력) 연속성이 꼭 필요한지 알려주시면 좋겠습니다. 지금 설계는 '새 id = 새 클리닉(자동 이관 없음)'을 전제로 하는데, 연속성이 요구되는 실제 사례가 있다면 별도의 이관 절차(운영/마이그레이션)로 다루는 방안을 함께 논의하겠습니다.
+
+- 조치: §7.3에 'clinic_id 불변(정체성 앵커)' note 추가 + Teddy에게 확인질문(clinic_id 변경 실제 시나리오·데이터 연속성 요구 여부 — 있으면 이관 절차 별도 논의). 구조상 rename 미지원(자연키·다참조)임을 답변에 명시
+- 반영: 반영완료(로컬)·게시됨(확인질문 포함·최신본)
 - 상태: Active
 ---
 
@@ -869,7 +924,7 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
 - C-36 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2336 · `Active`
 - C-37 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2612 · `Active`
 - C-38 · (파일 미지정·일반) · `Active`
-- C-39 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2658 · `Active` ⚠미반영
+- C-39 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2658 · `Active`
 - C-40 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2259 · `Active` ⚠미반영
 - C-41 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1734 · `Active` ⚠미반영
 - C-42 · (파일 미지정·일반) · `Active` ⚠미반영

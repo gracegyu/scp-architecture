@@ -927,3 +927,100 @@
 
 
 # VT API Gateway — 7/23 주간회의 Agenda
+
+> 7/16 스냅샷(위 「7/16 주간회의」)은 **그대로 보존**. 아래는 **7/23 최신 스냅샷**이며, 틀(논의/공유/이월)은 이전 주와 동일하다. **Gantt(S1)·스펙 작성 테이블(S2)은 매주 상시 포함**한다.
+
+- 논의 사항 (이번 주)
+  - _(회의 시 작성)_
+
+- 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
+  - **S1. 프로젝트 일정(Gantt) — 7/23 스냅샷** — 스펙 생애주기(작성→PR→baseline)+GW 구현 타임라인. **정본=[개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정은 그쪽 먼저·동기화 완료). **7/9 대비 변경**: v1.0 범위=IO Scanner로 축소 · 각 스펙 **작성/PR 분리** · CleverOne·②Presigned·CleverSpace=**deferred(post-v1.0)** 섹션 · **담당 표기**. · **7/16 회의 반영(순서 재조정)**: ③-I Infra·③-P-EZ EzServer 초안 **7/20 Raymond 착수** · **IO Scanner(④)·GW Console 연기**.
+    - 막대 색: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 빨강=외부/미정 선결. **선결(빨강)**: IO Scanner↔EzServer 연동방식(미정·R1)·AXS sandbox 자격(Straumann). **목표=10월 출시**(역산·잠정). **병행 별도 프로젝트**: `SectionView Module 구현`(7/13~2주·Raymond·**GW 아님**)을 별도 섹션 `▷ 병행`에 **다른 색(crit)** 으로 표기 — GW 일정과 자원 경합(부분투입) 가시화용.
+
+    ```mermaid
+    gantt
+        title v1.0 = Straumann IO Scanner 연동 — 10월 출시 목표(역산·잠정) · 7/9 결정 반영
+        dateFormat YYYY-MM-DD
+        axisFormat %m/%d
+        todayMarker stroke-width:3px,stroke:#d33,opacity:0.6
+
+        section ③ GW SRS + API/DBML (계약 SSOT · Raymond·부분투입)
+        작성 (본문+OpenAPI·DBML)       :done, srsw, 2026-06-15, 28d
+        PR 리뷰·수정                  :active, srspr, 2026-07-13, 2026-07-20
+        baseline v1.0 (7/20 월 확정)     :milestone, srsbl, after srspr, 0d
+
+        section ① API 호환성 One Pager (연기 · GW 기본 — v1.0 포함)
+        작성 (2주 더 연기·8월 초)       :op1w, 2026-08-03, 10d
+        PR 리뷰·수정                  :op1pr, after op1w, 7d
+        baseline                      :milestone, op1bl, after op1pr, 0d
+
+        section ④ AXS Sub-SRS (=5단계 Straumann · v1.0=IO Scanner scope · 연기·7/16 · Raymond)
+        작성 (IO Scanner scope·연기·EzServer 초안 후) :axsw, after ezw, 21d
+        PR 리뷰·수정                  :axspr, after axsw, 14d
+        baseline                      :milestone, axsbl, after axspr, 0d
+        AXS sandbox 자격(Straumann·선결) :crit, cred, 2026-08-18, 21d
+
+        section ③-P-EZ EzServer 연동 스펙 (초안 Raymond 7/20 착수→Thomas · R3·7/16)
+        IO Scanner↔EzServer 연동방식 확정(미정·선결·R1) :crit, ezm, 2026-07-21, 21d
+        초안 Raymond(IO Scanner+기본 GW연동)→Thomas :ezw, 2026-07-20, 21d
+        PR 리뷰·수정                  :ezpr, after ezw, 14d
+        baseline                      :milestone, ezbl, after ezpr, 0d
+
+        section ③-I 인프라 IaC (초안 Raymond diagram 7/20 착수→Jack detail · R3·7/16)
+        Raymond diagram 초안(7/20 착수)  :infw1, 2026-07-20, 7d
+        Jack detail 작성               :infw2, after infw1, 14d
+        PR 리뷰·수정                  :infpr, after infw2, 14d
+        baseline                      :milestone, infbl, after infpr, 0d
+        Infra 구축·자동배포 완료(8월·R2) :milestone, infra8, 2026-08-31, 0d
+
+        section ③-C GW Console (연기·후순위 — 온보딩·Org 관리)
+        작성 (연기·후순위)              :conw, after axsbl, 14d
+        PR 리뷰·수정                  :conpr, after conw, 14d
+        baseline                      :milestone, conbl, after conpr, 0d
+
+        section GW 구현 → E2E → 출시 (Raymond 부분투입·SectionView 병행)
+        GW 구현 (IO Scanner MVP·AXS draft 후·압축) :active, impl, after axsw, 40d
+        AXS E2E (sandbox)              :e2e, after impl, 14d
+        개발환경 연동 완료(9월·R2)       :milestone, dev9, 2026-09-30, 0d
+        v1.0 production 연동 완료(10월·R2) :milestone, rel, 2026-10-31, 0d
+
+        section v1.0 이후 (deferred · post-v1.0)
+        CleverOne 연동 스펙 작성 (Nick) :codef, after rel, 14d
+        ② Presigned One Pager 작성     :pdef, after rel, 14d
+        CleverSpace 적응 작성 (③-P-CS)  :csdef, after rel, 14d
+
+        section ▷ 병행 · 별도 프로젝트 (GW 아님)
+        SectionView Module 구현 (Raymond 병행) :crit, sv, 2026-07-13, 2026-07-23
+    ```
+
+  - **S2. 스펙 작성 테이블 — 제품별 개발 항목 종합 (제품 × 단계) · 매주 스냅샷** · 정본=[Roadmap §4](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>) (수정은 그쪽 먼저)
+    - **각 셀 앞 이모지 = 그 항목을 다루는 스펙의 작성 진행**: ✅ baseline · 🟢 PR · 🟡 작성중 · ⬜ 미작성 (— = 해당 없음)
+
+      | 제품 | 0단계(IO Scanner 수집·v1.0 선결·R1) | 1단계(호환성) | 2단계(presigned) | 3단계(GW 일원화) | 4단계(멀티리전) | 5단계(Straumann) | 후속 | 스펙 산출물(단위·유형) |
+      | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+      | **CleverSpace** | — | ⬜ 서버 버전 체크·well-known·오류코드 | ⬜ presigned 발급 신규 | ⬜ GW 경유 수신 정합 | ⬜ 멀티 Region 구축 | — | — | ① OnePager · ② OnePager · ③-P-CS |
+      | **CleverOne**(post-v1.0) | — | ⬜ Vatech-\* 헤더·well-known·fallback | ⬜ 업로드 흐름 연계 | ⬜ Direct→GW 경유 | ⬜ Region 선택 UI(대안)·ClinicID | — | — | ① · ② · ③-P-CO OnePager |
+      | **EzServer(EZ)** | ⬜ IO Scanner 데이터 수신(방식 R1·미정) | ⬜ 헤더 대리 전달 | ⬜ 전송 로직(presigned 직접) | ⬜ GW 경유 전환 | ⬜ ClinicID·Region·클리닉 등록(잠정) | ⬜ IO Scanner 연동·AXS(갈래A)·presigned 직접 | ⬜ Rust 재개발 | ①·②·③-P-EZ(초안 Raymond→Thomas)·④(갈래A) |
+      | **IO Scanner(Straumann 장비·수집 제품 미정)** | ⬜ 스캔 데이터→EzServer 유입(수집 제품·방식 R1·미정) | — | — | — | — | (AXS 워크플로 대상) | — | R1 확정 후 ③-P-EZ(수신)·④(AXS scope) |
+      | **CleverLab** | — | — | — | — | — | ⬜ AXS 오더·상태·확정(갈래B)·presigned | — | ④ Sub-SRS(갈래B) |
+      | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 Region 분배·HA(K8s)·Route53·Postgres | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS 🟢(단일·전 단계 통합)** · ④ connector 🟡 |
+      | **GW Console** | — | — | — | — | ⬜ Admin Web Console(③-C) | ⬜ 온보딩·Org-ID 관리 화면 | — | ③-C Sub-SRS |
+      | **인프라** | — | ⬜ 단일 Region | — | ⬜ 단일 Region GW | ⬜ Route53·K8s·비-AWS minio | ⬜ AXS 고정IP·샌드박스 | — | ③-I IaC 계획서(초안 Raymond diagram→Jack) |
+      | **외부(Straumann AXS)** | — | — | — | — | — | ⬜ API·OAuth·샌드박스·자격증명(선결) | — | ④ 입력(외부 제공) |
+      | **LMP(License Portal, 바텍)** | — | — | — | — | — | — | ⬜ (조건부) 제3자 서명 attestation | **enroll B안 시만**·ES 라이선스팀(R9·B-42) |
+
+      > **7/23 진행(7/16 회의 반영)**: ③ GW SRS = **PR 코멘트 접수 오늘(7/16)까지 → 다음주 월요일(7/20) 마무리·baseline v1.0(0.9→1.0)** · **③-I Infra·③-P-EZ EzServer 초안 = 7/20 Raymond 착수** · **① One Pager(2주 더·8월 초)·④ AXS(IO Scanner)·③-C GW Console = 연기** · **0단계(IO Scanner 수집)** = 선결·방식 R1 미정. v1.0 = **Straumann IO Scanner** 한정(CleverOne = post-v1.0). 순서·의존 = [Roadmap §3.9]. · **(C) 압축**: GW 구현을 ④ AXS *draft* 후 착수 + **구현 기간 40d로 단축** → 구현 ~10/10·E2E ~10/24(**10/31 목표 이내**).
+
+- 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
+
+  | #    | 항목                                   | 타입        | 상태                                                         |
+  | ---- | -------------------------------------- | ----------- | ------------------------------------------------------------ |
+  | 4    | Webhook 클라우드 분배(CleverLab 갈래B) | [논의]      | v1.0 제외 — Open 후 결정                                     |
+  | 6    | AXS sandbox 자격증명(Straumann 제공)   | [정보]      | pilot·E2E 블로커 — 확보 시점?                                |
+  | 7    | 경로 B EOS 시점                        | [논의]      | 리뷰서 workaround·지속성 확정(§2.8) — EOS *시점*만 PM/① 미정 |
+  | 8    | v1.0 목표 RPS·동시 세션                | [정보]      | 인프라/규모 PL 입력 대기                                     |
+  | 9    | RTO/RPO·유지보수 윈도우                | [정보]      | 인프라 설계 단계                                             |
+  | 10   | 감사·consent 보존 기간                 | [정보]      | 법무 확인 대기                                               |
+  | 11   | 호환성 매트릭스 확정본                 | [정보]      | ① One Pager 의존                                             |
+  | 신규 | IO Scanner↔EzServer 연동 방식          | [논의·선결] | 미정 → 이번 주 R1로 승격                                     |
+  - **차주 이월 후보**: R1(IO Scanner↔EzServer 연동 방식)·R2(목표일정) 미확정 시 다음 주 이월.
