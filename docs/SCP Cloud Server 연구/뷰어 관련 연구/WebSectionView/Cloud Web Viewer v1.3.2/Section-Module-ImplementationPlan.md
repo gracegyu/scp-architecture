@@ -405,7 +405,7 @@
 
 #### T-P4-3 — Arrow 툴 신규
 
-- [~] **구현 완료·MT 확인 대기(2026-07-15)** — `arrow` InteractionType은 `toolContract.ts`에 기존 정의(CW 미존재 신규, TOOL_POLICY=length/angle과 동일 편집권한). Section 계측 오버레이(T-P4-2) 재사용: 2클릭(시작·끝) 누적, `SectionMeasureOverlay`가 kind='arrow'를 선+**화살촉**(끝점 방향)으로 렌더(점·라벨 없음), 타일 스코프 clamp 동일. App `toMeasureTool`에 arrow 매핑. **UT-ARR-001**(2클릭 확정·끝점 clamp, `measurement.test.ts`)·**UT-ARR-002**(TOOL_POLICY·overlay 정책, `toolContract.test.ts`) 통과. **잔여**: MT-ARR-003(dev 서버 렌더 확인). **접목 gap**: CW core에 `arrow` InteractionType·TOOL_POLICY·아이콘 역머지 필요(§9.6).
+- [x] **구현 완료(2026-07-16, 전용 커서 포함)** — `arrow` InteractionType은 `toolContract.ts`에 정의(CW 미존재 신규, TOOL_POLICY=length/angle과 동일 편집권한). Section 계측 오버레이(T-P4-2) 재사용: 2클릭(시작·끝) 누적, `SectionMeasureOverlay`가 kind='arrow'를 선+**화살촉**(끝점 방향)으로 렌더(점·라벨 없음), 타일 스코프 clamp 동일. App `toMeasureTool`에 arrow 매핑. **전용 커서 = 개발실 자체 제작**(`cursors.ts` `ARROW`, 계측군 정합; 기획 대기 없이 해결 — §11). **UT-ARR-001·UT-ARR-002** 통과. **잔여(선택)**: MT-ARR-003(기획팀 데모 렌더 확인). **접목 gap**: CW core에 `arrow` InteractionType·TOOL_POLICY·아이콘 역머지 필요(§9.6).
 
 | 필드 | 값 |
 |------|------|
