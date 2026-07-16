@@ -916,9 +916,12 @@ device는 공개 apex/GeoDNS로 접속하고 리전 선택은 서버측 `clinic.
   > From CodeReviewAgent(v0.4.1),
   > §2.3.1이 온보딩 시 리전 선택 주체를 **"C/S는 현장에서 `GET /v1/regions` 선택지로 다른 region을 지정"**(line 683 시퀀스 노트도 동일)이라고 기술하나, `GET /v1/regions`는 OpenAPI에서 **`deviceAuth`(디바이스 토큰)** 로만 접근하는 device 대면 엔드포인트다(provenance 표 line 491도 "device 공개"로 명시). 반면 C/S는 **운영자=`operatorAuth`(직원 IdP/Entra)** 이고, enroll 시점의 device는 `pending`이라 아직 토큰이 없어 어느 쪽도 이 endpoint를 정상 호출할 수 없다. 운영자용 리전 목록은 이번에 신설된 **`GET /v1/admin/regions`(operatorAuth·getAdminRegions)** 이므로, C/S 동작에 device 대면 endpoint를 귀속시킨 것은 인증 스킴 모델(§4.1.2-5 "인증 스킴을 전 오퍼레이션에 명시")과 어긋난다 — C/S 리전 선택은 `GET /v1/admin/regions`로 정정하는 것이 정합적이다. (경미)
 
-- 다음 답변(초안): (미작성)
-- 조치: 
-- 반영: 대기
+- 답변(초안):
+
+맞습니다. C/S는 운영자(operatorAuth)이고 enroll 시점의 device는 아직 pending이라 device 토큰이 없어서, device용 `GET /v1/regions`(deviceAuth)를 호출할 수 없습니다. C/S의 리전 선택은 운영자용 `GET /v1/admin/regions`(operatorAuth)가 맞아, §2.3.1 본문과 enroll 시퀀스 노트를 그쪽으로 정정했습니다. device 공개 `GET /v1/regions`와 운영자 `GET /v1/admin/regions`는 별개 면입니다(인증 스킴 모델 §4.1.2 정합).
+
+- 조치: §2.3.1 본문·시퀀스 노트의 C/S 리전 선택을 GET /v1/regions(deviceAuth)→GET /v1/admin/regions(operatorAuth)로 정정
+- 반영: 반영완료(로컬·미push)
 - 상태: Active
 
 ## C-47 · docs/specs/SRS.md:2329 · [thread 79898] ★리뷰어 대기(자동리뷰 Update 4)
