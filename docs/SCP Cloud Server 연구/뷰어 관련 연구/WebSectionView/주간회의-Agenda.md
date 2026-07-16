@@ -99,6 +99,7 @@
   - **R3. 향후 진행 계획 & 버그 리포트 채널** — 제안 순서: **① 담주 초 구현 완료 → ② 기획팀 테스트(전달 = [데모 사이트](http://scp-section-demo.test.scp.esclouddev.com)) → ③ CW 팀이 CloudWebViewer에 접목(소스 병합, §9.9)**. **결정 요청:** 기획팀 테스트에서 나온 **버그/이슈를 [PLAN-1287](https://vts.vatech.com/browse/PLAN-1287) Sub-Task로 하나씩 등록**하는 방식으로 할지(각 Sub-Task = 1 버그, 상태·담당 추적). 대안: 별도 QA 이슈타입/스프레드시트.
     - **성격:** [논의] · 결정: **팀 합의**(기획·개발). 확정 시 기획팀에 데모사이트 URL + 리포트 템플릿(재현·기대·실제·스샷) 공유.
     - **참고:** 접목은 CW 팀 소관(우리는 인계·지원). 데모는 접목 전 기능·UX 확인용(§OnePager Resource).
+    - https://vts.vatech.com/browse/ESCV-138 이슈 이하의 sub task로 bug report를 하게 한다.
 
 - 공유 사항
   - **S1. 현재 단계** — `PoC 완료 → Spec·VKS 리뷰(공유됨) → 구현 대부분 완료(~90%) [지금] → 담주 초 완료 → 기획팀 테스트(데모사이트) → CW embed·접목(CW 팀)` (→ R3).

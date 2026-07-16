@@ -370,7 +370,7 @@ length·angle·freeDraw·arrow 계측/주석은 **생성 후 편집**할 수 있
 
 **모드 충돌 회피(중요):** 편집 오버레이는 **주석 위 hover일 때만 입력을 캡처**(window mousemove로 판정해 `pointerEvents` 토글)하고, 그 외엔 통과시켜 **Scout 커브 편집·Pan/Zoom 등 뷰 고유 조작을 막지 않는다.**
 
-**구현(T-P4-9, 완료):** `SectionMeasureOverlay`에 편집 상태(selectedId·핸들 드래그·이동·컨텍스트 메뉴)·hit-test(선분 거리·핸들)·스타일 렌더(선색/글자색/글자크기·속빈 네모 핸들) 추가. `AnnotationPropertyDialog`(CW `OverlayPropertyDialog` 포트, 경량). 커서 `MOVE`(CW `overlaySelectedCursor`) `cursors.ts`에 복사. **접목 시** 편집·Property·메뉴는 CW `es-pixi-wrapper`/`OverlayPropertyDialog`/`CustomMenu` 정본으로 교체(§9.10).
+**구현(T-P4-9, 완료):** `SectionMeasureOverlay`에 편집 상태(selectedId·핸들 드래그·이동·컨텍스트 메뉴)·hit-test(선분 거리·핸들)·스타일 렌더(선색/글자색/글자크기·속빈 네모 핸들) 추가. **편집 입력은 `window` 캡처 단계 리스너**(mousedown/move/up/contextmenu)에서 직접 처리 — hover 기반 `pointerEvents` 캡처 타이밍에 의존하지 않아 우클릭 메뉴·선택·드래그가 항상 동작하고, 주석 hit 시 `stopPropagation`으로 아래 뷰(커브·Pan/Zoom) 클릭 차단(hover 커서만 pointerEvents로 표시). 메뉴/다이얼로그는 `data-ann-ui`로 표식해 리스너가 건너뜀. `AnnotationPropertyDialog`(CW `OverlayPropertyDialog` 포트, 경량). 커서 `MOVE`(CW `overlaySelectedCursor`) `cursors.ts`에 복사. Scout는 Curve Draw/Edit 중 오버레이 `disabled`. **접목 시** 편집·Property·메뉴는 CW `es-pixi-wrapper`/`OverlayPropertyDialog`/`CustomMenu` 정본으로 교체(§9.10).
 
 ## 4. Overlay 표시 규칙 (MMI 1.13 §6)
 
@@ -764,6 +764,7 @@ Section 모듈 개발 중 CloudWebViewer/CleverSpace 소스 대조에서 발견�
 
 | 버전 | 일자 | 변경 |
 |------|------|------|
+| 1.55 | 2026-07-16 | **주석 편집 입력을 window 캡처 처리로 견고화(§3.9)**: 우클릭 컨텍스트 메뉴(Property/Delete)·선택·드래그가 hover-캡처 타이밍에 따라 안 뜨던 문제 수정 — 편집 입력을 `window` 캡처 단계 리스너로 직접 처리(주석 hit 시 `stopPropagation`로 뷰 클릭 차단, 메뉴/다이얼로그는 `data-ann-ui` 예외). |
 | 1.54 | 2026-07-16 | **주석 선택 해제 = 빈 배경 클릭(좌/우) (§3.9)**: 선택 후 다른 주석 선택 전엔 해제 안 되던 것 수정 — CW처럼 **주석 아닌 뷰 배경 클릭(좌/우)** 시 해제. 오버레이가 주석 위에서만 캡처하므로 `window` mousedown으로 배경 클릭 감지. §3.9 단일 선택·해제 규칙 명문화. |
 | 1.53 | 2026-07-16 | **FreeDraw 편집 = CW 정합(점 핸들 없음, §3.9)**: CW `FreedrawOverlay` 조사 — FreeDraw는 `select()`가 선을 굵게만 하고 per-point 핸들 없이 **통째 이동·Property·Delete**만. 우리도 FreeDraw는 점 핸들 제거·선택 시 굵은 선(length/angle/arrow는 핸들 유지). |
 | 1.52 | 2026-07-16 | **모드 상호 배타(§3.4.2)**: Draw Curve/Edit Curve 클릭 시 활성 toolbar interaction(Pan/Zoom/계측/Pointer) 해제 후 시작(충돌 방지, 사용자 피드백). 반대로 toolbar 도구 활성 시 커브 Draw/Edit 취소. 커브 모드 중 계측 오버레이 입력 차단(`disabled` prop). `onClearInteraction` 콜백 App→SectionViewer→ScoutView 배선. |
