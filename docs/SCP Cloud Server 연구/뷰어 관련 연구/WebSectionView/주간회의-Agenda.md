@@ -94,8 +94,10 @@
   - **R1. CW 폰트 override 수정 (누가/어떻게)** — CW `index.css`의 `* {font-family:'Segoe UI','Roboto' !important}`가 **호스트(CleverSpace) Noto Sans를 덮어쓰고 CW는 그 폰트를 로드하지 않아**, 접목 시 Section/CW 텍스트가 나머지 CleverSpace UI와 다르고 **환경(OS)별로 제각각**이 됨(§S3·OnePager §9.11). **결정 요청:** ① CW가 override 제거→호스트 폰트 상속(권장·주 원인 해소), ② styleguide(VT UI/UX)가 org 전역 단일 폰트 확정. (최소한 미제공 폰트를 `!important`로 강제 금지.)
     - **성격:** [논의] · 수정 주체 = **CW 팀**(override 제거) + **styleguide**(단일 폰트). CleverSpace·우리 모듈은 정상.
     - **전제:** CW-1 미수정 시 CW가 우리 텍스트까지 덮어써 폰트 일관성 불가.
+    - (결정) 이슈로 등록해서 지원한다 (Scott)
   - **R2. 국제화(i18n) 정책 — 지원 언어·한국어 지원** — 언어 선택은 **CleverSpace(en/ko)가 소유**하는데 CW는 en/es/fr/ko/pt로 목록이 달라 **CW의 es/fr/pt는 선택 불가·죽은 번역**, 한국어는 CW 비어있음. 우리 모듈은 i18n 미적용(§S7·OnePager §D23). **결정 요청:** ① **지원 언어를 셋 모두 한/영(en/ko)으로 통일 + CleverSpace 연동 국제화** — 추천(Section=Lingui·한국어 통일, CW=ko 채우고 es/fr/pt 정리), vs ② 현행 유지. **언어/시장 정책이라 기획(Scott) 판단.** (프레임워크 정합=Lingui는 기술적 당연.) 결정 후 IP 국제화 Task 착수.
     - **성격:** [논의] · 결정: **기획(Scott)**. CW 한국어 카탈로그 누락·언어목록 정리도 함께 권고(CW 팀).
+    - (결정) 한/영으로 3개 제품 모두 통일한다. → OnePager §D23·§9.11·IP T-P4-7 "결정됨/착수 가능"으로 반영 완료. CW 팀엔 ko 채우기·es/fr/pt 정리 권고.
   - **R3. 향후 진행 계획 & 버그 리포트 채널** — 제안 순서: **① 담주 초 구현 완료 → ② 기획팀 테스트(전달 = [데모 사이트](http://scp-section-demo.test.scp.esclouddev.com)) → ③ CW 팀이 CloudWebViewer에 접목(소스 병합, §9.9)**. **결정 요청:** 기획팀 테스트에서 나온 **버그/이슈를 [PLAN-1287](https://vts.vatech.com/browse/PLAN-1287) Sub-Task로 하나씩 등록**하는 방식으로 할지(각 Sub-Task = 1 버그, 상태·담당 추적). 대안: 별도 QA 이슈타입/스프레드시트.
     - **성격:** [논의] · 결정: **팀 합의**(기획·개발). 확정 시 기획팀에 데모사이트 URL + 리포트 템플릿(재현·기대·실제·스샷) 공유.
     - **참고:** 접목은 CW 팀 소관(우리는 인계·지원). 데모는 접목 전 기능·UX 확인용(§OnePager Resource).
