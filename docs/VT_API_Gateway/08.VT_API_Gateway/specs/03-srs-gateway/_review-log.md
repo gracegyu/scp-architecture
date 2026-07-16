@@ -19,7 +19,8 @@
   > 맞습니다. Appendix A ADR-13 행의 device.fingerprint는 본문·DBML에서 이미 client_public_key로 정정된 컬럼의 옛 명칭입니다. 존재하지 않는 컬럼을 참조하지 않도록 그 행을 device.client_public_key로 통일하겠습니다.
 
 - 조치: Appendix A ADR-13 행 device.fingerprint → device.client_public_key — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-02 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2247 · [thread 79266]
 - **[민진우(Thomas) · 2026-07-13T04:59 · cid 79266.1]**
@@ -32,7 +33,8 @@
   > 맞습니다. 예시값이 connect(3000)+response(10000)=13000 > total(12000)이라 §7.5.4의 connect+response ≤ total_deadline 불변식을 어깁니다. 예시를 불변식에 맞게 조정하겠습니다(예: totalDeadlineMs 14000). 이 수치는 예시이고 실제 값은 target SLA·§7.5.4·LLD 소관임을 함께 명시하겠습니다.
 
 - 조치: OpenAPI Target 예시 timeout 조정(connect+response ≤ total, 예 total 14000)+예시임 명시 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-03 · docs/specs/SRS.md:924 · [thread 79267]
 - **[민진우(Thomas) · 2026-07-13T04:59 · cid 79267.1]**
@@ -45,7 +47,8 @@
   > 맞습니다. 매트릭스 발행 흐름에 '§2.3.8을 주지 않는다'고 썼는데 §2.3.8이 다른 주제(운영자·Console 인증)로 실재해 혼동됩니다. 해당 괄호 참조를 삭제하거나 '별도 하위 절을 만들지 않는다'로 완화하겠습니다.
 
 - 조치: §924 §2.3.8 자기참조 삭제/완화 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-04 · docs/specs/SRS.md:1052 · [thread 79268]
 - **[민진우(Thomas) · 2026-07-13T04:59 · cid 79268.1]**
@@ -58,7 +61,8 @@
   > 오타 맞습니다. '§7.4·§7.4' 중복을 하나로 정리하겠습니다.
 
 - 조치: §1052 §7.4·§7.4 → §7.4 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-05 · (파일 미지정·일반) · [thread 79269]
 - **[민진우(Thomas) · 2026-07-13T04:59 · cid 79269.1]**
@@ -91,7 +95,8 @@
   > (c) §7.1.2 사내 호출자 JWT — 의도적 위임이며 누락이 아닙니다. §7.1.2는 'JWT 발급·무상태 검증 역량'을 기술한 것이고, 실제 발급 엔드포인트는 §7.1.1의 /v1/auth/token(device private_key_jwt)으로 수렴합니다. 사내 호출자 중 EzServer는 그 device 인증을 쓰고, CleverOne은 EzServer를 경유(CleverOne→EzServer→GW)하므로 GW에 직접 인증하지 않으며, 사람 운영자는 §7.1.4(Entra)입니다. 즉 별도 토큰 엔드포인트가 필요한 제3의 인증 경로는 없습니다. 다만 §7.1.2 문구가 '사내 서비스용 JWT 발급'이라 독립 경로처럼 읽히니, '발급=§7.1.1로 수렴, 검증=control plane 무상태(엔드포인트 아님)'로 서술을 명확히 하겠습니다.
 
 - 조치: (a) Appendix B #36 근거에 2025-12-23 규정 명시 · (b) OpenAPI admin 태그(+필요 시 servers)에 내부 host 명시 · (c) §7.1.2 서술 명확화(발급=§7.1.1 수렴·검증=무상태·별도 엔드포인트 없음) — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-06 · docs/specs/SRS.md:1440 · [thread 79271]
 - **[민진우(Thomas) · 2026-07-13T05:12 · cid 79271.1]**
@@ -104,7 +109,8 @@
   > 맞습니다. §7.4는 발급을 target에 위임하며 하위 절이 없어 §7.4.2는 dangling이고, presigned TTL을 GW 성능요구로 두는 것도 위임 원칙과 어긋납니다. TTL은 발급 주체(② One Pager/AXS④) 소유임을 반영해 항목을 옮기거나 참조를 정정하겠습니다.
 
 - 조치: §5.5 presigned TTL의 §7.4.2 dangling 정정·발급주체 소유로 이동 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-07 · docs/specs/SRS.md:1461 · [thread 79272]
 - **[민진우(Thomas) · 2026-07-13T05:12 · cid 79272.1]**
@@ -117,7 +123,8 @@
   > 맞습니다. §7.4엔 객체키/메타데이터 하위 절이 없어 §7.4.2는 dangling입니다. 안전성 크리티컬 규칙이라 실재 절(§6.4/§7.3.3)로 참조를 정정해 traceability를 유지하겠습니다.
 
 - 조치: §6.1 안전규칙 §7.4.2 → §6.4/§7.3.3 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-08 · docs/specs/SRS.md:1476 · [thread 79273]
 - **[민진우(Thomas) · 2026-07-13T05:12 · cid 79273.1]**
@@ -130,7 +137,8 @@
   > 맞습니다. 무결성·멱등은 §7.4 위임 경계상 발급 주체(CleverSpace②/AXS④) 책임이고 §7.4.4·§7.4.5는 dangling입니다. 같은 행의 §7.6.4·§7.6.2는 실재하니 §7.4.4·§7.4.5 참조만 제거·정정하겠습니다.
 
 - 조치: §6.2 Integrity 행 §7.4.4/§7.4.5 dangling 제거 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-09 · docs/specs/SRS.md:2227 · [thread 79274]
 - **[민진우(Thomas) · 2026-07-13T05:12 · cid 79274.1]**
@@ -143,7 +151,8 @@
   > 맞습니다. §7.8.5가 정의한 전 클리닉 횡단 조회 GET /v1/admin/clients가 §7.9.1 관리 API 열거에서 빠졌습니다. 업그레이드 캠페인의 핵심이라 §7.9.1에 추가해 OpenAPI 계약과 정합시키겠습니다(Appendix B #48도 함께 갱신).
 
 - 조치: §7.9.1에 GET /v1/admin/clients 추가·Appendix B #48 갱신 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-10 · docs/specs/SRS.md:1342 · [thread 79276]
 - **[민진우(Thomas) · 2026-07-13T05:12 · cid 79276.1]**
@@ -156,7 +165,8 @@
   > 맞습니다. §3.1.2·§1.4·§6.4는 캐시 엔진을 Valkey(Amazon ElastiCache for Valkey)로 확정했는데 §4.4 표만 'Redis | 구현 시 확정'이라 어긋납니다. §4.4를 'ElastiCache for Valkey(확정)'로 통일하겠습니다.
 
 - 조치: §4.4 캐시 'Redis/구현 시 확정' → 'ElastiCache for Valkey(확정)' — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-11 · docs/specs/SRS.md:2294 · [thread 79278]
 - **[민진우(Thomas) · 2026-07-13T05:12 · cid 79278.1]**
@@ -169,7 +179,8 @@
   > 동의합니다. Appendix B #20의 '§2.1.2 초안' 참조는 현재 문서에 없는 절 번호를 가리키는 dangling 참조입니다(§2.1 → §2.1.1 → §2.2). 해당 참조를 삭제하거나 '구 §2.1.2 초안(현재 삭제)' 정도로 표기해 독자가 근거를 찾을 수 있게 정정하겠습니다.
 
 - 조치: Appendix B #20의 §2.1.2 dangling 참조 삭제 또는 '구 §2.1.2 초안(삭제됨)'로 표기 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-12 · (파일 미지정·일반) · [thread 79279]
 - **[민진우(Thomas) · 2026-07-13T05:12 · cid 79279.1]**
@@ -192,7 +203,8 @@
   > §7.4 dangling 등 재지적 사항은 각 라인 스레드(C-05·06·07 등)에서 처리하겠습니다. op 수치는 정본(redocly 기준·Appendix B #6=55)이 맞고, 결정로그 주석의 42·45는 작성 중 시점 스냅샷이라 현재 수치로 정합·정리하겠습니다.
 
 - 조치: Appendix B 결정로그 op 수치(42·45) → 현재 55로 정합/정리 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-13 · docs/specs/SRS.md:239 · [thread 79385]
 - **[임건혁(Jack) · 2026-07-13T06:34 · cid 79385.1]**
@@ -218,7 +230,8 @@
   > GW SRS에는 '고정·유한·열거 가능한 egress IP 집합을 whitelist에 등록한다'는 논리 요구까지만 두고, NAT Gateway 구성·AZ 확장 시 IP 추가·리전별 IP 목록 같은 구체 구현은 ③-I(Infra Sub-스펙)에 정리하겠습니다.
 
 - 조치: §2.1.1 NAT note 논리화(구체=③-I)·Straumann whitelist에 전 prod 리전 egress IP 등록·**AXS 문서상 IP whitelist/개수 제한 없음(확인 완료)**·NAT/AZ 구체=③-I seed
-- 상태: 반영완료(로컬)·Jack에 재답변 게시함(수긍 대기)
+- 반영: 반영완료(로컬)·Jack에 재답변 게시함(수긍 대기)
+- 상태: Active
 
 ## C-14 · docs/specs/SRS.md:1103 · [thread 79387]
 - **[임건혁(Jack) · 2026-07-13T06:53 · cid 79387.1]**
@@ -232,7 +245,8 @@
   > Extension 17 호환은 말씀하신 대로 리스트업·검토 결과에 따르겠습니다. Prisma·스키마 자체는 버전 영향이 거의 없고, 혹시 특정 Extension이 17에서 미지원이면 그때 대안(마이너 조정 또는 대체)을 함께 정하겠습니다. 정확한 마이너 버전과 Extension 확정은 인프라/LLD 소관으로 두겠습니다.
 
 - 조치: §3.1.2·§4.4·Appendix B #18 'PostgreSQL 15.x → 17.x' 갱신 · Aurora/Global DB 17 지원 확인 · Extension 17 호환 검토 결과 반영(인프라/Jack) — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-15 · docs/specs/SRS.md:1112 · [thread 79389]
 - **[임건혁(Jack) · 2026-07-13T06:55 · cid 79389.1]**
@@ -245,7 +259,8 @@
   > 공유 감사합니다. §6.3.2를 실제 중앙 스택에 맞춰 갱신하겠습니다 — GW는 구조화 로그(Pino)·OTel로 생성·노출하고, 중앙 수집·저장은 Loki·Tempo·Mimir(Prometheus 호환) + 중앙 Grafana(대시보드·알람)로 명시하겠습니다. 수집 에이전트·백엔드 세부는 인프라(③-I) 소관으로 둡니다.
 
 - 조치: §6.3.2 백엔드 스택을 Loki·Tempo·Mimir·중앙 Grafana로 갱신 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-16 · docs/specs/SRS.md:233 · [thread 79434]
 - **[김성훈(Scott) · 2026-07-13T10:30 · cid 79434.1]**
@@ -279,8 +294,13 @@
   >
   > 확인 부탁합니다.
 
+- **[김성훈(Scott) · 2026-07-15T11:52 · cid 79434.3 ↳1]**
+
+  > gw/1.2 에서 진행 하는 것으로 알겠습니다. 감사합니다.
+
 - 조치: §7.6.7 대상 리전 판정을 저장 前(수신 시점)으로 · §7.6.3 옵션② 위임·불변식·교차리전 ACK 여유 · §2.1.1 수신≠대상 시 경유·대상 리전만 at-rest · FR-RGN-03 링크 · Appendix B 주권 결정(옵션①=미래 target 노트) — 확정 후 반영
-- 상태: 반영완료(로컬·미push·Scott 합의 대기)
+- 반영: 반영완료(로컬·미push) · **Scott 수긍(gw/1.2 진행 확인)**
+- 상태: Resolved
 
 ## C-17 · docs/specs/SRS.md:1732 · [thread 79435]
 - **[김성훈(Scott) · 2026-07-13T10:34 · cid 79435.1]**
@@ -301,7 +321,8 @@
   > 맞습니다. 현재 Redis 용도에 assertion jti 일회 소비가 없어 탈취된 assertion이 exp 이내 재사용될 수 있습니다. RFC 7523 프로파일(iss·sub=client_id·정확한 aud·짧은 exp·iat·고유 jti·허용 alg 고정)을 §7.1.1에 명시하고, jti를 Redis SET NX EX로 일회 소비하도록 추가하겠습니다(키스페이스에 jti 소비 항목 신설). 이는 gw/1.1로 연기된 token_denylist(폐기 목록)와는 별개의 재사용 방지 통제입니다.
 
 - 조치: §7.1.1 RFC 7523 claim 프로파일 + jti 일회 소비(Redis SET NX EX) 추가·redis-keyspace에 jti 항목 신설 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Resolved
 
 ## C-18 · docs/specs/SRS.md:1763 · [thread 79436]
 - **[김성훈(Scott) · 2026-07-13T10:37 · cid 79436.1]**
@@ -321,7 +342,8 @@
   > 맞습니다. Entra 토큰 검증이 서명·subject 확인에 그쳐 confused-deputy 위험이 있습니다. §7.1.4에 단일 tenant·정확한 iss·aud=GW Admin API·필수 scope·tid/oid 확인, 그리고 사용자 access token만 허용하고 app-only·ID token은 거부하는 조건을 명문화하겠습니다(MS access token/claims validation 가이드와 정합).
 
 - 조치: §7.1.4 Entra 토큰 검증 조건(iss·tenant·aud·scope·tid/oid·app-only/ID token 거부) 명문화 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Resolved
 
 ## C-19 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1833 · [thread 79437]
 - **[김성훈(Scott) · 2026-07-13T10:43 · cid 79437.1]**
@@ -348,7 +370,8 @@
   > RFC 7523·ADR-13(비대칭 private_key_jwt) 결정 자체는 그대로이고, 변경은 OpenAPI TokenRequest/TokenResponse와 §7.1.1 서술·예시에 한정됩니다. 아직 구현 착수 전이라 소비자(EzServer) 영향도 작습니다.
 
 - 조치: OpenAPI /v1/auth/token content-type→x-www-form-urlencoded · TokenRequest(grant_type·client_assertion_type·client_assertion·선택 scope, client_id 선택) · TokenResponse(access_token·token_type·expires_in 초) · 예시 갱신 · §7.1.1 서술 정합 — 확정 후 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Resolved
 
 ## C-20 · docs/specs/SRS.md:1727 · [thread 79438]
 - **[김성훈(Scott) · 2026-07-13T10:48 · cid 79438.1]**
@@ -360,7 +383,8 @@
   > 앞의 comment와 같은 사안입니다. openapi.yaml L1833(C-19) 스레드에서 wire format을 OAuth2 표준(form-urlencoded·grant_type·client_assertion·access_token/expires_in)으로 맞추기로 했고, §7.1.1의 "OAuth2 client_credentials + RFC 7523" 선언도 그 표준 계약과 일치하도록 서술·예시를 갱신하겠습니다.
 
 - 조치: §7.1.1 선언 ↔ OpenAPI 계약 정합(C-19 연동)
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Resolved
 
 ## C-21 · docs/specs/SRS.md:1862 · [thread 79449]
 - **[고형용(Larry) · 2026-07-13T13:31 · cid 79449.1]**
@@ -381,7 +405,8 @@
   > 추가로, GW가 중계하는 발급 응답의 리전·호스트가 해석한 리전과 다르면 거부하는 정도의 guardrail은 둘 수 있으나 이는 보조 수단이고, 1차 보장은 발급 주체가 리전을 준수하는 것입니다. GW가 CleverSpace로 해석 리전을 어떻게 전달할지(헤더/파라미터)는 ② CleverSpace 계약에서 확정하겠습니다. FR-RGN-03(§1862)·§7.4 서술을 이 경계에 맞게 정정하겠습니다.
 
 - 조치: FR-RGN-03/§1862 재서술(업로드 경로=발급 단계 라우팅으로 리전 보장·'바이트 차단' 표현 제거) · §7.4 책임 경계 명시(GW=리전 해석·전달·정책 / 발급주체=리전 맞춤 발급) · GW→발급주체 리전 전달 방식=② CleverSpace 계약 · (선택)중계 응답 리전 검증 guardrail=LLD — 확정 후 반영
-- 상태: 반영완료(로컬·미push·Larry 합의 대기)
+- 반영: 반영완료(로컬·미push·Larry 합의 대기)
+- 상태: Active
 
 ## C-22 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1 · [thread 79505] ★리뷰어 대기
 - **[민진우(Thomas) · 2026-07-14T01:52 · cid 79505.1]**
@@ -396,7 +421,8 @@
 번역 제공 여부·범위는 SRS baseline에서 결정할 사안이 아니라 계열사 조율 차원의 관리 결정이므로, 실제 수요가 생기면 관리자(PM/조직) 판단으로 진행하는 것이 맞다고 봅니다. 본 스레드는 SRS 변경 사항이 없어 여기서 정리(Resolve)하겠습니다.
 
 - 조치: SRS 변경 없음 — 한국어 SSOT 유지·번역=온디맨드(수요처 AI)·제공 여부는 관리(PM/조직) 결정(baseline 밖)
-- 상태: 답변·Resolve 권장(SRS 밖·조치 없음)
+- 반영: 답변·Resolve 권장(SRS 밖·조치 없음)
+- 상태: Resolved
 
 ## C-23 · docs/specs/SRS.md:1678 · [thread 79527] ★리뷰어 대기
 - **[민진우(Thomas) · 2026-07-14T03:17 · cid 79527.1]**
@@ -409,7 +435,8 @@
   AXS 환경 매핑은 이미 §3.3(환경 표)에 있습니다 — dev→AXS sandbox(unstable, ESIP-14)/미수령 시 mock, test·staging→sandbox, prod→production. 비-prod 도메인·webhook URL은 §4.5.1에 '환경-한정 네임스페이스' 규칙을 보강했습니다: prod 호스트 구조를 env-한정으로 복제(예 {env}.gw.vatech.com·{target}.webhook.{env}…), 각 GW 환경의 target 레지스트리가 대응 AXS 환경을 가리키고 AXS는 그 env의 webhook URL로 구독합니다. 구체 도메인 문자열·zone·인증서·환경 프로비저닝은 ③-I(Appendix B #24·#2), AXS 환경별 자격은 ④/target config로 둡니다 — GW SRS는 논리 규칙까지입니다.
 
 - 조치: §4.5.1에 환경-한정 도메인/webhook URL 규칙 note 추가·§3.3 AXS 환경 매핑 참조·구체=③-I(#24·#2)·④ — 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-24 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1733 · [thread 79534]
 - **[민진우(Thomas) · 2026-07-14T04:24 · cid 79534.1]**
@@ -425,7 +452,8 @@
   > 맞습니다. AXS webhooks.md와 DBML(webhook_provider.sig_scheme) 모두 헤더명이 Signature인데 OpenAPI webhookHmac만 X-Signature로 어긋나 있었습니다. OpenAPI를 Signature로 맞췄습니다. webhook 헤더명은 target별 레지스트리(sig_scheme) 값이라 target마다 다를 수 있고, AXS의 실제 값이 Signature입니다.
 
 - 조치: OpenAPI webhookHmac 헤더 X-Signature→Signature(DBML·AXS와 정합) — 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-25 · docs/specs/SRS.md:2006 · [thread 79556] ★리뷰어 대기
 - **[민진우(Thomas) · 2026-07-14T05:23 · cid 79556.1]**
@@ -438,7 +466,8 @@
   MQTT 서버 주소·포트는 브로커 제품(#4·③-I) 확정 사항이라 SRS에 고정 값을 박지 않고, GW가 region resolution·enrollment config로 EzServer에 하달합니다(§7.6.6 'endpoint 획득'에 이미 규정 — 리전별·브로커별로 다르고 인프라 소유이기 때문). 프로토콜은 §7.6.6에 논리 요구를 보강했습니다: TLS 필수·QoS1·persistent·cert 인증은 스펙 불변 요구, MQTT 버전(3.1.1/5.0)·전송(native TCP/over-WebSocket)은 브로커 제품 확정 시 결정합니다. 구체 endpoint·버전·전송은 ③-I 소관입니다.
 
 - 조치: §7.6.6에 프로토콜·전송·보안 논리 요구 note 추가(TLS·QoS1·persistent·cert 불변·버전/전송/endpoint=#4·③-I) — 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-26 · docs/specs/SRS.md:1983 · [thread 79558]
 - **[민진우(Thomas) · 2026-07-14T05:31 · cid 79558.1]**
@@ -451,7 +480,8 @@
   > AXS webhook payload는 GW가 해석·변형하지 않고 opaque verbatim으로 둡니다(§7.6.1). 다만 EzServer 하행(MQTT)에서는 EzServer가 어떤 target·이벤트인지 알아야 하므로 GW가 얇은 envelope(target·eventId·eventType·clinicId·ts + 원 payload)로 감싸 전달합니다 — 원 payload는 그 안에 변형 없이 담깁니다. 즉 wrapper는 있으나 내용 변형은 없습니다. envelope 정의를 §7.6.6에 명시했습니다(필드 상세=LLD).
 
 - 조치: §7.6.6에 하행 envelope 정의 추가(원 payload verbatim·GW 메타만 래핑) — 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-27 · docs/specs/SRS.md:1059 · [thread 79570] ★리뷰어 대기
 - **[김기영(Eric) · 2026-07-14T05:46 · cid 79570.1]**
@@ -463,7 +493,8 @@
   경로 B가 EOS되어도 해당 사용자의 기능이 사라지는 게 아니라, 표준 GW 경유 경로(CleverOne→EzServer→GW→target)로 이관하는 것이 workaround입니다 — 직결(CleverOne↔CleverSpace)만 폐지되고 동일 기능은 GW 경로로 보존됩니다(GW 도입 취지). §2.8에 이 workaround를 명시했습니다. EOS 시점·이관 계획·고객 안내는 PM(제품, Appendix B-3)·③-P(CleverOne/CleverSpace 팀) 소관입니다.
 
 - 조치: §2.8 호환 포기 bullet에 'workaround=GW 경유 이관·기능 보존' 명시·시점/계획=PM#3·③-P — 반영
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-28 · docs/specs/SRS.md:552 · [thread 79571] ★리뷰어 대기
 - **[민진우(Thomas) · 2026-07-14T05:57 · cid 79571.1]**
@@ -477,7 +508,8 @@
  맞습니다 — EzServer는 클리닉 내부망 전제라 이 시나리오는 '이미 내부망에 들어온 공격자'를 가정합니다. 구조적으로 보면 GW에 인증하는 주체가 EzServer 자신이라, GW ingress 인증만으로는 EzServer 상류(client→EzServer) 트래픽의 출처를 가려낼 수 없습니다. 즉 이 구간은 GW가 관측할 수 없는 지점이라, 인증을 EzServer 계층(③-P-EZ)에서 함께 다뤄야 하는 부분입니다. 내부망을 계속 신뢰할지 zero-trust로 강화할지는 EzServer 위협모델에서 정하면 되고, 어느 쪽이든 GW 통제는 그대로입니다. GW는 이 구간이 뚫려도 blast radius를 제한합니다: 목적지를 등록 target으로 고정(임의 host SSRF 차단)·scope·rate-limit. 그리고 target 자체 인증·입력검증이 최종 방어선입니다. 정리하면 GW·EzServer가 계층을 나눠 막는 구조이며, §4.1.2에 이 신뢰경계를 명시했습니다.
 
 - 조치: §4.1.2 note 신뢰경계 반영 — GW 인증 주체=EzServer(디바이스)라 (client→EzServer) 구간은 GW 관측 밖·EzServer 계층(③-P-EZ)에서 인증(계층 분담); 내부망 무신뢰 전환 여부=③-P-EZ 위협모델(GW 통제 불변); GW는 목적지 고정·scope·rate-limit로 blast radius 제한, target 자체 인증이 최종 방어선
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-29 · docs/specs/SRS.md:28 · [thread 79585]
 - **[김기영(Eric) · 2026-07-14T06:48 · cid 79585.1]**
@@ -489,7 +521,8 @@
   > 경로 B(CleverOne이 EzServer를 거치지 않고 CleverSpace와 직접 연동)가 확인된 우회 패턴입니다. 그 외 흐름은 모두 EzServer→GW를 경유합니다(CleverOne→EzServer→GW). 현재 SRS 범위에서 경로 B 외의 GW-우회 직결은 식별되지 않았으나, 레거시 직결 경로가 더 있는지는 제품/현장팀과 확인해 있으면 동일 방침(GW 경유로 수렴·해당 직결 deprecate)으로 처리하겠습니다.
 
 - 조치: 경로 B 외 우회 없음 확인·추가 발견 시 §2.8 반영(제품/현장팀 확인) — 문서 변경 없음
-- 상태: 답변(팀 확인 병행)
+- 반영: 답변(팀 확인 병행)
+- 상태: Active
 
 ## C-30 · docs/specs/SRS.md:515 · [thread 79586] ★리뷰어 대기
 - **[김기영(Eric) · 2026-07-14T06:52 · cid 79586.1]**
@@ -518,7 +551,8 @@
 §2.8에 이 구분을 확정 반영했습니다.
 
 - 조치: §2.8 '온보딩 실패 시 기존 흐름 지속성·rollback' bullet 명확화 — '기존 usecase=레거시(비-GW) 흐름' 정의 + (1)레거시=GW 비의존 (2)GW 신규 기능=온보딩 성공 전제·enroll 비파괴 멱등(재시도 복구) 구분; 이관 후 런타임 의존=GW HA(§6.3.1)
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-31 · docs/specs/SRS.md:550 · [thread 79587]
 - **[김기영(Eric) · 2026-07-14T06:54 · cid 79587.1]**
@@ -530,7 +564,8 @@
   > 하위호환이 원칙입니다(§2.8). 기존 사용자의 기존 usecase(EzServer→CleverSpace/CleverOne 경유)는 그대로 동작하며, GW는 앞단에 삽입되어 EzServer가 GW를 경유하도록 라우팅합니다. 새로 생기는 것은 GW 온보딩(enroll)과 AXS 연동뿐이고 기존 흐름 계약은 바뀌지 않습니다. 예외는 경로 B(CleverOne↔CleverSpace 직결)로 deprecate→EOS 대상이라 해당 사용자는 GW 경유로 이관해야 합니다(시점=PM·#3). 구체 환경 세팅 변화·전환 절차는 §2.5·§2.8 + ③-P(EzServer/CleverOne) 스펙에서 정리합니다.
 
 - 조치: 기존 §2.8/§2.5로 답변·필요 시 §2.8에 '기존 usecase 불변·GW=앞단 삽입' 한 줄 보강 검토
-- 상태: 답변
+- 반영: 답변
+- 상태: Active
 
 ## C-32 · (파일 미지정·일반) · [thread 79669] ★리뷰어 대기
 - **[김기영(Eric) · 2026-07-14T14:25 · cid 79669.1]**
@@ -578,7 +613,8 @@
 QA 전략 자체는 QA(James·Eric) 소관이라 SRS 변경은 없고, 위 앵커로 상호 참조만 맞췄습니다. James와의 추가 논의에서 SRS에 반영할 점이 나오면 반영하겠습니다.
 
 - 조치: 정보성(QA 전략 Draft 공유)·QA(James·Eric) 소관 → SRS 변경 없음. 전략 방향↔SRS 앵커 매핑(§2.8·§2.3.1·§2.3.0·§3.1·§7.7·§6.3.1·Appendix B-8), 열린 질문 중 SRS 확정분 회신. James 추가 논의 결과 반영 대기
-- 상태: 답변(정보성·QA 소관·SRS 변경 없음)
+- 반영: 답변(정보성·QA 소관·SRS 변경 없음)
+- 상태: Active
 
 ## C-33 · docs/specs/SRS.md:323 · [thread 79671] ★리뷰어 대기
 - **[임건혁(Jack) · 2026-07-15T00:36 · cid 79671.1]**
@@ -606,7 +642,8 @@ GW는 데이터를 두 부류로 나눕니다(§2.1.1·§6.4):
 - v1.0은 단일 리전(서울)이고 멀티 리전은 gw/1.2입니다. write-forwarding·primary 배치·리전별 엔드포인트 등 구체 설계는 ③-I 인프라(Appendix B-15) 소관으로 두되, 위 특성을 §2.1.1에 명시적으로 감안 note로 남겼습니다.
 
 - 조치: §2.1.1에 'Aurora Global DB write-forwarding 특성(gw/1.2 감안)' note 추가 — ①전역 일관=읽기 핫패스·쓰기 드묾→latency 수용 ②PHI·운영=리전 로컬(주권)→forwarding 무관 ③code-first(Prisma)라 stored proc 미사용; 구체 설계=③-I(Appendix B #15)
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 
 ## C-34 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2543 · [thread 79681] ★리뷰어 대기(자동리뷰)
@@ -628,7 +665,8 @@ GW는 데이터를 두 부류로 나눕니다(§2.1.1·§6.4):
 **결과**: 요구사항↔인터페이스 추적성이 맞춰졌고(레코드 vs 런타임 해석 분리), redocly lint valid(기존 5 warnings 동일)입니다. `endpoint` 예시는 §4.5.1 규약(`gw-<region>.vatech.com`)으로 맞췄습니다(관련: C-37).
 
 - 조치: ClinicResolution 스키마 신설(allOf Clinic+resolver 필드)·GET /v1/clinics/me 응답 교체·Clinic 설명 정리·SRS §7.3.1 참조 (Clinic)→(ClinicResolution) 정정. redocly valid(5 warn)·fence 52
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-35 · docs/specs/SRS.md:2322 · [thread 79682] ★리뷰어 대기(자동리뷰)
 - **[민진우(Thomas) · 2026-07-15T01:17 · cid 79682.1]**
@@ -646,7 +684,8 @@ GW는 데이터를 두 부류로 나눕니다(§2.1.1·§6.4):
 baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 경로에 맞췄습니다.
 
 - 조치: SRS Appendix B #42 예약필드 경로 오기 정정 EnrollStartRequest→EnrollCompleteRequest(+complete 단계 제출 근거 §2.3.1). fence 52
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-36 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2336 · [thread 79683] ★리뷰어 대기(자동리뷰)
 - **[민진우(Thomas) · 2026-07-15T01:18 · cid 79683.1]**
@@ -664,7 +703,8 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
 이로써 `WebhookEvent.eventType`(이미 nullable)과도 일관되고, 구현자를 event_type 기반 분배로 오도할 여지가 없어졌습니다.
 
 - 조치: WebhookEnvelope.eventType required 제거·nullable:true·설명 '관측/필터용(라우팅 키 아님·null 가능·§7.6.1)'로 수정. redocly valid
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-37 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2612 · [thread 79684] ★리뷰어 대기(자동리뷰)
 - **[민진우(Thomas) · 2026-07-15T01:18 · cid 79684.1]**
@@ -680,7 +720,8 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
 - 앞서 신설한 `ClinicResolution.endpoint`도 동일 규약(`gw-apne2.vatech.com`)으로 맞춰, 리전 내부 엔드포인트 예시가 문서 전체에서 일관됩니다.
 
 - 조치: Region.endpoint 예시 apne2.internal.gw.vatech.com→gw-apne2.vatech.com(§4.5.1 규약)·description 보강. ClinicResolution.endpoint도 동일 규약. redocly valid
-- 상태: 반영완료(로컬·미push)
+- 반영: 반영완료(로컬·미push)
+- 상태: Active
 
 ## C-38 · (파일 미지정·일반) · [thread 79685] ★리뷰어 대기(자동리뷰)
 - **[민진우(Thomas) · 2026-07-15T01:18 · cid 79685.1]**
@@ -710,45 +751,127 @@ baseline 추적표가 예약 필드를 찾는 근거이므로 실제 스키마 �
 아키텍처·데이터 모델 자체 결함이 없다는 평가와, ProxyError·Target*·Vatech-* 미참조가 verbatim bypass 의도임을 인지해 지적에서 제외해 주신 점 확인했습니다. 위 수정은 redocly lint valid(기존 5 warnings 동일)이며, 로컬 반영 후 일괄 push 예정입니다.
 
 - 조치: 정보성(Update 2 총평·아키텍처 결함 없음). 라인 지적 4건(C-34~C-37) 반영 확인 회신. SRS/OpenAPI 추가 변경 없음
-- 상태: 답변(정보성·수정 없음)
+- 반영: 답변(정보성·수정 없음)
+- 상태: Active
+
+## C-39 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2658 · [thread 79748] ★리뷰어 대기(자동리뷰)
+- **[민진우(Thomas) · 2026-07-15T07:04 · cid 79748.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > `Region.endpoint`(line 2658)는 설명에서 "리전 내부 엔드포인트(§4.5.1 gw-<region>.vatech.com…**클라이언트 미노출**)"이라고 명시하지만, 이 `Region` 스키마는 **deviceAuth로 보호되는 `GET /v1/regions`**(line 218–220, security=`deviceAuth`)의 응답 배열 요소다. 즉 "클라이언트에 노출하지 않는다"고 표기한 리전 내부 호스트를 클라이언트(device)에게 그대로 반환한다. 같은 값이 `ClinicResolution.endpoint`(line 2576)에도 있어 deviceAuth `GET /v1/clinics/me`로도 노출되고, SRS §7.3.1 output(SRS.md line 1864)도 `endpoint`를 resolver 출력에 포함시켜 §4.5.1(SRS.md line 1373 "리전 내부 엔드포인트 … 클라이언트엔 노출하지 않음")와 정면으로 모순된다. 특히 `ClinicResolution.hosts`(line 2583)는 "공개 호스트 참고 — 모두 GeoDNS라 리전 불변"만 담아 리전-특정 내부 호스트를 일부러 배제했는데, `endpoint`가 바로 그 배제 대상(리전 고정 내부 호스트)을 노출한다. 이는 이번 diff에서 이전 리뷰 지적(§7.3.1 Clinic 계약 미비)을 `ClinicResolution` 신설로 해소하는 과정에서 새로 유입된 모순이다 — GeoDNS apex로만 접속시키려는 설계 의도를 device가 우회할 수 있으므로, `endpoint`를 device-facing 응답에서 제거하거나 "클라이언트 미노출" 표기를 정정해 일관화해야 한다.
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 반영: 대기
+- 상태: Active
+
+## C-40 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2259 · [thread 79749] ★리뷰어 대기(자동리뷰)
+- **[민진우(Thomas) · 2026-07-15T07:04 · cid 79749.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > `postAdminTargets`(line 1282)의 요청 본문 스키마 `Target`은 아웃바운드 OAuth 자격·인바운드 HMAC 시크릿을 **`credentialRef`(line 2259)·`secretRef`(line 2295) = KMS 참조(`kms://alias/…`·"원문 미저장")** 로만 받는다. 그러나 SRS §2.3.4는 "**자격·시크릿은 KMS에 저장하고 DB엔 참조만 둔다**"(SRS.md line 757)라고 하면서 등록 시퀀스(SRS.md line 767–768)에서 운영자가 POST 본문에 **실 자격·secret**을 실어 보내고(`[egress·OAuth 자격]`·`[… sig_scheme·secret …]`) **GW가 이를 KMS에 저장해 `credential_ref`·`secret_ref`를 생성**("GW->>KMS: 자격·시크릿 저장")한다고 규정한다. 즉 계약상 원문 secret을 제출할 입력 필드가 스키마에 전혀 없어, SRS가 기술한 "GW가 raw secret을 수신→KMS 저장" 흐름을 현재 OpenAPI로는 표현할 수 없다. 스키마에 write-only 원문 자격/secret 입력 필드를 추가하거나, 반대로 "운영자가 KMS에 사전 적재 후 참조만 전달"하는 모델로 §2.3.4 시퀀스(GW가 KMS에 저장하는 부분)를 정정해 SRS↔OpenAPI를 정합화해야 한다.
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 반영: 대기
+- 상태: Active
+
+## C-41 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1734 · [thread 79750] ★리뷰어 대기(자동리뷰)
+- **[민진우(Thomas) · 2026-07-15T07:04 · cid 79750.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > `webhookHmac` 보안 스킴(line 1731~)은 `name: Signature`(line 1734)로 서명 헤더명을 `Signature`로 선언하지만, 바로 아래 설명(line 1738)은 "(여기 `X-Signature`는 예시)"라며 다른 헤더명을 든다. 헤더명이 target 규약(`sig_scheme`)마다 다르다는 취지는 이해되나, 같은 블록에서 스킴 선언값(`Signature`)과 설명의 예시(`X-Signature`)가 불일치해 구현·툴링(OpenAPI 클라이언트 생성 등)에 혼동을 준다 — 예시 헤더명을 `Signature`로 맞추거나 설명 문구를 정정해 일치시키는 것이 좋다. (경미)
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 반영: 대기
+- 상태: Active
+
+## C-42 · (파일 미지정·일반) · [thread 79751] ★리뷰어 대기(자동리뷰)
+- **[민진우(Thomas) · 2026-07-15T07:04 · cid 79751.1]**
+
+  > From CodeReviewAgent(v0.4.1),
+  > ## Code Review (Other) — Update 3
+  >
+  > 이번 증분 diff는 placeholder였던 **SRS.md(약 2,400줄)** 와 **OpenAPI(약 2,684줄)** 를 정본 초안으로 채워 넣으면서, 특히 이전 리뷰가 지적한 SRS↔OpenAPI 계약 드리프트 4건을 정면으로 손본 커밋이다.
+  >
+  > **[Previous Review] findings 처리 결과 — 4건 전부 해소.** ① §7.3.1 Region Resolver 출력 계약: `Clinic` 스키마에 resolver 필드가 없던 문제를 **`ClinicResolution` 스키마 신설**(`allOf: Clinic` + `regionDisplayName`·`endpoint`·`status`·`cacheTtlSeconds`·`hosts`·`sovereigntyPolicy`)로 해소하고 `GET /v1/clinics/me`가 이를 반환하도록, SRS §7.3.1 output도 "(`ClinicResolution`, OpenAPI)"로 정정. ② Appendix B #42의 예약 필드 경로 오기: 이제 SRS·OpenAPI 모두 **`EnrollCompleteRequest.licenseAttestation`**(complete 단계·nullable 예약)으로 일치. ③ `WebhookEnvelope.eventType`: `nullable: true`로 바뀌고 `required`에서 제외(`[eventId]`만)됐으며 설명도 "관측·필터용(**라우팅 키 아님**·null 가능)"으로 교정 — 목적지 라우팅=`org_mapping` 규정과 정합. ④ `Region.endpoint` 예시: `https://gw-apne2.vatech.com`로 바뀌어 §4.5.1의 `gw-<region>.vatech.com` 네이밍 규약과 통일.
+  >
+  > **신규 결함 — 여전히 SRS↔OpenAPI 계약 정합이 축.** 이전 리뷰 findings를 고치는 과정과 신규 스키마 확장에서 새 모순이 유입됐다. 가장 중요한 것은 **리전 내부 `endpoint`의 노출 모순**으로, 이전 리뷰 #1을 해결하며 추가한 `ClinicResolution`/`Region` 스키마가 "클라이언트 미노출"로 규정된 리전 내부 호스트를 device-facing(`GET /v1/regions`·`GET /v1/clinics/me`) 응답에 담아 §4.5.1·§7.3.1·§4.5.1 간 자기모순을 만든다 — 통제 문서(IEC 62304) 요구사항↔인터페이스 추적성 관점에서 우선 정정 대상이다. 두 번째는 **`target` 시크릿 제출 경로의 계약 공백**으로, §2.3.4가 "GW가 raw secret을 받아 KMS에 저장"한다고 규정하는데 `Target` 스키마는 KMS *참조* 필드만 있어 원문 제출을 표현할 수 없다. 세 번째는 `webhookHmac` 스킴의 헤더명 선언/예시 불일치(경미)다.
+  >
+  > 세 건 모두 문서·계약 정합 수준의 문제이며, 아키텍처·데이터 모델 자체를 바꾸는 결함이나 build 차단성 결함은 발견되지 않았다. 나머지 광범위한 신규 API(운영자 RBAC·정책·리전·config·webhook 조회 등)와 provenance 테이블·SRS 본문 규정은 상호 대체로 정합하며, 프록시 미정의 컴포넌트(`ProxyError`·`Target*`)의 미참조는 파일 주석이 "redocly `no-unused-components` 경고는 의도된 것"으로 명시(리뷰 지침상 제외)하므로 지적에서 뺐다.
+  >
+  > 3 line-specific finding(s) were posted as inline comments.
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 반영: 대기
+- 상태: Active
+
+## C-43 · docs/specs/SRS.md:2019 · [thread 79842] ★리뷰어 대기(정지홍(Teddy))
+- **[정지홍(Teddy) · 2026-07-15T14:50 · cid 79842.1]**
+
+  > EzServer, GW, MQTT 최초 연동 이후 MQTT 서버 장애로 연동 실패 시의 처리 방안에 대해 문의드립니다.
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 반영: 대기
+- 상태: Active
+
+## C-44 · docs/specs/SRS.md:1846 · [thread 79844] ★리뷰어 대기(정지홍(Teddy))
+- **[정지홍(Teddy) · 2026-07-15T14:57 · cid 79844.1]**
+
+  > 최초 연동한 clinic_id가 변경 되는 경우에 대해 처리 방안 문의드립니다.
+
+- 다음 답변(초안): (미작성)
+- 조치: 
+- 반영: 대기
+- 상태: Active
 ---
 
 ## 인덱스 (위치·상태)
-- C-01 · docs/specs/SRS.md:2278 · `반영완료(로컬·미push)`
-- C-02 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2247 · `반영완료(로컬·미push)`
-- C-03 · docs/specs/SRS.md:924 · `반영완료(로컬·미push)`
-- C-04 · docs/specs/SRS.md:1052 · `반영완료(로컬·미push)`
-- C-05 · (파일 미지정·일반) · `반영완료(로컬·미push)`
-- C-06 · docs/specs/SRS.md:1440 · `반영완료(로컬·미push)`
-- C-07 · docs/specs/SRS.md:1461 · `반영완료(로컬·미push)`
-- C-08 · docs/specs/SRS.md:1476 · `반영완료(로컬·미push)`
-- C-09 · docs/specs/SRS.md:2227 · `반영완료(로컬·미push)`
-- C-10 · docs/specs/SRS.md:1342 · `반영완료(로컬·미push)`
-- C-11 · docs/specs/SRS.md:2294 · `반영완료(로컬·미push)`
-- C-12 · (파일 미지정·일반) · `반영완료(로컬·미push)`
-- C-13 · docs/specs/SRS.md:239 · `반영완료(로컬)·Jack에 재답변 게시함(수긍 대기)`
-- C-14 · docs/specs/SRS.md:1103 · `반영완료(로컬·미push)`
-- C-15 · docs/specs/SRS.md:1112 · `반영완료(로컬·미push)`
-- C-16 · docs/specs/SRS.md:233 · `반영완료(로컬·미push·Scott 합의 대기)`
-- C-17 · docs/specs/SRS.md:1732 · `반영완료(로컬·미push)`
-- C-18 · docs/specs/SRS.md:1763 · `반영완료(로컬·미push)`
-- C-19 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1833 · `반영완료(로컬·미push)`
-- C-20 · docs/specs/SRS.md:1727 · `반영완료(로컬·미push)`
-- C-21 · docs/specs/SRS.md:1862 · `반영완료(로컬·미push·Larry 합의 대기)`
-- C-22 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1 · `대기` ★
-- C-23 · docs/specs/SRS.md:1678 · `대기` ★
-- C-24 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1733 · `반영완료(로컬·미push)`
-- C-25 · docs/specs/SRS.md:2006 · `대기` ★
-- C-26 · docs/specs/SRS.md:1983 · `반영완료(로컬·미push)`
-- C-27 · docs/specs/SRS.md:1059 · `대기` ★
-- C-28 · docs/specs/SRS.md:552 · `대기` ★
-- C-29 · docs/specs/SRS.md:28 · `답변(팀 확인 병행)`
-- C-30 · docs/specs/SRS.md:515 · `대기` ★
-- C-31 · docs/specs/SRS.md:550 · `답변`
-- C-32 · (파일 미지정·일반) · `답변(정보성·QA 소관)`
-- C-33 · docs/specs/SRS.md:323 · `대기` ★
-- C-34 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2543 · `반영완료(로컬·미push)`
-- C-35 · docs/specs/SRS.md:2322 · `반영완료(로컬·미push)`
-- C-36 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2336 · `반영완료(로컬·미push)`
-- C-37 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2612 · `반영완료(로컬·미push)`
-- C-38 · (파일 미지정·일반) · `답변(정보성·수정 없음)`
+> 상태 = Azure DevOps 스레드 값(Active/Pending/Resolved/Won't fix/Closed). 우리 반영상태는 각 항목 `반영` 필드 참조.
+- C-01 · docs/specs/SRS.md:2278 · `Active`
+- C-02 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2247 · `Active`
+- C-03 · docs/specs/SRS.md:924 · `Active`
+- C-04 · docs/specs/SRS.md:1052 · `Active`
+- C-05 · (파일 미지정·일반) · `Active`
+- C-06 · docs/specs/SRS.md:1440 · `Active`
+- C-07 · docs/specs/SRS.md:1461 · `Active`
+- C-08 · docs/specs/SRS.md:1476 · `Active`
+- C-09 · docs/specs/SRS.md:2227 · `Active`
+- C-10 · docs/specs/SRS.md:1342 · `Active`
+- C-11 · docs/specs/SRS.md:2294 · `Active`
+- C-12 · (파일 미지정·일반) · `Active`
+- C-13 · docs/specs/SRS.md:239 · `Active` ⚠미반영
+- C-14 · docs/specs/SRS.md:1103 · `Active`
+- C-15 · docs/specs/SRS.md:1112 · `Active`
+- C-16 · docs/specs/SRS.md:233 · `Resolved`
+- C-17 · docs/specs/SRS.md:1732 · `Resolved`
+- C-18 · docs/specs/SRS.md:1763 · `Resolved`
+- C-19 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1833 · `Resolved`
+- C-20 · docs/specs/SRS.md:1727 · `Resolved`
+- C-21 · docs/specs/SRS.md:1862 · `Active` ⚠미반영
+- C-22 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1 · `Resolved`
+- C-23 · docs/specs/SRS.md:1678 · `Active`
+- C-24 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1733 · `Active`
+- C-25 · docs/specs/SRS.md:2006 · `Active`
+- C-26 · docs/specs/SRS.md:1983 · `Active`
+- C-27 · docs/specs/SRS.md:1059 · `Active`
+- C-28 · docs/specs/SRS.md:552 · `Active`
+- C-29 · docs/specs/SRS.md:28 · `Active`
+- C-30 · docs/specs/SRS.md:515 · `Active`
+- C-31 · docs/specs/SRS.md:550 · `Active`
+- C-32 · (파일 미지정·일반) · `Active`
+- C-33 · docs/specs/SRS.md:323 · `Active`
+- C-34 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2543 · `Active`
+- C-35 · docs/specs/SRS.md:2322 · `Active`
+- C-36 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2336 · `Active`
+- C-37 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2612 · `Active`
+- C-38 · (파일 미지정·일반) · `Active`
+- C-39 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2658 · `Active` ⚠미반영
+- C-40 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:2259 · `Active` ⚠미반영
+- C-41 · docs/specs/design/openapi/vt-api-gateway.openapi.yaml:1734 · `Active` ⚠미반영
+- C-42 · (파일 미지정·일반) · `Active` ⚠미반영
+- C-43 · docs/specs/SRS.md:2019 · `Active` ⚠미반영
+- C-44 · docs/specs/SRS.md:1846 · `Active` ⚠미반영
