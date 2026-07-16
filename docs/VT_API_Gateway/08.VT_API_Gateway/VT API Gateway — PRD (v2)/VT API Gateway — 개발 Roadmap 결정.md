@@ -750,12 +750,12 @@ gantt
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **CleverSpace** | — | 서버 버전 체크·well-known 공시·오류코드 정리 | **presigned 발급 신규 개발** | GW 경유 수신 정합 | 멀티 Region 구축 | — | — | ① One Pager · ② One Pager · ③-P-CS Sub-SRS(멀티Region 크면)/One Pager |
 | **CleverOne** | — | Vatech-\* 헤더·well-known 인지·fallback | 업로드 흐름 연계 | Direct→GW 경유 전환 | Region 선택 UI(**대안 주체**)·ClinicID | — | — | ① One Pager · ② One Pager · ③-P-CO One Pager |
-| **EzServer(EZ)** | **IO Scanner 데이터 수신·수집(방식 R1·미정)** | 헤더 대리 전달 | 전송 로직 변경(presigned 직접) | GW 경유 전환 | ClinicID 포함·Region 인지 · **GW 클리닉 등록(Console: region 선택·Clinic-ID) — 잠정 주체** | AXS 연동 FE/BE(갈래 A)·presigned 직접 업로드 | **Rust 전면 재개발** | ① One Pager · ② One Pager · ③-P-EZ One Pager · ④ Sub-SRS(갈래 A) · (Rust=후속 별도) |
+| **EzServer(EZ)** | **IO Scanner 데이터 수신·수집(방식 R1·미정)** | 헤더 대리 전달 | 전송 로직 변경(presigned 직접) | GW 경유 전환 | ClinicID 포함·Region 인지 · **GW 클리닉 등록(Console: region 선택·Clinic-ID) — 잠정 주체** | AXS 연동 FE/BE(갈래 A)·presigned 직접 업로드 | **Rust 전면 재개발** | ① One Pager · ② One Pager · ③-P-EZ(초안 Raymond→Thomas·7/16 R3) · ④ Sub-SRS(갈래 A) · (Rust=후속 별도) |
 | **IO Scanner(Straumann 장비·수집 제품 미정)** | 스캔 데이터 출력 → EzServer 유입(수집 제품·방식 R1·미정) | — | — | — | — | (AXS 워크플로 대상) | — | R1 확정 후 ③-P-EZ(수신)·④(AXS scope) |
 | **CleverLab** | — | — | — | — | — | **AXS 오더·상태·확정 연동(갈래 B)**·presigned | — | ④ Sub-SRS(갈래 B) |
 | **VatechAPIGateway** | — | ↳ 3단계에서 흡수(호환 게이트·well-known·compat matrix·§7.7) | ↳ 3단계에서 흡수(presigned 중계·bypass·§4.1.4) | 본체·라우팅·인증 연계·호환 집행·presigned 발급 중계·경로 B 흡수 | Region 분배·HA(K8s)·Route 53·저장소(Postgres) | AXS OAuth 중계·Org-ID 매핑·온보딩·인바운드 중계·고정 egress IP | — | ③ SRS (계약 SSOT) · ④는 그 위 connector |
 | **GW Console** | — | — | — | — | Admin Web Console (**③-C Sub-SRS**) | 온보딩·Org-ID 관리 화면 | — | ③-C Sub-SRS |
-| **인프라** | — | 단일 Region | — | 단일 Region GW | Route 53·K8s·비-AWS minio | AXS whitelist용 고정 IP·샌드박스 | — | ③-I IaC 구축 계획서 |
+| **인프라** | — | 단일 Region | — | 단일 Region GW | Route 53·K8s·비-AWS minio | AXS whitelist용 고정 IP·샌드박스 | — | ③-I IaC 구축 계획서(초안 Raymond diagram→Jack·7/16 R3) |
 | **외부(Straumann AXS)** | — | — | — | — | — | API 스펙·OAuth·샌드박스·자격증명 제공(선결) | — | ④ Sub-SRS 입력(외부 제공물) |
 | **LMP (License Portal, 바텍)** | — | — | — | — | — | — | (조건부) 제3자 서명 attestation 발급 | **enroll B안(제3자 서명 자동승인) 채택 시만** — 서명 키·JWKS·attestation 발급 개발(ES 라이선스/ELM 팀·크로스팀·Roadmap 추가). v1.0=A안(C/S 승인)이면 무변경. 상세=Agenda R9·Appendix B #42 |
 
