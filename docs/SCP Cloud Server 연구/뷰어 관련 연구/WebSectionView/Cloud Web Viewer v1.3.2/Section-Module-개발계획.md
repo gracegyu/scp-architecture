@@ -7,7 +7,7 @@
 | 작성 | Raymond |
 | 상태 | **Spec(OnePager) v1.6.** 구현 착수·병행(P0~P1·P7 정적 크롬 진행). MMI 전면 재검토로 **파노라마 생성 모델 정정(D11)**·투영 방식 **D12 기획 결정 대기**. 핵심 결정 확정(§0 Decision Log) |
 
-> 본 문서는 **내부 개발 계획·의사결정 기록**이다. 리뷰 공유 정본은 [OnePager Spec](./Section-Module-Spec-v1.3.2-OnePager.md)이며, 세부 요구·접목 계약은 그쪽을 따른다. 본 문서는 "왜 이렇게 정했는가"의 배경을 남긴다.
+> 본 문서는 **내부 개발 계획·의사결정 기록**이다. 리뷰 공유 정본은 [OnePager Spec]({VKS})이며, 세부 요구·접목 계약은 그쪽을 따른다. 본 문서는 "왜 이렇게 정했는가"의 배경을 남긴다.
 
 ---
 
@@ -145,7 +145,7 @@ Section 모듈 구현 (MMI 전 기능) + Section Slice 스크롤 성능 벤치�
 
 | 단계 | 문서 | 링크 |
 |------|------|------|
-| **Spec 정본** | Section OnePager Spec v1.5 | [로컬](./Section-Module-Spec-v1.3.2-OnePager.md) |
+| **Spec 정본** | Section OnePager Spec v1.5 | [로컬]({VKS}) |
 | 요구사항 | MMI (요구사항 정본) | [SharePoint PPT](https://vatechcorp.sharepoint.com/:p:/s/es/IQCjrxXEJ0pTQYGI9-PSaawwARs_XFxM0DuVBzvOYQBGVu0?e=ztkM8R) · [로컬 추출본](./기획·요구사항/MMI/MMI.md) |
 | 기획 답변 | PLAN-1287 | [Jira](https://vts.vatech.com/browse/PLAN-1287) |
 | 개발실 리뷰 | MMI 개발실 리뷰 | [VKS](https://vks.vatech.com/x/2_bhEg) · [로컬](./검토/MMI_개발실리뷰.md) |
@@ -191,7 +191,7 @@ PLAN-1287 Jessi 회신 + MMI + 2026-07-13 B/L 회신 기준. OnePager §3~§7에
 - 판정식: `s = sign((P2−P1) × (C−P1))` (2D 외적). C가 있는 쪽 = L.
 - **최초 2점으로 1회 결정·고정.** 이후 P3+ 추가·P1/P2 이동 등 어떤 편집에도 **재판정 없음**. 방향 변경은 **수동 L/B Switching**만.
 - BL/LB 기준점(첫 점 P1)은 시각 표식으로 유지하나 **이동은 B/L에 영향 없음**(구 "기준점 중심 반전" MMI 1.3#8① 폐기).
-- 상세·구현: [OnePager §5](./Section-Module-Spec-v1.3.2-OnePager.md).
+- 상세·구현: [OnePager §5]({VKS}).
 
 ---
 

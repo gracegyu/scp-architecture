@@ -5,7 +5,7 @@
 **Background**
 
 - [PLAN-1287](https://vts.vatech.com/browse/PLAN-1287)을 통해서 Cloud Web Viewer MMI 리뷰를 진행하였고, 이를 토대로 Section View PoC의 추가 구현이 필요하다.
-- 구현·테스트·인계의 **요구사항 정본**은 [Section Module OnePager](./Section-Module-Spec-v1.3.2-OnePager.md)([VKS](https://vks.vatech.com/x/UecSEw))이다.
+- 구현·테스트·인계의 **요구사항 정본**은 [Section Module OnePager]({VKS})([VKS](https://vks.vatech.com/x/UecSEw))이다.
 
 **Purpose**
 
@@ -20,7 +20,7 @@
 
 **Considerable Factors**
 
-- 구현·테스트·버그 판정 시 [Section Module OnePager](./Section-Module-Spec-v1.3.2-OnePager.md)([VKS](https://vks.vatech.com/x/UecSEw))를 참조한다. 접목 절차는 OnePager §9.9.
+- 구현·테스트·버그 판정 시 [Section Module OnePager]({VKS})([VKS](https://vks.vatech.com/x/UecSEw))를 참조한다. 접목 절차는 OnePager §9.9.
 - Cloud Web Viewer의 개발환경과 동일한 개발환경에서 PoC를 구현하여 제품화에 이슈를 최소화하도록 한다.
     - Cloud Web Viewer의 vtkjs-wrapper 소스 저장소: https://dev.azure.com/ewoosoft/_git/cloudwebviewer?path=/lib/vtkjs-wrapper
 - Section PoC 소스 저장소: https://dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc

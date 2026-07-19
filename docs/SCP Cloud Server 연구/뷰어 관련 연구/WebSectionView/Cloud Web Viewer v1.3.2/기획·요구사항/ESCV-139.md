@@ -5,7 +5,7 @@
 **Background**
 
 - [ESCV-138](https://vts.vatech.com/browse/ESCV-138)을 통해 Clever Space v1.3.2 Cloud Web Viewer용 Section View 모듈 구현·기획팀 테스트가 완료되면, 본 이슈에서 **Cloud Web Viewer(`cloudwebviewer`)에 접목(embed)** 한다.
-- 접목 범위·절차·정합 요건의 **정본**은 [Section Module OnePager](./Section-Module-Spec-v1.3.2-OnePager.md)([VKS](https://vks.vatech.com/x/UecSEw)) **§9**(특히 §9.9 실행 절차)이다.
+- 접목 범위·절차·정합 요건의 **정본**은 [Section Module OnePager]({VKS})([VKS](https://vks.vatech.com/x/UecSEw)) **§9**(특히 §9.9 실행 절차)이다.
 
 **Purpose**
 
