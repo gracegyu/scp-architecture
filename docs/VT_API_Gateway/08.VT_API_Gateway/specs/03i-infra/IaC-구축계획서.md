@@ -17,6 +17,26 @@
 
 ---
 
+## 0.5 인계 가이드 (→ Jack)
+
+**이 문서 쓰는 법.** 각 §2 영역의 `🔧 Jack 상세`를 채워 `IaC 구축 계획서`를 완성한다(요구는 이미 정리됨 — "무엇을"이 아니라 "어떻게 구축"을 쓰면 됨). 상세는 이 파일에 이어 쓰고, 최종은 **`es-infra`(Terraform·platforms)** 또는 별도 인프라 레포로 승계 → PR → baseline(③ GW SRS baseline 후).
+
+**① 우선순위·타임라인 (7/16 R2).**
+- **8월 = 기반 구축·자동배포** — VPC/EKS(4-way)·Route53 GeoDNS·NAT 고정 EIP·KMS/IRSA·AppConfig·**DB 2-cluster(명명·endpoint 확정)**·CI/CD(Terraform·Azure Pipelines→ECR→EKS).
+- **9월 = 개발환경 연동 완료**(dev에서 IOScanner·EzServer·GW–AXS 연동).
+- **10월 = production 연동 완료.**
+- **⚠ GW 구현 선결 = DB 클러스터/이름/endpoint(§2.4)** — 구현이 연결 대상을 알아야 하므로 가장 먼저 확정.
+
+**② 이미 확정 — 재론 금지(구현·비준만).** Terraform(es-infra·7/2 R5) · 4-way Deployment(7/9 R10) · AppConfig(7/9 R9) · Grafana Alloy 수집(7/2 R3) · AWS 전용 배포 · GW storage 비호스팅(presigned 중계) · **PHI 리전 로컬·2-cluster 불변식**(§2.1.1·주권 FR-RGN-03) · 엔진 PostgreSQL 17.x. → 이 결정들은 **바꾸는 게 아니라 구현/제품 비준**한다.
+
+**③ Jack이 정하는 것.** DB 클러스터/이름·인스턴스 사이징·노드 타입/수·MQTT 브로커 제품(Appendix B #4)·RTO/RPO(#9)·Aurora 비준(#18)·환경 프로비저닝(#24)·Global DB primary 배치(#15)·EIP 풀·인증서/GeoDNS/사설 zone·요금·Terraform 모듈 구조. (= §3 미결 + 각 `🔧 Jack 상세`.)
+
+**④ 필독(입력 정본).** SRS **§2.1.1**(배포·2-cluster)·**§3.1**(환경)·**§4.5.1**(DNS 호스트)·**§6.3**(HA·관측)·**§6.6.2**(4-way·Terraform)·**§7.3.5**(멀티리전)·**§7.5.3**(egress)·**§7.6.6**(MQTT)·**§7.7.5**(AppConfig) + **DBML 상단 "데이터 클래스" 범례**(테이블→클러스터 배치의 SSOT) + **Appendix B 인프라 행**(#2·4·9·12·15·18·24·26).
+
+**⑤ ③-C Console 인프라 흡수.** GW 플랫폼 + 제품(③-C Console 등) 인프라는 **단일 소유(③-I)로 구축**한다 — ③-C가 요구(호스팅·인증·API 접근)를 확정하면 이 계획서에 흡수·보강(Roadmap §3.9).
+
+---
+
 ## 1. 전체 인프라 아키텍처 (Raymond)
 
 > v1.0 단일 리전 기준. 점선 박스(리전 B)는 gw/1.2 확장. **AWS 관리형=회색 개념**, GW 배포 단위(4-way)=강조.
