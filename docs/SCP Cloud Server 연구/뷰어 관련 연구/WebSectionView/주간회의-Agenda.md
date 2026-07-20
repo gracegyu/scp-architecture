@@ -250,13 +250,13 @@
 
     ```mermaid
     gantt
-        title Section 모듈 — 일정 (7/16 스냅샷 · 구현 완료)
+        title Section 모듈 — 일정 (7/20 기준 · 구현 완료)
         dateFormat YYYY-MM-DD
         axisFormat %m/%d
         todayMarker stroke-width:2px,stroke:#d33,opacity:0.5
 
         section 문서·Spec
-        OnePager Spec 완성·VKS·리뷰       :done, spec, 2026-07-10, 6d
+        OnePager Spec 완성·VKS·리뷰       :done, spec, 2026-07-10, 9d
 
         section 구현 (scp-section-poc)
         모듈 구현 완료(계측·Pan/Zoom·Pointer·편집·Save·i18n·Initialize All)  :done, impl, 2026-07-13, 2026-07-19
