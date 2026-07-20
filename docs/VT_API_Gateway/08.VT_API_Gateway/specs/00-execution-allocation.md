@@ -53,6 +53,7 @@
 - **소유(확정)**: `vt-api-gateway` repo 내 CI 산출물은 **GW(본인)가 작성·소유**한다 — `Dockerfile`(이미지 빌드 레시피)·`azure-pipelines.yml`(① 재배포: build·test·image·배포 트리거)·`azure-pipelines-config.yml`(② 호환성 매트릭스 발행: 검증→JSON 렌더→S3). 빌드·실행·발행 내용이 앱에 종속돼 앱팀만 정의 가능. **흐름(job)별로 담당을 쪼개지 않는다**(다중 오너 방지).
 - **인프라(Jack) 선행 제공 = 필수 전제**(권한·리소스 생성이라 GW 불가): service connection(ECR/S3 인증)·ECR·**S3 버킷+IAM**(② 발행 대상·CI-only write)·**ArgoCD 앱 등록**·agent pool·*(선택)* 표준 파이프라인/`Dockerfile` 템플릿·승인 base 이미지. GW 파이프라인은 이를 **참조**한다.
 - **타이밍**: CI 골격(build·test)은 **조기**(코드 생기면), 배포 파이프라인은 **첫 E2E 배포 시점(개발 중반)** 에 세운다(구현 착수=④ AXS baseline 후·7/2 R7). **인프라 기반은 그 전에 준비돼야 함**(의존).
+- **작성 전략(위상)**: `Dockerfile`은 **인프라 무관·조기 작성**(승인 base 이미지만 후속 `FROM` 교체) / `azure-pipelines.yml`은 **build·test 골격 조기 + 배포 트리거만 Jack 전제(ECR·ArgoCD·manifest 위치) 확정 후** 채운다. 구체 stage/레이어는 구현 착수 시 코드 repo 파일·README로 둔다(planning 문서에 선반영 금지·drift 방지).
 
 ### Jack에게 확인·요청할 것 (구현 착수 전)
 
