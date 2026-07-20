@@ -1000,7 +1000,7 @@
       | --- | --- | --- | --- | --- | --- | --- | --- | --- |
       | **CleverSpace** | — | ⬜ 서버 버전 체크·well-known·오류코드 | ⬜ presigned 발급 신규 | ⬜ GW 경유 수신 정합 | ⬜ 멀티 Region 구축 | — | — | ① OnePager · ② OnePager · ③-P-CS |
       | **CleverOne**(post-v1.0) | — | ⬜ Vatech-\* 헤더·well-known·fallback | ⬜ 업로드 흐름 연계 | ⬜ Direct→GW 경유 | ⬜ Region 선택 UI(대안)·ClinicID | — | — | ① · ② · ③-P-CO OnePager |
-      | **EzServer(EZ)** | ⬜ IO Scanner 데이터 수신(방식 R1·미정) | ⬜ 헤더 대리 전달 | ⬜ 전송 로직(presigned 직접) | ⬜ GW 경유 전환 | ⬜ ClinicID·Region·클리닉 등록(잠정) | ⬜ IO Scanner 연동·AXS(갈래A)·presigned 직접 | ⬜ Rust 재개발 | ①·②·③-P-EZ(초안 Raymond→Thomas)·④(갈래A) |
+      | **EzServer(EZ)** | ⬜ IO Scanner 데이터 수신(방식 R1·미정·TBD) | 🟡 헤더 대리 전달 | 🟡 전송 로직(presigned 직접) | 🟡 GW 경유 전환 | 🟡 ClinicID·Region·클리닉 등록(잠정) | 🟡 AXS(갈래A)·presigned 직접(IO Scanner 세부=TBD) | ⬜ Rust 재개발 | **🟡 ③-P-EZ One Pager 초안 작성됨**(Raymond→Thomas) — `specs/03p-ez-ezserver/EzServer-GW적응-OnePager.md` · ④(갈래A) |
       | **IO Scanner(Straumann 장비·수집 제품 미정)** | ⬜ 스캔 데이터→EzServer 유입(수집 제품·방식 R1·미정) | — | — | — | — | (AXS 워크플로 대상) | — | R1 확정 후 ③-P-EZ(수신)·④(AXS scope) |
       | **CleverLab** | — | — | — | — | — | ⬜ AXS 오더·상태·확정(갈래B)·presigned | — | ④ Sub-SRS(갈래B) |
       | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 Region 분배·HA(K8s)·Route53·Postgres | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS 🟢(단일·전 단계 통합)** · ④ connector 🟡 |
