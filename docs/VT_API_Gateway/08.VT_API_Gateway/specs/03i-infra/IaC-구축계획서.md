@@ -102,7 +102,13 @@ flowchart TB
   - **② 리전 로컬 클러스터** = webhook_event(payload=PHI)·audit·fleet 등 운영 데이터(**복제 안 함·주권 FR-RGN-03**). Global DB 미포함(소형 Aurora/RDS 가능).
 - **캐시 = ElastiCache for Valkey**(리전 로컬·교차복제 안 함·로컬 PG에서 재적재).
 - **내부 큐 A = SQS**(재시도·DLQ, webhook 수신 버퍼).
-- `🔧 Jack 상세`: 인스턴스 클래스·스토리지·백업/복구(RTO/RPO·Appendix B #9)·Global DB primary 배치(#15)·두 클러스터 사이징·비용.
+- **⚠ DB·클러스터·스키마 명명 = GW 구현 선결(③-I 확정 필요).** GW 구현이 **어느 클러스터/DB에 연결할지** 알아야 하므로 조기 확정이 필요하다. 2-cluster라 이름이 둘:
+  - **① 전역 일관 클러스터**(Aurora Global DB) — 권장: 클러스터 id `vtgw-global-<env>`(예 `vtgw-global-prod`), database `vtgw_global`.
+  - **② 리전 로컬 클러스터** — 권장: 클러스터 id `vtgw-regional-<region>-<env>`(예 `vtgw-regional-apne2-prod`), database `vtgw_regional`.
+  - 스키마 = `public`(기본) 또는 명명 스키마 · env 접미사 `prod`/`stg`/`dev`.
+  - **위 이름은 권장(예시)이며 ③-I가 조직 명명 표준(`es-infra`)에 맞춰 확정**한다. 확정된 **클러스터 endpoint + database 이름**은 GW 구현의 연결 설정(Prisma/LLD)이 소비한다.
+  - **테이블→클러스터 배치**는 DBML 데이터 클래스 범례(전역 일관 vs 리전 로컬)를 따른다 — 전역 일관 테이블은 ①, webhook_event·audit·fleet은 ②.
+- `🔧 Jack 상세`: 위 명명 확정 · 인스턴스 클래스·스토리지·백업/복구(RTO/RPO·Appendix B #9)·Global DB primary 배치(#15)·두 클러스터 사이징·비용.
 
 ### 2.5 MQTT 브로커 — B 엣지 (SRS §7.6.6·§3.1.2·Appendix B #4)
 - 방화벽 뒤 EzServer 역방향 push(**QoS1·persistent·TLS·cert 인증**) — 지속 구독 필요(SQS 부적합).
@@ -158,6 +164,7 @@ flowchart TB
 | 18 | Aurora PostgreSQL 비준·엔진 버전(PG 17.x·Extension 호환) | 인프라/아키텍트 |
 | 24 | dev/test/staging 환경 구축·자격 | 인프라/개발 |
 | 49 | (참고) clinic_id 수동 이관 시 데이터/저장소 영향 | GW+운영 |
+| — | **DB·클러스터·스키마 명명(GW 구현 선결)** — 2-cluster 이름·database·endpoint 확정(권장=§2.4·조직 표준 준수) | 인프라(③-I) |
 | — | 노드 타입·수·용량 산정(fleet 규모=PL 입력·§5) | 인프라 |
 
 ---
