@@ -2,7 +2,7 @@
 
 > **이 파일의 역할 = 승격용 구조화 씨앗(seed).** ③ SRS 작업 중 이 문서로 갈 내용을 **최종 목차에 대응되게** 미리 정리해 둔다(발견 즉시 캡처·인사이트 유실 방지). 정식 Sub-SRS/문서 집필은 **의존하는 ③ SRS 절이 baseline된 뒤 승격**한다 — 몰아쓰기가 아니라 "옮겨 붙이고 살 붙이기". 승격 트리거: ① ③ 해당 절 동결 + ② 소유권 확정(GW 공통 아님) + ③ 레포/템플릿 존재. 근거: ③이 흔들리는 동안 자식 문서를 미리 쓰면 개명·재번호가 수십 절로 번져 유지면이 폭발한다.
 
-- 상태: **초안 작성중(Raymond·2026-07-20 착수)** → `IaC-구축계획서.md`(전체 diagram + GW SRS infra 추출) 작성함 → **Jack이 상세(리소스·사이징·Terraform 모듈) 완성** (인프라 담당). IaC 도구=**Terraform**(7/2 R5·es-infra 편입)
+- 상태: **초안 작성 완료(Raymond·2026-07-20)** → **정본을 `vt-api-gateway-infra`로 이관**(브랜치 `docs/iac-plan-draft`·이 폴더 `IaC-구축계획서.md`는 리다이렉트 stub) → **Jack이 상세(리소스·사이징·Terraform 모듈) 완성·PR** (인프라 담당). IaC 도구=**Terraform**(7/2 R5·es-infra 규약)
 - 문서 유형: IaC 구축 계획서 (기능 스펙/One Pager 아님)
 - 범위: **단일 Region GW(3단계·v1.0)** — **Route 53 GeoDNS 라우팅·DNS 호스트(공개: apex `gw.vatech.com` + proxy `*.gw.vatech.com` + webhook `{target}.webhook.gw.vatech.com` / **내부 전용: `admin.gw.vatech.com`**(GW Admin API·4-way R10·사설 zone 또는 내부 ALB+제한))·K8s HA·고정 egress IP를 v1.0부터 구축**(GeoDNS 대상=서울 1개로 resolve, 멀티리전-ready, SRS §2.7.1·§4.5.1). **4단계=N리전 활성화**(GeoDNS 라우팅 대상 증분·글로벌 복제 — record 타입·클라이언트 변경 없음). 비-AWS국 MinIO는 target(CleverSpace/AXS) 제공(GW 중계만)
 - **GW 배포 토폴로지 = 4-way (7/9 R10·§6.6.2·§2.1.1·§2.2)**: 단일 코드베이스를 **4개 Deployment**로 분리 — `GW core`·`Webhook Receiver`(공개 노출면) / **`GW Admin API`**·`Webhook Dispatcher`(내부 전용). IaC 구축 항목 — **`GW Admin API`용 내부 전용 ingress + NetworkPolicy**(공개 device edge·webhook 호스트에서 도달 차단·Console/VPC 내부만 허용) · 4개 Deployment 독립 스케일/오토스케일(Dispatcher=SQS 큐depth/KEDA)·장애 격리 · Admin 저사양 최소 HA(≥2) · 동일 이미지·시크릿 공유·PostgreSQL 공유. 제어평면(admin) / 데이터평면(proxy·webhook) 격리. 최종 토폴로지=③-I 소유.
@@ -10,4 +10,4 @@
 - 입력(spec_refs): ③ GW SRS(§3.1·§4.5.1 DNS·§7.3.5 GeoDNS·**§7.7.5 compat AppConfig**), Roadmap §4, 실행 할당표
 - 작성 모델: 인프라 담당 주도. GW SRS는 계획·요구만 명시(본 SRS §3·§4.5.1·§7.3.5)
 - TBD: DNS 호스트명 확정(§4.5.1), 노드 타입·수, RTO/RPO, MQTT 브로커 운영 주체
-- 공식 등록처: TBD (vt-api-gateway-infra repo 권장 — 별도 담당)
+- 공식 등록처(SSOT): `vt-api-gateway-infra/docs/IaC-구축계획서.md` (브랜치 `docs/iac-plan-draft` → Jack이 상세·PR·baseline)
