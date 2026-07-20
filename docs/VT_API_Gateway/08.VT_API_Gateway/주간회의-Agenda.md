@@ -930,6 +930,11 @@
 
 > 7/16 스냅샷(위 「7/16 주간회의」)은 **그대로 보존**. 아래는 **7/23 최신 스냅샷**이며, 틀(논의/공유/이월)은 이전 주와 동일하다. **Gantt(S1)·스펙 작성 테이블(S2)은 매주 상시 포함**한다.
 
+- 이번 주 진행
+  - **③ GW SRS PR 리뷰 완료·baseline 확정(7/20)** — 올라온 리뷰 코멘트(51개 스레드) 전부 반영해 SRS·OpenAPI·DBML 갱신·push. **필수 리뷰어(Scott·Thomas) 승인 완료**(옵션 Jack 포함). DBML 11→13 테이블, 데이터 토폴로지 2-클러스터·clinic_id 불변·리전 endpoint 미노출·target secret write-only 등 반영. → **v1.0 baseline 설정**.
+  - **③-I Infra IaC 구축 계획서 초안 작성(Raymond→Jack)** — GW SRS에서 인프라 요구 12영역 추출 + 전체 인프라 다이어그램. 각 영역에 `🔧 Jack 상세` 표시(구체 리소스·Terraform·사이징은 Jack 완성). DB/클러스터/스키마 명명 선결(권장안 명시). `specs/03i-infra/IaC-구축계획서.md`.
+  - **③-P-EZ EzServer GW 적응 OnePager 초안 작성(Raymond→Thomas)** — GW SRS 추출 + **기존 EzServer suite 코드 분석**(nginx/EAP/ELM/EPI(Rust)/WebConsole). 기능 블록 **WS-1~8**(라우팅·인증·MQTT하행·업로드·heartbeat·로컬콘솔·하위호환·IO Scanner)로 구조화, 각 블록에 착지 컴포넌트·현황격차·`🔧 Thomas 상세` 명시. private_key_jwt 신규개발·presigned/MQTT 재활용 가능·EzServer 로컬 온보딩 콘솔 등 분석 결과 반영. IO Scanner 의존부=TBD(R1). `specs/03p-ez-ezserver/EzServer-GW적응-OnePager.md`.
+
 - 논의 사항 (이번 주)
   - _(회의 시 작성)_
 
