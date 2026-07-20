@@ -972,9 +972,8 @@
         baseline                      :milestone, ezbl, after ezpr, 0d
 
         section ③-I 인프라 IaC (초안 Raymond diagram 7/20 착수→Jack detail · R3·7/16)
-        Raymond diagram 초안(7/20 착수)  :infw1, 2026-07-20, 7d
-        Jack detail 작성               :infw2, after infw1, 14d
-        PR 리뷰·수정                  :infpr, after infw2, 14d
+        초안 Raymond(diagram+요구추출)→Jack detail :infw, 2026-07-20, 21d
+        PR 리뷰·수정                  :infpr, after infw, 14d
         baseline                      :milestone, infbl, after infpr, 0d
         Infra 구축·자동배포 완료(8월·R2) :milestone, infra8, 2026-08-31, 0d
 
