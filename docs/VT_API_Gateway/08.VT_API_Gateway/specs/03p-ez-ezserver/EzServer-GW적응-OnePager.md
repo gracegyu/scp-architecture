@@ -9,24 +9,24 @@ EzServer — GW 적응 개발 (③-P-EZ)
 ## Date
 
 - **초안(추출·분석)**: 2026-07-20 · Raymond
-- **상태**: 초안 — Raymond가 ③ GW SRS + **기존 EzServer 코드베이스 분석**으로 작성한 시드. **작성·완성 = Thomas(EzServer 팀)**. 정식 baseline은 ③ GW SRS baseline 이후(제품 레포).
-- **⚠ 표기 규칙**: v1.0=Straumann IO Scanner 우선이나 **IO Scanner↔EzServer 연동 방식은 미정(R1)**. 확정 못한 부분은 **`TBD`** 로 명시했고, 방식 확정 후 Thomas가 구체화한다.
+- **상태**: 초안 — Raymond가 ③ GW SRS + **기존 EzServer 코드베이스 분석**으로 작성한 시드. **작성·완성 = EzServer 팀(Teddy·Thomas)**. 정식 baseline은 ③ GW SRS baseline 이후(제품 레포).
+- **⚠ 표기 규칙**: v1.0=Straumann IO Scanner 우선이나 **IO Scanner↔EzServer 연동 방식은 미정(R1)**. 확정 못한 부분은 **`TBD`** 로 명시했고, 방식 확정 후 EzServer 팀이 구체화한다.
 
 ## Submitter Info
 
 - **초안 작성**: Raymond — GW 표준 계약(SRS/OpenAPI/DBML) + 기존 EzServer suite 분석
-- **완성·소유**: Thomas (EzServer 팀) — 7/16 주간회의 R3 결정("EzServer 연동 Spec 초안은 Raymond가 해서 Thomas에게 전달")
+- **완성·소유**: EzServer 팀(Teddy·Thomas) — 7/16 주간회의 R3 결정("EzServer 연동 Spec 초안은 Raymond가 해서 Thomas에게 전달")
 - **관련 소유**: LMP/ELM(라이선스·Clinic-ID) · ③-C GW Console(C/S 원격 승인) · ③-I 인프라(MQTT 브로커·DNS·KMS)
 
-## 인계 가이드 (→ Thomas)
+## 인계 가이드 (→ EzServer 팀)
 
-**이 문서 쓰는 법.** 이 초안은 Raymond가 (a) GW SRS에서 EzServer 개발 항목을 추출하고 (b) 기존 EzServer suite 코드를 분석해 **"무엇을 어느 컴포넌트에서"** 까지 정리한 뼈대다. Thomas는 각 작업 블록(WS-1~8)의 `🔧 Thomas 상세` 를 채워 **"어떻게 구현하는가"** 를 완성한다 — 요구·착지 컴포넌트는 이미 정리됐으니 설계·인터페이스·공수를 채우면 된다. 상세는 이 파일에 이어 쓰고, 최종은 **EzServer 제품 레포**로 승계 → PR → baseline(③ GW SRS baseline 이후).
+**이 문서 쓰는 법.** 이 초안은 Raymond가 (a) GW SRS에서 EzServer 개발 항목을 추출하고 (b) 기존 EzServer suite 코드를 분석해 **"무엇을 어느 컴포넌트에서"** 까지 정리한 뼈대다. EzServer 팀은 각 작업 블록(WS-1~8)의 `🔧 EzServer 팀 상세` 를 채워 **"어떻게 구현하는가"** 를 완성한다 — 요구·착지 컴포넌트는 이미 정리됐으니 설계·인터페이스·공수를 채우면 된다. 상세는 이 파일에 이어 쓰고, 최종은 **EzServer 제품 레포**로 승계 → PR → baseline(③ GW SRS baseline 이후).
 
-**Thomas가 정하는 것 (= 각 `🔧 Thomas 상세` 합).** private_key_jwt 키 저장 방식·서명 라이브러리 · nginx proxy 블록 생성 방법(Nginx Controller SCF→NCF vs include) · GW 하행 MQTT를 EPI 어느 태스크로 얹을지 · presigned 발급주체 전환 범위 · heartbeat 태스크 주기 구현 · WebConsole GW 패널/클라이언트 형태 · OneID 분리 범위 · 컴포넌트별 공수·순서·테스트.
+**EzServer 팀이 정하는 것 (= 각 `🔧 EzServer 팀 상세` 합).** private_key_jwt 키 저장 방식·서명 라이브러리 · nginx proxy 블록 생성 방법(Nginx Controller SCF→NCF vs include) · GW 하행 MQTT를 EPI 어느 태스크로 얹을지 · presigned 발급주체 전환 범위 · heartbeat 태스크 주기 구현 · WebConsole GW 패널/클라이언트 형태 · OneID 분리 범위 · 컴포넌트별 공수·순서·테스트.
 
 ## Project Description
 
-EzServer는 클리닉 현장 PC에 설치되는 **엣지 서버 제품군(suite)** 이다 — 단일 프로세스가 아니라 nginx 웹서버·PHP 백엔드·인증/라이선스 서버·Rust 연동 서비스·관리 콘솔이 함께 도는 구성이다. GW 관점에서 이 suite 전체가 **하나의 디바이스**(클리닉당 1대)로 보인다. 본 One Pager는 **GW 도입에 따라 이 suite의 어느 컴포넌트를 어떻게 고쳐야 하는지**를 GW SRS와 실제 코드 분석으로 정리해 Thomas에게 넘긴다.
+EzServer는 클리닉 현장 PC에 설치되는 **엣지 서버 제품군(suite)** 이다 — 단일 프로세스가 아니라 nginx 웹서버·PHP 백엔드·인증/라이선스 서버·Rust 연동 서비스·관리 콘솔이 함께 도는 구성이다. GW 관점에서 이 suite 전체가 **하나의 디바이스**(클리닉당 1대)로 보인다. 본 One Pager는 **GW 도입에 따라 이 suite의 어느 컴포넌트를 어떻게 고쳐야 하는지**를 GW SRS와 실제 코드 분석으로 정리해 EzServer 팀에 넘긴다.
 
 **기존 EzServer 구성요소 현황** (코드/문서 분석)
 
@@ -62,8 +62,8 @@ EzServer는 클리닉 현장 PC에 설치되는 **엣지 서버 제품군(suite)
 
 ## Resource and Scheduling Details
 
-- **작성**: 본 초안(Raymond) → **Thomas가 완성**. GW는 표준 계약(SRS §7·OpenAPI·DBML)만 제공.
-- **일정**: 차주 이후 Thomas 상세화 → ③ GW SRS baseline 이후 PR·리뷰 → 제품 레포 baseline. IO Scanner 의존부는 R1 확정 후.
+- **작성**: 본 초안(Raymond) → **EzServer 팀이 완성**. GW는 표준 계약(SRS §7·OpenAPI·DBML)만 제공.
+- **일정**: 차주 이후 EzServer 팀 상세화 → ③ GW SRS baseline 이후 PR·리뷰 → 제품 레포 baseline. IO Scanner 의존부는 R1 확정 후.
 - **의존**: ③ GW SRS · ③-I 인프라(브로커·DNS·KMS) · LMP/ELM(Clinic-ID) · ③-C GW Console · ④ AXS Sub-SRS.
 - **후속(범위 밖)**: EzServer 전면 Rust 재개발은 5단계 이후 별도 트랙.
 
@@ -131,13 +131,13 @@ flowchart LR
 
 **목적**: CleverOne→EzServer→GW→target. 내부 `Vatech-Target: {label}` 헤더(A)를 **`{label}.gw.vatech.com` 서브도메인 + HTTPS(C)** 로 변환해 전달. AXS 경로는 URL·body **verbatim**.
 
-**대상**: **nginx(NGX)** — 순정 nginx `map`으로 라벨→서브도메인, 평문→HTTPS 브리징, 화이트리스트(SSRF 방어). 단 EzServer는 nginx 설정을 손으로 두지 않고 **`Nginx Controller`가 SCF→NCF로 생성**하므로, 이 proxy 블록을 **Controller가 생성하도록 추가**하거나 별도 include로 얹어야 한다(구현 방식=Thomas).
+**대상**: **nginx(NGX)** — 순정 nginx `map`으로 라벨→서브도메인, 평문→HTTPS 브리징, 화이트리스트(SSRF 방어). 단 EzServer는 nginx 설정을 손으로 두지 않고 **`Nginx Controller`가 SCF→NCF로 생성**하므로, 이 proxy 블록을 **Controller가 생성하도록 추가**하거나 별도 include로 얹어야 한다(구현 방식=EzServer 팀).
 
 **식별 헤더 relay**: originator `Vatech-Product/Version/OS`는 그대로 전달, EzServer는 `Vatech-Via: EzServer/{ver}` 누적. **현재 코드에 `Vatech-*` 처리 부재** → nginx relay(또는 EPI가 GW를 직접 호출하면 `http_client_factory`에도) **신규 추가**. 외부(AXS)로는 내부 `Vatech-*` 미전송(GW가 교체).
 
 **내부 구간 인증**(client→EzServer): GW에 인증하는 주체가 EzServer라 **내부 구간 인증·인가는 EzServer 몫**(GW 신뢰경계 밖). 임의 LAN client의 `Vatech-Target` 위조·무검증 전달 방지 — 화이트리스트 + 내부 호출자 인증(수준=EzServer 위협모델).
 
-**nginx config 예제** (7/16 회의 검증 스케치 — 확정·튜닝은 Thomas):
+**nginx config 예제** (7/16 회의 검증 스케치 — 확정·튜닝은 EzServer 팀):
 
 ```nginx
 # 내부(A: Vatech-Target 헤더) → GW edge(C: 서브도메인) 브리징. 순정 nginx.
@@ -171,7 +171,7 @@ server {
 - **동작**: `Vatech-Target: axs` → `axs.gw.vatech.com` HTTPS 브리징(EzServer 자체 HTTPS-off 무관, 아웃바운드는 nginx가 HTTPS 개시).
 - **보안 주의**: 평문 LAN 구간 토큰/PHI 노출 위험 — 민감 트래픽은 그 구간 HTTPS 권장.
 - **미결(R1)**: 7/16 회의에서 **라우팅 방식 재평가**(A 헤더 vs B 경로 프리픽스) 논의 중 — R1 확정 시 이 config가 바뀔 수 있다(경로 프리픽스 시 `location /gw/{target}/`).
-- `🔧 Thomas 상세`: proxy 블록을 Nginx Controller(SCF→NCF)로 생성할지 별도 include로 얹을지 · SCF 스키마에 GW 설정 추가 · 화이트리스트 관리(정적 map vs 동적) · 내부 구간 인증 방식·수준 · `Vatech-*` relay 지점(nginx vs EPI) · 평문 LAN 구간 HTTPS 적용 여부.
+- `🔧 EzServer 팀 상세`: proxy 블록을 Nginx Controller(SCF→NCF)로 생성할지 별도 include로 얹을지 · SCF 스키마에 GW 설정 추가 · 화이트리스트 관리(정적 map vs 동적) · 내부 구간 인증 방식·수준 · `Vatech-*` relay 지점(nginx vs EPI) · 평문 LAN 구간 HTTPS 적용 여부.
 
 ### WS-2. 인증·온보딩 (Enrollment / Device Identity) — EAP+신규 (SRS §2.3.1·§2.3.2·§7.1.1·§7.2)
 
@@ -187,7 +187,7 @@ server {
 - **재-enroll 회전**(재설치·개인키 분실): 동일 clinic_id·C/S 재승인. 유일 경로.
 - **clinic 정보 전송**: enroll 시 LMP clinic 정보(name·country_code·address·phone·website) 함께 전달. LMP 변경 자동 sync 안 함(수동 `PATCH /v1/clinics/me`).
 - **OneID 분리**: EPI가 OneID에 결합돼 있으나 **GW에 OneID 없음(확정)** — GW 경로에서 OneID 의존 제거.
-- `🔧 Thomas 상세`: 키페어 알고리즘·개인키 at-rest 저장 위치/보호(DPAPI·키스토어 등)·서명 라이브러리 · enroll을 EAP에서 처리할지 EPI 핸들러 확장으로 할지 · ELM Clinic-ID/라이선스 조회 연동 · client_assertion 생성·토큰 캐시 · OneID 의존 분리 범위(config·client 팩토리).
+- `🔧 EzServer 팀 상세`: 키페어 알고리즘·개인키 at-rest 저장 위치/보호(DPAPI·키스토어 등)·서명 라이브러리 · enroll을 EAP에서 처리할지 EPI 핸들러 확장으로 할지 · ELM Clinic-ID/라이선스 조회 연동 · client_assertion 생성·토큰 캐시 · OneID 의존 분리 범위(config·client 팩토리).
 
 ### WS-3. 하행 이벤트 수신 (Webhook / MQTT downlink) — EPI 확장 (SRS §7.6.6·§2.3.6)
 
@@ -201,7 +201,7 @@ server {
 - **브로커 endpoint는 GW가 하달**(`GET /v1/clinics/me`·enroll config). 리전 변경 시 새 리전 브로커 재접속(토픽 불변).
 - 장애 시 **자동 재접속**(persistent 세션·백오프=EzServer). eventId 멱등이라 중복 무해.
 - **브로커 제품(IoT Core/Amazon MQ)·토픽 문법 = TBD**(SRS Appendix B 브로커 확정 후).
-- `🔧 Thomas 상세`: GW 하행을 기존 `mqtt_client`(rumqttc) 확장으로 얹을지 별도 커넥션으로 둘지 · cert 프로비저닝·저장(enroll 산출물과 연계) · envelope→내부 처리 매핑 · 재접속/백오프 파라미터 · 리전 변경 재접속 트리거 · 수신 이벤트를 어느 내부 소비자로 전달할지.
+- `🔧 EzServer 팀 상세`: GW 하행을 기존 `mqtt_client`(rumqttc) 확장으로 얹을지 별도 커넥션으로 둘지 · cert 프로비저닝·저장(enroll 산출물과 연계) · envelope→내부 처리 매핑 · 재접속/백오프 파라미터 · 리전 변경 재접속 트리거 · 수신 이벤트를 어느 내부 소비자로 전달할지.
 
 ### WS-4. 대용량 업로드 (presigned 직접) — EPI 수정 (SRS §2.3.5·§4.1.4·§7.4)
 
@@ -210,7 +210,7 @@ server {
 **현황**: EPI `upload_manager/`가 **이미 presigned URL→S3→create/share** 파이프라인을 EzCloud 대상으로 구현(zip 스트리밍·2GiB·워커풀). GW/AXS 시대엔 **발급 주체·엔드포인트만 전환**하면 된다.
 
 **할 일**: presigned 발급 주체를 CleverSpace/AXS로 전환(config·client), 업로드 target·자격 흐름 조정. 기존 워커풀·zip 스트림 재활용.
-- `🔧 Thomas 상세`: 발급 주체별(EzCloud vs AXS) presigned 요청 클라이언트 분기 · IO Scanner 산출물의 zip/포맷 처리(WS-8 의존·TBD) · 업로드 완료 통지 경로 · 자격/토큰 전달 방식 · 재시도·부분 실패 처리.
+- `🔧 EzServer 팀 상세`: 발급 주체별(EzCloud vs AXS) presigned 요청 클라이언트 분기 · IO Scanner 산출물의 zip/포맷 처리(WS-8 의존·TBD) · 업로드 완료 통지 경로 · 자격/토큰 전달 방식 · 재시도·부분 실패 처리.
 
 ### WS-5. Fleet heartbeat — EPI 신규 (SRS §7.8.1)
 
@@ -219,7 +219,7 @@ server {
 **현황**: 현재는 **로컬 readiness 체크만** 존재(클라우드 보고 없음) → **신규**.
 
 **할 일**: `POST /v1/fleet/heartbeat`를 주기 호출(주기=응답 `nextIntervalSeconds`·중앙 config), 본문 `appVersion`·`os`·(선택)health. EPI에 신규 주기 task 추가(기존 tokio 태스크 패턴 재활용).
-- `🔧 Thomas 상세`: heartbeat를 EPI 어느 프로세스에 둘지 · 수집 health 지표 범위 · 초기 주기 기본값·오프라인 판정 연동 · 실패 시 백오프 · 네트워크 단절 중 동작.
+- `🔧 EzServer 팀 상세`: heartbeat를 EPI 어느 프로세스에 둘지 · 수집 health 지표 범위 · 초기 주기 기본값·오프라인 판정 연동 · 실패 시 백오프 · 네트워크 단절 중 동작.
 
 ### WS-6. 로컬 온보딩 콘솔 — WebConsole 확장 (SRS §2.3.1 [2])
 
@@ -229,17 +229,17 @@ server {
 
 **할 일**:
 - 신규 백엔드 클라이언트(`ezServerPmsIntegrationClient` 복제 → GW용, 예 `/gwapi/*` 또는 EPI `/epiapi` 경유) + react-query.
-- 신규 패널·라우트(예 `/main/gateway`, `routes.tsx` 등록) 또는 기존 통합 패널에 섹션 추가(제품 스코핑=Thomas).
+- 신규 패널·라우트(예 `/main/gateway`, `routes.tsx` 등록) 또는 기존 통합 패널에 섹션 추가(제품 스코핑=EzServer 팀).
 - **최소 기능**: ⑴ Clinic-ID·라이선스 확인 후 **enroll 개시** · ⑵ **상태 표시**(`pending`/`active`/오류) · ⑶ **재-enroll 트리거** · ⑷ (선택) 연결·heartbeat 확인.
 - OAuth scope에 GW 스코프 추가 필요 여부 확인(`common/auth/config.ts`).
 
 **경계**: **GW Console(③-C)** 은 C/S의 원격 승인·전체 디바이스 관리(클라우드), **WebConsole**은 자기 장비 온보딩·자가 진단(로컬). GW는 **계약(enroll·상태·재-enroll API)** 까지만, 로컬 UI 범위는 EzServer 소관.
-- `🔧 Thomas 상세`: GW 패널을 신규 라우트로 둘지 기존 통합 패널 섹션으로 둘지 · 백엔드 클라이언트 경로(`/gwapi` 신규 vs `/epiapi` 경유) · GW 상태를 EPI 리소스로 둘지 EzServer SettingValue로 둘지 · OAuth scope 추가 · 재-enroll 다이얼로그(기존 자격 재생성 패턴 복제).
+- `🔧 EzServer 팀 상세`: GW 패널을 신규 라우트로 둘지 기존 통합 패널 섹션으로 둘지 · 백엔드 클라이언트 경로(`/gwapi` 신규 vs `/epiapi` 경유) · GW 상태를 EPI 리소스로 둘지 EzServer SettingValue로 둘지 · OAuth scope 추가 · 재-enroll 다이얼로그(기존 자격 재생성 패턴 복제).
 
 ### WS-7. 하위 호환·경로 B 이관 (SRS §2.8)
 
 기존 EzServer→CleverSpace/CleverOne 흐름은 계약·동작 변경 없이 GW를 경유(현행 EzServerLinker 경로 포함 검토). **경로 B(직결)** 사용분은 EOS 전 GW 경유로 이관(시점=PM).
-- `🔧 Thomas 상세`: 현재 클라우드 통신 경로(EzServerLinker vs EPI) 확인 · GW 경유로 전환할 범위·순서 · 경로 B 사용처 식별·EOS 계획(PM 협의) · 기존 클라이언트 무중단 전환 방안.
+- `🔧 EzServer 팀 상세`: 현재 클라우드 통신 경로(EzServerLinker vs EPI) 확인 · GW 경유로 전환할 범위·순서 · 경로 B 사용처 식별·EOS 계획(PM 협의) · 기존 클라이언트 무중단 전환 방안.
 
 ### WS-8. ⚠ IO Scanner 수신·수집 (0단계) — **TBD (R1 미정)**
 
