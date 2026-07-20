@@ -259,14 +259,16 @@
         OnePager Spec 완성·VKS·리뷰       :done, spec, 2026-07-10, 6d
 
         section 구현 (scp-section-poc)
-        모듈 구현 완료(계측·Pan/Zoom·Pointer·편집·Save·i18n·Initialize All)  :done, impl, 2026-07-13, 2026-07-16
+        모듈 구현 완료(계측·Pan/Zoom·Pointer·편집·Save·i18n·Initialize All)  :done, impl, 2026-07-13, 2026-07-19
 
-        section 기획팀 테스트 (이번 주~)
-        데모 테스트·버그 리포트(ESCV-138 Sub-Task)   :active, qa, 2026-07-16, 10d
+        section 기획팀 테스트 (7/20~)
+        데모 테스트·버그 리포트(ESCV-138 Sub-Task)   :active, qa, 2026-07-20, 10d
 
-        section 접목 (CW 팀)
-        인계 → CW embed·접목(소스 병합)      :integ, after qa, 14d
+        section 접목 (CW 팀 · 일정 미정)
+        인계(핸드오프)                          :milestone, ho, after qa, 0d
+        접목·소스 병합 — 일정 미정(TBD)          :crit, integ, after ho, 5d
     ```
+    - ※ **접목(CW embed·소스 병합)은 CW 팀 소관 · 일정 미정(TBD).** Gantt의 접목 바는 위치 예시일 뿐 확정 일정이 아니며, 확정된 것은 **인계(핸드오프) 시점**까지다.
 
   - **S6. Known gaps (구현 완료 후 잔여 = 접목·숙제만)** — **✅ 해소:** Save Project 전체·CW 필드 어댑터·⑨계측/③Pan-Zoom 저장·국제화(i18n)·Initialize All·Arrow 전용 커서·크로스뷰 연속 추적. **접목 시 CW(우리 코드 아님):** Save 실제 `.e3prj`/S3 I/O·Reset Cloud Work 클라우드부·i18n 추출/번역·Arrow `InteractionType` core 역머지(§9.6)·Scout=MPR Th/INT·Image Adjust 동기(§D18)·Single/Dual·View Original(§D22). **숙제(빠른 출시 우선 이연):** GPU 리슬라이스(§11·D20).
 
