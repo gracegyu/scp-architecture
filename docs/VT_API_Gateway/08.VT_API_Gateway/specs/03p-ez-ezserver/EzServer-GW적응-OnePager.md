@@ -122,8 +122,11 @@ flowchart LR
 | **WS-6** | 로컬 온보딩 콘솔 | **WebConsole** `usePMSIntegration`·`PMSPanel`·`clients` | 🔧 패널·클라이언트 추가 |
 | **WS-7** | 하위 호환·경로 B 이관 | nginx 라우팅 · EzServerLinker(현행) | 🔧 전환 |
 | **WS-8** | IO Scanner 수집(0단계) | 미정 | ⬜ **TBD(R1)** |
+| **WS-9** | 연동 등록(org-binding·AXS link 개시) | **EPI/WebConsole** — `POST /v1/clinics/me/org-bindings`·AXS link 프록시 | 🆕 신규 |
 
 범례: 🆕 신규 개발 · 🔧 기존 수정/확장 · ⬜ 미정.
+
+> WS-1에 **오류 envelope 패스스루·호환 경고 relay·클라이언트 타임아웃(30s) 계약**, WS-3에 **엣지 last-hop 분배(TBD)** 가 포함된다(아래 상세).
 
 ---
 
@@ -162,13 +165,20 @@ server {
         proxy_set_header    Host $gw_target.gw.vatech.com;# Host(GW가 라우팅)
         proxy_ssl_verify    on;                          # GW 공인 인증서 검증(중간자 방지)
         proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
-        proxy_connect_timeout 3s;                        # (프록시 타임아웃은 SRS §7.5.4)
-        # 버전 호환용 Vatech-* 식별 헤더(Product/Version/OS/Clinic-Id/Via)는 그대로 전달
+        proxy_connect_timeout 3s;                        # 연결(§7.5.4 D1)
+        proxy_read_timeout    30s;                       # 응답 대기 = 클라(EzServer) 타임아웃(§7.5.4 D4·30s) — GW deadline(≤24s)보다 커야 함
+        proxy_send_timeout    30s;
+        # proxy_intercept_errors off(기본): GW 오류 envelope·Vatech-Error-Origin·Retry-After를 nginx 에러페이지로 대체 금지(§7.7.4)
+        # Vatech-* 식별 헤더(Product/Version/OS/Clinic-Id/Via)·Vatech-Compat-Warning은 그대로 전달
     }
 }
 ```
 
 - **동작**: `Vatech-Target: axs` → `axs.gw.vatech.com` HTTPS 브리징(EzServer 자체 HTTPS-off 무관, 아웃바운드는 nginx가 HTTPS 개시).
+- **응답·오류 패스스루(§7.7.4)**: GW 정규화 오류(`502/503/504`+`Vatech-Error-Origin: gateway`·`Retry-After`)와 target verbatim 오류(`Vatech-Error-Origin: target`)를 **클라이언트에 그대로 반환** — nginx 기본 에러페이지로 치환 금지(클라가 "게이트웨이/인프라 실패 vs target 거부" 구분).
+- **호환성 경고 relay(§7.7.3)**: GW 게이팅 반응(major=차단·minor=경고통과·patch=무시)에서 **경고 헤더(예 `Vatech-Compat-Warning`)·업데이트 필요 오류를 삼키지 말고 전달**(헤더명 확정=Appendix B #8).
+- **클라이언트 타임아웃 계약(§7.5.4 D4·Appendix B #25)**: EzServer 아웃바운드 대기 = **30s(계약값)** → GW deadline ≤24s가 이에서 역산됨. nginx `proxy_read_timeout`을 여기 맞추고, (선택) `Vatech-Timeout-Ms`로 예산 통지. **이 30s 확정이 #25(D4)를 닫는다 — EzServer 확인 필요.**
+- **EzServer 자기 호출 헤더·호스트(§7.7.1·§4.5.1)**: EzServer가 originator로 **GW 고유 API**(enroll·token·clinics/me·heartbeat)를 호출할 땐 자신의 `Vatech-Product: EzServer`/Version/OS를 붙이고 **apex `gw.vatech.com`**(target 서브도메인 아님)로 보낸다. 비-prod=`{env}.gw.vatech.com`.
 - **보안 주의**: 평문 LAN 구간 토큰/PHI 노출 위험 — 민감 트래픽은 그 구간 HTTPS 권장.
 - **미결(R1)**: 7/16 회의에서 **라우팅 방식 재평가**(A 헤더 vs B 경로 프리픽스) 논의 중 — R1 확정 시 이 config가 바뀔 수 있다(경로 프리픽스 시 `location /gw/{target}/`).
 - `🔧 EzServer 팀 상세`: proxy 블록을 Nginx Controller(SCF→NCF)로 생성할지 별도 include로 얹을지 · SCF 스키마에 GW 설정 추가 · 화이트리스트 관리(정적 map vs 동적) · 내부 구간 인증 방식·수준 · `Vatech-*` relay 지점(nginx vs EPI) · 평문 LAN 구간 HTTPS 적용 여부.
@@ -182,9 +192,10 @@ server {
 **할 일**:
 - **키페어 생성·개인키 at-rest 보관**(디바이스 외부 반출 금지·백업/export 미도입) — 신규. device 식별은 기존 `generate_ezserver_id.rs`(WMI 기반 UUID+BIOS Serial)를 안정 fingerprint로 재활용 가능하나, **GW 바인딩 키는 별도 키페어**.
 - **enroll 흐름**: LMP/ELM Clinic-ID + 라이선스를 실어 `POST /v1/enroll/start` → nonce 개인키 서명 → 공개키 `POST /v1/enroll/complete`. 기존 EPI enroll 계열(`post_auth_clients.rs`·`post_clients.rs`·`post_clinics.rs`)을 GW 대상으로 확장/치환.
-- **토큰**: 개인키로 client_assertion 서명 → `POST /v1/auth/token` → 단명 Bearer. 이후 모든 GW 호출에 첨부(refresh 없음).
+- **토큰(§7.1.1)**: 개인키로 client_assertion 서명(claim=`iss`·`sub`=client_id·`aud`=GW 토큰 EP·짧은 `exp`·`iat`·**매회 고유 `jti`**·고정 `alg`) → `POST /v1/auth/token` → 단명 Bearer(refresh 없음·만료 시 재서명). **구현 함정**: `jti` 재사용 시 401(GW가 `SET NX EX` 단일 소비) · **노드 시계 NTP 동기 필수**(짧은 exp/iat 검증) · `aud`를 정확한 토큰 EP로 고정 · **토큰을 만료까지 캐시 + single-flight 갱신**(토큰 EP rate-limit·thundering herd 회피).
 - **활성화**: `pending` → C/S가 **GW Console(③-C)** 원격 승인 → `active`. 개시는 **WebConsole**(WS-6), 승인은 GW Console — 별개.
 - **재-enroll 회전**(재설치·개인키 분실): 동일 clinic_id·C/S 재승인. 유일 경로.
+- **차단 상태 처리(§7.2.4)**: 토큰/API가 갑자기 401/403이면 **suspended(복구 가능→백오프·대기)** 와 **revoked(종료→재-enroll 회전)** 를 구분해 처리하고 콘솔(WS-6)에 노출. revoked는 캐시 TTL 무관 즉시 차단.
 - **clinic 정보 전송**: enroll 시 LMP clinic 정보(name·country_code·address·phone·website) 함께 전달. LMP 변경 자동 sync 안 함(수동 `PATCH /v1/clinics/me`).
 - **OneID 분리**: EPI가 OneID에 결합돼 있으나 **GW에 OneID 없음(확정)** — GW 경로에서 OneID 의존 제거.
 - `🔧 EzServer 팀 상세`: 키페어 알고리즘·개인키 at-rest 저장 위치/보호(DPAPI·키스토어 등)·서명 라이브러리 · enroll을 EAP에서 처리할지 EPI 핸들러 확장으로 할지 · ELM Clinic-ID/라이선스 조회 연동 · client_assertion 생성·토큰 캐시 · OneID 의존 분리 범위(config·client 팩토리).
@@ -198,6 +209,8 @@ server {
 **할 일**:
 - **outbound 지속 구독** `gw/clinic/{clinicId}/#` · **QoS1·persistent·TLS·cert**.
 - **v1.0은 `webhook` stream만 처리**(모르는 stream 무시·forward-compat). envelope `{ target, eventId, eventType, clinicId, ts, payload }` 파싱.
+- **⚠ 엣지 last-hop 분배(§7.6.7·TBD)**: envelope를 벗겨 **원 payload(verbatim)를 클리닉 내 소비자(CleverOne/앱)에 전달**하는 것이 하행의 목적. 그런데 **클리닉 내 소비자는 MQTT push 대상이 아니라** 분배 방식이 미정("MQTT 역방향 Edge 분배 운영 주체" TBD). 필요 동작: envelope unwrap · **edge에서 eventId 재-dedup** · `target`/`eventType`로 라우팅 · 소비자에 노출(로컬 큐/콜백/폴링 등). **분배 메커니즘 확정 필요.**
+- **ClinicResolution 소비(§7.3.1)**: `GET /v1/clinics/me`(브로커 endpoint·region·hosts 포함)를 **`cacheTtlSeconds`만큼 캐시**하고 **`mappingVersion` 변화 시 재조회**.
 - **브로커 endpoint는 GW가 하달**(`GET /v1/clinics/me`·enroll config). 리전 변경 시 새 리전 브로커 재접속(토픽 불변).
 - 장애 시 **자동 재접속**(persistent 세션·백오프=EzServer). eventId 멱등이라 중복 무해.
 - **브로커 제품(IoT Core/Amazon MQ)·토픽 문법 = TBD**(SRS Appendix B 브로커 확정 후).
@@ -210,7 +223,8 @@ server {
 **현황**: EPI `upload_manager/`가 **이미 presigned URL→S3→create/share** 파이프라인을 EzCloud 대상으로 구현(zip 스트리밍·2GiB·워커풀). GW/AXS 시대엔 **발급 주체·엔드포인트만 전환**하면 된다.
 
 **할 일**: presigned 발급 주체를 CleverSpace/AXS로 전환(config·client), 업로드 target·자격 흐름 조정. 기존 워커풀·zip 스트림 재활용.
-- `🔧 EzServer 팀 상세`: 발급 주체별(EzCloud vs AXS) presigned 요청 클라이언트 분기 · IO Scanner 산출물의 zip/포맷 처리(WS-8 의존·TBD) · 업로드 완료 통지 경로 · 자격/토큰 전달 방식 · 재시도·부분 실패 처리.
+- **멱등키(§4.5)**: 재시도(timeout/503) 시 **안정 `Idempotency-Key`** 를 업로드 완료/변경 요청에 실어 중복 적용 방지(프록시 경유 변경 요청에도 동일).
+- `🔧 EzServer 팀 상세`: 발급 주체별(EzCloud vs AXS) presigned 요청 클라이언트 분기 · IO Scanner 산출물의 zip/포맷 처리(WS-8 의존·TBD) · 업로드 완료 통지 경로 · 자격/토큰 전달 방식 · 재시도·부분 실패 처리·Idempotency-Key 생성/재사용.
 
 ### WS-5. Fleet heartbeat — EPI 신규 (SRS §7.8.1)
 
@@ -230,7 +244,8 @@ server {
 **할 일**:
 - 신규 백엔드 클라이언트(`ezServerPmsIntegrationClient` 복제 → GW용, 예 `/gwapi/*` 또는 EPI `/epiapi` 경유) + react-query.
 - 신규 패널·라우트(예 `/main/gateway`, `routes.tsx` 등록) 또는 기존 통합 패널에 섹션 추가(제품 스코핑=EzServer 팀).
-- **최소 기능**: ⑴ Clinic-ID·라이선스 확인 후 **enroll 개시** · ⑵ **상태 표시**(`pending`/`active`/오류) · ⑶ **재-enroll 트리거** · ⑷ (선택) 연결·heartbeat 확인.
+- **최소 기능**: ⑴ Clinic-ID·라이선스 확인 후 **enroll 개시** · ⑵ **상태 표시**(`pending`/`active`/`expired`/`suspended`/`revoked`/오류) · ⑶ **재-enroll 트리거** · ⑷ (선택) 연결·heartbeat 확인.
+- **추가 상태·기능**: pending **7일 만료**(Appendix B #43)→`expired` 표시·재개시 · **suspended/revoked 차단 상태** 표시(WS-2 연계) · **리전 선택·운영 중 리전 이전**(`GET /v1/regions`·§7.3.4·주로 gw/1.2).
 - OAuth scope에 GW 스코프 추가 필요 여부 확인(`common/auth/config.ts`).
 
 **경계**: **GW Console(③-C)** 은 C/S의 원격 승인·전체 디바이스 관리(클라우드), **WebConsole**은 자기 장비 온보딩·자가 진단(로컬). GW는 **계약(enroll·상태·재-enroll API)** 까지만, 로컬 UI 범위는 EzServer 소관.
@@ -240,6 +255,16 @@ server {
 
 기존 EzServer→CleverSpace/CleverOne 흐름은 계약·동작 변경 없이 GW를 경유(현행 EzServerLinker 경로 포함 검토). **경로 B(직결)** 사용분은 EOS 전 GW 경유로 이관(시점=PM).
 - `🔧 EzServer 팀 상세`: 현재 클라우드 통신 경로(EzServerLinker vs EPI) 확인 · GW 경유로 전환할 범위·순서 · 경로 B 사용처 식별·EOS 계획(PM 협의) · 기존 클라이언트 무중단 전환 방안.
+
+### WS-9. 연동 등록 — org-binding · AXS link 개시 (GW 계약분) (SRS §2.3.4·§7.3)
+
+**목적**: target(AXS 등) 연동을 켤 때 클리닉이 자기 매핑(Org-ID)을 등록해야 outbound 호출·webhook 분배가 동작한다.
+
+**할 일**:
+- 연동 활성화 시 **`POST /v1/clinics/me/org-bindings`로 Org-ID 자가 등록**(GW DB 매핑·§2.3.4). 이게 없으면 AXS outbound·분배 불가.
+- 케이스 B(AXS): `customerNumber`로 AXS **`.../integration/link`** 를 `axs.gw.vatech.com` 경유(verbatim 프록시) 호출해 `organizationId` 획득 후 org-binding 등록.
+- **경계**: `POST /v1/clinics/me/org-bindings`·link 프록시 호출은 **GW 코어 계약이라 EzServer가 수행**한다(④ 아님). AXS 고유 시퀀스(동의 폴링·상태 판정)만 ④.
+- `🔧 EzServer 팀 상세`: 연동 활성화 UI(WebConsole)·`customerNumber` 수집·link 호출·org-binding 등록·오류 처리·재시도(멱등키 WS-4).
 
 ### WS-8. ⚠ IO Scanner 수신·수집 (0단계) — **TBD (R1 미정)**
 
@@ -256,6 +281,8 @@ server {
 | fleet heartbeat 기본 주기·오프라인 임계 | 정본 값 | GW SRS Appendix B |
 | 내부 구간 인증 수준 | client→EzServer 인증·zero-trust 여부 | EzServer 위협모델 |
 | GW 라우팅 방식(A 헤더 vs B 경로) | nginx config 형태 결정 | R1(주간회의) |
+| **엣지 last-hop 분배 메커니즘** | envelope→클리닉 내 소비자 전달 방식(WS-3·§7.6.7 TBD) | EzServer + GW |
+| **클라이언트 타임아웃 30s 확정** | GW deadline 역산 기준(§7.5.4 D4·Appendix B #25) | EzServer 확인 |
 
 ## Terms and Abbreviations
 
