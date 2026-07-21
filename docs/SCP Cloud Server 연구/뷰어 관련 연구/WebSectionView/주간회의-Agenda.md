@@ -238,12 +238,17 @@
     - **추가 성과(요청/스펙 밖까지 자체 해결):** ① **CW에 없던 Arrow 커서 자체 제작**(기획 대기 없이) ② **계측 크로스뷰 연속 드래그/미리보기** ③ **CW 폰트·i18n 현황 불일치 발견·정리**(§9.11·§D23) ④ **접목 절차·중복 제거 설계**(§9.9/9.10) ⑤ Save 복원 StrictMode·좀비 파노라마 등 엣지 버그 수정 ⑥ 죽은 코드 정리·locale 무관 레이아웃 고정.
     - **소유 구분(접목 시 CW):** Save 실제 `.e3prj`/S3 I/O · Reset Cloud Work 클라우드 리셋 · i18n 추출/번역 · Single/Dual·View Original · Pointer 셸 제공 — 우리는 **기여 조각·소스**를 준비, CW가 완성.
 
-  - **S4. 버그 리포트 요약 (이번 주~ · ESCV-138 Sub-Task)** — 기획팀 데모 테스트 접수분을 아래 틀로 요약(각 행 = ESCV-138 하위 1건). *현재 접수 전 — 리포트 유입 시 채움.*
+  - **S4. 버그 리포트 요약 (ESCV-138 Sub-Task)** — 기획팀 데모 테스트 접수 현황(각 행 = ESCV-138 하위 1건). **총 7건 접수**(버그 1·개선 5·누락 1) → **7건 수정 완료**(ESCV-144~150). ESCV-150은 반전 방향·기준점 기본 위치만 기획 시각 확인 대기.
 
-    | # | 화면·기능 | 증상(재현 절차) | 기대 | 실제 | 심각도 | ESCV-138 | 상태 |
-    | --- | --- | --- | --- | --- | :---: | --- | --- |
-    | 1 | *(예: Section 계측)* | *(예: 타일 경계로 드래그 시 …)* | … | … | 상/중/하 | ESCV-138-N | 접수/수정중/완료 |
-    |   |   |   |   |   |   |   |   |
+    | 이슈번호 | 유형 | 화면·기능 | 요약 | 상태 |
+    | --- | --- | --- | --- | --- |
+    | [ESCV-144](https://vts.vatech.com/browse/ESCV-144) | 버그 | UI 라벨(i18n) | 일부 UI 라벨 텍스트가 정상 표시되지 않음(배포 빌드에서 다국어 문자열 미해석) | ✅ **수정 완료** |
+    | [ESCV-145](https://vts.vatech.com/browse/ESCV-145) | 개선 | Section 세로폭 | Z 구간 기본값 60→**40mm**(Clever One/Ez3D-i 정합) | ✅ **수정 완료** |
+    | [ESCV-146](https://vts.vatech.com/browse/ESCV-146) | 개선 | Panorama | Active section line 드래그 이동을 **Interval 기준**으로 | ✅ **수정 완료** |
+    | [ESCV-147](https://vts.vatech.com/browse/ESCV-147) | 개선 | Panorama | Active section line **회전 컨트롤러(연두 동그라미) 삭제** | ✅ **수정 완료** |
+    | [ESCV-148](https://vts.vatech.com/browse/ESCV-148) | 개선 | Initialize All | 실행 시 Pan/Zoom **도구 선택 상태도 해제**(CleverSpace MPR 정책) | ✅ **수정 완료** |
+    | [ESCV-149](https://vts.vatech.com/browse/ESCV-149) | 개선 | Edit 모드 | BL/LB 기준점(삼각형)·끝점 겹칠 때 **클릭 히트타겟 분리** | ✅ **수정 완료** |
+    | [ESCV-150](https://vts.vatech.com/browse/ESCV-150) | 누락 | Section slice | BL/LB 기준점에 따른 **상단 B/L 표기 좌우 반전** 미반영 | ✅ **수정 완료**(방향 시각확인 대기) |
 
     - **리포트 템플릿(기획팀 전달):** 화면·기능 / 재현 절차 / 기대 결과 / 실제 결과 / 스크린샷 / 심각도. **채널 = ESCV-138 하위 Sub-Task 1건씩.**
   - **S5. 일정 — 구현 완료(7/16), 일정 앞당김.** 구현 **100%**(MMI 전 기능 + Save·i18n·Initialize All) → **이번 주 기획팀 테스트·버그 리포트(데모사이트)** → **CW 팀 접목**(소스 병합·§9.9). Raymond VT API Gateway 병행(부분투입).
