@@ -935,6 +935,7 @@
   - **후속 조치(baseline 동결에 따른)**: (1) **하위 스펙 승격 unblock** — ③ 동결로 ③-C Console·④ AXS·③-P-EZ·③-I가 ③ 정본 SHA(`spec-v1.0`)를 참조해 정식 집필/baseline 진행 가능 
   - **③-I Infra IaC 구축 계획서 초안 작성·인계(Raymond→Jack)** — GW SRS에서 인프라 요구 12영역 추출 + 전체 인프라 다이어그램. 각 영역에 `🔧 Jack 상세` 표시(구체 리소스·Terraform·사이징은 Jack 완성). DB/클러스터/스키마 명명 선결(권장안 명시). **정본을 `vt-api-gateway-infra`(브랜치 `docs/iac-plan-draft`)로 이관해 Jack 인계** (scp `specs/03i-infra/`는 리다이렉트 stub). 이후 상세·PR·baseline은 Jack.
   - **③-P-EZ EzServer GW 적응 OnePager 초안 작성(Raymond→EzServer 팀)** — GW SRS 추출 + **기존 EzServer suite 코드 분석**(nginx/EAP/ELM/EPI(Rust)/WebConsole). 기능 블록 **WS-1~8**(라우팅·인증·MQTT하행·업로드·heartbeat·로컬콘솔·하위호환·IO Scanner)로 구조화, 각 블록에 착지 컴포넌트·현황격차·`🔧 Thomas 상세` 명시. private_key_jwt 신규개발·presigned/MQTT 재활용 가능·EzServer 로컬 온보딩 콘솔 등 분석 결과 반영. IO Scanner 의존부=TBD(R1). `specs/03p-ez-ezserver/EzServer-GW적응-OnePager.md`.
+  - **GW 구현 = 2단계 병행 착수 결정** — ③ baseline 동결(7/20)로 **GW 독립 코어(P0~P6·P10·④ 무관)를 7/21부터 선행 구현 착수**, **AXS 연동부(P7~P12)는 ④ AXS 연동 Spec 완성 후** 진행하는 2단계 병행으로 확정. 1단계는 로컬 backing 서비스+외부 더블로 인프라·AXS 없이 자립(재작업 리스크 0)이라 10월 출시 역산에 완충. 구현계획서(IP) v1.0 인수 완료(§3 착수 게이트 반영). 상세=S1 Gantt·공유.
 
 - 논의 사항 (이번 주)
   - _(회의 시 작성)_
@@ -942,6 +943,10 @@
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
   - **S1. 프로젝트 일정(Gantt) — 7/23 스냅샷** — 스펙 생애주기(작성→PR→baseline)+GW 구현 타임라인. **정본=[개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정은 그쪽 먼저·동기화 완료). **7/9 대비 변경**: v1.0 범위=IO Scanner로 축소 · 각 스펙 **작성/PR 분리** · CleverOne·②Presigned·CleverSpace=**deferred(post-v1.0)** 섹션 · **담당 표기**. · **7/16 회의 반영(순서 재조정)**: ③-I Infra·③-P-EZ EzServer 초안 **7/20 Raymond 착수** · **IO Scanner(④)·GW Console 연기**.
     - 막대 색: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 빨강=외부/미정 선결. **선결(빨강)**: IO Scanner↔EzServer 연동방식(미정·R1)·AXS sandbox 자격(Straumann). **목표=10월 출시**(역산·잠정). **병행 별도 프로젝트**: `SectionView Module 구현`(7/13~2주·Raymond·**GW 아님**)을 별도 섹션 `▷ 병행`에 **다른 색(crit)** 으로 표기 — GW 일정과 자원 경합(부분투입) 가시화용.
+    - **GW 구현 = 2단계 병행 착수(신규)** — ③ GW SRS baseline 동결(7/20·`spec-v1.0`)로 **계약이 고정된 GW 독립 부분은 ④ AXS·인프라 완성을 기다리지 않고 7/21부터 선행 구현**한다.
+      - **1단계 — GW 독립 코어(7/21~·④ 무관)**: 플랫폼 토대·데이터 모델·인증(device/operator)·enrollment·레지스트리/region·호환성 게이트·target 프록시·fleet(= IP P0~P6·P10). 계약이 ③ SRS·DBML로 고정돼, 로컬 backing 서비스(Postgres·Valkey·SQS·MQTT·KMS 로컬 대체)+외부 시스템 더블로 unit/e2e가 **로컬 자립** → AXS·인프라 없이 진행.
+      - **2단계 — AXS 연동(④ 연동 Spec 완성 후)**: External Connector·AXS 커넥터 실연동·webhook 수신/분배·sandbox 전구간 E2E(= IP P7~P12). **④ AXS Sub-SRS**(연동 Spec)와 Straumann sandbox 자격 확보 후 착수·완결.
+      - 두 단계는 **스펙 집필과 병행**(위 Gantt에 `1단계`·`2단계` 막대 분리). 근거=7/2 R7(1안): 구현 시작점=④ AXS baseline이나 *core 일부는 ③ baseline 후 선행 가능*. **1단계 선행은 재작업 리스크 0**이며 10월 출시 역산에 완충. 상세 착수 게이트·Phase별 의존=구현계획서(IP) §3(`abc-dev-assistant/projects/vt-api-gateway`).
 
     ```mermaid
     gantt
@@ -983,9 +988,10 @@
         PR 리뷰·수정                  :conpr, after conw, 14d
         baseline                      :milestone, conbl, after conpr, 0d
 
-        section GW 구현 → E2E → 출시 (Raymond 부분투입·SectionView 병행)
-        GW 구현 (IO Scanner MVP·AXS draft 후·압축) :active, impl, after axsw, 40d
-        AXS E2E (sandbox)              :e2e, after impl, 14d
+        section GW 구현 → E2E → 출시 (2단계 병행 · Raymond 부분투입·SectionView 병행)
+        1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·7/21 착수) :active, implindep, 2026-07-21, 45d
+        2단계 AXS 연동 (P7~P12·④ 연동 Spec draft 후)   :implaxs, after axsw, 40d
+        AXS E2E (sandbox)              :e2e, after implaxs, 14d
         개발환경 연동 완료(9월·R2)       :milestone, dev9, 2026-09-30, 0d
         v1.0 production 연동 완료(10월·R2) :milestone, rel, 2026-10-31, 0d
 
