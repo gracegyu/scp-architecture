@@ -2,7 +2,7 @@
 
 > **이 파일의 역할 = 승격용 구조화 씨앗(seed).** ③ SRS 작업 중 이 문서로 갈 내용을 **최종 목차에 대응되게** 미리 정리해 둔다(발견 즉시 캡처·인사이트 유실 방지). 정식 Sub-SRS/문서 집필은 **의존하는 ③ SRS 절이 baseline된 뒤 승격**한다 — 몰아쓰기가 아니라 "옮겨 붙이고 살 붙이기". 승격 트리거: ① ③ 해당 절 동결 + ② 소유권 확정(GW 공통 아님) + ③ 레포/템플릿 존재. 근거: ③이 흔들리는 동안 자식 문서를 미리 쓰면 개명·재번호가 수십 절로 번져 유지면이 폭발한다.
 
-- 상태: **초안 작성됨(Raymond·2026-07-20)** → `EzServer-GW적응-OnePager.md` → **EzServer 팀(Teddy·Thomas) 완성**. IO Scanner 의존부=TBD(R1)
+- 상태: **인계 완료(2026-07-21)** — 초안(Raymond·2026-07-20) → **EzServer 팀(Teddy·Thomas)에게 이관**. 정본 SSOT = `ezserver_suite/doc/onepager/gw_adaptation/`(target `v6.5.x`). scp 원본(`EzServer-GW적응-OnePager.md`)은 **redirect stub**. 이후 상세·PR·baseline은 EzServer 팀. IO Scanner 의존부=TBD(R1)
   - 초안 내용: GW SRS 추출 + **기존 EzServer suite 코드 분석**(nginx/EAP/ELM/EPI(Rust)/WebConsole) 기반. OnePager v1.0 템플릿 준수. **기능 블록 WS-1~9**(라우팅·인증·MQTT하행·업로드·heartbeat·로컬콘솔·하위호환·IO Scanner·연동등록)로 구조화, 각 블록에 착지 컴포넌트·현황격차·`🔧 EzServer 팀 상세` 명시. 인계 가이드(→EzServer 팀)·데이터흐름 다이어그램·nginx config 예제 포함. EzServer 로컬 온보딩 콘솔(WS-6)·private_key_jwt 신규개발·OneID 분리 반영.
   - SRS 전수 대조 보강: 오류 envelope 패스스루·호환경고 relay·클라이언트 타임아웃 30s 계약(#25)·엣지 last-hop 분배(TBD)·토큰 jti/NTP/캐시·차단상태(suspend/revoke)·멱등키·org-binding(WS-9)·ClinicResolution 캐시·pending 7일 만료·리전 선택.
 - 문서 유형: Engineering One Pager
@@ -26,4 +26,4 @@
       ```
 - 작성 모델(**7/16 R3 갱신**): **Raymond가 초안 작성(GW SRS 추출+코드 분석)→EzServer 팀(Teddy·Thomas)에게 전달·완성**. GW(Raymond)는 표준 계약 제공(§2.3.0 헤더·§4.5.1 라우팅·§7.7 COMPAT·§7.8.1 fleet·§7.6.6 MQTT) + 초안까지. **v1.0 = Straumann IO(IntraOral) Scanner 연동(갈래A) 우선**(CleverOne 무관분 후행) · **IO Scanner↔EzServer 연동 방식 미정(R1)**(확정 후 WS-8 및 의존부 구체화).
 - TBD: MQTT 역방향(Edge 분배) 운영 주체 — ③ §7.6 TBD 연동
-- 공식 등록처: TBD (제품 repo / VKS — 인계 시 결정)
+- 공식 등록처: **`ezserver_suite/doc/onepager/gw_adaptation/`** (Azure DevOps `ewoosoft/ezserver`·PR target `v6.5.x`·baseline) — Teddy 지정(2026-07-21)
