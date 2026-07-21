@@ -20,7 +20,7 @@
 | ③-C | GW Console | Sub-SRS | GW (본인)→이관 | §7.9 | 미작성 |
 | ③-P-CS | CleverSpace | Sub-SRS(멀티Region 큼) 또는 One Pager | CleverSpace 팀 | §4.5·§7.3·§7.6.5 | 미작성 |
 | ③-P-CO | CleverOne | One Pager | CleverOne(Nick) | §4.5·§7.1·§7.3 | 미작성 |
-| ③-P-EZ | EzServer | One Pager | EzServer 팀 | §4.5·§7.3·§7.6.6 | 미작성 |
+| ③-P-EZ | EzServer | One Pager | EzServer 팀 | §4.5·§7.3·§7.6.6 | **인계** (ezserver_suite `doc/onepager/gw_adaptation`·target `v6.5.x`·2026-07-21) |
 | ③-P-LMP | LMP (License Portal) | One Pager (조건부) | LMP/ELM 팀(ES)→이관 | §2.3.1 B·§7.1.1·§7.1.4 | **초안**(조건부·R9서 B 채택 시) |
 | ③-I | Infra | IaC 구축 계획서(기능 스펙 아님) | 인프라 담당 | §3.1·§4.5.1·§7.3.5 | 미작성 |
 
