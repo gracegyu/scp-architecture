@@ -238,7 +238,7 @@
     - **추가 성과(요청/스펙 밖까지 자체 해결):** ① **CW에 없던 Arrow 커서 자체 제작**(기획 대기 없이) ② **계측 크로스뷰 연속 드래그/미리보기** ③ **CW 폰트·i18n 현황 불일치 발견·정리**(§9.11·§D23) ④ **접목 절차·중복 제거 설계**(§9.9/9.10) ⑤ Save 복원 StrictMode·좀비 파노라마 등 엣지 버그 수정 ⑥ 죽은 코드 정리·locale 무관 레이아웃 고정.
     - **소유 구분(접목 시 CW):** Save 실제 `.e3prj`/S3 I/O · Reset Cloud Work 클라우드 리셋 · i18n 추출/번역 · Single/Dual·View Original · Pointer 셸 제공 — 우리는 **기여 조각·소스**를 준비, CW가 완성.
 
-  - **S4. 버그 리포트 요약 (ESCV-138 Sub-Task)** — 기획팀 데모 테스트 접수 현황(각 행 = ESCV-138 하위 1건). **접수 19건 전부 수정 완료**(ESCV-144~163, 158 결번). 일부는 **기획 시각 확인만 대기**(ESCV-150 반전 방향, 152·154 조작감). 확인 후 **Resolved→Close는 기획팀**.
+  - **S4. 버그 리포트 요약 (ESCV-138 Sub-Task)** — 기획팀 데모 테스트 접수 현황(각 행 = ESCV-138 하위 1건). **접수 21건 전부 수정 완료**(ESCV-144~165, 158 결번). 일부는 **기획 시각 확인만 대기**(ESCV-150 반전 방향, 152·154 조작감). 확인 후 **Resolved→Close는 기획팀**.
 
     | 이슈번호 | 유형 | 화면·기능 | 요약 | 상태 |
     | --- | --- | --- | --- | --- |
@@ -260,7 +260,9 @@
     | [ESCV-160](https://vts.vatech.com/browse/ESCV-160) | 버그 | Edit Curve | Curve 편집 시 **Section view 영상 갱신 안 됨** | ✅ **수정 완료** |
     | [ESCV-161](https://vts.vatech.com/browse/ESCV-161) | 버그 | Scout·Panorama | **마우스 휠 slice 변경 미동작**(Scout→축 slice, Panorama→navigator; Section만 됐음) | ✅ **수정 완료** |
     | [ESCV-162](https://vts.vatech.com/browse/ESCV-162) | 버그 | 전 뷰 | **Curve 삭제 시 계측/주석(Overlay)이 남음** — Curve 삭제 시 전 뷰 Overlay 함께 제거 | ✅ **수정 완료** |
-    | [ESCV-163](https://vts.vatech.com/browse/ESCV-163) | 버그 | Section 계측 | **Section 가로폭(W)·밴드높이(H) 변경 시 계측값·위치 어긋남** — 오버레이 contain letterbox 정합 + W·H 변경 시 u·v 재정규화(물리 mm 보존·해부 추종) | ✅ **수정 완료** |
+    | [ESCV-163](https://vts.vatech.com/browse/ESCV-163) | 버그 | Section 계측 | **Section 가로폭(W)·밴드높이(H) 변경 시 계측값·위치 어긋남** — 오버레이 contain letterbox 정합 + W·H 변경 시 u·v 재정규화(물리 mm 보존·해부 추종); 재정규화를 **이미지 재생성 시점에 동기화**해 조절 중 깜빡임·끝점 튐 제거 | ✅ **수정 완료** |
+    | [ESCV-164](https://vts.vatech.com/browse/ESCV-164) | 버그 | Section 계측 | **한 tile 내 Length가 가로/세로/대각선 방향별로 다르게 측정** — ESCV-163의 contain letterbox 정합으로 축척 등방성(가로·세로 mm/픽셀 일치) 확보되어 **함께 해결**(별도 코드 변경 없음) | ✅ **수정 완료**(ESCV-163에서 해결) |
+    | [ESCV-165](https://vts.vatech.com/browse/ESCV-165) | 버그 | Section·Scout·Pano | **휠 1노치에 slice가 5칸씩 이동**(Windows) — 이벤트당 최대 1스텝(while→if+누적 리셋)으로 1노치=1 interval. deltaY 크기가 OS차(Win 노치≈100~120px vs macOS 작음)라 macOS에선 미재현. Scout·Pano 동일 패턴 함께 정정 | ✅ **수정 완료**(Windows 검증 권장) |
 
     - **리포트 템플릿(기획팀 전달):** 화면·기능 / 재현 절차 / 기대 결과 / 실제 결과 / 스크린샷 / 심각도. **채널 = ESCV-138 하위 Sub-Task 1건씩.**
   - **S5. 일정 — 구현 완료(7/16), 일정 앞당김.** 구현 **100%**(MMI 전 기능 + Save·i18n·Initialize All) → **이번 주 기획팀 테스트·버그 리포트(데모사이트)** → **CW 팀 접목**(소스 병합·§9.9). Raymond VT API Gateway 병행(부분투입).
