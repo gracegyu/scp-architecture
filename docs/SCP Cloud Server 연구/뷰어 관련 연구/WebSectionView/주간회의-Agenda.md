@@ -238,7 +238,7 @@
     - **추가 성과(요청/스펙 밖까지 자체 해결):** ① **CW에 없던 Arrow 커서 자체 제작**(기획 대기 없이) ② **계측 크로스뷰 연속 드래그/미리보기** ③ **CW 폰트·i18n 현황 불일치 발견·정리**(§9.11·§D23) ④ **접목 절차·중복 제거 설계**(§9.9/9.10) ⑤ Save 복원 StrictMode·좀비 파노라마 등 엣지 버그 수정 ⑥ 죽은 코드 정리·locale 무관 레이아웃 고정.
     - **소유 구분(접목 시 CW):** Save 실제 `.e3prj`/S3 I/O · Reset Cloud Work 클라우드 리셋 · i18n 추출/번역 · Single/Dual·View Original · Pointer 셸 제공 — 우리는 **기여 조각·소스**를 준비, CW가 완성.
 
-  - **S4. 버그 리포트 요약 (ESCV-138 Sub-Task)** — 기획팀 데모 테스트 접수 현황(각 행 = ESCV-138 하위 1건). **총 7건 접수**(버그 1·개선 5·누락 1) → **7건 수정 완료**(ESCV-144~150). ESCV-150은 반전 방향·기준점 기본 위치만 기획 시각 확인 대기.
+  - **S4. 버그 리포트 요약 (ESCV-138 Sub-Task)** — 기획팀 데모 테스트 접수 현황(각 행 = ESCV-138 하위 1건). **누적 16건 접수** — **1차(7/21) 7건 전부 수정 완료**(ESCV-144~150; 150은 반전 방향·기준점 기본 위치만 기획 시각 확인 대기), **2차(7/22) 9건 신규 접수**(ESCV-151~160, **158 결번**) → **1건 수정 완료(151)**, 8건 진행 예정. *2차는 Panorama 렌더/조작·Draw/Edit Curve 실시간 갱신 계열이 다수.*
 
     | 이슈번호 | 유형 | 화면·기능 | 요약 | 상태 |
     | --- | --- | --- | --- | --- |
@@ -249,6 +249,15 @@
     | [ESCV-148](https://vts.vatech.com/browse/ESCV-148) | 개선 | Initialize All | 실행 시 Pan/Zoom **도구 선택 상태도 해제**(CleverSpace MPR 정책) | ✅ **수정 완료** |
     | [ESCV-149](https://vts.vatech.com/browse/ESCV-149) | 개선 | Edit 모드 | BL/LB 기준점(삼각형)·끝점 겹칠 때 **클릭 히트타겟 분리** | ✅ **수정 완료** |
     | [ESCV-150](https://vts.vatech.com/browse/ESCV-150) | 누락 | Section slice | BL/LB 기준점에 따른 **상단 B/L 표기 좌우 반전** 미반영 | ✅ **수정 완료**(방향 시각확인 대기) |
+    | [ESCV-151](https://vts.vatech.com/browse/ESCV-151) | 버그 | Panorama | 우상단 **W/L 값과 방향(R/L·B/L) 라벨 텍스트 겹침·가려짐** | ✅ **수정 완료** |
+    | [ESCV-152](https://vts.vatech.com/browse/ESCV-152) | 버그 | Panorama | 이미지가 **경계선(노란 실선) 밖까지 렌더**·경계 기준 crop fit 안 됨 | 접수(Open) |
+    | [ESCV-153](https://vts.vatech.com/browse/ESCV-153) | 개선 | Panorama | 세로폭(경계선 간격) 기본 100→**50mm**(Clever One/Ez3D-i 정합) | 접수(Open) |
+    | [ESCV-154](https://vts.vatech.com/browse/ESCV-154) | 버그 | Panorama | 중심선 드래그 **drop 시 중심선이 세로축 중심으로 오도록 영상 갱신 안 됨** | 접수(Open) |
+    | [ESCV-155](https://vts.vatech.com/browse/ESCV-155) | 버그 | Draw Curve | 실시간 미리보기가 **점선·직선 연결**(Spline 아님) | 접수(Open) |
+    | [ESCV-156](https://vts.vatech.com/browse/ESCV-156) | 버그 | Draw Curve | **B/L 판정이 P1→P2→C 외적이 아니라 "진행방향 오른쪽=L" 고정규칙으로 추정** | 접수(Open) |
+    | [ESCV-157](https://vts.vatech.com/browse/ESCV-157) | 버그 | Draw Curve | **Active section line이 곡선 완료 후에만 반영**(드로잉 중 실시간 갱신 안 됨) | 접수(Open) |
+    | [ESCV-159](https://vts.vatech.com/browse/ESCV-159) | 버그 | Edit Curve | 커브 위 드래그가 **전체 이동이 아니라 Add Point로 동작** | 접수(Open) |
+    | [ESCV-160](https://vts.vatech.com/browse/ESCV-160) | 버그 | Edit Curve | Curve 편집 시 **Section view 영상 갱신 안 됨** | 접수(Open) |
 
     - **리포트 템플릿(기획팀 전달):** 화면·기능 / 재현 절차 / 기대 결과 / 실제 결과 / 스크린샷 / 심각도. **채널 = ESCV-138 하위 Sub-Task 1건씩.**
   - **S5. 일정 — 구현 완료(7/16), 일정 앞당김.** 구현 **100%**(MMI 전 기능 + Save·i18n·Initialize All) → **이번 주 기획팀 테스트·버그 리포트(데모사이트)** → **CW 팀 접목**(소스 병합·§9.9). Raymond VT API Gateway 병행(부분투입).
