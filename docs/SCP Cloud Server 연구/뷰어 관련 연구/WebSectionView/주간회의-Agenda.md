@@ -238,12 +238,12 @@
     - **추가 성과(요청/스펙 밖까지 자체 해결):** ① **CW에 없던 Arrow 커서 자체 제작**(기획 대기 없이) ② **계측 크로스뷰 연속 드래그/미리보기** ③ **CW 폰트·i18n 현황 불일치 발견·정리**(§9.11·§D23) ④ **접목 절차·중복 제거 설계**(§9.9/9.10) ⑤ Save 복원 StrictMode·좀비 파노라마 등 엣지 버그 수정 ⑥ 죽은 코드 정리·locale 무관 레이아웃 고정.
     - **소유 구분(접목 시 CW):** Save 실제 `.e3prj`/S3 I/O · Reset Cloud Work 클라우드 리셋 · i18n 추출/번역 · Single/Dual·View Original · Pointer 셸 제공 — 우리는 **기여 조각·소스**를 준비, CW가 완성.
 
-  - **S4. 버그 리포트 요약 (ESCV-138 Sub-Task)** — 기획팀 데모 테스트 접수 현황(각 행 = ESCV-138 하위 1건). **누적 16건 접수** — **1차(7/21) 7건 전부 수정 완료**(ESCV-144~150; 150은 반전 방향·기준점 기본 위치만 기획 시각 확인 대기), **2차(7/22) 9건 신규 접수**(ESCV-151~160, **158 결번**) → **2건 수정 완료(151·152)**, 7건 진행 예정. *2차는 Panorama 렌더/조작·Draw/Edit Curve 실시간 갱신 계열이 다수.*
+  - **S4. 버그 리포트 요약 (ESCV-138 Sub-Task)** — 기획팀 데모 테스트 접수 현황(각 행 = ESCV-138 하위 1건). **누적 16건 접수** — **1차(7/21) 7건 전부 수정 완료**(ESCV-144~150; 150은 반전 방향·기준점 기본 위치만 기획 시각 확인 대기), **2차(7/22) 9건 신규 접수**(ESCV-151~160, **158 결번**) → **5건 수정 완료(151·152·153·154·155)**, 4건 진행 예정. *2차는 Panorama 렌더/조작·Draw/Edit Curve 실시간 갱신 계열이 다수.* **※ ESCV-153으로 "Section 세로폭=Panorama 경계선 간격"을 50mm로 통일(기획 확정) → 1차 ESCV-145(40mm)도 50mm로 갱신됨.**
 
     | 이슈번호 | 유형 | 화면·기능 | 요약 | 상태 |
     | --- | --- | --- | --- | --- |
     | [ESCV-144](https://vts.vatech.com/browse/ESCV-144) | 버그 | UI 라벨(i18n) | 일부 UI 라벨 텍스트가 정상 표시되지 않음(배포 빌드에서 다국어 문자열 미해석) | ✅ **수정 완료** |
-    | [ESCV-145](https://vts.vatech.com/browse/ESCV-145) | 개선 | Section 세로폭 | Z 구간 기본값 60→**40mm**(Clever One/Ez3D-i 정합) | ✅ **수정 완료** |
+    | [ESCV-145](https://vts.vatech.com/browse/ESCV-145) | 개선 | Section 세로폭 | Z 구간 기본값 60→**50mm**(당초 40 → ESCV-153과 통일해 50mm, 기획 확정) | ✅ **수정 완료** |
     | [ESCV-146](https://vts.vatech.com/browse/ESCV-146) | 개선 | Panorama | Active section line 드래그 이동을 **Interval 기준**으로 | ✅ **수정 완료** |
     | [ESCV-147](https://vts.vatech.com/browse/ESCV-147) | 개선 | Panorama | Active section line **회전 컨트롤러(연두 동그라미) 삭제** | ✅ **수정 완료** |
     | [ESCV-148](https://vts.vatech.com/browse/ESCV-148) | 개선 | Initialize All | 실행 시 Pan/Zoom **도구 선택 상태도 해제**(CleverSpace MPR 정책) | ✅ **수정 완료** |
@@ -251,9 +251,9 @@
     | [ESCV-150](https://vts.vatech.com/browse/ESCV-150) | 누락 | Section slice | BL/LB 기준점에 따른 **상단 B/L 표기 좌우 반전** 미반영 | ✅ **수정 완료**(방향 시각확인 대기) |
     | [ESCV-151](https://vts.vatech.com/browse/ESCV-151) | 버그 | Panorama | 우상단 **W/L 값과 방향(R/L·B/L) 라벨 텍스트 겹침·가려짐** | ✅ **수정 완료** |
     | [ESCV-152](https://vts.vatech.com/browse/ESCV-152) | 버그 | Panorama | 이미지가 **경계선(노란 실선) 밖까지 렌더**·경계 기준 crop fit 안 됨 | ✅ **수정 완료**(시각검증 권장) |
-    | [ESCV-153](https://vts.vatech.com/browse/ESCV-153) | 개선 | Panorama | 세로폭(경계선 간격) 기본 100→**50mm**(Clever One/Ez3D-i 정합) | 접수(Open) |
-    | [ESCV-154](https://vts.vatech.com/browse/ESCV-154) | 버그 | Panorama | 중심선 드래그 **drop 시 중심선이 세로축 중심으로 오도록 영상 갱신 안 됨** | 접수(Open) |
-    | [ESCV-155](https://vts.vatech.com/browse/ESCV-155) | 버그 | Draw Curve | 실시간 미리보기가 **점선·직선 연결**(Spline 아님) | 접수(Open) |
+    | [ESCV-153](https://vts.vatech.com/browse/ESCV-153) | 개선 | Panorama | 세로폭(경계선 간격) 기본 →**50mm** — **Section 세로폭과 동일 값이라 50mm로 통일**(기획 확정) | ✅ **수정 완료** |
+    | [ESCV-154](https://vts.vatech.com/browse/ESCV-154) | 버그 | Panorama | 중심선 드래그 **drop 시 중심선이 세로축 중심으로 오도록 영상 갱신 안 됨** | ✅ **수정 완료**(시각검증 권장) |
+    | [ESCV-155](https://vts.vatech.com/browse/ESCV-155) | 버그 | Draw Curve | 실시간 미리보기가 **점선·직선 연결**(Spline 아님) | ✅ **수정 완료** |
     | [ESCV-156](https://vts.vatech.com/browse/ESCV-156) | 버그 | Draw Curve | **B/L 판정이 P1→P2→C 외적이 아니라 "진행방향 오른쪽=L" 고정규칙으로 추정** | 접수(Open) |
     | [ESCV-157](https://vts.vatech.com/browse/ESCV-157) | 버그 | Draw Curve | **Active section line이 곡선 완료 후에만 반영**(드로잉 중 실시간 갱신 안 됨) | 접수(Open) |
     | [ESCV-159](https://vts.vatech.com/browse/ESCV-159) | 버그 | Edit Curve | 커브 위 드래그가 **전체 이동이 아니라 Add Point로 동작** | 접수(Open) |
