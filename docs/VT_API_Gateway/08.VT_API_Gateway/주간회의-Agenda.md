@@ -1041,7 +1041,7 @@
       | ″ | T-DATA-1-2 | 리전 로컬 스키마·마이그레이션(audit·fleet·webhook_event·bytea) | ✅ 완료 | PR #12009 merge · FK 0·bytea·실 DB 검증 |
       | ″ | T-DATA-1-3 | KMS envelope 암호화 헬퍼(payload/자격 round-trip) | ✅ 완료 | PR #12011 merge · AES-256-GCM·실 KMS 검증 |
       | ″ | T-DATA-1-4 | Redis 키스페이스 헬퍼(nonce·jti·rate-limit·idempotency) | ✅ 완료 | PR #12012 merge · 실 Valkey 검증·incrRate 원자화 |
-      | ″ | T-DATA-1-5 | audit_log append-only 프리미티브 | ⬜ 대기 | |
+      | ″ | T-DATA-1-5 | audit_log append-only 프리미티브(트리거·AuditService) | ✅ 완료 | PR #12016 merge · replica 우회까지 차단 |
       | ″ | T-DATA-1-6 | region_catalog 시드(서울·default) | ⬜ 대기 | |
       | ″ | T-DATA-1-7 | 시드·테스트 데이터 인프라(prisma db seed·Factory) | ⬜ 대기 | |
       | **P2 인증 토대** | 전체 | device private_key_jwt·JWKS·jti / operator Entra OIDC·RBAC | ⬜ 대기 | 1단계 |
@@ -1056,7 +1056,7 @@
       | **P11 Admin API·audit·컴플라이언스** | 전체 | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | ⬜ 대기 | 2단계(webhook slice=P8 후) |
       | **P12 E2E·하드닝** | 전체 | AXS sandbox E2E·compat E2E·부하·HA/KEDA 검증 | ⬜ 대기 | 🔴 2단계·④ AXS sandbox 실자격 |
 
-      > **금주 요약**: **✅ P0(플랫폼·환경 토대) 완료**(0-1~0-6·0-5만 🟡 배포부 Jack 후속) → **P1(데이터 모델) 착수** — T-DATA-1-1 전역 초기 마이그레이션 merge(PR #12006·risk:migration). 이후 P1 잔여(1-1b raw-SQL·1-2 리전·1-3 KMS·1-4 Redis·1-5 audit·1-6/1-7 시드) → DAG 순서로 **P2·P3·P4 → P5·P6·P10**(1단계·④ 무관). **P7~P9·P11·P12는 2단계**(④ AXS Spec·Straumann sandbox 후). 41 Task 중 **13 완료 + 1 부분완료**(P1 진행: 1-1·1-1b·1-2·1-3·1-4 merge). **pre-pr-review 게이트 개정**(구현자와 분리된 **독립 리뷰어** + rv_prompt --run-cli + 재발패턴 체크리스트)이 T-DATA-1-1·1-1b에서 테스트 회귀·거짓green·통제문서 부정확을 사전 차단 — 자가리뷰 맹점 해소.
+      > **금주 요약**: **✅ P0(플랫폼·환경 토대) 완료**(0-1~0-6·0-5만 🟡 배포부 Jack 후속) → **P1(데이터 모델) 착수** — T-DATA-1-1 전역 초기 마이그레이션 merge(PR #12006·risk:migration). 이후 P1 잔여(1-1b raw-SQL·1-2 리전·1-3 KMS·1-4 Redis·1-5 audit·1-6/1-7 시드) → DAG 순서로 **P2·P3·P4 → P5·P6·P10**(1단계·④ 무관). **P7~P9·P11·P12는 2단계**(④ AXS Spec·Straumann sandbox 후). 41 Task 중 **14 완료 + 1 부분완료**(P1 진행: 1-1·1-1b·1-2·1-3·1-4·1-5 merge). **spec-v1.0.1 정합화**(7/22·`56ed7ef`): OPA→앱 내부 PDP·AppConfig→Parameter Store+LKG로 엔진만 변경(규칙 불변)·완료분 무관·P4~P7 도달 시 반영. **pre-pr-review 게이트 개정**(구현자와 분리된 **독립 리뷰어** + rv_prompt --run-cli + 재발패턴 체크리스트)이 T-DATA-1-1·1-1b에서 테스트 회귀·거짓green·통제문서 부정확을 사전 차단 — 자가리뷰 맹점 해소.
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
