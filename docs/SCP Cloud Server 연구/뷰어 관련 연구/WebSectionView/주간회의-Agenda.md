@@ -238,7 +238,7 @@
     - **추가 성과(요청/스펙 밖까지 자체 해결):** ① **CW에 없던 Arrow 커서 자체 제작**(기획 대기 없이) ② **계측 크로스뷰 연속 드래그/미리보기** ③ **CW 폰트·i18n 현황 불일치 발견·정리**(§9.11·§D23) ④ **접목 절차·중복 제거 설계**(§9.9/9.10) ⑤ Save 복원 StrictMode·좀비 파노라마 등 엣지 버그 수정 ⑥ 죽은 코드 정리·locale 무관 레이아웃 고정.
     - **소유 구분(접목 시 CW):** Save 실제 `.e3prj`/S3 I/O · Reset Cloud Work 클라우드 리셋 · i18n 추출/번역 · Single/Dual·View Original · Pointer 셸 제공 — 우리는 **기여 조각·소스**를 준비, CW가 완성.
 
-  - **S4. 버그 리포트 요약 (ESCV-138 Sub-Task)** — 기획팀 데모 테스트 접수 현황(각 행 = ESCV-138 하위 1건). **누적 16건 접수** — **1차(7/21) 7건 전부 수정 완료**(ESCV-144~150; 150은 반전 방향·기준점 기본 위치만 기획 시각 확인 대기), **2차(7/22) 9건 신규 접수**(ESCV-151~160, **158 결번**) → **9건 전부 수정 완료(151~157·159·160)** ✅. *2차는 Panorama 렌더/조작·Draw/Edit Curve 실시간 갱신 계열.* **→ 누적 16건 접수·16건 수정 완료(ESCV-150 반전 방향·154 등 일부는 기획 시각확인 대기).** **※ ESCV-153으로 "Section 세로폭=Panorama 경계선 간격"을 50mm로 통일(기획 확정) → 1차 ESCV-145(40mm)도 50mm로 갱신됨.**
+  - **S4. 버그 리포트 요약 (ESCV-138 Sub-Task)** — 기획팀 데모 테스트 접수 현황(각 행 = ESCV-138 하위 1건). **접수 18건 전부 수정 완료**(ESCV-144~162, 158 결번). 일부는 **기획 시각 확인만 대기**(ESCV-150 반전 방향, 152·154 조작감). 확인 후 **Resolved→Close는 기획팀**.
 
     | 이슈번호 | 유형 | 화면·기능 | 요약 | 상태 |
     | --- | --- | --- | --- | --- |
@@ -258,6 +258,8 @@
     | [ESCV-157](https://vts.vatech.com/browse/ESCV-157) | 버그 | Draw Curve | **Active section line이 곡선 완료 후에만 반영**(드로잉 중 실시간 갱신 안 됨) | ✅ **수정 완료** |
     | [ESCV-159](https://vts.vatech.com/browse/ESCV-159) | 버그 | Edit Curve | 커브 위 드래그가 **전체 이동이 아니라 Add Point로 동작** | ✅ **수정 완료** |
     | [ESCV-160](https://vts.vatech.com/browse/ESCV-160) | 버그 | Edit Curve | Curve 편집 시 **Section view 영상 갱신 안 됨** | ✅ **수정 완료** |
+    | [ESCV-161](https://vts.vatech.com/browse/ESCV-161) | 버그 | Scout·Panorama | **마우스 휠 slice 변경 미동작**(Scout→축 slice, Panorama→navigator; Section만 됐음) | ✅ **수정 완료** |
+    | [ESCV-162](https://vts.vatech.com/browse/ESCV-162) | 버그 | 전 뷰 | **Curve 삭제 시 계측/주석(Overlay)이 남음** — Curve 삭제 시 전 뷰 Overlay 함께 제거 | ✅ **수정 완료** |
 
     - **리포트 템플릿(기획팀 전달):** 화면·기능 / 재현 절차 / 기대 결과 / 실제 결과 / 스크린샷 / 심각도. **채널 = ESCV-138 하위 Sub-Task 1건씩.**
   - **S5. 일정 — 구현 완료(7/16), 일정 앞당김.** 구현 **100%**(MMI 전 기능 + Save·i18n·Initialize All) → **이번 주 기획팀 테스트·버그 리포트(데모사이트)** → **CW 팀 접목**(소스 병합·§9.9). Raymond VT API Gateway 병행(부분투입).
