@@ -109,14 +109,14 @@
   - **S3. 폰트 설정 불일치 발견 (CleverSpace ≠ CW)** — Section 구현 중 소스 대조로 발견. **현재 문제는 CW 하나**이고, 그 결과 **상황(OS·환경)에 따라 폰트가 다르게 렌더됨**(맞음). 결정은 **R1**. 상세: [OnePager §9.11]({VKS}).
 
     | 대상 | 폰트 스택 | 웹폰트 로드 | `!important` | 맥 | Windows | ChromeOS |
-    | --- | --- | :---: | :---: | --- | --- | --- |
+    | --- | --- | :-: | :-: | --- | --- | --- |
     | **CleverSpace**(호스트) | `'Noto Sans','Noto Sans KR','Segoe UI',sans-serif` | ✅ Google Fonts | ✗ | Noto Sans | Noto Sans | Noto Sans |
     | **CW** | `'Segoe UI','Roboto'` | ❌ 없음 | ✅ `* !important` | **Helvetica**(폴백) | Segoe UI | Roboto |
     | **우리 Section/데모** | `= CleverSpace 스택` | ✅(데모) | ✗ | Noto Sans | Noto Sans | Noto Sans |
-
     - **문제점:** ①**CW만 문제**(호스트·우리 모듈은 폰트 로드·일관) ②**환경(OS)별 제각각**(Win=Segoe UI·ChromeOS=Roboto·맥=Helvetica) ③**호스트 UI와 불일치**(CW `!important`가 Noto Sans 덮어씀) ④**접목 파급**(CW-1 미수정 시 우리 텍스트까지 강제).
     - **근거:** CW `index.css:24` · ezcloud `container-app/index.html`(Noto Sans Google Fonts)·`common-ui/customTheme.ts`.
     - **우리 대응:** 합집합 아님 — **호스트(CleverSpace) 스택(Noto Sans)에 정렬**(폰트 소유는 호스트 몫).
+
   - **S4. GPU 리슬라이스 = 숙제(빠른 출시 우선)** — 두꺼운 슬랩 실시간 스크롤 근본해결은 WebGL2 GPU 리슬라이스이나 공수 커서 이번 범위 밖(§11·D20). 완충책(캐시·디바운스·표시분리)+WASM으로 체감 유지.
   - **S5. 일정** — 구현 **~90%**(MMI 전 기능 완료), **담주 초 마무리**(Save 배선·폴리시) → **기획팀 테스트(데모사이트)** → **CW 팀 접목**(소스 병합·§9.9). Raymond VT API Gateway 병행(부분투입).
 
@@ -144,27 +144,25 @@
   - **S6. Known gaps** — Save Project 배선·CW 필드 어댑터·⑨계측/③카메라 저장(T-P5) · 국제화(R2 결정 대기) · Arrow 툴 CW `InteractionType` 미포함(접목 시 core 반영)·Arrow 전용 커서(기획 §11) · Scout=MPR Th/INT·Image Adjust 동기 접목 시 배선(§D18) · 크로스뷰 트래킹·GPU 리슬라이스(숙제 §11). **Pan/Zoom/Pointer/계측 편집은 구현 완료.**
   - **S7. 국제화(i18n) 현황 불일치 발견** — CleverSpace·CW 모두 **Lingui**이나 **CW 한국어 카탈로그가 비어** 한국어에서 영어로 폴백, 우리 모듈은 i18n 미적용·한영 혼재. 결정은 **R2**. 상세: [OnePager §9.11-CW-2·§D23](https://vks.vatech.com/x/UecSEw).
 
-    | 대상 | i18n | 지원 locale | 한국어 |
-    | --- | --- | --- | --- |
-    | **CleverSpace**(호스트) | Lingui | en_US, ko_KR | ✅ 번역됨 |
-    | **CW** | Lingui | en_US, es_MX, fr_FR, ko_KR, pt_BR | ❌ **ko_KR 카탈로그 비어 영어 폴백**(es/fr/pt는 번역) |
-    | **우리 Section 모듈** | ❌ 없음 | — | ❌ 미적용·한영 혼재 |
-
+    | 대상                    | i18n    | 지원 locale                       | 한국어                                                |
+    | ----------------------- | ------- | --------------------------------- | ----------------------------------------------------- |
+    | **CleverSpace**(호스트) | Lingui  | en_US, ko_KR                      | ✅ 번역됨                                             |
+    | **CW**                  | Lingui  | en_US, es_MX, fr_FR, ko_KR, pt_BR | ❌ **ko_KR 카탈로그 비어 영어 폴백**(es/fr/pt는 번역) |
+    | **우리 Section 모듈**   | ❌ 없음 | —                                 | ❌ 미적용·한영 혼재                                   |
     - **문제점:** ①우리 모듈 i18n 미적용·한영 혼재 ②CW **한국어 번역 누락**(CleverSpace는 한국어 되는데 CW만 영어) ③**지원 언어 목록 불일치** — **언어 선택은 CleverSpace(en/ko)가 소유**하니 CW의 es/fr/pt는 **선택조차 못 하는 죽은 번역**이고 정작 한국어는 CW 비어있음.
     - **추천안:** **지원 언어를 셋 모두 한/영(en/ko)으로 통일 + CleverSpace 연동 국제화** — Section=CW 동일 Lingui 구조·한국어 통일(IP Task), CW=ko 채우고 es/fr/pt 정리 권고. (선택 불가한 언어는 무의미하니 CleverSpace 기준으로 맞춤.)
 
 - 이월 논의 사항 (7/16 기준 · 재정리)
 
-  | #   | 항목                            | 타입   | 상태                                         |
-  | --- | ------------------------------- | ------ | -------------------------------------------- |
-  | 1   | CW 폰트 override 수정(CW-1)      | [논의] | **활성** — CW 팀 수정·styleguide 단일화 (→ R1·§9.11) |
-  | 2   | 국제화(i18n) 정책·지원 언어      | [논의] | **활성** — 추천: 한/영(en/ko) 통일·CleverSpace 연동. CW es/fr/pt 죽은 번역·ko 누락. 기획(Scott) 결정 (→ R2·§D23) |
-  | 3   | Save Project — CW prj 필드      | [정보] | 방향 확정. CW 소스 분석해 진행, 정확 필드는 접목 시 CW팀 확인(§D5) |
-  | 4   | 향후 계획·버그 리포트 채널       | [논의] | **신규** — 구현완료→기획 테스트(데모)→CW 접목. 버그=PLAN-1287 Sub-Task? (→ R3) |
-  | 5   | 문서(OnePager·개발계획) 커밋    | [정보] | 구현 대부분 완료 — 적절 시점 커밋                 |
+  | # | 항목 | 타입 | 상태 |
+  | --- | --- | --- | --- |
+  | 1 | CW 폰트 override 수정(CW-1) | [논의] | **활성** — CW 팀 수정·styleguide 단일화 (→ R1·§9.11) |
+  | 2 | 국제화(i18n) 정책·지원 언어 | [논의] | **활성** — 추천: 한/영(en/ko) 통일·CleverSpace 연동. CW es/fr/pt 죽은 번역·ko 누락. 기획(Scott) 결정 (→ R2·§D23) |
+  | 3 | Save Project — CW prj 필드 | [정보] | 방향 확정. CW 소스 분석해 진행, 정확 필드는 접목 시 CW팀 확인(§D5) |
+  | 4 | 향후 계획·버그 리포트 채널 | [논의] | **신규** — 구현완료→기획 테스트(데모)→CW 접목. 버그=PLAN-1287 Sub-Task? (→ R3) |
+  | 5 | 문서(OnePager·개발계획) 커밋 | [정보] | 구현 대부분 완료 — 적절 시점 커밋 |
   - **확정·정리됨:** B/L 자동판정(§5) · 접목=소스병합(§D4) · R/L 방향(§D19) · WASM 기본·GPU 숙제(§D20) · 계측 3뷰(§D21) · Single/Dual·View Original 범위(§D22) · Slice NFR 측정(§8) · Show/Hide Grid · **Pan/Zoom/Reset/Pointer(§D27·§3.7)** · **Pointer 주석(§D28·§3.8)** · **계측 편집·Property(§D29·§3.9)** · **적응형 Ruler·Grid/Ruler 고정(§D27b)**.
   - **해소(이전 이월):** Section Slice 스크롤 NFR(측정 완료) · Spec 리뷰·착수 gate·구현 착수(진행 중이라 논의 불요).
-
 
 ---
 
@@ -178,13 +176,13 @@
   - Repository: [Azure DevOps `scp-section-poc`](https://dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc)
   - VTS: [PLAN-1287](https://vts.vatech.com/browse/PLAN-1287) · 버그: [ESCV-138](https://vts.vatech.com/browse/ESCV-138)
 
-- 이번 주 진행 (**구현 완료** · scp-section-poc) — *지난 스냅샷(~90%) 이후 잔여 전부 완료*
+- 이번 주 진행 (**구현 완료** · scp-section-poc) — _지난 스냅샷(~90%) 이후 잔여 전부 완료_
   - **Save Project 전체 흐름 완성(§7·T-P5-2/3/4)** — Save 버튼 → 현재 상태 수집 → **CT별 키(PatientID+StudyDate) localStorage 저장** → **CW `MessageDialog` 파리티**(로딩→"Your changes have been saved.") → **동일 CT 재오픈 시 자동 복원**(커브·계측·파노라마·섹션·뷰별 Pan/Zoom·WL·Grid/Overlay 가시성). **CW 필드 어댑터**(`CurveList`·`SectionInfo`·`PanoSliceInfo`·`OverlayList`), 계측⑨·뷰별 Pan/Zoom③ 저장 모델. StrictMode 복원·좀비 파노라마 버그 수정.
   - **Initialize All(§3.10·T-P5-5)** — 데이터·값(커브/계측/Pan-Zoom/WL/파라미터)만 default로, **뷰 모드(도구·Grid·Overlay 토글)는 유지**(CW 정합). **Reset Cloud Work=CW 셸 소유·미구현 → 클릭 시 "접목 시 지원" 안내**.
   - **국제화(i18n)(§3.11·T-P4-7)** — 회의 결정(한/영 통일)대로 **CW와 동일한 Lingui 매크로**(`i18n._(t\`\`)`·`msg\`\``·`<Trans>`) 채택, 소스 영어로 통일 래핑(App·툴바·뷰·다이얼로그·메뉴). 데모 **EN/한 토글** 시연. 추출·번역은 접목 시 CW 몫.
   - **Arrow 전용 커서 자체 제작(§11 해결)** — CW에 없어 기획 대기 없이 **개발실이 직접 SVG 제작**(계측군 정합). **계측 크로스뷰 연속 추적(§11 해결)** — 드래그·미리보기가 뷰 경계 밖에서도 끊기지 않음.
   - **(이전 완료 유지)** Pan/Zoom/Reset/Pointer(§3.7)·Pointer 주석(§3.8)·계측 편집·Property(§3.9)·계측 생성(Length/Angle/FreeDraw/Arrow, 3뷰)·Overlay 호장 앵커(§4)·Show/Hide Grid·Slice 벤치마크(WASM-resident+JS 폴백)·환자정보 실데이터·CW UI 통일·접목 설계(§9.9/9.10).
-  - **잔여(코드 아님)** — ① **기획팀 시각 검증**(데모, MT-*) ② **CW 접목부**(클라우드 Save I/O·Reset Cloud Work·i18n 추출/번역·소스 병합) ③ **GPU 리슬라이스 숙제**(§11·D20, 빠른 출시 우선 이연).
+  - **잔여(코드 아님)** — ① **기획팀 시각 검증**(데모, MT-\*) ② **CW 접목부**(클라우드 Save I/O·Reset Cloud Work·i18n 추출/번역·소스 병합) ③ **GPU 리슬라이스 숙제**(§11·D20, 빠른 출시 우선 이연).
 
 - 논의 사항 — **이번 주 결정 필요 항목 없음**
   - 지난 회의(7/16)에서 **폰트 override(옛 R1)·국제화 i18n(옛 R2)·버그 리포트 채널(옛 R3)** 모두 결정 완료. 이번 주는 신규 논의 없이 **결정사항 진행**만 진행. → 진행 현황은 **공유 사항**(S1 단계·S5 일정)·**이월 논의 사항 표** 참조.
@@ -195,46 +193,45 @@
 
   - **S3. 구현 완료 항목 전체 (Task 정리 · scp-section-poc)** — MMI 전 기능 + Save·i18n·Initialize All. **총 41개 Task 완료**(빌드 5/5·단위테스트 142 통과, 실제 CT로 검증).
 
-    | 영역 | Task | 내용(요약) | 상태 |
-    | --- | --- | --- | :---: |
-    | **기반(P0)** | T-P0-1~5 | 버전 핀 · UI 스택(MUI·zustand·Lingui) · CW 계약 미러 store+Toolbar · 데모 셸 · CT 공급 추상화(외부 패널) | ✅ |
-    | **Curve(P1)** | T-P1-1 | Draw Curve(제어점·Catmull-Rom·실시간 미리보기) | ✅ |
-    | | T-P1-2 | Edit Curve·컨텍스트 메뉴(점 추가/삭제·L/B Switching·Curve 삭제) | ✅ |
-    | | T-P1-3 | B/L 극성 자동 판정(단일 규칙) | ✅ |
-    | | T-P1-4 | BL/LB 기준점(삼각형·이동) | ✅ |
-    | **Slice(P2)** | T-P2-1 | 전체 slice 인덱싱·9-window 페이징 | ✅ |
-    | | T-P2-2 | Slice 이동·동기(휠·slider, 임계값 필터) | ✅ |
-    | | T-P2-3 | 재생성 성능(캐싱·디바운스·표시 분리) | ✅ |
-    | | T-P2-4 | 뷰/타일 최대화 | ✅ |
-    | **생성(P3)** | T-P3-1 | Scout Active line 이동·폭 조절 | ✅ |
-    | | T-P3-2 | Panorama 경계선·중심선 이동 | ✅ |
-    | | T-P3-3 | Panorama thickness line | ✅ |
-    | | T-P3-4 | Thickness 0mm·Setting UI·ruler | ✅ |
-    | | T-P3-5 | 파노라마 생성 모델(thin 재슬라이스+B/L 스윕) | ✅ |
-    | | T-P3-6 | 뷰별 독립 Interval(Scout/Pano/Section) | ✅ |
-    | **도구(P4)** | T-P4-1 | Image Filter(Smooth/Sharpen/MaxSharpen/Inverse/MIP) | ✅ |
-    | | T-P4-2 | 계측 Length/Angle·Free Draw | ✅ |
-    | | T-P4-3 | **Arrow 툴 신규 + 전용 커서 자체 제작** | ✅ |
-    | | T-P4-4 | Overlay 표시 규칙(호장 앵커·scroll/interval 재표시) | ✅ |
-    | | T-P4-5 | Show/Hide Grid(물리 10mm 격자) | ✅ |
-    | | T-P4-6 | **Pan/Zoom/Reset View/Pointer**(뷰별 독립·Grid 고정·적응형 Ruler·CW 커서) | ✅ |
-    | | T-P4-7 | **국제화 i18n**(CW 동일 Lingui 매크로·영어 소스·EN/한 토글) | ✅ |
-    | | T-P4-8 | **Pointer 주석**(CW `PointerDialog`/`PointerCanvas` 포트·모달) | ✅ |
-    | | T-P4-9 | **계측/주석 편집**(선택·이동·핸들 점편집·Property/Delete 다이얼로그) | ✅ |
-    | **Save(P5)** | T-P5-1 | 데이터 모델·CW prj 스키마 매핑 | ✅ |
-    | | T-P5-2 | 직렬화 API·CT키 localStorage·재오픈 자동복원·**Save 버튼·MessageDialog** | ✅ |
-    | | T-P5-3 | **CW prj 필드 어댑터**(CurveList/SectionInfo/PanoSliceInfo/OverlayList·XML 미리보기) | ✅ |
-    | | T-P5-4 | 저장 모델 갭(⑨ 계측·③ 뷰별 Pan/Zoom) | ✅ |
-    | | T-P5-5 | **Initialize All**(default 복귀·모드 유지) · Reset Cloud Work(접목 시 지원 안내) | ✅ |
-    | **NFR·인계(P6)** | T-P6-1 | Slice 스크롤 벤치마크→NFR(WASM-resident+JS 폴백) | ✅ |
-    | | T-P6-2 | 공개 API·인계 패키지 | ✅ |
-    | **UI(P7)** | T-P7-1 | 글로벌 상단 바(환자·MPR/Section·Save) | ✅ |
-    | | T-P7-2 | 3-뷰 Title Bar(라벨·Curve 관리·아이콘 클러스터) | ✅ |
-    | | T-P7-3 | Per-panel Slice Slider(H/F·P/A·R/L) | ✅ |
-    | | T-P7-4 | Image Information Overlay(3뷰) | ✅ |
-    | | T-P7-5 | Scout Curve 렌더 스타일 정합(MMI §1.3) | ✅ |
-    | | T-P7-6 | Panorama 렌더 스타일 정합(MMI §1.4) | ✅ |
-
+    | 영역             | Task     | 내용(요약)                                                                                               | 상태 |
+    | ---------------- | -------- | -------------------------------------------------------------------------------------------------------- | :--: |
+    | **기반(P0)**     | T-P0-1~5 | 버전 핀 · UI 스택(MUI·zustand·Lingui) · CW 계약 미러 store+Toolbar · 데모 셸 · CT 공급 추상화(외부 패널) |  ✅  |
+    | **Curve(P1)**    | T-P1-1   | Draw Curve(제어점·Catmull-Rom·실시간 미리보기)                                                           |  ✅  |
+    |                  | T-P1-2   | Edit Curve·컨텍스트 메뉴(점 추가/삭제·L/B Switching·Curve 삭제)                                          |  ✅  |
+    |                  | T-P1-3   | B/L 극성 자동 판정(단일 규칙)                                                                            |  ✅  |
+    |                  | T-P1-4   | BL/LB 기준점(삼각형·이동)                                                                                |  ✅  |
+    | **Slice(P2)**    | T-P2-1   | 전체 slice 인덱싱·9-window 페이징                                                                        |  ✅  |
+    |                  | T-P2-2   | Slice 이동·동기(휠·slider, 임계값 필터)                                                                  |  ✅  |
+    |                  | T-P2-3   | 재생성 성능(캐싱·디바운스·표시 분리)                                                                     |  ✅  |
+    |                  | T-P2-4   | 뷰/타일 최대화                                                                                           |  ✅  |
+    | **생성(P3)**     | T-P3-1   | Scout Active line 이동·폭 조절                                                                           |  ✅  |
+    |                  | T-P3-2   | Panorama 경계선·중심선 이동                                                                              |  ✅  |
+    |                  | T-P3-3   | Panorama thickness line                                                                                  |  ✅  |
+    |                  | T-P3-4   | Thickness 0mm·Setting UI·ruler                                                                           |  ✅  |
+    |                  | T-P3-5   | 파노라마 생성 모델(thin 재슬라이스+B/L 스윕)                                                             |  ✅  |
+    |                  | T-P3-6   | 뷰별 독립 Interval(Scout/Pano/Section)                                                                   |  ✅  |
+    | **도구(P4)**     | T-P4-1   | Image Filter(Smooth/Sharpen/MaxSharpen/Inverse/MIP)                                                      |  ✅  |
+    |                  | T-P4-2   | 계측 Length/Angle·Free Draw                                                                              |  ✅  |
+    |                  | T-P4-3   | **Arrow 툴 신규 + 전용 커서 자체 제작**                                                                  |  ✅  |
+    |                  | T-P4-4   | Overlay 표시 규칙(호장 앵커·scroll/interval 재표시)                                                      |  ✅  |
+    |                  | T-P4-5   | Show/Hide Grid(물리 10mm 격자)                                                                           |  ✅  |
+    |                  | T-P4-6   | **Pan/Zoom/Reset View/Pointer**(뷰별 독립·Grid 고정·적응형 Ruler·CW 커서)                                |  ✅  |
+    |                  | T-P4-7   | **국제화 i18n**(CW 동일 Lingui 매크로·영어 소스·EN/한 토글)                                              |  ✅  |
+    |                  | T-P4-8   | **Pointer 주석**(CW `PointerDialog`/`PointerCanvas` 포트·모달)                                           |  ✅  |
+    |                  | T-P4-9   | **계측/주석 편집**(선택·이동·핸들 점편집·Property/Delete 다이얼로그)                                     |  ✅  |
+    | **Save(P5)**     | T-P5-1   | 데이터 모델·CW prj 스키마 매핑                                                                           |  ✅  |
+    |                  | T-P5-2   | 직렬화 API·CT키 localStorage·재오픈 자동복원·**Save 버튼·MessageDialog**                                 |  ✅  |
+    |                  | T-P5-3   | **CW prj 필드 어댑터**(CurveList/SectionInfo/PanoSliceInfo/OverlayList·XML 미리보기)                     |  ✅  |
+    |                  | T-P5-4   | 저장 모델 갭(⑨ 계측·③ 뷰별 Pan/Zoom)                                                                     |  ✅  |
+    |                  | T-P5-5   | **Initialize All**(default 복귀·모드 유지) · Reset Cloud Work(접목 시 지원 안내)                         |  ✅  |
+    | **NFR·인계(P6)** | T-P6-1   | Slice 스크롤 벤치마크→NFR(WASM-resident+JS 폴백)                                                         |  ✅  |
+    |                  | T-P6-2   | 공개 API·인계 패키지                                                                                     |  ✅  |
+    | **UI(P7)**       | T-P7-1   | 글로벌 상단 바(환자·MPR/Section·Save)                                                                    |  ✅  |
+    |                  | T-P7-2   | 3-뷰 Title Bar(라벨·Curve 관리·아이콘 클러스터)                                                          |  ✅  |
+    |                  | T-P7-3   | Per-panel Slice Slider(H/F·P/A·R/L)                                                                      |  ✅  |
+    |                  | T-P7-4   | Image Information Overlay(3뷰)                                                                           |  ✅  |
+    |                  | T-P7-5   | Scout Curve 렌더 스타일 정합(MMI §1.3)                                                                   |  ✅  |
+    |                  | T-P7-6   | Panorama 렌더 스타일 정합(MMI §1.4)                                                                      |  ✅  |
     - **추가 성과(요청/스펙 밖까지 자체 해결):** ① **CW에 없던 Arrow 커서 자체 제작**(기획 대기 없이) ② **계측 크로스뷰 연속 드래그/미리보기** ③ **CW 폰트·i18n 현황 불일치 발견·정리**(§9.11·§D23) ④ **접목 절차·중복 제거 설계**(§9.9/9.10) ⑤ Save 복원 StrictMode·좀비 파노라마 등 엣지 버그 수정 ⑥ 죽은 코드 정리·locale 무관 레이아웃 고정.
     - **소유 구분(접목 시 CW):** Save 실제 `.e3prj`/S3 I/O · Reset Cloud Work 클라우드 리셋 · i18n 추출/번역 · Single/Dual·View Original · Pointer 셸 제공 — 우리는 **기여 조각·소스**를 준비, CW가 완성.
 
@@ -267,13 +264,13 @@
     | [ESCV-167](https://vts.vatech.com/browse/ESCV-167) | 개선 | 계측 Property | **Property 필드를 kind별로 분기** — Length·Angle=Line Color+Font Color+Font Size, Arrow·FreeDraw=Line Color+**Line Style**. Line Style은 MMI 미명시라 **CW 정합**(Thin=1·Middle=3·Thick=5, 기본 Thin), 저장·로드는 선굵기 숫자. 렌더에 선굵기 반영. **화살촉은 채운 삼각형**(굵은 선에서도 뾰족, 샤프트는 촉 밑변까지만·둥근 조인) | ✅ **수정 완료**(CW 동일 구현) |
     | [ESCV-169](https://vts.vatech.com/browse/ESCV-169) | 버그 | 확인 다이얼로그 | **Curve 삭제 확인 message box 버튼 좌우 반대** — 확인(OK)이 우·취소가 좌였음 → MMI·Clever Space 정합으로 **확인 좌·취소 우**로 순서 교체 | ✅ **수정 완료** |
     | [ESCV-168](https://vts.vatech.com/browse/ESCV-168) | 버그 | Section 최대화 | **개별 slice 최대화 시 계측/주석(Overlay)이 안 보임** — 최대화 div(zIndex 20, 불투명)가 계측 오버레이(z5)·격자(z4)를 가림. 오버레이를 최대화 div 위로(격자 21·계측 22) 올려 최대화 시에도 표시(격자도 함께). 오버레이 표시는 Show/Hide로만 제어(최대화와 독립) | ✅ **수정 완료** |
-
     - **리포트 템플릿(기획팀 전달):** 화면·기능 / 재현 절차 / 기대 결과 / 실제 결과 / 스크린샷 / 심각도. **채널 = ESCV-138 하위 Sub-Task 1건씩.**
+
   - **S5. 일정 — 구현 완료(7/16), 일정 앞당김.** 구현 **100%**(MMI 전 기능 + Save·i18n·Initialize All) → **이번 주 기획팀 테스트·버그 리포트(데모사이트)** → **CW 팀 접목**(소스 병합·§9.9). Raymond VT API Gateway 병행(부분투입).
 
     ```mermaid
     gantt
-        title Section 모듈 — 일정 (7/20 기준 · 구현 완료)
+        title Section 모듈 — 일정 (7/23 기준 · 구현 완료)
         dateFormat YYYY-MM-DD
         axisFormat %m/%d
         todayMarker stroke-width:2px,stroke:#d33,opacity:0.5
@@ -291,17 +288,18 @@
         인계(핸드오프)                          :milestone, ho, after qa, 0d
         접목·소스 병합 — 일정 미정(TBD)          :crit, integ, after ho, 5d
     ```
+
     - ※ **접목(CW embed·소스 병합)은 CW 팀 소관 · 일정 미정(TBD).** Gantt의 접목 바는 위치 예시일 뿐 확정 일정이 아니며, 확정된 것은 **인계(핸드오프) 시점**까지다.
 
   - **S6. Known gaps (구현 완료 후 잔여 = 접목·숙제만)** — **✅ 해소:** Save Project 전체·CW 필드 어댑터·⑨계측/③Pan-Zoom 저장·국제화(i18n)·Initialize All·Arrow 전용 커서·크로스뷰 연속 추적. **접목 시 CW(우리 코드 아님):** Save 실제 `.e3prj`/S3 I/O·Reset Cloud Work 클라우드부·i18n 추출/번역·Arrow `InteractionType` core 역머지(§9.6)·Scout=MPR Th/INT·Image Adjust 동기(§D18)·Single/Dual·View Original(§D22). **숙제(빠른 출시 우선 이연):** GPU 리슬라이스(§11·D20).
 
 - 이월 논의 사항 (7/16 기준 · 재정리)
 
-  | #   | 항목                            | 타입   | 상태                                         |
-  | --- | ------------------------------- | ------ | -------------------------------------------- |
-  | 1   | CW 폰트 override 수정(CW-1)      | [확정] | **진행** — 이슈 등록 지원(Scott) 결정, CW 팀 수정·styleguide 단일화 추적 (§9.11) |
-  | 2   | 향후 계획·버그 리포트 채널       | [확정] | **진행** — 구현 완료→기획 테스트(데모)→CW 접목. 버그=ESCV-138 Sub-Task |
-  | 3   | 문서(OnePager·개발계획) 커밋    | [정보] | **구현 완료** — 적절 시점 커밋                 |
+  | #   | 항목                         | 타입   | 상태                                                                             |
+  | --- | ---------------------------- | ------ | -------------------------------------------------------------------------------- |
+  | 1   | CW 폰트 override 수정(CW-1)  | [확정] | **진행** — 이슈 등록 지원(Scott) 결정, CW 팀 수정·styleguide 단일화 추적 (§9.11) |
+  | 2   | 향후 계획·버그 리포트 채널   | [확정] | **진행** — 구현 완료→기획 테스트(데모)→CW 접목. 버그=ESCV-138 Sub-Task           |
+  | 3   | 문서(OnePager·개발계획) 커밋 | [정보] | **구현 완료** — 적절 시점 커밋                                                   |
   - **금주 확정·완료:** **Save Project 전체(§7·T-P5-2/3/4)** · **국제화 i18n(§3.11·T-P4-7·한/영 Lingui)** · **Initialize All(§3.10·T-P5-5)** · **Arrow 전용 커서·크로스뷰 추적(§11)**.
   - **확정·정리됨(기존):** B/L 자동판정(§5) · 접목=소스병합(§D4·§9.9/9.10) · R/L 방향(§D19) · WASM 기본·GPU 숙제(§D20) · 계측 3뷰(§D21) · Single/Dual·View Original 범위(§D22) · Slice NFR(§8) · Show/Hide Grid · Pan/Zoom/Reset/Pointer(§D27·§3.7) · Pointer 주석(§D28·§3.8) · 계측 편집·Property(§D29·§3.9) · 적응형 Ruler·Grid/Ruler 고정(§D27b) · 초기화 명령·default 기준(§D30·§3.10).
   - **해소:** Section Slice NFR(측정) · Spec 리뷰·착수 gate · **구현(전부 완료)**.
