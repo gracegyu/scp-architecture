@@ -1022,6 +1022,35 @@
 
       > **7/23 진행(7/16 회의 반영)**: ③ GW SRS = **PR 코멘트 접수 오늘(7/16)까지 → 다음주 월요일(7/20) 마무리·baseline v1.0(0.9→1.0)** · **③-I Infra·③-P-EZ EzServer 초안 = 7/20 Raymond 착수** · **① One Pager(2주 더·8월 초)·④ AXS(IO Scanner)·③-C GW Console = 연기** · **0단계(IO Scanner 수집)** = 선결·방식 R1 미정. v1.0 = **Straumann IO Scanner** 한정(CleverOne = post-v1.0). 순서·의존 = [Roadmap §3.9]. · **(C) 압축**: GW 구현을 ④ AXS *draft* 후 착수 + **구현 기간 40d로 단축** → 구현 ~10/10·E2E ~10/24(**10/31 목표 이내**).
 
+  - **S3. GW 구현 현황 — Phase·Task 스냅샷 (7/23·매주 갱신)** — ③ baseline 동결(7/20) 후 **7/21 1단계(GW 독립 코어) 구현 착수**. 정본 진척 = 구현계획서(IP) 체크박스(`abc-dev-assistant/projects/vt-api-gateway/ImplementationPlan.md`). 매 Task 완료 시 갱신.
+    - **상태 범례**: ✅ 완료(main merge) · 🟡 부분완료(외부 선결로 일부 잔여) · 🟢 리뷰중(PR) · 🟠 구현중 · ⬜ 대기 · 🔴 외부 선결 대기. **표기 규칙**: Phase 내 전 Task 상태가 같으면 1행으로 묶고, 상태가 다르거나 **금주에 변화가 있으면** Task별로 펼친다.
+
+      | Phase | Task | 설명 | 상태 | 비고 |
+      | --- | --- | --- | --- | --- |
+      | **P0 플랫폼 스캐폴드** | T-PLAT-0-1 | NestJS 모노레포·4-way 빌드타겟(core/admin/receiver/dispatcher)·libs/common | ✅ 완료 | PR #11971 merge |
+      | ″ | T-PLAT-0-1b | 로컬 개발환경(docker-compose: PG×2·Valkey·SQS·MQTT·KMS 로컬대체)·Testcontainers·인프라 스모크 | ✅ 완료 | PR #11971 |
+      | ″ | T-PLAT-0-1c | 헥사고날 포트/어댑터(Queue·Kms·ConfigStore·Mqtt)·계약 테스트 | ✅ 완료 | PR #11971 |
+      | ″ | T-PLAT-0-1d | 외부 시스템 더블(LMP·Entra OIDC·AXS·CleverSpace·웹훅 발신·엣지 MQTT) | ✅ 완료 | PR #11971 |
+      | ″ | T-PLAT-0-2 | Prisma 2-datasource(전역/리전)·DBML→schema 동기화 파이프라인 | ✅ 완료 | PR #11974 merge · CodeReviewAgent 반영 |
+      | ″ | T-PLAT-0-3 | 관측(Pino+OTel)·표준 에러 envelope | ✅ 완료 | PR #11980 merge · pre-pr-review가 계약(errorCode) 선제 정합 |
+      | ″ | T-PLAT-0-4 | ConfigService·IRSA·liveness/readiness·graceful shutdown | ✅ 완료 | PR #11982 merge |
+      | ″ | T-PLAT-0-5 | CI 파이프라인·Dockerfile | 🟡 부분완료 | PR #11994 merge · Dockerfile 4타겟·의존성 스캔·CI 게이트 완료 / 🔴 배포(main→DEV·tag prefix)는 Jack Azure 템플릿 수령 후 |
+      | ″ | T-PLAT-0-6 | 레포 온보딩 README | ✅ 완료 | PR #11995 merge |
+      | **P1 데이터 모델·마이그레이션** | 전체 | 13테이블(2클러스터)·enum·Redis 키스페이스·KMS 헬퍼·audit·시드 인프라 | ⬜ 대기 | 1단계·P0 후 |
+      | **P2 인증 토대** | 전체 | device private_key_jwt·JWKS·jti / operator Entra OIDC·RBAC | ⬜ 대기 | 1단계 |
+      | **P3 enrollment·디바이스 생애주기** | 전체 | enroll start/complete·상태머신·재-enroll·C/S 승인·kill | ⬜ 대기 | 1단계 |
+      | **P4 레지스트리·region resolution** | 전체 | Region Resolver·ClinicResolution·mapping_version·PHI OPA 경계 | ⬜ 대기 | 1단계 |
+      | **P5 호환성 게이트** | 전체 | Vatech-* 파싱·well-known·AppConfig·semver 3단계 | ⬜ 대기 | 1단계(compat 값=① One Pager 후) |
+      | **P6 target-routed 프록시/라우팅** | 전체 | 서브도메인·verbatim·PEP 체인·SSRF fail-closed·타임아웃 | ⬜ 대기 | 1단계(실 AXS 왕복 E2E만 ④ 후) |
+      | **P7 External Connector·AXS** | 전체 | OAuth2 cc·egress 고정IP·OPA egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후 |
+      | **P8 webhook 수신(Receiver)** | 전체 | HMAC·멱등·ACK·KMS 암호화 저장·SQS enqueue | ⬜ 대기 | 2단계(골격 로컬 더블 선행 가능) |
+      | **P9 webhook 분배·MQTT(Dispatcher)** | 전체 | SQS consumer·대상해석·MQTT QoS1 하행·DLQ | ⬜ 대기 | 2단계 |
+      | **P10 fleet·중앙 config·inventory** | 전체 | heartbeat·fleet_state·online 파생·config(gw.*)·inventory | ⬜ 대기 | 1단계 |
+      | **P11 Admin API·audit·컴플라이언스** | 전체 | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | ⬜ 대기 | 2단계(webhook slice=P8 후) |
+      | **P12 E2E·하드닝** | 전체 | AXS sandbox E2E·compat E2E·부하·HA/KEDA 검증 | ⬜ 대기 | 🔴 2단계·④ AXS sandbox 실자격 |
+
+      > **금주 요약**: **✅ P0(플랫폼·환경 토대) 완료** — 0-1~0-6 전 Task **merge 완료**(PR #11971·#11974·#11980·#11982·#11994·#11995). 단 0-5는 🟡 부분(배포 파이프라인=Jack Azure Flow 템플릿 후속). **다음 = P1(데이터 모델·마이그레이션) 착수** → 이후 DAG 순서로 **P2·P3·P4 → P5·P6·P10**(1단계·④ 무관). **P7~P9·P11·P12는 2단계**(④ AXS 연동 Spec·Straumann sandbox 자격 후). 41 Task 중 **8 완료 + 1 부분완료**(P0 9 Task 전부 완결). 신설 **pre-pr-review 게이트**(CodeReviewAgent 규칙 사전검사)가 0-3 계약 위반 선제 차단·0-4/0-5 무결함 통과 — 이후 전 Task 공통 적용.
+
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
   | #    | 항목                                   | 타입        | 상태                                                         |
