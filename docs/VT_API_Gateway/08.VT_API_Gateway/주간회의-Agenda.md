@@ -1036,7 +1036,14 @@
       | ″ | T-PLAT-0-4 | ConfigService·IRSA·liveness/readiness·graceful shutdown | ✅ 완료 | PR #11982 merge |
       | ″ | T-PLAT-0-5 | CI 파이프라인·Dockerfile | 🟡 부분완료 | PR #11994 merge · Dockerfile 4타겟·의존성 스캔·CI 게이트 완료 / 🔴 배포(main→DEV·tag prefix)는 Jack Azure 템플릿 수령 후 |
       | ″ | T-PLAT-0-6 | 레포 온보딩 README | ✅ 완료 | PR #11995 merge |
-      | **P1 데이터 모델·마이그레이션** | 전체 | 13테이블(2클러스터)·enum·Redis 키스페이스·KMS 헬퍼·audit·시드 인프라 | ⬜ 대기 | 1단계·P0 후 |
+      | **P1 데이터 모델·마이그레이션** | T-DATA-1-1 | 전역 백본 스키마·초기 마이그레이션(enum 8·테이블 10·FK) | ✅ 완료 | PR #12006 merge · risk:migration |
+      | ″ | T-DATA-1-1b | 전역 관계 raw-SQL 제약(NULLS NOT DISTINCT·부분유니크) | ✅ 완료 | PR #12008 merge · 실 DB 23505 검증 |
+      | ″ | T-DATA-1-2 | 리전 로컬 스키마·마이그레이션(audit·fleet·webhook_event·bytea) | ✅ 완료 | PR #12009 merge · FK 0·bytea·실 DB 검증 |
+      | ″ | T-DATA-1-3 | KMS envelope 암호화 헬퍼(payload/자격 round-trip) | ✅ 완료 | PR #12011 merge · AES-256-GCM·실 KMS 검증 |
+      | ″ | T-DATA-1-4 | Redis 키스페이스 헬퍼(nonce·jti·rate-limit·idempotency) | ✅ 완료 | PR #12012 merge · 실 Valkey 검증·incrRate 원자화 |
+      | ″ | T-DATA-1-5 | audit_log append-only 프리미티브 | ⬜ 대기 | |
+      | ″ | T-DATA-1-6 | region_catalog 시드(서울·default) | ⬜ 대기 | |
+      | ″ | T-DATA-1-7 | 시드·테스트 데이터 인프라(prisma db seed·Factory) | ⬜ 대기 | |
       | **P2 인증 토대** | 전체 | device private_key_jwt·JWKS·jti / operator Entra OIDC·RBAC | ⬜ 대기 | 1단계 |
       | **P3 enrollment·디바이스 생애주기** | 전체 | enroll start/complete·상태머신·재-enroll·C/S 승인·kill | ⬜ 대기 | 1단계 |
       | **P4 레지스트리·region resolution** | 전체 | Region Resolver·ClinicResolution·mapping_version·PHI OPA 경계 | ⬜ 대기 | 1단계 |
@@ -1049,7 +1056,7 @@
       | **P11 Admin API·audit·컴플라이언스** | 전체 | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | ⬜ 대기 | 2단계(webhook slice=P8 후) |
       | **P12 E2E·하드닝** | 전체 | AXS sandbox E2E·compat E2E·부하·HA/KEDA 검증 | ⬜ 대기 | 🔴 2단계·④ AXS sandbox 실자격 |
 
-      > **금주 요약**: **✅ P0(플랫폼·환경 토대) 완료** — 0-1~0-6 전 Task **merge 완료**(PR #11971·#11974·#11980·#11982·#11994·#11995). 단 0-5는 🟡 부분(배포 파이프라인=Jack Azure Flow 템플릿 후속). **다음 = P1(데이터 모델·마이그레이션) 착수** → 이후 DAG 순서로 **P2·P3·P4 → P5·P6·P10**(1단계·④ 무관). **P7~P9·P11·P12는 2단계**(④ AXS 연동 Spec·Straumann sandbox 자격 후). 41 Task 중 **8 완료 + 1 부분완료**(P0 9 Task 전부 완결). 신설 **pre-pr-review 게이트**(CodeReviewAgent 규칙 사전검사)가 0-3 계약 위반 선제 차단·0-4/0-5 무결함 통과 — 이후 전 Task 공통 적용.
+      > **금주 요약**: **✅ P0(플랫폼·환경 토대) 완료**(0-1~0-6·0-5만 🟡 배포부 Jack 후속) → **P1(데이터 모델) 착수** — T-DATA-1-1 전역 초기 마이그레이션 merge(PR #12006·risk:migration). 이후 P1 잔여(1-1b raw-SQL·1-2 리전·1-3 KMS·1-4 Redis·1-5 audit·1-6/1-7 시드) → DAG 순서로 **P2·P3·P4 → P5·P6·P10**(1단계·④ 무관). **P7~P9·P11·P12는 2단계**(④ AXS Spec·Straumann sandbox 후). 41 Task 중 **13 완료 + 1 부분완료**(P1 진행: 1-1·1-1b·1-2·1-3·1-4 merge). **pre-pr-review 게이트 개정**(구현자와 분리된 **독립 리뷰어** + rv_prompt --run-cli + 재발패턴 체크리스트)이 T-DATA-1-1·1-1b에서 테스트 회귀·거짓green·통제문서 부정확을 사전 차단 — 자가리뷰 맹점 해소.
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
