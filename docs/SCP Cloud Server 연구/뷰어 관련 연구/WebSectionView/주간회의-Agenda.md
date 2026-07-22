@@ -238,7 +238,7 @@
     - **추가 성과(요청/스펙 밖까지 자체 해결):** ① **CW에 없던 Arrow 커서 자체 제작**(기획 대기 없이) ② **계측 크로스뷰 연속 드래그/미리보기** ③ **CW 폰트·i18n 현황 불일치 발견·정리**(§9.11·§D23) ④ **접목 절차·중복 제거 설계**(§9.9/9.10) ⑤ Save 복원 StrictMode·좀비 파노라마 등 엣지 버그 수정 ⑥ 죽은 코드 정리·locale 무관 레이아웃 고정.
     - **소유 구분(접목 시 CW):** Save 실제 `.e3prj`/S3 I/O · Reset Cloud Work 클라우드 리셋 · i18n 추출/번역 · Single/Dual·View Original · Pointer 셸 제공 — 우리는 **기여 조각·소스**를 준비, CW가 완성.
 
-  - **S4. 버그 리포트 요약 (ESCV-138 Sub-Task)** — 기획팀 데모 테스트 접수 현황(각 행 = ESCV-138 하위 1건). **접수 23건 전부 수정 완료**(ESCV-144~167, 158 결번). 일부는 **기획 시각 확인만 대기**(ESCV-150 반전 방향, 152·154 조작감). 확인 후 **Resolved→Close는 기획팀**.
+  - **S4. 버그 리포트 요약 (ESCV-138 Sub-Task)** — 기획팀 데모 테스트 접수 현황(각 행 = ESCV-138 하위 1건). **접수 25건 전부 수정 완료**(ESCV-144~169, 158 결번). 일부는 **기획 시각 확인만 대기**(ESCV-150 반전 방향, 152·154 조작감). 확인 후 **Resolved→Close는 기획팀**.
 
     | 이슈번호 | 유형 | 화면·기능 | 요약 | 상태 |
     | --- | --- | --- | --- | --- |
@@ -265,6 +265,8 @@
     | [ESCV-165](https://vts.vatech.com/browse/ESCV-165) | 버그 | Section·Scout·Pano | **휠 1노치에 slice가 5칸씩 이동**(Windows) — 이벤트당 최대 1스텝(while→if+누적 리셋)으로 1노치=1 interval. deltaY 크기가 OS차(Win 노치≈100~120px vs macOS 작음)라 macOS에선 미재현. Scout·Pano 동일 패턴 함께 정정 | ✅ **수정 완료**(Windows 검증 권장) |
     | [ESCV-166](https://vts.vatech.com/browse/ESCV-166) | 버그 | Section 최대화 | **개별 slice 최대화 후 마우스 안 움직이고 재더블클릭 시 최소화 안 됨** — 네이티브 dblclick의 연속클릭 카운터가 정지 시 3,4…로 쌓여 2번째에서만 발생하는 문제. 클릭 시각·위치로 더블클릭 직접 판정(판정 후 리셋)해 이동 여부와 무관하게 토글. 매직마우스는 미세이동으로 리셋돼 미재현 | ✅ **수정 완료** |
     | [ESCV-167](https://vts.vatech.com/browse/ESCV-167) | 개선 | 계측 Property | **Property 필드를 kind별로 분기** — Length·Angle=Line Color+Font Color+Font Size, Arrow·FreeDraw=Line Color+**Line Style**. Line Style은 MMI 미명시라 **CW 정합**(Thin=1·Middle=3·Thick=5, 기본 Thin), 저장·로드는 선굵기 숫자. 렌더에 선굵기 반영. **화살촉은 채운 삼각형**(굵은 선에서도 뾰족, 샤프트는 촉 밑변까지만·둥근 조인) | ✅ **수정 완료**(CW 동일 구현) |
+    | [ESCV-169](https://vts.vatech.com/browse/ESCV-169) | 버그 | 확인 다이얼로그 | **Curve 삭제 확인 message box 버튼 좌우 반대** — 확인(OK)이 우·취소가 좌였음 → MMI·Clever Space 정합으로 **확인 좌·취소 우**로 순서 교체 | ✅ **수정 완료** |
+    | [ESCV-168](https://vts.vatech.com/browse/ESCV-168) | 버그 | Section 최대화 | **개별 slice 최대화 시 계측/주석(Overlay)이 안 보임** — 최대화 div(zIndex 20, 불투명)가 계측 오버레이(z5)·격자(z4)를 가림. 오버레이를 최대화 div 위로(격자 21·계측 22) 올려 최대화 시에도 표시(격자도 함께). 오버레이 표시는 Show/Hide로만 제어(최대화와 독립) | ✅ **수정 완료** |
 
     - **리포트 템플릿(기획팀 전달):** 화면·기능 / 재현 절차 / 기대 결과 / 실제 결과 / 스크린샷 / 심각도. **채널 = ESCV-138 하위 Sub-Task 1건씩.**
   - **S5. 일정 — 구현 완료(7/16), 일정 앞당김.** 구현 **100%**(MMI 전 기능 + Save·i18n·Initialize All) → **이번 주 기획팀 테스트·버그 리포트(데모사이트)** → **CW 팀 접목**(소스 병합·§9.9). Raymond VT API Gateway 병행(부분투입).
