@@ -1055,7 +1055,7 @@
       | ″ | T-DATA-1-3 | KMS envelope 암호화 헬퍼(payload/자격 round-trip) | ✅ 완료 | PR #12011 merge · AES-256-GCM·실 KMS 검증 |
       | ″ | T-DATA-1-4 | Redis 키스페이스 헬퍼(nonce·jti·rate-limit·idempotency) | ✅ 완료 | PR #12012 merge · 실 Valkey 검증·incrRate 원자화 |
       | ″ | T-DATA-1-5 | audit_log append-only 프리미티브(트리거·AuditService) | ✅ 완료 | PR #12016 merge · replica 우회까지 차단 |
-      | ″ | T-DATA-1-6 | region_catalog 시드(서울·default) | ⬜ 대기 | |
+      | ″ | T-DATA-1-6 | region_catalog 시드(서울·default·self-heal) | ✅ 완료 | PR #12018 merge |
       | ″ | T-DATA-1-7 | 시드·테스트 데이터 인프라(prisma db seed·Factory) | ⬜ 대기 | |
       | **P2 인증 토대** | 전체 | device private_key_jwt·JWKS·jti / operator Entra OIDC·RBAC | ⬜ 대기 | 1단계 |
       | **P3 enrollment·디바이스 생애주기** | 전체 | enroll start/complete·상태머신·재-enroll·C/S 승인·kill | ⬜ 대기 | 1단계 |
@@ -1076,7 +1076,7 @@
       > - **데이터 모델의 적용 범위**: 데이터 계층은 **4개 앱이 공유하는 하나의 공통 자산**이다(앱별로 나뉘지 않음). DB(전역 `gw_global`·리전 `gw_regional`)와 Prisma 스키마·공용 헬퍼는 `libs/common`에 **한 벌만** 두고 core·admin·receiver·dispatcher가 함께 쓴다 — **4-way는 노출하는 API·역할만 다를 뿐 데이터 모델/DB는 동일하게 공유**한다.
       > - **다음**: P1 마무리 → 인증(P2)·enrollment(P3)·레지스트리/region(P4) 순으로 실제 GW 기능 착수(모두 ④ AXS 없이 선행 가능). AXS 연동부(P7~)는 2단계.
       >
-      > *(참고: 진척=41 Task 중 14 완료+1 부분. 7/22 spec-v1.0.1 정합화 — 규칙 불변, 인가/설정의 구현 엔진만 조정, 완료분 영향 없음. 매 Task는 구현자와 분리된 독립 리뷰어의 pre-PR 검토를 거친다.)
+      > *(참고: 진척=41 Task 중 15 완료+1 부분(P1 잔여=1-7만). 7/22 spec-v1.0.1 정합화 — 규칙 불변, 인가/설정의 구현 엔진만 조정, 완료분 영향 없음. 매 Task는 구현자와 분리된 독립 리뷰어의 pre-PR 검토를 거친다.)
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
@@ -1125,20 +1125,20 @@
         PR 리뷰·수정                  :done, srspr, 2026-07-13, 2026-07-20
         baseline v1.0 (7/20 확정·spec-v1.0.1 정합화 7/22) :milestone, done, srsbl, 2026-07-20, 0d
 
-        section GW 구현 → E2E → 출시 (2단계 병행 · Raymond 부분투입)
+        section GW 구현 → E2E → 출시 (③ SRS 완료 직후 착수 · 2단계 병행 · Raymond 부분투입)
         1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·진행중) :active, implindep, 2026-07-21, 45d
-        2단계 AXS 연동 (P7~P12·④ AXS 보류 해제 후)   :implaxs, after axsw, 40d
+        2단계 AXS 연동 (P7~P12·④ AXS 보류 해제 후)   :implaxs, after implindep, 40d
         AXS E2E (sandbox)              :e2e, after implaxs, 14d
         개발환경 연동 완료(9월·R2)       :milestone, dev9, 2026-09-30, 0d
         v1.0 production 연동 완료(10월·R2·재검토) :milestone, rel, 2026-10-31, 0d
 
-        section ③-P-EZ EzServer 연동 스펙 (초안 Raymond 7/20 착수→EzServer 팀 · IO Scanner부=보류)
         section ③-I 인프라 IaC (초안 Raymond diagram→Jack detail · PR 7/21 생성·진행중 · AWS dev·qa·stag·prod)
         초안 Raymond(diagram+요구추출)→Jack :done, infw, 2026-07-20, 1d
         PR 생성·리뷰·Jack detail(7/21 생성·진행중) :active, infpr, 2026-07-21, 21d
         baseline                      :milestone, infbl, after infpr, 0d
         Infra 구축·자동배포 완료(8월·R2) :milestone, infra8, 2026-08-31, 0d
 
+        section ③-P-EZ EzServer 연동 스펙 (초안 Raymond 7/20 착수→EzServer 팀 · IO Scanner부=보류)
         초안 Raymond(기본 GW연동)→EzServer팀 :active, ezw, 2026-07-20, 21d
         PR 리뷰·수정                  :ezpr, after ezw, 14d
         baseline                      :milestone, ezbl, after ezpr, 0d
@@ -1198,7 +1198,7 @@
       | **P0 플랫폼 스캐폴드** | 0-1~0-4·0-6 | 4-way 스캐폴드·로컬환경·포트어댑터·더블·Prisma 파이프라인·관측·에러·Config·헬스·README | ✅ 완료 | PR #11971~11995 merge |
       | ″ | T-PLAT-0-5 | CI 파이프라인·Dockerfile | 🟡 부분완료 | PR #11994 merge · CI·스캔 완료 / 🔴 배포(main→DEV·tag prefix)는 Jack Azure 템플릿 수령 후 |
       | **P1 데이터 모델·마이그레이션** | T-DATA-1-1~1-5 | 전역/리전 스키마·raw-SQL 제약·KMS envelope·Redis 키스페이스·audit append-only | ✅ 완료 | PR #12006~12016 merge |
-      | ″ | T-DATA-1-6 | region_catalog 시드(서울·default·self-heal) | 🟢 리뷰중 | PR #12018 |
+      | ″ | T-DATA-1-6 | region_catalog 시드(서울·default·self-heal) | ✅ 완료 | PR #12018 merge |
       | ″ | T-DATA-1-7 | 시드·테스트 데이터 인프라(prisma db seed·Factory·**E2E 반복성 하네스**) | ⬜ 대기 | 검증 4종·반복성 인프라(IP §6 강화) |
       | **P2 인증 토대** | 전체 | device private_key_jwt·JWKS·jti / operator Entra OIDC·RBAC | ⬜ 대기 | 1단계(다음 착수) |
       | **P3 enrollment·디바이스 생애주기** | 전체 | enroll start/complete·상태머신·재-enroll·C/S 승인·kill | ⬜ 대기 | 1단계 |
