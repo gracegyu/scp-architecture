@@ -701,6 +701,19 @@ gantt
     PR 리뷰·수정                  :done, srspr, 2026-07-13, 2026-07-20
     baseline v1.0 (7/20 확정·spec-v1.0.1 정합화 7/22) :milestone, done, srsbl, 2026-07-20, 0d
 
+    section GW 구현 → E2E → 출시 (③ SRS 완료 직후 착수 · 2단계 병행 · Raymond 부분투입)
+    1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·진행중) :active, implindep, 2026-07-21, 45d
+    2단계 AXS 연동 (P7~P12·④ AXS 보류 해제 후)   :implaxs, after implindep, 40d
+    AXS E2E (sandbox)              :e2e, after implaxs, 14d
+    개발환경 연동 완료(9월·R2)       :milestone, dev9, 2026-09-30, 0d
+    v1.0 production 연동 완료(10월·R2·재검토) :milestone, rel, 2026-10-31, 0d
+
+    section ③-I 인프라 IaC (초안 Raymond diagram→Jack detail · PR 7/21 생성·진행중 · AWS dev·qa·stag·prod)
+    Raymond diagram 초안(7/20)      :done, infw1, 2026-07-20, 1d
+    PR 생성·리뷰·Jack detail(7/21 생성·진행중) :active, infpr, 2026-07-21, 21d
+    baseline                      :milestone, infbl, after infpr, 0d
+    Infra 구축·자동배포 완료(8월·R2) :milestone, infra8, 2026-08-31, 0d
+
     section ③-P-EZ EzServer 연동 스펙 (초안 Raymond 7/20 착수→Thomas · IO Scanner부=보류)
     초안 Raymond(기본 GW연동)→Thomas :active, ezw, 2026-07-20, 21d
     PR 리뷰·수정                  :ezpr, after ezw, 14d
@@ -716,12 +729,6 @@ gantt
     PR 리뷰·수정                  :copr, after cosub, 14d
     baseline                      :milestone, cobl, after copr, 0d
 
-    section ③-I 인프라 IaC (초안 Raymond diagram 7/20→Jack detail · PR 7/21 생성·진행중 · AWS dev·qa·stag·prod)
-    Raymond diagram 초안(7/20)      :done, infw1, 2026-07-20, 1d
-    PR 생성·리뷰·Jack detail(7/21 생성·진행중) :active, infpr, 2026-07-21, 21d
-    baseline                      :milestone, infbl, after infpr, 0d
-    Infra 구축·자동배포 완료(8월·R2) :milestone, infra8, 2026-08-31, 0d
-
     section ④ AXS Sub-SRS · IO Scanner (보류 — 7/23 결정: 0단계 IO Scanner 보류·Straumann 협상)
     IO Scanner↔EzServer 연동방식 확정(보류·선결·R1) :crit, ezm, after cosub, 21d
     작성 (IO Scanner scope · Straumann 협상 후) :axsw, after ezm, 21d
@@ -733,13 +740,6 @@ gantt
     작성 (연기·후순위)              :conw, after axsbl, 14d
     PR 리뷰·수정                  :conpr, after conw, 14d
     baseline                      :milestone, conbl, after conpr, 0d
-
-    section GW 구현 → E2E → 출시 (2단계 병행 · Raymond 부분투입)
-    1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·진행중) :active, implindep, 2026-07-21, 45d
-    2단계 AXS 연동 (P7~P12·④ AXS 보류 해제 후)   :implaxs, after axsw, 40d
-    AXS E2E (sandbox)              :e2e, after implaxs, 14d
-    개발환경 연동 완료(9월·R2)       :milestone, dev9, 2026-09-30, 0d
-    v1.0 production 연동 완료(10월·R2·재검토) :milestone, rel, 2026-10-31, 0d
 
     section v1.0 이후 (deferred · post-v1.0)
     CleverOne 연동 *구현* (스펙은 지금·구현 post-v1.0) :codef, after rel, 14d
