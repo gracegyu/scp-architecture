@@ -306,4 +306,73 @@
 
 ---
 
+# Cloud Web Viewer v1.3.2 Section 모듈 — 7/30 주간회의 Agenda
+
+> **[작성 중 · 회의 전 확정]** 구현 완료(7/16) 후 **기획팀 데모 테스트 → 버그 수정** 사이클 진행. 7/23까지 접수 25건(ESCV-144~169, 158 결번) **전부 수정 완료**, 이후 **추가 접수분 대응 중**(버그 표 프레임 유지). **CW 접목은 Sonya가 착수**(오늘 회의에서 Scott 배정) → 우리는 **인계·지원**. 이번 주 초점 = 잔여 버그·기획 시각검증 마무리 + **접목 착수 지원**.
+
+- 참조 정보
+  - [OnePager (VKS)](https://vks.vatech.com/x/UecSEw)
+  - [Demo 사이트](http://scp-section-demo.test.scp.esclouddev.com)
+  - Repository: [Azure DevOps `scp-section-poc`](https://dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc)
+  - VTS: [PLAN-1287](https://vts.vatech.com/browse/PLAN-1287) · 버그: [ESCV-138](https://vts.vatech.com/browse/ESCV-138)
+
+- 이번 주 진행 (7/23 이후) — _회의 전 채움_
+  - **버그 수정** — 이번 주 신규 접수·수정분 (S2 표에 기록).
+  - **기획 시각검증 마무리** — ESCV-150(B/L 좌우 반전 방향)·152·154(조작감)·165(Windows 휠) 시각/OS 확인 → **Resolved→Close는 기획팀**.
+  - **CW 접목 착수 지원(Sonya)** — 인계 자료·소스 조각 전달, 질의 대응.
+  -
+
+- 논의 사항
+  - **R1. CW 접목 담당·진행 방식 — Sonya 착수(Scott 배정)** — 오늘 회의에서 **Scott이 CW 접목(소스 병합, §9.9)을 Sonya에게 배정**(시켜보기로). 접목은 **CW 팀 소관**이며 우리(Raymond/Section)는 **인계·지원**. **확인·합의:** ① 인계 범위·창구(문서/소스/데모) ② 착수 시점 ③ 우리 지원 방식(질의 대응·페어). → 확정 시 Gantt 접목 담당 = **Sonya** 로 반영.
+    - **성격:** [정보] · 배정: Scott. 인계 세부 = Sonya·Raymond 협의.
+
+- 공유 사항
+  - **S1. 현재 단계** — `구현 완료(7/16 ✅) → 기획 테스트·버그 수정(진행) → 기획 시각검증 → CW 접목(Sonya 착수) [지금 진입]`.
+
+  - **S2. 버그 리포트 (ESCV-138 Sub-Task) — 프레임 유지·추가 접수분 반영** — 7/23까지 접수 **25건(ESCV-144~169) 전부 수정 완료**(상세는 **7/23 스냅샷** 참조). 아래엔 **검증 대기분 + 이번 주 신규 접수분**만 유지·추가. 확인 후 **Resolved→Close는 기획팀**.
+
+    | 이슈번호 | 유형 | 화면·기능 | 요약 | 상태 |
+    | --- | --- | --- | --- | --- |
+    | [ESCV-171](https://vts.vatech.com/browse/ESCV-171) | 버그 | Scout·Panorama | 영상 밖 검정 블랭크 영역에서 Pan/Zoom 미동작(입력이 영상 영역에만 국한) — 패널 전체를 덮는 pan/zoom 캡처 레이어 추가(Section·CleverSpace MPR 정합) | ✅ **수정 완료**(빌드·테스트 통과, 시각검증 권장) |
+    | [ESCV-172](https://vts.vatech.com/browse/ESCV-172) | 개선 | Panorama Thickness | TH 표기 소수점 과다(예: 27.843…) → Ez3D-i처럼 **소수점 첫째자리**(예: 27.8 mm)로 통일(Panorama TH 오버레이·Scout 두께 라벨 동일) | ✅ **수정 완료** |
+    | _(신규)_ |  |  | _이번 주 추가 접수분_ | 접수/수정중/완료 |
+    |  |  |  |  |  |
+    - **리포트 템플릿(기획팀 전달):** 화면·기능 / 재현 절차 / 기대 결과 / 실제 결과 / 스크린샷 / 심각도. **채널 = ESCV-138 하위 Sub-Task 1건씩.**
+
+  - **S3. 일정 — 버그 수정·검증 마무리 + 접목 착수(Sonya).**
+
+    ```mermaid
+    gantt
+        title Section 모듈 — 일정 (7/30 기준)
+        dateFormat YYYY-MM-DD
+        axisFormat %m/%d
+        todayMarker stroke-width:2px,stroke:#d33,opacity:0.5
+
+        section 구현 (완료)
+        모듈 구현 완료   :done, impl, 2026-07-13, 2026-07-19
+
+        section 기획 테스트·버그 수정
+        데모 테스트·버그 리포트·수정(ESCV-138)   :active, qa, 2026-07-20, 2026-07-31
+
+        section 접목 (Sonya · CW 팀)
+        인계(핸드오프)                       :milestone, ho, 2026-07-28, 0d
+        접목·소스 병합 (Sonya 착수 · 일정 협의)   :crit, integ, after ho, 7d
+    ```
+
+    - ※ **접목은 Sonya(CW 팀) 착수 — 착수·완료 일정은 협의 중(TBD).** Gantt의 접목 바는 예시이며 확정 일정 아님.
+
+  - **S4. Known gaps (잔여 = 접목·숙제)** — **접목 시 CW(Sonya):** Save 실제 `.e3prj`/S3 I/O·Reset Cloud Work 클라우드부·i18n 추출/번역·Arrow `InteractionType` core 역머지(§9.6)·Scout=MPR Th/INT·Image Adjust 동기(§D18)·Single/Dual·View Original(§D22). **숙제(이연):** GPU 리슬라이스(§11·D20).
+
+- 이월 논의 사항
+
+  | #   | 항목                         | 타입   | 상태                                                  |
+  | --- | ---------------------------- | ------ | ----------------------------------------------------- |
+  | 1   | CW 접목 담당·진행(Sonya)     | [정보] | **신규** — Scott 배정, 우리는 인계·지원 (→ R1)        |
+  | 2   | 기획 시각검증 잔여           | [정보] | **진행** — ESCV-150/152/154/165 확인 후 Close(기획팀) |
+  | 3   | CW 폰트 override 수정(CW-1)  | [확정] | **진행** — CW 팀 수정·styleguide 단일화 추적 (§9.11)  |
+  | 4   | 문서(OnePager·개발계획) 커밋 | [정보] | 구현 완료 — 적절 시점 커밋                            |
+  - **확정·완료(누적):** 구현 전부(§7·§3.10·§3.11 등) · 버그 25건(ESCV-144~169) 수정 · Save/i18n/Initialize All · Arrow 커서·크로스뷰 추적.
+
+---
+
 <!-- 다음 주부터: 위 「작성 규칙」템플릿 블록을 복사해 아래에 # M/D 주간회의 Agenda 를 추가 -->
