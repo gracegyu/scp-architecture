@@ -1056,7 +1056,7 @@
       | ″ | T-DATA-1-4 | Redis 키스페이스 헬퍼(nonce·jti·rate-limit·idempotency) | ✅ 완료 | PR #12012 merge · 실 Valkey 검증·incrRate 원자화 |
       | ″ | T-DATA-1-5 | audit_log append-only 프리미티브(트리거·AuditService) | ✅ 완료 | PR #12016 merge · replica 우회까지 차단 |
       | ″ | T-DATA-1-6 | region_catalog 시드(서울·default·self-heal) | ✅ 완료 | PR #12018 merge |
-      | ″ | T-DATA-1-7 | 시드·테스트 데이터 인프라(prisma db seed·Factory) | ⬜ 대기 | |
+      | ″ | T-DATA-1-7 | 시드·테스트 데이터 인프라(prisma db seed·Factory·E2E 반복성 하네스) | ✅ 완료 | PR #12040 merge · full e2e 68·reset 통합 4 · **→ P1 완료** |
       | **P2 인증 토대** | 전체 | device private_key_jwt·JWKS·jti / operator Entra OIDC·RBAC | ⬜ 대기 | 1단계 |
       | **P3 enrollment·디바이스 생애주기** | 전체 | enroll start/complete·상태머신·재-enroll·C/S 승인·kill | ⬜ 대기 | 1단계 |
       | **P4 레지스트리·region resolution** | 전체 | Region Resolver·ClinicResolution·mapping_version·PHI OPA 경계 | ⬜ 대기 | 1단계 |
@@ -1076,7 +1076,7 @@
       > - **데이터 모델의 적용 범위**: 데이터 계층은 **4개 앱이 공유하는 하나의 공통 자산**이다(앱별로 나뉘지 않음). DB(전역 `gw_global`·리전 `gw_regional`)와 Prisma 스키마·공용 헬퍼는 `libs/common`에 **한 벌만** 두고 core·admin·receiver·dispatcher가 함께 쓴다 — **4-way는 노출하는 API·역할만 다를 뿐 데이터 모델/DB는 동일하게 공유**한다.
       > - **다음**: P1 마무리 → 인증(P2)·enrollment(P3)·레지스트리/region(P4) 순으로 실제 GW 기능 착수(모두 ④ AXS 없이 선행 가능). AXS 연동부(P7~)는 2단계.
       >
-      > *(참고: 진척=41 Task 중 15 완료+1 부분(P1 잔여=1-7만). 7/22 spec-v1.0.1 정합화 — 규칙 불변, 인가/설정의 구현 엔진만 조정, 완료분 영향 없음. 매 Task는 구현자와 분리된 독립 리뷰어의 pre-PR 검토를 거친다.)
+      > *(참고: 진척=41 Task 중 16 완료+1 부분(**P0·P1 완료**, 0-5만 배포부 잔여). 7/22 spec-v1.0.1 정합화 — 규칙 불변, 인가/설정의 구현 엔진만 조정, 완료분 영향 없음. 매 Task는 구현자와 분리된 독립 리뷰어의 pre-PR 검토를 거친다.)
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
@@ -1199,7 +1199,7 @@
       | ″ | T-PLAT-0-5 | CI 파이프라인·Dockerfile | 🟡 부분완료 | PR #11994 merge · CI·스캔 완료 / 🔴 배포(main→DEV·tag prefix)는 Jack Azure 템플릿 수령 후 |
       | **P1 데이터 모델·마이그레이션** | T-DATA-1-1~1-5 | 전역/리전 스키마·raw-SQL 제약·KMS envelope·Redis 키스페이스·audit append-only | ✅ 완료 | PR #12006~12016 merge |
       | ″ | T-DATA-1-6 | region_catalog 시드(서울·default·self-heal) | ✅ 완료 | PR #12018 merge |
-      | ″ | T-DATA-1-7 | 시드·테스트 데이터 인프라(prisma db seed·Factory·**E2E 반복성 하네스**) | ⬜ 대기 | 검증 4종·반복성 인프라(IP §6 강화) |
+      | ″ | T-DATA-1-7 | 시드·테스트 데이터 인프라(prisma db seed·Factory·**E2E 반복성 하네스**) | ✅ 완료 | PR #12040 merge · **→ P1 완료** |
       | **P2 인증 토대** | 전체 | device private_key_jwt·JWKS·jti / operator Entra OIDC·RBAC | ⬜ 대기 | 1단계(다음 착수) |
       | **P3 enrollment·디바이스 생애주기** | 전체 | enroll start/complete·상태머신·재-enroll·C/S 승인·kill | ⬜ 대기 | 1단계 |
       | **P4 레지스트리·region resolution** | 전체 | Region Resolver·ClinicResolution·mapping_version·PHI 앱 내부 PDP 경계 | ⬜ 대기 | 1단계 |
