@@ -18,13 +18,13 @@
 |------|------|-------------|-------------|--------------|------|
 | ③ | VatechAPIGateway | SRS (메인, 계약 정본) | GW (본인) | — | 작성 중 |
 | ③-C | GW Console | Sub-SRS | GW (본인)→이관 | §7.9 | 미작성 |
-| ③-P-CS | CleverSpace | Sub-SRS(멀티Region 큼) 또는 One Pager | CleverSpace 팀 | §4.5·§7.3·§7.6.5 | 미작성 |
-| ③-P-CO | CleverOne | One Pager | CleverOne(Nick) | §4.5·§7.1·§7.3 | 미작성 |
+| ③-P-CS | CleverSpace | One Pager (1·2·3·4단계 통합·①②흡수) | CleverSpace 팀 | §2.3.5·§7.4·§7.7·§4.5.1·§7.3 | **초안 작성중**(Raymond·2026-07-27·완료 후 CleverSpace 팀 인계) |
+| ③-P-CO | CleverOne | One Pager (1·2·3·4단계 통합·①②흡수) | CleverOne 팀 | §7.7.1·§2.3.0·§7.4·§7.3 | **초안 착수**(Nick→Raymond·2026-07-27·OnePager 지금·연동 구현 post-v1.0) |
 | ③-P-EZ | EzServer | One Pager | EzServer 팀 | §4.5·§7.3·§7.6.6 | **인계** (ezserver_suite `doc/onepager/gw_adaptation`·target `v6.5.x`·2026-07-21) |
 | ③-P-LMP | LMP (License Portal) | One Pager (조건부) | LMP/ELM 팀(ES)→이관 | §2.3.1 B·§7.1.1·§7.1.4 | **초안**(조건부·R9서 B 채택 시) |
 | ③-I | Infra | IaC 구축 계획서(기능 스펙 아님) | 인프라 담당 | §3.1·§4.5.1·§7.3.5 | 미작성 |
 
-> 형식은 변경 크기로 결정한다(일률 One Pager 아님): CleverSpace 멀티 Region은 Sub-SRS급일 수 있고, 단순 적응은 티켓으로 충분할 수 있다.
+> 형식은 변경 크기로 결정한다(일률 One Pager 아님): 단순 적응은 티켓으로 충분할 수 있다. **CleverSpace·CleverOne은 7/23 결정으로 각각 One Pager 1개(1·2·3·4단계 통합·①호환성·②Presigned One Pager 흡수)로 확정** — 멀티 Region(4단계)이 커지면 해당 절만 Sub-SRS로 승격 가능.
 
 ## 구현 착수 전략 (7/2 R7 = 1안 확정)
 
