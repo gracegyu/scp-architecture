@@ -1057,7 +1057,8 @@
       | ″ | T-DATA-1-5 | audit_log append-only 프리미티브(트리거·AuditService) | ✅ 완료 | PR #12016 merge · replica 우회까지 차단 |
       | ″ | T-DATA-1-6 | region_catalog 시드(서울·default·self-heal) | ✅ 완료 | PR #12018 merge |
       | ″ | T-DATA-1-7 | 시드·테스트 데이터 인프라(prisma db seed·Factory·E2E 반복성 하네스) | ✅ 완료 | PR #12040 merge · full e2e 68·reset 통합 4 · **→ P1 완료** |
-      | **P2 인증 토대** | 전체 | device private_key_jwt·JWKS·jti / operator Entra OIDC·RBAC | ⬜ 대기 | 1단계 |
+      | **P2 인증 토대** | T-AUTH-2-1 | private_key_jwt 검증→RS256 access token(`POST /v1/auth/token`)·JWKS 결정·키회전 대비 | ✅ 완료 | PR #12094 merge · 검증 4종·실 curl·독립리뷰 High 0 |
+      | ″ | 2-2~2-5 | jti 1회소비·rate-limit·revocation / operator Entra OIDC·RBAC | ⬜ 대기 | 1단계(다음=2-2) |
       | **P3 enrollment·디바이스 생애주기** | 전체 | enroll start/complete·상태머신·재-enroll·C/S 승인·kill | ⬜ 대기 | 1단계 |
       | **P4 레지스트리·region resolution** | 전체 | Region Resolver·ClinicResolution·mapping_version·PHI OPA 경계 | ⬜ 대기 | 1단계 |
       | **P5 호환성 게이트** | 전체 | Vatech-* 파싱·well-known·AppConfig·semver 3단계 | ⬜ 대기 | 1단계(compat 값=① One Pager 후) |
@@ -1076,7 +1077,7 @@
       > - **데이터 모델의 적용 범위**: 데이터 계층은 **4개 앱이 공유하는 하나의 공통 자산**이다(앱별로 나뉘지 않음). DB(전역 `gw_global`·리전 `gw_regional`)와 Prisma 스키마·공용 헬퍼는 `libs/common`에 **한 벌만** 두고 core·admin·receiver·dispatcher가 함께 쓴다 — **4-way는 노출하는 API·역할만 다를 뿐 데이터 모델/DB는 동일하게 공유**한다.
       > - **다음**: P1 마무리 → 인증(P2)·enrollment(P3)·레지스트리/region(P4) 순으로 실제 GW 기능 착수(모두 ④ AXS 없이 선행 가능). AXS 연동부(P7~)는 2단계.
       >
-      > *(참고: 진척=41 Task 중 16 완료+1 부분(**P0·P1 완료**, 0-5만 배포부 잔여). 7/22 spec-v1.0.1 정합화 — 규칙 불변, 인가/설정의 구현 엔진만 조정, 완료분 영향 없음. 매 Task는 구현자와 분리된 독립 리뷰어의 pre-PR 검토를 거친다.)
+      > *(참고: 진척=41 Task 중 17 완료+1 부분(**P0·P1 완료·P2 착수**=T-AUTH-2-1, 0-5만 배포부 잔여). 7/22 spec-v1.0.1 정합화 — 규칙 불변, 인가/설정의 구현 엔진만 조정, 완료분 영향 없음. 매 Task는 구현자와 분리된 독립 리뷰어의 pre-PR 검토를 거친다.)
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
@@ -1101,7 +1102,7 @@
   - **(7/23 결정 반영) 0단계 IO Scanner 보류 → 1·2·3단계 우선 진행** — Straumann과 ES의 데이터 흐름 방향(IO Scanner→AXS→GW→EzServer vs IO Scanner→EzServer→GW→AXS) 협상 지속으로 IO Scanner 연동(0단계·④ AXS scope)은 **잠시 보류**. 그 사이 계약이 고정된 **1(호환성)·2(presigned)·3(GW 일원화)단계**를 먼저 진행.
   - **(7/23·오늘 결정 반영) CleverSpace·CleverOne OnePager 2개 = Raymond 작성(7/27 병행 착수)** — 각 문서가 **1·2·3단계(호환성+presigned+GW 일원화)를 통합**한다. **presigned는 CleverSpace(발급 API 신규)·CleverOne(이용) 양쪽**이 바꿔야 하므로(직접 연동 금지·GW 경유) **별도 Presigned One Pager를 쓰지 않고** 두 제품 OnePager에 포함 → **①호환성·②presigned 별도 문서 폐지·딱 2개 문서**. CleverOne은 연동 *구현*은 post-v1.0이나 **OnePager는 지금** 작성(Nick→Raymond). → S1 Gantt·S2 표 반영.
   - **(7/23 결정 반영) AWS 환경 = dev·qa·stag·prod 4계층** — dev·qa=동일 계정·namespace 분리·단일 Region / stag=별도·단일 Region / prod=Region별 분리. **환경 파일은 template만 git**(각 환경 `.env`=Jack 작성 / 로컬 `.env`=개발자 / `.env.template`은 Jack이 어떤 값이든 동작하도록 유지).
-  - **(프레임) GW 구현 진척** — P1 데이터 모델 완료(T-DATA-1-6·1-7) → **P1 종료**, P2 인증 토대 착수(1단계·④ 무관). 상세=S3.
+  - **(프레임) GW 구현 진척** — P1 종료 → **P2 T-AUTH-2-1**(private_key_jwt 검증·RS256 access token·`POST /v1/auth/token`) **완료**(PR #12094·검증 4종·실 curl·독립리뷰 High 0) → **T-AUTH-2-2**(jti 1회소비·rate-limit[검증후 정본 clientId]·revocation denylist) **완료**(PR #12106·unit 48·e2e 8/8). 부수: **빌드/Docker 앱 부팅 릴리즈게이트 해소**(Prisma 생성물→node_modules 패키지·PR #12100). 다음=T-AUTH-2-3(deviceAuth Guard). 상세=S3.
 
 - 논의 사항 (이번 주) _(프레임 · 신규 안건 회의 시 추가)_
   - **(이월·계속) Straumann ↔ ES IO Scanner 데이터 흐름 협상** — Straumann은 기존 프로세스(IO Scanner→AXS→GW→EzServer) 유지를 원하나 ES(VT)에 불리(고객이 연동 설정 안 하면 EzServer가 결과 미수신). ES 안(IO Scanner→EzServer→GW→AXS)과 절충 협상 중. **결정 시 R1(IO Scanner↔EzServer 연동 방식)·④ AXS scope 착수 조건 확정.**
@@ -1200,7 +1201,9 @@
       | **P1 데이터 모델·마이그레이션** | T-DATA-1-1~1-5 | 전역/리전 스키마·raw-SQL 제약·KMS envelope·Redis 키스페이스·audit append-only | ✅ 완료 | PR #12006~12016 merge |
       | ″ | T-DATA-1-6 | region_catalog 시드(서울·default·self-heal) | ✅ 완료 | PR #12018 merge |
       | ″ | T-DATA-1-7 | 시드·테스트 데이터 인프라(prisma db seed·Factory·**E2E 반복성 하네스**) | ✅ 완료 | PR #12040 merge · **→ P1 완료** |
-      | **P2 인증 토대** | 전체 | device private_key_jwt·JWKS·jti / operator Entra OIDC·RBAC | ⬜ 대기 | 1단계(다음 착수) |
+      | **P2 인증 토대** | T-AUTH-2-1 | private_key_jwt 검증→RS256 access token(`POST /v1/auth/token`)·키회전 대비 | ✅ 완료 | PR #12094 merge · 검증 4종·실 curl |
+      | ″ | T-AUTH-2-2 | jti 1회소비(재사용 401)·rate-limit(검증후 정본 clientId·표적 lockout 차단)·revocation denylist(즉시 401) | ✅ 완료 | PR #12106 merge · unit 48·e2e 8/8(실 Valkey: replay·rate-limit 429@#31·revocation) |
+      | ″ | 2-3~2-5 | deviceAuth Guard(per-controller) / operator Entra OIDC·RBAC | ⬜ 대기 | 1단계(다음=2-3) |
       | **P3 enrollment·디바이스 생애주기** | 전체 | enroll start/complete·상태머신·재-enroll·C/S 승인·kill | ⬜ 대기 | 1단계 |
       | **P4 레지스트리·region resolution** | 전체 | Region Resolver·ClinicResolution·mapping_version·PHI 앱 내부 PDP 경계 | ⬜ 대기 | 1단계 |
       | **P5 호환성 게이트** | 전체 | Vatech-* 파싱·well-known·Parameter Store/LKG·semver 3단계 | ⬜ 대기 | 1단계(compat 값=CleverSpace/CleverOne OnePager 후) |
@@ -1212,7 +1215,7 @@
       | **P11 Admin API·audit·컴플라이언스** | 전체 | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | ⬜ 대기 | 2단계(webhook slice=P8 후) |
       | **P12 E2E·하드닝** | 전체 | AXS sandbox E2E·compat E2E·부하·HA/KEDA 검증 | ⬜ 대기 | 🔴 2단계·④ AXS sandbox 실자격 |
 
-      > **금주 구현 요약(7/30 · 프레임 — 회의 시 갱신)** — _(예상)_ P1 데이터 모델을 완료(T-DATA-1-6 시드·1-7 시드 러너/테스트 인프라)해 **P1 종료**, 이어 **P2 인증 토대** 착수. 자동화 테스트는 매 엔드포인트 Task에 **검증 4종(unit·e2e[DB·Valkey 연계]·curl 왕복·DB/Valkey 조회)** 을 적용하고 **E2E 반복성 하네스**(clean-slate·seed·FLUSHDB)를 T-DATA-1-7에서 마련(IP §6 강화).
+      > **금주 구현 요약(7/30 · 주중 진척 반영)** — P1 데이터 모델을 마무리(T-DATA-1-6 시드·1-7 시드 러너/테스트 인프라)해 **P1을 종료**하고, **P2 인증 토대**를 본격 진행했다. 첫 실엔드포인트인 토큰 발급(T-AUTH-2-1: private_key_jwt 검증→RS256 access token)에 이어, 이번 주 **T-AUTH-2-2로 토큰 엔드포인트의 재생·자원소모·폐기 방어를 완성**했다 — assertion jti 1회 소비(재사용 401), 서명검증된 정본 clientId 기준 rate-limit(미서명 sub 표적 lockout 차단·429), revocation denylist 즉시 차단(DB 상태와 무관한 강한 일관성·401). 아울러 빌드/Docker 앱 부팅 릴리즈게이트(Prisma 생성물 번들)를 해소했다. 모든 엔드포인트 Task에 **검증 4종(unit·e2e[실 DB·Valkey]·curl 왕복·DB/Valkey 조회)** 과 **E2E 반복성 하네스**(clean-slate·seed·FLUSHDB)를 적용한다(IP §6).
       >
       > - **데이터 모델의 적용 범위**: 데이터 계층은 **4개 앱이 공유하는 하나의 공통 자산**이다(앱별로 나뉘지 않음). DB(전역 `gw_global`·리전 `gw_regional`)와 Prisma 스키마·공용 헬퍼는 `libs/common`에 **한 벌만** 두고 core·admin·receiver·dispatcher가 함께 쓴다.
       > - **다음**: P2 인증(device/operator) → P3 enrollment → P4 region 순으로 실제 GW 기능(모두 ④ AXS 없이 선행 가능). AXS 연동부(P7~)는 2단계(④ AXS 보류 해제 후).
@@ -1228,5 +1231,6 @@
   | 9    | RTO/RPO·유지보수 윈도우                | [정보]      | 인프라 설계 단계                                             |
   | 10   | 감사·consent 보존 기간                 | [정보]      | 법무 확인 대기                                               |
   | 11   | 호환성 매트릭스 확정본                 | [정보]      | CleverSpace/CleverOne OnePager 의존(①폐지·흡수)              |
-  | R1   | IO Scanner↔EzServer 연동 방식          | [논의·선결] | **보류(7/23 결정)** — Straumann↔ES 데이터 흐름 협상 결과 대기 |
+  | 14   | 관측성 앱↔인프라 계약 확정 — ①로그 필드 스키마(현행 pino 기본 필드 ↔ §6.3.2 최소셋 매핑·Appendix B #14) ②메트릭 export 배선(OTLP reader→Grafana Alloy 엔드포인트) | [논의·설계] | **추후 확정** — 트리거=③-I 관측 스택 구축 or P6 프록시 착수(먼저). Raymond 초안(필드 매핑표+엔드포인트 요구)→Jack(인프라) 비동기 합의. **앱 계약(stdout JSON+OTel·redaction) 이미 구현·무블로킹** |
+  | R1   | IO Scanner↔EzServer 연동 방식          | [논의·선결] | **보류(7/23 결정)** — 이번 주 논의 「Straumann↔ES 데이터 흐름 협상」 결과에 종속(결정 시 R1·④ AXS scope 착수 조건 확정) |
   - **차주 이월 후보**: R1(IO Scanner↔EzServer 연동 방식·**보류**)·R2(목표일정·출시일 재검토) 미확정 시 다음 주 이월.
