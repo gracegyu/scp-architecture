@@ -1100,12 +1100,13 @@
 
 - 이번 주 진행 _(프레임 · 7/30 회의 시 확정)_
   - **(7/23 결정 반영) 0단계 IO Scanner 보류 → 1·2·3단계 우선 진행** — Straumann과 ES의 데이터 흐름 방향(IO Scanner→AXS→GW→EzServer vs IO Scanner→EzServer→GW→AXS) 협상 지속으로 IO Scanner 연동(0단계·④ AXS scope)은 **잠시 보류**. 그 사이 계약이 고정된 **1(호환성)·2(presigned)·3(GW 일원화)단계**를 먼저 진행.
-  - **(7/23·오늘 결정 반영) CleverSpace·CleverOne OnePager 2개 = Raymond 작성(7/27 병행 착수)** — 각 문서가 **1·2·3단계(호환성+presigned+GW 일원화)를 통합**한다. **presigned는 CleverSpace(발급 API 신규)·CleverOne(이용) 양쪽**이 바꿔야 하므로(직접 연동 금지·GW 경유) **별도 Presigned One Pager를 쓰지 않고** 두 제품 OnePager에 포함 → **①호환성·②presigned 별도 문서 폐지·딱 2개 문서**. CleverOne은 연동 *구현*은 post-v1.0이나 **OnePager는 지금** 작성(Nick→Raymond). → S1 Gantt·S2 표 반영.
+  - **(7/23 결정 반영) CleverSpace·CleverOne OnePager 2개 = Raymond 작성(7/27 병행 착수)** — 각 문서가 **1·2·3단계(호환성+presigned+GW 일원화)를 통합**한다. **presigned는 CleverSpace(발급 API 신규)·CleverOne(이용) 양쪽**이 바꿔야 하므로(직접 연동 금지·GW 경유) **별도 Presigned One Pager를 쓰지 않고** 두 제품 OnePager에 포함 → **①호환성·②presigned 별도 문서 폐지·딱 2개 문서**. CleverOne은 연동 *구현*은 post-v1.0이나 **OnePager는 지금** 작성(Nick→Raymond). → S1 Gantt·S2 표 반영.
   - **(7/23 결정 반영) AWS 환경 = dev·qa·stag·prod 4계층** — dev·qa=동일 계정·namespace 분리·단일 Region / stag=별도·단일 Region / prod=Region별 분리. **환경 파일은 template만 git**(각 환경 `.env`=Jack 작성 / 로컬 `.env`=개발자 / `.env.template`은 Jack이 어떤 값이든 동작하도록 유지).
   - **(프레임) GW 구현 진척** — P1 종료 → **P2 T-AUTH-2-1**(private_key_jwt 검증·RS256 access token·`POST /v1/auth/token`) **완료**(PR #12094·검증 4종·실 curl·독립리뷰 High 0) → **T-AUTH-2-2**(jti 1회소비·rate-limit[검증후 정본 clientId]·revocation denylist) **완료**(PR #12106·unit 48·e2e 8/8). 부수: **빌드/Docker 앱 부팅 릴리즈게이트 해소**(Prisma 생성물→node_modules 패키지·PR #12100). 다음=T-AUTH-2-3(deviceAuth Guard). 상세=S3.
 
 - 논의 사항 (이번 주) _(프레임 · 신규 안건 회의 시 추가)_
-  - **(이월·계속) Straumann ↔ ES IO Scanner 데이터 흐름 협상** — Straumann은 기존 프로세스(IO Scanner→AXS→GW→EzServer) 유지를 원하나 ES(VT)에 불리(고객이 연동 설정 안 하면 EzServer가 결과 미수신). ES 안(IO Scanner→EzServer→GW→AXS)과 절충 협상 중. **결정 시 R1(IO Scanner↔EzServer 연동 방식)·④ AXS scope 착수 조건 확정.**
+  - **R2. GW 저장소(Postgres) — 전역 일관(Aurora Global DB) vs 리전 완전 분리 결정 (비용 절감)** — 인프라 스레드의 "Postgres 하나로 정리" 논의를 계기로, **왜 전역 계층에 Aurora Global DB로 sync하려 했는지 + 비용 절감 방안(A/B/C)·결정 요소**를 별도 문서로 정리(오해정리·SRS 근거·2갈래 전제·A/B/C 구성+다이어그램 6개·비용/failover 비교·결정요소). 상세(VKS) → **[📄 GW 저장소 전역일관 vs 리전분리 결정 (7/30)](https://vks.vatech.com/x/abNEEw)**
+  - **(이월·계속) Straumann ↔ ES IO Scanner 데이터 흐름 협상** — Straumann은 기존 프로세스(IO Scanner→AXS→GW→EzServer) 유지를 원하나 ES(VT)에 불리(고객이 연동 설정 안 하면 EzServer가 결과 미수신). ES 안(IO Scanner→EzServer→GW→AXS)과 절충 협상 중. **결정 시 이월-R1(IO Scanner↔EzServer 연동 방식)·④ AXS scope 착수 조건 확정.**
   - **(프레임) AWS 환경 분리 후속** — 계정/네트워크·ESO/Parameter Store 경로·`.env.template` 항목 확정(Jack·Raymond). ③-I Infra 계획서와 정합.
   - _(신규 안건은 회의에서 추가)_
 
@@ -1170,7 +1171,7 @@
         CleverOne 연동 *구현* (스펙은 지금·구현 post-v1.0) :codef, after rel, 14d
 
         section ▷ 병행 · 별도 프로젝트 (GW 아님)
-        SectionView Module 구현 (Raymond·완료) :done, sv, 2026-07-13, 2026-07-23
+        SectionView Module 구현 (Raymond·완료) :done, sv, 2026-07-13, 2026-07-30
     ```
 
   - **S2. 스펙 작성 테이블 — 제품별 개발 항목 종합 (제품 × 단계) · 매주 스냅샷** · 정본=[Roadmap §4](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>) (수정은 그쪽 먼저)
@@ -1181,7 +1182,7 @@
       | **CleverSpace** | — | 🟡 서버 버전 체크·well-known·오류코드 | 🟡 presigned 발급 API 신규 | 🟡 GW 경유 수신 정합 | ⬜ 멀티 Region 구축 | — | — | **🟡 ③-P-CS CleverSpace OnePager(1·2·3단계 통합·①②③-P-CS 단일화) 초안 = Raymond**(7/27 병행 착수→CleverSpace 팀) |
       | **CleverOne**(OnePager 지금·연동 구현 post-v1.0) | — | 🟡 Vatech-\* 헤더·well-known·fallback | 🟡 presigned 업로드 이용 | 🟡 Direct→GW 경유 | ⬜ Region 선택 UI(대안)·ClinicID | — | — | **🟡 ③-P-CO CleverOne OnePager(1·2·3단계 통합·①②③-P-CO 단일화) 초안 = Raymond**(Nick→Raymond·7/27 병행 착수→CleverOne 팀) |
       | **EzServer(EZ)** | ⬜ IO Scanner 데이터 수신(방식 R1·**보류**·TBD) | 🟡 헤더 대리 전달 | 🟡 전송 로직(presigned 직접) | 🟡 GW 경유 전환 | 🟡 ClinicID·Region·클리닉 등록(잠정) | 🟡 AXS(갈래A)·presigned 직접(IO Scanner 세부=TBD) | ⬜ Rust 재개발 | **🟡 ③-P-EZ One Pager 초안 작성됨**(Raymond→EzServer 팀) — `specs/03p-ez-ezserver/EzServer-GW적응-OnePager.md` · ④(갈래A) |
-      | **IO Scanner(Straumann 장비·수집 제품 미정)** | ⬜ 스캔 데이터→EzServer 유입(**보류**·수집 제품·방식 R1·미정·Straumann 협상) | — | — | — | — | (AXS 워크플로 대상) | — | R1 확정 후 ③-P-EZ(수신)·④(AXS scope) |
+      | **IO Scanner(Straumann 장비·수집 제품 미정)** | ⬜ 스캔 데이터→EzServer 유입(**보류**·수집 제품·방식 이월-R1·미정·Straumann 협상) | — | — | — | — | (AXS 워크플로 대상) | — | 이월-R1 확정 후 ③-P-EZ(수신)·④(AXS scope) |
       | **CleverLab** | — | — | — | — | — | ⬜ AXS 오더·상태·확정(갈래B)·presigned | — | ④ Sub-SRS(갈래B) |
       | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 Region 분배·HA(K8s)·Route53·Postgres | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS ✅ baseline(spec-v1.0.1)** · ④ connector ⬜(보류) |
       | **GW Console** | — | — | — | — | ⬜ Admin Web Console(③-C) | ⬜ 온보딩·Org-ID 관리 화면 | — | ③-C Sub-SRS(연기) |
@@ -1232,5 +1233,5 @@
   | 10   | 감사·consent 보존 기간                 | [정보]      | 법무 확인 대기                                               |
   | 11   | 호환성 매트릭스 확정본                 | [정보]      | CleverSpace/CleverOne OnePager 의존(①폐지·흡수)              |
   | 14   | 관측성 앱↔인프라 계약 확정 — ①로그 필드 스키마(현행 pino 기본 필드 ↔ §6.3.2 최소셋 매핑·Appendix B #14) ②메트릭 export 배선(OTLP reader→Grafana Alloy 엔드포인트) | [논의·설계] | **추후 확정** — 트리거=③-I 관측 스택 구축 or P6 프록시 착수(먼저). Raymond 초안(필드 매핑표+엔드포인트 요구)→Jack(인프라) 비동기 합의. **앱 계약(stdout JSON+OTel·redaction) 이미 구현·무블로킹** |
-  | R1   | IO Scanner↔EzServer 연동 방식          | [논의·선결] | **보류(7/23 결정)** — 이번 주 논의 「Straumann↔ES 데이터 흐름 협상」 결과에 종속(결정 시 R1·④ AXS scope 착수 조건 확정) |
-  - **차주 이월 후보**: R1(IO Scanner↔EzServer 연동 방식·**보류**)·R2(목표일정·출시일 재검토) 미확정 시 다음 주 이월.
+  | 이월-R1 | IO Scanner↔EzServer 연동 방식          | [논의·선결] | **보류(7/23 결정)** — 이번 주 논의 「Straumann↔ES 데이터 흐름 협상」 결과에 종속(결정 시 이월-R1·④ AXS scope 착수 조건 확정) |
+  - **차주 이월 후보**: 이월-R1(IO Scanner↔EzServer 연동 방식·**보류**)·이월-R2(목표일정·출시일 재검토) 미확정 시 다음 주 이월.
