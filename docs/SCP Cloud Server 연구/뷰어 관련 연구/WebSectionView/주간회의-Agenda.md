@@ -336,6 +336,8 @@
     | [ESCV-171](https://vts.vatech.com/browse/ESCV-171) | 버그 | Scout·Panorama | 영상 밖 검정 블랭크 영역에서 Pan/Zoom 미동작(입력이 영상 영역에만 국한) — 패널 전체를 덮는 pan/zoom 캡처 레이어 추가(Section·CleverSpace MPR 정합) | ✅ **수정 완료**(빌드·테스트 통과, 시각검증 권장) |
     | [ESCV-172](https://vts.vatech.com/browse/ESCV-172) | 개선 | Panorama Thickness | TH 표기 소수점 과다(예: 27.843…) → Ez3D-i처럼 **소수점 첫째자리**(예: 27.8 mm)로 통일(Panorama TH 오버레이·Scout 두께 라벨 동일) | ✅ **수정 완료** |
     | [ESCV-174](https://vts.vatech.com/browse/ESCV-174) | 버그 | Scout Interval | Interval 변경이 Scout에 미반영(우하단 Slice 번호·slider 이동 간격이 voxel 고정) → MMI EP01_F010 3.a.3·3.a.4대로 **Interval step 기준으로 Total Slice 표기·slider·휠 이동 간격 갱신**(sliceIndex는 voxel 유지, 표시·탐색만 step 환산) | ✅ **수정 완료** |
+    | [ESCV-175](https://vts.vatech.com/browse/ESCV-175) | 개선 | Scout·Panorama 오버레이 | 확대 시 Curve·section line·텍스트가 이미지처럼 같이 굵어지고 계단(래스터) 발생 → 오버레이를 **device 해상도로 재렌더**, 위치·구간선 길이만 이미지와 함께 스케일하고 **선 굵기·글자·핸들은 확대해도 화면상 일정(얇게)·또렷**(계측 오버레이와 동일 패턴). 두 뷰 모두 반영 | ✅ **수정 완료**(시각검증 권장) |
+    | [ESCV-176](https://vts.vatech.com/browse/ESCV-176) | 개선 | Section B/L 방향 | curve 그리는 방향에 따라 Section 좌우 B/L이 반전 → **협측(B)=치열 중심에서 먼 쪽=항상 좌측**으로 기하 고정(Clever One/Ez3D-i 정합). Section 샘플링 법선 정렬(JS+WASM 래퍼, .wasm 재빌드 불필요)·자동 극성 'normal' 고정·Scout B/L 라벨 기하정렬. ESCV-150(기준점 반전)·수동 L/B Switch는 상대 반전으로 유지 | ✅ **수정 완료**(⚠️ B/L 임상 민감·시각검증 필수) |
     | _(신규)_ |  |  | _이번 주 추가 접수분_ | 접수/수정중/완료 |
     |  |  |  |  |  |
     - **리포트 템플릿(기획팀 전달):** 화면·기능 / 재현 절차 / 기대 결과 / 실제 결과 / 스크린샷 / 심각도. **채널 = ESCV-138 하위 Sub-Task 1건씩.**
