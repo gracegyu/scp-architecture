@@ -26,6 +26,21 @@
 
 > 형식은 변경 크기로 결정한다(일률 One Pager 아님): 단순 적응은 티켓으로 충분할 수 있다. **CleverSpace·CleverOne은 7/23 결정으로 각각 One Pager 1개(1·2·3·4단계 통합·①호환성·②Presigned One Pager 흡수)로 확정** — 멀티 Region(4단계)이 커지면 해당 절만 Sub-SRS로 승격 가능.
 
+### 스펙 문서 등록처·경로·baseline (SSOT)
+
+각 spec 정본의 Repo·경로·baseline 태그. **인계·baseline 시 갱신.** _(미정 = 등록처 미확정 — 7/30 Agenda R3에서 결정 · OnePager는 담당팀 baseline 시 tag 부여)_
+
+| 단위 | 스펙 문서 | Repo (Azure DevOps) | 경로 | baseline tag |
+| --- | --- | --- | --- | --- |
+| **③** GW | SRS(+OpenAPI·DBML·UnitTCL) | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway` | `docs/specs/SRS.md` · `docs/specs/design/`(openapi·dbml) · `docs/specs/UnitTCL.md` | **`spec-v1.0.2`** (35c87ab) |
+| **③-C** GW Console | Sub-SRS | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console` (별도 repo·GW 소유→이관) | 미작성(신규 repo·경로 TBD) | 미작성(연기) |
+| **④** AXS | Sub-SRS | 〃 vt-api-gateway (GW 소유) | `docs/specs/04-subsrs-straumann-axs/` | 미작성(보류) |
+| **③-I** 인프라 | IaC 구축계획서 | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-infra` | `docs/IaC-구축계획서.md` | 미부여(계획서·PR 진행) |
+| **③-P-EZ** EzServer | GW적응 OnePager | `https://dev.azure.com/ewoosoft/ezserver/_git/ezserver_suite` (branch `v6.5.x`) | `doc/onepager/gw_adaptation/Confidential_gw_adaptation_onepager.md` | 미부여(EzServer 팀 baseline 예정·R3 확인) |
+| **③-P-CS** CleverSpace | GW적응 OnePager | **미정 (R3 결정)** | 초안=작성자 개인 repo(SSOT 아님) | — |
+| **③-P-CO** CleverOne | GW적응 OnePager | **미정 (R3 결정)** | 초안=작성자 개인 repo(SSOT 아님) | — |
+| **③-P-LMP** LMP | OnePager(조건부) | **미정 (ES 라이선스팀?)** | — | — |
+
 ## 구현 착수 전략 (7/2 R7 = 1안 확정)
 
 - **구현 시작점 = ④ AXS Sub-SRS baseline 이후**(고정). AXS가 첫 연동이라 이것 없이는 통합·E2E 테스트가 불가하므로, GW 구현은 ④ baseline 후 착수한다(core 일부는 ③ baseline 후 선행 가능하나 통합·테스트는 ④ 후).
