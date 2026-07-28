@@ -1120,10 +1120,10 @@
     - 다음 = T-AUTH-2-3(deviceAuth Guard) · 상세 = S3
 
 - 논의 사항 (이번 주) _(프레임 · 신규 안건 회의 시 추가)_
-  - **R2. GW 저장소(Postgres) — 전역 일관(Aurora Global DB) vs 리전 완전 분리 결정 (비용 절감)**
-    - 인프라 스레드의 "Postgres 하나로 정리" 논의를 계기로, **왜 전역 계층에 Aurora Global DB로 sync하려 했는지 + 비용 절감 방안(A/B/C)·결정 요소**를 별도 문서로 정리.
-    - 내용: 오해정리 · SRS 근거 · 2갈래 전제 · A/B/C 구성+다이어그램 6개 · 비용/failover 비교 · 결정요소.
-    - 상세(VKS) → **[📄 GW 저장소 전역일관 vs 리전분리 결정 (7/30)](https://vks.vatech.com/x/abNEEw)**
+  - **R2. GW 저장소 — DB 선택 결정 (전역 일관 · webhook payload 외부화)**
+    - 전역 일관(Global sync)은 GW 요구사항이고, **그걸 어떤 DB로 담느냐**를 정한다.
+    - 핵심안: **payload(PHI)를 리전 로컬 저장소(S3/DynamoDB)로 분리 → 관계형 전부 non-PHI → 단일 Aurora Global 클러스터**(인스턴스 최소화·주권 보장). 저장소 S3 vs DynamoDB는 접전(D1). 결정 항목·비교·다이어그램은 문서 참조.
+    - 상세(VKS) → **[📄 GW 저장소 DB 선택 결정 (7/30)](https://vks.vatech.com/x/abNEEw)**
   - **R3. 제품 OnePager(③-P) 인계 현황·방식 확정 — CleverSpace·CleverOne(신규 전달) + EzServer(수령 확인)**
     - **배경**: 7/23 결정대로 CleverSpace·CleverOne OnePager 초안(각 **1·2·3·4단계 통합**·①호환성·②Presigned 흡수)을 **7/27 작성 완료**. EzServer 초안(③-P-EZ)은 **지난주 Teddy에게 공유**.
     - **문제**:
@@ -1266,7 +1266,9 @@
       | ″ | T-AUTH-2-5 | operator_role RBAC(deny-by-default)+GET /v1/admin/me | ✅ 완료 | PR #12143 merge · unit 12·e2e 6/6 · **→ P2 완료**(device+operator 양면) |
       | **P3 enrollment·디바이스 생애주기** | T-ENR-3-1 | enroll 개시(부트스트랩·nonce challenge·IP rate-limit)·`POST /v1/enroll/start` | ✅ 완료 | PR #12158 merge · unit 10·e2e 5/5 |
       | ″ | T-ENR-3-2 | 서명·공개키 검증→device(pending)·clinic upsert·GeoDNS default region 배정·client_id 발급·`POST /v1/enroll/complete` | ✅ 완료 | PR #12166 merge · unit 24·e2e 7/7(재-enroll 회전·1회용·서명불일치)·curl·DB/Valkey |
-      | ″ | T-ENR-3-3~3-5 | device 생애주기 상태머신·재-enroll 회전·C/S 승인(PATCH·kill)·pending TTL 자동만료 | 🟠 착수 | 1단계(다음=3-3 상태머신·재-enroll 회전) |
+      | ″ | T-ENR-3-3 | device 생애주기 상태머신(§7.2.3)·재-enroll 회전 시 옛 credential 폐기(denylist) | ✅ 완료 | PR #12168 merge · unit(전 전이·revoke on/off/실패)·e2e 재-enroll denylist |
+      | ″ | T-ENR-3-4 | 승인 slice: PATCH 전이(승인·정지·재개·폐기)+kill(→revoked·denylist 전파)·RBAC(cs) (Admin) | ✅ 완료 | PR #12169 merge · unit 326·e2e 7/7·curl cross-app(kill→토큰 401) |
+      | ″ | T-ENR-3-5 | 미승인 pending 기본 7일 후 자동 만료(config·스팸 방지) | 🟠 착수 | 1단계(P3 마지막 — 다음) |
       | **P4 레지스트리·region resolution** | 전체 | Region Resolver·ClinicResolution·mapping_version·PHI 앱 내부 PDP 경계 | ⬜ 대기 | 1단계 |
       | **P5 호환성 게이트** | 전체 | Vatech-* 파싱·well-known·Parameter Store/LKG·semver 3단계 | ⬜ 대기 | 1단계(compat 값=CleverSpace/CleverOne OnePager 후) |
       | **P6 target-routed 프록시/라우팅** | 전체 | 서브도메인·verbatim·PEP 체인·SSRF fail-closed·타임아웃 | ⬜ 대기 | 1단계(실 AXS 왕복 E2E만 ④ 후) |
