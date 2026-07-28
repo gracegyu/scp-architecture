@@ -316,14 +316,19 @@
   - Repository: [Azure DevOps `scp-section-poc`](https://dev.azure.com/ewoosoft/prototypes/_git/scp-section-poc)
   - VTS: [PLAN-1287](https://vts.vatech.com/browse/PLAN-1287) · 버그: [ESCV-138](https://vts.vatech.com/browse/ESCV-138)
 
-- 이번 주 진행 (7/23 이후) — _회의 전 채움_
-  - **버그 수정** — 이번 주 신규 접수·수정분 (S2 표에 기록).
-  - **기획 시각검증 마무리** — ESCV-150(B/L 좌우 반전 방향)·152·154(조작감)·165(Windows 휠) 시각/OS 확인 → **Resolved→Close는 기획팀**.
-  - **CW 접목 착수 지원(Sonya)** — 인계 자료·소스 조각 전달, 질의 대응.
-  -
+- 이번 주 진행 (7/23 이후)
+  - **버그 수정** — 이번 주 접수분 수정(ESCV-171·172·174·175·176 + 재오픈 155·157·161 + 177). 상세 = S2 표.
+  - **기획 시각검증** — 버그 리포트 **31건 중 30건 Close**, 나머지 **ESCV-177은 Resolved**(우리 확인건 → 사실상 완료). **실질 전건 정리.** Resolved→Close는 기획팀.
+  - **CW 접목** — 오늘 회의에서 **Sonya 배정**(→R1). **실제 착수·진행 여부는 미확인 → 회의에서 진행사항 확인.** (우리 인계 자료(OnePager §9.5·9.12)·소스는 준비 완료.)
 
 - 논의 사항
-  - **R1. CW 접목 담당·진행 방식 — Sonya 착수(Scott 배정)** — 오늘 회의에서 **Scott이 CW 접목(소스 병합, §9.9)을 Sonya에게 배정**(시켜보기로). 접목은 **CW 팀 소관**이며 우리(Raymond/Section)는 **인계·지원**. **확인·합의:** ① 인계 범위·창구(문서/소스/데모) ② 착수 시점 ③ 우리 지원 방식(질의 대응·페어). → 확정 시 Gantt 접목 담당 = **Sonya** 로 반영.
+  - **R1. CW 접목 담당·진행 방식 — Sonya 착수(Scott 배정)**
+    - 오늘 회의에서 **Scott이 CW 접목(소스 병합, §9.9)을 Sonya에게 배정**(시켜보기로). 접목은 **CW 팀 소관**, 우리(Raymond/Section)는 **인계·지원**.
+    - **확인·합의:**
+      - ① 인계 범위·창구(문서/소스/데모)
+      - ② 착수 시점
+      - ③ 우리 지원 방식(질의 대응·페어)
+    - 확정 시 Gantt 접목 담당 = **Sonya** 로 반영.
     - **성격:** [정보] · 배정: Scott. 인계 세부 = Sonya·Raymond 협의.
 
 - 공유 사항
@@ -368,17 +373,29 @@
 
     - ※ **접목은 Sonya(CW 팀) 착수 — 착수·완료 일정은 협의 중(TBD).** Gantt의 접목 바는 예시이며 확정 일정 아님.
 
-  - **S4. Known gaps (잔여 = 접목·숙제)** — **접목 시 CW(Sonya):** Save 실제 `.e3prj`/S3 I/O·Reset Cloud Work 클라우드부·i18n 추출/번역·Arrow `InteractionType` core 역머지(§9.6)·Scout=MPR Th/INT·Image Adjust 동기(§D18)·Single/Dual·View Original(§D22). **숙제(이연):** GPU 리슬라이스(§11·D20).
+  - **S4. Known gaps (잔여 = 접목·숙제)**
+    - **접목 시 CW(Sonya):**
+      - **CT 볼륨 공급 정합** — CW `IVolumeData`/`vtkImageData` → 우리 볼륨 추상화(thin adapter): spacing·dimensions·scalar 매핑, IOP 무시는 양쪽 동일(§D19). 데이터 형식 자체는 통일 확인됨(§9.12)
+      - **prj 좌표 결선** — `.e3prj` 3D 환자 mm ↔ 내부 2D 픽셀 = **실볼륨 geometry**로 변환(§D33). blPolarity prj 필드 매핑 잔여
+      - Save 실제 `.e3prj`/S3 I/O · Reset Cloud Work 클라우드부(셸 소유)
+      - i18n 추출/번역 · Arrow `InteractionType` core 역머지(§9.6)
+      - Scout=MPR Th/INT · Image Adjust 동기(§D18)
+      - Single/Dual · View Original(§D22)
+    - **숙제(이연):** GPU 리슬라이스(§11·D20)
 
 - 이월 논의 사항
 
   | #   | 항목                         | 타입   | 상태                                                  |
   | --- | ---------------------------- | ------ | ----------------------------------------------------- |
   | 1   | CW 접목 담당·진행(Sonya)     | [정보] | **신규** — Scott 배정, 우리는 인계·지원 (→ R1)        |
-  | 2   | 기획 시각검증 잔여           | [정보] | **진행** — ESCV-150/152/154/165 확인 후 Close(기획팀) |
-  | 3   | CW 폰트 override 수정(CW-1)  | [확정] | **진행** — CW 팀 수정·styleguide 단일화 추적 (§9.11)  |
-  | 4   | 문서(OnePager·개발계획) 커밋 | [정보] | 구현 완료 — 적절 시점 커밋                            |
-  - **확정·완료(누적):** 구현 전부(§7·§3.10·§3.11 등) · 버그 25건(ESCV-144~169) 수정 · Save/i18n/Initialize All · Arrow 커서·크로스뷰 추적.
+  | 2   | 기획 시각검증(사실상 완료)   | [정보] | **31건 중 30건 Close**, ESCV-177 Resolved(우리 확인건 → 실질 전건 정리). Resolved→Close는 기획팀 |
+  | 3   | CW 접목 준비(prj·좌표·CT)    | [정보] | **진행** — ESCV-177 계기로 좌표 변환기·prj 계약(§9.5.1)·필드 대조(§9.5.2)·체크리스트(§9.12) 정리 완료. 접목 잔여 = blPolarity·scout Th/INT·실볼륨 geometry |
+  | 4   | CW 폰트 override 수정(CW-1)  | [확정] | **진행** — CW 팀 수정·styleguide 단일화 추적 (§9.11)  |
+  | 5   | 문서(OnePager·개발계획) 커밋 | [정보] | 구현 완료 — 적절 시점 커밋                            |
+  - **확정·완료(누적):**
+    - 구현 전부(§7·§3.10·§3.11 등) · Save · i18n · Initialize All · Arrow 커서·크로스뷰 추적
+    - 버그: **ESCV-144~169**(25건, 7/23) + 이번 주 **171·172·174·175·176** 및 재오픈 **155·157·161** 수정
+    - **ESCV-177**: Clever One 다중 커브 → Active Curve 표시 + 접목 좌표변환·prj 계약·형제 커브 보존·데모 dog-food
 
 ---
 
