@@ -1280,6 +1280,13 @@
       > - **데이터 모델의 적용 범위**: 데이터 계층은 **4개 앱이 공유하는 하나의 공통 자산**이다(앱별로 나뉘지 않음). DB(전역 `gw_global`·리전 `gw_regional`)와 Prisma 스키마·공용 헬퍼는 `libs/common`에 **한 벌만** 두고 core·admin·receiver·dispatcher가 함께 쓴다.
       > - **다음**: P2 인증(device/operator) → P3 enrollment → P4 region 순으로 실제 GW 기능(모두 ④ AXS 없이 선행 가능). AXS 연동부(P7~)는 2단계(④ AXS 보류 해제 후).
 
+  - **S4. 스펙 게시본 — Project wiki 자동 미러 가동 (비개발자도 스펙 열람 가능)** — 스펙 문서 관리 표준(§9 게시·참조)의 **project wiki 자동 미러**를 vt-api-gateway 에 구현·가동했다. 이제 **Git 접근·개발 라이선스가 없는 비개발자(기획·PM·QA·외주)도 스펙을 열람**할 수 있다(개발자는 Git `docs/` 정본 직접 열람).
+    - **정본↔게시본 분리(baseline 불변)**: 정본은 Git(`docs/specs/`) 그대로 두고, 게시본은 **읽기전용 단방향 미러**. main 병합 시 전용 파이프라인 `.azure-pipelines/docs-wiki.yml`(PAT 인증)이 `es-platforms.wiki/vt-api-gateway/` 하위로 자동 push → **drift 없음**. wiki 직접 편집 금지(편집은 Git 정본에서만).
+    - **왜 project wiki 인가**: code wiki 는 Basic 이상만 열람되지만 **project wiki 는 Stakeholder(무료)도 열람 가능** → 비개발 열람 보장(표준 §9 상단).
+    - **게시 확인(SRS 예)**: [SRS 게시본](https://dev.azure.com/ewoosoft/es-platforms/_wiki/wikis/es-platforms.wiki/549/SRS) — `docs/specs/*.md`(SRS·UnitTCL·design·Sub-SRS)만 미러(openapi.yaml·dbml·`references/` 벤더 사본은 제외·중첩 구조 유지).
+    - **비개발자 열람 온보딩(표준 §9.3)**: 대상자를 조직에 **Stakeholder(무료)** 로 초대 + 프로젝트 **Readers** 부여 → 회사 계정 로그인 후 게시본 URL 열람. (안 보이면 Access level=Stakeholder·Readers 소속 확인 — code wiki·Repos 는 Stakeholder 제한, project wiki 만 열람 가능.)
+    - **재사용**: 동일 파이프라인 패턴을 타 repo(③-C Console·③-I infra 등)에도 적용 가능(제품별 하위 폴더 격리). 표준 정본 = `스펙 문서 관리 표준 (저장·리뷰·참조).md` §9.1(검증 완료 패턴).
+
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
   | #    | 항목                                   | 타입        | 상태                                                         |
