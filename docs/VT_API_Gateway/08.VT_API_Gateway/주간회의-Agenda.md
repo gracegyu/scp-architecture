@@ -1268,8 +1268,9 @@
       | ″ | T-ENR-3-2 | 서명·공개키 검증→device(pending)·clinic upsert·GeoDNS default region 배정·client_id 발급·`POST /v1/enroll/complete` | ✅ 완료 | PR #12166 merge · unit 24·e2e 7/7(재-enroll 회전·1회용·서명불일치)·curl·DB/Valkey |
       | ″ | T-ENR-3-3 | device 생애주기 상태머신(§7.2.3)·재-enroll 회전 시 옛 credential 폐기(denylist) | ✅ 완료 | PR #12168 merge · unit(전 전이·revoke on/off/실패)·e2e 재-enroll denylist |
       | ″ | T-ENR-3-4 | 승인 slice: PATCH 전이(승인·정지·재개·폐기)+kill(→revoked·denylist 전파)·RBAC(cs) (Admin) | ✅ 완료 | PR #12169 merge · unit 326·e2e 7/7·curl cross-app(kill→토큰 401) |
-      | ″ | T-ENR-3-5 | 미승인 pending 기본 7일 후 자동 만료(config·스팸 방지) | 🟠 착수 | 1단계(P3 마지막 — 다음) |
-      | **P4 레지스트리·region resolution** | 전체 | Region Resolver·ClinicResolution·mapping_version·PHI 앱 내부 PDP 경계 | ⬜ 대기 | 1단계 |
+      | ″ | T-ENR-3-5 | 미승인 pending 기본 7일 후 자동 만료(background sweep·config·스팸 방지) | ✅ 완료 | PR #12171 merge · unit 5·e2e 4(경계·null created_at) · **→ P3 완료** |
+      | **P4 레지스트리·region resolution** | T-REG-4-1 | Region Resolver(device/clinic→region·ADR-10)·mapping_version CAS·버전 조건부 캐시 | ✅ 완료 | PR #12173 merge · unit 11·e2e 5(CAS·H1 stale 방지) |
+      | ″ | T-REG-4-2~ | ClinicResolution(GET /v1/clinics/me)·GET /v1/regions·PHI 앱 내부 PDP 경계 | 🟠 착수 | 1단계(다음=4-2) |
       | **P5 호환성 게이트** | 전체 | Vatech-* 파싱·well-known·Parameter Store/LKG·semver 3단계 | ⬜ 대기 | 1단계(compat 값=CleverSpace/CleverOne OnePager 후) |
       | **P6 target-routed 프록시/라우팅** | 전체 | 서브도메인·verbatim·PEP 체인·SSRF fail-closed·타임아웃 | ⬜ 대기 | 1단계(실 AXS 왕복 E2E만 ④ 후) |
       | **P7 External Connector·AXS** | 전체 | OAuth2 cc·egress 고정IP·앱 PDP egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후(보류) |
@@ -1290,6 +1291,11 @@
     - **게시 확인(SRS 예)**: [SRS 게시본](https://dev.azure.com/ewoosoft/es-platforms/_wiki/wikis/es-platforms.wiki/549/SRS) — `docs/specs/*.md`(SRS·UnitTCL·design·Sub-SRS)만 미러(openapi.yaml·dbml·`references/` 벤더 사본은 제외·중첩 구조 유지).
     - **비개발자 열람 온보딩(표준 §9.3)**: 대상자를 조직에 **Stakeholder(무료)** 로 초대 + 프로젝트 **Readers** 부여 → 회사 계정 로그인 후 게시본 URL 열람. (안 보이면 Access level=Stakeholder·Readers 소속 확인 — code wiki·Repos 는 Stakeholder 제한, project wiki 만 열람 가능.)
     - **재사용**: 동일 파이프라인 패턴을 타 repo(③-C Console·③-I infra 등)에도 적용 가능(제품별 하위 폴더 격리). 표준 정본 = `스펙 문서 관리 표준 (저장·리뷰·참조).md` §9.1(검증 완료 패턴).
+
+  - **S5. CI 회귀 게이트 완성 — 모든 PR이 실 DB/Valkey 통합 e2e 검증 (품질 인프라)** — 그동안 **루트 CI 파이프라인이 미등록**이라 `lint·build·unit·e2e`가 CI 에서 한 번도 안 돌았고(도는 건 devsecops gitleaks/trivy 스캔뿐), 통합 e2e 15 스위트는 `RUN_DB_INTEGRATION` 게이트라 **CI 에서 전부 스킵**되던 회귀 공백이 있었다. 이를 해소했다.
+    - **활성화**: e2e 하네스(globalSetup)가 CI 에서 백킹 서비스(Testcontainers)를 기동·엔드포인트 주입·부팅 시크릿(GW 서명키) 생성·migrate/seed 를 자동 수행 → **실 DB/Valkey 통합 e2e 가 CI 에서 실제 실행**(파이프라인 yml 변경 없음). Jack 의 **Node 24·es-base 마이그레이션(PR #12163)과 통합**.
+    - **게이트화**: 파이프라인 `vt-api-gateway-ci` 등록 + **main 브랜치 정책(Build validation·Required)** 추가 → **모든 PR 이 lint·build(4타겟)·unit(342)·통합 e2e(121)·dep-scan 을 통과해야 머지**. devsecops 4종(gitleaks/trivy)과 함께 5개 필수 게이트.
+    - **검증**: CI 실측 green(Node 24·build 48736 — 전 게이트 통과). **효과**: 회귀 그물망이 로컬 전용에서 **CI 전면**으로 확대(baseline 통제 품질 강화). **참고**: PR 당 CI ~15~20분(Testcontainers e2e 포함).
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
