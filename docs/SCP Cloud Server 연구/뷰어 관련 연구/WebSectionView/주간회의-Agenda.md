@@ -383,6 +383,15 @@
       - Single/Dual · View Original(§D22)
     - **숙제(이연):** GPU 리슬라이스(§11·D20)
 
+  - **S5. 스펙 게시본 자동 미러 구축 완료 — 비개발자도 무료 열람**
+    - **무엇:** 정본(Git `/docs`) → **Azure DevOps Project wiki 자동 미러** 파이프라인 구축. main 병합 시 OnePager가 wiki에 자동 갱신되어 **매번 수동 복사 불필요**.
+    - **왜 project wiki:** code wiki는 Repos 권한(Basic 이상) 필요 → **기획·PM(Stakeholder, 무료)은 못 봄**. project wiki는 **Stakeholder 무료 열람 가능** → 기획(Jessi) 실열람 확인.
+    - **게시본 URL:** [Section Module Spec v1.3.2 OnePager](https://dev.azure.com/ewoosoft/prototypes/_wiki/wikis/prototypes.wiki/541/Section-Module-Spec-v1.3.2-OnePager)
+    - **인증 방식(결정됨):** 조직 정책 "Protect access…"(On)로 빌드 토큰(`System.AccessToken`)이 wiki repo 접근 불가(`TF401019`) → **PAT(`WIKI_PAT`, secret)로 해결·검증 완료**. (정책 Off는 전사 보안 완화라 미채택. 상세·대안은 표준 §9.1·§9.2.)
+    - **비개발자 열람 절차:** 미가입자는 **Stakeholder(무료) 초대 + 프로젝트 Reader 권한** → 회사 계정 로그인 → 위 URL 열람(표준 §9.3).
+    - **후속:** 기존 VKS "Section Module OnePager" 페이지는 본 wiki URL로 **포인터화**(내용 미표시 시 대응 안내 포함). 표준 문서(§9)에 전 과정 반영 완료.
+    - 참고: [스펙 문서 관리 표준(VKS)](https://vks.vatech.com/spaces/ESCOMPANY/pages/321793151/%EC%8A%A4%ED%8E%99+%EB%AC%B8%EC%84%9C+%EA%B4%80%EB%A6%AC+%ED%91%9C%EC%A4%80+%E2%80%94+%EC%A0%80%EC%9E%A5%C2%B7%EB%A6%AC%EB%B7%B0%C2%B7%EC%B0%B8%EC%A1%B0)
+
 - 이월 논의 사항
 
   | #   | 항목                         | 타입   | 상태                                                  |
