@@ -1264,7 +1264,9 @@
       | ″ | T-AUTH-2-3 | deviceAuth Guard(per-controller·GW access token RS256 검증)+@CurrentDevice | ✅ 완료 | PR #12138 merge · unit 16·e2e 5/5(무토큰/위조/revoked 401) |
       | ″ | T-AUTH-2-4 | operator Entra OIDC 검증(confused-deputy 방어)+JIT operator(첫 SSO) | ✅ 완료 | PR #12141 merge · unit 26·e2e 6/6(OIDC mock+실 DB) |
       | ″ | T-AUTH-2-5 | operator_role RBAC(deny-by-default)+GET /v1/admin/me | ✅ 완료 | PR #12143 merge · unit 12·e2e 6/6 · **→ P2 완료**(device+operator 양면) |
-      | **P3 enrollment·디바이스 생애주기** | T-ENR-3-1~3-5 | enroll start/complete·상태머신·재-enroll·C/S 승인·kill·pending TTL | 🟠 착수 | 1단계(다음=3-1 POST /v1/enroll/start) |
+      | **P3 enrollment·디바이스 생애주기** | T-ENR-3-1 | enroll 개시(부트스트랩·nonce challenge·IP rate-limit)·`POST /v1/enroll/start` | ✅ 완료 | PR #12158 merge · unit 10·e2e 5/5 |
+      | ″ | T-ENR-3-2 | 서명·공개키 검증→device(pending)·clinic upsert·GeoDNS default region 배정·client_id 발급·`POST /v1/enroll/complete` | ✅ 완료 | PR #12166 merge · unit 24·e2e 7/7(재-enroll 회전·1회용·서명불일치)·curl·DB/Valkey |
+      | ″ | T-ENR-3-3~3-5 | device 생애주기 상태머신·재-enroll 회전·C/S 승인(PATCH·kill)·pending TTL 자동만료 | 🟠 착수 | 1단계(다음=3-3 상태머신·재-enroll 회전) |
       | **P4 레지스트리·region resolution** | 전체 | Region Resolver·ClinicResolution·mapping_version·PHI 앱 내부 PDP 경계 | ⬜ 대기 | 1단계 |
       | **P5 호환성 게이트** | 전체 | Vatech-* 파싱·well-known·Parameter Store/LKG·semver 3단계 | ⬜ 대기 | 1단계(compat 값=CleverSpace/CleverOne OnePager 후) |
       | **P6 target-routed 프록시/라우팅** | 전체 | 서브도메인·verbatim·PEP 체인·SSRF fail-closed·타임아웃 | ⬜ 대기 | 1단계(실 AXS 왕복 E2E만 ④ 후) |
@@ -1275,10 +1277,10 @@
       | **P11 Admin API·audit·컴플라이언스** | 전체 | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | ⬜ 대기 | 2단계(webhook slice=P8 후) |
       | **P12 E2E·하드닝** | 전체 | AXS sandbox E2E·compat E2E·부하·HA/KEDA 검증 | ⬜ 대기 | 🔴 2단계·④ AXS sandbox 실자격 |
 
-      > **금주 구현 요약(7/30 · 주중 진척 반영)** — P1 데이터 모델을 마무리(T-DATA-1-6 시드·1-7 시드 러너/테스트 인프라)해 **P1을 종료**하고, **P2 인증 토대**를 본격 진행했다. 첫 실엔드포인트인 토큰 발급(T-AUTH-2-1: private_key_jwt 검증→RS256 access token)에 이어, 이번 주 **T-AUTH-2-2로 토큰 엔드포인트의 재생·자원소모·폐기 방어를 완성**했다 — assertion jti 1회 소비(재사용 401), 서명검증된 정본 clientId 기준 rate-limit(미서명 sub 표적 lockout 차단·429), revocation denylist 즉시 차단(DB 상태와 무관한 강한 일관성·401). 아울러 빌드/Docker 앱 부팅 릴리즈게이트(Prisma 생성물 번들)를 해소했다. 모든 엔드포인트 Task에 **검증 4종(unit·e2e[실 DB·Valkey]·curl 왕복·DB/Valkey 조회)** 과 **E2E 반복성 하네스**(clean-slate·seed·FLUSHDB)를 적용한다(IP §6).
+      > **금주 구현 요약(7/30 · 주중 진척 반영)** — P1 데이터 모델을 마무리(T-DATA-1-6 시드·1-7 시드 러너/테스트 인프라)해 **P1을 종료**하고, **P2 인증 토대를 완성**했다(T-AUTH-2-1~2-5). 토큰 발급(2-1: private_key_jwt 검증→RS256 access token)·토큰 EP 방어(2-2: assertion jti 1회 소비 재사용 401·정본 clientId rate-limit 429·revocation denylist 즉시 401)·deviceAuth Guard(2-3)에 이어, **operator 면**(2-4: Entra OIDC 검증+confused-deputy 방어+JIT operator, 2-5: operator_role RBAC deny-by-default+`/v1/admin/me`)까지 세워 **device·operator 양 인증면을 완비**했다. 이어 **P3 enrollment 에 착수** — 공개 enroll 개시(3-1: 부트스트랩·nonce challenge·IP rate-limit·`/v1/enroll/start`)와 완료(3-2: nonce 서명·공개키 검증→device pending 등록·clinic upsert·GeoDNS default region 배정·client_id 발급·재-enroll 회전·`/v1/enroll/complete`)를 마쳤다. 아울러 빌드/Docker 앱 부팅 릴리즈게이트(Prisma 생성물 번들)를 해소했다. 모든 엔드포인트 Task에 **검증 4종(unit·e2e[실 DB·Valkey]·curl 왕복·DB/Valkey 조회)** 과 **E2E 반복성 하네스**(clean-slate·seed·FLUSHDB)를 적용한다(IP §6).
       >
       > - **데이터 모델의 적용 범위**: 데이터 계층은 **4개 앱이 공유하는 하나의 공통 자산**이다(앱별로 나뉘지 않음). DB(전역 `gw_global`·리전 `gw_regional`)와 Prisma 스키마·공용 헬퍼는 `libs/common`에 **한 벌만** 두고 core·admin·receiver·dispatcher가 함께 쓴다.
-      > - **다음**: P2 인증(device/operator) → P3 enrollment → P4 region 순으로 실제 GW 기능(모두 ④ AXS 없이 선행 가능). AXS 연동부(P7~)는 2단계(④ AXS 보류 해제 후).
+      > - **다음**: P3 나머지(3-3 상태머신·재-enroll 회전 → 3-4 C/S 승인·kill → 3-5 pending TTL 자동만료) → P4 region resolution 순. 모두 ④ AXS 없이 선행 가능. AXS 연동부(P7~)는 2단계(④ AXS 보류 해제 후).
 
   - **S4. 스펙 게시본 — Project wiki 자동 미러 가동 (비개발자도 스펙 열람 가능)** — 스펙 문서 관리 표준(§9 게시·참조)의 **project wiki 자동 미러**를 vt-api-gateway 에 구현·가동했다. 이제 **Git 접근·개발 라이선스가 없는 비개발자(기획·PM·QA·외주)도 스펙을 열람**할 수 있다(개발자는 Git `docs/` 정본 직접 열람).
     - **정본↔게시본 분리(baseline 불변)**: 정본은 Git(`docs/specs/`) 그대로 두고, 게시본은 **읽기전용 단방향 미러**. main 병합 시 전용 파이프라인 `.azure-pipelines/docs-wiki.yml`(PAT 인증)이 `es-platforms.wiki/vt-api-gateway/` 하위로 자동 push → **drift 없음**. wiki 직접 편집 금지(편집은 Git 정본에서만).
