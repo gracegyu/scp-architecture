@@ -1262,8 +1262,9 @@
       | **P2 인증 토대** | T-AUTH-2-1 | private_key_jwt 검증→RS256 access token(`POST /v1/auth/token`)·키회전 대비 | ✅ 완료 | PR #12094 merge · 검증 4종·실 curl |
       | ″ | T-AUTH-2-2 | jti 1회소비(재사용 401)·rate-limit(검증후 정본 clientId·표적 lockout 차단)·revocation denylist(즉시 401) | ✅ 완료 | PR #12106 merge · unit 48·e2e 8/8(실 Valkey: replay·rate-limit 429@#31·revocation) |
       | ″ | T-AUTH-2-3 | deviceAuth Guard(per-controller·GW access token RS256 검증)+@CurrentDevice | ✅ 완료 | PR #12138 merge · unit 16·e2e 5/5(무토큰/위조/revoked 401) |
-      | ″ | 2-4~2-5 | operator Entra OIDC·RBAC 등 | ⬜ 대기 | 1단계(다음=2-4) |
-      | **P3 enrollment·디바이스 생애주기** | 전체 | enroll start/complete·상태머신·재-enroll·C/S 승인·kill | ⬜ 대기 | 1단계 |
+      | ″ | T-AUTH-2-4 | operator Entra OIDC 검증(confused-deputy 방어)+JIT operator(첫 SSO) | ✅ 완료 | PR #12141 merge · unit 26·e2e 6/6(OIDC mock+실 DB) |
+      | ″ | T-AUTH-2-5 | operator_role RBAC(deny-by-default)+GET /v1/admin/me | ✅ 완료 | PR #12143 merge · unit 12·e2e 6/6 · **→ P2 완료**(device+operator 양면) |
+      | **P3 enrollment·디바이스 생애주기** | T-ENR-3-1~3-5 | enroll start/complete·상태머신·재-enroll·C/S 승인·kill·pending TTL | 🟠 착수 | 1단계(다음=3-1 POST /v1/enroll/start) |
       | **P4 레지스트리·region resolution** | 전체 | Region Resolver·ClinicResolution·mapping_version·PHI 앱 내부 PDP 경계 | ⬜ 대기 | 1단계 |
       | **P5 호환성 게이트** | 전체 | Vatech-* 파싱·well-known·Parameter Store/LKG·semver 3단계 | ⬜ 대기 | 1단계(compat 값=CleverSpace/CleverOne OnePager 후) |
       | **P6 target-routed 프록시/라우팅** | 전체 | 서브도메인·verbatim·PEP 체인·SSRF fail-closed·타임아웃 | ⬜ 대기 | 1단계(실 AXS 왕복 E2E만 ④ 후) |
