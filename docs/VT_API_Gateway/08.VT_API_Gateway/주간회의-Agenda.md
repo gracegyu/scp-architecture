@@ -1253,7 +1253,7 @@
   - **S3. GW 구현 현황 — Phase·Task 스냅샷 (7/30·매주 갱신)** — 1단계(GW 독립 코어) 구현 진행중. 매 Task 완료 시 갱신. _(7/30 프레임 시작값 = 7/23 상태 · 주중 Task 완료 시 갱신)_
     - **진행 단계** — 스펙(분석/설계)과 구현을 분리해 진행한다. 스펙은 HLD로 baseline 동결됐고 현재 구현(LLD 병행) 중이다. 구현이 끝이 아니라, QA 인계 전 개발팀이 통합·시스템 테스트로 동작을 확증하는 단계가 남고, 이어 QA·운영이 있다.
       - **스펙 — 분석/설계(HLD)**: SRS·DBML·OpenAPI·TCL baseline v1.0 동결 · 정합화(v1.0.1~v1.0.4) 지속 · LLD는 구현과 병행
-      - **구현(LLD 병행)** — _구현 단계 내 진척 ≈ 46%(코딩 Task 30/65)_: 1단계 코어 P0~P4 완료 · P5·P6·P10 진행 예정 / 2단계 AXS 연동(P7~P12)은 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
+      - **구현(LLD 병행)** — _구현 단계 내 진척 ≈ 48%(코딩 Task 31/65)_: 1단계 코어 P0~P4 완료 · P5·P6·P10 진행 예정 / 2단계 AXS 연동(P7~P12)은 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
       - **개발 통합·검증(QA 인계 전)**: 통합 테스트 · 시스템 E2E(실 계약: AXS·CleverSpace·EzServer) · 성능·부하 · HA·복원력 · 보안 검토 → 동작 확증 후 QA 인계
       - **QA**: 릴리스 회귀 · QA TCL · V&V 산출물(IEC 62304 / ISO 13485)
       - **운영·릴리스**: staging/prod 배포(인프라) · AXS pilot
@@ -1280,7 +1280,7 @@
       | ″ | T-REG-4-2 | ClinicResolution(GET /v1/clinics/me·region·hosts·주권 phiEgress=false·self 격리)·GET /v1/regions(planned 제외) | ✅ 완료 | PR #12177 merge · unit(매퍼·폴백·주권불변)·e2e 5(self 404·무토큰 401·draining 노출) |
       | ″ | T-REG-4-3 | clinic 정보 보정(PATCH /me·ISO countryCode·self 격리)·접속 리전 재지정(PUT /me/region·mapping_version CAS·PHI-free audit·현재동일 no-op) | ✅ 완료 | PR #12185 merge · unit 32·e2e 8(self격리·audit_log·no-op)·curl·DB/audit 조회 · core 최초 regional Prisma+Audit 배선 |
       | ″ | T-REG-4-4 | PHI region-boundary 앱 내부 PDP(deny-by-default·coarse target 인가·리전경계·egress fail-closed·presigned guardrail·OPA는 gw/1.1+ 예약) | ✅ 완료 | PR #12187 merge · unit 42·통합 8(정책해석·리전경계·egress) · PEP 배선=P6 |
-      | ″ | T-REG-4-5 | admin regions/clinics region CRUD | 🟠 착수 | 1단계(다음=4-5) |
+      | ″ | T-REG-4-5 | admin region 카탈로그 CRUD(isDefault 정확히1·참조/default 삭제 409)·operator clinic 리전 교정 | ✅ 완료 | PR #12191 merge · unit 29·e2e 22(RBAC·CRUD·audit) · **→ P4 완결** |
       | **P5 호환성 게이트** | 전체 | Vatech-* 파싱·well-known·Parameter Store/LKG·semver 3단계 | ⬜ 대기 | 1단계(compat 값=CleverSpace/CleverOne OnePager 후) |
       | **P6 target-routed 프록시/라우팅** | 전체 | 서브도메인·verbatim·PEP 체인·SSRF fail-closed·타임아웃 | ⬜ 대기 | 1단계(실 AXS 왕복 E2E만 ④ 후) |
       | **P7 External Connector·AXS** | 전체 | OAuth2 cc·egress 고정IP·앱 PDP egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후(보류) |
