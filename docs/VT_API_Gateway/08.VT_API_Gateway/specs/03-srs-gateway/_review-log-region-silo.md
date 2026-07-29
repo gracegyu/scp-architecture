@@ -7,7 +7,7 @@
 - **리뷰어**: Jack·Scott·Teddy(필수) · Thomas(옵션) · 우리=전규현
 - **커밋**: `d848472`·`da8451a`·`0a5c9fa`(handoff)·`ec4a476`(handoff 정정) + 리뷰 반영분(아래·미커밋)
 - **최종 fetch**: 2026-07-29T07:50 · **20 thread** (R1 6 + R2 5 + R3 5 + R4 4 · Nemesis v0.5.0)
-- **상태**: R1·R2·R3·R4 전건 게시·Resolved(push `c102870`·`3b15792`·`eab47a3`·`c6fe5f1`) · **20 thread 전부 Resolved(fixed)**
+- **상태**: R1~R5 전건 게시·Resolved(push `c102870`·`3b15792`·`eab47a3`·`c6fe5f1`·`34496d3`) · **R6(Jack 인프라) 접수·분류·논의 대기**
 
 ---
 
@@ -204,3 +204,86 @@
 - **[Nemesis · cid 1]** (요약 — handoff/방향 정합 양호. 직전 must-fix 4건·OpenAPI 2건·companion "미해소"로 재기재하나 eab47a3 미반영 스냅샷 기준. 신규 = §4.1.2 규칙3·§2.3.6.2 다이어그램.)
 - **[전규현 · 게시완료]** 리뷰 감사합니다. 요약에서 미해소로 재기재된 항목(본문 clinic→region 4곳·OpenAPI 2건·536/533·companion 3파일)은 이 리뷰 직전 커밋에서 이미 정정·push했습니다 — 리뷰가 그 push 이전 스냅샷을 본 것으로 보입니다. 신규 지적은 모두 반영했습니다: §4.1.2 규칙 3·§3.1.2의 resolver 잔재 제거, §2.3.6.2 fallback 다이어그램의 '전역 매핑' 스텝을 바로 위 TBD 노트와 정합하게 완화했습니다.
 - 조치(예정): 요약 응대(stale 안내 + 신규 반영) · 반영: push `c6fe5f1` · 상태: **Resolved(fixed)**
+
+
+---
+
+## Round 5 — Nemesis Update 5 (2026-07-29T17:2x · 자동 모니터링 중 수신)
+
+> 대규모 sweep의 **부분수정 누락 4건**(inline)+요약. 요약 "참고"의 §4.1.2 규칙3·§2.3.6.2 917·handoff §7.5.2는 **c6fe5f1에서 이미 해소**(Update 5가 c6fe5f1 직전 스냅샷)—stale. 신규 4건은 전부 타당. **전건 정정·push(`34496d3`)·답변 게시(전규현)·5 thread 모두 Resolved(fixed)**.
+
+## C-22 · docs/specs/UnitTCL.md:33 (TC-DATA-02/03) · [thread 81476] · 🔧
+- **[Nemesis · cid 1]**
+  > TC-DATA-01은 단일-DB로 재작성됐으나 TC-DATA-02("전역 복제 제외")·TC-DATA-03("cross-cluster FK 불가")은 폐기된 2-클러스터/전역 복제 프레이밍이 남아 §2.1.1과 자기모순. 단일-DB 모델로 재작성 필요.
+- **[전규현 · 게시완료]** 맞습니다. TC-DATA-01을 단일-DB로 바꾸면서 02·03이 옛 2-클러스터·전역 복제 프레이밍으로 남았습니다. TC-DATA-02는 '리전 DB에만 저장(리전 간 복제 없음·전역 DB 없음)'으로, TC-DATA-03은 단일 datasource라 이제 테이블 간 하드 FK가 걸리므로 'cross-cluster 불가·soft-ref'가 아니라 '하드 FK 적용·참조 대상 실재 필수·위반 시 거부'로 재작성했습니다. 이어지는 TC-DATA-04의 'soft-ref 대상 부재'도 같은 맥락에서 'nullable FK 미해석 시 null 저장'으로 함께 정정했습니다(clinic_id는 nullable FK).
+- 조치(예정): TC-DATA-02/03/04 단일-DB·하드 FK로 재작성 · 반영: push `34496d3` · 상태: **Resolved(fixed)**
+
+## C-23 · docs/specs/SRS.md:1778 (§7.1.1) · [thread 81477] · 🔧
+- **[Nemesis · cid 1]**
+  > §7.1.1 본문은 서명키를 "리전별·리전 로컬"로 정정했으나 바로 아래 하위 bullet의 "전역보관"이 남아 정면 모순. `전역보관`→`리전별 보관(리전 로컬)`. 미래 트리거 "리전 간 토큰 검증"도 함께 다듬기 권장.
+- **[전규현 · 게시완료]** 맞습니다. 같은 sweep에서 서명키 보관 위치를 '리전별·리전 로컬'로 고쳐 놓고 바로 아래 하위 항목의 '전역보관'을 놓쳤습니다. '리전별 보관(리전 로컬)'으로 정정했습니다. 함께 지적하신 미래 트리거의 '리전 간 토큰 검증'도 각 리전이 자기 토큰을 자체 검증하는 모델과 맞게 '리전 간 토큰 상호 검증이 필요해질 경우'로 다듬었습니다.
+- 조치(예정): §7.1.1 하위 bullet 전역보관→리전별 보관 + 미래 트리거 문구 · 반영: push `34496d3` · 상태: **Resolved(fixed)**
+
+## C-24 · docs/specs/SRS.md:1274 (§4.1.1) · [thread 81478] · 💡
+- **[Nemesis · cid 1]**
+  > §4.1.1 면 판별 bullet의 "apex = GW 고유 API"가 R2로 폐기된 전역 apex를 규범 절에 남김. §4.1.2 규칙1은 정정됐는데 이 bullet 누락. "GW 고유 API 호스트(gw.<region>.<도메인>)"로 정정 권장. OpenAPI 주석 7·61·admin tag 45의 "apex"도 동류.
+- **[전규현 · 게시완료]** 맞습니다. §4.1.2 규칙 1은 'apex→GW 고유 API 호스트'로 고쳤는데 §4.1.1 면 판별 bullet의 'apex ='가 누락됐습니다. 'GW 고유 API 호스트(gw.<region>.<도메인>) = GW 고유 API'로 정정했습니다. 지적하신 OpenAPI 헤더 주석(범위·라우팅)과 admin 태그 설명의 'apex' 표기도 'GW 고유 API 호스트'로 정리했습니다(스키마 필드명 apex는 리전 API 호스트를 가리키는 정의 필드라 유지).
+- 조치(예정): §4.1.1 apex= 정정 + OpenAPI 주석 4곳(7·19·45·61) · 반영: push `34496d3` · 상태: **Resolved(fixed)**
+
+## C-25 · docs/specs/SRS.md:2049 (§7.6.3) · [thread 81479] · 💡
+- **[Nemesis · cid 1]**
+  > §7.6.3 메타 컬럼 목록이 삭제된 WebhookEvent.region을 아직 검색 컬럼으로 나열. 리전=배포 상수라 단일 리전 배포의 모든 행이 동일 리전이라 필터 무의미. region 제거 권장.
+- **[전규현 · 게시완료]** 맞습니다. WebhookEvent.region 필드를 삭제했고 리전은 배포 상수라 단일 리전 배포의 모든 행이 같은 리전이라 region 필터가 무의미합니다. §7.6.3 메타 컬럼 목록에서 region을 제거했고, 같은 목록이 남아 있던 OpenAPI admin 설명(webhook 이벤트 메타)에서도 제거했습니다.
+- 조치(예정): §7.6.3 + OpenAPI 1032 메타 컬럼 region 제거 · 반영: push `34496d3` · 상태: **Resolved(fixed)**
+
+## C-26 · [thread 81480] · 요약(Update 5)
+- **[Nemesis · cid 1]** (요약 — 직전 잔재 상당수 해소 확인. 신규=부분수정 누락 4건. 참고로 §4.1.2 규칙3·917·handoff §7.5.2 "여전히 열림"이라 하나 c6fe5f1 미반영 스냅샷 기준.)
+- **[전규현 · 게시완료]** 리뷰 감사합니다. 직전 지적 해소 확인 감사드립니다. 신규 4건은 모두 반영했습니다 — TC-DATA-02/03(+04) 단일-DB·하드 FK로 재작성, §7.1.1 '전역보관'→'리전별 보관', §4.1.1과 OpenAPI 주석의 'apex' 표기 정리, §7.6.3 메타 컬럼의 region 제거. 참고로 남기신 §4.1.2 규칙 3·§2.3.6.2 다이어그램·handoff §7.5.2 앵커는 이 리뷰 직전 커밋에서 이미 정정·push했습니다(리뷰가 그 push 이전 스냅샷 기준).
+- 조치(예정): 요약 응대(stale 안내 + 신규 반영) · 반영: push `34496d3` · 상태: **Resolved(fixed)**
+
+
+---
+
+## Round 6 — Jack(임건혁) 인프라 리뷰 (2026-07-29 18:07 · 자동 모니터링 마감 시점 수신)
+
+> **성격이 다름**: Nemesis 잔재 지적과 달리 실질 인프라 설계 반론·추가 요구. 상당수가 결정/논의 필요라 **초안 미작성 — 접수·분류만**(사용자 트리아지 후 진행). 빈 스레드 81490·81492 제외. dev-도메인(81463)은 Jack이 재응답(현재 fixed 표시지만 논의 재개).
+
+### A. 즉시 반영 가능(Jack이 정정안·범위까지 제공)
+- **81488 [IAM] IRSA→EKS Pod Identity 정정** — SRS 1146·1153·1157·2040·2171 + env-reference 27·51·52·60. 단순 치환.
+- **81494 [DNS] admin "내부 전용/물리분리/NetworkPolicy" 문구가 실제(mesh DENY AuthorizationPolicy·논리격리)와 불일치** — Jack이 정정표 제공(§4.5.1 1410·1422·1426·§6.6.2 1694·§7.9 2289). console.은 대상 아님(CloudFront+internal NLB), 정리 대상은 admin. 하나. NetworkPolicy→Istio AuthorizationPolicy.
+- **81486 [전역 의존] "전역=Region Directory 하나"는 부정확** — §2.1.1에 비-PHI 전역 의존 표(ECR·LMP·Entra JWKS·CI→Parameter Store) 추가. "전역 데이터(클리닉·PHI) 없음. 단 비-PHI 전역 의존은 아래" 로.
+- **81489 별건 [env] GW_PUBLIC_APEX 리네이밍** — apex 폐기했는데 변수명·설명 잔존 → GW_PUBLIC_HOST/GW_REGION_HOST. Region Directory 스키마 apex 필드도 host/apiHost로.
+
+### B. 스펙 추가 필요(내용은 명확·문안 작성 필요)
+- **81482 [Region Directory] §7.3.6 무결성이 HTTPS뿐** — ① 파일 detached JWS 서명(검증키 EzServer 내장) ② 발행 파이프라인=§7.7.5 compat matrix 패턴(git→CI JSON Schema 검증→S3, write IAM=CI 전용) ③ 캐시 TTL(60s 제안)+무효화 ④ us-east-1 ACM cert.
+- **81483 [DR] §6.3.1·B#9 리전 단위 DR 부재 명시** — 복제 없음+PHI 리전밖 금지=교차리전 스냅샷도 금지 → 리전 전체 소실 시 복구수단 없음. "리전 재해=가용성 목표 밖" 명시 or 예외조건(동일 관할권 2nd 리전 암호화 스냅샷=교차리전 KMS grant 필요·"배선 없음"과 충돌).
+- **81484 [ECR] §2.7.1·handoff#6 교차리전 복제 누락** — es-base digest 고정→타 리전 EKS가 교차리전 pull·apne2 ECR 장애 시 타 리전 pod 기동 불가. handoff #6에 ECR cross-region replication(앱+es-base) 추가.
+- **81485 [egress] union이 AXS만** — LMP(enroll 검증·JWKS)·CleverSpace(리전 늘면 내부망 전제 깨짐)·Entra JWKS·중앙 관측·CI→PS도 리전마다 아웃바운드. §2.1.1·§7.5.3·handoff#4.
+- **81491 [RDS] §3.1.2 프로비저닝 파라미터 공백** — Aurora가 자동 주던 게 명시 항목화: Multi-AZ 형태(instance vs cluster)·스토리지 오토스케일 상한·gp3 IOPS/throughput·PG17 extension 호환(B#18). 대체로 ③-I.
+- **81493 [KMS] §2.3.9 마이그레이션 교차리전 재암호화가 "배선 없음"과 충돌** — 구 CMK 복호화→신 CMK 재암호화 구간은 교차리전 grant or 평문 리전 경계 이동 불가피. §2.3.9에 명시적 예외(복호화 위치·grant 방향·회수 절차). handoff#5에도. gw/1.2라 "공짜 아님" 표시만 지금.
+
+### C. 결정 필요(호스트 스킴·범위 — 사용자/Jack/Scott)
+- **81481 + 81463 [DNS zone] 호스트 스킴 재검토** — Jack: vatech.com은 위임받는 것이라 gw.<region>.<도메인> 예시대로면 리전마다 회사 apex 밑 라벨 새 위임 필요(AWS amazonaws.com 소유 논리 미적용). 대안=gw.<도메인> 한 zone만 위임+리전을 내부 라벨(`api.apne2.gw.vatech.com`·dev=`api.apne2.gw.dev.ezcld.net`). 이러면 dev도 리전 라벨 포함돼 dev/prod 형태 일치(81463 Jack 재응답과 연결). **호스트 스킴 전면 영향(§4.5.1·OpenAPI servers·handoff·env-reference)** — 내가 앞서 한 "dev 라벨 생략"(C-20/c6fe5f1)과 방향이 갈림. cert=리전당 2장+us-east-1 1장.
+- **81487 [중국] 별도 파티션(amazonaws.com.cn)** — 독립 스택 아님(별도 계정·IAM·provider·ECR 불가·Entra/관측/CI 경계밖·ICP 备案·CloudFront 불가→Region Directory URL 단일 전제 깨짐). §2.7.1을 동일 파티션/별도 파티션 2케이스로. 중국 범위 여부 결정 필요.
+- **81489-1/2 [env] GW_REGION 4곳 복제·AWS_REGION 매핑** — PS 경로 /{env}/{app}/{VAR}라 core·admin·receiver·dispatcher 4곳 동일값(하나만 틀려도 그 앱만 다른 리전·fail-closed 미포착). 공용경로 or IaC 단일→4 fan-out. + GW_REGION↔AWS_REGION 매핑 assertion(부팅 fail-closed) 앱 요구. (PS 보관·차트 주입 철회는 Jack 확정.)
+
+> 주의: 81463은 내가 이미 Resolved(fixed)로 닫았으나 Jack 재응답으로 논의 재개 상태. 81481 zone 결정과 함께 봐야 함.
+
+
+---
+
+## Round 7 — Nemesis Update 6 (2026-07-30 07:4x)
+
+> 신규 2건(둘 다 💡). **§4.1.2 규칙3·§2.3.6.2 917 해소 확인**(c6fe5f1). 요약이 "미해소"로 재기재한 TC-DATA-02/03·§7.1.1 전역보관·§4.1.1 apex·§7.6.3 region은 **34496d3에 이미 반영**(Update 6가 34496d3 직전 스냅샷)—stale. 신규 2건은 스펙 작업트리 수정(미커밋)·초안 미게시 — 사용자 검토 대기.
+
+## C-27 · docs/specs/SRS.md:1270 (§4.1.1 A행) · [thread 81496] · 💡
+- **[Nemesis · cid 1]**
+  > §4.1.1 "두 면" 표 A행이 host는 리전화했으나 API surface 나열의 `region resolve`가 잔존. §7.3.1·§2.3.3·§2.2 노드는 모두 "클리닉 자기뷰"로 치환됨. `region resolve`→`클리닉 자기뷰(GET /v1/clinics/me·리전 echo)` 권장. 동류: §2.2 주석 라인 401 "region 참조".
+- **[전규현 · 초안]** 맞습니다. §7.3.1·§2.3.3·§2.2 노드는 모두 '클리닉 자기뷰'로 바뀌었는데 §4.1.1 A행 API surface 나열에 'region resolve'가 남았습니다. '클리닉 자기뷰(리전 echo)'로 정정했습니다. 지적하신 §2.2 다이어그램 주석의 'region 참조'도 같은 다이어그램 엣지 라벨(클리닉 자기뷰·리전=상수)과 맞게 정리했습니다.
+- 조치(예정): §4.1.1 A행 region resolve + §2.2 주석 401 정정 · 반영: 작업트리 · 상태: **초안**
+
+## C-28 · [thread 81497] · 요약(Update 6) + §2.3.6.2 participant(910)
+- **[Nemesis · cid 1]**
+  > (요약) §4.1.2 규칙3·§2.3.6.2 917 해소 확인. 신규 recommendation 2건: §4.1.1 A행 region resolve(위) + §2.3.6.2 participant 라인 910 "수신 리전 X·최근접"이 X를 "대표 수신점(GeoDNS 최근접 아님)"으로 재정의한 §2.3.6.2·§7.3.5(GeoDNS 폐기)와 상충. "·최근접"→"대표 수신점" 권장. 미해소 재기재(TC-DATA·전역보관·apex·§7.6.3 region)는 34496d3 미반영 스냅샷 기준.
+- **[전규현 · 초안]** 리뷰와 §4.1.2 규칙 3·§2.3.6.2 다이어그램 해소 확인 감사합니다. 신규 2건 모두 반영했습니다 — §4.1.1 A행(및 §2.2 주석)의 'region resolve/참조'를 '클리닉 자기뷰'로, §2.3.6.2 participant 라벨의 '수신 리전 X·최근접'을 '대표 수신점'으로 정정했습니다(GeoDNS 최근접 폐기와 정합). 참고로 남기신 미해소 4건(TC-DATA-02/03·§7.1.1 전역보관·§4.1.1 apex·§7.6.3 region)은 이 리뷰 직전 커밋에서 이미 정정·push했습니다(리뷰가 그 push 이전 스냅샷 기준).
+- 조치(예정): §2.3.6.2 participant 910 "·최근접"→"대표 수신점" + 요약 응대 · 반영: 작업트리 · 상태: **초안**
