@@ -133,6 +133,7 @@
 ### 4.5 Console 조회·주권 (성립 확인)
 - **at-rest는 리전 로컬(S3 버킷/DynamoDB 테이블)에만** → PHI가 리전 밖으로 나가지 않음(주권 보장).
 - **GW Console은 전 리전 관리**: 목록·필터는 **관계형(전역) 메타**로, **본문 열람은 해당 리전 GW가 중개**해 **저장소에서 복호(KMS)→마스킹→감사**(`GET /v1/admin/webhook-events/{eventId}/payload` break-glass·§7.6.3) 후 반환. Console은 마스킹 응답만 표시.
+- **통합 Console(추천안의 장점)**: 컨트롤플레인·webhook 메타가 전역이라 **Console 하나가 전 리전을 네이티브로** 조회한다(리전별 설치·리전 스위칭 불요). ↔ 리전 완전 분리는 Console이 파편화된다(부록 A).
 - 결론: **"payload는 리전 로컬 + Console은 전 리전 조회"가 모순 없이 성립**한다. 저장 위치만 DB→별도 저장소로 바뀌고 열람 흐름(중개·마스킹·감사)은 동일.
 
 ---
@@ -141,8 +142,10 @@
 
 > **전제**: payload/PHI가 관계형 밖으로 나가 관계형은 **전부 non-PHI** → 클러스터 단위 복제가 안전. 세 안 모두 논리 모델은 동일(관계형=전역 일관·로컬읽기 / payload=리전 로컬 저장소·§4). v1.0(단일 리전)에선 A/B/C가 물리적으로 거의 같고, 차이는 **플랫폼·gw/1.2 확장 방식**뿐.
 
-### 5.A 안 A — 단일 Aurora Global 클러스터 (추천)
-관계형 전체를 **하나의 Aurora Global 클러스터**로. 전부 non-PHI라 클러스터 복제가 문제되지 않는다. 읽기=로컬 reader, 쓰기=write-forward(앱 거의 투명). 멀티리전 전환 = **Global DB 활성화만**(마이그레이션 0).
+### 5.A 안 A — Aurora Global Database (추천)
+관계형 전체를 **하나의 Aurora Global Database**로 둔다. Global DB는 **리전마다 독립 클러스터**로 구성되고 클러스터별 인스턴스 수·크기를 따로 정한다(예: 주 리전 writer 1 + reader 2, 보조 리전 reader 1 — 보조는 최소로 두어 비용↓). 읽기=로컬 reader. **쓰기 = Global Write Forwarding**: 앱은 자기 리전 로컬 엔드포인트에 쓰고 Aurora가 **자체 관리 채널로 주 리전 writer에 전달**한다.
+
+> **이 write-forwarding이 결정적이다(인프라 확인).** 다중리전 VPC 토폴로지상 **타 리전 앱은 주 리전 DB에 직접 접속할 수 없어**, 전역 데이터의 리전 간 write는 Aurora Global Write Forwarding으로만 가능하다 — RDS엔 없는 기능이라 B가 탈락하는 근거이기도 하다(§5.B). 전부 non-PHI라 클러스터 복제가 주권 문제도 없다. 멀티리전 전환 = **Global DB 활성화만**(마이그레이션 0).
 
 **A · v1.0 (서울 단일 · Aurora 단일 인스턴스 · Global 미활성)**
 ```mermaid
@@ -178,8 +181,8 @@ flowchart TB
   OBJA -. "복제 안 함 · PHI 주권(FR-RGN-03)" .- OBJB
 ```
 
-### 5.B 안 B — 표준 RDS + 교차리전 read replica
-관계형을 RDS primary + 타 리전 read replica. 읽기=로컬 replica, 쓰기=원격 primary 직접. **마이그레이션 위험 0**(RDS 유지)이나 **failover 수동**·Global DB 편의 없음. (**토폴로지는 A와 동형** — 위 A 다이어그램에서 "Aurora Global"→"RDS+read replica", "클러스터 복제"→"async 교차리전 복제"로만 바뀌므로 별도 그림 생략.)
+### 5.B 안 B — 표준 RDS + 교차리전 read replica (전역 write 요건에서 탈락)
+관계형을 RDS primary + 타 리전 read replica로 두는 안. 그러나 **다중리전 VPC 토폴로지상 보조 리전 앱이 주 리전 primary DB에 직접 접속할 수 없고**(인프라 확인) RDS read replica는 read-only라, **보조 리전에서 전역 데이터를 쓸 방법이 없다** → 전역 write 요건에서 **B는 탈락**한다(RDS엔 Aurora Global Write Forwarding 같은 기능이 없음). 억지로 쓰려면 write를 중앙으로 보내는 앱 계층이 필요한데 그건 사실상 C다. **결론: 실질 선택지는 A(Aurora write forwarding) vs C(중앙 서비스)로 좁혀진다.**
 
 ### 5.C 안 C — 중앙 Registry 서비스 + 리전 로컬 캐시
 관계형(컨트롤플레인)을 **중앙 서비스가 단일 소유**하고, 각 리전은 **로컬 캐시**로 읽고 쓰기/캐시미스만 중앙을 호출한다. 앱 변경 최대·**중앙 SPOF**(자체 HA 필요). payload 외부화와 직교(조합 가능)하나 v1.0 과설계. A/B와 **구조가 달라** 그림을 둔다:
@@ -213,26 +216,27 @@ flowchart TB
 
 ### 5.D 비교
 
-| 항목 | **A. Aurora Global(추천)** | B. RDS + replica | C. 중앙 registry |
+| 항목 | **A. Aurora Global(추천)** | B. RDS + replica *(전역 write 불가·탈락·§5.B)* | C. 중앙 registry |
 |---|---|---|---|
+| 전역 write(멀티리전) | **가능**(Global Write Forwarding) | **불가**(타 리전→주 primary 접속 X·read replica는 read-only) | 가능(중앙 write API) |
 | 관계형 PHI | 없음(payload=별도 저장소) | 없음 | 없음 |
 | 인스턴스(v1.0) | **1** | 1 | 1 + 서비스 컴퓨트 |
-| 인스턴스(gw/1.2) | **리전당 1 클러스터** | 리전당 1(+replica) | 중앙 1 + 리전 캐시 |
+| 인스턴스(gw/1.2) | **리전당 1 클러스터(독립 사이징·보조 reader 최소)** | 리전당 1(+replica) | 중앙 1 + 리전 캐시 |
 | 비용 | ≈ RDS(heavy/RI·§1.3-B) | 낮음 | 낮음(중앙+캐시) |
 | 멀티리전 전환 | **Global DB 활성화만(마이그0)** | replica 구성 | 서비스화 |
 | failover | **관리형·RTO낮음·RPO~0** | 수동 | 중앙 HA(SPOF) |
 | 개발 복잡도 | **최저**(투명 R/W) | 중(R/W 분리) | 최고 |
 | Scott 수용성 | ○(v1.0 단일 인스턴스로 짠돌이 부합·비용 근접) | ◎ | ◎ |
 
-**요지**: payload 외부화로 A의 유일한 약점(PHI 클러스터 복제·인스턴스 2개)이 사라졌고 Aurora 비용도 근접(§1.3-B)이라 **A(단일 Aurora Global) + 별도 payload 저장소** 가 가장 단순하고 확장이 매끄럽다.
+**요지**: payload 외부화로 A의 약점(PHI 클러스터 복제·인스턴스 2개)이 사라졌고 Aurora 비용도 근접(§1.3-B)이다. 게다가 **다중리전 전역 write는 Aurora Global Write Forwarding이 사실상 강제**(B의 직접 원격 write 불가·RDS 미지원)라 실질 선택지는 **A vs C**로 좁혀지고, **C는 앱 복잡·중앙 SPOF**라 **A(Aurora Global) + 별도 payload 저장소** 가 유력하다.
 
 ---
 
 ## 6. 🟨 결정해야 할 요소 (회의 산출물)
 
 1. **[D1·상위] webhook payload 저장소** — ① 관계형 DB 컬럼(§3 탈락) / **② S3** / **③ DynamoDB**(②③ 접전·§4, Jack 볼륨·비용으로 확정). → 관계형이 non-PHI가 되는 전제.
-2. **[D2] 관계형 토폴로지** — A(Aurora Global·추천) / B(RDS+replica) / C(중앙 registry).
-3. **[D3] v1.0 플랫폼** — **Aurora**(마이그0·편의·비용 근접) vs RDS(최저 초기비용·마이그 위험). A 지향이면 Aurora.
+2. **[D2] 관계형 토폴로지** — **A(Aurora Global·추천) vs C(중앙 서비스)**. **B(RDS+직접 원격 write)는 다중리전 VPC상 불가로 탈락**(§5.B). C는 앱 복잡·SPOF라 A 유력.
+3. **[D3] v1.0 플랫폼** — 다중리전 전역 write가 **Aurora Global Write Forwarding을 요구**(RDS 미지원·§5.A)하므로, gw/1.2를 지원하면 **Aurora가 사실상 강제** → **v1.0부터 Aurora**가 마이그0. (RDS는 멀티리전 전역 write 불가라 v1.0-단일리전 한정 선택일 뿐.)
 4. **[D4·전제] 멀티리전 지원 여부·failover 요건** — gw/1.2 멀티리전 하는가? failover(리전 장애 시 타 리전이 대신 서비스) 필요한가? (이월 #9 RTO/RPO 연계.)
 5. **[사수 요건]** PHI 리전 밖 미이동(FR-RGN-03) — **리전 로컬 저장소로 집행** · 논리 데이터 분류(전역/리전)는 **저장 계층으로 정의**(관계형=전역·non-PHI / 별도 저장소=리전·PHI).
 
@@ -256,9 +260,12 @@ flowchart TB
 ---
 
 ## 부록 A — "전역 일관을 포기하고 리전 완전 분리"는 왜 비권장인가
-전역 디렉토리를 없애 리전 사일로로 가면, 어느 리전 소속인지 알아야 forward가 되어 **요청에 리전 인코딩(외부 계약 변경)** 이 필요하고, 현 SRS(FR-RGN-04·§2.1.1·§7.6.3)를 수정해야 한다(투명 리전변경·교차리전 webhook 상실). 게다가 §3의 해법으로 **전역 일관이 저비용**이 되므로, 리전 완전 분리의 유일한 동기(비용 회피)마저 약하다 → **비권장**.
+전역 디렉토리를 없애 리전 사일로로 가면, 어느 리전 소속인지 알아야 forward가 되어 **요청에 리전 인코딩(외부 계약 변경)** 이 필요하고, 현 SRS(FR-RGN-04·§2.1.1·§7.6.3)를 수정해야 한다(투명 리전변경·교차리전 webhook 상실). 또한 컨트롤플레인이 리전별로 쪼개져 **GW Console도 리전별 설치 또는 리전 스위칭(한 번에 한 리전만 조회)** 으로 파편화된다 — 전 fleet을 한 화면에서 운영하지 못한다(추천안은 메타가 전역이라 Console 하나로 전 리전·§4.5). 게다가 §3의 해법으로 **전역 일관이 저비용**이 되므로, 리전 완전 분리의 유일한 동기(비용 회피)마저 약하다 → **비권장**.
 
 ## 부록 B — payload를 관계형 밖에 두는 것 vs DB 컬럼 (트레이드오프)
 - **DB 컬럼**의 장점 = 단일 저장소 정합·트랜잭션 일관. 단점 = **PHI가 관계형 클러스터에 묶여** 멀티리전에서 인스턴스 2개를 유발(§1.4).
 - **별도 저장소(S3/DynamoDB)** 의 장점 = 인스턴스 최소화·주권 자연 집행·비용. 단점 = **2-저장소 정합**(메타=DB, 본문=별도)인데, 이는 **claim-check port 추상화**(eventId→저장소 key)로 앱 경계에 가둔다. 열람 흐름(중개·마스킹·감사)은 저장 매체와 무관하게 동일.
 - 결론: safety-critical PHI를 **리전 로컬 append 전용**으로 다루고, 관계형은 **전역 일관 컨트롤플레인**에 집중시킨다.
+
+## 부록 C — 범위 밖: webhook Receiver/Dispatcher 배치 (별도 토폴로지 결정)
+webhook 수신을 **전역 1점(global receiver)** 으로 모을지 **리전별 수신(GeoDNS 최근접)** 으로 둘지는 **수신 컴포넌트 배치** 문제로, 본 문서의 **저장(DB) 결정과 직교**한다 — 어느 토폴로지든 payload는 대상 리전 저장소에 써야 하므로(주권) 저장 결론(리전 로컬)은 불변이다. 트레이드오프(단일 수신의 리전 장애 취약·국경 간 in-transit 증가 ↔ 결정적 리전 판정·AXS 단일 콜백 정합)는 여기서 결정하지 않고 **SRS §7.6 / 별도 ADR**에서 다룬다. 단, 추천 DB안(단일 Aurora Global)은 **어디서든 리전 판정이 저렴**해 두 토폴로지 모두를 값싸게 뒷받침한다. **v1.0은 단일 리전이라 이 선택이 무의미**하고(수신·분배가 한 리전 안), 실제 결정은 **gw/1.2 다중리전 설계 시**다.
