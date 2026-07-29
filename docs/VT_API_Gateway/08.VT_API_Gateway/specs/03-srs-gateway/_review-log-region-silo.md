@@ -7,7 +7,7 @@
 - **리뷰어**: Jack·Scott·Teddy(필수) · Thomas(옵션) · 우리=전규현
 - **커밋**: `d848472`·`da8451a`·`0a5c9fa`(handoff)·`ec4a476`(handoff 정정) + 리뷰 반영분(아래·미커밋)
 - **최종 fetch**: 2026-07-29T07:50 · **20 thread** (R1 6 + R2 5 + R3 5 + R4 4 · Nemesis v0.5.0)
-- **상태**: R1~R7(Nemesis) 전건 게시·Resolved(push …·`34496d3`·`82a4442`) · **Jack 인프라 13건 = 초안 작성·검토 대기**
+- **상태**: R1~R7(Nemesis)+Jack C-29~40 처리(push …·`ab5441a`·`55d724b`) · Jack 삭제분: C-32(미처리·무시)·C-37(withdrawn·apex만 유지) · **신규 Nemesis U7/U8(81528·29·33·34+요약) 미처리**
 
 ---
 
@@ -244,34 +244,270 @@
 
 ---
 
-## Round 6 — Jack(임건혁) 인프라 리뷰 (2026-07-29 18:07 · 자동 모니터링 마감 시점 수신)
+## Round 6 — Jack(임건혁) 인프라 리뷰 (2026-07-29 18:07 수신 · 개별 초안 · 원문 전체)
 
-> **성격이 다름**: Nemesis 잔재 지적과 달리 실질 인프라 설계 반론·추가 요구. 상당수가 결정/논의 필요라 **초안 미작성 — 접수·분류만**(사용자 트리아지 후 진행). 빈 스레드 81490·81492 제외. dev-도메인(81463)은 Jack이 재응답(현재 fixed 표시지만 논의 재개).
+> 작성자 = **임건혁(Jack)** 전건(Nemesis 아님·식별=thread id). 성격 = 실질 인프라 설계 반론·추가 요구. 빈 스레드 81490·81492 제외. **스펙 미수정·초안 미게시 — 사용자 검토 후 진행.** 유형: [결정] · [스펙추가] · [문구정정=즉시] · [③-I]. 각 코멘트 **원문 전체** 기록.
 
-### A. 즉시 반영 가능(Jack이 정정안·범위까지 제공)
-- **81488 [IAM] IRSA→EKS Pod Identity 정정** — SRS 1146·1153·1157·2040·2171 + env-reference 27·51·52·60. 단순 치환.
-- **81494 [DNS] admin "내부 전용/물리분리/NetworkPolicy" 문구가 실제(mesh DENY AuthorizationPolicy·논리격리)와 불일치** — Jack이 정정표 제공(§4.5.1 1410·1422·1426·§6.6.2 1694·§7.9 2289). console.은 대상 아님(CloudFront+internal NLB), 정리 대상은 admin. 하나. NetworkPolicy→Istio AuthorizationPolicy.
-- **81486 [전역 의존] "전역=Region Directory 하나"는 부정확** — §2.1.1에 비-PHI 전역 의존 표(ECR·LMP·Entra JWKS·CI→Parameter Store) 추가. "전역 데이터(클리닉·PHI) 없음. 단 비-PHI 전역 의존은 아래" 로.
-- **81489 별건 [env] GW_PUBLIC_APEX 리네이밍** — apex 폐기했는데 변수명·설명 잔존 → GW_PUBLIC_HOST/GW_REGION_HOST. Region Directory 스키마 apex 필드도 host/apiHost로.
+## C-29 · docs/specs/SRS.md §4.5.1 · [thread 81481 + 81463] · 임건혁(Jack) · [결정] 🔧 DNS zone 스킴
+- **[임건혁(Jack) · thread 81481]** (원문 전체)
+  > **[infra/DNS] §4.5.1 — 리전 호스트와 Region Directory의 부모 zone이 다릅니다. 지금 구조면 리전마다 위임을 새로 받아야 합니다.**
+  >
+  > §4.5.1 예시를 zone 트리로 펴보면 부모가 둘로 갈립니다.
+  >
+  > ```
+  > 리전 호스트:        gw.apne2.vatech.com       -> 부모 zone = apne2.vatech.com
+  > Region Directory:   regions.gw.vatech.com     -> 부모 zone = gw.vatech.com
+  > ```
+  >
+  > 문제는 우리가 `vatech.com` 을 소유한 게 아니라 정보전략실에서 **위임**받는다는 점입니다. 지금 안대로면 리전을 열 때마다 `apne2.vatech.com`, `use1.vatech.com` … **회사 apex 바로 밑 라벨을 리전마다 새로 위임**받아야 합니다. 근거로 든 AWS 방식(`ec2.ap-northeast-2.amazonaws.com`)은 AWS가 `amazonaws.com` 을 통째로 소유하니 성립하는 것이고, 위임받는 쪽에는 그대로 적용되지 않습니다.
+  >
+  > **대안 — `gw.<도메인>` 한 zone만 위임받고 리전을 그 안의 라벨로 둡니다.**
+  >
+  > ```
+  > api.apne2.gw.vatech.com            axs.apne2.gw.vatech.com
+  > axs.webhook.apne2.gw.vatech.com    admin.apne2.gw.vatech.com
+  > regions.gw.vatech.com              (동일 트리 안에 자연스럽게 위치)
+  > dev:  api.apne2.gw.dev.ezcld.net
+  > ```
+  >
+  > - 위임 1회로 끝, 리전 추가 = 레코드 추가(추가 위임 협의 없음)
+  > - 리전별 와일드카드 `*.apne2.gw.…` 그대로 성립
+  > - Directory가 같은 트리 안에 들어가 "부모 zone 두 개" 문제가 사라짐
+  >
+  > Appendix B #2 에 "zone 관리 토폴로지 = ③-I 결정" 이라고 적어두셨는데, **본문 예시가 이미 특정 트리를 못박고 있는 게** 실제 문제입니다. EzServer·AXS 콜백·ACM cert가 이 예시를 따라가면 되돌리는 비용이 큽니다. 예시를 위 형태로 바꾸거나, 최소한 "구체 트리는 ③-I 확정" 으로 중립화해 주세요.
+  >
+  > 참고로 cert 수량은 어느 안이든 **리전당 2장**(`*.<region>.gw.…` + `*.webhook.<region>.gw.…`, 와일드카드는 라벨 1개만 커버) + **us-east-1 1장**(아래 Region Directory 코멘트) 입니다.
+- **[임건혁(Jack) · thread 81463 — dev-도메인 스레드 재응답]** (원문 전체)
+  > [infra] 인프라 쪽에서도 같은 지점이 걸립니다. 지금 문서가 서로 안 맞습니다.
+  >
+  > - `docs/env-reference.md:100` — `GW_PUBLIC_APEX` 설명은 "**리전 라벨 포함**·전역 apex 아님" 인데 dev 값은 `gw.dev.ezcld.net` (라벨 없음)
+  > - `docs/env-reference.md:34` — dev 공개 호스트 `gw.dev.ezcld.net`, 와일드카드 2개도 `*.gw.dev.ezcld.net` 기준
+  > - §4.5.1 — dev 베이스 도메인이 `gw.dev.ezcld.net` 이라고 되어 있어, 규칙을 그대로 적용하면 `gw.apne2.gw.dev.ezcld.net` 이 됩니다
+  >
+  > "리전 1개라서" 로 넘기면 **dev와 prod의 호스트 형태가 달라집니다.** EzServer nginx의 `Vatech-Target` -> 서브도메인 변환 규칙, 토큰 iss/aud, 와일드카드 cert 범위가 전부 호스트 형태에 붙어 있어서, 환경마다 모양이 다르면 dev에서 검증한 게 prod를 안 덮습니다. §2.7.1의 "리전 라벨 없는 고정 host 금지" 와도 어긋나고요.
+  >
+  > dev cert·zone·토큰 iss/aud가 이미 현재 호스트 기준으로 잡혀 있어서, 형태가 바뀌면 재발급이 따라옵니다. 별도로 올린 zone 토폴로지 코멘트와 묶어서 **베이스 도메인 + 리전 라벨 규칙을 한 번에 확정**한 뒤 dev를 맞추는 쪽이 재작업이 적습니다. EzServer가 Region Directory URL을 코드에 굽기 전에 정해져야 합니다.
+- **[전규현 · 게시완료]** 동의합니다. gw.<도메인>을 한 번 위임받고 리전을 그 안의 라벨로 두는 방식으로 가면 위임 1회로 끝나고 리전 추가가 레코드 추가로 끝나며 Region Directory도 같은 트리에 들어옵니다. 본문 §4.5.1 예시가 특정 트리를 못박은 것도 맞아, 호스트 스킴을 `<svc>.<region>.gw.<도메인>`으로 개정하겠습니다(API=`api.`·프록시=`{target}.`·webhook=`{target}.webhook.`·admin=`admin.`·Directory=`regions.gw.<도메인>`). 이 스킴에서는 dev도 리전 라벨을 포함하므로(예 `api.apne2.gw.dev.ezcld.net`) 앞서 논의한 dev/prod 형태 불일치가 해소됩니다 — dev-도메인 스레드의 "단일 리전이라 라벨 생략"은 이 스킴 채택으로 대체됩니다. 구체 base domain은 정보전략실 위임 확정 후 ③-I가 최종화합니다. cert는 리전당 2장(`*.<region>.gw.…`+`*.webhook.<region>.gw.…`) + Region Directory용 us-east-1 1장으로 카운트합니다.
+- 조치: 호스트 스킴 <svc>.<region>.gw.<도메인> 전면 개정(§4.5.1·§2.7.1·OpenAPI·handoff·env·UnitTCL·DBML·README) + dev-도메인 답변(C-20) 대체 + GW_PUBLIC_APEX→HOST·apex필드→apiHost · 반영: push `ab5441a` · 게시·81481/81463 · 상태: **Resolved(fixed)**
 
-### B. 스펙 추가 필요(내용은 명확·문안 작성 필요)
-- **81482 [Region Directory] §7.3.6 무결성이 HTTPS뿐** — ① 파일 detached JWS 서명(검증키 EzServer 내장) ② 발행 파이프라인=§7.7.5 compat matrix 패턴(git→CI JSON Schema 검증→S3, write IAM=CI 전용) ③ 캐시 TTL(60s 제안)+무효화 ④ us-east-1 ACM cert.
-- **81483 [DR] §6.3.1·B#9 리전 단위 DR 부재 명시** — 복제 없음+PHI 리전밖 금지=교차리전 스냅샷도 금지 → 리전 전체 소실 시 복구수단 없음. "리전 재해=가용성 목표 밖" 명시 or 예외조건(동일 관할권 2nd 리전 암호화 스냅샷=교차리전 KMS grant 필요·"배선 없음"과 충돌).
-- **81484 [ECR] §2.7.1·handoff#6 교차리전 복제 누락** — es-base digest 고정→타 리전 EKS가 교차리전 pull·apne2 ECR 장애 시 타 리전 pod 기동 불가. handoff #6에 ECR cross-region replication(앱+es-base) 추가.
-- **81485 [egress] union이 AXS만** — LMP(enroll 검증·JWKS)·CleverSpace(리전 늘면 내부망 전제 깨짐)·Entra JWKS·중앙 관측·CI→PS도 리전마다 아웃바운드. §2.1.1·§7.5.3·handoff#4.
-- **81491 [RDS] §3.1.2 프로비저닝 파라미터 공백** — Aurora가 자동 주던 게 명시 항목화: Multi-AZ 형태(instance vs cluster)·스토리지 오토스케일 상한·gp3 IOPS/throughput·PG17 extension 호환(B#18). 대체로 ③-I.
-- **81493 [KMS] §2.3.9 마이그레이션 교차리전 재암호화가 "배선 없음"과 충돌** — 구 CMK 복호화→신 CMK 재암호화 구간은 교차리전 grant or 평문 리전 경계 이동 불가피. §2.3.9에 명시적 예외(복호화 위치·grant 방향·회수 절차). handoff#5에도. gw/1.2라 "공짜 아님" 표시만 지금.
+## C-30 · docs/specs/SRS.md §7.3.6 · [thread 81482] · 임건혁(Jack) · [스펙추가] 💡
+- **[임건혁(Jack) · thread 81482]** (원문 전체)
+  > **[infra/Region Directory] §7.3.6 — 무결성 수단이 HTTPS뿐입니다. 발행 파이프라인·캐시·인증서도 정해야 합니다.**
+  >
+  > 이 JSON 하나가 **신규 enroll 전량의 목적지**를 정하고, EzServer에 굽히는 유일한 부트스트랩 앵커입니다. 문서에는 "무결성(HTTPS·버전)" 만 있어서 인프라가 받기에 부족합니다. 아래 4가지를 스펙/③-I 항목에 넣어주세요.
+  >
+  > 1. **파일 자체 서명** — HTTPS는 전송 구간만 보장합니다. 버킷 오배포·발행 실수·DNS 탈취 중 어느 하나라도 신규 device가 통째로 다른 곳에 enroll 됩니다. **detached JWS(검증키는 EzServer 내장)** 또는 최소한 EzServer 측 pinning을 요구합니다. 서명키 보관·회전은 ③-I가 가져갑니다.
+  > 2. **발행 경로는 §7.7.5 compat matrix와 동일 패턴으로** — git → CI에서 JSON Schema 검증 → S3 put, **write IAM은 CI 발행 identity 전용(사람·앱 role deny)**. 콘솔/CLI 수기 업로드 경로는 두지 않겠습니다. §7.7.5에 이미 확립된 패턴이라 재사용이 제일 싸고, 리전 목록 변경이 리뷰 없이 나가는 걸 막습니다.
+  > 3. **캐시 TTL** — `status: draining/planned` 전파 속도가 곧 CloudFront TTL입니다. 값(60s 제안)과 무효화 절차를 명시해 주세요. 지금은 "캐시 가능" 만 있습니다.
+  > 4. **인증서** — CloudFront 앞단이면 `regions.gw.<도메인>` cert는 **us-east-1 ACM 필수**이고 리전 와일드카드로 덮이지 않습니다. 별도 프로비저닝 항목으로 카운트하겠습니다.
+- **[전규현 · 게시완료]** 동의합니다. Region Directory가 신규 enroll 전량의 목적지·부트스트랩 앵커라 HTTPS(전송 구간)만으로는 부족합니다. §7.3.6에 네 가지를 명시하겠습니다 — 파일 detached JWS 서명(검증키 EzServer 내장·키 보관/회전 ③-I), 발행 파이프라인=§7.7.5 compat matrix 패턴(git→CI JSON Schema 검증→S3·write IAM=CI 발행 identity 전용·수기 업로드 금지), 캐시 TTL(60s)·무효화 절차, CloudFront 앞단이면 us-east-1 ACM cert. 발행 주체·키 관리는 ③-I 소관으로 남깁니다.
+- 조치: §7.3.6 무결성 4항목(JWS 서명·§7.7.5 발행 패턴·TTL 60s·us-east-1 cert) 추가 · 반영: push `55d724b` · 상태: **Resolved(fixed)**
 
-### C. 결정 필요(호스트 스킴·범위 — 사용자/Jack/Scott)
-- **81481 + 81463 [DNS zone] 호스트 스킴 재검토** — Jack: vatech.com은 위임받는 것이라 gw.<region>.<도메인> 예시대로면 리전마다 회사 apex 밑 라벨 새 위임 필요(AWS amazonaws.com 소유 논리 미적용). 대안=gw.<도메인> 한 zone만 위임+리전을 내부 라벨(`api.apne2.gw.vatech.com`·dev=`api.apne2.gw.dev.ezcld.net`). 이러면 dev도 리전 라벨 포함돼 dev/prod 형태 일치(81463 Jack 재응답과 연결). **호스트 스킴 전면 영향(§4.5.1·OpenAPI servers·handoff·env-reference)** — 내가 앞서 한 "dev 라벨 생략"(C-20/c6fe5f1)과 방향이 갈림. cert=리전당 2장+us-east-1 1장.
-- **81487 [중국] 별도 파티션(amazonaws.com.cn)** — 독립 스택 아님(별도 계정·IAM·provider·ECR 불가·Entra/관측/CI 경계밖·ICP 备案·CloudFront 불가→Region Directory URL 단일 전제 깨짐). §2.7.1을 동일 파티션/별도 파티션 2케이스로. 중국 범위 여부 결정 필요.
-- **81489-1/2 [env] GW_REGION 4곳 복제·AWS_REGION 매핑** — PS 경로 /{env}/{app}/{VAR}라 core·admin·receiver·dispatcher 4곳 동일값(하나만 틀려도 그 앱만 다른 리전·fail-closed 미포착). 공용경로 or IaC 단일→4 fan-out. + GW_REGION↔AWS_REGION 매핑 assertion(부팅 fail-closed) 앱 요구. (PS 보관·차트 주입 철회는 Jack 확정.)
+## C-31 · docs/specs/SRS.md §6.3.1·Appendix B #9 · [thread 81483] · 임건혁(Jack) · [스펙추가] 🔧
+- **[임건혁(Jack) · thread 81483]** (원문 전체)
+  > **[infra/DR] §6.3.1·Appendix B #9 — region silo에서는 리전 단위 DR이 존재하지 않습니다. 그 말이 문서에 없습니다.**
+  >
+  > 리전 간 복제 없음 + PHI 리전 밖 미이동(FR-RGN-03)을 같이 놓으면 **교차리전 스냅샷 복사도 금지**됩니다. 즉:
+  >
+  > - Multi-AZ = **AZ 장애만** 커버
+  > - RDS 자동 백업·스냅샷 = 리전 로컬
+  > - 리전 전체 소실 = **복구 수단 없음**
+  >
+  > 기존 Aurora Global 안에서는 최소한 non-PHI 클러스터에 대해 교차리전 이야기가 있었는데, 이번 변경으로 그것도 없어졌습니다. Aurora 폐기 자체는 동의하지만(복제가 사라졌으니 RDS가 맞습니다) **DR 공백은 별도로 문서화가 필요**합니다.
+  >
+  > 요청:
+  > - §6.3.1에 **"리전 단위 재해는 가용성 목표 범위 밖(주권상 교차리전 백업 불가)"** 을 명시하거나,
+  > - 예외를 둘 거면 그 조건(예: 동일 관할권 내 2nd 리전으로의 암호화 스냅샷 복사 — 이 경우 교차리전 KMS grant가 필요해 "리전 간 배선 없음" 과 충돌)을 스펙에 적어주세요.
+  >
+  > Appendix B #9(RTO/RPO)는 이 전제가 정해져야 답할 수 있습니다. 지금 상태로 넘어오면 인프라가 못 받는 요구가 됩니다.
+- **[전규현 · 게시완료]** 동의합니다. 복제 없음 + PHI 리전 밖 금지(FR-RGN-03)를 함께 놓으면 교차리전 스냅샷 복사도 막혀 리전 단위 재해는 복구 수단이 없습니다. §6.3.1에 "리전 단위 재해는 가용성 목표 범위 밖(주권상 교차리전 백업 불가)"을 명시하고, 예외를 둘 경우(동일 관할권 2nd 리전 암호화 스냅샷)는 교차리전 KMS grant가 필요해 "리전 간 배선 없음"과 충돌한다는 점까지 적겠습니다. Appendix B #9(RTO/RPO)는 이 전제 확정 후 답하겠습니다.
+- 조치: §6.3.1 DR 공백 명시(리전 재해=목표 밖·교차리전 백업 불가) + B#9 전제 · 반영: push `55d724b` · 상태: **Resolved(fixed)**
 
-> 주의: 81463은 내가 이미 Resolved(fixed)로 닫았으나 Jack 재응답으로 논의 재개 상태. 81481 zone 결정과 함께 봐야 함.
+## C-32 · §2.7.1·handoff #6 · [thread 81484] · 임건혁(Jack) · [스펙추가] 🔧
+- **[임건혁(Jack) · thread 81484]** (원문 전체)
+  > **[infra/ECR] §2.7.1·handoff #6 — "리전 스택 통째" 목록에 ECR 교차리전 복제가 빠졌습니다.**
+  >
+  > 우리 런타임 base는 digest 고정입니다(리포 CLAUDE.md 규약):
+  >
+  > ```
+  > 118688039229.dkr.ecr.ap-northeast-2.amazonaws.com/es-base/node24-slim@sha256:<digest>
+  > ```
+  >
+  > ECR은 리전 서비스라 타 리전 EKS가 이 이미지를 당기면 **교차리전 pull** 이 됩니다.
+  >
+  > - pull 지연·리전 간 전송료
+  > - **apne2 ECR 장애 시 타 리전에서 신규 pod 기동 불가** — "각 리전이 독립 스택" 이라는 전제가 이미지 레이어에서 깨집니다
+  >
+  > handoff `region-silo-infra.md` 항목 6(리전 스택 증분)에 **ECR cross-region replication rule(앱 이미지 + es-base 양쪽)** 을 추가해 주세요. base 이미지는 DevOps 소유라 replication 설정 주체도 같이 정리하겠습니다.
+- **[전규현 · 미게시(무시·thread 삭제됨)]** 동의합니다. es-base가 digest 고정이라 타 리전 EKS가 apne2 ECR을 교차리전 pull하면 지연·전송료가 생기고, apne2 ECR 장애 시 타 리전 신규 pod 기동이 막혀 "각 리전 독립 스택" 전제가 이미지 레이어에서 깨집니다. handoff의 리전 스택 증분 항목에 ECR cross-region replication(앱 이미지 + es-base 양쪽)을 추가하겠습니다. es-base는 DevOps 소유라 replication 설정 주체도 함께 정리하는 데 동의합니다.
+- 조치: **무시** — Jack이 원 코멘트(thread 81484)를 스스로 삭제(미처리 상태)해 스펙 미반영·답변 안 함 · 상태: **무시(withdrawn·미처리 삭제)**
 
+## C-33 · §2.1.1·§7.5.3·handoff #4 · [thread 81485] · 임건혁(Jack) · [스펙추가] 💡
+- **[임건혁(Jack) · thread 81485]** (원문 전체)
+  > **[infra/egress] §2.1.1·§7.5.3·handoff #4 — EIP whitelist 대상이 AXS만 적혀 있습니다.**
+  >
+  > "AXS whitelist = 전 리전 EIP 합집합" 은 맞는데, 리전이 늘면 **AXS 말고도 union이 필요한 곳**이 같이 늘어납니다. 현재 문서·handoff에 누락된 것들:
+  >
+  > - **LMP** — enroll마다 라이선스·Clinic-ID 검증(§2.3.1), B안이면 JWKS fetch. 전 리전 GW → LMP 아웃바운드가 생깁니다. LMP 쪽 whitelist도 union 대상입니다.
+  > - **CleverSpace(내부 B)** — 내부망 전제로 "egress 고정 IP 불필요" 라고 되어 있는데, 리전이 늘면 타 리전에서 오는 트래픽이 더는 내부망 전제로 안 묶입니다. 리전 간 연결 방식(전용 회선/피어링/공개 경로 중 무엇인지)이 정해져야 합니다.
+  > - **Entra JWKS·중앙 관측 백엔드·CI→Parameter Store** — 리전마다 아웃바운드가 생깁니다.
+  >
+  > 프로비저닝 쪽에서는 **리전당 NAT 수를 고정(2AZ)** 하고 EIP를 미리 풀로 잡아두는 방식으로 가겠습니다. 그래야 union 크기가 예측 가능합니다. AXS 등록 IP 개수 상한 확인(④)은 이미 문서에 있는 대로 진행해 주세요.
+- **[전규현 · 게시완료]** 동의합니다. AXS 외에도 리전이 늘면 union이 필요한 아웃바운드가 함께 늘어납니다 — LMP(enroll 검증·JWKS), Entra JWKS, 중앙 관측 백엔드, CI→Parameter Store. §2.1.1·§7.5.3·handoff의 union 대상을 AXS 단독이 아니라 이 목록으로 확장하겠습니다. CleverSpace 내부망 전제도 리전 증가 시 재검토가 필요하고 리전 간 연결 방식이 미정이라는 점을 명시하겠습니다. 리전당 NAT 2AZ 고정·EIP 풀 선확보는 ③-I 방식으로 존중합니다.
+- 조치: §2.1.1·handoff#4 egress union 대상 확장(AXS 외 LMP·Entra·관측·CI) · 반영: push `55d724b` · 상태: **Resolved(fixed)**
+
+## C-34 · docs/specs/SRS.md §2.1.1 · [thread 81486] · 임건혁(Jack) · [문구정정] 💡
+- **[임건혁(Jack) · thread 81486]** (원문 전체)
+  > **[infra] §2.1.1 — "전역인 것은 딱 하나 = Region Directory" 는 사실과 다릅니다.**
+  >
+  > 인프라 관점에서 실제로 리전 경계를 넘는 것들이 이미 있습니다:
+  >
+  > | 전역 의존 | 성격 |
+  > |---|---|
+  > | **ECR** | 이미지 pull, 다만 ECR 이미지에 PHI가 들어가진 않으니 무방할듯 합니다.|
+  > | **LMP** | enroll 검증·JWKS — 전 리전에서 아웃바운드 |
+  > | **Entra/MS365 JWKS** | 모든 리전 admin API가 같은 IdP 검증 |
+  > | **CI → Parameter Store** | compat matrix를 CI가 전 리전에 발행(§7.7.5) |
+  >
+  >
+  > 요청: §2.1.1에 **전역 의존 목록 + 각각 비-PHI 근거**를 표로 추가해 주세요. 문장을 "전역 데이터(클리닉·PHI)는 없다. 단 비-PHI 전역 의존은 아래와 같다" 로 바꾸는 정도면 충분합니다.
+- **[전규현 · 게시완료]** 동의합니다. "전역인 것은 Region Directory 하나"는 부정확합니다 — ECR·LMP·Entra JWKS·CI→Parameter Store가 리전 경계를 넘습니다. §2.1.1을 "전역 데이터(클리닉·PHI)는 없다. 단 비-PHI 전역 의존은 아래"로 바꾸고 각 항목의 비-PHI 근거를 표로 추가하겠습니다.
+- 조치: §2.1.1 전역 의존 표(ECR·LMP·Entra·CI) 추가 · 반영: push `ab5441a` · 상태: **Resolved(fixed)**
+
+## C-35 · docs/specs/SRS.md §2.7.1 · [thread 81487] · 임건혁(Jack) · [결정·defer] 🔧 중국 파티션
+- **[임건혁(Jack) · thread 81487]** (원문 전체)
+  > **[infra] 중국 리전은 "독립 스택 하나 더" 가 아닙니다 — 별도 파티션입니다.**
+  >
+  > 배경에 중국이 동기로 적혀 있고 §2.7.1이 "리전 추가 = 독립 스택 통째로 얹기" 라고 정리했는데, AWS 中国는 인프라 관점에서 전혀 다른 물건입니다.
+  >
+  > - **별도 파티션** (`amazonaws.com.cn`) — 별도 계정·별도 IAM·별도 Terraform provider·글로벌 파티션과 IAM 신뢰관계 없음
+  > - **글로벌 ECR 접근 불가** — es-base 포함 이미지 파이프라인을 따로 구축해야 함
+  > - **Entra 연동·중앙 관측·CI 접근** 전부 경계 밖
+  > - **ICP 备案** 필요 (도메인·호스팅)
+  > - **CloudFront 전역 배포 불가** — 중국은 별도 CDN
+  >
+  > 마지막 항목 때문에 **"Region Directory를 리전 독립 URL 하나에 둔다"는 §7.3.6 전제가 중국에서 깨집니다.** 중국 EzServer가 읽을 Directory는 결국 별도 URL이 되고, 그러면 "유일한 부트스트랩 앵커" 도 하나가 아니게 됩니다.
+  >
+  > 중국이 범위 안이면 §2.7.1을 **같은 파티션 리전 증분 / 별도 파티션(랜딩존 신설)** 두 케이스로 나눠 써주세요. 비용·기간도 자릿수가 다릅니다.
+- **[전규현 · 게시완료]** 지적 정확합니다. AWS 중국은 별도 파티션(amazonaws.com.cn)이라 §2.7.1의 "독립 스택 증분"과 성격이 다릅니다 — 별도 계정·IAM·Terraform provider, 글로벌 ECR 접근 불가(별도 이미지 파이프라인), Entra 연동 불가(별도 인증 방안 필요), 중앙 관측·CI 경계 밖, ICP 备案, CloudFront 불가로 Region Directory URL이 별도가 됩니다. 다만 v1.0·gw/1.2는 중국 진입 범위가 아니므로, 지금은 스펙에 이 사실만 명시하고(§2.7.1을 "동일 파티션 리전 증분"과 "별도 파티션 랜딩존 신설 — 범위 밖·추후"로 구분) 실제 지원이 필요해질 때 스펙/설계를 별도 업그레이드하는 것으로 남기겠습니다. 언급하신 ECR 별도 배치·Entra 대체 인증 등 파티션별 추가 지원 항목도 그 미래 작업 목록으로 함께 적어 두겠습니다.
+- 조치: §2.7.1에 중국=별도 파티션 defer 명시(범위 밖·추후 업그레이드·파티션별 추가 지원 목록) · 반영: push `55d724b` · 상태: **Resolved(fixed)**
+
+## C-36 · SRS 1146·1153·1157·2040·2171 + env-reference · [thread 81488] · 임건혁(Jack) · [문구정정] 🔧
+- **[임건혁(Jack) · thread 81488]** (원문 전체)
+  > **[infra/IAM] IRSA -> EKS Pod Identity 로 정정 필요합니다.**
+  >
+  > 우리 EKS는 **Pod Identity**(pod-identity-association) 를 씁니다. IRSA 아닙니다. ServiceAccount에 `eks.amazonaws.com/role-arn` 애노테이션이 없는 게 정상이고, 파드 권한은 pod-identity-association 으로 확인합니다.
+  >
+  > 문서에 IRSA로 적힌 곳:
+  >
+  > - `docs/specs/SRS.md:1146` — "pod→AWS 접근은 **IRSA**로 부여한다"  ← 이번 PR에서 손댄 문단
+  > - `docs/specs/SRS.md:1153` — SQS "서버리스·**IRSA** 접근·DLQ 내장"
+  > - `docs/specs/SRS.md:1157` — "Secrets Store CSI / External Secrets(**IRSA** 연계)"
+  > - `docs/specs/SRS.md:2040` — §7.6.3 큐 "서버리스·**IRSA**·DLQ 내장"
+  > - `docs/specs/SRS.md:2171` — §7.7.5 "read=ESO/**IRSA**"
+  > - `docs/env-reference.md:27, 51, 52, 60`
+- **[전규현 · 게시완료]** 정정하겠습니다. IRSA가 아니라 EKS Pod Identity(pod-identity-association)를 쓰는 게 맞습니다. 지적하신 SRS 1146·1153·1157·2040·2171과 env-reference 27·51·52·60의 IRSA 표기를 Pod Identity로 모두 바꾸겠습니다.
+- 조치: SRS 5곳 + env-reference 4곳 IRSA→EKS Pod Identity · 반영: push `ab5441a` · 상태: **Resolved(fixed)**
+
+## C-37 · docs/env-reference.md (GW_REGION·GW_PUBLIC_APEX) · [thread 81489] · 임건혁(Jack) · [스펙추가+문구정정] 🔧
+- **[임건혁(Jack) · thread 81489]** (원문 전체)
+  > **[infra/env] `GW_REGION` — Parameter Store 보관은 문제없습니다(앞선 차트 주입 요청 철회). 다만 4곳 복제와 `AWS_REGION` 정합이 비어 있습니다.**
+  >
+  > 먼저 정정합니다. 차트 주입을 요청드렸는데 **철회**합니다 — `.env` 를 쓰지 않고 **컨테이너 주입 env 로만 동작**하며 PS/Secrets 는 ESO/CSI 가 동기화하는 구조라, 앱이 부팅 중 PS 를 직접 조회하지 않습니다. PS 에 둬도 부팅 경로 의존이 늘지 않습니다. 게다가 경로 규약이 이미 "prod 은 멀티리전이라 **리전별 prod 계정에 각각 생성**" 이라, 리전 상수를 담기에 PS 가 오히려 자연스럽습니다. **`GW_REGION`·`AWS_REGION` 모두 PS 유지로 갑니다.**
+  >
+  > 대신 표를 보다 확인된 두 가지만 반영 부탁드립니다.
+  >
+  > **1. 경로 규약상 `GW_REGION` 이 4곳에 복제됩니다.**
+  >
+  > PS 경로가 `/{env}/{app}/{VAR}` 라 `core`·`admin`·`receiver`·`dispatcher` 각각에 같은 값을 넣어야 합니다. `docs/env-reference.md:48` 에도 "4개 서비스(core/admin/receiver/dispatcher) **동일 값**" 이라고 적혀 있는데, 이는 곧 **하나만 틀려도 그 앱만 다른 리전으로 동작**한다는 뜻입니다. region silo 에서 이 오설정은 토큰 iss/aud·`ClinicResolution` region echo·주권 판정·로그 라벨이 전부 어긋나는데도 **앱은 정상 기동**합니다(값이 있으니 fail-closed 에 안 걸림).
+  >
+  > → 공용 경로(`/{env}/common/GW_REGION`)를 두거나, IaC 에서 **단일 변수로 4곳 fan-out** 하도록 못박아 주세요. 사람이 4번 넣는 운영은 하지 않겠습니다.
+  >
+  > **2. `GW_REGION` ↔ `AWS_REGION` 정합을 강제하는 게 없습니다.**
+  >
+  > `apne2` 와 `ap-northeast-2` 는 값 공간이 달라 중복이 아니라 **매핑**입니다. 현재 표는 "보통 일치하나 별개 키" 라고만 되어 있어 매핑이 어긋나도 잡히지 않습니다.
+  >
+  > → 부팅 시 **매핑 assertion(불일치 시 fail-closed)** 을 앱 요구사항으로 넣거나, 매핑 표를 한 곳에 두고 파생시켜 주세요. `GW_REGION` 이 이미 "공통 4" 필수값이니 존재 검사에 정합 검사만 얹으면 됩니다.
+  >
+  > ---
+  >
+  > **별건 — `GW_PUBLIC_APEX` 네이밍**
+  >
+  > apex 개념을 폐기했는데 변수명은 남아 있고 설명은 "전역 apex 아님" 이라 서로 싸웁니다. `GW_PUBLIC_HOST` 나 `GW_REGION_HOST` 로 바꿔주세요. Region Directory 스키마의 `apex` 필드명도 동일합니다(`host`/`apiHost`).
+- **[전규현 · 게시 후 삭제(Jack root 삭제·orphan 정리)]** 동의합니다. PS 경로가 /{env}/{app}/{VAR}라 GW_REGION이 core·admin·receiver·dispatcher 4곳에 복제되고, 하나만 틀려도 그 앱만 다른 리전으로 정상 기동하는 위험이 있어 공용 경로 또는 IaC 단일 변수→4곳 fan-out을 스펙에 못박겠습니다(사람이 4번 입력 금지). GW_REGION↔AWS_REGION은 값 공간이 다른 매핑이라 부팅 시 매핑 assertion(불일치 fail-closed)을 앱 요구로 넣겠습니다. 별건인 GW_PUBLIC_APEX와 Region Directory의 apex 필드명도 폐기어라 GW_PUBLIC_HOST/host류로 리네이밍하겠습니다(스키마 필드명은 계약 변경이라 함께 처리). 차트 주입 철회·PS 보관 확정 반영 감사합니다.
+- 조치: **Jack이 원 코멘트(thread 81489)를 스스로 삭제(withdrawn)** — 이미 반영한 apex 리네이밍(push `ab5441a`)은 정합상 유지, GW_REGION fan-out·assertion은 요구 철회로 미반영. 스레드 Resolved · 상태: **Resolved(withdrawn·apex only)**
+
+## C-38 · docs/specs/SRS.md §3.1.2 · [thread 81491] · 임건혁(Jack) · [스펙추가/③-I] 💡
+- **[임건혁(Jack) · thread 81491]** (원문 전체)
+  > **[infra/RDS] §3.1.2 — RDS 전환은 동의. 다만 프로비저닝 파라미터가 비어 있습니다.**
+  >
+  > Aurora Global 폐기 동의합니다. 교차리전 복제가 사라졌으니 Aurora를 미리 살 근거가 없어졌고 RDS for PostgreSQL Multi-AZ가 맞습니다. Aurora가 자동으로 주던 것들이 이제 **명시 설정 항목**이 되므로 아래를 스펙 또는 ③-I 항목으로 확정해 주세요.
+  >
+  > 1. **Multi-AZ 형태** — `Multi-AZ instance`(스탠바이 1) vs `Multi-AZ DB cluster`(3-instance) 중 어느 쪽인지. 전자는 failover 60~120초 + 마이너 패치 시 다운, 후자는 훨씬 빠르지만 비쌉니다. 99.9%(월 43분) 목표면 instance로 충분하다고 보되, **유지보수 창(§2.6·B#9)** 과 **blue/green 업그레이드 사용**을 전제로 깔아야 합니다.
+  > 2. **스토리지 오토스케일링** — Aurora는 자동 확장이었습니다. RDS는 `max_allocated_storage` 를 명시하지 않으면 안 늘어납니다. 상한값 필요.
+  > 3. **스토리지 클래스·IOPS** — gp3 기준 baseline IOPS/throughput. `webhook_event.payload_encrypted` 가 같은 인스턴스에 들어오면서 쓰기 프로파일이 바뀌었으니 사이징 입력이 필요합니다(Appendix B #15·#36).
+  > 4. **PostgreSQL 17.x extension 호환 검토** — Appendix B #18에 제 몫으로 잡혀 있는 항목, RDS 기준으로 다시 보겠습니다.
+- **[전규현 · 게시완료]** 동의합니다. Aurora가 자동으로 주던 것들이 RDS에선 명시 항목이 됩니다 — Multi-AZ 형태(instance vs cluster), 스토리지 오토스케일 상한(max_allocated_storage), gp3 IOPS/throughput(payload_encrypted 동거로 쓰기 프로파일 변화·Appendix B #15·#36), PG17 extension 호환(B#18)을 §3.1.2 또는 ③-I 항목으로 확정하겠습니다. 99.9% 목표면 instance + blue/green·유지보수 창 전제라는 판단도 함께 반영하겠습니다.
+- 조치: §3.1.2 RDS 프로비저닝 파라미터 항목화(Multi-AZ 형태·오토스케일·IOPS·PG17 ext·③-I) · 반영: push `55d724b` · 상태: **Resolved(fixed)**
+
+## C-39 · docs/specs/SRS.md §2.3.9 · [thread 81493] · 임건혁(Jack) · [스펙추가] 🔧
+- **[임건혁(Jack) · thread 81493]** (원문 전체)
+  > **[infra/KMS] §2.3.9 — 마이그레이션 시 교차리전 재암호화가 필요합니다. "리전 간 배선 없음" 과 충돌합니다.**
+  >
+  > §2.3.9 공통 이동 대상에 `webhook_event(payload·KMS)` 가 들어 있는데, payload는 **구 리전 CMK로 envelope 암호화**되어 있습니다. 이관하려면:
+  >
+  > 1. 구 리전 CMK로 복호화
+  > 2. 신 리전 CMK로 재암호화
+  >
+  > 이 순간만큼은 **한쪽이 상대 리전 CMK에 대한 grant를 갖거나, 평문이 리전 경계를 넘거나** 둘 중 하나가 됩니다. §2.1.1의 "리전 간 배선 없음" 과 정면으로 충돌하고, 주권 관점에서도 그냥 넘길 수 없는 구간입니다.
+  >
+  > §2.3.9에 이 단계를 **명시적 예외**로 적어주세요 — 어느 쪽에서 복호화하는지, grant를 어느 방향으로 임시 부여하는지, 커트오버 후 회수 절차까지. handoff `region-silo-infra.md` 항목 5(KMS 리전 키)에도 "마이그레이션 시 교차리전 grant 절차" 를 붙이겠습니다.
+  >
+  > gw/1.2 이후 항목이라 지금 설계까지는 아니어도, **"이건 공짜가 아니다" 는 표시**는 지금 남겨두는 게 맞습니다.
+- **[전규현 · 게시완료]** 동의합니다. §2.3.9 이동 대상의 webhook_event payload는 구 리전 CMK로 암호화돼 있어 이관 시 복호화→재암호화 구간에서 교차리전 grant 또는 평문의 리전 경계 이동이 불가피해 "리전 간 배선 없음"과 충돌합니다. §2.3.9에 이 단계를 명시적 예외로 적겠습니다 — 복호화 위치·grant 방향·커트오버 후 회수 절차. handoff KMS 항목에도 "마이그레이션 시 교차리전 grant 절차"를 붙이겠습니다. gw/1.2 이후라 상세 설계는 그때지만 "공짜가 아님" 표시는 지금 남기겠습니다.
+- 조치: §2.3.9·handoff#5 KMS 마이그레이션 교차리전 재암호화 예외 명시 · 반영: push `55d724b` · 상태: **Resolved(fixed)**
+
+## C-40 · §4.5.1(1410·1422·1426)·§6.6.2(1694)·§7.9(2289) · [thread 81494] · 임건혁(Jack) · [문구정정] 💡
+- **[임건혁(Jack) · thread 81494]** (원문 전체)
+  > **[infra/DNS] §4.5.1 — admin "내부 전용" 서술이 실제 구성과 다릅니다. 문구 정정 요청 (접근통제는 mesh로 처리)**
+  >
+  > 먼저 접근통제 자체는 이미 성립합니다. admin은 4-way의 **별도 Deployment**라 공개 ingress의 VirtualService에 **admin Service로 가는 route가 없습니다** — "닿는데 막힌다"가 아니라 upstream이 없는 상태입니다. 여기에 **Istio DENY AuthorizationPolicy**를 얹어 route 설정 실수까지 커버하겠습니다(Istio는 DENY를 ALLOW보다 먼저 평가하므로 VirtualService 변경에 영향받지 않습니다).
+  >
+  > **사설 hosted zone·전용 내부 ALB 신설은 하지 않습니다.** 리전마다 곱해지는 비용 대비 얻는 게 이름 enumeration 방지 수준이라, 공개 와일드카드에 `admin.` 이 매칭되어 TLS 핸드셰이크 후 거부 응답이 나가는 것은 수용합니다.
+  >
+  > 그래서 요청은 **문구 정정**입니다. 지금 스펙이 우리가 만들지 않을 구성을 약속하고 있습니다.
+  >
+  > | 위치 | 현재 | 정정 |
+  > |---|---|---|
+  > | §4.5.1 표 (`SRS.md:1410`) | "전용 ingress+**NetworkPolicy**·**사설 zone/내부 ALB**" · "GW core와 **물리 분리**" | "별도 Deployment + 공개 ingress에 **mesh DENY AuthorizationPolicy**(route 미등록)" · "**논리 격리**" |
+  > | §4.5.1 4-way 표 (`:1422`) | "전용 ingress+**NetworkPolicy**" | 〃 |
+  > | §4.5.1 (`:1426`) | "인증서·**사설 zone** 실제 구성=③-I" | "인증서·ingress 정책 실제 구성=③-I" |
+  > | §6.6.2 (`:1694`) | "전용 ingress·**NetworkPolicy**" | 〃 |
+  > | §7.9 (`:2289`) | "전용 ingress·**NetworkPolicy**" | 〃 |
+  >
+  > 집행 수단은 **NetworkPolicy가 아니라 Istio AuthorizationPolicy** 입니다. 스펙에 NetworkPolicy로 박혀 있으면 ③-I가 쓰지 않는 수단으로 대조당합니다. "물리 분리"도 마찬가지로, 실제로는 별도 Deployment + mesh 정책에 의한 **논리 격리**입니다.
+  >
+  > ---
+  >
+  > **참고 — 리전당 실제 LB 구성** (스펙의 "내부 ALB" 표현이 현실과 다릅니다)
+  >
+  > | 용도 | 구성 |
+  > |---|---|
+  > | 프론트엔드 | CloudFront (**VPC origin**) → **internal NLB** |
+  > | 백엔드 | **ALB** (공개) |
+  > | 모니터링 | **internal ALB** |
+  >
+  > 즉 `console.`(③-C UI)은 애초에 공개 백엔드 ALB에 붙지 않고 CloudFront + internal NLB 경로입니다 — DENY 대상도 아니고 "공개 와일드카드 밑" 문제도 해당되지 않습니다. **정리 대상은 `admin.` 하나입니다.**
+  >
+  > (별건: 프론트엔드가 CloudFront면 그 배포용 인증서는 **us-east-1 ACM** 이라, 리전 내 ALB용 와일드카드 cert와 별개로 카운트됩니다. Region Directory 코멘트의 cert 항목과 같은 맥락입니다.)
+  >
+  > **구현 시 주의** — DENY에 사내 CIDR 조건(`remoteIpBlocks`)을 같이 걸 거면 ALB 뒤라서 XFF 처리가 전제입니다. `numTrustedProxies`(gatewayTopology)를 안 잡으면 소스가 ALB 사설 IP로 잡혀 정책이 무의미해지거나 전량 차단됩니다. `ipBlocks`(직접 소스)와 `remoteIpBlocks`(XFF 유래)는 다른 필드입니다.
+- **[전규현 · 게시 후 삭제(Jack root 삭제·orphan 정리)]** 동의합니다. admin 접근통제가 사설 zone/내부 ALB/NetworkPolicy가 아니라 별도 Deployment + 공개 ingress route 미등록 + Istio DENY AuthorizationPolicy(논리 격리)로 성립한다는 실제 구성에 맞게 문구를 정정하겠습니다 — §4.5.1 표(1410)·4-way 표(1422)·1426, §6.6.2(1694), §7.9(2289)의 "NetworkPolicy·사설 zone·물리 분리"를 "mesh DENY AuthorizationPolicy·route 미등록·논리 격리"로. console.은 CloudFront+internal NLB라 대상이 아니고 정리 대상은 admin. 하나라는 점, XFF/numTrustedProxies 주의도 반영하겠습니다.
+- 조치: admin 5곳 문구 정정(NetworkPolicy·사설 zone·물리 분리 → mesh DENY AuthorizationPolicy·route 미등록·논리 격리) · 반영: push `ab5441a` · 상태: **Resolved(fixed)**
+
+> 빈 스레드: 81490·81492(Jack 게시 내용 없음 — placeholder/삭제 추정, 대응 불요).
 
 ---
-
 ## Round 7 — Nemesis Update 6 (2026-07-30 07:4x)
 
 > 신규 2건(둘 다 💡). **§4.1.2 규칙3·§2.3.6.2 917 해소 확인**(c6fe5f1). 요약이 "미해소"로 재기재한 TC-DATA-02/03·§7.1.1 전역보관·§4.1.1 apex·§7.6.3 region은 **34496d3에 이미 반영**(Update 6가 34496d3 직전 스냅샷)—stale. 신규 2건 전건 정정·push(`82a4442`)·답변 게시(전규현)·Resolved(fixed).
