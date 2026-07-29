@@ -1120,10 +1120,16 @@
     - 다음 = T-AUTH-2-3(deviceAuth Guard) · 상세 = S3
 
 - 논의 사항 (이번 주) _(프레임 · 신규 안건 회의 시 추가)_
-  - **R2. GW 저장소 — DB 선택 결정 (전역 일관 · webhook payload 외부화)**
-    - 전역 일관(Global sync)은 GW 요구사항이고, **그걸 어떤 DB로 담느냐**를 정한다.
-    - 핵심안: **payload(PHI)를 리전 로컬 저장소(S3/DynamoDB)로 분리 → 관계형 전부 non-PHI → 단일 Aurora Global 클러스터**(인스턴스 최소화·주권 보장). 저장소 S3 vs DynamoDB는 접전(D1). 결정 항목·비교·다이어그램은 문서 참조.
-    - 상세(VKS) → **[📄 GW 저장소 DB 선택 결정 (7/30)](https://vks.vatech.com/x/abNEEw)**
+  - **R2. GW 저장소 — 결정: 리전 완전 분리 (region silo) ✔ 확정(7/30)**
+    - **리전 완전 분리 채택** — 각 리전이 **독립 스택**(자기 DB·전부 리전 로컬). **전역 일관/Global DB 미도입.** 근거: 베트남·중국 등 **리전 간 데이터 이동이 원천 봉쇄**되는 국가에서 전역 공유는 리스크가 큼 → **원천 봉쇄가 안전**. Global DB는 필요 시 후행 재설계(지금 안 만듦).
+    - **적용 범위 = gw/1.2까지 스펙이 리전 완전 독립.**
+    - **리전별 DB = PostgreSQL RDS 확정** (분리라 Global DB 기능 불필요 → Aurora 불요).
+    - **payload(PHI)는 리전 DB에 저장** — 리전 독립이라 교차 복제 우려 없음 → **S3·DynamoDB 외부화 불요**(관계형 DB 컬럼 유지).
+    - **클리닉 리전 변경 = Migration으로 지원**(투명 자동전환 아님). **지금 전부 구현 안 함 — gw/1.2 이후 요구사항 재수집 후 보강.**
+    - **Webhook = AXS에 리전별 처리 요청**(AXS가 리전별로 발신). **AXS 미지원 시에만** global receiver가 forwarding하는 **보완책** → **SRS에 참고안으로 포함**.
+    - **Global APEX(gw.vatech.com)·GeoDNS 불요** — 리전별 구축이라 **DNS에 리전 정보 포함**(region-specific host). dev(단일 리전)는 영향 없음.
+    - **GW Console = 리전별 스위치 관리**(불편 수용). 이때 **auth/authz 재검토** 필요 — 상세는 **③-C GW Console 스펙**, SRS는 언급만.
+    - **반영 대상(다음 단계)**: SRS §2.1.1·§2.7.1·§3.1.2·§4.5.1·§7.3(리전변경)·§7.6(webhook)·§7.6.3(payload) + DBML + 결정 문서 전면 개정. → 정리본 검토 후 착수.
   - **R3. 제품 OnePager(③-P) 인계 현황·방식 확정 — CleverSpace·CleverOne(신규 전달) + EzServer(수령 확인)**
     - **배경**: 7/23 결정대로 CleverSpace·CleverOne OnePager 초안(각 **1·2·3·4단계 통합**·①호환성·②Presigned 흡수)을 **7/27 작성 완료**. EzServer 초안(③-P-EZ)은 **지난주 Teddy에게 공유**.
     - **문제**:
@@ -1253,7 +1259,7 @@
   - **S3. GW 구현 현황 — Phase·Task 스냅샷 (7/30·매주 갱신)** — 1단계(GW 독립 코어) 구현 진행중. 매 Task 완료 시 갱신. _(7/30 프레임 시작값 = 7/23 상태 · 주중 Task 완료 시 갱신)_
     - **진행 단계** — 스펙(분석/설계)과 구현을 분리해 진행한다. 스펙은 HLD로 baseline 동결됐고 현재 구현(LLD 병행) 중이다. 구현이 끝이 아니라, QA 인계 전 개발팀이 통합·시스템 테스트로 동작을 확증하는 단계가 남고, 이어 QA·운영이 있다.
       - **스펙 — 분석/설계(HLD)**: SRS·DBML·OpenAPI·TCL baseline v1.0 동결 · 정합화(v1.0.1~v1.0.4) 지속 · LLD는 구현과 병행
-      - **구현(LLD 병행)** — _구현 단계 내 진척 ≈ 48%(코딩 Task 31/65)_: 1단계 코어 P0~P4 완료 · P5·P6·P10 진행 예정 / 2단계 AXS 연동(P7~P12)은 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
+      - **구현(LLD 병행)** — _구현 단계 내 진척 ≈ 49%(코딩 Task 32/65)_: 1단계 코어 P0~P4 완료 · P5 착수(5-1 완료) · P6·P10 예정 / 2단계 AXS 연동(P7~P12)은 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
       - **개발 통합·검증(QA 인계 전)**: 통합 테스트 · 시스템 E2E(실 계약: AXS·CleverSpace·EzServer) · 성능·부하 · HA·복원력 · 보안 검토 → 동작 확증 후 QA 인계
       - **QA**: 릴리스 회귀 · QA TCL · V&V 산출물(IEC 62304 / ISO 13485)
       - **운영·릴리스**: staging/prod 배포(인프라) · AXS pilot
@@ -1281,7 +1287,8 @@
       | ″ | T-REG-4-3 | clinic 정보 보정(PATCH /me·ISO countryCode·self 격리)·접속 리전 재지정(PUT /me/region·mapping_version CAS·PHI-free audit·현재동일 no-op) | ✅ 완료 | PR #12185 merge · unit 32·e2e 8(self격리·audit_log·no-op)·curl·DB/audit 조회 · core 최초 regional Prisma+Audit 배선 |
       | ″ | T-REG-4-4 | PHI region-boundary 앱 내부 PDP(deny-by-default·coarse target 인가·리전경계·egress fail-closed·presigned guardrail·OPA는 gw/1.1+ 예약) | ✅ 완료 | PR #12187 merge · unit 42·통합 8(정책해석·리전경계·egress) · PEP 배선=P6 |
       | ″ | T-REG-4-5 | admin region 카탈로그 CRUD(isDefault 정확히1·참조/default 삭제 409)·operator clinic 리전 교정 | ✅ 완료 | PR #12191 merge · unit 29·e2e 22(RBAC·CRUD·audit) · **→ P4 완결** |
-      | **P5 호환성 게이트** | 전체 | Vatech-* 파싱·well-known·Parameter Store/LKG·semver 3단계 | ⬜ 대기 | 1단계(compat 값=CleverSpace/CleverOne OnePager 후) |
+      | **P5 호환성 게이트** | T-CFG-5-1 | Vatech-* 식별 헤더 파싱 미들웨어(originator vs Via·필수/semver 검증→400·CompatContext 부착) | ✅ 완료 | PR #12194 merge · unit 19·e2e 4(400 envelope·스코프) |
+      | ″ | T-CFG-5-2~ | well-known 매트릭스 서빙(Parameter Store·fail-closed)·semver 3단계 게이팅 | 🟠 착수 | 코드 착수 가능(매트릭스 **값**만 ① One Pager 후·Parameter Store 주입) |
       | **P6 target-routed 프록시/라우팅** | 전체 | 서브도메인·verbatim·PEP 체인·SSRF fail-closed·타임아웃 | ⬜ 대기 | 1단계(실 AXS 왕복 E2E만 ④ 후) |
       | **P7 External Connector·AXS** | 전체 | OAuth2 cc·egress 고정IP·앱 PDP egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후(보류) |
       | **P8 webhook 수신(Receiver)** | 전체 | HMAC·멱등·ACK·KMS 암호화 저장·SQS enqueue | ⬜ 대기 | 2단계(골격 로컬 더블 선행 가능) |
