@@ -1143,6 +1143,7 @@
   - **(프레임) AWS 환경 분리 후속**
     - 계정/네트워크 · ESO/Parameter Store 경로 · `.env.template` 항목 확정(Jack·Raymond).
     - ③-I Infra 계획서와 정합.
+  - **(공유·결정 아님) 멀티리전 webhook 정합화 (SRS)** — 기존 SRS의 멀티리전 webhook 흐름이 절마다 엇갈려(일부 주권 위반) 이를 정정. §2.3.6을 **region 내 분배 / 교차리전 분배(receiver-forward)** 로 분리하고 §2.2·§7.6.3·§7.6.7 불일치 정정, §7.6.8에 단계화(**v1.0 단일 리전·gw/1.2 멀티리전**) 명시. **v1.0 무영향**. SRS 브랜치 PR로 반영(spec-v1.0.3).
   - _(신규 안건은 회의에서 추가)_
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
@@ -1270,7 +1271,9 @@
       | ″ | T-ENR-3-4 | 승인 slice: PATCH 전이(승인·정지·재개·폐기)+kill(→revoked·denylist 전파)·RBAC(cs) (Admin) | ✅ 완료 | PR #12169 merge · unit 326·e2e 7/7·curl cross-app(kill→토큰 401) |
       | ″ | T-ENR-3-5 | 미승인 pending 기본 7일 후 자동 만료(background sweep·config·스팸 방지) | ✅ 완료 | PR #12171 merge · unit 5·e2e 4(경계·null created_at) · **→ P3 완료** |
       | **P4 레지스트리·region resolution** | T-REG-4-1 | Region Resolver(device/clinic→region·ADR-10)·mapping_version CAS·버전 조건부 캐시 | ✅ 완료 | PR #12173 merge · unit 11·e2e 5(CAS·H1 stale 방지) |
-      | ″ | T-REG-4-2~ | ClinicResolution(GET /v1/clinics/me)·GET /v1/regions·PHI 앱 내부 PDP 경계 | 🟠 착수 | 1단계(다음=4-2) |
+      | ″ | T-REG-4-2 | ClinicResolution(GET /v1/clinics/me·region·hosts·주권 phiEgress=false·self 격리)·GET /v1/regions(planned 제외) | ✅ 완료 | PR #12177 merge · unit(매퍼·폴백·주권불변)·e2e 5(self 404·무토큰 401·draining 노출) |
+      | ″ | T-REG-4-3 | clinic 정보 보정(PATCH /me·ISO countryCode·self 격리)·접속 리전 재지정(PUT /me/region·mapping_version CAS·PHI-free audit·현재동일 no-op) | ✅ 완료 | PR #12185 merge · unit 32·e2e 8(self격리·audit_log·no-op)·curl·DB/audit 조회 · core 최초 regional Prisma+Audit 배선 |
+      | ″ | T-REG-4-4~ | PHI region-boundary 앱 내부 PDP 경계·admin region/clinic CRUD | 🟠 착수 | 1단계(다음=4-4) |
       | **P5 호환성 게이트** | 전체 | Vatech-* 파싱·well-known·Parameter Store/LKG·semver 3단계 | ⬜ 대기 | 1단계(compat 값=CleverSpace/CleverOne OnePager 후) |
       | **P6 target-routed 프록시/라우팅** | 전체 | 서브도메인·verbatim·PEP 체인·SSRF fail-closed·타임아웃 | ⬜ 대기 | 1단계(실 AXS 왕복 E2E만 ④ 후) |
       | **P7 External Connector·AXS** | 전체 | OAuth2 cc·egress 고정IP·앱 PDP egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후(보류) |
