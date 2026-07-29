@@ -29,7 +29,7 @@
   - 용어 정합: 디바이스=EzServer(GW 관점)·LMP(LicenseManager, Clinic-ID 소스)·PHI·OTel·ADOT·Valkey(§1.4)
   - §6.9 사이트 적응(멀티리전·비-AWS국) 재작성 — 폐기된 GW signer·GW 스토리지 호스팅 잔재 제거(GW는 중계만)
   - **라우팅 방식 비교표 추가(§4.1.2, ADR-11)** — 단, 정직 재평가 결과 "헤더가 모든 면 우수"는 아님 → 아래 논의 R1로 상정
-  - 참조 카탈로그 정비(제품별 references 재편) · `munto-dev-assistant → abc-dev-assistant` 리포 정합 · 공통 규칙(authoring·comments·git-commit·markdown) 어댑터 패턴 반영
+  - 참조 카탈로그 정비(제품별 references 재편) · 공통 규칙(authoring·comments·git-commit·markdown) 정합
   - 문서 품질: `N/A(기존과 동일)` 오용 교정(spec-standard + SRS) — "기존과 동일"은 N/A 아님 → 정확한 링크/복사/TBD
 
 - 논의 사항 (7/2 신규)
@@ -935,7 +935,7 @@
   - **후속 조치(baseline 동결에 따른)**: (1) **하위 스펙 승격 unblock** — ③ 동결로 ③-C Console·④ AXS·③-P-EZ·③-I가 ③ 정본 SHA(`spec-v1.0`)를 참조해 정식 집필/baseline 진행 가능 
   - **③-I Infra IaC 구축 계획서 초안 작성·인계(Raymond→Jack)** — GW SRS에서 인프라 요구 12영역 추출 + 전체 인프라 다이어그램. 각 영역에 `🔧 Jack 상세` 표시(구체 리소스·Terraform·사이징은 Jack 완성). DB/클러스터/스키마 명명 선결(권장안 명시). **정본을 `vt-api-gateway-infra`(브랜치 `docs/iac-plan-draft`)로 이관해 Jack 인계** (scp `specs/03i-infra/`는 리다이렉트 stub). 이후 상세·PR·baseline은 Jack.
   - **③-P-EZ EzServer GW 적응 OnePager 초안 작성(Raymond→EzServer 팀)** — GW SRS 추출 + **기존 EzServer suite 코드 분석**(nginx/EAP/ELM/EPI(Rust)/WebConsole). 기능 블록 **WS-1~8**(라우팅·인증·MQTT하행·업로드·heartbeat·로컬콘솔·하위호환·IO Scanner)로 구조화, 각 블록에 착지 컴포넌트·현황격차·`🔧 Thomas 상세` 명시. private_key_jwt 신규개발·presigned/MQTT 재활용 가능·EzServer 로컬 온보딩 콘솔 등 분석 결과 반영. IO Scanner 의존부=TBD(R1). `specs/03p-ez-ezserver/EzServer-GW적응-OnePager.md`.
-  - **GW 구현 = 2단계 병행 착수 결정** — ③ baseline 동결(7/20)로 **GW 독립 코어(P0~P6·P10·④ 무관)를 7/21부터 선행 구현 착수**, **AXS 연동부(P7~P12)는 ④ AXS 연동 Spec 완성 후** 진행하는 2단계 병행으로 확정. 1단계는 로컬 backing 서비스+외부 더블로 인프라·AXS 없이 자립(재작업 리스크 0)이라 10월 출시 역산에 완충. 구현계획서(IP) v1.0 인수 완료(§3 착수 게이트 반영). 상세=S1 Gantt·공유.
+  - **GW 구현 = 2단계 병행 착수 결정** — ③ baseline 동결(7/20)로 **GW 독립 코어(P0~P6·P10·④ 무관)를 7/21부터 선행 구현 착수**, **AXS 연동부(P7~P12)는 ④ AXS 연동 Spec 완성 후** 진행하는 2단계 병행으로 확정. 1단계는 로컬 backing 서비스+외부 더블로 인프라·AXS 없이 자립(재작업 리스크 0)이라 10월 출시 역산에 완충. 구현 계획 확정(착수 게이트 반영). 상세=S1 Gantt·공유.
 
 - 논의 사항 (이번 주)
   - (결정) 0단계 IO Scanner는 잠시 보류하고, 1,2,3단계를 먼저 진행한다.
@@ -957,9 +957,9 @@
   - **S1. 프로젝트 일정(Gantt) — 7/23 스냅샷** — 스펙 생애주기(작성→PR→baseline)+GW 구현 타임라인. **정본=[개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정은 그쪽 먼저·동기화 완료). **7/9 대비 변경**: v1.0 범위=IO Scanner로 축소 · 각 스펙 **작성/PR 분리** · CleverOne·②Presigned·CleverSpace=**deferred(post-v1.0)** 섹션 · **담당 표기**. · **7/16 회의 반영(순서 재조정)**: ③-I Infra·③-P-EZ EzServer 초안 **7/20 Raymond 착수** · **IO Scanner(④)·GW Console 연기**.
     - 막대 색: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 빨강=외부/미정 선결. **선결(빨강)**: IO Scanner↔EzServer 연동방식(미정·R1)·AXS sandbox 자격(Straumann). **목표=10월 출시**(역산·잠정). **병행 별도 프로젝트**: `SectionView Module 구현`(7/13~2주·Raymond·**GW 아님**)을 별도 섹션 `▷ 병행`에 **다른 색(crit)** 으로 표기 — GW 일정과 자원 경합(부분투입) 가시화용.
     - **GW 구현 = 2단계 병행 착수(신규)** — ③ GW SRS baseline 동결(7/20·`spec-v1.0`)로 **계약이 고정된 GW 독립 부분은 ④ AXS·인프라 완성을 기다리지 않고 7/21부터 선행 구현**한다.
-      - **1단계 — GW 독립 코어(7/21~·④ 무관)**: 플랫폼 토대·데이터 모델·인증(device/operator)·enrollment·레지스트리/region·호환성 게이트·target 프록시·fleet(= IP P0~P6·P10). 계약이 ③ SRS·DBML로 고정돼, 로컬 backing 서비스(Postgres·Valkey·SQS·MQTT·KMS 로컬 대체)+외부 시스템 더블로 unit/e2e가 **로컬 자립** → AXS·인프라 없이 진행.
-      - **2단계 — AXS 연동(④ 연동 Spec 완성 후)**: External Connector·AXS 커넥터 실연동·webhook 수신/분배·sandbox 전구간 E2E(= IP P7~P12). **④ AXS Sub-SRS**(연동 Spec)와 Straumann sandbox 자격 확보 후 착수·완결.
-      - 두 단계는 **스펙 집필과 병행**(위 Gantt에 `1단계`·`2단계` 막대 분리). 근거=7/2 R7(1안): 구현 시작점=④ AXS baseline이나 *core 일부는 ③ baseline 후 선행 가능*. **1단계 선행은 재작업 리스크 0**이며 10월 출시 역산에 완충. 상세 착수 게이트·Phase별 의존=구현계획서(IP) §3(`abc-dev-assistant/projects/vt-api-gateway`).
+      - **1단계 — GW 독립 코어(7/21~·④ 무관)**: 플랫폼 토대·데이터 모델·인증(device/operator)·enrollment·레지스트리/region·호환성 게이트·target 프록시·fleet(= P0~P6·P10). 계약이 ③ SRS·DBML로 고정돼, 로컬 backing 서비스(Postgres·Valkey·SQS·MQTT·KMS 로컬 대체)+외부 시스템 더블로 unit/e2e가 **로컬 자립** → AXS·인프라 없이 진행.
+      - **2단계 — AXS 연동(④ 연동 Spec 완성 후)**: External Connector·AXS 커넥터 실연동·webhook 수신/분배·sandbox 전구간 E2E(= P7~P12). **④ AXS Sub-SRS**(연동 Spec)와 Straumann sandbox 자격 확보 후 착수·완결.
+      - 두 단계는 **스펙 집필과 병행**(위 Gantt에 `1단계`·`2단계` 막대 분리). 근거=7/2 R7(1안): 구현 시작점=④ AXS baseline이나 *core 일부는 ③ baseline 후 선행 가능*. **1단계 선행은 재작업 리스크 0**이며 10월 출시 역산에 완충.
 
     ```mermaid
     gantt
@@ -1035,7 +1035,7 @@
 
       > **7/23 진행(7/16 회의 반영)**: ③ GW SRS = **PR 코멘트 접수 오늘(7/16)까지 → 다음주 월요일(7/20) 마무리·baseline v1.0(0.9→1.0)** · **③-I Infra·③-P-EZ EzServer 초안 = 7/20 Raymond 착수** · **① One Pager(2주 더·8월 초)·④ AXS(IO Scanner)·③-C GW Console = 연기** · **0단계(IO Scanner 수집)** = 선결·방식 R1 미정. v1.0 = **Straumann IO Scanner** 한정(CleverOne = post-v1.0). 순서·의존 = [Roadmap §3.9]. · **(C) 압축**: GW 구현을 ④ AXS *draft* 후 착수 + **구현 기간 40d로 단축** → 구현 ~10/10·E2E ~10/24(**10/31 목표 이내**).
 
-  - **S3. GW 구현 현황 — Phase·Task 스냅샷 (7/23·매주 갱신)** — ③ baseline 동결(7/20) 후 **7/21 1단계(GW 독립 코어) 구현 착수**. 정본 진척 = 구현계획서(IP) 체크박스(`abc-dev-assistant/projects/vt-api-gateway/ImplementationPlan.md`). 매 Task 완료 시 갱신.
+  - **S3. GW 구현 현황 — Phase·Task 스냅샷 (7/23·매주 갱신)** — ③ baseline 동결(7/20) 후 **7/21 1단계(GW 독립 코어) 구현 착수**. 정본 진척 = 각 Task PR merge 이력. 매 Task 완료 시 갱신.
     - **상태 범례**: ✅ 완료(main merge) · 🟡 부분완료(외부 선결로 일부 잔여) · 🟢 리뷰중(PR) · 🟠 구현중 · ⬜ 대기 · 🔴 외부 선결 대기. **표기 규칙**: Phase 내 전 Task 상태가 같으면 1행으로 묶고, 상태가 다르거나 **금주에 변화가 있으면** Task별로 펼친다.
 
       | Phase | Task | 설명 | 상태 | 비고 |
@@ -1250,7 +1250,13 @@
       > - CleverOne OnePager는 지금 작성(연동 *구현*만 post-v1.0).
       > - 순서·의존 = [Roadmap §3.9].
 
-  - **S3. GW 구현 현황 — Phase·Task 스냅샷 (7/30·매주 갱신)** — 1단계(GW 독립 코어) 구현 진행중. 정본 진척 = 구현계획서(IP) 체크박스(`abc-dev-assistant/projects/vt-api-gateway/ImplementationPlan.md`). 매 Task 완료 시 갱신. _(7/30 프레임 시작값 = 7/23 상태 · 주중 Task 완료 시 갱신)_
+  - **S3. GW 구현 현황 — Phase·Task 스냅샷 (7/30·매주 갱신)** — 1단계(GW 독립 코어) 구현 진행중. 매 Task 완료 시 갱신. _(7/30 프레임 시작값 = 7/23 상태 · 주중 Task 완료 시 갱신)_
+    - **진행 단계** — 스펙(분석/설계)과 구현을 분리해 진행한다. 스펙은 HLD로 baseline 동결됐고 현재 구현(LLD 병행) 중이다. 구현이 끝이 아니라, QA 인계 전 개발팀이 통합·시스템 테스트로 동작을 확증하는 단계가 남고, 이어 QA·운영이 있다.
+      - **스펙 — 분석/설계(HLD)**: SRS·DBML·OpenAPI·TCL baseline v1.0 동결 · 정합화(v1.0.1~v1.0.4) 지속 · LLD는 구현과 병행
+      - **구현(LLD 병행)** — _구현 단계 내 진척 ≈ 46%(코딩 Task 30/65)_: 1단계 코어 P0~P4 완료 · P5·P6·P10 진행 예정 / 2단계 AXS 연동(P7~P12)은 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
+      - **개발 통합·검증(QA 인계 전)**: 통합 테스트 · 시스템 E2E(실 계약: AXS·CleverSpace·EzServer) · 성능·부하 · HA·복원력 · 보안 검토 → 동작 확증 후 QA 인계
+      - **QA**: 릴리스 회귀 · QA TCL · V&V 산출물(IEC 62304 / ISO 13485)
+      - **운영·릴리스**: staging/prod 배포(인프라) · AXS pilot
     - **상태 범례**: ✅ 완료(main merge) · 🟡 부분완료(외부 선결로 일부 잔여) · 🟢 리뷰중(PR) · 🟠 구현중 · ⬜ 대기 · 🔴 외부 선결 대기. **표기 규칙**: Phase 내 전 Task 상태가 같으면 1행으로 묶고, 상태가 다르거나 **금주에 변화가 있으면** Task별로 펼친다.
 
       | Phase | Task | 설명 | 상태 | 비고 |
@@ -1273,7 +1279,8 @@
       | **P4 레지스트리·region resolution** | T-REG-4-1 | Region Resolver(device/clinic→region·ADR-10)·mapping_version CAS·버전 조건부 캐시 | ✅ 완료 | PR #12173 merge · unit 11·e2e 5(CAS·H1 stale 방지) |
       | ″ | T-REG-4-2 | ClinicResolution(GET /v1/clinics/me·region·hosts·주권 phiEgress=false·self 격리)·GET /v1/regions(planned 제외) | ✅ 완료 | PR #12177 merge · unit(매퍼·폴백·주권불변)·e2e 5(self 404·무토큰 401·draining 노출) |
       | ″ | T-REG-4-3 | clinic 정보 보정(PATCH /me·ISO countryCode·self 격리)·접속 리전 재지정(PUT /me/region·mapping_version CAS·PHI-free audit·현재동일 no-op) | ✅ 완료 | PR #12185 merge · unit 32·e2e 8(self격리·audit_log·no-op)·curl·DB/audit 조회 · core 최초 regional Prisma+Audit 배선 |
-      | ″ | T-REG-4-4~ | PHI region-boundary 앱 내부 PDP 경계·admin region/clinic CRUD | 🟠 착수 | 1단계(다음=4-4) |
+      | ″ | T-REG-4-4 | PHI region-boundary 앱 내부 PDP(deny-by-default·coarse target 인가·리전경계·egress fail-closed·presigned guardrail·OPA는 gw/1.1+ 예약) | ✅ 완료 | PR #12187 merge · unit 42·통합 8(정책해석·리전경계·egress) · PEP 배선=P6 |
+      | ″ | T-REG-4-5 | admin regions/clinics region CRUD | 🟠 착수 | 1단계(다음=4-5) |
       | **P5 호환성 게이트** | 전체 | Vatech-* 파싱·well-known·Parameter Store/LKG·semver 3단계 | ⬜ 대기 | 1단계(compat 값=CleverSpace/CleverOne OnePager 후) |
       | **P6 target-routed 프록시/라우팅** | 전체 | 서브도메인·verbatim·PEP 체인·SSRF fail-closed·타임아웃 | ⬜ 대기 | 1단계(실 AXS 왕복 E2E만 ④ 후) |
       | **P7 External Connector·AXS** | 전체 | OAuth2 cc·egress 고정IP·앱 PDP egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후(보류) |
@@ -1283,7 +1290,7 @@
       | **P11 Admin API·audit·컴플라이언스** | 전체 | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | ⬜ 대기 | 2단계(webhook slice=P8 후) |
       | **P12 E2E·하드닝** | 전체 | AXS sandbox E2E·compat E2E·부하·HA/KEDA 검증 | ⬜ 대기 | 🔴 2단계·④ AXS sandbox 실자격 |
 
-      > **금주 구현 요약(7/30 · 주중 진척 반영)** — P1 데이터 모델을 마무리(T-DATA-1-6 시드·1-7 시드 러너/테스트 인프라)해 **P1을 종료**하고, **P2 인증 토대를 완성**했다(T-AUTH-2-1~2-5). 토큰 발급(2-1: private_key_jwt 검증→RS256 access token)·토큰 EP 방어(2-2: assertion jti 1회 소비 재사용 401·정본 clientId rate-limit 429·revocation denylist 즉시 401)·deviceAuth Guard(2-3)에 이어, **operator 면**(2-4: Entra OIDC 검증+confused-deputy 방어+JIT operator, 2-5: operator_role RBAC deny-by-default+`/v1/admin/me`)까지 세워 **device·operator 양 인증면을 완비**했다. 이어 **P3 enrollment 에 착수** — 공개 enroll 개시(3-1: 부트스트랩·nonce challenge·IP rate-limit·`/v1/enroll/start`)와 완료(3-2: nonce 서명·공개키 검증→device pending 등록·clinic upsert·GeoDNS default region 배정·client_id 발급·재-enroll 회전·`/v1/enroll/complete`)를 마쳤다. 아울러 빌드/Docker 앱 부팅 릴리즈게이트(Prisma 생성물 번들)를 해소했다. 모든 엔드포인트 Task에 **검증 4종(unit·e2e[실 DB·Valkey]·curl 왕복·DB/Valkey 조회)** 과 **E2E 반복성 하네스**(clean-slate·seed·FLUSHDB)를 적용한다(IP §6).
+      > **금주 구현 요약(7/30 · 주중 진척 반영)** — P1 데이터 모델을 마무리(T-DATA-1-6 시드·1-7 시드 러너/테스트 인프라)해 **P1을 종료**하고, **P2 인증 토대를 완성**했다(T-AUTH-2-1~2-5). 토큰 발급(2-1: private_key_jwt 검증→RS256 access token)·토큰 EP 방어(2-2: assertion jti 1회 소비 재사용 401·정본 clientId rate-limit 429·revocation denylist 즉시 401)·deviceAuth Guard(2-3)에 이어, **operator 면**(2-4: Entra OIDC 검증+confused-deputy 방어+JIT operator, 2-5: operator_role RBAC deny-by-default+`/v1/admin/me`)까지 세워 **device·operator 양 인증면을 완비**했다. 이어 **P3 enrollment 에 착수** — 공개 enroll 개시(3-1: 부트스트랩·nonce challenge·IP rate-limit·`/v1/enroll/start`)와 완료(3-2: nonce 서명·공개키 검증→device pending 등록·clinic upsert·GeoDNS default region 배정·client_id 발급·재-enroll 회전·`/v1/enroll/complete`)를 마쳤다. 아울러 빌드/Docker 앱 부팅 릴리즈게이트(Prisma 생성물 번들)를 해소했다. 모든 엔드포인트 Task에 **검증 4종(unit·e2e[실 DB·Valkey]·curl 왕복·DB/Valkey 조회)** 과 **E2E 반복성 하네스**(clean-slate·seed·FLUSHDB)를 적용한다.
       >
       > - **데이터 모델의 적용 범위**: 데이터 계층은 **4개 앱이 공유하는 하나의 공통 자산**이다(앱별로 나뉘지 않음). DB(전역 `gw_global`·리전 `gw_regional`)와 Prisma 스키마·공용 헬퍼는 `libs/common`에 **한 벌만** 두고 core·admin·receiver·dispatcher가 함께 쓴다.
       > - **다음**: P3 나머지(3-3 상태머신·재-enroll 회전 → 3-4 C/S 승인·kill → 3-5 pending TTL 자동만료) → P4 region resolution 순. 모두 ④ AXS 없이 선행 가능. AXS 연동부(P7~)는 2단계(④ AXS 보류 해제 후).
