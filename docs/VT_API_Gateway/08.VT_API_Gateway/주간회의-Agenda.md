@@ -819,8 +819,8 @@
     - (결정) 10월 중으로 production 연동 완료
     - 9월 중으로 개발 환경 연동 완료 (IOScanner, EzServer 수정, GW가 AXS 연동)
       - Infra 구축 및 자동배포는 8월에 되어야 한다.
-  -  **R3. sub-Spec 초안 작성** - Infra Sub Spec 은 Raymond가 기본 Diagram 을 그려주면 Detail한 거는 Jack 이 작성한다. 
-    - (결정) EzServer 연동 Spec의 초안 작성은 Raymond가 해서 Thomas 에게 전달한다. 
+  - **R3. sub-Spec 초안 작성** - Infra Sub Spec 은 Raymond가 기본 Diagram 을 그려주면 Detail한 거는 Jack 이 작성한다.
+  - (결정) EzServer 연동 Spec의 초안 작성은 Raymond가 해서 Thomas 에게 전달한다.
 
 - 공유 사항 (결정 아님 · 정보 공유)
   - **S1. v1.0 전략 조정 반영 — Straumann IO Scanner 우선 (7/9 결정)** — v1.0 AXS 연동 = **IO Scanner만**, **CleverOne 연동은 post-v1.0**로 이관. GW 기본(호환성·인증·라우팅·target 프록시)은 originator 무관 공통이라 **v1.0 포함**. **스펙 초안 담당(7/16 R3 갱신)**: CleverOne=**Nick** · **EzServer 연동 Spec 초안=Raymond 작성→Thomas 전달·완성** · **③-I Infra Sub-Spec=Raymond 기본 diagram→Jack detail 작성**. **반영 완료**: SRS §1.2·§2.7 · ④/③-P-EZ/③-P-CO seed · 정본 Roadmap §3.9.
@@ -924,15 +924,13 @@
   | 신규 | IO Scanner↔EzServer 연동 방식          | [논의·선결] | 미정 → 이번 주 R1로 승격                                     |
   - **차주 이월 후보**: R1(IO Scanner↔EzServer 연동 방식)·R2(목표일정) 미확정 시 다음 주 이월.
 
-
-
 # VT API Gateway — 7/23 주간회의 Agenda
 
 > 7/16 스냅샷(위 「7/16 주간회의」)은 **그대로 보존**. 아래는 **7/23 최신 스냅샷**이며, 틀(논의/공유/이월)은 이전 주와 동일하다. **Gantt(S1)·스펙 작성 테이블(S2)은 매주 상시 포함**한다.
 
 - 이번 주 진행
   - **③ GW SRS baseline v1.0 동결 완료(7/20)** — PR #11766 리뷰 51개 스레드 전부 resolve → **Complete(squash 병합)**. **tag `spec-v1.0`**(commit `275d153`)·문서 0.9→1.0. DBML 11→13 테이블·데이터 토폴로지 2-클러스터·clinic_id 불변·리전 endpoint 미노출·target secret write-only 등 반영. **계약(SRS·OpenAPI·DBML) SSOT 동결** → 이후 변경은 CCB→새 SHA.
-  - **후속 조치(baseline 동결에 따른)**: (1) **하위 스펙 승격 unblock** — ③ 동결로 ③-C Console·④ AXS·③-P-EZ·③-I가 ③ 정본 SHA(`spec-v1.0`)를 참조해 정식 집필/baseline 진행 가능 
+  - **후속 조치(baseline 동결에 따른)**: (1) **하위 스펙 승격 unblock** — ③ 동결로 ③-C Console·④ AXS·③-P-EZ·③-I가 ③ 정본 SHA(`spec-v1.0`)를 참조해 정식 집필/baseline 진행 가능
   - **③-I Infra IaC 구축 계획서 초안 작성·인계(Raymond→Jack)** — GW SRS에서 인프라 요구 12영역 추출 + 전체 인프라 다이어그램. 각 영역에 `🔧 Jack 상세` 표시(구체 리소스·Terraform·사이징은 Jack 완성). DB/클러스터/스키마 명명 선결(권장안 명시). **정본을 `vt-api-gateway-infra`(브랜치 `docs/iac-plan-draft`)로 이관해 Jack 인계** (scp `specs/03i-infra/`는 리다이렉트 stub). 이후 상세·PR·baseline은 Jack.
   - **③-P-EZ EzServer GW 적응 OnePager 초안 작성(Raymond→EzServer 팀)** — GW SRS 추출 + **기존 EzServer suite 코드 분석**(nginx/EAP/ELM/EPI(Rust)/WebConsole). 기능 블록 **WS-1~8**(라우팅·인증·MQTT하행·업로드·heartbeat·로컬콘솔·하위호환·IO Scanner)로 구조화, 각 블록에 착지 컴포넌트·현황격차·`🔧 Thomas 상세` 명시. private_key_jwt 신규개발·presigned/MQTT 재활용 가능·EzServer 로컬 온보딩 콘솔 등 분석 결과 반영. IO Scanner 의존부=TBD(R1). `specs/03p-ez-ezserver/EzServer-GW적응-OnePager.md`.
   - **GW 구현 = 2단계 병행 착수 결정** — ③ baseline 동결(7/20)로 **GW 독립 코어(P0~P6·P10·④ 무관)를 7/21부터 선행 구현 착수**, **AXS 연동부(P7~P12)는 ④ AXS 연동 Spec 완성 후** 진행하는 2단계 병행으로 확정. 1단계는 로컬 backing 서비스+외부 더블로 인프라·AXS 없이 자립(재작업 리스크 0)이라 10월 출시 역산에 완충. 구현 계획 확정(착수 게이트 반영). 상세=S1 Gantt·공유.
@@ -940,18 +938,18 @@
 - 논의 사항 (이번 주)
   - (결정) 0단계 IO Scanner는 잠시 보류하고, 1,2,3단계를 먼저 진행한다.
     - CleverSpace, CleverOne의 Sub Spec을 Raymond 이 초안을 작성해서 담당팀에 전달한다. (다음주중)
-    - Straumann과 ES가 원하는 프로세스가 다른다. 
+    - Straumann과 ES가 원하는 프로세스가 다른다.
       - Straumann : IO-Scanner -> AXS -(webhook)-> GW -> EzServer (고객이 연동 설정을 안하면 EzServer는 IO-Scanner 결과를 못받아서 문제)
       - ES : IO-Scanner -> EzServer -> GW -> AXS
-      - Straumann과 얘기 중인데 쉽지 않다. Straumann은 기존에 자신들이 구축해 놓은 프로세스를 그대로 따르기를 원하지만 그러면 ES(VT)에 손해다. 협상중인데 쉽지 않다. 
+      - Straumann과 얘기 중인데 쉽지 않다. Straumann은 기존에 자신들이 구축해 놓은 프로세스를 그대로 따르기를 원하지만 그러면 ES(VT)에 손해다. 협상중인데 쉽지 않다.
   - (결정) AWS 환경은 dev, qa, staging, prod 을 사용한다.
     - dev, qa는 같은 계정 사용하고 namespace로 분리한다. 단일 Region
     - stag 별도 - 단일 Region
     - prod는 region 별로 분리
     - 환경 파일은 template만 git에 올린다.
-      - 각 환경별 .env는 Jack이 각각 작성한다. 
-      - 개발시에는 .env.template를 만들어서 Jack이 어떻게 설정해도 잘 동작하도록 해야 한다. 
-      - 로컬용 .env는 개발자가 만들어서 사용한다. 
+      - 각 환경별 .env는 Jack이 각각 작성한다.
+      - 개발시에는 .env.template를 만들어서 Jack이 어떻게 설정해도 잘 동작하도록 해야 한다.
+      - 로컬용 .env는 개발자가 만들어서 사용한다.
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
   - **S1. 프로젝트 일정(Gantt) — 7/23 스냅샷** — 스펙 생애주기(작성→PR→baseline)+GW 구현 타임라인. **정본=[개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정은 그쪽 먼저·동기화 완료). **7/9 대비 변경**: v1.0 범위=IO Scanner로 축소 · 각 스펙 **작성/PR 분리** · CleverOne·②Presigned·CleverSpace=**deferred(post-v1.0)** 섹션 · **담당 표기**. · **7/16 회의 반영(순서 재조정)**: ③-I Infra·③-P-EZ EzServer 초안 **7/20 Raymond 착수** · **IO Scanner(④)·GW Console 연기**.
@@ -959,7 +957,7 @@
     - **GW 구현 = 2단계 병행 착수(신규)** — ③ GW SRS baseline 동결(7/20·`spec-v1.0`)로 **계약이 고정된 GW 독립 부분은 ④ AXS·인프라 완성을 기다리지 않고 7/21부터 선행 구현**한다.
       - **1단계 — GW 독립 코어(7/21~·④ 무관)**: 플랫폼 토대·데이터 모델·인증(device/operator)·enrollment·레지스트리/region·호환성 게이트·target 프록시·fleet(= P0~P6·P10). 계약이 ③ SRS·DBML로 고정돼, 로컬 backing 서비스(Postgres·Valkey·SQS·MQTT·KMS 로컬 대체)+외부 시스템 더블로 unit/e2e가 **로컬 자립** → AXS·인프라 없이 진행.
       - **2단계 — AXS 연동(④ 연동 Spec 완성 후)**: External Connector·AXS 커넥터 실연동·webhook 수신/분배·sandbox 전구간 E2E(= P7~P12). **④ AXS Sub-SRS**(연동 Spec)와 Straumann sandbox 자격 확보 후 착수·완결.
-      - 두 단계는 **스펙 집필과 병행**(위 Gantt에 `1단계`·`2단계` 막대 분리). 근거=7/2 R7(1안): 구현 시작점=④ AXS baseline이나 *core 일부는 ③ baseline 후 선행 가능*. **1단계 선행은 재작업 리스크 0**이며 10월 출시 역산에 완충.
+      - 두 단계는 **스펙 집필과 병행**(위 Gantt에 `1단계`·`2단계` 막대 분리). 근거=7/2 R7(1안): 구현 시작점=④ AXS baseline이나 _core 일부는 ③ baseline 후 선행 가능_. **1단계 선행은 재작업 리스크 0**이며 10월 출시 역산에 완충.
 
     ```mermaid
     gantt
@@ -1033,7 +1031,7 @@
       | **외부(Straumann AXS)** | — | — | — | — | — | ⬜ API·OAuth·샌드박스·자격증명(선결) | — | ④ 입력(외부 제공) |
       | **LMP(License Portal, 바텍)** | — | — | — | — | — | — | ⬜ (조건부) 제3자 서명 attestation | **enroll B안 시만**·ES 라이선스팀(R9·B-42) |
 
-      > **7/23 진행(7/16 회의 반영)**: ③ GW SRS = **PR 코멘트 접수 오늘(7/16)까지 → 다음주 월요일(7/20) 마무리·baseline v1.0(0.9→1.0)** · **③-I Infra·③-P-EZ EzServer 초안 = 7/20 Raymond 착수** · **① One Pager(2주 더·8월 초)·④ AXS(IO Scanner)·③-C GW Console = 연기** · **0단계(IO Scanner 수집)** = 선결·방식 R1 미정. v1.0 = **Straumann IO Scanner** 한정(CleverOne = post-v1.0). 순서·의존 = [Roadmap §3.9]. · **(C) 압축**: GW 구현을 ④ AXS *draft* 후 착수 + **구현 기간 40d로 단축** → 구현 ~10/10·E2E ~10/24(**10/31 목표 이내**).
+      > **7/23 진행(7/16 회의 반영)**: ③ GW SRS = **PR 코멘트 접수 오늘(7/16)까지 → 다음주 월요일(7/20) 마무리·baseline v1.0(0.9→1.0)** · **③-I Infra·③-P-EZ EzServer 초안 = 7/20 Raymond 착수** · **① One Pager(2주 더·8월 초)·④ AXS(IO Scanner)·③-C GW Console = 연기** · **0단계(IO Scanner 수집)** = 선결·방식 R1 미정. v1.0 = **Straumann IO Scanner** 한정(CleverOne = post-v1.0). 순서·의존 = [Roadmap §3.9]. · **(C) 압축**: GW 구현을 ④ AXS _draft_ 후 착수 + **구현 기간 40d로 단축** → 구현 ~10/10·E2E ~10/24(**10/31 목표 이내**).
 
   - **S3. GW 구현 현황 — Phase·Task 스냅샷 (7/23·매주 갱신)** — ③ baseline 동결(7/20) 후 **7/21 1단계(GW 독립 코어) 구현 착수**. 정본 진척 = 각 Task PR merge 이력. 매 Task 완료 시 갱신.
     - **상태 범례**: ✅ 완료(main merge) · 🟡 부분완료(외부 선결로 일부 잔여) · 🟢 리뷰중(PR) · 🟠 구현중 · ⬜ 대기 · 🔴 외부 선결 대기. **표기 규칙**: Phase 내 전 Task 상태가 같으면 1행으로 묶고, 상태가 다르거나 **금주에 변화가 있으면** Task별로 펼친다.
@@ -1061,12 +1059,12 @@
       | ″ | 2-2~2-5 | jti 1회소비·rate-limit·revocation / operator Entra OIDC·RBAC | ⬜ 대기 | 1단계(다음=2-2) |
       | **P3 enrollment·디바이스 생애주기** | 전체 | enroll start/complete·상태머신·재-enroll·C/S 승인·kill | ⬜ 대기 | 1단계 |
       | **P4 레지스트리·region resolution** | 전체 | Region Resolver·ClinicResolution·mapping_version·PHI OPA 경계 | ⬜ 대기 | 1단계 |
-      | **P5 호환성 게이트** | 전체 | Vatech-* 파싱·well-known·AppConfig·semver 3단계 | ⬜ 대기 | 1단계(compat 값=① One Pager 후) |
+      | **P5 호환성 게이트** | 전체 | Vatech-\* 파싱·well-known·AppConfig·semver 3단계 | ⬜ 대기 | 1단계(compat 값=① One Pager 후) |
       | **P6 target-routed 프록시/라우팅** | 전체 | 서브도메인·verbatim·PEP 체인·SSRF fail-closed·타임아웃 | ⬜ 대기 | 1단계(실 AXS 왕복 E2E만 ④ 후) |
       | **P7 External Connector·AXS** | 전체 | OAuth2 cc·egress 고정IP·OPA egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후 |
       | **P8 webhook 수신(Receiver)** | 전체 | HMAC·멱등·ACK·KMS 암호화 저장·SQS enqueue | ⬜ 대기 | 2단계(골격 로컬 더블 선행 가능) |
       | **P9 webhook 분배·MQTT(Dispatcher)** | 전체 | SQS consumer·대상해석·MQTT QoS1 하행·DLQ | ⬜ 대기 | 2단계 |
-      | **P10 fleet·중앙 config·inventory** | 전체 | heartbeat·fleet_state·online 파생·config(gw.*)·inventory | ⬜ 대기 | 1단계 |
+      | **P10 fleet·중앙 config·inventory** | 전체 | heartbeat·fleet_state·online 파생·config(gw.\*)·inventory | ⬜ 대기 | 1단계 |
       | **P11 Admin API·audit·컴플라이언스** | 전체 | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | ⬜ 대기 | 2단계(webhook slice=P8 후) |
       | **P12 E2E·하드닝** | 전체 | AXS sandbox E2E·compat E2E·부하·HA/KEDA 검증 | ⬜ 대기 | 🔴 2단계·④ AXS sandbox 실자격 |
 
@@ -1077,7 +1075,7 @@
       > - **데이터 모델의 적용 범위**: 데이터 계층은 **4개 앱이 공유하는 하나의 공통 자산**이다(앱별로 나뉘지 않음). DB(전역 `gw_global`·리전 `gw_regional`)와 Prisma 스키마·공용 헬퍼는 `libs/common`에 **한 벌만** 두고 core·admin·receiver·dispatcher가 함께 쓴다 — **4-way는 노출하는 API·역할만 다를 뿐 데이터 모델/DB는 동일하게 공유**한다.
       > - **다음**: P1 마무리 → 인증(P2)·enrollment(P3)·레지스트리/region(P4) 순으로 실제 GW 기능 착수(모두 ④ AXS 없이 선행 가능). AXS 연동부(P7~)는 2단계.
       >
-      > *(참고: 진척=41 Task 중 17 완료+1 부분(**P0·P1 완료·P2 착수**=T-AUTH-2-1, 0-5만 배포부 잔여). 7/22 spec-v1.0.1 정합화 — 규칙 불변, 인가/설정의 구현 엔진만 조정, 완료분 영향 없음. 매 Task는 구현자와 분리된 독립 리뷰어의 pre-PR 검토를 거친다.)
+      > \*(참고: 진척=41 Task 중 17 완료+1 부분(**P0·P1 완료·P2 착수**=T-AUTH-2-1, 0-5만 배포부 잔여). 7/22 spec-v1.0.1 정합화 — 규칙 불변, 인가/설정의 구현 엔진만 조정, 완료분 영향 없음. 매 Task는 구현자와 분리된 독립 리뷰어의 pre-PR 검토를 거친다.)
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
@@ -1092,7 +1090,6 @@
   | 11   | 호환성 매트릭스 확정본                 | [정보]      | ① One Pager 의존                                             |
   | 신규 | IO Scanner↔EzServer 연동 방식          | [논의·선결] | 미정 → 이번 주 R1로 승격                                     |
   - **차주 이월 후보**: R1(IO Scanner↔EzServer 연동 방식)·R2(목표일정) 미확정 시 다음 주 이월.
-
 
 # VT API Gateway — 7/30 주간회의 Agenda
 
@@ -1116,7 +1113,7 @@
   - **(프레임) GW 구현 진척** — 1단계 GW 독립 코어에서 **금주 5개 Phase(P2~P6)를 완결**(상세·검증 4종 = S3)
     - **P2 인증 완결** — device 면(private_key_jwt→RS256 토큰·jti 1회 소비·검증후 정본 clientId rate-limit·revocation denylist·deviceAuth Guard)과 operator 면(Entra OIDC 검증+confused-deputy 방어·JIT operator·RBAC deny-by-default·`/v1/admin/me`)의 양 인증면 완비
     - **P3 enrollment 완결** — enroll 개시/완료(nonce 서명·공개키 검증→device pending·clinic upsert)·device 생애주기 상태머신·재-enroll 회전·C/S 승인·kill 즉시 폐기·미승인 pending 자동만료
-    - **P4 레지스트리·region resolution 완결** · **P5 호환성 게이트 완결**(Vatech-* 파싱→400·well-known 매트릭스 서빙·semver 3단계 게이팅) · **P6 target-routed 프록시 완결**(서브도메인 라우터·SSRF fail-closed·PEP 체인 401/403·verbatim bypass·D1~D3 타임아웃·취소 전파·Idempotency-Key)
+    - **P4 레지스트리·region resolution 완결** · **P5 호환성 게이트 완결**(Vatech-\* 파싱→400·well-known 매트릭스 서빙·semver 3단계 게이팅) · **P6 target-routed 프록시 완결**(서브도메인 라우터·SSRF fail-closed·PEP 체인 401/403·verbatim bypass·D1~D3 타임아웃·취소 전파·Idempotency-Key)
     - 1단계 잔여 = **P10 fleet·config·inventory** / 2단계(P7~P12) = ④ AXS 연동 후
     - **⚠ region-silo(R2·spec-v1.0.5) 머지 후 일부 완료분 재작업 예정**(P4 전체·P1/P3/P6 리전 해석 단계 — 상세 S3)
 
@@ -1144,6 +1141,7 @@
       - `clinic_id` 리전-불변 유지(스펙 반영 완료) — 이전해도 클리닉 정체성·AXS 재온보딩 불요.
       - 임시 홈을 쓸 경우 **최소화 롤아웃**(곧 자기 리전 생길 곳은 임시 홈 회피).
     - **결정**: first-open 리전 (a/b) · 이전 계획 유무 · AXS 콜백 세분화 요청 여부.
+    - (결정) 서울은 개발용, 호주리전은 먼저 오픈한다.
   - **R3. 제품 OnePager(③-P) 인계 현황·방식 확정 — CleverSpace·CleverOne(신규 전달) + EzServer(수령 확인)**
     - **배경**: 7/23 결정대로 CleverSpace·CleverOne OnePager 초안(각 **1·2·3·4단계 통합**·①호환성·②Presigned 흡수)을 **7/27 작성 완료**. EzServer 초안(③-P-EZ)은 **지난주 Teddy에게 공유**.
     - **문제**:
@@ -1156,10 +1154,17 @@
     - **함께 확정**: 소유·리뷰어(CleverSpace=고형용/Larry · CleverOne=탁수용/Nick · EzServer=Teddy·Thomas) · 리뷰 일정.
     - **확정 후 실행**: 등록처 이관 → 원본 redirect stub → 실행 할당표 `인계` 갱신 → (파일 아닌) 링크만 통지.
     - **연계**: S1 Gantt · S2 표.
+    - (결정)
+      - CleverSpace(git) onepager 전달할 경로(docs폴더)를 Scott이 전달해준다.
+      - CleverOne(svn) onepager: SharePoint에 폴더를 만들어서 인계한다.
+        - https://vatechcorp.sharepoint.com/sites/es/ProjectDoc/Forms/AllItems.aspx?id=%2Fsites%2Fes%2FProjectDoc%2FClever%20One%2Fsrs%2FOnePager&p=true&ga=1
+  - (결정) R4 - vatech.com은 쓰지 말자. 별도의 Domain을 사용하자.
+    - 별도 도메인 지정 예정. 문서에 vatech.com을 사용한 것은 <도메인>으로 모두 바꿔야 한다.
   - **(이월·계속) Straumann ↔ ES IO Scanner 데이터 흐름 협상**
     - Straumann은 기존 프로세스(IO Scanner→AXS→GW→EzServer) 유지를 원하나 **ES(VT)에 불리**(고객이 연동 설정 안 하면 EzServer가 결과 미수신).
     - ES 안(IO Scanner→EzServer→GW→AXS)과 절충 협상 중.
     - **결정 시 이월-R1(IO Scanner↔EzServer 연동 방식)·④ AXS scope 착수 조건 확정.**
+    - (결정) 다음주 논의 예정
   - **(프레임) AWS 환경 분리 후속**
     - 계정/네트워크 · ESO/Parameter Store 경로 · `.env.template` 항목 확정(Jack·Raymond).
     - ③-I Infra 계획서와 정합.
@@ -1171,6 +1176,13 @@
   - **S1. 프로젝트 일정(Gantt) — 7/30 스냅샷** — 스펙 생애주기(작성→PR→baseline)+GW 구현 타임라인. **정본=[개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>)** (수정은 그쪽 먼저 · 아래 7/23→7/30 변경은 **정본 §3.9 동기화 완료**). **7/23 대비 변경**: ① **0단계 IO Scanner·④ AXS = 보류**(Straumann 협상) · ② **③-P-CS CleverSpace·③-P-CO CleverOne OnePager 2개 = Raymond·7/27 병행 착수**(각 **1·2·3단계 통합**·**①호환성·②Presigned One Pager 폐지→두 제품 OnePager에 흡수**·CleverOne Nick→Raymond) · ③ **1·2·3단계 우선**.
     - 막대 색: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 빨강=외부/미정 선결. **선결(빨강)**: IO Scanner↔EzServer 연동방식(**보류·R1**)·AXS sandbox 자격(Straumann). **목표=10월 출시**(역산·잠정 — ④ AXS/IO Scanner 보류로 **2단계 일정·출시일 재검토 대상**). **병행 별도 프로젝트**: `SectionView Module 구현`(7/13~2주·Raymond·**GW 아님**·완료)은 `▷ 병행` 섹션에 표기.
     - **GW 구현 = 2단계 병행(유지)** — 1단계 GW 독립 코어(P0~P6·P10)는 ③ baseline 고정으로 **정상 진행**(IO Scanner 보류 영향 없음). 2단계 AXS 연동(P7~P12)만 ④ AXS 보류에 연동되어 **후행**.
+    - (결정)
+      - GW Console v1.0 최소기능으로 앞으로 당겨서 진행한다. 전규현/ Raymond
+      - GW Console
+        - MS Entra로 연동
+        - infra
+          - istio로 admin api 접근권한 제어
+          - 페이지접근도 ZeroTrust 에서만 접근 가능하게한다.
 
     ```mermaid
     gantt
@@ -1262,6 +1274,7 @@
       | **CleverLab** | ④ Sub-SRS(갈래B) | 미정 (보류) | — | — |
 
       > **7/30 진행(7/23·오늘 결정 반영)**
+      >
       > - **0단계 IO Scanner·④ AXS = 보류**(Straumann↔ES 데이터 흐름 협상) → **1·2·3단계 우선**.
       > - **③-P-CS CleverSpace·③-P-CO CleverOne OnePager 2개**(각 1·2·3단계=호환성+presigned+GW일원화 통합) **= Raymond·7/27 병행 착수**(deferred→active · CleverOne Nick→Raymond → 담당팀 전달).
       > - **①호환성·②Presigned One Pager 별도 미작성 → 두 제품 OnePager에 흡수**(딱 2개 문서 · presigned=CleverSpace 발급 API+CleverOne 이용, 둘 다 GW 경유라 양쪽 변경).
@@ -1303,7 +1316,7 @@
       | ″ | T-REG-4-3 | clinic 정보 보정(PATCH /me·ISO countryCode·self 격리)·접속 리전 재지정(PUT /me/region·mapping_version CAS·PHI-free audit·현재동일 no-op) | ✅ 완료 | PR #12185 merge · unit 32·e2e 8(self격리·audit_log·no-op)·curl·DB/audit 조회 · core 최초 regional Prisma+Audit 배선 |
       | ″ | T-REG-4-4 | PHI region-boundary 앱 내부 PDP(deny-by-default·coarse target 인가·리전경계·egress fail-closed·presigned guardrail·OPA는 gw/1.1+ 예약) | ✅ 완료 | PR #12187 merge · unit 42·통합 8(정책해석·리전경계·egress) · PEP 배선=P6 |
       | ″ | T-REG-4-5 | admin region 카탈로그 CRUD(isDefault 정확히1·참조/default 삭제 409)·operator clinic 리전 교정 | ✅ 완료 | PR #12191 merge · unit 29·e2e 22(RBAC·CRUD·audit) · **→ P4 완결** |
-      | **P5 호환성 게이트** | T-CFG-5-1 | Vatech-* 식별 헤더 파싱 미들웨어(originator vs Via·필수/semver 검증→400·CompatContext 부착) | ✅ 완료 | PR #12194 merge · unit 19·e2e 4(400 envelope·스코프) |
+      | **P5 호환성 게이트** | T-CFG-5-1 | Vatech-\* 식별 헤더 파싱 미들웨어(originator vs Via·필수/semver 검증→400·CompatContext 부착) | ✅ 완료 | PR #12194 merge · unit 19·e2e 4(400 envelope·스코프) |
       | ″ | T-CFG-5-2 | well-known 매트릭스 서빙(`GET /.well-known/{env}/…`·ESO 마운트·경로탈출 차단·fail-closed 503) | ✅ 완료 | PR #12198 merge · unit 16·e2e 7·curl·DB미사용 |
       | ″ | T-CFG-5-3 | semver 3단계 게이팅(major 차단/minor 경고/patch 무시)·`@CompatGate` guard·worst-of | ✅ 완료 | PR #12200 merge · unit 26 · **→ P5 완결**(실 엔드포인트 배선은 매트릭스 값 확정 후) |
       | **P6 target-routed 프록시** | T-PXY-6-1 | 서브도메인 Host 라우터·target allowlist·SSRF fail-closed(업스트림=레지스트리만) | ✅ 완료 | PR #12203 merge · unit 27(SSRF 벡터·fail-closed) |
@@ -1312,11 +1325,11 @@
       | **P7 External Connector·AXS** | 전체 | OAuth2 cc·egress 고정IP·앱 PDP egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후(보류) |
       | **P8 webhook 수신(Receiver)** | 전체 | HMAC·멱등·ACK·KMS 암호화 저장·SQS enqueue | ⬜ 대기 | 2단계(골격 로컬 더블 선행 가능) |
       | **P9 webhook 분배·MQTT(Dispatcher)** | 전체 | SQS consumer·대상해석·MQTT QoS1 하행·DLQ | ⬜ 대기 | 2단계 |
-      | **P10 fleet·중앙 config·inventory** | 전체 | heartbeat·fleet_state·online 파생·config(gw.*)·inventory | ⬜ 대기 | 1단계 |
+      | **P10 fleet·중앙 config·inventory** | 전체 | heartbeat·fleet_state·online 파생·config(gw.\*)·inventory | ⬜ 대기 | 1단계 |
       | **P11 Admin API·audit·컴플라이언스** | 전체 | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | ⬜ 대기 | 2단계(webhook slice=P8 후) |
       | **P12 E2E·하드닝** | 전체 | AXS sandbox E2E·compat E2E·부하·HA/KEDA 검증 | ⬜ 대기 | 🔴 2단계·④ AXS sandbox 실자격 |
 
-      > **금주 구현 요약(7/30 · 주중 진척 반영)** — 1단계 GW 독립 코어에서 **P2~P6 다섯 Phase를 완결**했다. **P2 인증**: device 면(2-1 private_key_jwt→RS256 토큰, 2-2 jti 1회 소비·검증후 정본 clientId rate-limit·revocation denylist, 2-3 deviceAuth Guard)에 operator 면(2-4 Entra OIDC+confused-deputy 방어+JIT, 2-5 RBAC deny-by-default+`/v1/admin/me`)을 더해 양 인증면을 완비. **P3 enrollment**: 개시/완료(3-1·3-2)에 이어 device 생애주기 상태머신·재-enroll 회전 옛 credential 폐기(3-3)·C/S 승인 slice+kill 즉시 denylist 전파(3-4)·미승인 pending 자동만료(3-5)로 종료. **P4 레지스트리·region resolution**: Region Resolver(mapping_version CAS·버전 조건부 캐시·4-1)·ClinicResolution+GET /v1/regions(4-2)·PATCH /me+PUT /me/region(4-3)·PHI region-boundary 앱 내부 PDP(4-4)·admin region 카탈로그 CRUD(4-5)로 완결. **P5 호환성 게이트**: Vatech-* 파싱→400(5-1)·well-known 매트릭스 서빙(5-2)·semver 3단계 게이팅 guard(5-3). **P6 target-routed 프록시**: 서브도메인 라우터+SSRF fail-closed(6-1)·PEP 체인(auth 401→PDP 403→region)+verbatim bypass(6-2)·아웃바운드 복원력(6-3 D1~D3 타임아웃·취소 전파·에러 정규화·Idempotency-Key)로 완결. 모든 엔드포인트 Task에 **검증 4종(unit·e2e[실 DB·Valkey]·curl 왕복·DB/Valkey 조회)** 과 **E2E 반복성 하네스**(clean-slate·seed·FLUSHDB)를 적용했고, 보안 민감 Task(프록시·인증)는 **독립 적대적 pre-PR 리뷰**로 검증했다.
+      > **금주 구현 요약(7/30 · 주중 진척 반영)** — 1단계 GW 독립 코어에서 **P2~P6 다섯 Phase를 완결**했다. **P2 인증**: device 면(2-1 private_key_jwt→RS256 토큰, 2-2 jti 1회 소비·검증후 정본 clientId rate-limit·revocation denylist, 2-3 deviceAuth Guard)에 operator 면(2-4 Entra OIDC+confused-deputy 방어+JIT, 2-5 RBAC deny-by-default+`/v1/admin/me`)을 더해 양 인증면을 완비. **P3 enrollment**: 개시/완료(3-1·3-2)에 이어 device 생애주기 상태머신·재-enroll 회전 옛 credential 폐기(3-3)·C/S 승인 slice+kill 즉시 denylist 전파(3-4)·미승인 pending 자동만료(3-5)로 종료. **P4 레지스트리·region resolution**: Region Resolver(mapping_version CAS·버전 조건부 캐시·4-1)·ClinicResolution+GET /v1/regions(4-2)·PATCH /me+PUT /me/region(4-3)·PHI region-boundary 앱 내부 PDP(4-4)·admin region 카탈로그 CRUD(4-5)로 완결. **P5 호환성 게이트**: Vatech-\* 파싱→400(5-1)·well-known 매트릭스 서빙(5-2)·semver 3단계 게이팅 guard(5-3). **P6 target-routed 프록시**: 서브도메인 라우터+SSRF fail-closed(6-1)·PEP 체인(auth 401→PDP 403→region)+verbatim bypass(6-2)·아웃바운드 복원력(6-3 D1~D3 타임아웃·취소 전파·에러 정규화·Idempotency-Key)로 완결. 모든 엔드포인트 Task에 **검증 4종(unit·e2e[실 DB·Valkey]·curl 왕복·DB/Valkey 조회)** 과 **E2E 반복성 하네스**(clean-slate·seed·FLUSHDB)를 적용했고, 보안 민감 Task(프록시·인증)는 **독립 적대적 pre-PR 리뷰**로 검증했다.
       >
       > - **데이터 모델의 적용 범위**: 데이터 계층은 **4개 앱이 공유하는 하나의 공통 자산**이다(앱별로 나뉘지 않음). DB(전역 `gw_global`·리전 `gw_regional`)와 Prisma 스키마·공용 헬퍼는 `libs/common`에 **한 벌만** 두고 core·admin·receiver·dispatcher가 함께 쓴다.
       > - **다음**: region-silo(R2·spec-v1.0.5·PR #12207) 머지 후 **일부 완료분 재작업**(P4 전체·P1/P3/P6 리전 해석 단계 → 단일 datasource·region=배포 상수·Region Directory·리전 변경=마이그레이션) → 1단계 잔여 **P10 fleet·config·inventory**. AXS 연동부(P7~P12)는 2단계(④ AXS 보류 해제 후).
@@ -1335,15 +1348,15 @@
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
-  | #    | 항목                                   | 타입        | 상태                                                         |
-  | ---- | -------------------------------------- | ----------- | ------------------------------------------------------------ |
-  | 4    | Webhook 클라우드 분배(CleverLab 갈래B) | [논의]      | v1.0 제외 — Open 후 결정                                     |
-  | 6    | AXS sandbox 자격증명(Straumann 제공)   | [정보]      | pilot·E2E 블로커 — 확보 시점?(협상중)                        |
-  | 7    | 경로 B EOS 시점                        | [논의]      | 리뷰서 workaround·지속성 확정(§2.8) — EOS *시점*만 PM·CS/CO OnePager 미정(①흡수) |
-  | 8    | v1.0 목표 RPS·동시 세션                | [정보]      | 인프라/규모 PL 입력 대기                                     |
-  | 9    | RTO/RPO·유지보수 윈도우                | [정보]      | 인프라 설계 단계 — failover 요건은 R2(저장소 전역일관 vs 리전분리·Q3) 결정과 연계 |
-  | 10   | 감사·consent 보존 기간                 | [정보]      | 법무 확인 대기                                               |
-  | 11   | 호환성 매트릭스 확정본                 | [정보]      | CleverSpace/CleverOne OnePager 의존(①폐지·흡수) — 초안 7/27 작성·확정값은 담당팀 baseline 후 |
-  | 14   | 관측성 앱↔인프라 계약 확정 — ①로그 필드 스키마(현행 pino 기본 필드 ↔ §6.3.2 최소셋 매핑·Appendix B #14) ②메트릭 export 배선(OTLP reader→Grafana Alloy 엔드포인트) | [논의·설계] | **추후 확정** — 트리거=③-I 관측 스택 구축 or P6 프록시 착수(먼저). Raymond 초안(필드 매핑표+엔드포인트 요구)→Jack(인프라) 비동기 합의. **앱 계약(stdout JSON+OTel·redaction) 이미 구현·무블로킹** |
-  | 이월-R1 | IO Scanner↔EzServer 연동 방식          | [논의·선결] | **보류(7/23 결정)** — 이번 주 논의 「Straumann↔ES 데이터 흐름 협상」 결과에 종속(결정 시 이월-R1·④ AXS scope 착수 조건 확정) |
+  | # | 항목 | 타입 | 상태 |
+  | --- | --- | --- | --- |
+  | 4 | Webhook 클라우드 분배(CleverLab 갈래B) | [논의] | v1.0 제외 — Open 후 결정 |
+  | 6 | AXS sandbox 자격증명(Straumann 제공) | [정보] | pilot·E2E 블로커 — 확보 시점?(협상중) |
+  | 7 | 경로 B EOS 시점 | [논의] | 리뷰서 workaround·지속성 확정(§2.8) — EOS *시점*만 PM·CS/CO OnePager 미정(①흡수) |
+  | 8 | v1.0 목표 RPS·동시 세션 | [정보] | 인프라/규모 PL 입력 대기 |
+  | 9 | RTO/RPO·유지보수 윈도우 | [정보] | 인프라 설계 단계 — failover 요건은 R2(저장소 전역일관 vs 리전분리·Q3) 결정과 연계 |
+  | 10 | 감사·consent 보존 기간 | [정보] | 법무 확인 대기 |
+  | 11 | 호환성 매트릭스 확정본 | [정보] | CleverSpace/CleverOne OnePager 의존(①폐지·흡수) — 초안 7/27 작성·확정값은 담당팀 baseline 후 |
+  | 14 | 관측성 앱↔인프라 계약 확정 — ①로그 필드 스키마(현행 pino 기본 필드 ↔ §6.3.2 최소셋 매핑·Appendix B #14) ②메트릭 export 배선(OTLP reader→Grafana Alloy 엔드포인트) | [논의·설계] | **추후 확정** — 트리거=③-I 관측 스택 구축 or P6 프록시 착수(먼저). Raymond 초안(필드 매핑표+엔드포인트 요구)→Jack(인프라) 비동기 합의. **앱 계약(stdout JSON+OTel·redaction) 이미 구현·무블로킹** |
+  | 이월-R1 | IO Scanner↔EzServer 연동 방식 | [논의·선결] | **보류(7/23 결정)** — 이번 주 논의 「Straumann↔ES 데이터 흐름 협상」 결과에 종속(결정 시 이월-R1·④ AXS scope 착수 조건 확정) |
   - **차주 이월 후보**: 이월-R1(IO Scanner↔EzServer 연동 방식·**보류**)·이월-R2(목표일정·출시일 재검토) 미확정 시 다음 주 이월.
