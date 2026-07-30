@@ -712,3 +712,49 @@
   > 1 line-specific finding(s) were posted as inline comments.
 - **[전규현 · 게시완료]** 미해소 5건은 f58c2e4에서 모두 정정·push(리뷰가 이전 스냅샷). 신규 egress 오분류도 §2.1.1·handoff 구분 반영.
 - 조치: 요약 응대(stale 안내) · 반영: push `e122e4c` · 상태: **Resolved(fixed)**
+
+
+---
+
+## Round 10 — Nemesis Update 11 (2026-07-30 · 🆔ms6rsy9k1w · 원문 전체)
+
+> 요약(81574): **직전 5+1건 전부 해소 확인·must_fix 신규 없음.** 신규 = recommendation 2건.
+
+## C-55 · SRS §7.3.6:1953 · [thread 81572] · 민진우(Thomas)/Nemesis · 💡 webhookHost 표기 · **REAL**
+- **[민진우(Thomas)/Nemesis · thread 81572]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6rsy9k1w),
+  > **💡 권장**
+  >
+  > §7.3.6 Region Directory 스키마 예시가 `"webhookHost": "webhook.apne2.gw.<GW 도메인>"` 로 **`{target}` 라벨이 없는 맨(bare) 호스트**를 값으로 준다. 그러나 문서의 다른 모든 곳에서 webhook 수신 호스트는 **target별 전용 호스트** `{target}.webhook.<region>.gw.<도메인>` 이다(§4.5.1 표·명명 규칙 예시 `axs.webhook.apne2.gw.vatech.com`·§7.6.1·§7.6.2), 그리고 같은 개체를 표현하는 `ClinicResolution.hosts`는 `webhookHostPattern`(예 `{target}.webhook.apne2.gw.vatech.com`)로 **`{target}` placeholder를 명시**한다(§7.3.1). 즉 같은 개념을 두 이름·두 형태로 노출한다 — Directory는 `webhookHost`=베이스(라벨 없음), Resolution은 `webhookHostPattern`=`{target}` 포함. `apiHost`(예 `api.apne2.gw.<도메인>`)는 그 자체가 유효한 완결 호스트인 반면 `webhookHost`의 예시 `webhook.apne2.gw.<도메인>`은 그 자체로는 유효한 수신 엔드포인트가 아니라 `{target}`을 앞에 붙여야 하는 베이스인데, 스키마·예시 어디에도 "이것은 `{target}`을 prepend할 베이스"라는 설명이 없다. 부트스트랩 앵커라 소비자(EzServer·③-I·③-C)가 이 값을 그대로 쓰다 오해할 소지가 있으므로, Directory의 `webhookHost`를 `webhookHostPattern`(`{target}.webhook.<region>.gw.<도메인>`)으로 맞추거나, 최소한 "베이스이며 `{target}`을 prepend한다"는 규약을 스키마 description에 명시할 것을 권장한다. 동일 표기(§7.3.6 스키마 열거 라인 1941·§2.1.1 DIR 노드 다이어그램·handoff `region-silo-infra.md` item 2·`region-silo-ezserver.md` item 1)도 함께 정합화 권장.
+- **[전규현 · 게시완료]** Region Directory webhookHost를 webhookHostPattern({target} 포함)으로 개명해 ClinicResolution과 통일(§7.3.6 스키마·JSON·§2.1.1 DIR·handoff 2건 동반).
+- 조치: webhookHost→webhookHostPattern · 반영: push `a9a36c4` · 상태: **Resolved(fixed)**
+
+## C-56 · SRS §2.1.1:244 · [thread 81573] · 민진우(Thomas)/Nemesis · 💡 전역 의존 표 누락 · **REAL**
+- **[민진우(Thomas)/Nemesis · thread 81573]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6rsy9k1w),
+  > **💡 권장**
+  >
+  > §2.1.1 "비-PHI 전역/교차리전 의존" 표는 서두에서 이 목록이 **"전체"**임을 명시(라인 244 끝 "비-PHI 전역/교차리전 의존 전체:")하고 5행(Region Directory·ECR·LMP·Entra/MS365 JWKS·CI→Parameter Store)을 나열한다. 그런데 **같은 절의 egress 불릿**(라인 325)은 "EIP 합집합 whitelist가 성립하는 발신처"로 "AXS · 경우에 따라 LMP·**중앙 관측 백엔드**"를 든다. 중앙 관측 백엔드는 각 리전 GW가 텔레메트리를 **밖으로 push하는 중앙(단일) 백엔드**(§3.1.2 "현재 중앙=Grafana 스택…중앙 Grafana"·§6.3.2·§7.8.3)라 성격상 ECR·LMP와 동급의 **리전 경계를 넘는 비-PHI 아웃바운드 의존**이다. "전체"라고 선언한 표가 이 대상을 빠뜨리면서 바로 아래 egress 불릿에서는 이를 별도 대상으로 명명해, 완전성 주장과 실제 열거가 어긋난다. 표에 "중앙 관측(OTel/Grafana Alloy egress)" 행을 추가하거나 표 문구를 "대표 예"로 완화해 정합화할 것을 권장한다.
+- **[전규현 · 게시완료]** '전체' 표에 중앙 관측 백엔드(중앙 Grafana/OTel·§7.8.3) 행 추가.
+- 조치: §2.1.1 표에 중앙 관측 행 추가 · 반영: push `a9a36c4` · 상태: **Resolved(fixed)**
+
+## C-57 · [thread 81574] · 요약(Update 11) · **직전 전건 해소 확인**
+- **[민진우(Thomas)/Nemesis · thread 81574]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6rsy9k1w, ⏱6m48s, 🔢1.8M in/29.4k out),
+  > ## Code Review (Other) — Update 11
+  >
+  > 이번 증분은 앞선 리뷰들에서 지적된 잔재를 대거 정리하면서 **"리전 완전 분리(region silo)"** 아키텍처를 SRS 전반·OpenAPI·well-known 샘플·신규 handoff 2건에 일괄 반영한 대형 개정이다. §2.1.1(전역 DB·GeoDNS 제거·리전당 단일 RDS·비-PHI 전역 의존 표), §2.3.3(Region Resolver→클리닉 자기뷰/리전 echo), §2.3.9(리전 마이그레이션 시나리오 신설), §3.1.2(Aurora Global→RDS·프로비저닝 파라미터 항목화), §6.3.1(리전 재해 = 가용성 목표 밖·DR 주권 제약), §7.3.1~§7.3.6(리전=배포 상수·Region Directory 신설·서명키 리전별), §7.6(AXS 리전별 발신 1차·receiver-forward는 fallback+discovery TBD 명시)까지 내부 정합성이 높고 사실관계도 정확하다(Multi-AZ instance/cluster failover 특성, CloudFront us-east-1 ACM 필수, detached JWS 서명·CI 발행 전용 IAM, 교차리전 재암호화 예외, RDS 스토리지 오토스케일 `max_allocated_storage` 특성 등 모두 타당). 신규 지적은 **표기·완전성 recommendation 2건뿐**(위 §7.3.6 `webhookHost` 표기 불일치·§2.1.1 "전체" 표의 중앙 관측 백엔드 누락)이며 **must_fix 신규 결함은 발견되지 않았다.**
+  >
+  > **직전 리뷰 지적의 해소 — 이번 증분에서 5건 + 부수 1건 모두 해소.**
+  > - **직전 line comment(§2.1.1 egress union 대상 오분류·recommendation)** — 해소. §2.1.1 egress 불릿과 handoff `region-silo-infra.md` item 4가 EIP 합집합 대상을 **source-IP allowlist를 요구하는 외부 발신처(AXS·경우에 따라 LMP·중앙 관측)로 한정**하고, Parameter Store(AWS·IAM)·Entra JWKS(공개)는 **GW egress allowlist(Istio egress) 대상**으로 명확히 구분했다.
+  > - **line #1(§4.5.1 미동부(use1) DNS 라벨 순서·must_fix)** — 해소. 신설 "호스트 명명 규칙" 블록의 use1 행이 `api.use1.gw.vatech.com`… 형태로 정본 `<svc>.<region>.gw.<도메인>`과 일치.
+  > - **line #2(OpenAPI `servers.url`·must_fix)** — 해소. `https://api.{region}.gw.{domain}`(region·domain 변수)로 교체.
+  > - **line #3(§7.3.1 `ClinicResolution.hosts.apex`·recommendation)** — 해소. `hosts`가 `apiHost`·`webhookHostPattern`으로 개명되고 OpenAPI 스키마도 동일 반영.
+  > - **line #4·#5(handoff `region-silo-ezserver.md`·`region-silo-infra.md` apex·recommendation)** — 해소. 신규 handoff 2건 모두 `apiHost`·`webhookHost` 사용(apex 잔재 없음).
+  > - **부수(server-configuration.sample.json dangling region 엔드포인트)** — 해소. `region.change`/`region.set`(삭제된 `/v1/admin/clinics/{clinicId}/region`·`/v1/clinics/me/region` 참조)을 `clinics.me`(`/v1/clinics/me`)로 교체.
+  >
+  > 또한 삭제 대상(`region_catalog` 테이블·`/v1/regions`·`/v1/admin/regions`·`Region` 스키마·`isDefault`·`cacheTtlSeconds`·`getRegions`·`regions` 태그·엔터티 `region` 컬럼/FK)의 잔재를 SRS·OpenAPI 전반에서 확인했으나 **dangling 참조·미정리 straggler는 발견되지 않았다**(GeoDNS/Aurora/Global DB/Region Resolver 언급은 모두 "두지 않는다/소멸" 부정 문맥). 개명·삭제의 완결성은 우수하며, 통제 문서(IEC 62304/ISO 13485) 추적성 관점의 잔여 정리 필요는 위 recommendation 2건에 그친다.
+  >
+  > 2 line-specific finding(s) were posted as inline comments.
+- **[전규현 · 게시완료]** 직전 5+1건 해소·must_fix 신규 없음 확인 감사. 신규 recommendation 2건(webhookHost·중앙 관측)도 반영.
+- 조치: 요약 응대 · 반영: push `a9a36c4` · 상태: **Resolved(fixed)**
