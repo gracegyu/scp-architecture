@@ -1385,7 +1385,7 @@
     - **스펙 영향(반영 대상)**: SRS §2.3.9 '리전 통째 이동(A)'의 **호주 임시-홈 예시는 v1.0 시나리오에서 제외**(일반 gw/1.2 재홈 역량으로만 존치) · **v1.0 예시/기준 리전 = 호주**(dev=서울)로 정리 필요 — PR 상태 보고 반영 시점 결정.
     - **유지**: AXS webhook 콜백 org(클리닉)별 세분화 요청은 계속(향후 재홈·리전 통째 콜백 회피 대비).
   - **R3. 제품 OnePager(③-P) 인계 — ✔ 방식 확정(8/6)**
-    - **CleverSpace(=EzCloud·git)**: OnePager를 **EzCloud repo에 git 인계**. repo = **`ezicloud/ezcloud`**(제품 CleverSpace=EzCloud). 경로(제안) = **`docs/onepager/gw_adaptation/CleverSpace-GW적응-OnePager.md`**(EzServer `doc/onepager/gw_adaptation` 선례·이 repo는 `docs/` 규약). **경로 확정 = Scott에게 Teams로 '여기 올리겠다' 통지·확인** 후 Raymond가 PR로 인계.
+    - **CleverSpace(=EzCloud·git)**: OnePager **PR 인계 완료** — repo `ezicloud/ezcloud` · `docs/onepager/gw_adaptation/CleverSpace-GW적응-OnePager.md`(정정본·region-silo/spec-v1.0.6 반영) · **PR #12239**(https://dev.azure.com/ewoosoft/ezicloud/_git/ezcloud/pullrequest/12239·커밋 `d3f676a0`). 통지 = Larry(고형용·CleverSpace 팀) Teams.
     - **CleverOne(svn)**: git 아님 → **SharePoint 폴더 인계 완료**. 위치 = `ProjectDoc/Clever One/srs/OnePager/gw_adaptation`(폴더 생성·OnePager 업로드 완료·Raymond). 문서 = https://vatechcorp.sharepoint.com/:t:/s/es/IQC500caygYpS78euV2xO5WyAfzZF2kbz_09J20UbackH2k?e=tQLWOJ · 폴더 = https://vatechcorp.sharepoint.com/sites/es/ProjectDoc/Forms/AllItems.aspx?id=%2Fsites%2Fes%2FProjectDoc%2FClever%20One%2Fsrs%2FOnePager%2Fgw%5Fadaptation&viewid=5a018594%2D6322%2D4139%2Db7ee%2De9dd4aa4d23a&p=true&ga=1 · 통지 = Nick(탁수용) Teams.
     - **EzServer**: Teddy 수령·PR 착수 확인(`ezserver_suite/doc/onepager/gw_adaptation`).
     - **통지**: CleverOne = Nick(탁수용)에게 Teams로 인계 안내. CleverSpace = Scott 경로 회신 후 담당팀(고형용/Larry) 통지.
@@ -1500,7 +1500,7 @@
       | **④ AXS** | Sub-SRS | 〃 vt-api-gateway (GW 소유) | `docs/specs/04-subsrs-straumann-axs/` | 미작성(보류) |
       | **③-I 인프라** | IaC 구축계획서 | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-infra` | `docs/IaC-구축계획서.md` | 미부여(계획서·PR 진행) |
       | **③-P-EZ EzServer** | GW적응 OnePager | `https://dev.azure.com/ewoosoft/ezserver/_git/ezserver_suite` (branch `v6.5.x`) | `doc/onepager/gw_adaptation/Confidential_gw_adaptation_onepager.md` | 미부여(EzServer 팀 baseline 예정·R3 확인) |
-      | **③-P-CS CleverSpace**(=EzCloud) | GW적응 OnePager | `ezicloud/ezcloud`(https://dev.azure.com/ewoosoft/ezicloud/_git/ezcloud) | `docs/onepager/gw_adaptation/`(제안·Scott 확인) | 미부여(팀 baseline·PR 예정) |
+      | **③-P-CS CleverSpace**(=EzCloud) | GW적응 OnePager | `ezicloud/ezcloud`(https://dev.azure.com/ewoosoft/ezicloud/_git/ezcloud) | `docs/onepager/gw_adaptation/CleverSpace-GW적응-OnePager.md` | **PR #12239**([링크](https://dev.azure.com/ewoosoft/ezicloud/_git/ezcloud/pullrequest/12239))·팀 baseline 예정 |
       | **③-P-CO CleverOne** | GW적응 OnePager | SharePoint `ProjectDoc/Clever One/srs/OnePager/gw_adaptation`([문서](https://vatechcorp.sharepoint.com/:t:/s/es/IQC500caygYpS78euV2xO5WyAfzZF2kbz_09J20UbackH2k?e=tQLWOJ) · [폴더](https://vatechcorp.sharepoint.com/sites/es/ProjectDoc/Forms/AllItems.aspx?id=%2Fsites%2Fes%2FProjectDoc%2FClever%20One%2Fsrs%2FOnePager%2Fgw%5Fadaptation&viewid=5a018594%2D6322%2D4139%2Db7ee%2De9dd4aa4d23a&p=true&ga=1)) | 〃(SVN 제품·git 아님) | — (SharePoint·team baseline) |
       | **③-P-LMP LMP** | OnePager(조건부) | **미정 (ES 라이선스팀?)** | — | — |
       | **CleverLab** | ④ Sub-SRS(갈래B) | 미정 (보류) | — | — |
