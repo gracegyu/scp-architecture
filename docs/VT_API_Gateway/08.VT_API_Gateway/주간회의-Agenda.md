@@ -1566,17 +1566,7 @@
       > - **데이터 모델의 적용 범위**: 데이터 계층은 **4개 앱이 공유하는 하나의 공통 자산**이다(앱별로 나뉘지 않음). DB(전역 `gw_global`·리전 `gw_regional`)와 Prisma 스키마·공용 헬퍼는 `libs/common`에 **한 벌만** 두고 core·admin·receiver·dispatcher가 함께 쓴다.
       > - **다음**: region-silo(R2·spec-v1.0.5·PR #12207) 머지 후 **일부 완료분 재작업**(P4 전체·P1/P3/P6 리전 해석 단계 → 단일 datasource·region=배포 상수·Region Directory·리전 변경=마이그레이션) → 1단계 잔여 **P10 fleet·config·inventory**. AXS 연동부(P7~P12)는 2단계(④ AXS 보류 해제 후).
 
-  - **S4. 스펙 게시본 — Project wiki 자동 미러 가동 (비개발자도 스펙 열람 가능)** — 스펙 문서 관리 표준(§9 게시·참조)의 **project wiki 자동 미러**를 vt-api-gateway 에 구현·가동했다. 이제 **Git 접근·개발 라이선스가 없는 비개발자(기획·PM·QA·외주)도 스펙을 열람**할 수 있다(개발자는 Git `docs/` 정본 직접 열람).
-    - **정본↔게시본 분리(baseline 불변)**: 정본은 Git(`docs/specs/`) 그대로 두고, 게시본은 **읽기전용 단방향 미러**. main 병합 시 전용 파이프라인 `.azure-pipelines/docs-wiki.yml`(PAT 인증)이 `es-platforms.wiki/vt-api-gateway/` 하위로 자동 push → **drift 없음**. wiki 직접 편집 금지(편집은 Git 정본에서만).
-    - **왜 project wiki 인가**: code wiki 는 Basic 이상만 열람되지만 **project wiki 는 Stakeholder(무료)도 열람 가능** → 비개발 열람 보장(표준 §9 상단).
-    - **게시 확인(SRS 예)**: [SRS 게시본](https://dev.azure.com/ewoosoft/es-platforms/_wiki/wikis/es-platforms.wiki/549/SRS) — `docs/specs/*.md`(SRS·UnitTCL·design·Sub-SRS)만 미러(openapi.yaml·dbml·`references/` 벤더 사본은 제외·중첩 구조 유지).
-    - **비개발자 열람 온보딩(표준 §9.3)**: 대상자를 조직에 **Stakeholder(무료)** 로 초대 + 프로젝트 **Readers** 부여 → 회사 계정 로그인 후 게시본 URL 열람. (안 보이면 Access level=Stakeholder·Readers 소속 확인 — code wiki·Repos 는 Stakeholder 제한, project wiki 만 열람 가능.)
-    - **재사용**: 동일 파이프라인 패턴을 타 repo(③-C Console·③-I infra 등)에도 적용 가능(제품별 하위 폴더 격리). 표준 정본 = `스펙 문서 관리 표준 (저장·리뷰·참조).md` §9.1(검증 완료 패턴).
-
-  - **S5. CI 회귀 게이트 완성 — 모든 PR이 실 DB/Valkey 통합 e2e 검증 (품질 인프라)** — 그동안 **루트 CI 파이프라인이 미등록**이라 `lint·build·unit·e2e`가 CI 에서 한 번도 안 돌았고(도는 건 devsecops gitleaks/trivy 스캔뿐), 통합 e2e 15 스위트는 `RUN_DB_INTEGRATION` 게이트라 **CI 에서 전부 스킵**되던 회귀 공백이 있었다. 이를 해소했다.
-    - **활성화**: e2e 하네스(globalSetup)가 CI 에서 백킹 서비스(Testcontainers)를 기동·엔드포인트 주입·부팅 시크릿(GW 서명키) 생성·migrate/seed 를 자동 수행 → **실 DB/Valkey 통합 e2e 가 CI 에서 실제 실행**(파이프라인 yml 변경 없음). Jack 의 **Node 24·es-base 마이그레이션(PR #12163)과 통합**.
-    - **게이트화**: 파이프라인 `vt-api-gateway-ci` 등록 + **main 브랜치 정책(Build validation·Required)** 추가 → **모든 PR 이 lint·build(4타겟)·unit(342)·통합 e2e(121)·dep-scan 을 통과해야 머지**. devsecops 4종(gitleaks/trivy)과 함께 5개 필수 게이트.
-    - **검증**: CI 실측 green(Node 24·build 48736 — 전 게이트 통과). **효과**: 회귀 그물망이 로컬 전용에서 **CI 전면**으로 확대(baseline 통제 품질 강화). **참고**: PR 당 CI ~15~20분(Testcontainers e2e 포함).
+  - **S4. 리전 자동 결정(country→region) 스펙 반영 (정보 공유)** — 온보딩 시 EzServer가 **리전을 직접 고르지 않고**, Region Directory의 리전별 담당 국가(`countries`) 매핑으로 **자기 클리닉의 나라(LMP 라이선스/Clinic-ID)에 맞는 리전을 자동 결정**하도록 확정·반영(R6). 지연(GeoDNS) 추천이 아니라 **주권상 결정적 매핑** + C/S 승인 검증. **v1.0은 production 단일(호주)이라 자명 → 실효는 gw/1.2 멀티리전**(당장 blocker 아님). 반영: SRS §2.3.1(온보딩·다이어그램)·§7.3.6(Region Directory `countries` 필드·규칙·JSON 샘플)·§7.3.1 + EzServer handoff. spec-v1.0.6(미커밋·누적).
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
