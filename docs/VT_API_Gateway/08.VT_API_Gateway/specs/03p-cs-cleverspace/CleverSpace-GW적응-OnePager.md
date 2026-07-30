@@ -24,7 +24,7 @@
 | 액터 | 역할 |
 | --- | --- |
 | **CleverOne / EzServer** (클라이언트) | originator·경유 홉 — `Vatech-*` 헤더 부착, GW 경유로 CleverSpace 호출 |
-| **GW** (Proxy Router) | 인증·버전 게이트·정책·관측 후 **`cleverspace.gw.vatech.com`으로 verbatim 중계**(내부 B·connector 불요). presigned 미발급·바이트 미경유 |
+| **GW** (Proxy Router) | 인증·버전 게이트·정책·관측 후 **`cleverspace.<region>.gw.<도메인>`으로 verbatim 중계**(내부 B·connector 불요). presigned 미발급·바이트 미경유 |
 | **CleverSpace** (upstream) | **B 내부 프록시 대상** · **presigned 발급·storage 소유** · 서버 버전 공시·표준 오류 |
 | **CleverSpace storage** (S3/MinIO) | 파일 바이트 저장 — 클라이언트가 presigned로 **직접** 업로드(GW 미경유) |
 
@@ -37,10 +37,10 @@ sequenceDiagram
     participant GW as GW (Proxy Router · Compat Gate)
     participant CS as CleverSpace (presign 발급·storage 소유)
     participant S3 as CleverSpace storage (S3/MinIO)
-    CO->>GW: presigned 발급 요청 (Host cleverspace.gw.vatech.com · Vatech-* 헤더)
-    GW->>GW: 인증 · 버전 게이팅(§7.7·최저버전) · 정책(PDP) · 리전 해석(§7.3)
+    CO->>GW: presigned 발급 요청 (Host cleverspace.<region>.gw.<도메인> · Vatech-* 헤더)
+    GW->>GW: 인증 · 버전 게이팅(§7.7·최저버전) · 정책(PDP) · 리전=배포 상수(§7.3.1)
     GW->>CS: verbatim 중계 (body 미변환 · Vatech-* relay · Vatech-Via 누적)
-    CS->>CS: 세션 생성 · 리전 맞는 presigned URL 발급(§7.3.3)
+    CS->>CS: 세션 생성 · 이 배포 리전에 맞는 presigned URL 발급(§7.3.3)
     CS-->>GW: presigned URL (CleverSpace 발급)
     GW-->>CO: presigned URL 전달 (GW 변환 없음)
     CO->>S3: 파일 바이트 직접 업로드 (GW 미경유)
@@ -62,13 +62,13 @@ sequenceDiagram
 
 ## CS-2. presigned 발급 API 신규 (2단계)
 
-**GW 계약 앵커: §2.3.5·§4.1.4(경로②)·§7.4.** 대용량 파일(CT·영상)은 **CleverSpace가 발급한 presigned로 CleverSpace storage에 직접** 업로드하고, GW는 발급 요청을 **`cleverspace.gw.vatech.com`으로 verbatim 중계**(내부 B bypass)만 한다 — body를 해석·변환·서명하지 않는다.
+**GW 계약 앵커: §2.3.5·§4.1.4(경로②)·§7.4.** 대용량 파일(CT·영상)은 **CleverSpace가 발급한 presigned로 CleverSpace storage에 직접** 업로드하고, GW는 발급 요청을 **`cleverspace.<region>.gw.<도메인>`으로 verbatim 중계**(내부 B bypass)만 한다 — body를 해석·변환·서명하지 않는다.
 
 - **CleverSpace가 신규 개발(소유)**:
   - **presigned 발급 API**: 업로드 세션 `start → (presigned) → commit`. GW는 이 계약을 정의하지 않으며 CleverSpace OpenAPI가 정본.
   - **세션·resumable/multipart·idempotency·checksum(ETag)·완료처리(콜백 + storage ObjectCreated)** = 전부 CleverSpace 책임(§7.4 위임 경계·FR-SES-01~05는 GW 직접구현 아님).
   - **storage** = S3(AWS 지원국) / **Provider MinIO**(AWS 미지원국) — GW 비호스팅.
-  - **리전 준수**: GW가 해석한 리전(§7.3.3)에 맞는 presigned URL을 발급한다(바이트 차단이 아니라 **발급 단계 보장**). GW→CleverSpace 리전 전달 방식은 본 문서에서 확정(§7.3.3이 "② CleverSpace 계약에서 확정"으로 위임).
+  - **리전 준수**: GW의 배포 리전(§7.3.1·상수)에 맞는 presigned URL을 발급한다(바이트 차단이 아니라 **발급 단계 보장**). GW→CleverSpace 리전 전달 방식은 본 문서에서 확정(§7.3.3이 "② CleverSpace 계약에서 확정"으로 위임).
 - **GW 책임(고정)**: 발급/commit 요청 **verbatim 중계** + 인증·버전 게이트·정책 + `Idempotency-Key` 존중(§7.5.4). presigned 미발급·바이트 미경유.
 - `🔧 CleverSpace 팀 상세`: 발급 API 스펙(엔드포인트·요청/응답 스키마), 세션 상태 머신, resumable/multipart 규약, ETag·checksum 무결성, 완료 콜백 + ObjectCreated 연계, minio 전제·리전별 버킷, GW 리전 전달 필드 형식.
 
@@ -78,7 +78,7 @@ sequenceDiagram
 
 - **CleverSpace 적응**:
   - **upstream 등록 = 레지스트리 1행**(§4.1.2·§7.5.1) — `target_id=cleverspace`, host, trust profile=internal. 신규 경로·GW 코드 변경 0(관리 API `/v1/admin/targets`·§7.6.2).
-  - **수신 호스트**: `cleverspace.gw.vatech.com`(C안 서브도메인·§4.5.1)으로 GW가 verbatim 전달. CleverSpace는 이 경유 트래픽을 수용.
+  - **수신 호스트**: `cleverspace.<region>.gw.<도메인>`(C안 서브도메인·§4.5.1)으로 GW가 verbatim 전달. CleverSpace는 이 경유 트래픽을 수용.
   - **헤더 규약(§7.7.1)**: originator `Vatech-Product/Version/OS`는 GW가 그대로 relay, 경유 홉은 `Vatech-Via` 누적. CleverSpace는 **originator 신원을 이 헤더로 관측·기록**(source IP 아님).
   - **오류·타임아웃 계약(§7.5.4·§7.7.4)**: GW는 자기 아웃바운드 연결 timeout(`connect_timeout_ms`~3s / `response_timeout_ms`~10s / `total_deadline_ms`)을 bound하고, **GW total_deadline < 클라이언트 타임아웃(30s·D4)** 불변식으로 먼저 `504`를 돌린다. **재시도·서킷은 mesh(istio)** 담당. CleverSpace 자체 4xx/5xx는 **verbatim 통과**(`Vatech-Error-Origin: target`).
   - **경로 B EOS**: 직접 연결 레거시는 GW 경유로 흡수 후 종료(§2.8) — EOS 시점은 흡수된 ①영역·Agenda 논의.
@@ -86,30 +86,30 @@ sequenceDiagram
 
 ## CS-4. 멀티 Region 구축 (4단계 · gw/1.2)
 
-**GW 계약 앵커: §7.3(§7.3.1·§7.3.3·§7.3.5)·§2.7.1.** GW는 v1.0 **단일 리전**이나 **멀티리전-ready**로 설계되며, 멀티 리전 동시 운영은 **gw/1.2(2차)**다. CleverSpace storage는 **리전 바운드**(`regionBound=true`·§7.3.1)여야 PHI 주권(§7.3.3)이 보장된다.
+**GW 계약 앵커: §7.3(§7.3.1·§7.3.3·§7.3.5)·§2.7.1.** GW는 v1.0 **단일 production 리전(호주)**이나 **멀티리전-ready**로 설계되며, 멀티 리전 동시 운영은 **gw/1.2(2차)**다. CleverSpace storage는 **리전 바운드**(`regionBound=true`·§7.3.1)여야 PHI 주권(§7.3.3)이 보장된다.
 
 - **CleverSpace 적응**:
   - **리전별 storage 구축**: GW 해석 리전에 맞는 버킷/MinIO로 presigned 발급(§7.3.3). PHI는 리전 밖 미이동.
   - **AWS 미지원국** = Provider MinIO로 동일 계약 충족.
   - **relocation 시**(§7.3.4): 기존 PHI는 옛 리전 잔류(자동 이관 없음), in-flight 세션은 옛 리전으로 완료·전환은 신규부터.
-- **단계 주의**: v1.0(단일 리전)에서도 클라이언트는 공개 호스트(apex·서브도메인)만 호출하고 헤더 변경 없이 gw/1.2에서 최근접 분배로 확장(§7.3.5). 따라서 4단계는 **CleverSpace storage 다지역화가 실제 트리거**이며, 우선순위는 1~3단계보다 낮다.
+- **단계 주의**: v1.0(단일 리전)에서도 클라이언트는 공개 호스트(GW 고유 API 호스트·서브도메인)만 호출하고 헤더 변경 없이 gw/1.2에서 리전 라벨 호스트로 확장(최근접 분배 아님·데이터 주권상 배정·§7.3.5). 따라서 4단계는 **CleverSpace storage 다지역화가 실제 트리거**이며, 우선순위는 1~3단계보다 낮다.
 - `🔧 CleverSpace 팀 상세`: 대상 리전 목록, 리전별 storage 토폴로지(S3/MinIO), GW 리전 파라미터→버킷 선택 로직, relocation 데이터 이관 방침(별도 트랙).
 
 ## 5. GW↔CleverSpace 계약 요약
 
 | 항목 | GW 책임(고정·baselined) | CleverSpace 책임(신규·소유) |
 | --- | --- | --- |
-| 라우팅 | `cleverspace.gw.vatech.com` verbatim 중계(내부 B·§4.5.1) | upstream 1행 등록 수용·경유 트래픽 처리 |
+| 라우팅 | `cleverspace.<region>.gw.<도메인>` verbatim 중계(내부 B·§4.5.1) | upstream 1행 등록 수용·경유 트래픽 처리 |
 | 인증·게이트 | 인증·버전 게이팅·정책·관측(§7.7) | 서버 버전값·표준 오류 제공(§7.7.4) |
 | presigned | 발급 요청 verbatim 중계(미발급·바이트 미경유·§7.4) | **발급 API·세션·완료·무결성·storage 신규**(§2.3.5) |
 | 오류·타임아웃 | 자기 timeout bound·정규화·`Vatech-Error-Origin`(§7.5.4) | 자체 4xx/5xx(verbatim 통과)·응답 SLA |
-| 리전 | 리전 해석·전달(§7.3.1) | 리전 맞는 presigned 발급·리전별 storage(§7.3.3) |
+| 리전 | 리전=배포 상수·전달(§7.3.1) | 리전 맞는 presigned 발급·리전별 storage(§7.3.3) |
 | Webhook | — | **해당 없음**(CleverSpace는 수신 대상 아님·§7.6.5) |
 
 ## 6. 보안
 
 - **내부(B) 트러스트**: 내부망이라 connector·OAuth·고정 egress 불요(§4.1.1). egress allowlist는 외부(C·AXS)만 해당(§7.5.3).
-- **PHI 주권**: presigned 발급은 GW 해석 리전 준수(§7.3.3), 리전 바운드 storage(§7.3.1). 파일 바이트는 GW 미경유(PHI control plane 미경유).
+- **PHI 주권**: presigned 발급은 GW 배포 리전 준수(§7.3.1·§7.3.3), 리전 바운드 storage(§7.3.1). 파일 바이트는 GW 미경유(PHI control plane 미경유).
 - **오류 origin 구분**: 클라이언트는 `Vatech-Error-Origin`으로 GW/인프라 실패(gateway) vs CleverSpace 거부(target)를 구분(§7.7.4).
 - **presigned 무결성**: 짧은 TTL·ETag/checksum·완료 검증 = CleverSpace 소유(§7.4 위임).
 

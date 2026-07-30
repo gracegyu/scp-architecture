@@ -9,11 +9,11 @@
 
 - **CleverOne = ES 차세대 2D/3D 통합 데스크톱 뷰어**. GW 관점에서 **originator(요청 시작 주체)** 이자 **presigned 이용측 클라이언트**다. CleverOne은 로컬 **EzServer(EzWebServer)** 와 REST로 연동하고, 클라우드(CleverSpace·AXS) 통신은 **EzServer를 경유**한다.
 - **문제**: 현재 CleverOne의 클라우드 통신은 EzServer를 거치되 대상별로 제각각이고(경로 B 레거시·직접 연결), GW 도입 후에는 **모든 클라우드 트래픽이 GW를 경유**(인증·버전 게이팅·정책·관측 일원화)해야 한다. 또한 파일 업로드는 **GW 비발급·중계**(ADR-03/04)로 통일되어, CleverOne은 **CleverSpace가 발급한 presigned를 이용**하는 쪽으로 바뀐다.
-- **해결(4단계·CleverOne 최소 변경)**: ① `Vatech-*` 식별 헤더 부착 + 호환성 fallback(1) · ② presigned 업로드 이용 전환(2) · ③ Direct→GW 경유(A+C 라우팅·3) · ④ Region 선택(대안)·ClinicID 인지(4). **핵심 변경은 헤더 부착 + 업로드 흐름 전환으로 작고, 경로 변환의 무거운 부분은 EzServer(③-P-EZ)가 흡수**한다(R5 A+C).
+- **해결(4단계·CleverOne 최소 변경)**: ① `Vatech-*` 식별 헤더 부착 + 호환성 fallback(1) · ② presigned 업로드 이용 전환(2) · ③ Direct→GW 경유(A+C 라우팅·3) · ④ Region 자동 결정 인지·ClinicID 표시(4). **핵심 변경은 헤더 부착 + 업로드 흐름 전환으로 작고, 경로 변환의 무거운 부분은 EzServer(③-P-EZ)가 흡수**한다(R5 A+C).
 
 ## 2. 범위·비범위
 
-- **범위**: CleverOne이 originator로서 **헤더 부착·호환성 fallback**(1) · **CleverSpace presigned 이용**(2) · **EzServer 경유 GW 라우팅 적응**(3) · **Region 선택 UI(대안)·ClinicID 표시**(4).
+- **범위**: CleverOne이 originator로서 **헤더 부착·호환성 fallback**(1) · **CleverSpace presigned 이용**(2) · **EzServer 경유 GW 라우팅 적응**(3) · **Region 자동 결정 인지·ClinicID 표시**(4).
 - **비범위(명시)**:
   - **경로 변환(A→C·서브도메인·HTTPS 브리징)은 EzServer 책임**(§2.3.0·③-P-EZ) — CleverOne은 `Vatech-Target` 헤더 1개만 부착(A안).
   - **GW 인증 토큰(`Authorization: Bearer <device 토큰>`)은 EzServer가 부착**(§7.7.1·③-P-EZ) — CleverOne은 자기 originator 신원 헤더만.
@@ -26,7 +26,7 @@
 | 액터 | 역할 |
 | --- | --- |
 | **CleverOne** (originator) | `Vatech-*` 식별 헤더 + `Vatech-Target` 부착, presigned 이용, 호환성 fallback UI |
-| **EzServer** (경유 홉·nginx) | `Vatech-Target`(A) → `{target}.gw.vatech.com` 서브도메인+HTTPS(C) 변환, `Vatech-Via` 누적·`Authorization` 부착(§2.3.0·③-P-EZ) |
+| **EzServer** (경유 홉·nginx) | `Vatech-Target`(A) → `{target}.<region>.gw.<도메인>` 서브도메인+HTTPS(C) 변환, `Vatech-Via` 누적·`Authorization` 부착(§2.3.0·③-P-EZ) |
 | **GW** (Proxy Router·Compat Gate) | 인증·버전 게이팅·정책·관측 후 target으로 verbatim 중계 |
 | **CleverSpace / AXS** (target) | presigned 발급·응답(§7.4) — CleverOne이 이용 |
 
@@ -41,8 +41,8 @@ sequenceDiagram
     participant CS as CleverSpace (presign 발급·storage)
     participant S3 as CleverSpace storage (S3/MinIO)
     CO->>EZ: 요청 + 헤더 Vatech-Product: CleverOne / Version / OS / Vatech-Target: cleverspace (A안·평문 가능)
-    EZ->>GW: https://cleverspace.gw.vatech.com/... (C안·HTTPS) + Vatech-Via: EzServer + Authorization: Bearer <device 토큰>
-    GW->>GW: originator vs Via 분리 판정 · 버전 게이팅(§7.7·최저버전) · 인증·정책·리전 해석(§7.3)
+    EZ->>GW: https://cleverspace.<region>.gw.<도메인>/... (C안·HTTPS) + Vatech-Via: EzServer + Authorization: Bearer <device 토큰>
+    GW->>GW: originator vs Via 분리 판정 · 버전 게이팅(§7.7·최저버전) · 인증·정책·리전=배포 상수(§7.3.1)
     GW->>CS: verbatim 중계 (presigned 발급 요청)
     CS-->>GW: presigned URL (리전 맞는·CleverSpace 발급)
     GW-->>EZ: presigned URL 전달
@@ -76,19 +76,19 @@ sequenceDiagram
 **GW 계약 앵커: §2.3.0·§4.1.2·§4.5.1(ADR-11)·§7.7.1(헤더 규약)·§7.7.4(오류)·Agenda R5.** 클라우드 통신을 GW 경유로 전환한다. **CleverOne→EzServer = A안(`Vatech-Target` 헤더)**, **EzServer→GW = C안(서브도메인 HTTPS)** 로 확정(R5).
 
 - **CleverOne 적응**:
-  - **`Vatech-Target` 헤더 부착(A안·핵심·최소)**: 클라우드 대상을 `Vatech-Target: {label}`(예 `cleverspace`·`axs`)로 지정해 EzServer에 보낸다(평문/HTTPS 무관). EzServer가 이 값을 `{label}.gw.vatech.com` 서브도메인+HTTPS로 변환(§2.3.0). **CleverOne 변경 = 헤더 1개**(기존 `Vatech-Target` 재활용·R5 표) — 경로 변환·HTTPS 브리징은 EzServer(③-P-EZ)가 흡수.
+  - **`Vatech-Target` 헤더 부착(A안·핵심·최소)**: 클라우드 대상을 `Vatech-Target: {label}`(예 `cleverspace`·`axs`)로 지정해 EzServer에 보낸다(평문/HTTPS 무관). EzServer가 이 값을 `{label}.<region>.gw.<도메인>` 서브도메인+HTTPS로 변환(§2.3.0). **CleverOne 변경 = 헤더 1개**(기존 `Vatech-Target` 재활용·R5 표) — 경로 변환·HTTPS 브리징은 EzServer(③-P-EZ)가 흡수.
   - **originator 헤더 relay 전제**: CleverOne의 `Vatech-*`(CO-1)는 EzServer가 그대로 relay하고, EzServer는 자신을 `Vatech-Via`에 누적하며 `Authorization`을 부착한다 — **CleverOne은 GW 인증 토큰을 직접 다루지 않는다**(§7.7.1·③-P-EZ).
   - **오류 계약 인지(§7.7.4)**: GW/인프라 실패(`Vatech-Error-Origin: gateway`·502/503/504)와 target 거부(`target`·원 코드 verbatim)를 구분해 사용자에게 안내한다.
   - **경로 B EOS**: 직접 연결(CleverOne→CleverSpace 직결) 레거시는 GW 경유로 흡수 후 종료(§2.8).
 - `🔧 CleverOne 팀 상세`: 현행 클라우드 호출부(EzWebServerClient 등)·직접 연결 엔드포인트 목록 → `Vatech-Target` 부착 전환 매핑, target 라벨 카탈로그, 오류 origin별 UI 처리, 경로 B EOS 일정.
 
-## CO-4. Region 선택 UI(대안)·ClinicID (4단계)
+## CO-4. Region 표시·ClinicID — 리전 자동 결정(country→region) (4단계)
 
-**GW 계약 앵커: §7.3.6(리전 카탈로그·`GET /v1/regions`)·§7.3.1(ClinicResolution)·§7.3.4(relocation).** GW는 운영 리전 목록을 조회 API로 제공하고, region SSOT는 clinic(`clinic_id`)이다.
+**GW 계약 앵커: §7.3.6(Region Directory·공개 정적 JSON)·§7.3.1(리전=배포 상수·ClinicResolution echo)·§7.3.4(relocation).** 운영 리전 목록은 **공개 정적 Region Directory**(§7.3.6)로 제공된다(`GET /v1/regions`·리전 카탈로그 API는 삭제됨). **region은 배포 상수**(§7.3.1)이고 온보딩 시 **나라로 자동 결정**된다(country→region·§7.3.6·R6) — clinic에서 런타임 해석하지 않는다.
 
 - **CleverOne 적응**:
-  - **Region 선택 = 대안 UI**: 주 선택 UI는 **EzServer Console**(§2.3.1·③-P-EZ)이나, CleverOne이 **대안**으로 `GET /v1/regions`(§7.3.6)를 읽어 리전 선택지를 표시할 수 있다(온보딩·relocation). 실제 채택 여부·범위는 제품 결정.
-  - **ClinicID 인지**: CleverOne이 속한 클리닉의 `clinic_id`(LMP 발급·불변·region SSOT·§7.3)를 인지·표시한다. region은 `clinic_id`에서 해석(§7.3.1)되며, CleverOne은 리전 내부 endpoint를 다루지 않고 공개 호스트만 사용(§7.3.5).
+  - **Region = 자동 결정(선택 UI 원칙 불요)**: 리전은 온보딩 시 **나라로 자동 결정**(country→region·§7.3.6·R6)이라 사용자가 고르는 선택 UI는 원칙적으로 필요 없다. 필요 시 CleverOne이 **정보 표시용**으로 Region Directory(§7.3.6·공개 정적 JSON)를 읽어 리전/상태를 보여줄 수 있다(선택 아님). 채택 여부는 제품 결정.
+  - **ClinicID 인지**: CleverOne이 속한 클리닉의 `clinic_id`(LMP 발급·불변·§7.3)를 인지·표시한다. **region은 배포 상수**(§7.3.1)이고 온보딩 시 나라로 자동 결정되며(§7.3.6), CleverOne은 리전 내부 endpoint를 다루지 않고 공개 호스트만 사용(§7.3.5).
 - **단계 주의**: v1.0(단일 리전)에서도 클라이언트는 공개 호스트만 호출하고 헤더 변경 없이 gw/1.2 멀티리전으로 확장(§7.3.5·멀티리전-ready). 4단계 우선순위는 1~3단계보다 낮다.
 - `🔧 CleverOne 팀 상세`: Region 선택 UI 채택 여부·범위(대안), ClinicID 표시 위치, relocation 시 사용자 흐름(재접속·재동의 안내·§7.3.4).
 
@@ -102,19 +102,19 @@ sequenceDiagram
 | 호환성 | GW 게이팅·well-known 공시(§7.7) | **well-known fallback UI**(차단/경고) |
 | presigned | GW 발급 요청 verbatim 중계(§7.4) / CS 발급 | **발급 이용 → storage 직접 업로드** |
 | 오류 | GW 정규화·`Vatech-Error-Origin`(§7.7.4) | origin별 안내 UI |
-| 리전 | GW `GET /v1/regions`·ClinicResolution(§7.3.6·1) | Region 선택 대안 UI·ClinicID 표시 |
+| 리전 | Region Directory(§7.3.6·정적 JSON)·ClinicResolution echo(§7.3.1) | 리전 자동 결정(country→region)·ClinicID 표시(선택 UI 원칙 불요) |
 
 ## 6. 보안
 
 - **인증 위임**: CleverOne은 GW 인증 토큰을 보유·부착하지 않는다(EzServer 경유·§7.7.1) — 토큰 노출면 축소.
-- **PHI 주권**: presigned 발급은 GW 해석 리전 준수(§7.3.3), 파일 바이트는 GW·EzServer 미경유(직접 storage). CleverOne은 리전 내부 endpoint 미인지(§7.3.5).
+- **PHI 주권**: presigned 발급은 GW 배포 리전 준수(§7.3.1·§7.3.3), 파일 바이트는 GW·EzServer 미경유(직접 storage). CleverOne은 리전 내부 endpoint 미인지(§7.3.5).
 - **직접 연동 금지**: 모든 클라우드 호출 GW 경유(경로 B EOS) — 우회 경로 제거.
 - **오류 origin 구분**: `Vatech-Error-Origin`으로 인프라 실패 vs target 거부 구분(§7.7.4).
 
 ## 7. Open items (TBD)
 
 - **CleverOne SRS(Nick) 헤더·인증 상세 확보** — `Vatech-Version` 값 소스·SSO/토큰 현행.
-- **Region 선택 UI(대안) 채택 여부·범위** — 주 UI=EzServer Console, CleverOne 대안 여부는 제품 결정(4단계).
+- **Region 표시 UI 채택 여부** — 리전은 자동 결정(country→region)이라 선택 UI는 원칙 불요; 정보 표시용 채택 여부만 제품 결정(4단계).
 - **호환성 자리별 정책·경고 헤더명·(API↔제품) 버전 매핑** — 흡수된 ①영역·Appendix B #8.
 - **경로 B EOS 시점** — 직접 연결 종료 일정(Agenda 논의).
 - **연동 구현 착수 시점** — post-v1.0(v1.0=IO Scanner). OnePager는 지금.
