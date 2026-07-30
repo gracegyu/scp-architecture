@@ -1113,11 +1113,12 @@
     - stag = 별도·단일 Region
     - prod = Region별 분리
     - 환경 파일은 **template만 git** (각 환경 `.env`=Jack 작성 / 로컬 `.env`=개발자 / `.env.template`=Jack이 어떤 값이든 동작하도록 유지)
-  - **(프레임) GW 구현 진척**
-    - P1 종료 → **P2 T-AUTH-2-1**(private_key_jwt 검증·RS256 access token·`POST /v1/auth/token`) **완료**(PR #12094·검증 4종·실 curl·독립리뷰 High 0)
-    - **T-AUTH-2-2**(jti 1회소비·rate-limit[검증후 정본 clientId]·revocation denylist) **완료**(PR #12106·unit 48·e2e 8/8)
-    - 부수: **빌드/Docker 앱 부팅 릴리즈게이트 해소**(Prisma 생성물→node_modules 패키지·PR #12100)
-    - 다음 = T-AUTH-2-3(deviceAuth Guard) · 상세 = S3
+  - **(프레임) GW 구현 진척** — 1단계 GW 독립 코어에서 **금주 5개 Phase(P2~P6)를 완결**(상세·검증 4종 = S3)
+    - **P2 인증 완결** — device 면(private_key_jwt→RS256 토큰·jti 1회 소비·검증후 정본 clientId rate-limit·revocation denylist·deviceAuth Guard)과 operator 면(Entra OIDC 검증+confused-deputy 방어·JIT operator·RBAC deny-by-default·`/v1/admin/me`)의 양 인증면 완비
+    - **P3 enrollment 완결** — enroll 개시/완료(nonce 서명·공개키 검증→device pending·clinic upsert)·device 생애주기 상태머신·재-enroll 회전·C/S 승인·kill 즉시 폐기·미승인 pending 자동만료
+    - **P4 레지스트리·region resolution 완결** · **P5 호환성 게이트 완결**(Vatech-* 파싱→400·well-known 매트릭스 서빙·semver 3단계 게이팅) · **P6 target-routed 프록시 완결**(서브도메인 라우터·SSRF fail-closed·PEP 체인 401/403·verbatim bypass·D1~D3 타임아웃·취소 전파·Idempotency-Key)
+    - 1단계 잔여 = **P10 fleet·config·inventory** / 2단계(P7~P12) = ④ AXS 연동 후
+    - **⚠ region-silo(R2·spec-v1.0.5) 머지 후 일부 완료분 재작업 예정**(P4 전체·P1/P3/P6 리전 해석 단계 — 상세 S3)
 
 - 논의 사항 (이번 주) _(프레임 · 신규 안건 회의 시 추가)_
   - **R2. GW 저장소 — 결정: 리전 완전 분리 (region silo) ✔ 확정(7/30)**
@@ -1127,9 +1128,11 @@
     - **payload(PHI)는 리전 DB에 저장** — 리전 독립이라 교차 복제 우려 없음 → **S3·DynamoDB 외부화 불요**(관계형 DB 컬럼 유지).
     - **클리닉 리전 변경 = Migration으로 지원**(투명 자동전환 아님). **지금 전부 구현 안 함 — gw/1.2 이후 요구사항 재수집 후 보강.**
     - **Webhook = AXS에 리전별 처리 요청**(AXS가 리전별로 발신). **AXS 미지원 시에만** global receiver가 forwarding하는 **보완책** → **SRS에 참고안으로 포함**.
-    - **Global APEX(gw.vatech.com)·GeoDNS 불요** — 리전별 구축이라 **DNS에 리전 정보 포함**(region-specific host). dev(단일 리전)는 영향 없음.
+    - **Global APEX(gw.vatech.com)·GeoDNS 불요** — 리전별 구축이라 **DNS에 리전 정보 포함**(region-specific host). **zone은 `gw.<도메인>` 하나만 위임받아 그 안에서 리전을 라벨로 관리**(`<svc>.<region>.gw.<도메인>`·예 `api.apne2.gw.vatech.com`) → 리전 추가 시 회사 apex 밑 재위임 불요(Jack 인프라 리뷰). **dev도 동일 형태**(`api.apne2.gw.dev.ezcld.net`)라 dev↔prod 호스트 규약 일치.
     - **GW Console = 리전별 스위치 관리**(불편 수용). 이때 **auth/authz 재검토** 필요 — 상세는 **③-C GW Console 스펙**, SRS는 언급만.
-    - **반영 대상(다음 단계)**: SRS §2.1.1·§2.7.1·§3.1.2·§4.5.1·§7.3(리전변경)·§7.6(webhook)·§7.6.3(payload) + DBML + 결정 문서 전면 개정. → 정리본 검토 후 착수.
+    - **진행 상황(7/30 · 스펙 반영 완료)**: 결정에 따라 **SRS(§2.1.1·§2.3.9 리전 마이그레이션·§3.1.2·§4.5.1·§7.3·§7.6·§7.6.3 등)·DBML·OpenAPI·env-reference·well-known·크로스팀 handoff(EzServer·인프라) 전면 개정 완료**. 리뷰에서 나온 Jack 인프라 지적(DNS zone 스킴 정련·중국 별도 파티션 defer·리전 DR 주권 제약·Region Directory 무결성·RDS 프로비저닝 등)과 자동 코드리뷰 11라운드를 **전건 반영**, **현재 미해결 코멘트 0**.
+    - **남은 것 = 리뷰 승인뿐** — 필수 리뷰어 **Jack·Scott·Teddy 승인 대기**(승인 후 머지·태그 `spec-v1.0.5`). 구현(P1 데이터모델) 재작업은 머지 후 구현 세션 인계.
+    - **PR**: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/12207
   - **R2-1. 호주 first-open 리전 전략 — 서울 임시 홈 vs 처음부터 호주 리전 (신규·결정 요청)**
     - **배경**: 호주에서 GW를 먼저 오픈. v1.0=단일 리전인데 region silo(R2)라 클리닉 데이터·PHI는 홈 리전에 갇힘.
     - **핵심 물음**:
@@ -1161,6 +1164,7 @@
     - 계정/네트워크 · ESO/Parameter Store 경로 · `.env.template` 항목 확정(Jack·Raymond).
     - ③-I Infra 계획서와 정합.
   - **(공유·결정 아님) 멀티리전 webhook 정합화 (SRS)** — 기존 SRS의 멀티리전 webhook 흐름이 절마다 엇갈려(일부 주권 위반) 이를 정정. §2.3.6을 **region 내 분배 / 교차리전 분배(receiver-forward)** 로 분리하고 §2.2·§7.6.3·§7.6.7 불일치 정정, §7.6.8에 단계화(**v1.0 단일 리전·gw/1.2 멀티리전**) 명시. **v1.0 무영향**. SRS 브랜치 PR로 반영(spec-v1.0.3).
+    - **→ R2(리전 완전 분리)로 갱신(7/30)**: 이 정합화 구조(§2.3.6 분배 2-경로·§7.6.8 단계화)는 유지되나 모델이 바뀜 — **교차리전 receiver-forward는 fallback 참고안으로 격하**(1차 = AXS 리전별 발신), silo라 대표 수신점의 **home 리전 discovery는 미해결 과제(TBD)**로 명시(§2.3.6.2 노트). §7.6.6/§7.6.7도 '자기 리전 브로커 발행·런타임 clinic→region 해석 제거'로 재정리. **spec-v1.0.3 정합화는 region-silo 개편(spec-v1.0.5·PR #12207)에 흡수됨.**
   - _(신규 안건은 회의에서 추가)_
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
@@ -1237,7 +1241,7 @@
       | **EzServer(EZ)** | ⬜ IO Scanner 데이터 수신(방식 R1·**보류**·TBD) | 🟡 헤더 대리 전달 | 🟡 전송 로직(presigned 직접) | 🟡 GW 경유 전환 | 🟡 ClinicID·Region·클리닉 등록(잠정) | 🟡 AXS(갈래A)·presigned 직접(IO Scanner 세부=TBD) | ⬜ Rust 재개발 | **🟡 ③-P-EZ One Pager 초안 작성됨**(Raymond→EzServer 팀) — `specs/03p-ez-ezserver/EzServer-GW적응-OnePager.md` · ④(갈래A) |
       | **IO Scanner(Straumann 장비·수집 제품 미정)** | ⬜ 스캔 데이터→EzServer 유입(**보류**·수집 제품·방식 이월-R1·미정·Straumann 협상) | — | — | — | — | (AXS 워크플로 대상) | — | 이월-R1 확정 후 ③-P-EZ(수신)·④(AXS scope) |
       | **CleverLab** | — | — | — | — | — | ⬜ AXS 오더·상태·확정(갈래B)·presigned | — | ④ Sub-SRS(갈래B) |
-      | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 Region 분배·HA(K8s)·Route53·Postgres | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS ✅ baseline(spec-v1.0.1)** · ④ connector ⬜(보류) |
+      | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 리전 라벨 호스트·Region Directory·HA(K8s)·Route53·RDS(리전 단일) | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS ✅ baseline(spec-v1.0.4)** · region-silo `spec-v1.0.5` PR 리뷰중 · ④ connector ⬜(보류) |
       | **GW Console** | — | — | — | — | ⬜ Admin Web Console(③-C) | ⬜ 온보딩·Org-ID 관리 화면 | — | ③-C Sub-SRS(연기) |
       | **인프라** | — | — | — | 🟡 dev·qa·stag(단일 Region)·prod(Region별) | 🟡 Route53·K8s·비-AWS minio | 🟡 AXS 고정IP·샌드박스 | — | **🟡 ③-I IaC 구축 계획서 — PR 7/21 생성·진행중**(Raymond diagram+SRS추출→Jack 상세) — 정본 `vt-api-gateway-infra`(브랜치 `docs/iac-plan-draft`) · **AWS 4계층(7/23)** |
       | **외부(Straumann AXS)** | — | — | — | — | — | ⬜ API·OAuth·샌드박스·자격증명(선결·**협상중**) | — | ④ 입력(외부 제공) |
@@ -1247,7 +1251,7 @@
 
       | 단위 | 스펙 문서 | Repo (Azure DevOps) | 경로 | baseline tag |
       | --- | --- | --- | --- | --- |
-      | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway` | `docs/specs/SRS.md` · `docs/specs/design/`(openapi·dbml) · `docs/specs/UnitTCL.md` | **`spec-v1.0.2`** (35c87ab) |
+      | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway` | `docs/specs/SRS.md` · `docs/specs/design/`(openapi·dbml) · `docs/specs/UnitTCL.md` | **`spec-v1.0.4`**(최신 baseline) · region-silo `spec-v1.0.5`(PR 리뷰중) |
       | **③-C GW Console** | Sub-SRS | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console` (별도 repo·GW 소유→이관) | 미작성(신규 repo·경로 TBD) | 미작성(연기) |
       | **④ AXS** | Sub-SRS | 〃 vt-api-gateway (GW 소유) | `docs/specs/04-subsrs-straumann-axs/` | 미작성(보류) |
       | **③-I 인프라** | IaC 구축계획서 | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-infra` | `docs/IaC-구축계획서.md` | 미부여(계획서·PR 진행) |
@@ -1270,7 +1274,8 @@
   - **S3. GW 구현 현황 — Phase·Task 스냅샷 (7/30·매주 갱신)** — 1단계(GW 독립 코어) 구현 진행중. 매 Task 완료 시 갱신. _(7/30 프레임 시작값 = 7/23 상태 · 주중 Task 완료 시 갱신)_
     - **진행 단계** — 스펙(분석/설계)과 구현을 분리해 진행한다. 스펙은 HLD로 baseline 동결됐고 현재 구현(LLD 병행) 중이다. 구현이 끝이 아니라, QA 인계 전 개발팀이 통합·시스템 테스트로 동작을 확증하는 단계가 남고, 이어 QA·운영이 있다.
       - **스펙 — 분석/설계(HLD)**: SRS·DBML·OpenAPI·TCL baseline v1.0 동결 · 정합화(v1.0.1~v1.0.4) 지속 · LLD는 구현과 병행
-      - **구현(LLD 병행)** — _구현 단계 내 진척 ≈ 55%(코딩 Task 36/65)_: 1단계 코어 P0~P5 완료 · P6 진행(6-1·6-2 완료·6-3 남음) · P10 예정 / 2단계 AXS 연동(P7~P12)은 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
+      - **구현(LLD 병행)** — _구현 단계 내 진척 ≈ 57%(코딩 Task 37/65 · region-silo 재작업으로 분모·분자 재산정 예정)_: 1단계 코어 **P0~P6 완료** · P10 예정 / 2단계 AXS 연동(P7~P12)은 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
+      - **⚠ region-silo(R2·spec-v1.0.5) 재작업 예정분**: 아래 ✅완료 중 **P1 T-DATA-1-1(전역/리전 2-DB)·1-6(region_catalog 시드) · P3 T-ENR-3-2(GeoDNS default region 배정) · P4 전체(Region Resolver·GET /v1/regions·PUT /me/region·region 카탈로그 CRUD) · P6 T-PXY-6-2의 region 해석 단계**는 리전 완전 분리로 **삭제·단일화 대상**이다(단일 datasource·region=배포 상수·Region Directory·리전 변경=마이그레이션). 완료 이력은 보존하되, **스펙 PR(#12207) 머지 후 구현 세션에서 재작업**(구현세션 알림 v1.0.5).
       - **개발 통합·검증(QA 인계 전)**: 통합 테스트 · 시스템 E2E(실 계약: AXS·CleverSpace·EzServer) · 성능·부하 · HA·복원력 · 보안 검토 → 동작 확증 후 QA 인계
       - **QA**: 릴리스 회귀 · QA TCL · V&V 산출물(IEC 62304 / ISO 13485)
       - **운영·릴리스**: staging/prod 배포(인프라) · AXS pilot
@@ -1303,8 +1308,7 @@
       | ″ | T-CFG-5-3 | semver 3단계 게이팅(major 차단/minor 경고/patch 무시)·`@CompatGate` guard·worst-of | ✅ 완료 | PR #12200 merge · unit 26 · **→ P5 완결**(실 엔드포인트 배선은 매트릭스 값 확정 후) |
       | **P6 target-routed 프록시** | T-PXY-6-1 | 서브도메인 Host 라우터·target allowlist·SSRF fail-closed(업스트림=레지스트리만) | ✅ 완료 | PR #12203 merge · unit 27(SSRF 벡터·fail-closed) |
       | ″ | T-PXY-6-2 | PEP 체인(auth 401→PDP 403→region)·verbatim bypass(host 교체·target verbatim)·외부 토큰/헤더 유출 차단 | ✅ 완료 | PR #12208 merge · unit 555·e2e 프록시 왕복·전체 182 회귀0 |
-      | ″ | T-PXY-6-3 | 프록시 복원력 — D1~D3 타임아웃(connect/response/total)·취소·클램프·에러 정규화 | 🟠 착수 | P6 마지막 · 실 AXS 왕복 E2E만 ④ 후 |
-      | **P6 target-routed 프록시/라우팅** | 전체 | 서브도메인·verbatim·PEP 체인·SSRF fail-closed·타임아웃 | ⬜ 대기 | 1단계(실 AXS 왕복 E2E만 ④ 후) |
+      | ″ | T-PXY-6-3 | 프록시 복원력 — D1~D3 타임아웃(connect/response/total)·취소 전파·Vatech-Timeout-Ms 클램프·에러 정규화(502/503/504)·Idempotency-Key soft-state | ✅ 완료 | PR #12213 merge · unit 602·e2e 프록시 9(멱등 replay·principal 격리 실 Valkey 키)·전체 182 회귀0·독립리뷰 High2/Med2 반영 · **→ P6 완결**(실 AXS 왕복 E2E만 ④ 후) |
       | **P7 External Connector·AXS** | 전체 | OAuth2 cc·egress 고정IP·앱 PDP egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후(보류) |
       | **P8 webhook 수신(Receiver)** | 전체 | HMAC·멱등·ACK·KMS 암호화 저장·SQS enqueue | ⬜ 대기 | 2단계(골격 로컬 더블 선행 가능) |
       | **P9 webhook 분배·MQTT(Dispatcher)** | 전체 | SQS consumer·대상해석·MQTT QoS1 하행·DLQ | ⬜ 대기 | 2단계 |
@@ -1312,10 +1316,10 @@
       | **P11 Admin API·audit·컴플라이언스** | 전체 | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | ⬜ 대기 | 2단계(webhook slice=P8 후) |
       | **P12 E2E·하드닝** | 전체 | AXS sandbox E2E·compat E2E·부하·HA/KEDA 검증 | ⬜ 대기 | 🔴 2단계·④ AXS sandbox 실자격 |
 
-      > **금주 구현 요약(7/30 · 주중 진척 반영)** — P1 데이터 모델을 마무리(T-DATA-1-6 시드·1-7 시드 러너/테스트 인프라)해 **P1을 종료**하고, **P2 인증 토대를 완성**했다(T-AUTH-2-1~2-5). 토큰 발급(2-1: private_key_jwt 검증→RS256 access token)·토큰 EP 방어(2-2: assertion jti 1회 소비 재사용 401·정본 clientId rate-limit 429·revocation denylist 즉시 401)·deviceAuth Guard(2-3)에 이어, **operator 면**(2-4: Entra OIDC 검증+confused-deputy 방어+JIT operator, 2-5: operator_role RBAC deny-by-default+`/v1/admin/me`)까지 세워 **device·operator 양 인증면을 완비**했다. 이어 **P3 enrollment 에 착수** — 공개 enroll 개시(3-1: 부트스트랩·nonce challenge·IP rate-limit·`/v1/enroll/start`)와 완료(3-2: nonce 서명·공개키 검증→device pending 등록·clinic upsert·GeoDNS default region 배정·client_id 발급·재-enroll 회전·`/v1/enroll/complete`)를 마쳤다. 아울러 빌드/Docker 앱 부팅 릴리즈게이트(Prisma 생성물 번들)를 해소했다. 모든 엔드포인트 Task에 **검증 4종(unit·e2e[실 DB·Valkey]·curl 왕복·DB/Valkey 조회)** 과 **E2E 반복성 하네스**(clean-slate·seed·FLUSHDB)를 적용한다.
+      > **금주 구현 요약(7/30 · 주중 진척 반영)** — 1단계 GW 독립 코어에서 **P2~P6 다섯 Phase를 완결**했다. **P2 인증**: device 면(2-1 private_key_jwt→RS256 토큰, 2-2 jti 1회 소비·검증후 정본 clientId rate-limit·revocation denylist, 2-3 deviceAuth Guard)에 operator 면(2-4 Entra OIDC+confused-deputy 방어+JIT, 2-5 RBAC deny-by-default+`/v1/admin/me`)을 더해 양 인증면을 완비. **P3 enrollment**: 개시/완료(3-1·3-2)에 이어 device 생애주기 상태머신·재-enroll 회전 옛 credential 폐기(3-3)·C/S 승인 slice+kill 즉시 denylist 전파(3-4)·미승인 pending 자동만료(3-5)로 종료. **P4 레지스트리·region resolution**: Region Resolver(mapping_version CAS·버전 조건부 캐시·4-1)·ClinicResolution+GET /v1/regions(4-2)·PATCH /me+PUT /me/region(4-3)·PHI region-boundary 앱 내부 PDP(4-4)·admin region 카탈로그 CRUD(4-5)로 완결. **P5 호환성 게이트**: Vatech-* 파싱→400(5-1)·well-known 매트릭스 서빙(5-2)·semver 3단계 게이팅 guard(5-3). **P6 target-routed 프록시**: 서브도메인 라우터+SSRF fail-closed(6-1)·PEP 체인(auth 401→PDP 403→region)+verbatim bypass(6-2)·아웃바운드 복원력(6-3 D1~D3 타임아웃·취소 전파·에러 정규화·Idempotency-Key)로 완결. 모든 엔드포인트 Task에 **검증 4종(unit·e2e[실 DB·Valkey]·curl 왕복·DB/Valkey 조회)** 과 **E2E 반복성 하네스**(clean-slate·seed·FLUSHDB)를 적용했고, 보안 민감 Task(프록시·인증)는 **독립 적대적 pre-PR 리뷰**로 검증했다.
       >
       > - **데이터 모델의 적용 범위**: 데이터 계층은 **4개 앱이 공유하는 하나의 공통 자산**이다(앱별로 나뉘지 않음). DB(전역 `gw_global`·리전 `gw_regional`)와 Prisma 스키마·공용 헬퍼는 `libs/common`에 **한 벌만** 두고 core·admin·receiver·dispatcher가 함께 쓴다.
-      > - **다음**: P3 나머지(3-3 상태머신·재-enroll 회전 → 3-4 C/S 승인·kill → 3-5 pending TTL 자동만료) → P4 region resolution 순. 모두 ④ AXS 없이 선행 가능. AXS 연동부(P7~)는 2단계(④ AXS 보류 해제 후).
+      > - **다음**: region-silo(R2·spec-v1.0.5·PR #12207) 머지 후 **일부 완료분 재작업**(P4 전체·P1/P3/P6 리전 해석 단계 → 단일 datasource·region=배포 상수·Region Directory·리전 변경=마이그레이션) → 1단계 잔여 **P10 fleet·config·inventory**. AXS 연동부(P7~P12)는 2단계(④ AXS 보류 해제 후).
 
   - **S4. 스펙 게시본 — Project wiki 자동 미러 가동 (비개발자도 스펙 열람 가능)** — 스펙 문서 관리 표준(§9 게시·참조)의 **project wiki 자동 미러**를 vt-api-gateway 에 구현·가동했다. 이제 **Git 접근·개발 라이선스가 없는 비개발자(기획·PM·QA·외주)도 스펙을 열람**할 수 있다(개발자는 Git `docs/` 정본 직접 열람).
     - **정본↔게시본 분리(baseline 불변)**: 정본은 Git(`docs/specs/`) 그대로 두고, 게시본은 **읽기전용 단방향 미러**. main 병합 시 전용 파이프라인 `.azure-pipelines/docs-wiki.yml`(PAT 인증)이 `es-platforms.wiki/vt-api-gateway/` 하위로 자동 push → **drift 없음**. wiki 직접 편집 금지(편집은 Git 정본에서만).
