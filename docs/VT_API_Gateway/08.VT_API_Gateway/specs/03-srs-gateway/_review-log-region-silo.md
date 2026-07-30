@@ -7,7 +7,7 @@
 - **리뷰어**: Jack·Scott·Teddy(필수) · Thomas(옵션) · 우리=전규현
 - **커밋**: `d848472`·`da8451a`·`0a5c9fa`(handoff)·`ec4a476`(handoff 정정) + 리뷰 반영분(아래·미커밋)
 - **최종 fetch**: 2026-07-29T07:50 · **20 thread** (R1 6 + R2 5 + R3 5 + R4 4 · Nemesis v0.5.0)
-- **상태**: R1~R7(Nemesis)+Jack C-29~40 처리(push …·`ab5441a`·`55d724b`) · Jack 삭제분: C-32(미처리·무시)·C-37(withdrawn·apex만 유지) · **신규 Nemesis U7/U8(81528·29·33·34+요약) 미처리**
+- **상태**: R1~R9(Nemesis)+Jack C-29~40 전건 처리(push …·`55d724b`·`f58c2e4`) · Jack 삭제분: C-32(무시)·C-37(withdrawn) · **20+ thread 현재 미해결 0**
 
 ---
 
@@ -523,3 +523,192 @@
   > (요약) §4.1.2 규칙3·§2.3.6.2 917 해소 확인. 신규 recommendation 2건: §4.1.1 A행 region resolve(위) + §2.3.6.2 participant 라인 910 "수신 리전 X·최근접"이 X를 "대표 수신점(GeoDNS 최근접 아님)"으로 재정의한 §2.3.6.2·§7.3.5(GeoDNS 폐기)와 상충. "·최근접"→"대표 수신점" 권장. 미해소 재기재(TC-DATA·전역보관·apex·§7.6.3 region)는 34496d3 미반영 스냅샷 기준.
 - **[전규현 · 게시완료]** 리뷰와 §4.1.2 규칙 3·§2.3.6.2 다이어그램 해소 확인 감사합니다. 신규 2건 모두 반영했습니다 — §4.1.1 A행(및 §2.2 주석)의 'region resolve/참조'를 '클리닉 자기뷰'로, §2.3.6.2 participant 라벨의 '수신 리전 X·최근접'을 '대표 수신점'으로 정정했습니다(GeoDNS 최근접 폐기와 정합). 참고로 남기신 미해소 4건(TC-DATA-02/03·§7.1.1 전역보관·§4.1.1 apex·§7.6.3 region)은 이 리뷰 직전 커밋에서 이미 정정·push했습니다(리뷰가 그 push 이전 스냅샷 기준).
 - 조치: §2.3.6.2 participant 910 "·최근접"→"대표 수신점" + 요약 응대 · 반영: push `82a4442` · 상태: **Resolved(fixed)**
+
+
+---
+
+## Round 8 — Nemesis Update 7·8·9 (2026-07-30 · 원문 전체)
+
+> 작성자=민진우(Thomas)/Nemesis. U7 🆔ms6oa4wu1m · U8 🆔ms6ostb61o · U9 🆔ms6pu55v1q. **초안·미게시·스펙 미반영(사용자 검토 대기).** 분류: **REAL 8**(C-42·43 server-config·44·47·48·49·50·51) · **STALE 4**(C-41 대부분·45·46·43 UnitTCL부분·요약). must_fix=C-47·C-48(라벨 순서)+C-43 server-config dangling.
+
+## C-41 · [thread 81528] · OpenAPI 2424·§7.3.6·§2.1.1 DIR · 💡 apex 필드명 · **STALE(대부분 반영)**
+- **[민진우(Thomas)/Nemesis · thread 81528]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6oa4wu1m),
+  > **💡 권장**
+  >
+  > R2가 "전역 apex 없음"을 관철했는데, discovery·resolution 계약에는 리전 GW 호스트를 담는 필드가 여전히 `apex`로 명명돼 있다 — `ClinicResolution.hosts.apex`(라인 2424·예 `gw.apne2.vatech.com`), Region Directory 스키마 `regions[].apex`(SRS §7.3.6·라인 1926·1937), §2.1.1 DIR 노드(라인 248 "리전→GW **apex**·webhookHost·status"). 특히 라인 2421 부모 설명이 "공개 호스트 참고(이 리전 호스트·**전역 apex/GeoDNS 없음**)"라 **같은 객체 안에서 필드명 `apex`와 상충**하고, 필드 설명은 "GW 고유 API 리전 호스트"로 apex가 아님을 실토한다. 아직 설계 초안(구현 착수 전)이므로 `gwHost`/`apiHost` 류로 개명해 폐기 개념의 어휘 잔재를 정리할 것을 권장한다.
+- **[전규현 · 게시완료]** 지적하신 apex 필드명은 이미 정리했습니다 — ClinicResolution.hosts.apex·Region Directory regions[].apex·§2.1.1 DIR 노드를 모두 apiHost로 개명했습니다(직전 커밋 ab5441a). 이 리뷰가 그 커밋 이전 스냅샷을 본 것으로 보입니다. 남은 잔재는 §7.3.1 산문 한 곳뿐이라 그것도 apiHost로 맞추겠습니다(C-49).
+- 조치(예정): STALE 안내 + §7.3.1 산문은 C-49에서 정정  · 반영: push `f58c2e4`(REAL 8건)·stale 4건 · 상태: **Resolved(fixed)**
+
+## C-42 · [thread 81529] · SRS §7.3.6 JSON:1931 · 💡 updatedAt ISO vs Unix ms · **REAL**
+- **[민진우(Thomas)/Nemesis · thread 81529]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6oa4wu1m),
+  > **💡 권장**
+  >
+  > 신설 §7.3.6 Region Directory JSON 예시의 `updatedAt`이 ISO 8601 문자열(`"2026-07-29T00:00:00Z"`·라인 1931)로 돼 있어, 문서 전반의 시간 규약 "**시간은 Unix ms**(§1.3·OpenAPI 헤더)"과, 자매 well-known 산출물(`design/well-known/server-configuration.sample.json`의 `generatedAt: 1718000000000`)과 불일치한다. 또 같은 예시의 `schemaVersion`이 정수 `1`인데 server-configuration은 문자열 `"1.0"`이다. 동일 계열 정적 산출물 간 규약 정합을 위해 Unix ms·타입을 통일하거나, Region Directory가 ③-I 소유 리전-무관 static file라 §1.3 규약 대상이 아니라면 그 예외를 명시할 것을 권장한다.
+- **[전규현 · 게시완료]** 맞습니다. Region Directory JSON의 updatedAt이 ISO 8601이라 문서의 Unix ms 규약(§1.3)·server-configuration 샘플(generatedAt=Unix ms·schemaVersion "1.0")과 어긋납니다. well-known 정적 산출물 간 일관을 위해 updatedAt을 Unix ms로, schemaVersion 타입도 통일하겠습니다(Region Directory가 ③-I 소유 리전-무관 정적 파일이라 §1.3 예외로 둘 수도 있으나, 자매 산출물과의 일관을 우선).
+- 조치(예정): §7.3.6 예시 updatedAt→Unix ms·schemaVersion 타입 통일  · 반영: push `f58c2e4`(REAL 8건)·stale 4건 · 상태: **Resolved(fixed)**
+
+## C-43 · [thread 81530] · 요약(Update 7) + server-config dangling(must_fix)·UnitTCL(STALE) · **일부 REAL**
+- **[민진우(Thomas)/Nemesis · thread 81530]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6oa4wu1m, ⏱11m45s, 🔢1.9M in/51.7k out),
+  > ## Code Review (Other) — Update 7
+  >
+  > 이번 증분은 **R2 "리전 완전 분리(region silo)" sweep**의 본체다 — Aurora Global DB·GeoDNS·전역 apex·Region Resolver·`region_catalog`/`GET /v1/regions`/`PUT …/region` 런타임 리전 API·2-클러스터 저장소 모델을 폐기하고, ①리전당 단일 RDS, ②리전=배포 상수(`GW_REGION`·엔터티 region 컬럼 제거), ③리전별 호스트(`gw.<region>.<도메인>`)+Region Directory(공개 정적 JSON) discovery, ④리전 변경=교차리전 마이그레이션(§7.3.4·§2.3.9 신설)로 재정의했다. **SRS 본문·OpenAPI는 대체로 comprehensive하게 정합화**됐다 — OpenAPI에서 `Region` 스키마·`/v1/regions`·`/v1/admin/regions`·`/…/region` 경로가 모두 제거되고 `ClinicResolution`이 echo 모델로 재정의(`cacheTtlSeconds` 제거·`region`/`hosts`/`sovereigntyPolicy` required)됐으며, `Clinic.region`·`WebhookEvent.region`·`OrgMapping`의 region 서술이 제거됐고, servers가 `gw.{region}.{domain}` 변수형으로 바뀌었다. §2.3.0 CRUD 표·§6.4.1 ER·§3.1.2 DB 근거(Aurora 비교표 제거)·Appendix B #15/#18/#23/#30도 서로 모순 없이 정리됐다.
+  >
+  > **직전 리뷰 미해소("참고") 4건을 이번 증분이 모두 해소.** ① **UnitTCL TC-DATA-01~04**(must_fix)가 "전역 일관·Aurora Global DB·cross-cluster soft-ref" 프레이밍 → "리전당 단일 RDS·단일 datasource 하드 FK"로 재작성돼 §2.1.1과 정합, ② **§7.1.1 하위 bullet "전역보관"**(must_fix·라인 1778)이 "리전별 보관(리전 로컬)"으로, 상위 bullet도 "JWKS=전역 복제" → "서명키·공개키 리전별·리전 간 공유 안 함"으로 정정돼 자기모순 해소, ③ **"apex" 산문**(recommendation·§4.1.1 라인 1266/1274·OpenAPI 헤더 주석 라인 7·61·admin tag 라인 45)이 리전화, ④ **§7.6.3 메타 컬럼 목록의 `region`**(recommendation) 및 OpenAPI `WebhookEvent.region`·`OrgMapping` region 참조가 제거됐다.
+  >
+  > **신규 지적 — 부분 sweep 누락 4건.** (1)**must_fix — UnitTCL 라우팅/프록시/webhook/E2E TC**가 R2 갱신에서 누락돼 폐기된 `*.gw.vatech.com`·"apex"를 유지(SRS와 상충), (2)**must_fix — `server-configuration.sample.json`**의 예시 API 2건이 이번에 삭제된 `/…/region` 엔드포인트를 가리키는 dangling 참조, (3)**recommendation — `apex` 필드명 잔재**(폐기한 apex 개념을 필드명으로 존치), (4)**recommendation — Region Directory `updatedAt`** 시간 규약(ISO vs Unix ms) 불일치.
+  >
+  > **참고(재기재 아님) — 이번 diff 밖 companion drift.** 규칙상 상세는 재기재하지 않으나 baseline 전 동일 sweep이 필요하다: `docs/specs/design/README.md`(라인 20·22)와 `design/dbml/vt-api-gateway.dbml`(라인 391·399·410)도 여전히 pre-R2 `gw.vatech.com`/"apex" 호스트 표기를 쓴다(리전 개념·region 컬럼 제거는 dbml에 이미 반영됨 — 호스트 문자열만 미갱신). 아울러 직전 리뷰의 미해소 **line 지적**(§4.1.1 A행 "region resolve"·§2.2 주석 "region·정책 참조"·§2.3.6.2 participant "·최근접")은 이번 diff가 정정하지 못했으나 리뷰 규칙에 따라 상세를 재기재하지 않는다.
+  >
+  > 2 line-specific finding(s) were posted as inline comments.
+  >
+  > ### Findings without a matching diff location
+  >
+  > **docs/specs/UnitTCL.md:15**
+  > Severity: must_fix
+  > 이번 R2(리전 완전 분리) sweep가 SRS §4.1.1·§4.5.1의 GW 고유 API/프록시/webhook 호스트를 `gw.<region>.<도메인>`(리전 라벨 포함)으로 전환하고 "apex" 개념을 폐기(§7.3.5 "전역 apex·GeoDNS 없음")했는데, **UnitTCL의 라우팅·프록시·webhook·E2E TC들은 갱신에서 통째로 누락**돼 폐기된 전역·리전 무표시 호스트 `*.gw.vatech.com`과 "apex" 표현을 그대로 쓴다. 해당 파일이 이번 증분에서 다른 절(TC-DATA·TC-ENR-01·REG·TC-DISP-01·E2E-SYS-01)은 R2로 갱신됐으므로, 아래 잔재는 **같은 PR 안에서 SRS와 정면 상충**한다:
+  > - **TC-PLAT-01(라인 15)** "**apex** 호스트 요청… Host=`gw.vatech.com`" — R2가 폐기한 apex/전역 호스트를 검증 전제로 삼음
+  > - TC-PLAT-02/03/04/06(라인 16·17·18·20) `axs.gw.vatech.com`·`unknown.gw.vatech.com`·`admin.gw.vatech.com`, TC-PLAT-04/05(라인 18·19) "apex"·"공개 edge(apex)"
+  > - TC-PXY-01(라인 176)·E2E-PXY-01(라인 188)·E2E-SYS-03(라인 500) `axs.gw.vatech.com`, TC-WH-01(라인 247) `axs.webhook.gw.vatech.com`
+  >
+  > `gw.<region>.<도메인>`(예 `gw.apne2.vatech.com`·`axs.gw.apne2.vatech.com`·`axs.webhook.gw.apne2.vatech.com`)로 일괄 정정하고 "apex" 어휘를 걷어내야 baseline 전 SRS↔UnitTCL 정합이 성립한다.
+  >
+  > **docs/specs/design/well-known/server-configuration.sample.json:9**
+  > Severity: must_fix
+  > compat 매트릭스 샘플의 **유일한 API 엔트리 2건이 이번 sweep으로 삭제된 엔드포인트**를 참조하는 dangling 참조가 됐다 — `region.change`→`/v1/admin/clinics/{clinicId}/region`(라인 10)·`region.set`→`/v1/clinics/me/region`(라인 19). 두 경로 모두 이번 증분에서 OpenAPI(`putClinicMeRegion`·`putAdminClinicsByClinicIdRegion` 삭제)·SRS(§7.3.4 "런타임 override 아님·런타임 API 없음")·UnitTCL(REG.4/TC-REG-16~20·TC-REG-38 삭제)에서 일괄 폐기됐다(리전 변경=마이그레이션). 이 sample이 존재하지 않는 엔드포인트에 대한 버전 게이팅 예시를 담게 되었으므로 companion sweep 누락이다 — 살아있는 엔드포인트(예: presign 계열·`/v1/clinics/me` 등) 예시로 교체 필요.
+- **[전규현 · 게시완료]** 리뷰 감사합니다. 요약이 미해소로 든 UnitTCL 라우팅/프록시/webhook/E2E TC의 gw.vatech.com·apex 잔재는 직전 커밋에서 이미 api.apne2.gw.vatech.com 스킴으로 정리·apex 어휘 제거했습니다(리뷰가 그 이전 스냅샷). 다만 server-configuration.sample.json의 삭제된 /…/region 엔드포인트 dangling 참조(region.change·region.set)는 아직 남아 있어, 살아있는 엔드포인트(clinics/me·presign 계열) 예시로 교체하겠습니다.
+- 조치(예정): server-configuration.sample.json dangling region 엔드포인트 예시 교체 (UnitTCL은 stale)  · 반영: push `f58c2e4`(REAL 8건)·stale 4건 · 상태: **Resolved(fixed)**
+
+## C-44 · [thread 81533] · SRS §2.3.9·§7.3.4·Appendix B #49 · 💡 마이그레이션 추적 범위 · **REAL**
+- **[민진우(Thomas)/Nemesis · thread 81533]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6ostb61o),
+  > **💡 권장**
+  >
+  > 신설 §2.3.9(리전 마이그레이션 시나리오)와 재작성된 §7.3.4가 **리전 마이그레이션 절차·툴·전용 API의 추적 항목을 Appendix B #49에 매단다**(라인 1016·1910). 그러나 #49(라인 2387)의 범위는 **`clinic_id` *변경* 시 데이터 이관**(EVNL-238 맥락 — LMP가 다른 Clinic-ID를 재발급했을 때의 old→new `org_mapping`·정책·device·리전 로컬 이력 수동 이관)으로 명시돼 있다. 반면 이번에 신설된 **리전 마이그레이션**은 별개이자 더 큰 작업이다 — 교차리전 RDS 데이터 이관(서울 RDS→신 리전 RDS)·엔드포인트 재설정(EzServer→새 리전 host)·**AXS webhook 콜백 변경**·**device 인증서 재발급(새 리전 IoT Core)**을 동반하는 크로스-org 커트오버(§2.3.9)이며 #49의 서술이 이를 포괄하지 못한다. IEC 62304/ISO 13485 통제 문서의 추적성 관점에서, 리전 마이그레이션 전용 Appendix B 항목을 신설하거나 #49의 범위를 리전 relocation까지 명시적으로 확장할 것을 권장한다(그렇지 않으면 clinic_id-변경 항목 아래에 묻혀 gw/1.2 요구사항 재수집 시 누락 위험).
+- **[전규현 · 게시완료]** 맞습니다. 리전 마이그레이션(§2.3.9·§7.3.4)은 clinic_id 변경(#49)과 별개이자 더 큰 작업(교차리전 RDS 이관·엔드포인트 재설정·AXS 콜백 변경·device 인증서 재발급)이라 #49에 매달면 gw/1.2 요구 재수집 시 누락 위험이 있습니다. Appendix B에 리전 마이그레이션 전용 항목을 신설(또는 #49 범위를 리전 relocation까지 명시 확장)하겠습니다.
+- 조치(예정): Appendix B 리전 마이그레이션 전용 항목 신설 or #49 범위 확장  · 반영: push `f58c2e4`(REAL 8건)·stale 4건 · 상태: **Resolved(fixed)**
+
+## C-45 · [thread 81534] · SRS §4.5.1 regions.gw 라벨 위치 · 💡 · **STALE(통합 스킴으로 해소)**
+- **[민진우(Thomas)/Nemesis · thread 81534]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6ostb61o),
+  > **💡 권장**
+  >
+  > 신설된 §4.5.1 호스트 예시 블록에서 **Region Directory 호스트 `regions.gw.<GW 도메인>`(예 `regions.gw.vatech.com`)가 리전별 GW 호스트 `gw.<region>.<GW 도메인>`(예 `gw.apne2.vatech.com`)과 `gw` 라벨의 위치가 어긋난다.** 이 절이 스스로 인용한 AWS 관례(`ec2.ap-northeast-2.amazonaws.com` = `service.region.domain`)를 따르면 리전별 호스트는 `gw`(service)가 리전 라벨 아래에 놓이므로 `apne2.vatech.com` 존 하위가 된다. 반면 리전-무관 Directory `regions.gw.vatech.com`은 `gw.vatech.com`을 상위 존으로 전제하는데, 리전별 스킴에는 `gw.vatech.com`이라는 그루핑이 존재하지 않는다(항상 `gw.<region>`). 즉 `gw`가 한쪽에선 리전 아래 leaf, 다른 쪽에선 도메인 바로 아래 중간 존으로 쓰여 ③-I의 DNS zone 설계 시 혼동을 부른다. 실제 문자열이 ③-I 위임 사항이더라도 *구조 규약*은 SRS가 이 예시로 정의하므로, `regions.vatech.com`(리전별 베이스와 평행)로 맞추거나 `gw.vatech.com` 우산 존을 명시적으로 규정할 것을 권장한다.
+- **[전규현 · 게시완료]** 이 지점은 이후 DNS 스킴 통합 개정으로 해소됐습니다 — 위임 zone을 gw.<도메인> 하나로 두고 리전 호스트(<svc>.<region>.gw.<도메인>)와 Region Directory(regions.gw.<도메인>)가 모두 같은 우산 zone gw.<도메인> 아래에 놓입니다. 'gw'가 한쪽은 leaf, 한쪽은 중간 존이던 모순이 사라졌습니다(Update 9에서도 규범 모순 해소를 확인해 주셨습니다).
+- 조치(예정): STALE — 통합 스킴(C-29)으로 이미 해소  · 반영: push `f58c2e4`(REAL 8건)·stale 4건 · 상태: **Resolved(fixed)**
+
+## C-46 · [thread 81535] · 요약(Update 8) · **STALE 안내**
+- **[민진우(Thomas)/Nemesis · thread 81535]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6ostb61o, ⏱10m05s, 🔢1.6M in/44.1k out),
+  > ## Code Review (Other) — Update 8
+  >
+  > 이번 증분은 **직전 리뷰 이후 SRS.md 단일 파일**에 대한 R2 "리전 완전 분리(region silo)" sweep의 마무리다. §2.1.1(토폴로지·다이어그램)·§2.3.3(클리닉 자기뷰 echo)·§3.1.2(Aurora 비교표 제거→RDS 단일)·§4.1.1/§4.1.2/§4.5.1(리전 라벨 호스트·전역 apex/GeoDNS 폐기)·§6.4.1(ER에서 REGION·region 컬럼 제거)·§7.3.1~§7.3.6(resolver→리전 귀속 상수·Region Directory)·§7.6·Appendix A/B가 서로 모순 없이 재정의됐다. 전 문서를 폐기 개념(Region Resolver·`region_catalog`·GeoDNS·Aurora Global DB·전역 apex·2-클러스터·`/v1/regions`)으로 재검색한 결과 **잔존 언급은 전부 부정문("…없음")이거나 R2 결정 기록**이며 긍정적 잔재는 없다. §2.2 다이어그램의 신규 `DIR -.-> EZ` 엣지도 EZ가 정의된 노드라 정상이고, 신설 §7.3.1의 `ClinicResolution`(apex·webhookHostPattern·mappingVersion 유지)은 OpenAPI 스키마(라인 2406~2440·2403)와 정합한다. 신설 §7.6.3의 **PHI 삭제 규정 bullet**(purge/retention 도입 시 관리자 승인·감사 필수필드·QA 통보+별도 테스트 강제)은 2025-12-23 환자데이터 삭제 정책을 정확히 반영해 바람직하다.
+  >
+  > **직전 리뷰 후 미해소로 넘어온 line 지적 3건을 이번 증분이 모두 해소.** ① §4.1.1 A행 "**region resolve**"→"클리닉 자기뷰(리전 echo)", ② §2.2 파이프라인 주석 "**region·정책 참조**"→"클리닉 자기뷰(리전=상수)·정책 참조", ③ §2.3.6.2 participant "수신 리전 X·**최근접**"→"대표 수신점"으로 정정됐다. 아울러 §7.1.1 "JWKS=전역 복제/전역보관"이 "서명키·공개키 리전별·리전 로컬"로 최종 정리돼 자기모순이 완전히 걷혔다.
+  >
+  > **신규 지적 2건(둘 다 recommendation).** (1) 리전 마이그레이션(§2.3.9·§7.3.4)이 clinic_id-변경 범위의 Appendix B #49에 매달려 추적 범위 불일치, (2) §4.5.1 Region Directory 호스트 예시의 `gw` 라벨 위치가 리전별 호스트 규약과 어긋남. 둘 다 기능 오류가 아닌 문서 정합·추적성 권장 사항이다.
+  >
+  > **참고 — 직전 리뷰 미해소 사항은 규칙상 상세 재기재하지 않음.** 이번 diff가 SRS.md 단독이라 직전 리뷰의 must_fix 2건(**UnitTCL** 라우팅/프록시/webhook/E2E TC의 `*.gw.vatech.com`·"apex" 잔재 / **`server-configuration.sample.json`** dangling `/…/region` 참조)은 해당 파일이 이번 증분 밖이라 **여전히 미해소**다. recommendation 2건(**`apex` 필드명 잔재** — 신설 §7.3.1·§7.3.6 JSON·§2.1.1 DIR 노드 및 OpenAPI `ClinicResolution.hosts.apex`·`regions[].apex`에 계속 존재 / **Region Directory `updatedAt`** ISO 8601·`schemaVersion` 정수 — 재작성된 §7.3.6 JSON에 동일 값 잔존)도 미해소 상태 그대로다. 또한 baseline 전 동일 sweep이 필요한 companion drift(`design/README.md`·`design/dbml/vt-api-gateway.dbml`의 pre-R2 호스트 문자열)도 이번 diff 밖이라 미반영이다. 규칙에 따라 상세는 재기재하지 않는다.
+  >
+  > 2 line-specific finding(s) were posted as inline comments.
+- **[전규현 · 게시완료]** 리뷰 감사합니다. line 지적 3건 해소 확인 감사드립니다. 신규 2건은 각각 Appendix B 전용 항목 신설(C-44)과 DNS 스킴 통합(C-45·이미 반영)으로 처리합니다. UnitTCL·server-config must_fix는 SRS 단독 diff라 미반영으로 보였는데, UnitTCL은 직전 커밋에서 정리됐고 server-config는 교체하겠습니다(C-43).
+- 조치(예정): 요약 응대  · 반영: push `f58c2e4`(REAL 8건)·stale 4건 · 상태: **Resolved(fixed)**
+
+## C-47 · [thread 81542] · SRS §4.5.1 use1(미동부) 예시 행 · 🔧 라벨 순서 · **REAL(must_fix)**
+- **[민진우(Thomas)/Nemesis · thread 81542]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6pu55v1q),
+  > **🔧 수정 필요**
+  >
+  > §4.5.1 신설 "호스트 명명 규칙" 예시 블록에서 **미동부(use1) 행이 `gw.use1.vatech.com`·`axs.gw.use1.vatech.com`·`axs.webhook.gw.use1.vatech.com`·`admin.gw.use1.vatech.com`·`console.gw.use1.vatech.com` 형태** — 즉 `<svc>.gw.<region>.<도메인>`(`gw`가 `<region>`보다 상위)로 되어 있다. 그러나 바로 위 규칙(라인 1400·1402)·서울 행(라인 1405)·아래 호스트 표(라인 1415~1419)·infra handoff(라인 14 `<svc>.<region>.gw.<도메인>`)·AWS 관례(`ec2.ap-northeast-2.amazonaws.com`=`service.region.domain`, 베이스 zone=`gw.<도메인>`)가 규정한 **정본은 `<svc>.<region>.gw.<도메인>`(예 `api.apne2.gw.vatech.com`)** 이다. 미동부 행만 `gw`와 `<region>` 라벨 순서가 뒤집혀 이 절이 스스로 세운 규칙과 서울 행과 정면 모순한다. ③-I가 이 예시로 위임 zone(`gw.<도메인>` 하나 밑에 리전 라벨) 기반 DNS를 설계하므로 잘못된 예시가 실제 zone 오설계로 이어진다. 미동부 행을 `api.use1.gw.vatech.com`·`axs.use1.gw.vatech.com`·`axs.webhook.use1.gw.vatech.com`·`admin.use1.gw.vatech.com`·`console.use1.gw.vatech.com`로 교정할 것.
+- **[전규현 · 게시완료]** 맞습니다. §4.5.1 미동부(use1) 예시 행만 <svc>.gw.<region> 순서로 남아 정본 <svc>.<region>.gw.<도메인>·서울 행과 모순했습니다(호스트 스킴 개정 시 use1 행이 스왑에서 누락). api.use1.gw.vatech.com·axs.use1.gw.vatech.com·axs.webhook.use1.gw.vatech.com·admin.use1.gw.vatech.com·console.use1.gw.vatech.com로 교정하겠습니다.
+- 조치(예정): §4.5.1 use1 행 라벨 순서 교정  · 반영: push `f58c2e4`(REAL 8건)·stale 4건 · 상태: **Resolved(fixed)**
+
+## C-48 · [thread 81543] · OpenAPI servers.url:21 · 🔧 라벨 순서(기계 판독) · **REAL(must_fix)**
+- **[민진우(Thomas)/Nemesis · thread 81543]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6pu55v1q),
+  > **🔧 수정 필요**
+  >
+  > `servers.url`이 **`https://gw.{region}.{domain}`(→ `gw.apne2.vatech.com`)** 이고 servers.description의 프록시 예시가 **`{target}.gw.{region}.{domain}`(→ `axs.gw.apne2.vatech.com`)** 인데, 이는 같은 파일의 `info.description`(라인 19 — `api.<region>.gw.<도메인>`·`{target}.<region>.gw.<도메인>`)·`ClinicResolution.hosts.apiHost` 예시(라인 2424 — `api.apne2.gw.vatech.com`)·`Target.inboundHost` 예시(`axs.webhook.apne2.gw.vatech.com`)·SRS §4.5.1 정본과 `gw`·`<region>` 라벨 순서가 뒤집혀 모순한다(§4.5.1 미동부 행과 동일 오류). 특히 `servers.url`은 **기계 판독 필드**라 code-gen·클라이언트 SDK가 이 잘못된 base URL(`gw.apne2.vatech.com`)을 그대로 생성한다. `url: https://api.{region}.gw.{domain}`·description 프록시 예시 `{target}.{region}.gw.{domain}`로 교정할 것(파일 내 나머지 표기와 일치).
+- **[전규현 · 게시완료]** 맞습니다. servers.url이 https://gw.{region}.{domain}, description 프록시 예시가 {target}.gw.{region}.{domain}로 옛 라벨 순서라 info.description·ClinicResolution.hosts.apiHost 예시·SRS 정본과 어긋납니다. servers.url은 기계 판독이라 code-gen이 잘못된 base URL을 생성하므로, url을 https://api.{region}.gw.{domain}, 프록시 예시를 {target}.{region}.gw.{domain}로 교정하겠습니다.
+- 조치(예정): OpenAPI servers.url·description 프록시 예시 라벨 순서 교정  · 반영: push `f58c2e4`(REAL 8건)·stale 4건 · 상태: **Resolved(fixed)**
+
+## C-49 · [thread 81544] · SRS §7.3.1 ClinicResolution 산문 apex · 💡 · **REAL**
+- **[민진우(Thomas)/Nemesis · thread 81544]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6pu55v1q),
+  > **💡 권장**
+  >
+  > §7.3.1 `ClinicResolution` 불릿이 `hosts`(… 이 리전의 **`apex`**·`webhookHostPattern`)로 필드를 `apex`라 부른다. 그러나 본 증분이 **OpenAPI `ClinicResolution.hosts`(라인 2424)·§7.3.6 Region Directory JSON·§2.1.1 DIR 노드를 모두 `apiHost`로 개명**했다. 그 결과 §7.3.1 산문만 `apex`로 남아 SSOT(OpenAPI)와 필드명이 어긋난다 — 이전 리뷰에서 지적된 `apex` 잔재가 다른 곳은 정리됐으나 여기만 남아, 개명 전에는 없던 SRS↔OpenAPI 필드명 모순이 새로 생겼다. 리전 완전 분리로 전역 apex 개념 자체가 폐기됐으므로 명칭상으로도 `apex`는 부적절하다. 통제 문서 추적성상 `apiHost`로 통일 권장.
+- **[전규현 · 게시완료]** 맞습니다. OpenAPI·§7.3.6·§2.1.1 DIR을 apiHost로 개명하면서 §7.3.1 ClinicResolution 산문의 apex만 남아 SSOT(OpenAPI)와 필드명이 어긋났습니다. apiHost로 통일하겠습니다.
+- 조치(예정): §7.3.1 산문 apex→apiHost  · 반영: push `f58c2e4`(REAL 8건)·stale 4건 · 상태: **Resolved(fixed)**
+
+## C-50 · [thread 81545] · handoff-ezserver:12 apex · 💡 · **REAL**
+- **[민진우(Thomas)/Nemesis · thread 81545]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6pu55v1q),
+  > **💡 권장**
+  >
+  > 온보딩 discovery 항목이 "Region Directory를 읽어 자기 리전 GW의 **`apex`**·`webhookHost`를 얻는다"고 기술하나, 참조 대상인 §7.3.6 Region Directory 스키마의 필드명은 **`apiHost`·`webhookHost`** 다. `apex`→`apiHost`로 정정 권장(handoff는 머지 blocker 아니나 Teddy가 ③-P-EZ에 반영할 때 참조할 필드명 불일치).
+- **[전규현 · 게시완료]** 맞습니다. handoff discovery 항목의 apex를 §7.3.6 스키마 필드명 apiHost로 정정하겠습니다(Teddy가 ③-P-EZ 반영 시 참조).
+- 조치(예정): handoff-ezserver apex→apiHost  · 반영: push `f58c2e4`(REAL 8건)·stale 4건 · 상태: **Resolved(fixed)**
+
+## C-51 · [thread 81546] · handoff-infra:13 apex · 💡 · **REAL**
+- **[민진우(Thomas)/Nemesis · thread 81546]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6pu55v1q),
+  > **💡 권장**
+  >
+  > Region Directory 내용을 "리전→**`apex`**·`webhookHost`·`status`"로 기술하나 §7.3.6 스키마 필드는 **`apiHost`** 다. 같은 문서 라인 14는 정본 호스트 구조 `<svc>.<region>.gw.<도메인>`를 올바르게 쓰므로 Directory 필드명만 `apiHost`로 맞추면 문서 내 일관성이 완성된다.
+- **[전규현 · 게시완료]** 맞습니다. Region Directory 내용 설명의 apex를 apiHost로 정정하겠습니다(라인 14 호스트 구조는 이미 정본).
+- 조치(예정): handoff-infra apex→apiHost  · 반영: push `f58c2e4`(REAL 8건)·stale 4건 · 상태: **Resolved(fixed)**
+
+## C-52 · [thread 81547] · 요약(Update 9) · **신규 5건 안내**
+- **[민진우(Thomas)/Nemesis · thread 81547]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6pu55v1q, ⏱10m46s, 🔢3.3M in/37.1k out),
+  > ## Code Review (Other) — Update 9
+  >
+  > 이번 증분은 R2 "리전 완전 분리(region silo)" 결정을 **SRS.md 외 companion 문서군(env-reference.md·UnitTCL.md·design/README.md·DBML·OpenAPI)과 신설 크로스팀 handoff 2건(EzServer·Infra)** 으로 확산한 sweep이다. 전역 DB(Global DB)/Aurora Global/GeoDNS/전역 apex/`region_catalog`/Region Resolver/`GET /v1/regions`/`PUT /…/region`을 제거하고, 리전당 단일 RDS·리전=배포 상수(`GW_REGION`)·region 컬럼/카탈로그 삭제·DBML soft-ref→**하드 FK**(TC-DATA-03/04·`fleet_state`/`webhook_event` FK)·리전별 호스트(`api.<region>.gw.<도메인>`)·Region Directory(공개 정적 JSON)로 일관 재정의됐다. env-reference.md(IRSA→Pod Identity·`DATABASE_URL` 통합·`GW_REGION`/`GW_PUBLIC_HOST`)와 DBML/ER 다이어그램/OpenAPI가 서로 정합하며, §2.3.6.2 교차리전 fallback·§2.3.9 마이그레이션의 **미해결 과제(전역 clinic→region 인덱스 부재)** 를 TBD로 명시한 점은 바람직하다.
+  >
+  > **직전 리뷰 지적의 해소.** ① **line #2(§4.5.1 Region Directory `gw` 라벨 위치 불일치)** — 본 증분이 통합 명명 규칙(위임 zone `gw.<도메인>` 하나 · 리전 호스트 `<svc>.<region>.gw.<도메인>` · 리전-무관 `regions.gw.<도메인>`)을 도입해 **규범 차원의 모순은 해소**됐다. 다만 옛 `gw.<region>` 구조 잔재가 두 곳(§4.5.1 미동부 예시 행·OpenAPI `servers`)에 남아 위 must_fix 2건으로 지적한다. ② **apex 필드명 잔재(이전 recommendation)** — OpenAPI `ClinicResolution.hosts.apex`→`apiHost`, `regions[].apex`→Region 스키마 통째 삭제, §7.3.6 JSON·§2.1.1 DIR 노드 모두 `apiHost`로 개명해 **대부분 해소**(잔여=§7.3.1 산문·handoff 2건, 위 recommendation). ③ **UnitTCL의 `*.gw.vatech.com`·apex·"Region Resolver"·GeoDNS·Aurora 잔재(이전 must_fix)** — UnitTCL 전면 갱신(`api.apne2.gw.vatech.com` 등·리전 TC-REG-01~05·16~30·38 폐기·TC-DATA 재정의)으로 **완전 해소**(재검색 결과 잔재 0). ④ **companion drift(design/README.md·DBML의 pre-R2 호스트/2-클러스터 문자열)** — 본 증분에 포함돼 리전별 호스트·단일 datasource·하드 FK로 갱신·해소.
+  >
+  > **신규 지적 5건.** 핵심은 **DNS 라벨 순서 must_fix 2건**(§4.5.1 미동부 예시 행·OpenAPI `servers.url`)으로, 둘 다 정본 `<svc>.<region>.gw.<도메인>`을 어기고 `<svc>.gw.<region>` 구조를 써서 같은 문서/파일 내 정본과 모순한다(OpenAPI 쪽은 기계 판독 필드라 영향이 큼). 나머지 3건은 apex→apiHost 개명 누락(§7.3.1·handoff 2건·recommendation)이다. 모두 기능 오류가 아닌 문서 정합·추적성 사안이나, IEC 62304/ISO 13485 통제 문서이자 ③-I가 DNS·code-gen 착수 근거로 삼는 산출물이라 라벨 순서 2건은 반드시 교정이 필요하다.
+  >
+  > **직전 리뷰 미해소로 넘어온 사항(규칙상 상세 재기재 안 함).** 직전 line #1(리전 마이그레이션 §2.3.9·§7.3.4가 `clinic_id`-변경 범위의 Appendix B #49에 매달려 추적 범위 불일치)은 이번 diff에서 **#49 항목 자체가 미변경**이라 여전히 미해소다. 또 `design/well-known/server-configuration.sample.json`의 dangling `/v1/admin/clinics/{clinicId}/region`·`/v1/clinics/me/region` 참조(이전 must_fix)는 해당 파일이 **이번 증분 밖**이라 미반영 상태 그대로다. 규칙에 따라 상세는 재기재하지 않는다.
+  >
+  > 5 line-specific finding(s) were posted as inline comments.
+- **[전규현 · 게시완료]** 리뷰 감사합니다. must_fix 2건(§4.5.1 use1 예시 행·OpenAPI servers.url 라벨 순서)은 호스트 스킴 개정에서 use1 행·서버 변수 템플릿이 누락된 것이라 <svc>.<region>.gw.<도메인>로 교정하겠습니다(C-47·C-48). apex→apiHost 잔여 3건(§7.3.1 산문·handoff 2건·C-49~51)과 #49 추적 범위(C-44)·server-configuration dangling 참조(C-43)도 함께 처리하겠습니다.
+- 조치(예정): 요약 응대 + 신규 5건 처리 계획  · 반영: push `f58c2e4`(REAL 8건)·stale 4건 · 상태: **Resolved(fixed)**
+
+
+---
+
+## Round 9 — Nemesis Update 10 (2026-07-30 · 🆔ms6qbdp41s · 원문 전체)
+
+> U10은 f58c2e4 **직전 스냅샷** — 요약이 든 미해소 5건(use1·servers.url·§7.3.1 apex·handoff 2건 apex·server-config)은 **전부 f58c2e4에서 해소**(stale). 진짜 신규=egress 대상 오분류 1건.
+
+## C-53 · SRS §2.1.1:325·handoff#4 · [thread 81556] · 민진우(Thomas)/Nemesis · 💡 egress 대상 오분류 · **REAL**
+- **[민진우(Thomas)/Nemesis · thread 81556]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6qbdp41s),
+  > **💡 권장**
+  >
+  > §2.1.1 egress 불릿이 "리전이 늘면 **AXS 외의 아웃바운드**(LMP enroll 검증·JWKS · Entra JWKS · 중앙 관측 백엔드 · **CI→Parameter Store**)도 리전마다 생기므로 **각 대상의 whitelist도 동일하게 전 리전 EIP 합집합 대상**"이라고 새로 기술하나, 이 열거는 성격이 다른 대상을 한 범주로 섞었다. 같은 불릿 앞부분이 규정한 정의 — "화이트리스트 대상 = GW가 _외부를 호출_ 할 때의 egress IP"(FR-INT-03·§7.5.3) — 상, EIP union whitelist가 성립하는 것은 **발신 측이 source-IP allowlist를 요구하는 외부 발신처**(AXS, 경우에 따라 LMP·중앙 관측 백엔드)뿐이다. 반면 **CI→Parameter Store는 GW pod의 egress가 아니라 CI 파이프라인의 발행(write) 경로**이고(GW는 Parameter Store를 IAM으로 read — §7.7.5·ESO/Pod Identity), **Parameter Store(AWS 서비스)와 Entra JWKS(login.microsoftonline.com 공개 엔드포인트)는 호출자 egress IP를 whitelist하지 않는다**(IAM/공개 접근). 이 둘을 "EIP union을 whitelist하는 대상"으로 열거하면 ③-I(Jack)가 실제로는 불필요한 EIP whitelist 항목을 계획·협의할 소지가 있다(handoff 목적이 실현성·비용 확인이라 오해 비용이 실질적). 동일 오분류가 handoff `region-silo-infra.md` item 4("…중앙 관측·CI→Parameter Store도 리전마다 아웃바운드가 생겨 동일 union 대상")에도 그대로 있다. union whitelist 대상은 **source-IP allowlist를 요구하는 외부 발신처로 한정**하고, Parameter Store·Entra JWKS 등 AWS/공개 대상은 "GW egress allowlist(Istio egress) 대상"과 구분해 기술할 것을 권장한다.
+- **[전규현 · 게시완료]** 맞습니다. EIP 합집합 whitelist는 source-IP allowlist를 요구하는 외부 발신처(AXS·경우에 따라 LMP·중앙 관측)로 한정하고, Parameter Store(AWS·IAM)·Entra JWKS(공개)·CI→Parameter Store(CI 발행 경로)는 caller IP를 whitelist하지 않아 GW egress allowlist(Istio egress) 대상으로 구분했습니다(§2.1.1·handoff#4).
+- 조치: §2.1.1·handoff#4 egress union/allowlist 대상 구분 · 반영: push `e122e4c` · 상태: **Resolved(fixed)**
+
+## C-54 · [thread 81557] · 요약(Update 10) · **STALE 안내**
+- **[민진우(Thomas)/Nemesis · thread 81557]** (원문 전체)
+  > From Nemesis(v0.5.0, 🆔ms6qbdp41s, ⏱14m59s, 🔢2.1M in/54.5k out),
+  > ## Code Review (Other) — Update 10
+  >
+  > 이번 증분은 앞선 region-silo sweep 위에 **Jack 인프라 리뷰 반영 항목**을 확산한 것이다: §2.3.9(리전 마이그레이션 시나리오 A/B·되돌림 비대칭·교차리전 재암호화 예외 신설), §6.3.1(리전 단위 재해 = 가용성 목표 밖·주권상 교차리전 백업 불가), §7.3.6(Region Directory 무결성·발행 파이프라인 — detached JWS 서명·CI 발행 전용 IAM·CloudFront us-east-1 ACM), §2.7.1(중국 별도 파티션은 '리전 증분' 아님), §3.1.2(RDS 프로비저닝 파라미터 명시 항목화), §2.1.1(egress union·KMS 리전 키·비-PHI 전역 의존 표 확장), 그리고 신설 handoff `region-silo-infra.md`(RDS·Region Directory·DNS·egress·KMS·리전 스택 6항목)이다. **이 신규 내용은 대체로 내부 정합적이고 사실관계가 정확**하다 — Multi-AZ instance/cluster failover 특성, CloudFront 인증서의 us-east-1 ACM 필수, 중국 파티션의 ECR/CloudFront/ICP 제약, 마이그레이션 시 구→신 리전 CMK 교차 grant가 "리전 간 배선 없음"과 충돌한다는 예외 처리, 리전 재해 시 복구 수단 부재를 주권 제약으로 정직하게 명시한 점 모두 타당하다. 신규 지적은 **egress union 목록의 대상 오분류 recommendation 1건**(위 §2.1.1·handoff)뿐이다.
+  >
+  > **직전 리뷰 지적의 해소 — 이번 diff에서 해소된 것은 없다.** 5건 모두 이 증분 범위 안에서 그대로 남아 있다(신규 인프라 항목만 추가되고 기존 표기 정합 nits는 미반영):
+  > - **line #1(§4.5.1 미동부(use1) 예시 행·must_fix)** — `호스트 명명 규칙` 블록의 미동부 행이 여전히 `gw.use1.vatech.com`·`axs.gw.use1.vatech.com`… 형태(현 SRS.md 라인 1412)로, 정본 `<svc>.<region>.gw.<도메인>`(서울 행 `api.apne2.gw.vatech.com`)과 라벨 순서가 뒤집혀 미해소다. ③-I의 DNS zone 설계 근거라 **머지 전 교정 필요**.
+  > - **line #3(§7.3.1 `ClinicResolution.hosts.apex`·recommendation)** — 이번 증분이 §7.3.1을 "리전 귀속 — 이 리전"으로 전면 재작성했음에도 `hosts`(… 이 리전의 **`apex`**·`webhookHostPattern`)로 `apex` 명칭을 그대로 유지(현 라인 1910)해, OpenAPI SSOT·§7.3.6 스키마·§2.1.1 DIR 노드의 `apiHost`와 여전히 어긋난다(리전 완전 분리로 전역 apex 개념 자체가 폐기됐으므로 명칭상으로도 부적절).
+  > - **line #5(handoff `region-silo-infra.md`·recommendation)** — 신설 handoff item 2가 "내용 = 리전→**`apex`**·`webhookHost`·`status`"로 `apex`를 쓰는데, 같은 줄이 참조하는 "스키마 = SRS §7.3.6"는 `apiHost`이고 §2.1.1 DIR 노드도 `apiHost`라, 자기 참조와 모순한다. `apiHost`로 통일 권장.
+  > - **line #2(OpenAPI `servers.url`·must_fix)·line #4(handoff `region-silo-ezserver.md` apex·recommendation)** — 두 파일 모두 **이번 증분 밖**이라 미변경·미반영 상태 그대로다.
+  >
+  > 규칙에 따라 위 미해소 항목의 수정안 상세는 재기재하지 않는다(직전 리뷰 참조). 이번 증분은 인프라 리뷰 반영이라는 실질을 잘 담았으나, **DNS 라벨 순서(#1)·`apex`→`apiHost` 개명(#2·#3·#5) 잔재가 남아 있어 통제 문서(IEC 62304/ISO 13485) 정합·추적성 관점에서 여전히 정리가 필요**하다. 또한 직전 리뷰가 지적한 `design/well-known/server-configuration.sample.json`의 dangling region 엔드포인트 참조도 이 증분 밖이라 미반영 상태다.
+  >
+  > 1 line-specific finding(s) were posted as inline comments.
+- **[전규현 · 게시완료]** 미해소 5건은 f58c2e4에서 모두 정정·push(리뷰가 이전 스냅샷). 신규 egress 오분류도 §2.1.1·handoff 구분 반영.
+- 조치: 요약 응대(stale 안내) · 반영: push `e122e4c` · 상태: **Resolved(fixed)**
