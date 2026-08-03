@@ -1372,7 +1372,7 @@
   - **(8/3 완료) region-silo(R2) — 스펙 + 구현 코드 재작업 모두 완료** → 규모·검증 상세 = 공유 S5 · 구현현황 = S3
   - **(확정) R2-1** — 호주 first-open · 서울=dev · 대량 이전 없음 → 공유 S5
   - **(확정) R3·R4·R5** — 제품 OnePager 인계 방식 · GW 도메인 별도 · GW Console v1/v2 분리 → 공유 S5
-  - **(진행) GW 구현** — 1단계 코어 P0~P6 완결 → 다음 P10(fleet·config·inventory) → 구현현황 = S3
+  - **(8/3 완료) GW 구현 1단계 완성** — 코어 P0~P6 + **P10 완결**(heartbeat·ConfigService·inventory·admin 조회·PR #12363·12364·12366·12368) → 다음 = **P8 webhook Receiver 골격 선행**(2단계 head-start·로컬 더블) → 구현현황 = S3
   - **(진행 중 실무) AWS 환경 분리** — 계정/네트워크·ESO/Parameter Store 경로·`.env.template`(Jack·Raymond·③-I) · 이번 주 GW_REGION dev 프로비저닝 진행
   - **(잔여) EzServer OnePager 수령 확인** · 보류·선결(IO Scanner=`이월-R1`)은 이월 표 참조
 
@@ -1541,14 +1541,22 @@
       | 테스트·감사 | e2e/unit 재정합(**534/157**) · 9-파티션 전수 정독 감사 · 폐기개념 grep 0 · **CI e2e 401 회귀 수정**(token aud=config 동기화) | ✅ 완료 | 검증 4종·CI green |
       | 게이트·문서 | `make verify-spec`·`verify-ci` 신설 · README 드리프트 정정(#12348) | ✅ 완료 | — |
 
-      **③ 대기 — Phase 단위 (미착수)**
+      **②-b P10 fleet·config·inventory — Task 단위 (8/3 완결 · 1단계 마무리)**
+
+      | Task | 내용 | 상태 | PR |
+      | --- | --- | --- | --- |
+      | 10-1 heartbeat | POST /v1/fleet/heartbeat·fleet_state upsert·nextIntervalSeconds·device_id=토큰 subject·metrics 미저장 | ✅ 완료 | #12363 |
+      | 10-2 ConfigService | 중앙 config(gw.*) 실효 resolve(device>clinic>region>global)·pull 엔드포인트·configVersion는 gw/1.1 이월 | ✅ 완료 | #12364 |
+      | 10-3 inventory | 클라 SW 인벤토리 튜플 presence·os sentinel·Redis SET NX throttle·fire-and-forget | ✅ 완료 | #12366 |
+      | 10-4 admin 조회 | GET /v1/admin/fleet·/clients·/clinics/{id}/clients·online 파생·cursor 엔벨로프·RBAC | ✅ 완료 | #12368 |
+
+      **③ 2단계 — Phase 단위 (대기 · P8 골격 선행 착수)**
 
       | Phase | 범위 | 상태 | 비고 |
       | --- | --- | --- | --- |
-      | **P10 fleet·중앙 config·inventory** | heartbeat·fleet_state·online 파생·config(gw.\*)·inventory | ⬜ **다음(1단계 잔여)** | 1단계 |
+      | **P8 webhook 수신(Receiver)** | HMAC·멱등·ACK·KMS 암호화 저장·SQS enqueue | 🟠 **골격 선행 착수(8/3)** | 2단계 head-start·로컬 더블(AXS 무관 부분)·④ 후 실연동 완결 |
       | **P7 External Connector·AXS** | OAuth2 cc·egress 고정IP·앱 PDP egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후(보류) |
-      | **P8 webhook 수신(Receiver)** | HMAC·멱등·ACK·KMS 암호화 저장·SQS enqueue | ⬜ 대기 | 2단계(골격 로컬 더블 선행 가능) |
-      | **P9 webhook 분배·MQTT(Dispatcher)** | SQS consumer·대상해석·MQTT QoS1 하행·DLQ | ⬜ 대기 | 2단계 |
+      | **P9 webhook 분배·MQTT(Dispatcher)** | SQS consumer·대상해석·MQTT QoS1 하행·DLQ | ⬜ 대기 | 2단계(P8 후) |
       | **P11 Admin API·audit·컴플라이언스** | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | ⬜ 대기 | 2단계(webhook slice=P8 후) |
       | **P12 E2E·하드닝** | AXS sandbox E2E·compat E2E·부하·HA/KEDA 검증 | ⬜ 대기 | 🔴 2단계·④ AXS sandbox 실자격 |
 
