@@ -1622,10 +1622,10 @@
       - **검증**: unit 534 · e2e 157 · CI green(build 20260803.1) · `verify-spec`/`verify-ci` 게이트 신설 · README 드리프트 정정(PR #12348). 후속 = IP Spec Index·체크박스 갱신.
       - **PR**: [구현 #12241](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/12241) · [스펙 #12207](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/12207)
     - **R2-1. 호주 first-open 리전 전략 — ✔ 확정**
-      - v1.0 production 리전 = **호주(ap-southeast-2)** · **서울(apne2) = 비-prod 전용**(dev·test·staging). 호주 클리닉을 서울에 임시로 두지 않음.
+      - v1.0 production 리전 = **호주 멜버른(ap-southeast-4·`apse4`)** · **서울(apne2) = 비-prod 전용**(dev·test·staging). 호주 클리닉을 서울에 임시로 두지 않음. _(8/4 ③-I 확정: 비용 우위로 시드니 ap-southeast-2 대신 멜버른 ap-southeast-4 — spec-v1.0.8 교정)_
       - region silo라 production은 리전별 독립 스택 1개씩(서울 production은 추후 추가 가능).
       - '서울 임시 홈 → 호주 이전'(리전 통째·대량 이전) 시나리오 없음 — 호주 클리닉은 처음부터 호주 리전 온보딩(PHI residency).
-      - 스펙 영향: SRS §2.3.9 호주 임시-홈 예시 v1.0 제외(gw/1.2 재홈 역량만 존치)·기준 리전=호주(dev=서울) — spec-v1.0.6 반영.
+      - 스펙 영향: SRS §2.3.9 호주 임시-홈 예시 v1.0 제외(gw/1.2 재홈 역량만 존치)·기준 리전=호주 멜버른(dev=서울) — spec-v1.0.6 + 리전 라벨 apse4 교정 spec-v1.0.8.
       - 유지: AXS webhook 콜백 org(클리닉)별 세분화 요청 계속.
     - **R3. 제품 OnePager(③-P) 인계 — ✔ 방식 확정**
       - CleverSpace(=EzCloud·git): PR 인계 완료 — `ezicloud/ezcloud`·`docs/onepager/gw_adaptation/CleverSpace-GW적응-OnePager.md`(정정본)·**PR #12239**(`d3f676a0`)·통지 Larry(고형용).
