@@ -1566,7 +1566,7 @@
       | Task | 내용 | 상태 | PR |
       | --- | --- | --- | --- |
       | 9-1 SQS 소비·대상해석·DLQ | SQS(eventId) 소비→**(target_id,external_org_id) 복합키** org_mapping→clinic→payload 복호→MQTT publish(gw/clinic/{clinicId}/webhook·qos1)→dispatched · 미해석=**발행 전 fail-closed dead_letter**(교차클리닉 오분배 차단) · 멱등 | ✅ 완료 | #12420 |
-      | 9-2 MQTT QoS1·envelope | 하행 발행 envelope 포맷·QoS1 정형화 | ⬜ 대기 | — |
+      | 9-2 MQTT QoS1·verbatim | 하행 발행 정형화: 토픽 화이트리스트 검증(위험문자 거부·fail-closed·리전 미포함)·QoS1·원 payload verbatim | ✅ 완료 | #12434 |
       | 9-3 DLQ·재전달·멱등 | crash-gap 재적재 sweep·재전달 멱등 | ⬜ 대기 | — |
       | 9-4 KEDA 오토스케일 | SQS depth 스케일·graceful drain | ⬜ 대기 | — |
 
