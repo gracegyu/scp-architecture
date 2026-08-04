@@ -1562,6 +1562,43 @@
 
       > **직전 주(7/30) 구현 요약 · P2~P6 완결** — 1단계 GW 독립 코어에서 **P2~P6 다섯 Phase를 완결**했다. **P2 인증**: device 면(2-1 private_key_jwt→RS256 토큰, 2-2 jti 1회 소비·검증후 정본 clientId rate-limit·revocation denylist, 2-3 deviceAuth Guard)에 operator 면(2-4 Entra OIDC+confused-deputy 방어+JIT, 2-5 RBAC deny-by-default+`/v1/admin/me`)을 더해 양 인증면을 완비. **P3 enrollment**: 개시/완료(3-1·3-2)에 이어 device 생애주기 상태머신·재-enroll 회전 옛 credential 폐기(3-3)·C/S 승인 slice+kill 즉시 denylist 전파(3-4)·미승인 pending 자동만료(3-5)로 종료. **P4 레지스트리·region resolution**: Region Resolver(mapping_version CAS·버전 조건부 캐시·4-1)·ClinicResolution+GET /v1/regions(4-2)·PATCH /me+PUT /me/region(4-3)·PHI region-boundary 앱 내부 PDP(4-4)·admin region 카탈로그 CRUD(4-5)로 완결. **P5 호환성 게이트**: Vatech-\* 파싱→400(5-1)·well-known 매트릭스 서빙(5-2)·semver 3단계 게이팅 guard(5-3). **P6 target-routed 프록시**: 서브도메인 라우터+SSRF fail-closed(6-1)·PEP 체인(auth 401→PDP 403→region)+verbatim bypass(6-2)·아웃바운드 복원력(6-3 D1~D3 타임아웃·취소 전파·에러 정규화·Idempotency-Key)로 완결. 모든 엔드포인트 Task에 **검증 4종(unit·e2e[실 DB·Valkey]·curl 왕복·DB/Valkey 조회)** 과 **E2E 반복성 하네스**(clean-slate·seed·FLUSHDB)를 적용했고, 보안 민감 Task(프록시·인증)는 **독립 적대적 pre-PR 리뷰**로 검증했다. (region-silo 재작업 상세는 위 ② Task 테이블 참조.)
 
+  - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/4 측정 · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측. 정본 기준 = **merged**(단위+통합 합산).
+
+    | 스코프 | Statements | Branches | Functions | Lines |
+    | --- | --- | --- | --- | --- |
+    | **① 전역 (merged)** | **95.58%** | **92.51%** | **91.09%** | **95.31%** |
+    | **② 보안 도메인 (merged)** | **98.46%** | **95.85%** | **100%** | **98.36%** |
+    | **③ 핵심 보안 파일 16개 (merged·개별)** | — | **각 100%** | — | — |
+    | _참고: 전역 (unit-only)_ | 77.73% | 83.02% | 72.15% | 78.73% |
+    | **CI 게이트 floor — ① 전역** | 92 | 87 | 88 | 92 |
+    | **CI 게이트 floor — ② 보안** | 95 | 89 | 95 | 95 |
+    | **CI 게이트 floor — ③ 핵심파일(개별·branch)** | — | **90** | — | — |
+
+    - **추천 기준값 (= 위 표의 'CI 게이트 floor' 행 · 회귀 방지 하한)**:
+      - _① 전역 · ② 보안(합산)_: 재앙적 회귀 catch용 하한(달성치 대비 여유 有). 달성치 상승 시 floor 도 올려 개선을 잠금(**ratchet**).
+      - _③ 핵심 파일(개별·branch ≥90)_: **규범적(실질 요구수준)** — 합산이 못 잡는 단일 파일의 보안 분기 공백을 차단. 현재 16개 전부 100%. 미커버는 (A)도달가능→테스트 / (B)도달불가→`istanbul ignore`+실증근거로만 처리(숫자 치팅 금지·적대 감사로 부당 ignore 색출·수정).
+      - _수준_: 업계 통상(라인 ~80% · 분기 70~80%가 "양호")보다 높음 · 가장 엄격한 **Branch 를 전역 92.5 / 보안 95.9% 달성**.
+      - _한계_: %는 필요조건일 뿐 — 본 스윕은 **적대적 mutation testing**(방어 로직 역전 → 테스트 red 확인)으로 회귀 포착력까지 검증.
+
+    - **CI 게이트·조회**:
+      - **게이트(차단)**: CI `GATE: merged coverage floor (unit+e2e)` 스텝이 전역/보안 8개 값 중 하나라도 floor 미달이면 **비-0 종료 → PR 머지 차단**(required check). _실증: 빌드 49327이 이 게이트에서 실패해 막혔다가 수정 후 통과._
+      - **조회 — 로그**: PR → **CI verify** → **`Verify gates`** 잡 → **`GATE: merged coverage floor (unit+e2e)`** 스텝 로그에 Coverage summary + floor 대조표 출력.
+      - **조회 — UI**: 빌드 **Coverage 탭**(`PublishCodeCoverageResults`·cobertura) — %·파일별·추세 시각화.
+      - **로컬 재현**: `make coverage-merged`.
+
+    - **범례**:
+      - **지표(4열)** — "해당 요소 중 테스트가 1회 이상 실행한 비율(%)":
+        - **Statements(구문)**: 실행 가능한 개별 구문의 실행 비율(기본 지표·코드 대부분에 대응).
+        - **Branches(분기)**: `if`/`switch`/삼항/`&&`·`||`·`??` 조건 분기의 **각 방향(true·false)** 실행 비율 — **가장 엄격**, "정상만 타고 오류·fail-closed 경로 미검증" 공백을 드러냄(보안 척도).
+        - **Functions(함수)**: 정의된 함수·메서드 중 1회 이상 호출된 비율.
+        - **Lines(라인)**: 실행 가능한 소스 라인의 실행 비율(Statements 와 유사·물리 라인 기준).
+      - **스코프 — 점점 좁고 엄격한 3단계(포함관계·중복 아님: 전역 ⊃ 보안 도메인 ⊃ 핵심 파일)**:
+        - **① 전역**: 앱 전체(`apps/**` + `libs/**`) **합산** — "레포 전반이 안 무너졌나". 가장 넓고 느슨.
+        - **② 보안 도메인**: 6개 보안 폴더(`auth`·`authz`·`enroll`·`proxy`·`webhooks`·`crypto`) **합산** — ①의 부분집합. PHI·자격증명·게이팅 민감 경로라 **전역보다 높은 floor**.
+        - **③ 핵심 보안 파일**: ② 안의 **보안 결정 파일을 파일별(개별)로** 검사(합산 아님·branch floor **≥90**). **왜 별도인가**: 합산(①②)은 자잘한 covered 코드가 많으면 **한 파일의 보안 분기 공백을 가릴 수 있다** — 파일별 게이트라야 "auth.service 하나가 무너져도" 잡는다. 미커버 중 **도달불가 방어 분기는 `istanbul ignore`+근거로 제외**해 reachable 기준으로 관리. **대상 목록**: `auth.service`·`device-token.verifier`·`signing-key.provider`(토큰 발급·검증), `hmac.guard`·`json-path`(webhook 인증·파싱), `kms-envelope`(PHI 암호화), `egress-allowlist`·`pdp.service`·`policy-resolution`(인가·SSRF), `enroll.service`·`enroll-complete.service`·`enroll-ip`·`pending-expiry.job`(enrollment·nonce), `proxy.service`·`router`·`proxy-timeout`(프록시 라우팅·타임아웃).
+        - **참고: 전역(unit-only)**: 단위 테스트만의 수치. 컨트롤러·가드·미들웨어·local 어댑터가 0%로 잡혀(그 계층은 e2e로 커버) 낮음 — merged 가 정본임을 보이는 대조치.
+      - **merged**: unit + e2e(실 DB/Valkey) 합산(nyc) — 두 실행을 합쳐야 "실제 실행·검증된" 라인이 정직하게 집계됨. 현재 테스트 규모 = **unit 783 · e2e 188**.
+
   - **S4. 리전 자동 결정(country→region) 스펙 반영 (정보 공유)**
     - 온보딩 시 EzServer가 **리전을 직접 고르지 않고**, Region Directory의 리전별 담당 국가(`countries`) 매핑으로 **자기 클리닉의 나라(LMP 라이선스/Clinic-ID)에 맞는 리전을 자동 결정**(R6).
     - 지연(GeoDNS) 추천이 아니라 **주권상 결정적 매핑** + C/S 승인 검증.
