@@ -1372,7 +1372,7 @@
   - **(8/3 완료) region-silo(R2) — 스펙 + 구현 코드 재작업 모두 완료** → 규모·검증 상세 = 공유 S5 · 구현현황 = S3
   - **(확정) R2-1** — 호주 first-open · 서울=dev · 대량 이전 없음 → 공유 S5
   - **(확정) R3·R4·R5** — 제품 OnePager 인계 방식 · GW 도메인 별도 · GW Console v1/v2 분리 → 공유 S5
-  - **(8/3 완료) GW 구현 1단계 완성** — 코어 P0~P6 + **P10 완결**(heartbeat·ConfigService·inventory·admin 조회·PR #12363·12364·12366·12368) → 다음 = **P8 webhook Receiver 골격 선행**(2단계 head-start·로컬 더블) → 구현현황 = S3
+  - **(8/3 완료) GW 구현 1단계 완성** — 코어 P0~P6 + **P10 완결**(heartbeat·ConfigService·inventory·admin 조회·PR #12363·12364·12366·12368) → **2단계 P8 webhook Receiver 골격 완료**(head-start·로컬 더블 — 8-1·8-2·8-3·실연동 ④ 후) → 구현현황 = S3
   - **(진행 중 실무) AWS 환경 분리** — 계정/네트워크·ESO/Parameter Store 경로·`.env.template`(Jack·Raymond·③-I) · 이번 주 GW_REGION dev 프로비저닝 진행
   - **(잔여) EzServer OnePager 수령 확인** · 보류·선결(IO Scanner=`이월-R1`)은 이월 표 참조
 
@@ -1506,11 +1506,12 @@
       > - CleverOne OnePager는 지금 작성(연동 *구현*만 post-v1.0).
       > - 순서·의존 = [Roadmap §3.9].
 
-  - **S3. GW 구현 현황 — Phase·Task 스냅샷 (8/6·매주 갱신)** — 1단계(GW 독립 코어) 구현 진행중.
+  - **S3. GW 구현 현황 — Phase·Task 스냅샷 (8/6·매주 갱신)** — 1단계 코어 완료 · 2단계 P8 착수.
+    - **어디까지 왔나 (8/6)**: 1단계 코어(P0~P6·P10) 구현 완료. 2단계는 **P8 webhook Receiver 골격 완료(8-1·8-2·8-3)** — 로컬 더블 기준, 실연동은 ④ AXS 후. **P7·P9·P11·P12는 ④ AXS 연동 선결로 대기.** 구현 다음 통합·검증·QA 단계가 이어진다.
     - 매 Task 완료 시 갱신 · _8/6 프레임 시작값 = 7/30 상태 · **8/3 region-silo 재작업 머지(PR #12241 → `9146ae3`) 반영**_
     - **진행 단계** — 스펙(분석/설계)과 구현을 분리해 진행한다. 스펙은 HLD로 baseline 동결됐고 현재 구현(LLD 병행) 중이다. 구현이 끝이 아니라, QA 인계 전 개발팀이 통합·시스템 테스트로 동작을 확증하는 단계가 남고, 이어 QA·운영이 있다.
       - **스펙 — 분석/설계(HLD)**: SRS·DBML·OpenAPI·TCL baseline v1.0 동결 · 정합화(v1.0.1~v1.0.4) 지속 · LLD는 구현과 병행
-      - **구현(LLD 병행)** — _구현 단계 내 진척(코딩 Task) · region-silo 재작업(8/3·PR #12241) 완료로 **P4 대부분 삭제·단일화** → Task 집합 축소·재산정 예정_: 1단계 코어 **P0~P6 완료 + region-silo 재작업 완료** · P10 다음 / 2단계 AXS 연동(P7~P12)은 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
+      - **구현(LLD 병행)** — _구현 단계 내 진척(코딩 Task) · region-silo 재작업(8/3·PR #12241) 완료로 **P4 대부분 삭제·단일화** → Task 집합 축소·재산정 예정_: 1단계 코어 **P0~P6·P10 완료 + region-silo 재작업 완료** · 2단계 **P8 골격 완료(8-1·8-2·8-3)** / P7·P9·P11·P12는 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
       - **✅ region-silo(R2·spec-v1.0.5/1.0.6) 재작업 완료(8/3·PR #12241 머지 `9146ae3`)**: 아래 ✅완료 중 **P1 T-DATA-1-1(전역/리전 2-DB)·1-6(region_catalog 시드) · P3 T-ENR-3-2(GeoDNS default region 배정) · P4 전체(Region Resolver·GET /v1/regions·PUT /me/region·region 카탈로그 CRUD) · P6 T-PXY-6-2의 region 해석 단계**가 리전 완전 분리로 **삭제·단일화됨**(단일 datasource·region=배포 상수·Region Directory·리전 변경=마이그레이션·ClinicResolution=리전 echo·하드 FK). **완료 이력은 아래 표에 보존**(당시 PR 기준)하되 현행 코드는 단일 datasource. 검증: unit 534·e2e 157·CI green(build 20260803.1)·`verify-spec`/`verify-ci` 게이트 신설.
       - **개발 통합·검증(QA 인계 전)**: 통합 테스트 · 시스템 E2E(실 계약: AXS·CleverSpace·EzServer) · 성능·부하 · HA·복원력 · 보안 검토 → 동작 확증 후 QA 인계
       - **QA**: 릴리스 회귀 · QA TCL · V&V 산출물(IEC 62304 / ISO 13485)
@@ -1550,13 +1551,13 @@
       | 10-3 inventory | 클라 SW 인벤토리 튜플 presence·os sentinel·Redis SET NX throttle·fire-and-forget | ✅ 완료 | #12366 |
       | 10-4 admin 조회 | GET /v1/admin/fleet·/clients·/clinics/{id}/clients·online 파생·cursor 엔벨로프·RBAC | ✅ 완료 | #12368 |
 
-      **②-c P8 webhook 수신(Receiver) — Task 단위 (8/3~ · 2단계 head-start · 로컬 더블)**
+      **②-c P8 webhook 수신(Receiver) — Task 단위 (8/3~ · 골격 3종 완료 · 2단계 head-start · 로컬 더블)**
 
       | Task | 내용 | 상태 | PR |
       | --- | --- | --- | --- |
       | 8-1 HMAC 검증·골격 | Host/inbound_host 식별(→404)·HMAC+timestamp 검증(replay 방지·timestamp-binding)·Receiver 골격·즉시 202 ACK | ✅ 완료 | #12369 |
       | 8-2 멱등·payload 암호화 | eventId 멱등(PK·P2002 dedup·중복 0)·store-then-ack·**payload 전용 CMK envelope 암호화·평문 미저장**(키 §7.1.3.1 분리·Jack 승인·spec-v1.0.7) | ✅ 완료 | #12411 |
-      | 8-3 SQS enqueue | 저장 후 eventId claim-check 적재(재시도·DLQ)·store→ACK→enqueue 순서 | 🟠 착수 | 진행중 |
+      | 8-3 SQS enqueue | 저장 후 eventId claim-check 적재(body=eventId만·재시도·store→ACK→enqueue·isNew만) | ✅ 완료 | #12414 |
 
       > **P8 비고**: 2단계 head-start(④ AXS 실연동 전 로컬 더블로 선행) · **dev 실검증 = Jack payload CMK provisioning 후**(배포-시점 의존) · 8-3 후 실연동은 ④ 후.
 
@@ -1606,7 +1607,7 @@
         - **② 보안 도메인**: 6개 보안 폴더(`auth`·`authz`·`enroll`·`proxy`·`webhooks`·`crypto`) **합산** — ①의 부분집합. PHI·자격증명·게이팅 민감 경로라 **전역보다 높은 floor**.
         - **③ 핵심 보안 파일**: ② 안의 **보안 결정 파일을 파일별(개별)로** 검사(합산 아님·branch floor **≥90**). **왜 별도인가**: 합산(①②)은 자잘한 covered 코드가 많으면 **한 파일의 보안 분기 공백을 가릴 수 있다** — 파일별 게이트라야 "auth.service 하나가 무너져도" 잡는다. 미커버 중 **도달불가 방어 분기는 `istanbul ignore`+근거로 제외**해 reachable 기준으로 관리. **대상 목록**: `auth.service`·`device-token.verifier`·`signing-key.provider`(토큰 발급·검증), `hmac.guard`·`json-path`(webhook 인증·파싱), `kms-envelope`(PHI 암호화), `egress-allowlist`·`pdp.service`·`policy-resolution`(인가·SSRF), `enroll.service`·`enroll-complete.service`·`enroll-ip`·`pending-expiry.job`(enrollment·nonce), `proxy.service`·`router`·`proxy-timeout`(프록시 라우팅·타임아웃).
         - **참고: 전역(unit-only)**: 단위 테스트만의 수치. 컨트롤러·가드·미들웨어·local 어댑터가 0%로 잡혀(그 계층은 e2e로 커버) 낮음 — merged 가 정본임을 보이는 대조치.
-      - **merged**: unit + e2e(실 DB/Valkey) 합산(nyc) — 두 실행을 합쳐야 "실제 실행·검증된" 라인이 정직하게 집계됨. 현재 테스트 규모 = **unit 814 · e2e 195**(T-WH-8-2 store.service 신규 100% 포함). _표의 % 는 8/4 스윕 실측 기준값(이후 소규모 Task 델타는 자잘하며, per-file store.service=100% 유지)._
+      - **merged**: unit + e2e(실 DB/Valkey) 합산(nyc) — 두 실행을 합쳐야 "실제 실행·검증된" 라인이 정직하게 집계됨. 현재 테스트 규모 = **unit 823**(T-WH-8-2 store·8-3 sqs 신규 파일 100% 포함) · e2e 는 webhook 저장·enqueue(claim-check) 포함. _표의 % 는 8/4 스윕 실측 기준값(이후 소규모 Task 델타는 자잘하며, 보안 per-file floor 유지)._
 
   - **S4. 리전 자동 결정(country→region) 스펙 반영 (정보 공유)**
     - 온보딩 시 EzServer가 **리전을 직접 고르지 않고**, Region Directory의 리전별 담당 국가(`countries`) 매핑으로 **자기 클리닉의 나라(LMP 라이선스/Clinic-ID)에 맞는 리전을 자동 결정**(R6).
