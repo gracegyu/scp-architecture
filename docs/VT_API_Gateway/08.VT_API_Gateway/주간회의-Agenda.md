@@ -1476,7 +1476,7 @@
       | **IO Scanner(Straumann 장비·수집 제품 미정)** | ⬜ 스캔 데이터→EzServer 유입(**보류**·수집 제품·방식 이월-R1·미정·Straumann 협상) | — | — | — | — | (AXS 워크플로 대상) | — | 이월-R1 확정 후 ③-P-EZ(수신)·④(AXS scope) |
       | **CleverLab** | — | — | — | — | — | ⬜ AXS 오더·상태·확정(갈래B)·presigned | — | ④ Sub-SRS(갈래B) |
       | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 리전 라벨 호스트·Region Directory·HA(K8s)·Route53·RDS(리전 단일) | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS ✅ baseline(spec-v1.0.4)** · region-silo `spec-v1.0.5` PR 리뷰중 · ④ connector ⬜(보류) |
-      | **GW Console** | — | — | — | — | 🟡 Admin Web Console v1.0 최소(MS Entra·Istio admin 제어·ZTNA 페이지 접근) | ⬜ 온보딩·Org-ID 관리 화면(v2) | — | 🟡 ③-C Sub-SRS **v1.0 최소기능 착수(당김·전규현/Raymond)** |
+      | **GW Console** | — | — | — | — | 🟡 Admin Web Console v1.0 최소(MS Entra·Istio admin 제어·ZTNA 페이지 접근) | ⬜ 온보딩·Org-ID 관리 화면(v2) | — | ⬜ ③-C Sub-SRS v1.0 최소기능 **9월 착수 예정**(R5 당김 결정·전규현/Raymond) |
       | **인프라** | — | — | — | 🟢 dev·qa·stag(단일 Region)·prod(Region별) | 🟢 Route53·K8s·비-AWS minio | 🟢 AXS 고정IP·샌드박스 | — | **🟢 ③-I IaC 구축 계획서 — PR #11973 병합(7/27)·Jack 상세 반영**(Raymond diagram+SRS추출→Jack) — 정본 `vt-api-gateway-infra` · **baseline tag 불요**(living doc) · **AWS 4계층** · **+ 8/4 KMS 키 토폴로지 provisioning ask**(spec-v1.0.7·handoff-infra 항목5 — 리전별 CMK `gw-payload`/`gw-target-cred`·pod별 grant·dev payload CMK 선생성) |
       | **외부(Straumann AXS)** | — | — | — | — | — | ⬜ API·OAuth·샌드박스·자격증명(선결·**협상중**) | — | ④ 입력(외부 제공) |
       | **LMP(License Portal, 바텍)** | — | — | — | — | — | — | ⬜ (조건부) 제3자 서명 attestation | **enroll B안 시만**·ES 라이선스팀(R9·B-42) |
@@ -1507,11 +1507,11 @@
       > - 순서·의존 = [Roadmap §3.9].
 
   - **S3. GW 구현 현황 — Phase·Task 스냅샷 (8/6·매주 갱신)** — 1단계 코어 완료 · 2단계 P8 착수.
-    - **어디까지 왔나 (8/6)**: 1단계 코어(P0~P6·P10) 구현 완료. 2단계는 **P8 webhook Receiver 골격 완료(8-1·8-2·8-3)** — 로컬 더블 기준, 실연동은 ④ AXS 후. **P7·P9·P11·P12는 ④ AXS 연동 선결로 대기.** 구현 다음 통합·검증·QA 단계가 이어진다.
+    - **어디까지 왔나 (8/6)**: 1단계 코어(P0~P6·P10) 구현 완료. 2단계는 **P8 골격 완료(8-1·8-2·8-3) + P9 Dispatcher 착수(9-1 소비·대상해석·분배)** — 로컬 더블 기준, 실연동은 ④ AXS 후. **P7·P11·P12는 ④ AXS 연동 선결로 대기.** 구현 다음 통합·검증·QA 단계가 이어진다.
     - 매 Task 완료 시 갱신 · _8/6 프레임 시작값 = 7/30 상태 · **8/3 region-silo 재작업 머지(PR #12241 → `9146ae3`) 반영**_
     - **진행 단계** — 스펙(분석/설계)과 구현을 분리해 진행한다. 스펙은 HLD로 baseline 동결됐고 현재 구현(LLD 병행) 중이다. 구현이 끝이 아니라, QA 인계 전 개발팀이 통합·시스템 테스트로 동작을 확증하는 단계가 남고, 이어 QA·운영이 있다.
       - **스펙 — 분석/설계(HLD)**: SRS·DBML·OpenAPI·TCL baseline v1.0 동결 · 정합화(v1.0.1~v1.0.4) 지속 · LLD는 구현과 병행
-      - **구현(LLD 병행)** — _구현 단계 내 진척(코딩 Task) · region-silo 재작업(8/3·PR #12241) 완료로 **P4 대부분 삭제·단일화** → Task 집합 축소·재산정 예정_: 1단계 코어 **P0~P6·P10 완료 + region-silo 재작업 완료** · 2단계 **P8 골격 완료(8-1·8-2·8-3)** / P7·P9·P11·P12는 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
+      - **구현(LLD 병행)** — _구현 단계 내 진척(코딩 Task) · region-silo 재작업(8/3·PR #12241) 완료로 **P4 대부분 삭제·단일화** → Task 집합 축소·재산정 예정_: 1단계 코어 **P0~P6·P10 완료 + region-silo 재작업 완료** · 2단계 **P8 골격 완료(8-1·8-2·8-3)·P9 착수(9-1)** / P7·P11·P12는 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
       - **✅ region-silo(R2·spec-v1.0.5/1.0.6) 재작업 완료(8/3·PR #12241 머지 `9146ae3`)**: 아래 ✅완료 중 **P1 T-DATA-1-1(전역/리전 2-DB)·1-6(region_catalog 시드) · P3 T-ENR-3-2(GeoDNS default region 배정) · P4 전체(Region Resolver·GET /v1/regions·PUT /me/region·region 카탈로그 CRUD) · P6 T-PXY-6-2의 region 해석 단계**가 리전 완전 분리로 **삭제·단일화됨**(단일 datasource·region=배포 상수·Region Directory·리전 변경=마이그레이션·ClinicResolution=리전 echo·하드 FK). **완료 이력은 아래 표에 보존**(당시 PR 기준)하되 현행 코드는 단일 datasource. 검증: unit 534·e2e 157·CI green(build 20260803.1)·`verify-spec`/`verify-ci` 게이트 신설.
       - **개발 통합·검증(QA 인계 전)**: 통합 테스트 · 시스템 E2E(실 계약: AXS·CleverSpace·EzServer) · 성능·부하 · HA·복원력 · 보안 검토 → 동작 확증 후 QA 인계
       - **QA**: 릴리스 회귀 · QA TCL · V&V 산출물(IEC 62304 / ISO 13485)
@@ -1561,12 +1561,22 @@
 
       > **P8 비고**: 2단계 head-start(④ AXS 실연동 전 로컬 더블로 선행) · **dev 실검증 = Jack payload CMK provisioning 후**(배포-시점 의존) · 8-3 후 실연동은 ④ 후.
 
+      **②-d P9 webhook 분배(Dispatcher) — Task 단위 (8/4~ · 골격 착수 · 2단계 head-start · 로컬 더블)**
+
+      | Task | 내용 | 상태 | PR |
+      | --- | --- | --- | --- |
+      | 9-1 SQS 소비·대상해석·DLQ | SQS(eventId) 소비→**(target_id,external_org_id) 복합키** org_mapping→clinic→payload 복호→MQTT publish(gw/clinic/{clinicId}/webhook·qos1)→dispatched · 미해석=**발행 전 fail-closed dead_letter**(교차클리닉 오분배 차단) · 멱등 | ✅ 완료 | #12420 |
+      | 9-2 MQTT QoS1·envelope | 하행 발행 envelope 포맷·QoS1 정형화 | ⬜ 대기 | — |
+      | 9-3 DLQ·재전달·멱등 | crash-gap 재적재 sweep·재전달 멱등 | ⬜ 대기 | — |
+      | 9-4 KEDA 오토스케일 | SQS depth 스케일·graceful drain | ⬜ 대기 | — |
+
+      > **P9 비고**: full-loop(수신→저장→분배→Mosquitto 구독자 더블)을 로컬로 그린(9-1) · 동반 = **런타임 dep 분류 가드 신설**(소스 devDep import 시 CI 실패·GATE 1b) · dev 실검증·실연동은 ④ AXS 후.
+
       **③ 2단계 — Phase 단위 (대기)**
 
       | Phase | 범위 | 상태 | 비고 |
       | --- | --- | --- | --- |
       | **P7 External Connector·AXS** | OAuth2 cc·egress 고정IP·앱 PDP egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후(보류) |
-      | **P9 webhook 분배·MQTT(Dispatcher)** | SQS consumer·대상해석·MQTT QoS1 하행·DLQ | ⬜ 대기 | 2단계(P8 후) |
       | **P11 Admin API·audit·컴플라이언스** | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | ⬜ 대기 | 2단계(webhook slice=P8 후) |
       | **P12 E2E·하드닝** | AXS sandbox E2E·compat E2E·부하·HA/KEDA 검증 | ⬜ 대기 | 🔴 2단계·④ AXS sandbox 실자격 |
 
@@ -1607,7 +1617,7 @@
         - **② 보안 도메인**: 6개 보안 폴더(`auth`·`authz`·`enroll`·`proxy`·`webhooks`·`crypto`) **합산** — ①의 부분집합. PHI·자격증명·게이팅 민감 경로라 **전역보다 높은 floor**.
         - **③ 핵심 보안 파일**: ② 안의 **보안 결정 파일을 파일별(개별)로** 검사(합산 아님·branch floor **≥90**). **왜 별도인가**: 합산(①②)은 자잘한 covered 코드가 많으면 **한 파일의 보안 분기 공백을 가릴 수 있다** — 파일별 게이트라야 "auth.service 하나가 무너져도" 잡는다. 미커버 중 **도달불가 방어 분기는 `istanbul ignore`+근거로 제외**해 reachable 기준으로 관리. **대상 목록**: `auth.service`·`device-token.verifier`·`signing-key.provider`(토큰 발급·검증), `hmac.guard`·`json-path`(webhook 인증·파싱), `kms-envelope`(PHI 암호화), `egress-allowlist`·`pdp.service`·`policy-resolution`(인가·SSRF), `enroll.service`·`enroll-complete.service`·`enroll-ip`·`pending-expiry.job`(enrollment·nonce), `proxy.service`·`router`·`proxy-timeout`(프록시 라우팅·타임아웃).
         - **참고: 전역(unit-only)**: 단위 테스트만의 수치. 컨트롤러·가드·미들웨어·local 어댑터가 0%로 잡혀(그 계층은 e2e로 커버) 낮음 — merged 가 정본임을 보이는 대조치.
-      - **merged**: unit + e2e(실 DB/Valkey) 합산(nyc) — 두 실행을 합쳐야 "실제 실행·검증된" 라인이 정직하게 집계됨. 현재 테스트 규모 = **unit 823**(T-WH-8-2 store·8-3 sqs 신규 파일 100% 포함) · e2e 는 webhook 저장·enqueue(claim-check) 포함. _표의 % 는 8/4 스윕 실측 기준값(이후 소규모 Task 델타는 자잘하며, 보안 per-file floor 유지)._
+      - **merged**: unit + e2e(실 DB/Valkey) 합산(nyc) — 두 실행을 합쳐야 "실제 실행·검증된" 라인이 정직하게 집계됨. 현재 테스트 규모 = **unit 841**(receiver store/sqs·dispatcher consumer 신규 포함) · e2e 는 webhook 저장·enqueue·**분배 full-loop(SQS→Mosquitto 구독자)** 포함. _표의 % 는 8/4 스윕 실측 기준값(이후 소규모 Task 델타는 자잘하며, 보안 per-file floor 유지)._
 
   - **S4. 리전 자동 결정(country→region) 스펙 반영 (정보 공유)**
     - 온보딩 시 EzServer가 **리전을 직접 고르지 않고**, Region Directory의 리전별 담당 국가(`countries`) 매핑으로 **자기 클리닉의 나라(LMP 라이선스/Clinic-ID)에 맞는 리전을 자동 결정**(R6).
@@ -1638,9 +1648,6 @@
       - Console이 있어야 온보딩·디바이스 승인 Flow가 돎 → v1.0 = Flow 동작 최소 스펙으로 착수 앞당김(v2 후속).
       - v1.0 범위: 인증=MS Entra · Istio admin API 접근제어 · 페이지 접근 ZTNA.
       - 소유=전규현/Raymond · 일정 v1.0 9월 착수(~28d)·v2 10월 중순(~10/15).
-      - **기능 v1/v2 분리 정리 완료(SRS 착수 전)** — v1.0=필수(운영자 인증·권한·**디바이스 승인**·디바이스 관리·클리닉 조회·감사) + 주요(연동 대상 등록·정책·매핑·webhook 조회/열람·fleet·config·호환성 뷰어) / v2.0=부가·확장·고급(온보딩 마법사·연동 가입관리·고급 분석·원격 config 등). 상세=③-C 폴더 기능분리 문서.
-      - **SRS 작성 방식** — 한 문서에 v1.0·v2.0을 **모두 포함**하되 **v1.0=완전 규격 / v2.0=방향·확장점 수준(경량)**, 요구별 v1/v2 태그.
-      - **원칙: Console·GW는 연동 대상 무관(generic)** — 새 연동 대상(AXS·CleverSpace 등) 추가는 **설정(데이터)** 이지 Console 추가 구현이 아니다. 확인 필요 = **v1.0에 실제 등록·운영할 연동 대상 시점**(내부 라우팅은 v1.0, 외부 AXS는 연동 착수 시점).
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
