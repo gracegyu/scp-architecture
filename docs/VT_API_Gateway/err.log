@@ -1,0 +1,1 @@
+WARNING: Auto-detect was enabled but no Azure DevOps remote was found in the current git repository. Ensure your git remote points to an Azure DevOps URL (e.g., https://dev.azure.com/MyOrganization/...).

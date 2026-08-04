@@ -1550,11 +1550,20 @@
       | 10-3 inventory | 클라 SW 인벤토리 튜플 presence·os sentinel·Redis SET NX throttle·fire-and-forget | ✅ 완료 | #12366 |
       | 10-4 admin 조회 | GET /v1/admin/fleet·/clients·/clinics/{id}/clients·online 파생·cursor 엔벨로프·RBAC | ✅ 완료 | #12368 |
 
-      **③ 2단계 — Phase 단위 (대기 · P8 골격 선행 착수)**
+      **②-c P8 webhook 수신(Receiver) — Task 단위 (8/3~ · 2단계 head-start · 로컬 더블)**
+
+      | Task | 내용 | 상태 | PR |
+      | --- | --- | --- | --- |
+      | 8-1 HMAC 검증·골격 | Host/inbound_host 식별(→404)·HMAC+timestamp 검증(replay 방지·timestamp-binding)·Receiver 골격·즉시 202 ACK | ✅ 완료 | #12369 |
+      | 8-2 멱등·payload 암호화 | eventId 멱등(PK·P2002 dedup·중복 0)·store-then-ack·**payload 전용 CMK envelope 암호화·평문 미저장**(키 §7.1.3.1 분리·Jack 승인·spec-v1.0.7) | ✅ 완료 | #12411 |
+      | 8-3 SQS enqueue | 저장 후 eventId claim-check 적재(재시도·DLQ)·store→ACK→enqueue 순서 | 🟠 착수 | 진행중 |
+
+      > **P8 비고**: 2단계 head-start(④ AXS 실연동 전 로컬 더블로 선행) · **dev 실검증 = Jack payload CMK provisioning 후**(배포-시점 의존) · 8-3 후 실연동은 ④ 후.
+
+      **③ 2단계 — Phase 단위 (대기)**
 
       | Phase | 범위 | 상태 | 비고 |
       | --- | --- | --- | --- |
-      | **P8 webhook 수신(Receiver)** | HMAC·멱등·ACK·KMS 암호화 저장·SQS enqueue | 🟠 **골격 선행 착수(8/3)** | 2단계 head-start·로컬 더블(AXS 무관 부분)·④ 후 실연동 완결 |
       | **P7 External Connector·AXS** | OAuth2 cc·egress 고정IP·앱 PDP egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후(보류) |
       | **P9 webhook 분배·MQTT(Dispatcher)** | SQS consumer·대상해석·MQTT QoS1 하행·DLQ | ⬜ 대기 | 2단계(P8 후) |
       | **P11 Admin API·audit·컴플라이언스** | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | ⬜ 대기 | 2단계(webhook slice=P8 후) |
@@ -1597,7 +1606,7 @@
         - **② 보안 도메인**: 6개 보안 폴더(`auth`·`authz`·`enroll`·`proxy`·`webhooks`·`crypto`) **합산** — ①의 부분집합. PHI·자격증명·게이팅 민감 경로라 **전역보다 높은 floor**.
         - **③ 핵심 보안 파일**: ② 안의 **보안 결정 파일을 파일별(개별)로** 검사(합산 아님·branch floor **≥90**). **왜 별도인가**: 합산(①②)은 자잘한 covered 코드가 많으면 **한 파일의 보안 분기 공백을 가릴 수 있다** — 파일별 게이트라야 "auth.service 하나가 무너져도" 잡는다. 미커버 중 **도달불가 방어 분기는 `istanbul ignore`+근거로 제외**해 reachable 기준으로 관리. **대상 목록**: `auth.service`·`device-token.verifier`·`signing-key.provider`(토큰 발급·검증), `hmac.guard`·`json-path`(webhook 인증·파싱), `kms-envelope`(PHI 암호화), `egress-allowlist`·`pdp.service`·`policy-resolution`(인가·SSRF), `enroll.service`·`enroll-complete.service`·`enroll-ip`·`pending-expiry.job`(enrollment·nonce), `proxy.service`·`router`·`proxy-timeout`(프록시 라우팅·타임아웃).
         - **참고: 전역(unit-only)**: 단위 테스트만의 수치. 컨트롤러·가드·미들웨어·local 어댑터가 0%로 잡혀(그 계층은 e2e로 커버) 낮음 — merged 가 정본임을 보이는 대조치.
-      - **merged**: unit + e2e(실 DB/Valkey) 합산(nyc) — 두 실행을 합쳐야 "실제 실행·검증된" 라인이 정직하게 집계됨. 현재 테스트 규모 = **unit 783 · e2e 188**.
+      - **merged**: unit + e2e(실 DB/Valkey) 합산(nyc) — 두 실행을 합쳐야 "실제 실행·검증된" 라인이 정직하게 집계됨. 현재 테스트 규모 = **unit 814 · e2e 195**(T-WH-8-2 store.service 신규 100% 포함). _표의 % 는 8/4 스윕 실측 기준값(이후 소규모 Task 델타는 자잘하며, per-file store.service=100% 유지)._
 
   - **S4. 리전 자동 결정(country→region) 스펙 반영 (정보 공유)**
     - 온보딩 시 EzServer가 **리전을 직접 고르지 않고**, Region Directory의 리전별 담당 국가(`countries`) 매핑으로 **자기 클리닉의 나라(LMP 라이선스/Clinic-ID)에 맞는 리전을 자동 결정**(R6).
