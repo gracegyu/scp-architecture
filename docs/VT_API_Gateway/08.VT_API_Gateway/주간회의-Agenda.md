@@ -1452,10 +1452,10 @@
         AXS sandbox 자격(Straumann·선결) :crit, cred, 2026-08-18, 21d
 
         section ③-C GW Console v1.0 (Flow 최소기능·MS Entra·Istio admin·ZTNA · 9월 착수·전규현/Raymond)
-        v1.0 최소 스펙+구현 (Flow 동작 최소·9월 착수) :conv1, 2026-09-01, 28d
+        v1.0 최소 스펙+구현 (Flow 동작 최소·9월 착수) :conv1, 2026-08-10, 28d
         v1.0 최소기능 완료             :milestone, conv1m, after conv1, 0d
         section ③-C GW Console v2 (온보딩·Org 관리 화면 등 확장 — 후속)
-        v2 확장 스펙+구현 (10월 중순 착수) :conv2, 2026-10-15, 21d
+        v2 확장 스펙+구현 (10월 중순 착수) :conv2, 2026-9-25, 28d
         baseline/확장 완료             :milestone, conv2m, after conv2, 0d
 
         section v1.0 이후 (deferred · post-v1.0)
