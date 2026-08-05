@@ -1398,6 +1398,7 @@
     - **GW 구현 = 2단계 병행(유지)** — 1단계 GW 독립 코어(P0~P6·P10)는 ③ baseline 고정으로 **정상 진행**(IO Scanner 보류 영향 없음). 2단계 AXS 연동(P7~P12)만 ④ AXS 보류에 연동되어 **후행**.
     - (결정)
       - GW Console v1.0 최소기능으로 앞으로 당겨서 진행한다. 전규현/ Raymond
+        - **③-C Console Sub-SRS 작성 착수(8/5)** — v1.0(필수)·v2.0(방향) 한 문서로 baseline 동결 가능 수준까지 초안 완료·리뷰 중. **차주초 PR 예정**.
       - GW Console
         - MS Entra로 연동
         - infra
@@ -1451,8 +1452,10 @@
         baseline                      :milestone, axsbl, after axspr, 0d
         AXS sandbox 자격(Straumann·선결) :crit, cred, 2026-08-18, 21d
 
-        section ③-C GW Console v1.0 (Flow 최소기능·MS Entra·Istio admin·ZTNA · 9월 착수·전규현/Raymond)
-        v1.0 최소 스펙+구현 (Flow 동작 최소·9월 착수) :conv1, 2026-08-10, 28d
+        section ③-C GW Console v1.0 (Flow 최소기능·MS Entra·Istio admin·ZTNA · SRS 8/5 착수·전규현/Raymond)
+        SRS 작성 (8/5 착수)            :active, consrsw, 2026-08-05, 6d
+        SRS PR 리뷰·수정 (차주초)       :consrspr, 2026-08-11, 14d
+        v1.0 최소 구현 (Flow 동작 최소) :conv1, after consrspr, 28d
         v1.0 최소기능 완료             :milestone, conv1m, after conv1, 0d
         section ③-C GW Console v2 (온보딩·Org 관리 화면 등 확장 — 후속)
         v2 확장 스펙+구현 (10월 중순 착수) :conv2, 2026-9-25, 28d
@@ -1486,7 +1489,7 @@
       | 단위 | 스펙 문서 | Repo (Azure DevOps) | 경로 | baseline tag |
       | --- | --- | --- | --- | --- |
       | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway` | `docs/specs/SRS.md` · `docs/specs/design/`(openapi·dbml) · `docs/specs/UnitTCL.md` | **`spec-v1.0.4`**(최신 baseline) · region-silo `spec-v1.0.5`(PR 리뷰중) |
-      | **③-C GW Console** | Sub-SRS | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console` (별도 repo·GW 소유→이관) | 미작성(신규 repo·경로 TBD) | 미작성(연기) |
+      | **③-C GW Console** | Sub-SRS | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console` (별도 repo·GW 소유→이관) | **작성 중(초안·경로=R3 확정 대기)** | **작성 중(8/5 착수)·차주초 PR 예정** |
       | **④ AXS** | Sub-SRS | 〃 vt-api-gateway (GW 소유) | `docs/specs/04-subsrs-straumann-axs/` | 미작성(보류) |
       | **③-I 인프라** | IaC 구축계획서 | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-infra` | `docs/IaC-구축계획서.md` | **PR #11973 병합(7/27)** · baseline tag 불요(living doc) |
       | **③-P-EZ EzServer** | GW적응 OnePager | `https://dev.azure.com/ewoosoft/ezserver/_git/ezserver_suite` (branch `v6.5.x`) | `doc/onepager/gw_adaptation/Confidential_gw_adaptation_onepager.md` | 미부여(EzServer 팀 baseline 예정·R3 확인) |
