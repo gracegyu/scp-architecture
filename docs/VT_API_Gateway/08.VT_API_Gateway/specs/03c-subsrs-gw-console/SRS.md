@@ -150,10 +150,14 @@ flowchart TB
   subgraph R1["리전 A · 멜버른 apse4 · 독립 스택"]
     A1["Admin API"] --> DB1[("리전 A DB")]
     A1 --> K1["KMS A"]
+    A1 --> AUD1[("감사 로그 A")]
+    A1 --> WK1["well-known A"]
   end
   subgraph R2["리전 B · 예: 서울 apne2 · 독립 스택"]
     A2["Admin API"] --> DB2[("리전 B DB")]
     A2 --> K2["KMS B"]
+    A2 --> AUD2[("감사 로그 B")]
+    A2 --> WK2["well-known B"]
   end
 ```
 - **주권 유지**: 리전 스택은 서로 배선되지 않음(교차리전 서버 경로 없음). Console은 **한 번에 한 리전만** 라이브 호출·표시(교차리전 집계·저장 없음). PHI 포함 리전 데이터는 각 리전 DB에 at-rest.
