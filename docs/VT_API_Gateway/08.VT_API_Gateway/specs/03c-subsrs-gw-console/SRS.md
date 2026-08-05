@@ -2,7 +2,7 @@
 
 create by: 전규현(Raymond)
 
-> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.10`) 후 `_status.md` 씨앗을 승격한 **초안(v0.11 · baseline 동결 가능 · v0.8 구조·§4.2 화면 맵·§6.10 국제화(PO→Lingui) · v0.9 재검증 · v0.10 Admin API 커버리지 감사(26/26)·§1.5 정본 URL · v0.11 사장님 리뷰 반영(S1 Entra 토큰 검증 명시 등·진행))**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준 정합 리라이트 반영.
+> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.10`) 후 `_status.md` 씨앗을 승격한 **초안(v0.12 · baseline 동결 가능 · v0.8 구조·§4.2 화면 맵·§6.10 국제화(PO→Lingui) · v0.9 재검증 · v0.10 커버리지 감사(26/26) · v0.11 리뷰 반영(S1·부트스트랩·break-glass·S3) · v0.12 §1·§2 정독 리뷰(진행))**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준 정합 리라이트 반영.
 
 ---
 
@@ -339,6 +339,20 @@ sequenceDiagram
 ```
 
 ### 2.3.6 S6 — 리전 스위칭
+```mermaid
+sequenceDiagram
+    autonumber
+    participant OP as 운영자
+    participant C as GW Console
+    participant RD as Region Directory
+    participant A as GW Admin API (선택 리전)
+    C->>RD: 리전 목록·apiHost 읽기
+    RD-->>C: 리전 목록
+    OP->>C: 대상 리전 선택
+    C->>C: 선택 리전의 admin host를 API base로 설정
+    C->>A: 이후 API는 선택 리전만 호출
+    Note over C,A: 한 번에 한 리전만 라이브 · 교차리전 집계/저장 없음(주권) · v1.0=단일(멜버른) · gw/1.2=Directory 행 추가
+```
 1. Console은 Region Directory에서 리전 목록·`apiHost`를 읽는다.
 2. 운영자가 대상 리전을 선택하면 이후 API 호출 base = `admin.<region>.gw.<도메인>`.
 3. 화면은 선택 리전만 라이브 호출·표시한다(교차리전 집계·저장 없음·주권 유지).
@@ -606,6 +620,7 @@ IEC 62304·ISO 13485·감사 추적(부모 §7.9.3)·접근성(§1.2 Will not do
 
 ## 6.8 Operations
 사내 운영자 업무시간 상시 사용. 백업/복구=GW측(Console 무상태). 감사 로그는 GW가 기록(§7.10).
+=> Raymond comment : 실제 GW console 운영하면서 운영자가 꼭 해야할 일을 기록한다. 보통은 주기적으로 할일, 긴급하게 할일 등을 기록한다. 
 
 ## 6.9 Site Adaptation Requirements
 리전별 GW Admin 엔드포인트·Entra 설정 주입(환경 config). 별도 사이트 개조 없음.
@@ -808,3 +823,4 @@ GW pilot과 연계(별도 계획).
 | v0.9 | 2026-08-05 | v0.8 **spec-reviewer 6차 재검증** 지적 반영 — **H1(차단)**: §4.2 화면 맵 FR-CON 그룹핑 정정(**04·05=권한 요청/승인**·**06·08=운영자·역할**·**07=§7.2 공통 표기 규약**으로 이동 — 부모 OpenAPI/§7.2 본문과 대조) · **M1**: "접근성/i18n(§6.10)"을 접근성(§1.2 Will-not-do)·i18n(§6.10)로 분리(§6.10은 i18n 전용) · **L1**: 헤딩 앞 빈 줄 3곳(§4.4→4.5·§4.5→4.6·§6.6.1→6.6.2) 보정. → **baseline 동결 가능**(회귀 없음). |
 | v0.10 | 2026-08-05 | **부모 Admin API 커버리지 감사** — OpenAPI `/v1/admin/*` **26개 엔드포인트가 모두 Console FR-CON에 매핑**됨을 교차 확인(clients·kill·payload는 `/clients`·`POST …/kill` 축약 경로로 참조). 잔여 2건 정리: FR-CON-37을 §7.11 v2.0 분산 목록에 추가(spec-reviewer L2)·FR-CON-26에 `/v1/admin/config` 경로 인용 보강. **§1.1에 "Sub-SRS 의미"(관계상 Sub·계약 소유=부모·문서는 완결 SRS) 주석 추가.** **§1.5 관련문서를 정본 repo URL(클릭 가능·부모 3종은 baseline 태그 `spec-v1.0.10` permalink)로 교체**(상대 경로 제거). baseline 동결 가능 유지. |
 | v0.11 | 2026-08-05 | 사장님 리뷰 반영(진행) — **§2.3.1 S1 로그인·부트스트랩 다이어그램에 Entra 액세스 토큰 검증 단계 명시**: `operatorAuth`(캐시된 Entra JWKS로 서명+`iss`·`aud`·`scp` claim 검증·요청마다·무상태) + `operator_role` RBAC 조회 → `accessState`를 흐름에 드러냄(기존엔 `operatorAuth` 한 단어로 압축돼 검증 절차가 안 보였음). Entra JWKS는 최초/kid 회전 시 fetch·캐시(요청마다 Entra 호출 아님·§7.1.4). · abc-dev-assistant(개인 repo)를 §1.5 관련문서에서 제외. · **최초 admin 부트스트랩 설계 추가(§2.3.2)** — first-admin 승인 데드락 해소: **seed된 최초 admin(GW DB seed·③-I 배포·TOFU 아님)** vs 이후 request→approve를 **상황별 플로우차트 + 시퀀스**로 명시, **부분 승인·Admin 조정**(FR-CON-05)·FR-CON-02 seed note 보강. **최초 admin seed는 부모 §7.1.4/§7.9.2 계약 추가 필요 — 표시만 하고 부모 미수정(Appendix B C-14·Console 확정 후 부모 반영).** · **break-glass 열람 사유를 세션 단위 재사용으로 다듬음**(FR-CON-22a·§2.3.5 — 건건 재입력 제거·건건 감사는 유지·GW 스펙 밖 세션 메커니즘은 미도입) + payload 열람 **사유(reason) 수집·저장 계약 부재를 C-15로 확정**(부모 검증: `audit_log`엔 actor·action·result·before/after·source_ip만·reason 컬럼 없음 / payload GET에 reason 파라미터 없음 → **API reason 전달 + audit_log reason 필드 둘 다** 필요·`operator_role.note`는 RBAC용 별개). · **부모 SRS 반영 대상 체크리스트를 부록에 한 블록으로 정리**(C-8·C-11·C-12·C-14·C-15)하고 §2.3.2 인라인 콜아웃 축소. · **S3 디바이스 enrollment 승인 리뷰 반영** — (1) 사유 저장 gap을 **C-15로 일반화**(payload·kill·거부 공통 — `audit_log` reason 필드 + 사유 필요 액션 API에 reason)·FR-CON-12에 kill 사유 C-15 선결 표시, (2) 거부는 **v1.0 명시 Reject**(→`rejected`·부모 상태 신설이 선결·C-16·기능은 v1.0이고 부모 반영 시점만 Console 확정 후)·방치 pending TTL 만료는 별개 안전망, (3) FR-CON-10·S3에 승인 엔드포인트(`PATCH …/devices/{id}` status=active) 인용. |
+| v0.12 | 2026-08-05 | **§1·§2 정독 리뷰 반영**(사장님 + spec-reviewer 체크리스트 A~N + 템플릿 §1~§2 대조) — §1.1 ③-C·버전 명시·"Case C" 외부라벨 제거 · §1.4에 **③-C/③-I/③-P·C/S·SoT·DLQ** 용어 추가 · §1.3 writing-tips 인용 제거 · §1.6 문서 구성 한 줄·§3/§5 읽기 행 추가 · **§2.1.1 GW 백엔드 박스(subgraph)화**·**§2.1.2 리전 스택에 감사로그·well-known** 추가 · **§2.2 GW 백엔드 박스로 §2.1과 external 정합**(GW Admin API 단일 노드·"GW 범위"→"GW 백엔드") · **§2.3.6 S6 시퀀스 다이어그램 추가** · authoring 메타 표현 정리(누락 점검·필수 점검·혼란 방지)·외부 가이드 인용(writing-tips·spec-philosophy) 제거·§1.5 provenance 축약. §2.1·§2.3(S4)·§2.4는 템플릿 정합 확인(무수정 통과). |
