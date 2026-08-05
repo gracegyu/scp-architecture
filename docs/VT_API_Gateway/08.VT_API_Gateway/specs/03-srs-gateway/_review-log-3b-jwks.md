@@ -6,7 +6,7 @@
 - **주제**: ③b(GW→CleverSpace) 신원 전달 = device 토큰 verbatim + GW JWKS v1.0 승격 · §7.1.5(GW Guard 검증 계약)·`/.well-known/jwks.json` 신설 · scope 문면 정정
 - **리뷰어**: Larry·Scott(필수) · Jack·Teddy·Thomas(옵션) · 우리=전규현
 - **커밋**: `88b17da`(원안) + `a6044df`(리뷰 반영분·**push 완료** 2026-08-05)
-- **최종 fetch**: 2026-08-05 · 유효 thread 5건(Nemesis v0.6.0 지적 4 + Scott 승인 1) + 시스템 thread(리뷰어 지정·voted)
+- **최종 fetch**: 2026-08-05 (Update 1 포함) · 유효 thread 7건(초기 Nemesis 4 + Scott 승인 1 + **Update 1 Nemesis 2**) + 시스템 thread(리뷰어 지정·voted·push 알림)
 - **상태**: **Scott 승인 완료**(voted 10·aud 위험 수용) · Nemesis 🔧1·💡2·총평1 = **push 완료(a6044df)** · **답변 5건 게시 완료**
 
 ---
@@ -98,8 +98,46 @@
 
 ---
 
+## Update 1 (2026-08-05 · 수정본 `a6044df` push 후 Nemesis 재검토 · v0.6.0 msflr4qli)
+
+### C-06 · docs/specs/SRS.md:1870 (§7.1.5) · [thread 83141] · 💡 권장 · 게시완료·resolved(fixed)
+- **[민진우(Thomas)·Nemesis v0.6.0 · 83141.1]**
+  > From Nemesis(v0.6.0, 🆔msflr4qli),
+  > **💡 권장**
+  >
+  > 검증 절차 2단계가 `iss`(발급 GW) 확인을 신뢰 기준으로 삼지만, **무엇과 대조해 `iss`를 검증하는지(기대값)**가 명시돼 있지 않다. 게다가 아래 "신원 계약 — 서명 바인딩(신뢰 가능)" 목록은 `device_id`·`region`·`aud`·TTL만 열거하고 `iss`를 빠뜨려(§7.1.1 Output 라인 1790도 동일), 검증이 의존하는 claim이 정작 서명 바인딩 계약 목록에서 누락된 상태다. 실제 신뢰는 1단계의 JWKS URL 고정(리전 GW 공개키로 서명 검증)이 앵커하므로 보안 구멍은 아니지만, GW Guard 구현 가이드로서는 (a) `iss`의 기대값 = 배포 설정에 고정된 리전 GW issuer 식별자와 일치 검증, (b) `iss`를 서명 바인딩 목록에 포함,을 계약에 명시하면 리전 교차검증(3단계)과 정합되고 구현 재량으로 남는 애매함이 사라진다.
+
+- **[전규현(우리)·답변·↳ 게시완료]**
+  > 정확한 지적입니다. 신뢰 앵커는 JWKS URL 고정이지만 가이드 명확성을 위해 반영했습니다. 검증 2단계에서 iss가 배포 설정에 고정된 그 리전 GW issuer 식별자와 일치하는지 확인하도록 명시하고, iss를 서명 바인딩 claim 목록(§7.1.5·§7.1.1 Output)에 포함했습니다. 3단계 region 교차검증과 정합됩니다.
+
+- **조치:** §7.1.5 검증 2단계에 **iss 기대값(배포 설정 리전 GW issuer와 일치) 검증** 명시 + **서명 바인딩 목록에 `iss` 추가**(§7.1.5 · §7.1.1 Output·narrative 정합).
+- **반영:** `0a914c0` push 완료
+- **상태:** 답변 게시완료 · thread resolved(fixed)
+
+### C-07 · (일반·총평 Update 1) · [thread 83142] · 게시완료·resolved(fixed)
+- **[민진우(Thomas)·Nemesis v0.6.0 · 83142.1]**
+  > From Nemesis(v0.6.0, 🆔msflr4qli, ⏱2m02s, 🔢283.2k in/7.8k out),
+  > ## Code Review (Other) — Update 1
+  >
+  > 이번 증분은 이전 리뷰의 세 지적을 모두 해소한다. (1) **must_fix — 서명 검증 전 `region` claim으로 JWKS URL 조립**: 신설 §7.1.5 검증 절차 1단계가 "신뢰 URL 고정(토큰 claim으로 조립 금지)"을 명문화하고, JWKS 출처를 GW Guard 배포 설정에 고정된 리전-로컬 GW 하나로 못박아 위조 `region`을 통한 key-substitution/SSRF를 원천 차단한다. `region`은 서명 검증 통과 후 3단계에서 교차검증 용도로만 쓰도록 순서를 바로잡았고(§7.1.1 라인 1790에서 `region`이 실제 서명 바인딩 claim임을 확인), 방어심층 성격이라 정합적이다. (2) **recommendation — JWKS fail-closed 대비 rate-limit**: "넉넉한 rate-limit + CDN/캐시 전면 배치" 전제와 회전 시 구·신 `kid` 동시 게시(재fetch 최소화)를 §7.1.5·OpenAPI description에 계약으로 남겼다. (3) **recommendation — 캐시 헤더 계약**: OpenAPI 200 응답에 `Cache-Control: max-age`(권장 수 분) `headers` 선언이 추가되어 소비자·CDN 캐시 동작이 계약으로 고정됐다.
+  >
+  > 구조적으로 §7.1.5는 신뢰 모델·검증 절차·JWKS 엔드포인트 계약·구현 책임 분담표·오류 처리·시퀀스 다이어그램을 갖춰 GW/CleverSpace 경계(공개 JWKS 하나)를 명확히 규정하며, 보안 8항목 표의 2컬럼(디바이스·프록시 면 / 운영자·관리 면) 분리와 `scope` 예약(미사용) 정정도 기존 §7.1.1·§7.2.2·§7.5.3 서술과 정합한다. `aud` confused-deputy는 이전과 동일하게 "v1.0 의식적 수용"으로 acknowledged 되어 있어 제외했다. 남은 지적은 위 line comment 한 건(`iss` 기대값·바인딩 목록 정밀화)뿐이며 recommendation 수준이다.
+  >
+  > 1 line-specific finding(s) were posted as inline comments.
+
+- **[전규현(우리)·답변·↳ 게시완료]**
+  > 리뷰 감사합니다. 지적하신 iss 기대값·서명 바인딩 목록 명확화도 반영했습니다.
+
+- **조치:** 총평 확인 — 이전 3건(C-01·02·03) 해소 확인. 잔여 1건은 C-06 반영으로 갈음.
+- **반영:** `0a914c0`(C-06과 함께)
+- **상태:** 답변 게시완료 · thread resolved(fixed)
+
+---
+
 ## 요약 (처리 현황)
 - **Scott(필수): 승인 완료.** Larry(필수): 미투표(리뷰 대기).
 - **Nemesis 4건 전부 반영·push 완료**(`a6044df`): C-01 보안 수정(JWKS 신뢰 URL 고정·region 검증 후 교차검증) + C-02 rate-limit/CDN 전제 + C-03 Cache-Control 헤더 계약.
-- **답변 5건 게시 완료**(2026-08-05·전규현 명의).
-- **미결:** ① Larry 리뷰(대기) · ② 병합 후 태그 `spec-v1.0.11`·IP 갱신·구현세션 통지 · ③ Console Sub-SRS parent 핀 v1.0.10→v1.0.11(병합 후).
+- **답변 5건 게시 완료**(2026-08-05·전규현 명의·초기 라운드).
+- **Update 1(재검토·Nemesis)**: 이전 3건 해소 확인 + 잔여 💡 1건(C-06 `iss` 정밀화) **반영·push(`0a914c0`)·답변 게시 완료**.
+- **Nemesis 스레드 6건(83087~83090·83141·83142) 전부 resolved(fixed).** Scott 승인 스레드(83105)만 그대로 둠.
+- **미결:** ① **Larry 리뷰(대기·필수)** · ② 병합 후 태그 `spec-v1.0.11`·IP 갱신·구현세션 통지 · ③ Console Sub-SRS parent 핀 v1.0.10→v1.0.11(병합 후).
