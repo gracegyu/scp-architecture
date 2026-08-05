@@ -258,10 +258,10 @@ sequenceDiagram
     C->>GW: GET /v1/admin/devices?status=pending (선택 리전)
     GW-->>C: pending 목록 (clinic 요약 임베드 · country 필요 시 clinic 드릴스루)
     CS->>C: 대상 선택 · 설치 확인 · 리전 적정성 확인 · 승인
-    C->>GW: 승인 (pending→active)
+    C->>GW: PATCH /v1/admin/devices/{id} status=active (승인)
     GW-->>C: active · 감사(device.approve)
     Note over CS,GW: C/S는 device 리전을 지정하지 않음 — enroll이 이미 정함 · C/S는 맞는지 확인만
-    Note over CS,GW: 없으면 device 서비스 불가한 ★핵심 게이트 · 거부 가능
+    Note over CS,GW: 없으면 device 서비스 불가한 ★핵심 게이트 · 거부=v1.0 명시 Reject(→rejected·부모 상태 신설 선결·C-16) · 방치 pending은 TTL 만료(7일·별개 안전망)
 ```
 > **혼란 방지 — 리전은 "선택"이 아니라 "확인".** device의 리전은 enroll 시 EzServer가 나라로 자동 결정해 이미 그 리전 DB에 있다. C/S가 하는 일은 (1) **콘솔의 리전 컨텍스트**를 그 리전으로 두고(스위처·v1.0 단일이라 자동) (2) 배정이 **맞는지 확인**하는 것이지 device에 리전을 부여하는 것이 아니다. 틀렸으면 승인하지 않고 재-enroll/마이그레이션으로 교정한다(부모 §2.3.1·§7.3.4).
 
@@ -653,9 +653,9 @@ GW pilot과 연계(별도 계획).
 ## 7.3 디바이스 관리·수명주기 [v1.0 필수]
 정본=부모 §7.2·§7.9.1. 주 워크스페이스=Device 뷰.
 - **FR-CON-09** [v1.0] **디바이스 목록/상세** — 컬럼: device·clinic(임베드 요약)·status. **region은 컬럼이 아니다** — 배포 상수라 전 행이 동일하므로(부모 §7.3.1·§2.1.1) **현재 리전 컨텍스트로 화면 상단에 1회 표시**(FR-CON-03). 상세 탭=[상태·수명주기]·[인증·키]·[소속 clinic 카드(읽기+링크)]. clinic 요약은 `Device` 응답 임베드 사용(2차 콜 불필요). *경계:* pending 0건·목록 비었을 때 빈 상태 UI.
-- **FR-CON-10** [v1.0·필수] **Enrollment 승인**(cs) — 선택 리전 컨텍스트(FR-CON-03)의 `pending→active` 활성화·거부. ★없으면 device 서비스 불가. *권한:* cs·admin만. *검증:* 설치 확인 + **리전 적정성 확인** — device 리전은 enroll이 이미 결정(EzServer country→region)하므로 C/S는 **지정이 아니라 확인**만 한다. *인수(성공):* 승인 후 상태가 `active`로 반영되고 감사(`device.approve`)가 남는다. *에러:* 리전 배정이 틀렸으면 승인하지 않고 재-enroll/마이그레이션(부모 §7.3.4) 안내.
+- **FR-CON-10** [v1.0·필수] **Enrollment 승인**(cs) — 선택 리전 컨텍스트(FR-CON-03)의 `pending→active` 활성화(**`PATCH /v1/admin/devices/{id}`·status=active**)·거부. ★없으면 device 서비스 불가. *권한:* cs·admin만. *검증:* 설치 확인 + **리전 적정성 확인** — device 리전은 enroll이 이미 결정(EzServer country→region)하므로 C/S는 **지정이 아니라 확인**만 한다. *거부(Reject):* **v1.0 거부 = 명시적 Reject** — 운영자가 pending enroll을 **즉시 거부**하면 `rejected` 상태로 전이하고 감사한다. **단 부모 `device_status`가 pending/active/suspended/revoked뿐이라 `rejected` 상태 신설이 선결**(Appendix B **C-16** — Console 확정 후 부모 반영·기능은 v1.0). *(미승인·미거부로 방치된 pending은 이와 별개로 TTL 자동 만료·부모 §2.3.1·기본 7일 — abuse 방지 안전망.)* *인수(성공):* 승인 후 상태가 `active`로 반영되고 감사(`device.approve`)가 남는다. *에러:* 리전 배정이 틀렸으면 승인하지 않고 재-enroll/마이그레이션(부모 §7.3.4) 안내.
 - **FR-CON-11** [v1.0] **수명주기 액션** — suspend/resume(active↔suspended·복구 가능)·**kill(→revoked·`POST …/kill`)**.
-- **FR-CON-12** [v1.0] **kill 가드**(안전·§6.1) — 확인 다이얼로그(device 식별·영향)·2차 확인/사유·권한 제한·실행 시 승인자·시각 감사 노출. revoked는 되돌리기 없음(재서비스=재-enroll 안내). suspend와 위험색으로 시각 분리. *멱등:* 이미 revoked면 재-kill은 무효(상태 표시).
+- **FR-CON-12** [v1.0] **kill 가드**(안전·§6.1) — 확인 다이얼로그(device 식별·영향)·2차 확인/**사유**·권한 제한·실행 시 승인자·시각 감사 노출. **단 kill 사유의 GW 수집·저장은 부모 미지원**(`POST …/kill`에 reason 없음·`audit_log`에 reason 필드 없음 → Appendix B **C-15** 선결). revoked는 되돌리기 없음(재서비스=재-enroll 안내). suspend와 위험색으로 시각 분리. *멱등:* 이미 revoked면 재-kill은 무효(상태 표시).
 
 ## 7.4 클리닉 관리·관계 [v1.0]
 정본=부모 §7.3·Appendix B #47. 보조 워크스페이스=Clinic 뷰.
@@ -746,7 +746,7 @@ GW pilot과 연계(별도 계획).
 | C-13 | 국제화 구체 — `@lingui/swc-plugin` Next 통합·SWC 설정·플러그인 버전·초기 카탈로그 부트스트랩(방식·설정 규약은 §6.10 확정) | ③-C LLD |
 | C-14 | **최초 admin 부트스트랩 seed** — JIT 생성 시 subject가 배포 seed에 있으면 `operator_role=admin` 부여(no_access 승인 데드락 방지·TOFU 아님·**GW DB seed**·③-I 배포 프로비저닝). **부모 GW SRS §7.1.4(JIT)·§7.9.2(RBAC)에 seed 계약 추가 필요**. §2.3.2 | GW(부모 SRS)·③-I · **Console baseline 후** |
 | C-15 | **사유(reason) 수집·저장 — 사유가 필요한 액션 공통·API+DB 둘 다 부재** — payload 열람(FR-CON-22a)·**device kill(FR-CON-12)**·enrollment 거부가 모두 "사유+감사"를 요구하지만 부모에 미지원: **(a)** 해당 액션 API(`GET …/payload`·`POST …/kill`·`PATCH …/devices/{id}`)에 **reason 전달 수단 없음**, **(b)** `audit_log`에 **사유 저장 필드 없음**(actor·action·result·before/after·source_ip만 — `operator_role.note`는 RBAC 사유라 별개). 액션 자체는 감사되나 **사유는 담을 곳이 없음**. → **부모 DBML/§7.9.3(audit_log reason 필드) + 사유 필요 액션 API에 reason 전달 추가**. §2.3.5·FR-CON-22a·FR-CON-12 | GW(부모 SRS·DBML)·보안 · **Console baseline 후** |
-| C-16 | **명시적 enrollment Reject** — 현재 부모 `device_status`는 pending/active/suspended/revoked뿐이라 pending을 **즉시 거부**할 수단이 없다(v1.0 거부=승인 보류→TTL 자동 만료·기본 7일). 향후 **`rejected` 상태(또는 reject 액션) 신설**로 명시적 거부를 확실히 처리한다. 부모 §7.2·§7.3.1·DBML `device_status`·`PATCH …/devices/{id}` 반영. §2.3.3·FR-CON-10 | GW(부모 SRS·DBML) · **Console baseline 후** |
+| C-16 | **명시적 enrollment Reject (v1.0 기능)** — 운영자가 pending enroll을 **즉시 거부**(→`rejected` 상태·감사)하는 **v1.0** 기능. 현재 부모 `device_status`가 pending/active/suspended/revoked뿐이라 **`rejected` 상태(또는 reject 액션) 신설이 선결**이다 — 기능 버전은 v1.0이고 부모 반영 *시점*만 Console 확정 후다. (미처리 pending TTL 자동 만료는 abuse 방지 안전망으로 별개.) 부모 §7.2·§7.3.1·DBML `device_status`·`PATCH …/devices/{id}` 반영. §2.3.3·FR-CON-10 | GW(부모 SRS·DBML) · **Console baseline 후 반영** |
 
 ### 부모 SRS 반영 대상 (Console baseline 후 일괄)
 
@@ -754,7 +754,7 @@ GW pilot과 연계(별도 계획).
 
 - [ ] **C-14 (필수)** — 최초 admin 부트스트랩 seed: JIT 시 seed면 `admin` 부여 → 부모 §7.1.4·§7.9.2.
 - [ ] **C-15 (필수)** — **사유(reason) 수집·저장(payload 열람·kill·거부 공통)**: 사유 필요 액션 API에 reason 전달 **+ `audit_log` reason 필드**(현재 둘 다 없음) → 부모 OpenAPI·DBML·§7.9.3.
-- [ ] **C-16 (향후·권장)** — 명시적 enrollment **Reject**(`rejected` 상태 신설·즉시 거부) → 부모 `device_status`·§7.2. v1.0 거부=TTL 만료.
+- [ ] **C-16 (v1.0·필수)** — 명시적 enrollment **Reject**(`rejected` 상태·즉시 거부) → 부모 `device_status`·§7.2. **v1.0 기능**·부모 상태 신설이 선결(Console 확정 후 반영). 방치 pending TTL 만료는 별개 안전망.
 - [ ] **C-11 (선택·권고)** — 서버 강제 낙관적 잠금(`expectedVersion`+409) → 부모 OpenAPI. v1.0은 클라이언트측 stale write 감지로 우회(FR-CON-36).
 - [ ] **C-12 (확인/소규모)** — 목록 기본 정렬·안정 정렬 계약 → 부모 OpenAPI.
 - [ ] **C-8 (선택·성능 요구 시)** — Admin API 성능 SLA 절 → 부모 §5.
@@ -774,4 +774,4 @@ GW pilot과 연계(별도 계획).
 | v0.8 | 2026-08-05 | **§6 제목/내용 분리**(6.3.x·6.4·6.6.1·6.7~6.15 헤더에서 본문 줄바꿈 분리) · **§4.2 화면 맵(스크린 인벤토리) 표 추가**(화면=§7 기능 1:1·Refine Resource·라우트·역할 가시성·공통동작 구분·시각상세=LLD) · **§6.10 국제화 확정** — 표준 = PO + 소스 영어원문(심볼 키 금지)이고, 비교표로 **LinguiJS v4 선정**(i18next=키 기반 제약위반·react-intl=PO 적합성 약함). 워크플로(t()→extract→.po→compile)·`lingui.config` 규약·로케일·**cloudwebviewer 레퍼런스(repo 링크)** 명시. 핵심 결정 **E** 신설(Appendix A E·Appendix C-13). · **§5·§4.3/4.4/4.6도 제목/본문 분리**(§6과 동일 패턴·§2.x의 라벨식 "—"는 정당한 제목이라 유지) · **§1.2 핵심 결정 블록쿼트(A·B·C·E) 제거** — SRS 표준(§1.2=executive Product Scope)에 맞춰, 결정은 Appendix A Decision Log + 각 적용 절(§2.1.2·§4.5·§6.6·§6.5·§7.5·§6.10)로 정리(중복 제거·내용 손실 없음). |
 | v0.9 | 2026-08-05 | v0.8 **spec-reviewer 6차 재검증** 지적 반영 — **H1(차단)**: §4.2 화면 맵 FR-CON 그룹핑 정정(**04·05=권한 요청/승인**·**06·08=운영자·역할**·**07=§7.2 공통 표기 규약**으로 이동 — 부모 OpenAPI/§7.2 본문과 대조) · **M1**: "접근성/i18n(§6.10)"을 접근성(§1.2 Will-not-do)·i18n(§6.10)로 분리(§6.10은 i18n 전용) · **L1**: 헤딩 앞 빈 줄 3곳(§4.4→4.5·§4.5→4.6·§6.6.1→6.6.2) 보정. → **baseline 동결 가능**(회귀 없음). |
 | v0.10 | 2026-08-05 | **부모 Admin API 커버리지 감사** — OpenAPI `/v1/admin/*` **26개 엔드포인트가 모두 Console FR-CON에 매핑**됨을 교차 확인(clients·kill·payload는 `/clients`·`POST …/kill` 축약 경로로 참조). 잔여 2건 정리: FR-CON-37을 §7.11 v2.0 분산 목록에 추가(spec-reviewer L2)·FR-CON-26에 `/v1/admin/config` 경로 인용 보강. **§1.1에 "Sub-SRS 의미"(관계상 Sub·계약 소유=부모·문서는 완결 SRS) 주석 추가.** **§1.5 관련문서를 정본 repo URL(클릭 가능·부모 3종은 baseline 태그 `spec-v1.0.10` permalink)로 교체**(상대 경로 제거). baseline 동결 가능 유지. |
-| v0.11 | 2026-08-05 | 사장님 리뷰 반영(진행) — **§2.3.1 S1 로그인·부트스트랩 다이어그램에 Entra 액세스 토큰 검증 단계 명시**: `operatorAuth`(캐시된 Entra JWKS로 서명+`iss`·`aud`·`scp` claim 검증·요청마다·무상태) + `operator_role` RBAC 조회 → `accessState`를 흐름에 드러냄(기존엔 `operatorAuth` 한 단어로 압축돼 검증 절차가 안 보였음). Entra JWKS는 최초/kid 회전 시 fetch·캐시(요청마다 Entra 호출 아님·§7.1.4). · abc-dev-assistant(개인 repo)를 §1.5 관련문서에서 제외. · **최초 admin 부트스트랩 설계 추가(§2.3.2)** — first-admin 승인 데드락 해소: **seed된 최초 admin(GW DB seed·③-I 배포·TOFU 아님)** vs 이후 request→approve를 **상황별 플로우차트 + 시퀀스**로 명시, **부분 승인·Admin 조정**(FR-CON-05)·FR-CON-02 seed note 보강. **최초 admin seed는 부모 §7.1.4/§7.9.2 계약 추가 필요 — 표시만 하고 부모 미수정(Appendix B C-14·Console 확정 후 부모 반영).** · **break-glass 열람 사유를 세션 단위 재사용으로 다듬음**(FR-CON-22a·§2.3.5 — 건건 재입력 제거·건건 감사는 유지·GW 스펙 밖 세션 메커니즘은 미도입) + payload 열람 **사유(reason) 수집·저장 계약 부재를 C-15로 확정**(부모 검증: `audit_log`엔 actor·action·result·before/after·source_ip만·reason 컬럼 없음 / payload GET에 reason 파라미터 없음 → **API reason 전달 + audit_log reason 필드 둘 다** 필요·`operator_role.note`는 RBAC용 별개). · **부모 SRS 반영 대상 체크리스트를 부록에 한 블록으로 정리**(C-8·C-11·C-12·C-14·C-15)하고 §2.3.2 인라인 콜아웃 축소. |
+| v0.11 | 2026-08-05 | 사장님 리뷰 반영(진행) — **§2.3.1 S1 로그인·부트스트랩 다이어그램에 Entra 액세스 토큰 검증 단계 명시**: `operatorAuth`(캐시된 Entra JWKS로 서명+`iss`·`aud`·`scp` claim 검증·요청마다·무상태) + `operator_role` RBAC 조회 → `accessState`를 흐름에 드러냄(기존엔 `operatorAuth` 한 단어로 압축돼 검증 절차가 안 보였음). Entra JWKS는 최초/kid 회전 시 fetch·캐시(요청마다 Entra 호출 아님·§7.1.4). · abc-dev-assistant(개인 repo)를 §1.5 관련문서에서 제외. · **최초 admin 부트스트랩 설계 추가(§2.3.2)** — first-admin 승인 데드락 해소: **seed된 최초 admin(GW DB seed·③-I 배포·TOFU 아님)** vs 이후 request→approve를 **상황별 플로우차트 + 시퀀스**로 명시, **부분 승인·Admin 조정**(FR-CON-05)·FR-CON-02 seed note 보강. **최초 admin seed는 부모 §7.1.4/§7.9.2 계약 추가 필요 — 표시만 하고 부모 미수정(Appendix B C-14·Console 확정 후 부모 반영).** · **break-glass 열람 사유를 세션 단위 재사용으로 다듬음**(FR-CON-22a·§2.3.5 — 건건 재입력 제거·건건 감사는 유지·GW 스펙 밖 세션 메커니즘은 미도입) + payload 열람 **사유(reason) 수집·저장 계약 부재를 C-15로 확정**(부모 검증: `audit_log`엔 actor·action·result·before/after·source_ip만·reason 컬럼 없음 / payload GET에 reason 파라미터 없음 → **API reason 전달 + audit_log reason 필드 둘 다** 필요·`operator_role.note`는 RBAC용 별개). · **부모 SRS 반영 대상 체크리스트를 부록에 한 블록으로 정리**(C-8·C-11·C-12·C-14·C-15)하고 §2.3.2 인라인 콜아웃 축소. · **S3 디바이스 enrollment 승인 리뷰 반영** — (1) 사유 저장 gap을 **C-15로 일반화**(payload·kill·거부 공통 — `audit_log` reason 필드 + 사유 필요 액션 API에 reason)·FR-CON-12에 kill 사유 C-15 선결 표시, (2) 거부는 **v1.0 명시 Reject**(→`rejected`·부모 상태 신설이 선결·C-16·기능은 v1.0이고 부모 반영 시점만 Console 확정 후)·방치 pending TTL 만료는 별개 안전망, (3) FR-CON-10·S3에 승인 엔드포인트(`PATCH …/devices/{id}` status=active) 인용. |
