@@ -745,14 +745,16 @@ GW pilot과 연계(별도 계획).
 | C-12 | 목록 **기본 정렬·안정 정렬 계약**(현 부모 OpenAPI에 정렬 파라미터 없음) — GW 기본 정렬 보장 확인·계약화 | GW·목록 화면 착수 시 |
 | C-13 | 국제화 구체 — `@lingui/swc-plugin` Next 통합·SWC 설정·플러그인 버전·초기 카탈로그 부트스트랩(방식·설정 규약은 §6.10 확정) | ③-C LLD |
 | C-14 | **최초 admin 부트스트랩 seed** — JIT 생성 시 subject가 배포 seed에 있으면 `operator_role=admin` 부여(no_access 승인 데드락 방지·TOFU 아님·**GW DB seed**·③-I 배포 프로비저닝). **부모 GW SRS §7.1.4(JIT)·§7.9.2(RBAC)에 seed 계약 추가 필요**. §2.3.2 | GW(부모 SRS)·③-I · **Console baseline 후** |
-| C-15 | **payload 열람 사유(reason) 수집·저장 — API+DB 둘 다 부재** — break-glass 열람의 "사유 확보+감사"(FR-CON-22a)가 현재 부모에 미지원이다: **(a)** `GET …/{eventId}/payload`에 **reason 전달 파라미터/헤더 없음**, **(b)** `audit_log`에 **사유 저장 필드 없음**(현재 actor·action·result·before/after·source_ip만 — `operator_role.note`는 RBAC 요청/승인 사유라 별개). 열람 **액션 자체**는 이미 감사됨(`webhook.payload.view`)이나 **사유는 담을 곳이 없음**. → **부모 OpenAPI(reason 전달) + DBML/§7.9.3(audit_log reason 필드) 추가 필요**. 사유는 Console이 열람 세션 단위로 확보·재사용. §2.3.5·FR-CON-22a | GW(부모 SRS·DBML)·보안 · **Console baseline 후** |
+| C-15 | **사유(reason) 수집·저장 — 사유가 필요한 액션 공통·API+DB 둘 다 부재** — payload 열람(FR-CON-22a)·**device kill(FR-CON-12)**·enrollment 거부가 모두 "사유+감사"를 요구하지만 부모에 미지원: **(a)** 해당 액션 API(`GET …/payload`·`POST …/kill`·`PATCH …/devices/{id}`)에 **reason 전달 수단 없음**, **(b)** `audit_log`에 **사유 저장 필드 없음**(actor·action·result·before/after·source_ip만 — `operator_role.note`는 RBAC 사유라 별개). 액션 자체는 감사되나 **사유는 담을 곳이 없음**. → **부모 DBML/§7.9.3(audit_log reason 필드) + 사유 필요 액션 API에 reason 전달 추가**. §2.3.5·FR-CON-22a·FR-CON-12 | GW(부모 SRS·DBML)·보안 · **Console baseline 후** |
+| C-16 | **명시적 enrollment Reject** — 현재 부모 `device_status`는 pending/active/suspended/revoked뿐이라 pending을 **즉시 거부**할 수단이 없다(v1.0 거부=승인 보류→TTL 자동 만료·기본 7일). 향후 **`rejected` 상태(또는 reject 액션) 신설**로 명시적 거부를 확실히 처리한다. 부모 §7.2·§7.3.1·DBML `device_status`·`PATCH …/devices/{id}` 반영. §2.3.3·FR-CON-10 | GW(부모 SRS·DBML) · **Console baseline 후** |
 
 ### 부모 SRS 반영 대상 (Console baseline 후 일괄)
 
 부모 GW SRS/OpenAPI 변경이 필요한 항목만 모은 체크리스트다(정본 상세=위 Appendix B 해당 행). **현재 부모 SRS는 모두 미수정**이며, 본 Console Sub-SRS가 baseline으로 확정되면 **하나의 spec-change로 부모에 반영**한다.
 
 - [ ] **C-14 (필수)** — 최초 admin 부트스트랩 seed: JIT 시 seed면 `admin` 부여 → 부모 §7.1.4·§7.9.2.
-- [ ] **C-15 (필수)** — payload 열람 사유(reason) 수집·저장: API reason 파라미터/헤더 **+ `audit_log` reason 필드**(현재 둘 다 없음) → 부모 OpenAPI·DBML·§7.9.3.
+- [ ] **C-15 (필수)** — **사유(reason) 수집·저장(payload 열람·kill·거부 공통)**: 사유 필요 액션 API에 reason 전달 **+ `audit_log` reason 필드**(현재 둘 다 없음) → 부모 OpenAPI·DBML·§7.9.3.
+- [ ] **C-16 (향후·권장)** — 명시적 enrollment **Reject**(`rejected` 상태 신설·즉시 거부) → 부모 `device_status`·§7.2. v1.0 거부=TTL 만료.
 - [ ] **C-11 (선택·권고)** — 서버 강제 낙관적 잠금(`expectedVersion`+409) → 부모 OpenAPI. v1.0은 클라이언트측 stale write 감지로 우회(FR-CON-36).
 - [ ] **C-12 (확인/소규모)** — 목록 기본 정렬·안정 정렬 계약 → 부모 OpenAPI.
 - [ ] **C-8 (선택·성능 요구 시)** — Admin API 성능 SLA 절 → 부모 §5.
