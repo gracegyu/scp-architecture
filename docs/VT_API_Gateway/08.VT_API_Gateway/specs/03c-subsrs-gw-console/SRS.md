@@ -2,7 +2,7 @@
 
 create by: 전규현(Raymond)
 
-> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.8`) 후 `_status.md` 씨앗을 승격한 **초안(v0.2)**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준(spec-philosophy·spec-standard·spec-writing-tips) 정합 리라이트 반영.
+> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.10`) 후 `_status.md` 씨앗을 승격한 **초안(v0.9 · spec-reviewer 6라운드 → baseline 동결 가능 · v0.7 용어정정 · v0.8 §5·§6·§4 구조 분리·§1.2 정리·§4.2 화면 맵·§6.10 국제화(PO표준→Lingui) · v0.9 재검증 H1/M1/L1 반영)**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준(spec-philosophy·spec-standard·spec-writing-tips) 정합 리라이트 반영.
 
 ---
 
@@ -12,7 +12,7 @@ create by: 전규현(Raymond)
 본 문서는 **GW Console(③-C)의 소프트웨어 요구사항을 규정하는 Sub-SRS**다. 부모 GW SRS가 정의한 관리 계약(§7.9.1 Admin API·§7.9.2 RBAC·§7.1.4 운영자 OIDC·§7.9.3 감사 등)을 **상속**하되, Console을 하나의 **독립 규격**으로 완성한다 — 부모에 이미 규정된 GW 백엔드 동작은 참조로 두고, 본 문서는 **Console 고유 요구(화면·플로우·가드·마스킹·오류·동시성)** 를 정본으로 담는다.
 
 - **작성 맥락:** 사내 개발용. Console v1.0을 온보딩 승인 흐름과 함께 조기 착수하기 위해, v1.0을 **완전 규격**으로, v2.0을 **방향·확장점 수준**으로 한 문서에 담는다(§1.3 단계 규약).
-- **상세도(Case):** Console은 **PHI 취급(break-glass)·의료 규제(IEC 62304/ISO 13485)·신규 도메인·다수 화면·15+ API** → spec-philosophy §3 기준 **Case C(고상세)** 로 작성한다(특히 §4·§6·§7 에러·검증·감사).
+- **상세도(Case):** Console은 **PHI(§1.4) 취급(break-glass)·의료 규제(IEC 62304/ISO 13485)·신규 도메인·다수 화면·15+ API** → spec-philosophy §3 기준 **Case C(고상세)** 로 작성한다(특히 §4·§6·§7 에러·검증·감사).
 - 대상 독자·읽는 법은 §1.6.
 
 ## 1.2 Product Scope (범위)
@@ -34,15 +34,12 @@ GW가 클리닉 EzServer를 온보딩하고 외부(AXS 등)·내부(CleverSpace 
 - **EzServer device-self 평면**(`/v1/clinics/me/*`) — actor가 디바이스라 운영자 콘솔과 다르다(혼동 방지·§7.4 note).
 - **호환성 매트릭스 저작** — 저작은 git/CI(부모 §7.7.5), Console은 읽기 전용 뷰어만(런타임 가변 저장소 재도입 금지).
 - **Region Directory 발행** — ③-I 소관(Console은 읽기만).
-
-> **핵심 결정 A — 단일 Console + 리전 스위처 (vs 리전별 콘솔).** *채택:* Console은 하나이며 Region Directory를 읽어 리전을 전환한다. *대안:* (a) 리전별 별도 콘솔 — 기각(C/S가 리전마다 로그인해야 해 온보딩 승인이 번거로움) · (b) 교차리전 집계 콘솔 — 기각(주권 위반 위험). *근거:* silo의 본질은 **데이터 at-rest 리전 로컬 + 서버 간 교차리전 배선 없음**이지 UI 클라이언트가 어느 리전 API를 부르냐가 아니다. Console은 무상태·브라우저에서 각 리전 ZTNA 엔드포인트를 한 번에 하나씩 호출 → 주권 유지. *배포:* 접속 호스트는 **global 단일 `console.gw.<도메인>`**(리전 라벨 없음 — 리전은 admin API base에만·§4.5). *예외:* 네트워크·규제 격리 존(중국 등)만 그 존 전용 Console 독립 배포(정상 도달 리전에 대한 '리전별 콘솔'만 기각·격리 존은 예외 허용). *결정:* 2026-08-04·Raymond.
-
-> **핵심 결정 B — 기술 스택 Refine + Next.js (vs React-admin, 순수 Next.js).** *채택(권장):* Refine on Next.js. *대안:* (a) React-admin — MUI 결속·커스텀(break-glass·마법사) 유연성 낮음 · (b) 순수 Next.js+React Query+shadcn — 제어 최대이나 보일러플레이트 많음. *근거:* Refine은 **TanStack Query(=React Query·ABC 프론트 표준) 기반**·headless·**auth/access-control provider가 Entra OIDC+운영자 RBAC에 직접 매핑**. *성격:* 요구가 아니라 설계 선택 → SRS는 방향만, 확정은 ③-C LLD(§6.6·Appendix C-4).
-
-> **핵심 결정 C — 연동 대상 무관(generic) 화면 (vs 대상별 전용 화면).** *채택:* target 관리 화면은 공통 1벌. *대안:* AXS·CleverSpace 등 대상별 전용 화면 — 기각(대상 추가마다 Console 코드·재배포 유발). *근거:* GW의 target 모델이 generic(라우팅+자격+webhook을 한 레코드·부모 §7.5·§7.6·ADR-11)이라 **새 대상 = 설정(데이터)이지 코드가 아니다.** CleverSpace 추가 시 Console 추가 구현 없음. *결정:* 2026-08-04.
+- **디바이스·클리닉 수동 등록(예외 경로)** — 부모 `POST /v1/admin/devices`·`POST /v1/admin/clinics`(운영자 수동 등록·교정)는 일상 경로가 아니라 **v1.0 Console UI에 두지 않는다**(필요 시 API 직접 호출·주 경로=enroll 자동).
+- **접근성(키보드·스크린리더) 정식 준수** — 사내 전용 어드민이라 v1.0 정식 접근성 인증 목표는 두지 않는다(기본 시맨틱 HTML만). 대외 공개 시 재검토.
 
 ## 1.3 Document Conventions (문서규칙)
 - **단계 규약(우선순위 대용):** 각 요구에 **[v1.0]** 또는 **[v2.0]** 태그. `[v1.0]`은 다시 **필수**(없으면 서비스 불가)/**주요**(필수 아니나 주요)로 나뉘고, `[v2.0]`은 부가·확장·고급이다. 분류 기준·전체 표 = 동 폴더 `기능-v1-v2-분리.md`(요약은 §2.7).
+  - **부모 P1/P2/P3 매핑(참고):** 부모 GW SRS는 절별 `(P1/P2/P3)` 우선순위를 쓴다. 대응 = **[v1.0]필수 ≈ P1 · [v1.0]주요 ≈ P2 · [v2.0] ≈ P3+**. 본 Sub-SRS는 단계(버전) 축으로 표기하고 우선순위는 이 매핑으로 환산한다.
 - **동사 규약(writing-tips §3.1):** 필수="~해야 한다/한다", 권장="~하는 것이 좋다", 선택="~할 수 있다", 비목표="~하지 않는다".
 - **상속:** 상위 절의 단계 태그는 하위에 상속된다(하위에 별도 표기 없으면 상위 따름). 상위가 [v2.0]인데 하위만 [v1.0]일 수 없다.
 - **표기:** 색깔만으로 정보를 전달하지 않는다(텍스트 표기 우선). 부모 참조는 `부모 §X`, FR 식별자는 `FR-CON-NN`.
@@ -59,9 +56,10 @@ GW가 클리닉 EzServer를 온보딩하고 외부(AXS 등)·내부(CleverSpace 
 | **ZTNA** | Zero Trust Network Access. Console 페이지 접근 경계(③-I). |
 | **Region Directory** | 리전→`apiHost`·`webhookHostPattern` 정적 JSON(③-I 발행·부모 §7.3.6). |
 | **target(연동 대상)** | 외부/내부 연동 1건(라우팅+아웃바운드 자격+인바운드 webhook)을 담는 GW 레지스트리 레코드. |
+| **PHI** | Protected Health Information — 보호 대상 건강정보(환자정보). webhook payload에 포함될 수 있어 저장·열람을 통제(§6.2·§7.6). |
 
 ## 1.5 Related Documents (관련문서)
-- **부모 GW SRS** — `vt-api-gateway/docs/specs/SRS.md`(tag `spec-v1.0.8`). Console 상속 근거: §7.9.1·§7.9.2·§7.1.4·§7.9.3·§7.6.3·§7.7.5·§7.8·§7.3.6.
+- **부모 GW SRS** — `vt-api-gateway/docs/specs/SRS.md`(tag `spec-v1.0.10`). Console 상속 근거: §7.9.1·§7.9.2·§7.1.4·§7.9.3·§7.6.3·§7.7.5·§7.8·§7.3.6.
 - **Admin OpenAPI** — `vt-api-gateway/docs/specs/design/openapi/vt-api-gateway.openapi.yaml`(계약 정본·타입 생성 원천).
 - **부모 DBML** — `…/design/dbml/vt-api-gateway.dbml`(데이터 모델).
 - **기능 v1/v2 분리** — 동 폴더 `기능-v1-v2-분리.md`.
@@ -228,7 +226,7 @@ sequenceDiagram
     Note over CS,C: v1.0=단일(멜버른) 자동·자명 · gw/1.2=담당 리전 선택
     CS->>C: 승인 대기 디바이스 목록
     C->>GW: GET /v1/admin/devices?status=pending (선택 리전)
-    GW-->>C: pending 목록 (clinic·country·region 요약)
+    GW-->>C: pending 목록 (clinic 요약 임베드 · country 필요 시 clinic 드릴스루)
     CS->>C: 대상 선택 · 설치 확인 · 리전 적정성 확인 · 승인
     C->>GW: 승인 (pending→active)
     GW-->>C: active · 감사(device.approve)
@@ -296,22 +294,22 @@ sequenceDiagram
 ## 2.5 User Classes and Characteristics (사용자 계층과 특징)
 > Console 사용자는 모두 **운영자·관리자 카테고리(사내 직원)** 다 — 최종 소비자·B2B 파트너·device-self는 대상이 아니다(그 경계는 §1.2 Will-not-do). 정본 역할 정의 = 부모 §7.9.2.
 
-| 역할 | 사용 빈도 | 주 기능(§7) | 기술 수준 | 권한 | 중요도 |
-| --- | --- | --- | --- | --- | --- |
-| **admin** | 수시 | 운영자/역할 승인·연동·정책·전체 | 높음 | 전체 관리(global) | 최고 |
-| **cs**(현장 설치) | 설치 이벤트 시 | **디바이스 enrollment 승인**·클리닉 조회 | 중 | 전 클리닉 승인(global) | 최고(서비스 개통 게이트) |
-| **operator** | 일 단위 | fleet·webhook·감사 조회 | 중 | 조회·운영 | 중 |
-| **developer** | 필요 시 | webhook·감사·config 조회·디버깅 | 높음 | 조회 | 중 |
-| (no_access) | — | 권한 요청 화면만 | — | 없음 | — |
+| 역할 | 특성 | 사용 빈도 | 주 기능(§7) | 기술 수준 | 권한 | 중요도 |
+| --- | --- | --- | --- | --- | --- | --- |
+| **admin** | 사내 관리자·전권 운영 | 수시 | 운영자/역할 승인·연동·정책·전체 | 높음 | 전체 관리(global) | 최고 |
+| **cs**(현장 설치) | 현장 설치 담당자·개통 승인자 | 설치 이벤트 시 | **디바이스 enrollment 승인**·클리닉 조회 | 중 | 전 클리닉 승인(global) | 최고(서비스 개통 게이트) |
+| **operator** | 운영 모니터링 담당 | 일 단위 | fleet·webhook·감사 조회 | 중 | 조회·운영 | 중 |
+| **developer** | 디버깅·조회 개발자 | 필요 시 | webhook·감사·config 조회·디버깅 | 높음 | 조회 | 중 |
+| (no_access) | 로그인만 된 미부여 직원 | — | 권한 요청 화면만 | — | 없음 | — |
 
 ## 2.6 Assumptions and Dependencies (가정과 종속 관계)
 | 가정/의존 | 소유 | 실패/미충족 시 영향 |
 | --- | --- | --- |
-| **Entra 테넌트·앱 등록**(claim·app role) | IT(부모 Appendix B #40·#38) | 로그인·통합 테스트 불가(§7.1). SRS 집필은 비차단. |
+| **Entra 테넌트·앱 등록**(claim·app role) | IT(부모 Appendix B #40·#38·Appendix C-2) | 로그인·통합 테스트 불가(§7.1). SRS 집필은 비차단. |
 | **GW Admin API baseline**(계약 안정) | GW(부모 §7.9.1·OpenAPI) | 계약 변동 시 영향 화면 재검토(§2.8). 현행 baseline 충족. |
 | **접근 경계**(Istio 내부전용 + ZTNA) | ③-I | 미비 시 배포 보안 공백. Console은 경계 뒤 동작(§6.2). |
 | **역할 enum 동기**(GW·Console·DB) | GW+③-C | 새 역할은 양측 함께 릴리스(§7.2·런타임 무릴리스 추가 없음). |
-| **Region Directory·well-known 발행** | ③-I | 미발행 시 리전 스위처·매트릭스 뷰어 동작 불가(§7.9·FR-CON-03). |
+| **Region Directory·well-known 발행** | ③-I | **v1.0 배포 선결**(gw/1.2 아님·부모 §7.3.6 P1) — Region Directory는 Console 리전 스위처(FR-CON-03)뿐 아니라 **EzServer 부트스트랩(enroll)의 유일한 앵커**라 v1.0에 반드시 있어야 한다(v1.0=한 리전 1행). 미발행 시 리전 스위처·매트릭스 뷰어 동작 불가 + EzServer 온보딩 불가(§7.9·FR-CON-03). |
 
 ## 2.7 Apportioning of Requirements (단계별 요구사항)
 | 단계 | 범위 | 대표 |
@@ -322,7 +320,7 @@ sequenceDiagram
 **미래 계획이 현재 아키텍처에 주는 영향(필수 점검):**
 - **gw/1.2 멀티리전** → 지금부터 **단일 Console·리전 스위처·무상태**(§2.1.2·FR-CON-03)로 설계해, 리전 추가가 코드 변화 없이 흡수되게 한다.
 - **다국적 운영자** → §6.10 i18n(한/영) 골격을 v1.0부터 둔다.
-- **격리 존(중국 등) 진출** → **도메인 규약이 존 전용 Console 독립 배포를 수용**해야 한다(§4.5) — global 단일 호스트 + per-zone 호스트 여지를 v1.0 도메인 설계(R4)부터 확보한다.
+- **격리 존(중국 등) 진출** → **도메인 규약이 존 전용 Console 독립 배포를 수용**해야 한다(§4.5) — global 단일 호스트 + per-zone 호스트 여지를 **별도 GW 도메인 설계(Appendix C-10)** 부터 확보한다.
 - **경계 확인(제품/일정):** v1.0에 실제 등록·운영할 연동 대상 시점(내부 라우팅=v1.0, 외부 AXS=④ 연동 착수) — Appendix C-1.
 
 ## 2.8 Backward compatibility (하위 호환성)
@@ -394,7 +392,7 @@ Node.js(LTS) · **pnpm**(조직 표준) · **Next.js + Refine** · **TanStack Qu
 - **인증**: Entra **테스트 테넌트**(실 OIDC) — dev의 OIDC mock과 달리 실 로그인·역할 클레임→운영자 역할 매핑 경로를 검증(§3.2·§7.2).
 - **정적 자원**: staging Region Directory·well-known(실 발행본 또는 staging 사본).
 - **데이터**: **더미만(PHI 금지)** — 운영 PHI를 테스트에 반입하지 않는다(§6.2). break-glass 열람은 **더미 PHI + 마스킹** 경로로만 검증.
-- **검증·게이트**: 계약 기반 **E2E(Playwright)** 로 역할별 화면·403·no_access·suspended·break-glass·낙관적 잠금 충돌을 커버한다. CI(§3.6.2)에서 테스트 통과를 게이트로 둔다.
+- **검증·게이트**: 계약 기반 **E2E(Playwright)** 로 역할별 화면·403·no_access·suspended·break-glass·**stale write 감지·충돌 경고**(FR-CON-36)를 커버한다. CI(§3.6.2)에서 테스트 통과를 게이트로 둔다.
 
 ### 3.5.1 Hardware Environment (하드웨어 환경)
 클라우드(AWS staging)·운영 §3.1.1 축소본. Console은 무상태 SPA라 별도 서버 HW 요구가 없다(정적 서빙).
@@ -426,32 +424,67 @@ Jira(GW 프로젝트).
 - **Region Directory / well-known 매트릭스** — 정적 JSON 읽기(③-I 발행).
 
 ## 4.2 User Interface (사용자 인터페이스)
-논리 요구(레이아웃·컴포넌트=UI 명세/LLD):
+논리 요구(레이아웃·컴포넌트 상세 = UI 명세/LLD·Appendix C-7):
 - 좌측 내비 = **역할별 메뉴**(권한 없는 항목 비노출). 상단 = 리전 컨텍스트·로그인 사용자.
 - **마스킹**: credential/secret·PHI payload는 원문 미표시(해제 UI 없음).
 - **파괴적 액션 가드**: kill 등은 확인 다이얼로그·사유·위험색 구분(§7.3·§6.1).
 - 목록: 서버측 필터(정확 일치)·커서 페이지네이션(부모 §7.9.1 조회 규약).
-- 접근성·i18n = §6.10.
+- 접근성 = §1.2(Will not do) · i18n = §6.10.
 
-## 4.3 Hardware Interface — 없음(하드웨어 직접 제어 없음).
-## 4.4 Software Interface — GW Admin **OpenAPI**(타입 생성)·Entra OIDC. Console은 계약을 코드 생성으로 소비한다.
+**화면 맵 (스크린 인벤토리).** 화면은 **§7 기능 그룹과 1:1**이며 Refine Resource 페이지로 스캐폴딩한다(§2.2). 아래는 만들 화면의 전체 목록(구현 커버리지 기준)이다. 라우트는 예시이고, **역할 게이팅 정밀 규약 = 각 FR-CON·accessControlProvider(§7.2)**, **시각 레이아웃·컴포넌트 상세 = LLD(Appendix C-7)**.
+
+| 화면 (라우트·예시) | §7 | 담는 FR-CON | 주 역할 가시성 | 유형 |
+| --- | --- | --- | --- | --- |
+| 로그인·세션 (`/login`·OIDC 콜백) | 7.1 | 01·02 | 전원(미인증→로그인) | 인증 흐름 |
+| 전역 크롬 — 리전 스위처·상단바·좌측 내비 | 7.1 | 03 | 전원(항목은 역할별 노출) | 전역 UI |
+| 운영자·역할 (`/operators`) | 7.2 | 06 · 08(v2.0) | Admin | 목록·상세·역할 부여/회수·정지 |
+| 권한 요청/승인 (`/access-requests`) | 7.2 | 04·05 | 요청=전원(no_access) · 승인=Admin | 본인 요청·Admin 승인 큐 |
+| 디바이스 (`/devices`) | 7.3 | 09·10·11·12 | Admin · C/S(enroll 승인) | 목록·상세·수명주기 |
+| 클리닉 (`/clinics`) | 7.4 | 13·14·15 | Admin · C/S | 목록·상세·편집 |
+| 연동 대상·정책 (`/targets`) | 7.5 | 16·17·18·19·20 | Admin | 목록·상세·편집(generic) |
+| Webhook 이벤트 (`/webhook-events`) | 7.6 | 21·22 | Admin · payload 열람=break-glass 역할(C-5) | 목록·단건·열람 |
+| Fleet·SW 인벤토리 (`/fleet`·`/clients`) | 7.7 | 23·24·25 | Admin · C/S(뷰) | 대시보드·목록 |
+| 중앙 config (`/config`) | 7.8 | 26·27 | Admin | 목록·편집·publish |
+| 호환성 매트릭스 (`/compat-matrix`) | 7.9 | 28 | Admin · C/S(뷰) | 뷰어(읽기전용) |
+| 감사 로그 (`/audit`) | 7.10 | 29·30 | Admin | 목록·조회 |
+| [v2.0] 확장 화면 | 7.11 | 31·32 | (v2.0) | 후속 |
+
+> **공통 동작(화면 아님).** §7.0(기본 정렬·UTC 표시·빈/로딩/오류 3상태)·§7.12(FR-CON-33~37: 세션·오류·stale write 감지)는 개별 화면이 아니라 **전 화면 공통 규칙**이다. 또한 **FR-CON-07**(역할 표기 규약 — 멀티선택·서열 UI 금지·CS=global 자동·거부/회수 이력 노출)은 §7.2 두 화면(운영자·권한 요청/승인) **공통 규약**이다. 시각 레이아웃·컴포넌트 상세는 SRS 범위 밖이며 **구현 단계에서 Refine 스캐폴딩 + 반복 확정**한다(§4.2 상단·Appendix C-7).
+
+## 4.3 Hardware Interface
+없음(하드웨어 직접 제어 없음).
+
+## 4.4 Software Interface
+GW Admin **OpenAPI**(타입 생성)·Entra OIDC. Console은 계약을 코드 생성으로 소비한다.
+
 ## 4.5 Communication Interface (통신 인터페이스)
 **HTTPS 필수** · OIDC(Auth Code+PKCE) · ZTNA 경유(③-I). CORS/CSP 등 보안 헤더는 배포(§6.2·③-I).
 
 **Console 접속 호스트 (URL 규약):**
 - **기본 = 환경별 전역 단일 호스트** — **prod `console.gw.<도메인>` · dev `console.gw.dev.ezcld.net`**(환경 base 규약·staging=③-I). Console은 논리적으로 하나(결정 A)라 환경마다 접속 URL이 하나다. **리전 라벨을 붙이지 않는다.** 리전은 Console이 *호출하는* **Admin API base `admin.<region>.gw.<도메인>`**(FR-CON-03)에만 붙는다 — 전역 콘솔이 브라우저에서 각 리전 admin 엔드포인트를 스위칭 호출한다(콘솔 호스트 1개 ≠ 리전별).
 - **격리 존 예외(중국 등)** — 네트워크·규제상 global 콘솔에 도달·허용되지 않는 존은 **그 존 전용 Console을 독립 배포**한다(같은 코드베이스·별 호스트 예 `console.<zone>.gw.<도메인>` 또는 존 전용 도메인·그 존만 서비스·global 스위처에 미포함). **도메인 규약은 이 per-zone 배포를 처음부터 수용**해야 한다.
-- 구체 `<도메인>`은 R4(별도 GW 도메인) 확정 후, 호스트 provisioning은 ③-I.
-## 4.6 Other Interface — 없음.
+- 구체 `<도메인>`은 **별도 GW 도메인**(vatech.com 미사용) 확정 후, 호스트 provisioning은 ③-I(Appendix C-10).
+
+## 4.6 Other Interface
+없음.
 
 ---
 
 # 5 Performance requirements (성능 요구사항)
-## 5.1 Throughput — 관리 조작 위주·저 RPS(사내 소수 운영자).
-## 5.2 Concurrent Session — 동시 운영자 소수(수십 규모). 부모 §5의 device 트래픽과 별개.
-## 5.3 Response Time — 체감 응답 = **GW Admin API 응답 + 클라이언트 렌더**. Console 자체 지연은 렌더에 한한다. 목록·상세는 GW 응답을 받는 즉시 커밋해 렌더한다(인위적 추가 지연 없음·대량은 커서 페이지네이션 분할). **주의:** 부모 §5는 device control-plane 전용이라 **Admin API 전용 SLA가 없다** — Admin API 성능 목표(p95 등)가 필요하면 부모 SRS에 별도 절을 신설해야 한다(Appendix B C-8·소유=GW·시점=성능 요구 시).
-## 5.4 Performance Dependency — 응답은 GW Admin API 응답 시간에 종속(상한). Console은 캐시(TanStack Query)로 재조회를 줄인다.
-## 5.5 Other Performance Requirements — 번들·메모리는 상록 브라우저 통상 범위. 별도 상한 없음.
+## 5.1 Throughput
+관리 조작 위주·저 RPS(사내 소수 운영자).
+
+## 5.2 Concurrent Session
+동시 운영자 소수(수십 규모). 부모 §5의 device 트래픽과 별개.
+
+## 5.3 Response Time
+체감 응답 = **GW Admin API 응답 + 클라이언트 렌더**. Console 자체 지연은 렌더에 한한다. 목록·상세는 GW 응답을 받는 즉시 커밋해 렌더한다(인위적 추가 지연 없음·대량은 커서 페이지네이션 분할). **주의:** 부모 §5는 device control-plane 전용이라 **Admin API 전용 SLA가 없다** — Admin API 성능 목표(p95 등)가 필요하면 부모 SRS에 별도 절을 신설해야 한다(Appendix C-8·소유=GW·시점=성능 요구 시).
+
+## 5.4 Performance Dependency
+응답은 GW Admin API 응답 시간에 종속(상한). Console은 캐시(TanStack Query)로 재조회를 줄인다.
+
+## 5.5 Other Performance Requirements
+번들·메모리는 상록 브라우저 통상 범위. 별도 상한 없음.
 
 ---
 
@@ -466,16 +499,26 @@ Jira(GW 프로젝트).
 - **최소권한 UI** — 역할에 없는 기능은 비노출, 시도 시 GW 403.
 - **마스킹·직접 접근 금지** — credential/secret·PHI payload 마스킹, DB/KMS 직접 접근 금지(모두 GW 경유·break-glass는 사유+감사).
 - **전량 감사** — 모든 관리 변경·열람은 GW가 감사(부모 §7.9.3). Console은 이력 조회·표시.
-- **접근 경계** = Istio 내부전용 + ZTNA(③-I)·전 구간 HTTPS.
+- **접근 경계** = Istio 내부전용 + ZTNA(③-I·구체=Appendix C-3)·전 구간 HTTPS.
 
 ## 6.3 Software System Attributes
-### 6.3.1 Availability — Console 다운은 GW 데이터 경로 무영향(관리면만). GW Admin API 가용성에 종속.
-### 6.3.2 Maintainability — OpenAPI 타입 생성 소비로 계약 변경 추적. 역할·enum은 GW와 동기(§2.6).
-### 6.3.3 Portability — 상록 브라우저 표준 웹(특정 OS 비종속). 멀티리전 대비 base URL 주입 분리(§2.1.2).
-### 6.3.4 Reliability — 파괴적 액션은 서버 확정 후 반영(낙관적 반영 금지). 실패 시 명확한 오류·재시도(§7.12).
-### 6.3.5 Remaining — Usability(역할별 명료 메뉴·가드/마스킹으로 오조작 방지)·Testability(계약 기반 e2e).
+### 6.3.1 Availability
+Console 다운은 GW 데이터 경로 무영향(관리면만). GW Admin API 가용성에 종속.
 
-## 6.4 Logical Database Requirements — **Console 자체 DB 없음**(GW가 SoT). 로컬 상태=세션 토큰·UI 상태뿐. 데이터 모델=부모 DBML 참조.
+### 6.3.2 Maintainability
+OpenAPI 타입 생성 소비로 계약 변경 추적. 역할·enum은 GW와 동기(§2.6).
+
+### 6.3.3 Portability
+상록 브라우저 표준 웹(특정 OS 비종속). 멀티리전 대비 base URL 주입 분리(§2.1.2).
+
+### 6.3.4 Reliability
+파괴적 액션은 서버 확정 후 반영(낙관적 반영 금지). 실패 시 명확한 오류·재시도(§7.12). 편집 충돌은 v1.0에서 **클라이언트측 stale write 감지·경고**(FR-CON-36)로 다루며, 서버 강제 잠금은 부모 계약 확장 시(Appendix C-11).
+
+### 6.3.5 Remaining
+Usability(역할별 명료 메뉴·가드/마스킹으로 오조작 방지)·Testability(계약 기반 e2e).
+
+## 6.4 Logical Database Requirements
+**Console 자체 DB 없음**(GW가 SoT). 로컬 상태=세션 토큰·UI 상태뿐. 데이터 모델=부모 DBML 참조.
 
 ## 6.5 Business Rules (비즈니스 규칙)
 정본=부모 §7.9.2. 핵심:
@@ -485,22 +528,66 @@ Jira(GW 프로젝트).
 - **연동 대상 관리는 대상 무관(generic)**(핵심 결정 C).
 
 ## 6.6 Design and Implementation Constraints
-### 6.6.1 Standards Compliance — IEC 62304·ISO 13485·감사 추적(부모 §7.9.3)·접근성/i18n(§6.10).
+### 6.6.1 Standards Compliance
+IEC 62304·ISO 13485·감사 추적(부모 §7.9.3)·접근성(§1.2 Will not do)·i18n(§6.10).
+
 ### 6.6.2 Other Constraints
 - 인증=Entra OIDC·인가=GW(자체 인증 도입 금지). GW가 SoT(Console에 로직·저장 금지).
 - **권장 스택 = Refine+Next.js**(핵심 결정 B·③-C LLD 확정·Appendix C-4).
 - **훔쳐보기 금지** — GW Admin API 외 내부 경로 직접 호출 금지(§2.2·writing-tips §7).
 - 역할 enum은 GW·DB와 동기(§2.6).
 
-## 6.7 Memory Constraints — 상록 브라우저 통상 범위(별도 제약 없음).
-## 6.8 Operations — 사내 운영자 업무시간 상시 사용. 백업/복구=GW측(Console 무상태). 감사 로그는 GW가 기록(§7.10).
-## 6.9 Site Adaptation Requirements — 리전별 GW Admin 엔드포인트·Entra 설정 주입(환경 config). 별도 사이트 개조 없음.
-## 6.10 Internationalization — **한국어·영어 우선**(운영자 다국적 가능). 확장 언어 후속.
-## 6.11 Unicode Support — 지원(웹 표준 UTF-8).
-## 6.12 64bit Support — N/A(웹 클라이언트).
-## 6.13 Certification — GW 제품 인증(IEC 62304/ISO 13485·부모 §6.13) 범위 포함. 감사·접근통제·PHI 취급이 근거.
-## 6.14 Field Test — GW pilot과 연계(별도 계획).
-## 6.15 Other Requirements — 없음.
+## 6.7 Memory Constraints
+상록 브라우저 통상 범위(별도 제약 없음).
+
+## 6.8 Operations
+사내 운영자 업무시간 상시 사용. 백업/복구=GW측(Console 무상태). 감사 로그는 GW가 기록(§7.10).
+
+## 6.9 Site Adaptation Requirements
+리전별 GW Admin 엔드포인트·Entra 설정 주입(환경 config). 별도 사이트 개조 없음.
+
+## 6.10 Internationalization (국제화)
+**전사 표준(제약).** 회사 i18n 표준은 **① 번역 카탈로그 = PO(gettext)** 이고, **② 소스코드의 사용자 문자열 = 영어 원문**(원문 자체가 msgid) **· 심볼릭 키 금지**다. **특정 라이브러리를 규정하지 않으며**, 이 두 제약을 만족하는 도구를 고른다.
+
+**라이브러리 선정(비교 → LinguiJS).** 위 제약(PO 네이티브 + 소스=영어원문·심볼 키 금지)에 맞춰 후보를 비교했다:
+
+| 후보 | PO 적합성 | 소스=영어원문·심볼 키 금지 | 판정 |
+| --- | --- | --- | --- |
+| **LinguiJS** | 네이티브(`format: 'po'`) | ✅ 매크로 `` t`English` `` — **원문이 곧 msgid**(별도 키 없음) | **채택** |
+| i18next | JSON 네이티브·PO는 변환 계층(i18next-conv) | ✗ **키 기반**(심볼 키 필요) → 표준 ② 위반 | 제외 |
+| react-intl | ICU-JSON·PO 적합성 약함 | △ id 필요(영어원문은 `defaultMessage`) | 제외 |
+
+**심볼 키를 금지하고 영어 원문을 msgid로 둔다**는 제약이 **키 기반 i18next를 배제**하고, PO 네이티브·문자열=msgid인 **Lingui를 자연 선택**하게 한다(react-intl은 PO 적합성 약함). 더해 사내 자매 제품(cloudwebviewer)이 이미 동일한 Lingui 구성이라 워크플로·번역 자산·툴링까지 공유한다(핵심 결정 E·Appendix C-13).
+
+**방식(워크플로 — LinguiJS v4·cloudwebviewer 정합):**
+1. **소스에 영어 원문 인라인** — 사용자 노출 문자열은 `@lingui/macro`의 `` t`Save changes` ``(JS·유틸)·`<Trans>Save changes</Trans>`(JSX)·`useLingui()`(훅)로 **영어 원문 그대로** 박는다. **원문이 곧 msgid이며 심볼릭 키를 두지 않는다**(표준 ②).
+2. **추출(extract)** — `lingui extract`가 `src`를 스캔해 **`.po` 카탈로그**(`i18n/{locale}_console.po`)에 msgid를 추가·갱신한다(gettext 표준·디프/번역도구 친화).
+3. **번역** — 번역가가 `.po`를 채운다.
+4. **컴파일(compile)** — `lingui compile`이 `.po`를 **런타임 메시지 카탈로그(ES 모듈)** 로 변환한다(`compileNamespace: 'es'`). 앱은 `@lingui/core`의 `i18n.load()` + `i18n.activate(locale)`로 로드·전환하고, `@lingui/react`의 `I18nProvider`로 트리를 감싼다.
+5. **빌드 통합** — Next.js는 **`@lingui/swc-plugin`**으로 매크로를 변환한다(cloudwebviewer의 Vite용 `@lingui/vite-plugin`에 대응하는 Next 플러그인). `extract`·`compile`은 npm script로 개발·CI에 건다.
+
+**설정 규약(`lingui.config.ts` — cloudwebviewer와 동일 키):** `format: 'po'` · `compileNamespace: 'es'` · `catalogs[].path = 'i18n/{locale}_console'` · `include: ['src']`.
+
+**로케일:** 네이밍은 회사 표준(`en_US`·`ko_KR`·`es_MX`·`pt_BR`·`fr_FR`)을 따른다. **v1.0 활성 = `ko_KR`·`en_US`**(사내 운영자 우선)이고, 나머지는 카탈로그만 예약해 두었다가 수요 시 활성한다(추출은 전 로케일 대상이라 추가는 번역 채움만).
+
+**경계:** 날짜·숫자·복수형은 Lingui 포맷(`i18n.date()`·`i18n.number()`·ICU plural) 또는 `Intl`로 처리한다. 번역 자산(`.po`)은 레포 소스로 관리한다(PR·이력·리뷰). 구체 플러그인·SWC 설정·버전은 ③-C LLD에서 확정한다(스택 확정 Appendix C-4와 함께).
+
+**참고(레퍼런스 구현) — CloudWebViewer.** 사내 웹 뷰어 제품이 동일 Lingui 구성을 이미 운영한다: `lingui.config.ts`(`format: 'po'`·`compileNamespace: 'es'`·per-package 카탈로그 `i18n/{locale}_<pkg>`)·`packages/*/i18n/{locale}_*.po`·root `extract`/`compile` 스크립트·`t`/`<Trans>`/`useLingui` 사용·`I18nProvider`+`i18n.load/activate` 로딩. 설정·워크플로는 이 레포를 정본 예시로 참조한다. repo: https://dev.azure.com/ewoosoft/cloudwebviewer/_git/cloudwebviewer
+
+## 6.11 Unicode Support
+지원(웹 표준 UTF-8).
+
+## 6.12 64bit Support
+N/A(웹 클라이언트).
+
+## 6.13 Certification
+GW 제품 인증(IEC 62304/ISO 13485·부모 §6.13) 범위 포함. 감사·접근통제·PHI 취급이 근거.
+
+## 6.14 Field Test
+GW pilot과 연계(별도 계획).
+
+## 6.15 Other Requirements
+없음.
 
 ---
 
@@ -510,10 +597,13 @@ Jira(GW 프로젝트).
 아래는 §7 전 기능에 공통 적용되며, 각 FR은 **고유 사항만** 기술한다(중복 회피·writing-tips §5).
 - **권한:** 모든 화면·액션은 역할(§2.5·부모 §7.9.2)로 게이팅한다. 무권한은 **비노출 + 서버 403**(FR-CON-34).
 - **감사:** 모든 쓰기·열람은 GW가 append-only 감사한다(부모 §7.9.3). Console은 변경 후 감사 이력을 표시한다.
-- **동시성:** 편집 쓰기는 `version`/`updatedAt` 기반 낙관적 잠금으로 stale write를 막는다(FR-CON-36).
+- **동시성:** 편집 쓰기는 저장 직전 재조회로 **stale write를 감지·경고**한다(FR-CON-36). *서버 강제 낙관적 잠금(409)은 부모 계약 확장 필요 — Appendix C-11.*
 - **오류·세션:** 네트워크/서버 오류·세션 만료 처리는 FR-CON-33·35 공통.
 - **입력 검증:** 폼 입력은 OpenAPI 스키마(타입·필수·길이·enum)로 클라이언트 1차 검증하고, 최종 판정은 GW(400/409/422)에 따른다.
 - **마스킹:** credential/secret·PHI는 원문 미표시.
+- **기본 정렬:** 목록은 별도 언급 없으면 **최신순**(`createdAt`/`updatedAt` desc). 예외: 승인 큐(§7.2)=오래된 순(FIFO). *정렬 파라미터가 현 부모 계약에 없어 GW 기본 정렬에 의존 — 안정 정렬 계약화는 Appendix C-12.*
+- **시각 표시:** 모든 시각은 **UTC 표시 + 브라우저 로컬 병기**(감사·규제 명확성·§6.13). 부모 API 시각은 Unix ms(시간대 중립)이라 표시는 Console 책임.
+- **빈/로딩/오류 상태:** 모든 목록·상세 화면은 (a) 빈 결과 (b) 로딩(무한 로딩 금지) (c) 오류(FR-CON-35) **3상태를 일관 표시**한다.
 
 ## 7.1 운영자 인증·세션 [v1.0 필수]
 - **FR-CON-01** [v1.0] **Entra SSO 로그인** — OIDC(Auth Code+PKCE)로 로그인·로그아웃한다. 자체 비밀번호 없음. *에러:* Entra 인증 실패·토큰 검증 실패 시 로그인 화면으로 복귀하고 사유를 표시한다.
@@ -525,21 +615,21 @@ Jira(GW 프로젝트).
 정본=부모 §7.1.4·§7.9.2.
 - **FR-CON-04** [v1.0] **권한 요청**(no_access·본인) — 역할 멀티선택 + 스코프(기본 global) + 사유 → `POST /v1/admin/me/access-requests` → "승인 대기". *검증:* 최소 1개 역할 선택. *에러:* 중복 요청은 GW가 거절(409)→"이미 요청됨" 표시. 거부되면 사유 표시·재요청 가능.
 - **FR-CON-05** [v1.0] **Admin 승인 큐**(admin) — `GET /v1/admin/access-requests`(requested) → 승인/거부(`PATCH …/roles/{grantId}`). *Side effect:* 승인 시 대상 운영자의 다음 `/me`부터 역할 반영. *알림:* 요청 발생 알림 채널(이메일/Teams/인앱)은 ③-C 확정(Appendix C-6).
-- **FR-CON-06** [v1.0] **운영자 관리**(admin) — `GET /v1/admin/operators`(상태·역할 필터)·상세 → 직접 부여(`POST …/roles`)·회수(revoked)·정지/복구(status). *가드:* 본인 마지막 admin 역할 회수 방지 — **GW 서버가 강제**한다(`PATCH …/roles/{grantId}`가 시스템 마지막 admin 회수를 409로 거부·**부모 §7.9.2/OpenAPI에 반영 필요**). Console UI도 해당 버튼을 비활성화하되 **최종 강제는 서버**다(API 직접 호출로도 lock-out 불가). *Side effect:* suspended는 역할 무관 전면 차단.
+- **FR-CON-06** [v1.0] **운영자 관리**(admin) — `GET /v1/admin/operators`(상태·역할 필터)·상세 → 직접 부여(`POST …/roles`)·회수(revoked)·정지/복구(status). *가드:* 본인 마지막 admin 역할 회수 방지 — **GW 서버가 강제**한다(`PATCH …/roles/{grantId}`가 시스템 마지막 admin 회수를 409로 거부·**부모 §7.9.2/OpenAPI에 반영됨**(spec-v1.0.10·`patchAdminOperatorRole` 409)). Console UI도 해당 버튼을 비활성화하되 **최종 강제는 서버**다(API 직접 호출로도 lock-out 불가). *Side effect:* suspended는 역할 무관 전면 차단.
 - **FR-CON-07** [v1.0] **표기 규약** — 역할=멀티(체크박스)·서열 UI 금지·설명 툴팁. CS=global 자동(클리닉 선택 UI 불필요). 거부/회수 이력 상태로 노출(삭제 아님).
 - **FR-CON-08** [v2.0] **역할 카탈로그 편집 UI** — 새 역할·권한 매핑 편집(현재 역할=코드 enum이라 코드 변경 동반 → 고급).
 
 ## 7.3 디바이스 관리·수명주기 [v1.0 필수]
 정본=부모 §7.2·§7.9.1. 주 워크스페이스=Device 뷰.
-- **FR-CON-09** [v1.0] **디바이스 목록/상세** — 컬럼: device·clinic(임베드 요약)·status. **region은 컬럼이 아니다** — 배포 상수라 전 행이 동일하므로(부모 §4.5.1) **현재 리전 컨텍스트로 화면 상단에 1회 표시**(FR-CON-03). 상세 탭=[상태·수명주기]·[인증·키]·[소속 clinic 카드(읽기+링크)]. clinic 요약은 `Device` 응답 임베드 사용(2차 콜 불필요). *경계:* pending 0건·목록 비었을 때 빈 상태 UI.
+- **FR-CON-09** [v1.0] **디바이스 목록/상세** — 컬럼: device·clinic(임베드 요약)·status. **region은 컬럼이 아니다** — 배포 상수라 전 행이 동일하므로(부모 §7.3.1·§2.1.1) **현재 리전 컨텍스트로 화면 상단에 1회 표시**(FR-CON-03). 상세 탭=[상태·수명주기]·[인증·키]·[소속 clinic 카드(읽기+링크)]. clinic 요약은 `Device` 응답 임베드 사용(2차 콜 불필요). *경계:* pending 0건·목록 비었을 때 빈 상태 UI.
 - **FR-CON-10** [v1.0·필수] **Enrollment 승인**(cs) — 선택 리전 컨텍스트(FR-CON-03)의 `pending→active` 활성화·거부. ★없으면 device 서비스 불가. *권한:* cs·admin만. *검증:* 설치 확인 + **리전 적정성 확인** — device 리전은 enroll이 이미 결정(EzServer country→region)하므로 C/S는 **지정이 아니라 확인**만 한다. *인수(성공):* 승인 후 상태가 `active`로 반영되고 감사(`device.approve`)가 남는다. *에러:* 리전 배정이 틀렸으면 승인하지 않고 재-enroll/마이그레이션(부모 §7.3.4) 안내.
 - **FR-CON-11** [v1.0] **수명주기 액션** — suspend/resume(active↔suspended·복구 가능)·**kill(→revoked·`POST …/kill`)**.
 - **FR-CON-12** [v1.0] **kill 가드**(안전·§6.1) — 확인 다이얼로그(device 식별·영향)·2차 확인/사유·권한 제한·실행 시 승인자·시각 감사 노출. revoked는 되돌리기 없음(재서비스=재-enroll 안내). suspend와 위험색으로 시각 분리. *멱등:* 이미 revoked면 재-kill은 무효(상태 표시).
 
 ## 7.4 클리닉 관리·관계 [v1.0]
 정본=부모 §7.3·Appendix B #47. 보조 워크스페이스=Clinic 뷰.
-- **FR-CON-13** [v1.0·필수(조회)] **클리닉 목록/상세** — 컬럼: clinic·country·**deviceCount·orgBindingStatus**·status. **region은 컬럼 아님**(배포 상수·상단 리전 컨텍스트로 1회 표시·FR-CON-09 동일). `deviceCount`·`orgBindingStatus`는 **GW가 Clinic 목록 응답에 제공하는 읽기전용 요약 필드**다 — 집계는 GW(SoT)가 수행하며 클라이언트 N+1 집계를 하지 않는다. *이 두 필드는 부모 §7.9.1 Clinic DTO에 추가 필요*(읽기전용·additive·비파괴·spec-v1.0.10 예정). 상세 탭=[clinic 정보(region 표시)]·[org-bindings]·[소속 device 목록(`GET …/clinics/{id}/devices`)]·[SW 인벤토리]·[clinic-scope 정책·config].
-- **FR-CON-14** [v1.0·주요(교정)] **편집면 단일화(3갈래 분리)** — 실제 API 계약이 셋이라 갈래를 나눈다: (a) **clinic 표시정보**(name·country_code·address·phone·website) 교정 = Clinic 화면 `PATCH …/clinics/{id}`로 단일화 · (b) **org-binding** 교정 = org-mapping 화면(별도 API·FR-CON-19) · (c) **region은 v1.0 교정 API 없음** — 변경=교차리전 마이그레이션(부모 §7.3.4·부모 Appendix B #50·gw/1.2 이후). device 수명주기는 Device 화면에서만. 같은 필드를 두 화면에서 고치지 않는다. *동시성:* 낙관적 잠금(FR-CON-36).
+- **FR-CON-13** [v1.0·필수(조회)] **클리닉 목록/상세** — 컬럼: clinic·country·**deviceCount·orgBindingStatus**. **region은 컬럼 아님**(배포 상수·상단 리전 컨텍스트로 1회 표시·FR-CON-09 동일). *(clinic은 device 같은 lifecycle status가 없다 — 부모 `getAdminClinics` 규약.)* `deviceCount`·`orgBindingStatus`는 **GW가 Clinic 목록 응답에 제공하는 읽기전용 요약 필드**다 — 집계는 GW(SoT)가 수행하며 클라이언트 N+1 집계를 하지 않는다. *이 두 필드는 부모 §7.9.1 Clinic DTO에 반영됨*(읽기전용·additive·비파괴·spec-v1.0.10). 상세 탭=[clinic 정보(region 표시)]·[org-bindings]·[소속 device 목록(`GET …/clinics/{id}/devices`)]·[SW 인벤토리]·[clinic-scope 정책·config].
+- **FR-CON-14** [v1.0·주요(교정)] **편집면 단일화(3갈래 분리)** — 실제 API 계약이 셋이라 갈래를 나눈다: (a) **clinic 표시정보**(name·country_code·address·phone·website) 교정 = Clinic 화면 `PATCH …/clinics/{id}`로 단일화 · (b) **org-binding** 교정 = org-mapping 화면(별도 API·FR-CON-19) · (c) **region은 v1.0 교정 API 없음** — 변경=교차리전 마이그레이션(부모 §7.3.4·부모 Appendix B #50·gw/1.2 이후). device 수명주기는 Device 화면에서만. 같은 필드를 두 화면에서 고치지 않는다. *동시성:* stale write 감지(FR-CON-36).
 - **FR-CON-15** [v1.0] **양방향 드릴스루** — Device↔Clinic 상호 링크.
 > **device-self 혼동 금지:** `/v1/clinics/me/*`(디바이스 자가 평면)는 actor가 다르므로 운영자 화면과 합치지 않는다(§1.2 Will-not-do).
 
@@ -551,16 +641,16 @@ Jira(GW 프로젝트).
   3. 인바운드 webhook(수신 대상만): inbound_host·sig_scheme·secret(→KMS)·`*_path`(event/org/eventType JSONPath).
   - 내부 backend(예: CleverSpace)는 라우팅만 채워 등록(Console 추가 구현 없음).
   - *검증:* target_id 형식·host 필수(라우팅 대상 시)·JSONPath 문법. *멱등:* upsert(같은 target_id 재등록=갱신). *에러:* KMS wrap 실패·2단계 부분 실패 시 상태 안내(FR-CON-35).
-- **FR-CON-17** [v1.0] **목록/상세/삭제** — GET 목록·상태(enabled)·편집(upsert)·`DELETE …/targets/{id}`. *Side effect:* 삭제는 라우팅·연동 중단 → 확인 가드.
+- **FR-CON-17** [v1.0] **목록/상세/삭제** — GET 목록·상태(enabled)·편집(upsert)·`DELETE …/targets/{id}`. *Side effect:* 삭제는 라우팅·연동 중단 → 확인 가드. *에러:* 종속 참조(org_mapping·정책·webhook_event)가 있으면 **409** — 먼저 정리하도록 안내.
 - **FR-CON-18** [v1.0] **정책 편집** — target별 allowed_endpoints·scopes(`/v1/admin/policies` GET/POST/DELETE·deny-by-default·부모 #32).
-- **FR-CON-19** [v1.0] **org-mapping 관리** — (target_id,org_id)→clinic 목록·교정(`POST …/org-mappings`). 1차 입력=자가 등록(부모 §2.3.4). *검증:* 대상 clinic 존재.
+- **FR-CON-19** [v1.0] **org-mapping 관리** — (target_id,org_id)→clinic 목록·교정(`POST …/org-mappings`)·**삭제(`DELETE …/org-mappings`·연동 해지·확인 가드)**. 1차 입력=자가 등록(부모 §2.3.4). *검증:* 대상 clinic 존재.
 - **FR-CON-20** [v2.0] **연동 가입/구독 관리 고급 화면**(AXS link/check/unlink·customerNumber·동의 폴링) — AXS 특화·④ 소관 연계. v1.0은 out-of-band Org-ID를 FR-CON-19에 입력.
 
 ## 7.6 Webhook 이벤트 조회·payload break-glass 열람 [v1.0 주요]
 정본=부모 §7.6.3·§7.9.1.
 - **FR-CON-21** [v1.0] **이벤트 메타 검색/단건** — `GET /v1/admin/webhook-events`(target/clinic/event_type/state/기간 필터)·단건(DLQ triage·메타 전용·payload 미포함).
 - **FR-CON-22** [v1.0] **payload break-glass 열람** — `GET …/{eventId}/payload`(GW 복호·PHI masking·전량 감사 `webhook.payload.view`). Console은 마스킹 응답만 표시(해제 UI 금지·직접 DB/KMS 없음).
-  - **[v1.0 요구]** PHI 접근이라 **열람은 지정 역할로 제한**(무권한은 UI·엔드포인트 비노출·403)하고 **열람 시 사유 입력 + 전량 감사**를 요구한다(규제·§6.2). 열람 가능 역할 목록만 Appendix C-5(보안+③-C).
+  - **FR-CON-22a** [v1.0] PHI 접근이라 **열람은 지정 역할로 제한**(무권한은 UI·엔드포인트 비노출·403)하고 **열람 시 사유 입력 + 전량 감사**를 요구한다(규제·§6.2). 열람 가능 역할 목록만 Appendix C-5(보안+③-C).
 
 ## 7.7 Fleet·클라이언트 SW 인벤토리 [v1.0 주요 / 일부 v2.0]
 정본=부모 §7.8.1·§7.8.5.
@@ -570,7 +660,7 @@ Jira(GW 프로젝트).
 
 ## 7.8 중앙 config 관리 [v1.0 주요]
 정본=부모 §7.8.4.
-- **FR-CON-26** [v1.0] **gw.* config CRUD·publish** — 조회·편집·publish(감사 `config.publish`)·실효 configVersion(콘텐츠 해시) 표시. *동시성:* 낙관적 잠금. *경계:* gw.* 스코프만(device.* 원격 config는 v2.0).
+- **FR-CON-26** [v1.0] **gw.* config CRUD·publish** — 조회·편집·publish(감사 `config.publish`)·**행 버전(`ConfigEntry.version`·정수) 표시**. *(콘텐츠 해시 `configVersion`은 device 측 fleet config pull 필드[gw/1.1+·v1.0 미사용]라 Admin config 화면 범위 아님.)* *동시성:* stale write 감지(FR-CON-36·행 `version` 표시). *경계:* gw.* 스코프만(device.* 원격 config는 v2.0).
 - **FR-CON-27** [v2.0] **rollout/카나리·명명 그룹·device 원격 config**(gw/1.1+).
 
 ## 7.9 호환성 매트릭스 뷰어 [v1.0 주요]
@@ -591,9 +681,10 @@ Jira(GW 프로젝트).
 ## 7.12 공통 UX·세션·오류·동시성 [v1.0]
 - **FR-CON-33** [v1.0] **세션 만료·재인증** — 토큰 만료/유휴 타임아웃 시 재인증 유도·미저장 입력 경고. 만료 상태 호출 시 자동 재인증 또는 로그인 복귀.
 - **FR-CON-34** [v1.0] **권한 거부(403)** — 무권한 기능은 메뉴·액션 비노출. 그럼에도 403이면 명확한 안내 + 권한 요청 경로(§7.2) 링크.
-- **FR-CON-35** [v1.0] **네트워크·서버 오류** — 실패 시 명확한 오류·재시도. **파괴적/쓰기 액션은 낙관적 반영 금지**(서버 확정 후 반영). 2단계 쓰기(KMS+DB) 부분 실패는 상태 안내(보상=GW·LLD).
-- **FR-CON-36** [v1.0] **편집 동시성(낙관적 잠금)** — target·policy·config·clinic 편집은 `version`/`updatedAt` 충돌 감지로 stale write 방지. 충돌 시 저장 차단·재조회 후 재편집 안내(마지막-쓰기-승리 금지).
+- **FR-CON-35** [v1.0] **네트워크·서버 오류** — 실패 시 명확한 오류·재시도. **파괴적/쓰기 액션은 낙관적 반영 금지**(서버 확정 후 반영). 2단계 쓰기(KMS+DB) 부분 실패는 상태 안내(보상=GW·LLD). *재시도 정책(횟수·backoff)·클라이언트측 타임아웃 구체값 = ③-C LLD 확정(Appendix C-9).*
+- **FR-CON-36** [v1.0] **편집 동시성(stale write 감지)** — target·policy·clinic·config 편집 시, **로드 시점의 `updatedAt`을 기억했다가 저장 직전 재조회해 값이 바뀌었으면 경고**하고 덮어쓸지/취소할지 사용자가 정한다(마지막-쓰기-승리를 무경고로 두지 않음). *v1.0은 이 클라이언트측 감지로 한다 — 현 부모 OpenAPI엔 `expectedVersion`/`If-Match`+409가 없기 때문(target·policy·`ClinicInfo`엔 version 필드 없음·`ConfigEntry.version`은 서버 전용).* **서버 강제 낙관적 잠금(expectedVersion+409)** 은 다중 운영자 안전 강화용 **부모 계약 확장**으로 권고(Appendix C-11).
 - **FR-CON-37** [v2.0] **데이터 export·대량 액션** — 목록 CSV export·다중 선택 일괄 처리(승인/회수 등).
+- **참고(강제 로그아웃):** 별도 기능 없이, Admin이 운영자를 `suspended`(§7.2·FR-CON-06) 시키면 그 운영자의 다음 API 호출부터 401/403으로 전면 차단된다(사실상 강제 로그아웃). 세션 무효화는 GW authz(요청별 operatorAuth)로 즉시 발효.
 
 ---
 
@@ -604,6 +695,7 @@ Jira(GW 프로젝트).
 | B | Refine+Next.js(권장) | React-admin(MUI 결속)·순수 Next.js(보일러플레이트) 후순위 | 2026-08-04 |
 | C | 연동 대상 무관(generic) 화면 | 대상별 전용 화면(대상 추가마다 코드) 기각 | 2026-08-04 |
 | D | v1.0·v2.0 한 문서·v1 완전/v2 경량 | 별도 2문서(정합 유지비) 기각 | 2026-08-04 |
+| E | 국제화: 표준=PO+소스 영어원문(심볼 키 금지) → LinguiJS 선정 | i18next=키 기반(제약 위반)·react-intl=PO 적합성 약함 기각 · ref: cloudwebviewer | 2026-08-05 |
 
 ## Appendix B. 미결·확인 항목 (Sub-SRS TBD)
 | # | 항목 | 결정자·시점 |
@@ -616,3 +708,23 @@ Jira(GW 프로젝트).
 | C-6 | 승인 요청 알림 채널(이메일/Teams/인앱) | ③-C |
 | C-7 | UI 상세 명세(레이아웃·컴포넌트) | ③-C(별도 UI 명세) |
 | C-8 | Admin API 전용 성능 SLA(부모 §5는 device control-plane 전용·Admin 수치 없음) | GW·성능 요구 시 |
+| C-9 | Console→GW/Entra 호출 재시도 정책(횟수·backoff)·클라이언트 타임아웃 구체값 | ③-C LLD |
+| C-10 | 구체 GW 도메인 `<도메인>`(vatech.com 미사용·별도 도메인) 확정 | ③-I/정보전략실 |
+| C-11 | **서버 강제 낙관적 잠금**(target·policy·clinic·config에 `expectedVersion`/`If-Match`+409) — 부모 OpenAPI 확장 필요. v1.0=클라이언트측 stale write 감지(FR-CON-36), 다중 운영자 안전 강화 시 권고 | GW+③-C(spec-change) |
+| C-12 | 목록 **기본 정렬·안정 정렬 계약**(현 부모 OpenAPI에 정렬 파라미터 없음) — GW 기본 정렬 보장 확인·계약화 | GW·목록 화면 착수 시 |
+| C-13 | 국제화 구체 — `@lingui/swc-plugin` Next 통합·SWC 설정·플러그인 버전·초기 카탈로그 부트스트랩(방식·설정 규약은 §6.10 확정) | ③-C LLD |
+
+---
+
+## 변경 이력
+| 버전 | 일자 | 변경 |
+| --- | --- | --- |
+| v0.1 | 2026-08-04 | `_status.md` 씨앗 승격 초안(템플릿+부모+씨앗). |
+| v0.2 | 2026-08-04 | ABC 스펙 표준(philosophy·standard·writing-tips) 정합 전면 리라이트 — §1.1/§1.2 Why중심·§1.6 매트릭스·§2.1~2.3 조망/내부구성/시나리오·§2.5 5항목·Decision Log·§7 Case C 깊이·§7.0 공통규칙. spec-reviewer 1·2차 반영(H1~H3·M1~M3·Low). |
+| v0.3 | 2026-08-04 | spec-reviewer 재검증 반영 — FR-CON-13 phantom `status` 제거·S3 다이어그램 country/region 정정·FR-CON-06/13 "반영됨"으로 정정·부모 태그 spec-v1.0.10 갱신·FR-CON-19 org-mapping 삭제·FR-CON-17 종속 409·재시도 정책 소유(C-9). |
+| v0.4 | 2026-08-04 | spec-reviewer 3차(판정=baseline 준비됨) 반영 — FR-CON-26 configVersion(콘텐츠 해시=device 필드) → `ConfigEntry.version`(정수)로 정정·bare `R4` 라벨 제거(별도 GW 도메인·Appendix C-10)·§1.4 `PHI` 정의 추가. |
+| v0.5 | 2026-08-04 | spec-reviewer **4차 판정 = ✅ baseline 동결 가능**(3차 지적 3건 CLOSED·regression 없음). 잔여 비차단 🟢 반영(§1.1 PHI 첫 등장에 §1.4 참조). **baseline 후보.** |
+| v0.6 | 2026-08-05 | spec-reviewer **5차 적대적 완전성 패스** 반영 — H1: FR-CON-36 낙관적 잠금이 부모 계약(expectedVersion/409) 부재 → **클라이언트측 stale write 감지·경고로 하향**·서버 강제는 Appendix C-11 권고. §7.0 공통규칙에 **기본 정렬·시각(UTC) 표시·빈/로딩/오류 3상태** 추가(M1~M3·C-12). FR-CON-09 부모 §4.5.1→§7.3.1 정정(L1)·"Appendix C-N" 표기 통일(L2)·C-2/C-3/C-7 순방향 참조(L3)·수동등록 예외경로·접근성 Will-not-do(L4·S2)·강제 로그아웃 note(S1). + §2.6 **Region Directory=v1.0 배포 선결** 명시(EzServer 부트스트랩 앵커·gw1.2 아님·부모 §7.3.6 P1). |
+| v0.7 | 2026-08-05 | **FR-CON-36 용어 일관성 정정** — v1.0 편집 동시성 표기를 **stale write 감지(FR-CON-36)로 통일**: §3 E2E 커버리지·FR-CON-14·FR-CON-26에 남아 있던 "낙관적 잠금" 표기 제거(FR-CON-36 정의와 불일치 해소). "서버 강제 낙관적 잠금(expectedVersion+409)"은 미래 부모계약 확장 옵션(Appendix C-11) 지칭으로만 유지. |
+| v0.8 | 2026-08-05 | **§6 제목/내용 분리**(6.3.x·6.4·6.6.1·6.7~6.15 헤더에서 본문 줄바꿈 분리) · **§4.2 화면 맵(스크린 인벤토리) 표 추가**(화면=§7 기능 1:1·Refine Resource·라우트·역할 가시성·공통동작 구분·시각상세=LLD) · **§6.10 국제화 확정** — 표준 = PO + 소스 영어원문(심볼 키 금지)이고, 비교표로 **LinguiJS v4 선정**(i18next=키 기반 제약위반·react-intl=PO 적합성 약함). 워크플로(t()→extract→.po→compile)·`lingui.config` 규약·로케일·**cloudwebviewer 레퍼런스(repo 링크)** 명시. 핵심 결정 **E** 신설(Appendix A E·Appendix C-13). · **§5·§4.3/4.4/4.6도 제목/본문 분리**(§6과 동일 패턴·§2.x의 라벨식 "—"는 정당한 제목이라 유지) · **§1.2 핵심 결정 블록쿼트(A·B·C·E) 제거** — SRS 표준(§1.2=executive Product Scope)에 맞춰, 결정은 Appendix A Decision Log + 각 적용 절(§2.1.2·§4.5·§6.6·§6.5·§7.5·§6.10)로 정리(중복 제거·내용 손실 없음). |
+| v0.9 | 2026-08-05 | v0.8 **spec-reviewer 6차 재검증** 지적 반영 — **H1(차단)**: §4.2 화면 맵 FR-CON 그룹핑 정정(**04·05=권한 요청/승인**·**06·08=운영자·역할**·**07=§7.2 공통 표기 규약**으로 이동 — 부모 OpenAPI/§7.2 본문과 대조) · **M1**: "접근성/i18n(§6.10)"을 접근성(§1.2 Will-not-do)·i18n(§6.10)로 분리(§6.10은 i18n 전용) · **L1**: 헤딩 앞 빈 줄 3곳(§4.4→4.5·§4.5→4.6·§6.6.1→6.6.2) 보정. → **baseline 동결 가능**(회귀 없음). |

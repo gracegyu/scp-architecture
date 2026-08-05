@@ -2,7 +2,7 @@
 
 > **이 파일의 역할 = 승격용 구조화 씨앗(seed).** ③ SRS 작업 중 이 문서로 갈 내용을 **최종 목차에 대응되게** 미리 정리해 둔다(발견 즉시 캡처·인사이트 유실 방지). 정식 Sub-SRS/문서 집필은 **의존하는 ③ SRS 절이 baseline된 뒤 승격**한다 — 몰아쓰기가 아니라 "옮겨 붙이고 살 붙이기". 승격 트리거: ① ③ 해당 절 동결 + ② 소유권 확정(GW 공통 아님) + ③ 레포/템플릿 존재. 근거: ③이 흔들리는 동안 자식 문서를 미리 쓰면 개명·재번호가 수십 절로 번져 유지면이 폭발한다.
 
-- 상태: **집필 중 — `SRS.md` v0.2(2026-08-04·ABC 스펙 표준 정합 리라이트·Case C)**. 본 `_status.md`는 씨앗(근거), 정본=`SRS.md`. 미결=`SRS.md` Appendix B(C-1~C-7)·Decision Log=Appendix A.
+- 상태: **`SRS.md` v0.9 — spec-reviewer 6차 재검증까지 반영·baseline 동결 가능**(2026-08-05·Case C·부모 spec-v1.0.10). v0.7=FR-CON-36 stale-write 용어 일관성 정정(낙관잠금=클라 감지로 하향·서버강제는 Appendix C-11 권고). v0.8=§5·§6·§4 구조(제목/본문) 분리·§1.2 결정 블록쿼트 제거·§4.2 화면 맵 추가·§6.10 국제화 확정(표준 PO+소스 영어원문·심볼 키 금지 → LinguiJS 선정·cloudwebviewer 레퍼런스). v0.9=재검증 지적 반영(H1 §4.2 화면 맵 FR-CON 그룹핑 정정·M1 접근성 참조 분리·L1 헤딩 빈 줄). 본 `_status.md`는 씨앗(근거), 정본=`SRS.md`. 미결=`SRS.md` Appendix B(C-1~C-13·전부 소유자·시점 명시된 정상 추적 항목·baseline 비차단)·Decision Log=Appendix A(A~E)·변경 이력=문서 말미. **다음 단계 = 사장님 검토 → (원하면) baseline 동결·PR·console repo 이관.**
 - 문서 유형: Sub-SRS
 - 범위: Admin 역할·권한·직원 IdP(Entra) 연계, 매핑/클리닉/상태/온보딩 화면·플로우 (관리 API는 ③ SRS/Swagger)
 - 레포(추천): vt-api-gateway-console (미생성)
