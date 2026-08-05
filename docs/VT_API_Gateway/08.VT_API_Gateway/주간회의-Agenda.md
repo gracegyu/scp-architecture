@@ -1584,7 +1584,7 @@
       | 11-2a policies CRUD | 인가 정책(deny-by-default 허용 SSOT) 등록/조회/삭제·**자연키 upsert**(동시경합 1행 원자성)·부재보존 병합·targetId FK 400·scopeId 형식검증·감사 | ✅ 완료 | #12443 |
       | 11-2b config·org-mappings | 중앙 config(PUT 멱등·version 값변경시만++·updated_by 서버강제·NULLS NOT DISTINCT)·Org-ID↔ClinicID 매핑(복합PK·mapping_version++·이중 FK 400·복합키 커서)·감사 | ✅ 완료 | #12444 |
       | 11-3 operators·RBAC 생애주기 | 운영자 목록/상태·역할 생애주기 상태머신(직접부여·승인/거부/회수·행 보존)·self access-request·승인 큐·**마지막 admin 회수 409**(advisory lock 원자화·동시 회수→하나만·v1.0.10)·회수후 재부여(partial unique) | ✅ 완료 | #12456 |
-      | 11-4 webhook-events + break-glass | 이벤트 메타 조회·단건·**본문 열람(break-glass·복호·masking·감사)** | ⬜ 대기 | — |
+      | 11-4 webhook-events + break-glass | 이벤트 메타 조회(PHI-free·필터·커서)·단건·**본문 열람(break-glass·KMS 복호·PHI masking·전량 감사)** · RBAC 티어(메타=read·payload=admin) · 복호 평문 유출 차단 | ✅ 완료 | #12459 |
       | 11-5 audit 전면 커버리지 | GET /v1/admin/audit(필터·커서)·전 write 경로 감사 누락 점검 | ⬜ 대기 | — |
       | 11-6 데이터 분류·크로스보더 동의 | 분류 태깅·동의 태그(컴플라이언스) | ⬜ 대기 | — |
 
