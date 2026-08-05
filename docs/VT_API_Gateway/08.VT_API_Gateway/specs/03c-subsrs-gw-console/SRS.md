@@ -54,6 +54,8 @@ GW가 클리닉 EzServer를 온보딩하고 외부(AXS 등)·내부(CleverSpace 
 | --- | --- |
 | **③-C / ③-I / ③-P** | 부모 GW 서브스펙 번호 — **③=GW SRS 계열**, **-C=Console(본 문서)**·**-I=Infra**·**-P=Product 연동**(예 ③-P-EZ=EzServer). ①②④는 다른 계열. |
 | **운영자(operator)** | Console 사용자 = 사내 직원(Admin·C/S·Operator·Developer). 부모 §7.9.2. |
+| **C/S** | 현장 설치 지원 담당(Customer Service) — **enrollment 승인 권한** 보유(설치 확인+리전 확정·부모 §2.3.1·§7.9.2). |
+| **SoT (Source of Truth)** | 정본 — 데이터의 단일 권위 출처. GW(DB)가 SoT이고 Console은 소비만. |
 | **Entra** | MS365/Entra ID. 직원 IdP·Console SSO(OIDC) 발급자. 부모 §7.1.4. |
 | **RBAC** | 역할 기반 인가. 역할=`operator_role_type`{admin·developer·cs·operator}. authN=Entra·authz=GW. |
 | **break-glass** | 통제된 PHI payload 예외 열람(GW 복호·마스킹·사유·전량 감사). |
