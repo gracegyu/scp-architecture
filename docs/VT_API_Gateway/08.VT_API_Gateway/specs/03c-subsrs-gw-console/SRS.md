@@ -188,9 +188,10 @@ sequenceDiagram
     GW->>E: (최초/kid 회전 시) Entra JWKS(공개키) fetch·캐시
     C->>GW: GET /v1/admin/me (Authorization: Bearer <Entra access token>)
     GW->>GW: operatorAuth — 토큰 검증(캐시된 Entra JWKS로 서명 + iss·aud·scp claim·요청마다·무상태)
+    GW->>GW: (첫 로그인) JIT로 operator 생성 · 역할 = 부트스트랩 seed에 subject 있으면 admin, 없으면 0(no_access)
     GW->>GW: operator_role RBAC 조회 → accessState·실효 역할
     GW-->>C: accessState · 역할
-    alt active(역할≥1)
+    alt active(역할≥1 · seed된 최초 admin 포함)
         C-->>OP: 역할별 메뉴 렌더
     else no_access
         C-->>OP: 권한 요청 화면 (S2)
@@ -198,9 +199,32 @@ sequenceDiagram
         C-->>OP: 계정 정지 안내
     end
     Note over C,GW: Console 무상태 · 토큰/UI 상태만 · 데이터는 매 요청 라이브
+    Note over GW: 최초 admin은 배포 seed(GW DB·③-I)로 부여 — no_access 데드락 방지(TOFU 아님). seed는 부모 반영 필요(C-14·「부모 SRS 반영 대상」)
 ```
 
-### 2.3.2 S2 — 권한 요청→승인
+### 2.3.2 S2 — 온보딩: 최초 admin 부트스트랩 · 권한 요청→승인
+
+> **부트스트랩 seed 정책:** 최초 admin은 **GW DB seed**(③-I 배포 시 초기 admin의 Entra `oid` 지정·Entra 그룹 아님 — authz=GW DB 원칙)로 부여한다. seed 부여는 백엔드 계약이라 **부모 SRS 반영이 필요**하다(Appendix B **C-14** · 「부모 SRS 반영 대상」).
+
+**온보딩 상태 결정 (상황별).** 최초 admin은 seed로, 이후 사용자는 요청→승인으로 온보딩된다 — "먼저 로그인한 사람이 admin"(TOFU)은 쓰지 않는다.
+```mermaid
+flowchart TD
+    A[직원 Entra SSO 첫 로그인] --> B[GW: JIT operator 생성]
+    B --> C{subject 가 부트스트랩 admin seed 에 있나?}
+    C -->|예 · 최초 admin| D[operator_role = admin · active]
+    C -->|아니오 · 일반 사용자| E[역할 0 = no_access]
+    D --> F[역할별 메뉴]
+    E --> G[권한 요청: 받을 역할 + 스코프 + 사유]
+    G --> H[Admin 승인 큐]
+    H --> I{Admin 결정}
+    I -->|승인 · 부분승인| J[요청 역할 일부·전부 active]
+    I -->|조정| K[직접 부여/회수로 최종 역할 세트]
+    I -->|거부| L[rejected · 사유 · 재요청 가능]
+    J --> F
+    K --> F
+```
+
+**권한 요청→승인 (일반 사용자).** Admin은 요청을 **그대로 승인·부분 승인·조정·거부** 할 수 있다.
 ```mermaid
 sequenceDiagram
     autonumber
@@ -214,10 +238,10 @@ sequenceDiagram
     AD->>C: 승인 큐 확인
     C->>GW: GET /v1/admin/access-requests
     GW-->>C: 대기 목록
-    AD->>C: 승인/거부
-    C->>GW: PATCH .../roles/{grantId} (active|rejected)
+    AD->>C: 승인 · 부분승인 · 조정 · 거부
+    C->>GW: PATCH .../roles/{grantId} (active|rejected) · [조정 시 직접 부여/회수 POST·PATCH .../roles]
     GW-->>C: 결과 · 감사(operator.role.decide)
-    Note over OP,GW: 거부/회수도 이력 보존 · 다음 /me 에 accessState 반영
+    Note over OP,GW: 요청 역할당 grant 1건 → 부분 승인 가능 · Admin은 요청과 무관하게 직접 조정 가능(FR-CON-06) · 거부/회수 이력 보존 · 다음 /me 에 accessState 반영
 ```
 
 ### 2.3.3 S3 — 디바이스 enrollment 승인 (C/S · 핵심)
@@ -272,12 +296,13 @@ sequenceDiagram
     OP->>C: webhook 이벤트 조회 (메타)
     C->>GW: GET /v1/admin/webhook-events (필터)
     GW-->>C: 메타 목록 (payload 미포함)
-    OP->>C: payload 열람 요청 + 사유 입력
-    C->>GW: GET /v1/admin/webhook-events/{id}/payload
-    GW->>GW: 복호 · PHI masking · 전량 감사(webhook.payload.view)
+    OP->>C: (열람 세션 첫 건) 사유 1회 입력 → 세션 내 재사용
+    OP->>C: payload 열람 요청 (사유 재입력 없음)
+    C->>GW: GET /v1/admin/webhook-events/{id}/payload (사유 전달=부모 계약 C-15 선결)
+    GW->>GW: 복호 · PHI masking · 건건 전량 감사(webhook.payload.view)
     GW-->>C: 마스킹된 payload
     C-->>OP: 마스킹 응답만 표시 (해제 UI 없음)
-    Note over OP,GW: 무권한 역할엔 열람 UI·엔드포인트 비노출(403) · 직접 DB/KMS 없음
+    Note over OP,GW: 사유=세션 1회·재사용 / 감사=건건 · 무권한 역할엔 UI·엔드포인트 비노출(403) · 직접 DB/KMS 없음
 ```
 
 ### 2.3.6 S6 — 리전 스위칭
@@ -613,14 +638,14 @@ GW pilot과 연계(별도 계획).
 
 ## 7.1 운영자 인증·세션 [v1.0 필수]
 - **FR-CON-01** [v1.0] **Entra SSO 로그인** — OIDC(Auth Code+PKCE)로 로그인·로그아웃한다. 자체 비밀번호 없음. *에러:* Entra 인증 실패·토큰 검증 실패 시 로그인 화면으로 복귀하고 사유를 표시한다.
-- **FR-CON-02** [v1.0] **부트스트랩 분기** — 로그인 후 `GET /v1/admin/me`의 `accessState`로 분기: `active`→역할별 메뉴 / `no_access`→권한 요청(§7.2) / `suspended`→정지 안내. *에러:* `/me` 실패 시 재시도·오류 표시(무한 로딩 금지).
+- **FR-CON-02** [v1.0] **부트스트랩 분기** — 로그인 후 `GET /v1/admin/me`의 `accessState`로 분기: `active`→역할별 메뉴 / `no_access`→권한 요청(§7.2) / `suspended`→정지 안내. *최초 admin:* 첫 사용자도 seed에 없으면 `no_access`이며, **최초 admin은 배포 seed로 `active`가 된다**(§2.3.2·부모 계약 추가 필요=Appendix B C-14). *에러:* `/me` 실패 시 재시도·오류 표시(무한 로딩 금지).
 - **FR-CON-03** [v1.0] **단일 Console·리전 스위처** — Region Directory에서 리전을 읽어 대상 리전을 전환하고, 이후 호출 base를 `admin.<region>.gw.<도메인>`로 둔다. 무상태·교차리전 집계 없음(§2.1.2·핵심 결정 A). *에러:* Directory 로드 실패 시 캐시된 마지막 목록 사용·경고 표시.
   - **FR-CON-03a** [v2.0/gw1.2] 멀티리전 운영 확장 — 운영자 권한의 리전 간 조달(Entra 그룹→각 리전 역할)·주권 준수 범위 내 교차리전 요약 뷰.
 
 ## 7.2 운영자 RBAC·권한 요청/승인 [v1.0 필수]
 정본=부모 §7.1.4·§7.9.2.
 - **FR-CON-04** [v1.0] **권한 요청**(no_access·본인) — 역할 멀티선택 + 스코프(기본 global) + 사유 → `POST /v1/admin/me/access-requests` → "승인 대기". *검증:* 최소 1개 역할 선택. *에러:* 중복 요청은 GW가 거절(409)→"이미 요청됨" 표시. 거부되면 사유 표시·재요청 가능.
-- **FR-CON-05** [v1.0] **Admin 승인 큐**(admin) — `GET /v1/admin/access-requests`(requested) → 승인/거부(`PATCH …/roles/{grantId}`). *Side effect:* 승인 시 대상 운영자의 다음 `/me`부터 역할 반영. *알림:* 요청 발생 알림 채널(이메일/Teams/인앱)은 ③-C 확정(Appendix C-6).
+- **FR-CON-05** [v1.0] **Admin 승인 큐·조정**(admin) — `GET /v1/admin/access-requests`(requested) → **승인·부분 승인·거부**(`PATCH …/roles/{grantId}` — 요청 역할당 grant 1건이라 **일부만 active·나머지 reject** 가능) + **직접 조정**(요청과 무관하게 부여/회수=FR-CON-06). 즉 요청은 제안이고 **최종 역할은 Admin이 확정**한다. *Side effect:* 승인 시 대상 운영자의 다음 `/me`부터 역할 반영. *알림:* 요청 발생 알림 채널(이메일/Teams/인앱)은 ③-C 확정(Appendix C-6).
 - **FR-CON-06** [v1.0] **운영자 관리**(admin) — `GET /v1/admin/operators`(상태·역할 필터)·상세 → 직접 부여(`POST …/roles`)·회수(revoked)·정지/복구(status). *가드:* 본인 마지막 admin 역할 회수 방지 — **GW 서버가 강제**한다(`PATCH …/roles/{grantId}`가 시스템 마지막 admin 회수를 409로 거부·**부모 §7.9.2/OpenAPI에 반영됨**(spec-v1.0.10·`patchAdminOperatorRole` 409)). Console UI도 해당 버튼을 비활성화하되 **최종 강제는 서버**다(API 직접 호출로도 lock-out 불가). *Side effect:* suspended는 역할 무관 전면 차단.
 - **FR-CON-07** [v1.0] **표기 규약** — 역할=멀티(체크박스)·서열 UI 금지·설명 툴팁. CS=global 자동(클리닉 선택 UI 불필요). 거부/회수 이력 상태로 노출(삭제 아님).
 - **FR-CON-08** [v2.0] **역할 카탈로그 편집 UI** — 새 역할·권한 매핑 편집(현재 역할=코드 enum이라 코드 변경 동반 → 고급).
@@ -656,7 +681,7 @@ GW pilot과 연계(별도 계획).
 정본=부모 §7.6.3·§7.9.1.
 - **FR-CON-21** [v1.0] **이벤트 메타 검색/단건** — `GET /v1/admin/webhook-events`(target/clinic/event_type/state/기간 필터)·단건(DLQ triage·메타 전용·payload 미포함).
 - **FR-CON-22** [v1.0] **payload break-glass 열람** — `GET …/{eventId}/payload`(GW 복호·PHI masking·전량 감사 `webhook.payload.view`). Console은 마스킹 응답만 표시(해제 UI 금지·직접 DB/KMS 없음).
-  - **FR-CON-22a** [v1.0] PHI 접근이라 **열람은 지정 역할로 제한**(무권한은 UI·엔드포인트 비노출·403)하고 **열람 시 사유 입력 + 전량 감사**를 요구한다(규제·§6.2). 열람 가능 역할 목록만 Appendix C-5(보안+③-C).
+  - **FR-CON-22a** [v1.0] PHI 접근이라 **열람은 지정 역할로 제한**(무권한은 UI·엔드포인트 비노출·403)하고 **사유 확보 + 건건 전량 감사**를 요구한다(규제·§6.2). **사유는 건건 재입력이 아니라 열람 세션 단위로 1회 받아 재사용**한다(Console이 세션 내 사유를 유지·프리필해 재입력 마찰 제거)—단 **매 payload 열람은 그대로 건건 감사**한다(감사는 축약하지 않음). 열람 가능 역할 목록만 Appendix C-5(보안+③-C). *현 부모 `GET …/{eventId}/payload` 계약에 사유를 GW로 전달할 수단(파라미터/헤더)이 없어, 사유 확보·감사를 계약으로 성립시키려면 부모 반영이 선결이다(Appendix B **C-15**).*
 
 ## 7.7 Fleet·클라이언트 SW 인벤토리 [v1.0 주요 / 일부 v2.0]
 정본=부모 §7.8.1·§7.8.5.
@@ -719,6 +744,18 @@ GW pilot과 연계(별도 계획).
 | C-11 | **서버 강제 낙관적 잠금**(target·policy·clinic·config에 `expectedVersion`/`If-Match`+409) — 부모 OpenAPI 확장 필요. v1.0=클라이언트측 stale write 감지(FR-CON-36), 다중 운영자 안전 강화 시 권고 | GW+③-C(spec-change) |
 | C-12 | 목록 **기본 정렬·안정 정렬 계약**(현 부모 OpenAPI에 정렬 파라미터 없음) — GW 기본 정렬 보장 확인·계약화 | GW·목록 화면 착수 시 |
 | C-13 | 국제화 구체 — `@lingui/swc-plugin` Next 통합·SWC 설정·플러그인 버전·초기 카탈로그 부트스트랩(방식·설정 규약은 §6.10 확정) | ③-C LLD |
+| C-14 | **최초 admin 부트스트랩 seed** — JIT 생성 시 subject가 배포 seed에 있으면 `operator_role=admin` 부여(no_access 승인 데드락 방지·TOFU 아님·**GW DB seed**·③-I 배포 프로비저닝). **부모 GW SRS §7.1.4(JIT)·§7.9.2(RBAC)에 seed 계약 추가 필요**. §2.3.2 | GW(부모 SRS)·③-I · **Console baseline 후** |
+| C-15 | **payload 열람 사유 전달 계약** — break-glass 열람의 "사유 확보+감사"(FR-CON-22a)를 계약으로 성립시키려면, 현 부모 `GET …/{eventId}/payload`에 **사유 전달 수단(파라미터/헤더)** 이 있어야 하는데 없음. **부모 OpenAPI/§7.6.3에 reason 전달 추가 필요**(사유는 Console이 열람 세션 단위로 확보·재사용). §2.3.5·FR-CON-22a | GW(부모 SRS)·보안 · **Console baseline 후** |
+
+### 부모 SRS 반영 대상 (Console baseline 후 일괄)
+
+부모 GW SRS/OpenAPI 변경이 필요한 항목만 모은 체크리스트다(정본 상세=위 Appendix B 해당 행). **현재 부모 SRS는 모두 미수정**이며, 본 Console Sub-SRS가 baseline으로 확정되면 **하나의 spec-change로 부모에 반영**한다.
+
+- [ ] **C-14 (필수)** — 최초 admin 부트스트랩 seed: JIT 시 seed면 `admin` 부여 → 부모 §7.1.4·§7.9.2.
+- [ ] **C-15 (필수)** — payload 열람 사유 전달: `GET …/payload`에 reason 파라미터/헤더 → 부모 OpenAPI·§7.6.3.
+- [ ] **C-11 (선택·권고)** — 서버 강제 낙관적 잠금(`expectedVersion`+409) → 부모 OpenAPI. v1.0은 클라이언트측 stale write 감지로 우회(FR-CON-36).
+- [ ] **C-12 (확인/소규모)** — 목록 기본 정렬·안정 정렬 계약 → 부모 OpenAPI.
+- [ ] **C-8 (선택·성능 요구 시)** — Admin API 성능 SLA 절 → 부모 §5.
 
 ---
 
@@ -735,4 +772,4 @@ GW pilot과 연계(별도 계획).
 | v0.8 | 2026-08-05 | **§6 제목/내용 분리**(6.3.x·6.4·6.6.1·6.7~6.15 헤더에서 본문 줄바꿈 분리) · **§4.2 화면 맵(스크린 인벤토리) 표 추가**(화면=§7 기능 1:1·Refine Resource·라우트·역할 가시성·공통동작 구분·시각상세=LLD) · **§6.10 국제화 확정** — 표준 = PO + 소스 영어원문(심볼 키 금지)이고, 비교표로 **LinguiJS v4 선정**(i18next=키 기반 제약위반·react-intl=PO 적합성 약함). 워크플로(t()→extract→.po→compile)·`lingui.config` 규약·로케일·**cloudwebviewer 레퍼런스(repo 링크)** 명시. 핵심 결정 **E** 신설(Appendix A E·Appendix C-13). · **§5·§4.3/4.4/4.6도 제목/본문 분리**(§6과 동일 패턴·§2.x의 라벨식 "—"는 정당한 제목이라 유지) · **§1.2 핵심 결정 블록쿼트(A·B·C·E) 제거** — SRS 표준(§1.2=executive Product Scope)에 맞춰, 결정은 Appendix A Decision Log + 각 적용 절(§2.1.2·§4.5·§6.6·§6.5·§7.5·§6.10)로 정리(중복 제거·내용 손실 없음). |
 | v0.9 | 2026-08-05 | v0.8 **spec-reviewer 6차 재검증** 지적 반영 — **H1(차단)**: §4.2 화면 맵 FR-CON 그룹핑 정정(**04·05=권한 요청/승인**·**06·08=운영자·역할**·**07=§7.2 공통 표기 규약**으로 이동 — 부모 OpenAPI/§7.2 본문과 대조) · **M1**: "접근성/i18n(§6.10)"을 접근성(§1.2 Will-not-do)·i18n(§6.10)로 분리(§6.10은 i18n 전용) · **L1**: 헤딩 앞 빈 줄 3곳(§4.4→4.5·§4.5→4.6·§6.6.1→6.6.2) 보정. → **baseline 동결 가능**(회귀 없음). |
 | v0.10 | 2026-08-05 | **부모 Admin API 커버리지 감사** — OpenAPI `/v1/admin/*` **26개 엔드포인트가 모두 Console FR-CON에 매핑**됨을 교차 확인(clients·kill·payload는 `/clients`·`POST …/kill` 축약 경로로 참조). 잔여 2건 정리: FR-CON-37을 §7.11 v2.0 분산 목록에 추가(spec-reviewer L2)·FR-CON-26에 `/v1/admin/config` 경로 인용 보강. **§1.1에 "Sub-SRS 의미"(관계상 Sub·계약 소유=부모·문서는 완결 SRS) 주석 추가.** **§1.5 관련문서를 정본 repo URL(클릭 가능·부모 3종은 baseline 태그 `spec-v1.0.10` permalink)로 교체**(상대 경로 제거). baseline 동결 가능 유지. |
-| v0.11 | 2026-08-05 | 사장님 리뷰 반영(진행) — **§2.3.1 S1 로그인·부트스트랩 다이어그램에 Entra 액세스 토큰 검증 단계 명시**: `operatorAuth`(캐시된 Entra JWKS로 서명+`iss`·`aud`·`scp` claim 검증·요청마다·무상태) + `operator_role` RBAC 조회 → `accessState`를 흐름에 드러냄(기존엔 `operatorAuth` 한 단어로 압축돼 검증 절차가 안 보였음). Entra JWKS는 최초/kid 회전 시 fetch·캐시(요청마다 Entra 호출 아님·§7.1.4). · abc-dev-assistant(개인 repo)를 §1.5 관련문서에서 제외. |
+| v0.11 | 2026-08-05 | 사장님 리뷰 반영(진행) — **§2.3.1 S1 로그인·부트스트랩 다이어그램에 Entra 액세스 토큰 검증 단계 명시**: `operatorAuth`(캐시된 Entra JWKS로 서명+`iss`·`aud`·`scp` claim 검증·요청마다·무상태) + `operator_role` RBAC 조회 → `accessState`를 흐름에 드러냄(기존엔 `operatorAuth` 한 단어로 압축돼 검증 절차가 안 보였음). Entra JWKS는 최초/kid 회전 시 fetch·캐시(요청마다 Entra 호출 아님·§7.1.4). · abc-dev-assistant(개인 repo)를 §1.5 관련문서에서 제외. · **최초 admin 부트스트랩 설계 추가(§2.3.2)** — first-admin 승인 데드락 해소: **seed된 최초 admin(GW DB seed·③-I 배포·TOFU 아님)** vs 이후 request→approve를 **상황별 플로우차트 + 시퀀스**로 명시, **부분 승인·Admin 조정**(FR-CON-05)·FR-CON-02 seed note 보강. **최초 admin seed는 부모 §7.1.4/§7.9.2 계약 추가 필요 — 표시만 하고 부모 미수정(Appendix B C-14·Console 확정 후 부모 반영).** · **break-glass 열람 사유를 세션 단위 재사용으로 다듬음**(FR-CON-22a·§2.3.5 — 건건 재입력 제거·건건 감사는 유지·GW 스펙 밖 세션 메커니즘은 미도입) + payload 열람 **사유 전달 계약 부재를 C-15로 표시**(부모 OpenAPI reason 파라미터 필요). · **부모 SRS 반영 대상 체크리스트를 부록에 한 블록으로 정리**(C-8·C-11·C-12·C-14·C-15)하고 §2.3.2 인라인 콜아웃 축소. |
