@@ -14,7 +14,8 @@ create by: 전규현(Raymond)
 > **"Sub-SRS"의 의미:** 여기서 Sub는 **GW와의 관계**(범위·계약 종속)를 뜻하며 완성도를 뜻하지 않는다. **계약(Admin API·데이터 모델)의 소유는 부모 GW SRS**이고 Console은 이를 소비만 하지만, **문서 자체는 §1~§7 + Appendix를 갖춘 독립적으로 읽히는 완결 SRS**이며 Console 개발팀(③-C)의 governing SRS다.
 
 - **작성 맥락:** 사내 개발용. Console v1.0을 온보딩 승인 흐름과 함께 조기 착수하기 위해, v1.0을 **완전 규격**으로, v2.0을 **방향·확장점 수준**으로 한 문서에 담는다(§1.3 단계 규약).
-- **상세도(Case):** Console은 **PHI(§1.4) 취급(break-glass)·의료 규제(IEC 62304/ISO 13485)·신규 도메인·다수 화면·15+ API** → spec-philosophy §3 기준 **Case C(고상세)** 로 작성한다(특히 §4·§6·§7 에러·검증·감사).
+- **상세도:** Console은 **PHI(§1.4) 취급(break-glass)·의료 규제(IEC 62304/ISO 13485)·신규 도메인·다수 화면·15+ API** → **고상세**로 작성한다(특히 §4·§6·§7의 에러·검증·감사).
+- **대상 산출물·버전:** GW Console(③-C) **v1.0**(신규·초기 릴리스). 문서 버전 이력=상단 상태·문서 말미 변경이력(상세 §1.7.2).
 - 대상 독자·읽는 법은 §1.6.
 
 ## 1.2 Product Scope (범위)
@@ -51,6 +52,7 @@ GW가 클리닉 EzServer를 온보딩하고 외부(AXS 등)·내부(CleverSpace 
 
 | 용어 | 정의 |
 | --- | --- |
+| **③-C / ③-I / ③-P** | 부모 GW 서브스펙 번호 — **③=GW SRS 계열**, **-C=Console(본 문서)**·**-I=Infra**·**-P=Product 연동**(예 ③-P-EZ=EzServer). ①②④는 다른 계열. |
 | **운영자(operator)** | Console 사용자 = 사내 직원(Admin·C/S·Operator·Developer). 부모 §7.9.2. |
 | **Entra** | MS365/Entra ID. 직원 IdP·Console SSO(OIDC) 발급자. 부모 §7.1.4. |
 | **RBAC** | 역할 기반 인가. 역할=`operator_role_type`{admin·developer·cs·operator}. authN=Entra·authz=GW. |
