@@ -2,7 +2,7 @@
 
 create by: 전규현(Raymond)
 
-> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.10`) 후 `_status.md` 씨앗을 승격한 **초안(v0.11 · baseline 동결 가능 · v0.8 구조·§4.2 화면 맵·§6.10 국제화(PO→Lingui) · v0.9 재검증 · v0.10 Admin API 커버리지 감사(26/26)·§1.5 정본 URL · v0.11 사장님 리뷰 반영(S1 Entra 토큰 검증 명시 등·진행))**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준(spec-philosophy·spec-standard·spec-writing-tips) 정합 리라이트 반영.
+> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.10`) 후 `_status.md` 씨앗을 승격한 **초안(v0.11 · baseline 동결 가능 · v0.8 구조·§4.2 화면 맵·§6.10 국제화(PO→Lingui) · v0.9 재검증 · v0.10 Admin API 커버리지 감사(26/26)·§1.5 정본 URL · v0.11 사장님 리뷰 반영(S1 Entra 토큰 검증 명시 등·진행))**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준 정합 리라이트 반영.
 
 ---
 
@@ -167,6 +167,8 @@ flowchart TB
 **컴포넌트 도출 기준 = 기술 스택(권장 Refine·핵심 결정 B)의 책임 경계.** Refine의 provider 3종이 각각 Entra·GW Admin·Region Directory에 매핑되고, 기능은 Resource 페이지로 나뉜다(§7과 1:1). Console 자체 저장소·비즈니스 로직은 없다(§6.4).
 ```mermaid
 flowchart TB
+  OP["운영자 브라우저 · ZTNA<br/>Admin·C/S·Operator·Developer"] --> AUTH
+  OP --> RES
   subgraph SPA["GW Console SPA · Next.js + Refine"]
     RS["Region Switcher · Region Directory 읽어 base URL 결정"]
     AUTH["authProvider · Entra OIDC·PKCE·세션"]
@@ -177,20 +179,30 @@ flowchart TB
     VUI["UI kit · Ant Design/shadcn"]
     VW["호환성 매트릭스 뷰어 · well-known 읽기"]
   end
-  OP["운영자 브라우저 · ZTNA<br/>Admin·C/S·Operator·Developer"] --> AUTH
-  OP --> RES
   AUTH --> ENTRA["MS Entra"]
-  ACL --> MEAPI["GW Admin API · /me"]
-  RS --> RD["Region Directory · 정적 JSON"]
+  subgraph GW["GW 백엔드 (선택 리전)"]
+    A["GW Admin API · admin.&lt;region&gt;.gw.도메인"]
+    DB[("리전 로컬 DB · SoT")]
+    KMS["KMS · 복호는 GW만"]
+    AUD[("감사 로그")]
+    RD["Region Directory · 정적 JSON"]
+    WK["well-known · 호환성 매트릭스"]
+    A --> DB
+    A --> KMS
+    A --> AUD
+  end
+  ACL -->|"/me"| A
   RS --> DP
   DP --> QC
-  QC --> ADMIN["GW Admin API · 선택 리전"]
+  QC -->|"HTTPS · operatorAuth"| A
   RES --> DP
   RES --> VUI
-  VW --> WK["well-known JSON"]
+  RS --> RD
+  VW --> WK
+  A -->|"토큰 검증(Entra JWKS)"| ENTRA
 ```
 - **authProvider** = Entra OIDC 로그인·토큰·세션(§7.1). **accessControlProvider** = `/me` accessState·역할로 메뉴·액션 게이팅(§7.2·최소권한). **dataProvider** = GW Admin API 소비(OpenAPI 타입·리전 base는 Region Switcher 주입) + TanStack Query 캐시. **Resource 페이지** = §7 기능 단위. (프레임워크 확정 시 내부 구성 조정·§6.6.)
-- **훔쳐보기 금지(writing-tips §7):** Console은 GW Admin API 외 어떤 내부 경로(DB·KMS·GW 내부 모듈)도 직접 호출하지 않는다.
+- **훔쳐보기 금지:** Console은 GW Admin API 외 어떤 내부 경로(DB·KMS·GW 내부 모듈)도 직접 호출하지 않는다.
 
 ## 2.3 Overall Operation (전체 동작방식) — 주요 시나리오·플로우
 주요 시나리오(부모 §2.3 방식과 정렬): **S1** 로그인·부트스트랩 · **S2** 권한 요청→승인 · **S3** 디바이스 enrollment 승인(핵심) · **S4** 연동 대상 등록 · **S5** payload break-glass 열람 · **S6** 리전 스위칭.
@@ -586,7 +598,7 @@ IEC 62304·ISO 13485·감사 추적(부모 §7.9.3)·접근성(§1.2 Will not do
 ### 6.6.2 Other Constraints
 - 인증=Entra OIDC·인가=GW(자체 인증 도입 금지). GW가 SoT(Console에 로직·저장 금지).
 - **권장 스택 = Refine+Next.js**(핵심 결정 B·③-C LLD 확정·Appendix C-4).
-- **훔쳐보기 금지** — GW Admin API 외 내부 경로 직접 호출 금지(§2.2·writing-tips §7).
+- **훔쳐보기 금지** — GW Admin API 외 내부 경로 직접 호출 금지(§2.2).
 - 역할 enum은 GW·DB와 동기(§2.6).
 
 ## 6.7 Memory Constraints
@@ -646,7 +658,7 @@ GW pilot과 연계(별도 계획).
 # 7 Functional Requirements (기능요구사항)
 
 ## 7.0 공통 규칙 (모든 FR에 적용 · DRY)
-아래는 §7 전 기능에 공통 적용되며, 각 FR은 **고유 사항만** 기술한다(중복 회피·writing-tips §5).
+아래는 §7 전 기능에 공통 적용되며, 각 FR은 **고유 사항만** 기술한다(중복 회피).
 - **권한:** 모든 화면·액션은 역할(§2.5·부모 §7.9.2)로 게이팅한다. 무권한은 **비노출 + 서버 403**(FR-CON-34).
 - **감사:** 모든 쓰기·열람은 GW가 append-only 감사한다(부모 §7.9.3). Console은 변경 후 감사 이력을 표시한다.
 - **동시성:** 편집 쓰기는 저장 직전 재조회로 **stale write를 감지·경고**한다(FR-CON-36). *서버 강제 낙관적 잠금(409)은 부모 계약 확장 필요 — Appendix C-11.*
