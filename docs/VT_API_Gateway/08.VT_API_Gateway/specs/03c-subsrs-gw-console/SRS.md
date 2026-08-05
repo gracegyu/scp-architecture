@@ -2,7 +2,7 @@
 
 create by: 전규현(Raymond)
 
-> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.10`) 후 `_status.md` 씨앗을 승격한 **초안(v0.9 · spec-reviewer 6라운드 → baseline 동결 가능 · v0.7 용어정정 · v0.8 §5·§6·§4 구조 분리·§1.2 정리·§4.2 화면 맵·§6.10 국제화(PO표준→Lingui) · v0.9 재검증 H1/M1/L1 반영)**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준(spec-philosophy·spec-standard·spec-writing-tips) 정합 리라이트 반영.
+> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.10`) 후 `_status.md` 씨앗을 승격한 **초안(v0.10 · baseline 동결 가능 · v0.7 용어정정 · v0.8 구조 분리·§1.2 정리·§4.2 화면 맵·§6.10 국제화(PO표준→Lingui) · v0.9 재검증 H1/M1/L1 · v0.10 부모 Admin API 커버리지 감사(26/26)·잔여 정리)**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준(spec-philosophy·spec-standard·spec-writing-tips) 정합 리라이트 반영.
 
 ---
 
@@ -660,7 +660,7 @@ GW pilot과 연계(별도 계획).
 
 ## 7.8 중앙 config 관리 [v1.0 주요]
 정본=부모 §7.8.4.
-- **FR-CON-26** [v1.0] **gw.* config CRUD·publish** — 조회·편집·publish(감사 `config.publish`)·**행 버전(`ConfigEntry.version`·정수) 표시**. *(콘텐츠 해시 `configVersion`은 device 측 fleet config pull 필드[gw/1.1+·v1.0 미사용]라 Admin config 화면 범위 아님.)* *동시성:* stale write 감지(FR-CON-36·행 `version` 표시). *경계:* gw.* 스코프만(device.* 원격 config는 v2.0).
+- **FR-CON-26** [v1.0] **gw.* config CRUD·publish** — `/v1/admin/config`로 조회·편집·publish(감사 `config.publish`)·**행 버전(`ConfigEntry.version`·정수) 표시**. *(콘텐츠 해시 `configVersion`은 device 측 fleet config pull 필드[gw/1.1+·v1.0 미사용]라 Admin config 화면 범위 아님.)* *동시성:* stale write 감지(FR-CON-36·행 `version` 표시). *경계:* gw.* 스코프만(device.* 원격 config는 v2.0).
 - **FR-CON-27** [v2.0] **rollout/카나리·명명 그룹·device 원격 config**(gw/1.1+).
 
 ## 7.9 호환성 매트릭스 뷰어 [v1.0 주요]
@@ -676,7 +676,7 @@ GW pilot과 연계(별도 계획).
 > v2.0은 방향/확장점 수준만(상세는 v2 착수 시 승격).
 - **FR-CON-31** [v2.0] 클리닉 온보딩 여정 마법사/시각화(설치→enroll→AXS 상태 A/B/C·부모 §2.3).
 - **FR-CON-32** [v2.0] 멀티리전 운영 뷰(Region Directory 편집은 ③-I·gw/1.2).
-- (그 외 v2.0 = FR-CON-08·20·25·27·30·03a에 분산.)
+- (그 외 v2.0 = FR-CON-08·20·25·27·30·37·03a에 분산.)
 
 ## 7.12 공통 UX·세션·오류·동시성 [v1.0]
 - **FR-CON-33** [v1.0] **세션 만료·재인증** — 토큰 만료/유휴 타임아웃 시 재인증 유도·미저장 입력 경고. 만료 상태 호출 시 자동 재인증 또는 로그인 복귀.
@@ -728,3 +728,4 @@ GW pilot과 연계(별도 계획).
 | v0.7 | 2026-08-05 | **FR-CON-36 용어 일관성 정정** — v1.0 편집 동시성 표기를 **stale write 감지(FR-CON-36)로 통일**: §3 E2E 커버리지·FR-CON-14·FR-CON-26에 남아 있던 "낙관적 잠금" 표기 제거(FR-CON-36 정의와 불일치 해소). "서버 강제 낙관적 잠금(expectedVersion+409)"은 미래 부모계약 확장 옵션(Appendix C-11) 지칭으로만 유지. |
 | v0.8 | 2026-08-05 | **§6 제목/내용 분리**(6.3.x·6.4·6.6.1·6.7~6.15 헤더에서 본문 줄바꿈 분리) · **§4.2 화면 맵(스크린 인벤토리) 표 추가**(화면=§7 기능 1:1·Refine Resource·라우트·역할 가시성·공통동작 구분·시각상세=LLD) · **§6.10 국제화 확정** — 표준 = PO + 소스 영어원문(심볼 키 금지)이고, 비교표로 **LinguiJS v4 선정**(i18next=키 기반 제약위반·react-intl=PO 적합성 약함). 워크플로(t()→extract→.po→compile)·`lingui.config` 규약·로케일·**cloudwebviewer 레퍼런스(repo 링크)** 명시. 핵심 결정 **E** 신설(Appendix A E·Appendix C-13). · **§5·§4.3/4.4/4.6도 제목/본문 분리**(§6과 동일 패턴·§2.x의 라벨식 "—"는 정당한 제목이라 유지) · **§1.2 핵심 결정 블록쿼트(A·B·C·E) 제거** — SRS 표준(§1.2=executive Product Scope)에 맞춰, 결정은 Appendix A Decision Log + 각 적용 절(§2.1.2·§4.5·§6.6·§6.5·§7.5·§6.10)로 정리(중복 제거·내용 손실 없음). |
 | v0.9 | 2026-08-05 | v0.8 **spec-reviewer 6차 재검증** 지적 반영 — **H1(차단)**: §4.2 화면 맵 FR-CON 그룹핑 정정(**04·05=권한 요청/승인**·**06·08=운영자·역할**·**07=§7.2 공통 표기 규약**으로 이동 — 부모 OpenAPI/§7.2 본문과 대조) · **M1**: "접근성/i18n(§6.10)"을 접근성(§1.2 Will-not-do)·i18n(§6.10)로 분리(§6.10은 i18n 전용) · **L1**: 헤딩 앞 빈 줄 3곳(§4.4→4.5·§4.5→4.6·§6.6.1→6.6.2) 보정. → **baseline 동결 가능**(회귀 없음). |
+| v0.10 | 2026-08-05 | **부모 Admin API 커버리지 감사** — OpenAPI `/v1/admin/*` **26개 엔드포인트가 모두 Console FR-CON에 매핑**됨을 교차 확인(clients·kill·payload는 `/clients`·`POST …/kill` 축약 경로로 참조). 잔여 2건 정리: FR-CON-37을 §7.11 v2.0 분산 목록에 추가(spec-reviewer L2)·FR-CON-26에 `/v1/admin/config` 경로 인용 보강. baseline 동결 가능 유지. |
