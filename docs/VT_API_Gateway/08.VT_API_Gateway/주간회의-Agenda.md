@@ -1507,7 +1507,7 @@
       > - 순서·의존 = [Roadmap §3.9].
 
   - **S3. GW 구현 현황 — Phase·Task 스냅샷 (8/6·매주 갱신)** — 1단계 코어 완료 · 2단계 P8 착수.
-    - **어디까지 왔나 (8/6)**: 1단계 코어(P0~P6·P10) 구현 완료. 2단계는 **P8 골격 완료(8-1·8-2·8-3) + P9 Dispatcher 착수(9-1 소비·대상해석·분배)** — 로컬 더블 기준, 실연동은 ④ AXS 후. **P7·P11·P12는 ④ AXS 연동 선결로 대기.** 구현 다음 통합·검증·QA 단계가 이어진다.
+    - **어디까지 왔나 (8/6)**: 1단계 코어(P0~P6·P10) 구현 완료. 2단계는 **P8 골격 완료(8-1·8-2·8-3) + P9 골격 app-side 완료(9-1·9-2·9-3 소비·분배·DLQ·무유실)** — 로컬 더블 기준, 실연동은 ④ AXS 후. **다음 = P11 Admin CRUD**(④ 무관·자율 진행 중). **P7·P12·P9-KEDA/IoT는 ④ AXS·인프라 선결로 대기.** 구현 다음 통합·검증·QA 단계가 이어진다.
     - 매 Task 완료 시 갱신 · _8/6 프레임 시작값 = 7/30 상태 · **8/3 region-silo 재작업 머지(PR #12241 → `9146ae3`) 반영**_
     - **진행 단계** — 스펙(분석/설계)과 구현을 분리해 진행한다. 스펙은 HLD로 baseline 동결됐고 현재 구현(LLD 병행) 중이다. 구현이 끝이 아니라, QA 인계 전 개발팀이 통합·시스템 테스트로 동작을 확증하는 단계가 남고, 이어 QA·운영이 있다.
       - **스펙 — 분석/설계(HLD)**: SRS·DBML·OpenAPI·TCL baseline v1.0 동결 · 정합화(v1.0.1~v1.0.4) 지속 · LLD는 구현과 병행
@@ -1561,14 +1561,15 @@
 
       > **P8 비고**: 2단계 head-start(④ AXS 실연동 전 로컬 더블로 선행) · **dev 실검증 = Jack payload CMK provisioning 후**(배포-시점 의존) · 8-3 후 실연동은 ④ 후.
 
-      **②-d P9 webhook 분배(Dispatcher) — Task 단위 (8/4~ · 골격 착수 · 2단계 head-start · 로컬 더블)**
+      **②-d P9 webhook 분배(Dispatcher) — Task 단위 (8/4~ · 골격 app-side 3종 완료 · 2단계 head-start · 로컬 더블)**
 
       | Task | 내용 | 상태 | PR |
       | --- | --- | --- | --- |
       | 9-1 SQS 소비·대상해석·DLQ | SQS(eventId) 소비→**(target_id,external_org_id) 복합키** org_mapping→clinic→payload 복호→MQTT publish(gw/clinic/{clinicId}/webhook·qos1)→dispatched · 미해석=**발행 전 fail-closed dead_letter**(교차클리닉 오분배 차단) · 멱등 | ✅ 완료 | #12420 |
       | 9-2 MQTT QoS1·verbatim | 하행 발행 정형화: 토픽 화이트리스트 검증(위험문자 거부·fail-closed·리전 미포함)·QoS1·원 payload verbatim | ✅ 완료 | #12434 |
-      | 9-3 DLQ·재전달·멱등 | crash-gap 재적재 sweep·재전달 멱등 | ⬜ 대기 | — |
-      | 9-4 KEDA 오토스케일 | SQS depth 스케일·graceful drain | ⬜ 대기 | — |
+      | 9-3 DLQ·재전달·멱등 | attempt-cap 백오프→dead_letter·eventId 멱등(중복발행0)·브로커 장애 SQS 잔류 무유실(오프라인 publish 무한 hang 수정=timeout) | ✅ 완료 | #12437 |
+      | 9-4 KEDA 오토스케일 | SQS depth 스케일·graceful drain | 🟠 인프라(③-I) | KEDA config=Jack·app graceful drain 별건 |
+      | 9-5 device IoT 프로비저닝 | Thing/cert·enroll 확장 | ⬜ 대기 | ④ AXS/IoT Core |
 
       > **P9 비고**: full-loop(수신→저장→분배→Mosquitto 구독자 더블)을 로컬로 그린(9-1) · 동반 = **런타임 dep 분류 가드 신설**(소스 devDep import 시 CI 실패·GATE 1b) · dev 실검증·실연동은 ④ AXS 후.
 
