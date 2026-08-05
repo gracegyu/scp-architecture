@@ -2,7 +2,7 @@
 
 create by: 전규현(Raymond)
 
-> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.10`) 후 `_status.md` 씨앗을 승격한 **초안(v0.10 · baseline 동결 가능 · v0.7 용어정정 · v0.8 구조 분리·§1.2 정리·§4.2 화면 맵·§6.10 국제화(PO표준→Lingui) · v0.9 재검증 H1/M1/L1 · v0.10 부모 Admin API 커버리지 감사(26/26)·잔여 정리)**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준(spec-philosophy·spec-standard·spec-writing-tips) 정합 리라이트 반영.
+> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.10`) 후 `_status.md` 씨앗을 승격한 **초안(v0.11 · baseline 동결 가능 · v0.8 구조·§4.2 화면 맵·§6.10 국제화(PO→Lingui) · v0.9 재검증 · v0.10 Admin API 커버리지 감사(26/26)·§1.5 정본 URL · v0.11 사장님 리뷰 반영(S1 Entra 토큰 검증 명시 등·진행))**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준(spec-philosophy·spec-standard·spec-writing-tips) 정합 리라이트 반영.
 
 ---
 
@@ -10,6 +10,8 @@ create by: 전규현(Raymond)
 
 ## 1.1 Purpose (목표)
 본 문서는 **GW Console(③-C)의 소프트웨어 요구사항을 규정하는 Sub-SRS**다. 부모 GW SRS가 정의한 관리 계약(§7.9.1 Admin API·§7.9.2 RBAC·§7.1.4 운영자 OIDC·§7.9.3 감사 등)을 **상속**하되, Console을 하나의 **독립 규격**으로 완성한다 — 부모에 이미 규정된 GW 백엔드 동작은 참조로 두고, 본 문서는 **Console 고유 요구(화면·플로우·가드·마스킹·오류·동시성)** 를 정본으로 담는다.
+
+> **"Sub-SRS"의 의미:** 여기서 Sub는 **GW와의 관계**(범위·계약 종속)를 뜻하며 완성도를 뜻하지 않는다. **계약(Admin API·데이터 모델)의 소유는 부모 GW SRS**이고 Console은 이를 소비만 하지만, **문서 자체는 §1~§7 + Appendix를 갖춘 독립적으로 읽히는 완결 SRS**이며 Console 개발팀(③-C)의 governing SRS다.
 
 - **작성 맥락:** 사내 개발용. Console v1.0을 온보딩 승인 흐름과 함께 조기 착수하기 위해, v1.0을 **완전 규격**으로, v2.0을 **방향·확장점 수준**으로 한 문서에 담는다(§1.3 단계 규약).
 - **상세도(Case):** Console은 **PHI(§1.4) 취급(break-glass)·의료 규제(IEC 62304/ISO 13485)·신규 도메인·다수 화면·15+ API** → spec-philosophy §3 기준 **Case C(고상세)** 로 작성한다(특히 §4·§6·§7 에러·검증·감사).
@@ -59,11 +61,12 @@ GW가 클리닉 EzServer를 온보딩하고 외부(AXS 등)·내부(CleverSpace 
 | **PHI** | Protected Health Information — 보호 대상 건강정보(환자정보). webhook payload에 포함될 수 있어 저장·열람을 통제(§6.2·§7.6). |
 
 ## 1.5 Related Documents (관련문서)
-- **부모 GW SRS** — `vt-api-gateway/docs/specs/SRS.md`(tag `spec-v1.0.10`). Console 상속 근거: §7.9.1·§7.9.2·§7.1.4·§7.9.3·§7.6.3·§7.7.5·§7.8·§7.3.6.
-- **Admin OpenAPI** — `vt-api-gateway/docs/specs/design/openapi/vt-api-gateway.openapi.yaml`(계약 정본·타입 생성 원천).
-- **부모 DBML** — `…/design/dbml/vt-api-gateway.dbml`(데이터 모델).
-- **기능 v1/v2 분리** — 동 폴더 `기능-v1-v2-분리.md`.
-- **ABC 스펙 표준** — abc-dev-assistant `document/spec-{philosophy,standard,writing-tips}.md`.
+> 링크는 **정본 repo의 클릭 가능한 URL**로 적는다(로컬/상대 경로 금지). 부모 계약 3종은 **baseline 태그(`spec-v1.0.10`) 고정 permalink**로 — 시간이 지나도 끊기지 않도록.
+
+- **부모 GW SRS** — [vt-api-gateway `docs/specs/SRS.md` @spec-v1.0.10](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md&version=GTspec-v1.0.10). Console 상속 근거: §7.9.1·§7.9.2·§7.1.4·§7.9.3·§7.6.3·§7.7.5·§7.8·§7.3.6.
+- **Admin OpenAPI** — [vt-api-gateway `design/openapi/vt-api-gateway.openapi.yaml` @spec-v1.0.10](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/openapi/vt-api-gateway.openapi.yaml&version=GTspec-v1.0.10) (계약 정본·타입 생성 원천).
+- **부모 DBML** — [vt-api-gateway `design/dbml/vt-api-gateway.dbml` @spec-v1.0.10](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/dbml/vt-api-gateway.dbml&version=GTspec-v1.0.10) (데이터 모델).
+- **기능 v1/v2 분리** — [본 Sub-SRS 동 폴더 `기능-v1-v2-분리.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/03c-subsrs-gw-console/기능-v1-v2-분리.md)(승격 후 co-located).
 
 ## 1.6 Intended Audience and Reading Suggestions (대상 및 읽는 방법)
 > 범례: `1`=훑어 이해 · `2`=자세히 읽어 업무 반영 · `—`=불요.
@@ -182,7 +185,10 @@ sequenceDiagram
     OP->>C: 접속 (ZTNA 경계 통과)
     C->>E: OIDC 로그인 (Auth Code + PKCE)
     E-->>C: ID/Access 토큰
-    C->>GW: GET /v1/admin/me (operatorAuth)
+    GW->>E: (최초/kid 회전 시) Entra JWKS(공개키) fetch·캐시
+    C->>GW: GET /v1/admin/me (Authorization: Bearer <Entra access token>)
+    GW->>GW: operatorAuth — 토큰 검증(캐시된 Entra JWKS로 서명 + iss·aud·scp claim·요청마다·무상태)
+    GW->>GW: operator_role RBAC 조회 → accessState·실효 역할
     GW-->>C: accessState · 역할
     alt active(역할≥1)
         C-->>OP: 역할별 메뉴 렌더
@@ -728,4 +734,5 @@ GW pilot과 연계(별도 계획).
 | v0.7 | 2026-08-05 | **FR-CON-36 용어 일관성 정정** — v1.0 편집 동시성 표기를 **stale write 감지(FR-CON-36)로 통일**: §3 E2E 커버리지·FR-CON-14·FR-CON-26에 남아 있던 "낙관적 잠금" 표기 제거(FR-CON-36 정의와 불일치 해소). "서버 강제 낙관적 잠금(expectedVersion+409)"은 미래 부모계약 확장 옵션(Appendix C-11) 지칭으로만 유지. |
 | v0.8 | 2026-08-05 | **§6 제목/내용 분리**(6.3.x·6.4·6.6.1·6.7~6.15 헤더에서 본문 줄바꿈 분리) · **§4.2 화면 맵(스크린 인벤토리) 표 추가**(화면=§7 기능 1:1·Refine Resource·라우트·역할 가시성·공통동작 구분·시각상세=LLD) · **§6.10 국제화 확정** — 표준 = PO + 소스 영어원문(심볼 키 금지)이고, 비교표로 **LinguiJS v4 선정**(i18next=키 기반 제약위반·react-intl=PO 적합성 약함). 워크플로(t()→extract→.po→compile)·`lingui.config` 규약·로케일·**cloudwebviewer 레퍼런스(repo 링크)** 명시. 핵심 결정 **E** 신설(Appendix A E·Appendix C-13). · **§5·§4.3/4.4/4.6도 제목/본문 분리**(§6과 동일 패턴·§2.x의 라벨식 "—"는 정당한 제목이라 유지) · **§1.2 핵심 결정 블록쿼트(A·B·C·E) 제거** — SRS 표준(§1.2=executive Product Scope)에 맞춰, 결정은 Appendix A Decision Log + 각 적용 절(§2.1.2·§4.5·§6.6·§6.5·§7.5·§6.10)로 정리(중복 제거·내용 손실 없음). |
 | v0.9 | 2026-08-05 | v0.8 **spec-reviewer 6차 재검증** 지적 반영 — **H1(차단)**: §4.2 화면 맵 FR-CON 그룹핑 정정(**04·05=권한 요청/승인**·**06·08=운영자·역할**·**07=§7.2 공통 표기 규약**으로 이동 — 부모 OpenAPI/§7.2 본문과 대조) · **M1**: "접근성/i18n(§6.10)"을 접근성(§1.2 Will-not-do)·i18n(§6.10)로 분리(§6.10은 i18n 전용) · **L1**: 헤딩 앞 빈 줄 3곳(§4.4→4.5·§4.5→4.6·§6.6.1→6.6.2) 보정. → **baseline 동결 가능**(회귀 없음). |
-| v0.10 | 2026-08-05 | **부모 Admin API 커버리지 감사** — OpenAPI `/v1/admin/*` **26개 엔드포인트가 모두 Console FR-CON에 매핑**됨을 교차 확인(clients·kill·payload는 `/clients`·`POST …/kill` 축약 경로로 참조). 잔여 2건 정리: FR-CON-37을 §7.11 v2.0 분산 목록에 추가(spec-reviewer L2)·FR-CON-26에 `/v1/admin/config` 경로 인용 보강. baseline 동결 가능 유지. |
+| v0.10 | 2026-08-05 | **부모 Admin API 커버리지 감사** — OpenAPI `/v1/admin/*` **26개 엔드포인트가 모두 Console FR-CON에 매핑**됨을 교차 확인(clients·kill·payload는 `/clients`·`POST …/kill` 축약 경로로 참조). 잔여 2건 정리: FR-CON-37을 §7.11 v2.0 분산 목록에 추가(spec-reviewer L2)·FR-CON-26에 `/v1/admin/config` 경로 인용 보강. **§1.1에 "Sub-SRS 의미"(관계상 Sub·계약 소유=부모·문서는 완결 SRS) 주석 추가.** **§1.5 관련문서를 정본 repo URL(클릭 가능·부모 3종은 baseline 태그 `spec-v1.0.10` permalink)로 교체**(상대 경로 제거). baseline 동결 가능 유지. |
+| v0.11 | 2026-08-05 | 사장님 리뷰 반영(진행) — **§2.3.1 S1 로그인·부트스트랩 다이어그램에 Entra 액세스 토큰 검증 단계 명시**: `operatorAuth`(캐시된 Entra JWKS로 서명+`iss`·`aud`·`scp` claim 검증·요청마다·무상태) + `operator_role` RBAC 조회 → `accessState`를 흐름에 드러냄(기존엔 `operatorAuth` 한 단어로 압축돼 검증 절차가 안 보였음). Entra JWKS는 최초/kid 회전 시 fetch·캐시(요청마다 Entra 호출 아님·§7.1.4). · abc-dev-assistant(개인 repo)를 §1.5 관련문서에서 제외. |
