@@ -788,7 +788,7 @@ GW pilot과 연계(별도 계획).
 | C-7 | UI 상세 명세(레이아웃·컴포넌트) | ③-C(별도 UI 명세) |
 | C-8 | Admin API 전용 성능 SLA(부모 §5는 device control-plane 전용·Admin 수치 없음) | GW·성능 요구 시 |
 | C-9 | Console→GW/Entra 호출 재시도 정책(횟수·backoff)·클라이언트 타임아웃 구체값 | ③-C LLD |
-| C-10 | 구체 GW 도메인 `<도메인>`(vatech.com 미사용·별도 도메인) 확정 | ③-I/정보전략실 |
+| C-10 | 구체 GW 도메인 `<도메인>`(vatech.com 미사용·별도 도메인) 확정 | 회의 확정 후 ③-I 등록(별도 조직 위임 아님) |
 | C-11 | **서버 강제 낙관적 잠금**(target·policy·clinic·config에 `expectedVersion`/`If-Match`+409) — 부모 OpenAPI 확장 필요. v1.0=클라이언트측 stale write 감지(FR-CON-36), 다중 운영자 안전 강화 시 권고 | GW+③-C(spec-change) |
 | C-12 | 목록 **기본 정렬·안정 정렬 계약**(현 부모 OpenAPI에 정렬 파라미터 없음) — GW 기본 정렬 보장 확인·계약화 | GW·목록 화면 착수 시 |
 | C-13 | 국제화 구체 — `@lingui/swc-plugin` Next 통합·SWC 설정·플러그인 버전·초기 카탈로그 부트스트랩(방식·설정 규약은 §6.10 확정) | ③-C LLD |
