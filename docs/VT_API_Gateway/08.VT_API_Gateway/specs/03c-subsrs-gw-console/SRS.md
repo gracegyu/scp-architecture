@@ -62,6 +62,7 @@ GW가 클리닉 EzServer를 온보딩하고 외부(AXS 등)·내부(CleverSpace 
 | **ZTNA** | Zero Trust Network Access. Console 페이지 접근 경계(③-I). |
 | **Region Directory** | 리전→`apiHost`·`webhookHostPattern` 정적 JSON(③-I 발행·부모 §7.3.6). |
 | **target(연동 대상)** | 외부/내부 연동 1건(라우팅+아웃바운드 자격+인바운드 webhook)을 담는 GW 레지스트리 레코드. |
+| **DLQ (Dead Letter Queue)** | 처리 실패한 webhook 이벤트를 격리하는 큐 — 재처리·triage 대상(부모 §7.6). |
 | **PHI** | Protected Health Information — 보호 대상 건강정보(환자정보). webhook payload에 포함될 수 있어 저장·열람을 통제(§6.2·§7.6). |
 
 ## 1.5 Related Documents (관련문서)
