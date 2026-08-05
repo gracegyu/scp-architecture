@@ -121,13 +121,21 @@ Console은 **GW 생태계의 관리 프론트엔드**로, GW Admin API의 클라
 flowchart LR
   OP["운영자 브라우저"] -->|"ZTNA·사내망"| C["GW Console SPA · 단일 · 무상태"]
   C -->|"OIDC 로그인"| E["MS Entra · 직원 IdP"]
-  C -->|"HTTPS · operatorAuth"| A["GW Admin API · admin.apse4.gw.도메인"]
-  A --> E
-  A --> DB[("리전 로컬 DB · SoT")]
-  A --> KMS["KMS · 복호는 GW만"]
-  A --> AUD[("감사 로그")]
-  C -->|"읽기"| RD["Region Directory · 정적 JSON"]
-  C -->|"읽기"| WK["well-known · 호환성 매트릭스"]
+  subgraph GW["GW 백엔드 (v1.0 · 멜버른 apse4)"]
+    A["GW Admin API · admin.apse4.gw.도메인"]
+    DB[("리전 로컬 DB · SoT")]
+    KMS["KMS · 복호는 GW만"]
+    AUD[("감사 로그")]
+    RD["Region Directory · 정적 JSON"]
+    WK["well-known · 호환성 매트릭스"]
+    A --> DB
+    A --> KMS
+    A --> AUD
+  end
+  C -->|"HTTPS · operatorAuth"| A
+  A -->|"토큰 검증(Entra JWKS)"| E
+  C -->|"읽기"| RD
+  C -->|"읽기"| WK
 ```
 v1.0 production = 멜버른(apse4) 단일이라 리전 스위칭이 자명.
 
