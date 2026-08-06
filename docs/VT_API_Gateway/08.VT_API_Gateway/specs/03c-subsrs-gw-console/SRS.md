@@ -2,7 +2,7 @@
 
 create by: 전규현(Raymond)
 
-> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.10`) 후 `_status.md` 씨앗을 승격한 **초안(v0.12 · baseline 동결 가능 · v0.8 구조·§4.2 화면 맵·§6.10 국제화(PO→Lingui) · v0.9 재검증 · v0.10 커버리지 감사(26/26) · v0.11 리뷰 반영(S1·부트스트랩·break-glass·S3) · v0.12 §1·§2 정독 리뷰(진행))**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준 정합 리라이트 반영.
+> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.11`) 후 `_status.md` 씨앗을 승격한 **초안(v0.13 · baseline 동결 가능 · v0.8 구조·§4.2 화면 맵·§6.10 국제화(PO→Lingui) · v0.9 재검증 · v0.10 커버리지 감사(26/26) · v0.11 리뷰 반영(S1·부트스트랩·break-glass·S3) · v0.12 §1·§2 정독 리뷰 · v0.13 부모 baseline v1.0.11 반영·apse4→apse2 스윕)**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준 정합 리라이트 반영.
 
 ---
 
@@ -66,11 +66,11 @@ GW가 클리닉 EzServer를 온보딩하고 외부(AXS 등)·내부(CleverSpace 
 | **PHI** | Protected Health Information — 보호 대상 건강정보(환자정보). webhook payload에 포함될 수 있어 저장·열람을 통제(§6.2·§7.6). |
 
 ## 1.5 Related Documents (관련문서)
-> 링크는 **정본 repo의 클릭 가능한 URL**로 적는다(로컬/상대 경로 금지). 부모 계약 3종은 **baseline 태그(`spec-v1.0.10`) 고정 permalink**로 — 시간이 지나도 끊기지 않도록.
+> 링크는 **정본 repo의 클릭 가능한 URL**로 적는다(로컬/상대 경로 금지). 부모 계약 3종은 **baseline 태그(`spec-v1.0.11`) 고정 permalink**로 — 시간이 지나도 끊기지 않도록.
 
-- **부모 GW SRS** — [vt-api-gateway `docs/specs/SRS.md` @spec-v1.0.10](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md&version=GTspec-v1.0.10). Console 상속 근거: §7.9.1·§7.9.2·§7.1.4·§7.9.3·§7.6.3·§7.7.5·§7.8·§7.3.6.
-- **Admin OpenAPI** — [vt-api-gateway `design/openapi/vt-api-gateway.openapi.yaml` @spec-v1.0.10](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/openapi/vt-api-gateway.openapi.yaml&version=GTspec-v1.0.10) (계약 정본·타입 생성 원천).
-- **부모 DBML** — [vt-api-gateway `design/dbml/vt-api-gateway.dbml` @spec-v1.0.10](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/dbml/vt-api-gateway.dbml&version=GTspec-v1.0.10) (데이터 모델).
+- **부모 GW SRS** — [vt-api-gateway `docs/specs/SRS.md` @spec-v1.0.11](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md&version=GTspec-v1.0.11). Console 상속 근거: §7.9.1·§7.9.2·§7.1.4·§7.9.3·§7.6.3·§7.7.5·§7.8·§7.3.6.
+- **Admin OpenAPI** — [vt-api-gateway `design/openapi/vt-api-gateway.openapi.yaml` @spec-v1.0.11](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/openapi/vt-api-gateway.openapi.yaml&version=GTspec-v1.0.11) (계약 정본·타입 생성 원천).
+- **부모 DBML** — [vt-api-gateway `design/dbml/vt-api-gateway.dbml` @spec-v1.0.11](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/dbml/vt-api-gateway.dbml&version=GTspec-v1.0.11) (데이터 모델).
 - **기능 v1/v2 분리** — [본 Sub-SRS 동 폴더 `기능-v1-v2-분리.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/03c-subsrs-gw-console/기능-v1-v2-분리.md)(승격 후 co-located).
 
 ## 1.6 Intended Audience and Reading Suggestions (대상 및 읽는 방법)
@@ -121,8 +121,8 @@ Console은 **GW 생태계의 관리 프론트엔드**로, GW Admin API의 클라
 flowchart LR
   OP["운영자 브라우저"] -->|"ZTNA·사내망"| C["GW Console SPA · 단일 · 무상태"]
   C -->|"OIDC 로그인"| E["MS Entra · 직원 IdP"]
-  subgraph GW["GW 백엔드 (v1.0 · 멜버른 apse4)"]
-    A["GW Admin API · admin.apse4.gw.도메인"]
+  subgraph GW["GW 백엔드 (v1.0 · 시드니 apse2)"]
+    A["GW Admin API · admin.apse2.gw.도메인"]
     DB[("리전 로컬 DB · SoT")]
     KMS["KMS · 복호는 GW만"]
     AUD[("감사 로그")]
@@ -137,7 +137,7 @@ flowchart LR
   C -->|"읽기"| RD
   C -->|"읽기"| WK
 ```
-v1.0 production = 멜버른(apse4) 단일이라 리전 스위칭이 자명.
+v1.0 production = 시드니(apse2) 단일이라 리전 스위칭이 자명.
 
 ### 2.1.2 gw/1.2 — 멀티리전 조망 (region silo)
 ```mermaid
@@ -147,7 +147,7 @@ flowchart TB
   C -->|"리전 목록"| RD["Region Directory · 정적 JSON"]
   C -. "선택 리전만 라이브 호출" .-> A1
   C -. "전환 시" .-> A2
-  subgraph R1["리전 A · 멜버른 apse4 · 독립 스택"]
+  subgraph R1["리전 A · 시드니 apse2 · 독립 스택"]
     A1["Admin API"] --> DB1[("리전 A DB")]
     A1 --> K1["KMS A"]
     A1 --> AUD1[("감사 로그 A")]
@@ -286,7 +286,7 @@ sequenceDiagram
     participant GW as GW Admin API(선택 리전)
     Note over CS,GW: 전제 — EzServer가 나라(country→region)로 리전 자동 결정해 그 리전 GW에 enroll → device=pending (부모 §2.3.1)
     CS->>C: 리전 컨텍스트 선택 (Region Directory·FR-CON-03)
-    Note over CS,C: v1.0=단일(멜버른) 자동·자명 · gw/1.2=담당 리전 선택
+    Note over CS,C: v1.0=단일(시드니) 자동·자명 · gw/1.2=담당 리전 선택
     CS->>C: 승인 대기 디바이스 목록
     C->>GW: GET /v1/admin/devices?status=pending (선택 리전)
     GW-->>C: pending 목록 (clinic 요약 임베드 · country 필요 시 clinic 드릴스루)
@@ -351,12 +351,12 @@ sequenceDiagram
     OP->>C: 대상 리전 선택
     C->>C: 선택 리전의 admin host를 API base로 설정
     C->>A: 이후 API는 선택 리전만 호출
-    Note over C,A: 한 번에 한 리전만 라이브 · 교차리전 집계/저장 없음(주권) · v1.0=단일(멜버른) · gw/1.2=Directory 행 추가
+    Note over C,A: 한 번에 한 리전만 라이브 · 교차리전 집계/저장 없음(주권) · v1.0=단일(시드니) · gw/1.2=Directory 행 추가
 ```
 1. Console은 Region Directory에서 리전 목록·`apiHost`를 읽는다.
 2. 운영자가 대상 리전을 선택하면 이후 API 호출 base = `admin.<region>.gw.<도메인>`.
 3. 화면은 선택 리전만 라이브 호출·표시한다(교차리전 집계·저장 없음·주권 유지).
-4. v1.0=단일(멜버른)이라 선택지가 하나다. gw/1.2=Region Directory 행만 늘어난다(§2.1.2·FR-CON-03).
+4. v1.0=단일(시드니)이라 선택지가 하나다. gw/1.2=Region Directory 행만 늘어난다(§2.1.2·FR-CON-03).
 
 ## 2.4 Product Functions (제품 주요 기능 — §7과 1:1)
 - **운영자 로그인·세션**(§7.1) — 직원 SSO로 안전하게 콘솔에 들어온다.
@@ -694,7 +694,7 @@ GW pilot과 연계(별도 계획).
 정본=부모 §7.1.4·§7.9.2.
 - **FR-CON-04** [v1.0] **권한 요청**(no_access·본인) — 역할 멀티선택 + 스코프(기본 global) + 사유 → `POST /v1/admin/me/access-requests` → "승인 대기". *검증:* 최소 1개 역할 선택. *에러:* 중복 요청은 GW가 거절(409)→"이미 요청됨" 표시. 거부되면 사유 표시·재요청 가능.
 - **FR-CON-05** [v1.0] **Admin 승인 큐·조정**(admin) — `GET /v1/admin/access-requests`(requested) → **승인·부분 승인·거부**(`PATCH …/roles/{grantId}` — 요청 역할당 grant 1건이라 **일부만 active·나머지 reject** 가능) + **직접 조정**(요청과 무관하게 부여/회수=FR-CON-06). 즉 요청은 제안이고 **최종 역할은 Admin이 확정**한다. *Side effect:* 승인 시 대상 운영자의 다음 `/me`부터 역할 반영. *알림:* 요청 발생 알림 채널(이메일/Teams/인앱)은 ③-C 확정(Appendix C-6).
-- **FR-CON-06** [v1.0] **운영자 관리**(admin) — `GET /v1/admin/operators`(상태·역할 필터)·상세 → 직접 부여(`POST …/roles`)·회수(revoked)·정지/복구(status). *가드:* 본인 마지막 admin 역할 회수 방지 — **GW 서버가 강제**한다(`PATCH …/roles/{grantId}`가 시스템 마지막 admin 회수를 409로 거부·**부모 §7.9.2/OpenAPI에 반영됨**(spec-v1.0.10·`patchAdminOperatorRole` 409)). Console UI도 해당 버튼을 비활성화하되 **최종 강제는 서버**다(API 직접 호출로도 lock-out 불가). *Side effect:* suspended는 역할 무관 전면 차단.
+- **FR-CON-06** [v1.0] **운영자 관리**(admin) — `GET /v1/admin/operators`(상태·역할 필터)·상세 → 직접 부여(`POST …/roles`)·회수(revoked)·정지/복구(status). *가드:* 본인 마지막 admin 역할 회수 방지 — **GW 서버가 강제**한다(`PATCH …/roles/{grantId}`가 시스템 마지막 admin 회수를 409로 거부·**부모 §7.9.2/OpenAPI에 반영됨**(spec-v1.0.11·`patchAdminOperatorRole` 409)). Console UI도 해당 버튼을 비활성화하되 **최종 강제는 서버**다(API 직접 호출로도 lock-out 불가). *Side effect:* suspended는 역할 무관 전면 차단.
 - **FR-CON-07** [v1.0] **표기 규약** — 역할=멀티(체크박스)·서열 UI 금지·설명 툴팁. CS=global 자동(클리닉 선택 UI 불필요). 거부/회수 이력 상태로 노출(삭제 아님).
 - **FR-CON-08** [v2.0] **역할 카탈로그 편집 UI** — 새 역할·권한 매핑 편집(현재 역할=코드 enum이라 코드 변경 동반 → 고급).
 
@@ -707,7 +707,7 @@ GW pilot과 연계(별도 계획).
 
 ## 7.4 클리닉 관리·관계 [v1.0]
 정본=부모 §7.3·Appendix B #47. 보조 워크스페이스=Clinic 뷰.
-- **FR-CON-13** [v1.0·필수(조회)] **클리닉 목록/상세** — 컬럼: clinic·country·**deviceCount·orgBindingStatus**. **region은 컬럼 아님**(배포 상수·상단 리전 컨텍스트로 1회 표시·FR-CON-09 동일). *(clinic은 device 같은 lifecycle status가 없다 — 부모 `getAdminClinics` 규약.)* `deviceCount`·`orgBindingStatus`는 **GW가 Clinic 목록 응답에 제공하는 읽기전용 요약 필드**다 — 집계는 GW(SoT)가 수행하며 클라이언트 N+1 집계를 하지 않는다. *이 두 필드는 부모 §7.9.1 Clinic DTO에 반영됨*(읽기전용·additive·비파괴·spec-v1.0.10). 상세 탭=[clinic 정보(region 표시)]·[org-bindings]·[소속 device 목록(`GET …/clinics/{id}/devices`)]·[SW 인벤토리]·[clinic-scope 정책·config].
+- **FR-CON-13** [v1.0·필수(조회)] **클리닉 목록/상세** — 컬럼: clinic·country·**deviceCount·orgBindingStatus**. **region은 컬럼 아님**(배포 상수·상단 리전 컨텍스트로 1회 표시·FR-CON-09 동일). *(clinic은 device 같은 lifecycle status가 없다 — 부모 `getAdminClinics` 규약.)* `deviceCount`·`orgBindingStatus`는 **GW가 Clinic 목록 응답에 제공하는 읽기전용 요약 필드**다 — 집계는 GW(SoT)가 수행하며 클라이언트 N+1 집계를 하지 않는다. *이 두 필드는 부모 §7.9.1 Clinic DTO에 반영됨*(읽기전용·additive·비파괴·spec-v1.0.11). 상세 탭=[clinic 정보(region 표시)]·[org-bindings]·[소속 device 목록(`GET …/clinics/{id}/devices`)]·[SW 인벤토리]·[clinic-scope 정책·config].
 - **FR-CON-14** [v1.0·주요(교정)] **편집면 단일화(3갈래 분리)** — 실제 API 계약이 셋이라 갈래를 나눈다: (a) **clinic 표시정보**(name·country_code·address·phone·website) 교정 = Clinic 화면 `PATCH …/clinics/{id}`로 단일화 · (b) **org-binding** 교정 = org-mapping 화면(별도 API·FR-CON-19) · (c) **region은 v1.0 교정 API 없음** — 변경=교차리전 마이그레이션(부모 §7.3.4·부모 Appendix B #50·gw/1.2 이후). device 수명주기는 Device 화면에서만. 같은 필드를 두 화면에서 고치지 않는다. *동시성:* stale write 감지(FR-CON-36).
 - **FR-CON-15** [v1.0] **양방향 드릴스루** — Device↔Clinic 상호 링크.
 > **device-self 혼동 금지:** `/v1/clinics/me/*`(디바이스 자가 평면)는 actor가 다르므로 운영자 화면과 합치지 않는다(§1.2 Will-not-do).
@@ -814,13 +814,14 @@ GW pilot과 연계(별도 계획).
 | --- | --- | --- |
 | v0.1 | 2026-08-04 | `_status.md` 씨앗 승격 초안(템플릿+부모+씨앗). |
 | v0.2 | 2026-08-04 | ABC 스펙 표준(philosophy·standard·writing-tips) 정합 전면 리라이트 — §1.1/§1.2 Why중심·§1.6 매트릭스·§2.1~2.3 조망/내부구성/시나리오·§2.5 5항목·Decision Log·§7 Case C 깊이·§7.0 공통규칙. spec-reviewer 1·2차 반영(H1~H3·M1~M3·Low). |
-| v0.3 | 2026-08-04 | spec-reviewer 재검증 반영 — FR-CON-13 phantom `status` 제거·S3 다이어그램 country/region 정정·FR-CON-06/13 "반영됨"으로 정정·부모 태그 spec-v1.0.10 갱신·FR-CON-19 org-mapping 삭제·FR-CON-17 종속 409·재시도 정책 소유(C-9). |
+| v0.3 | 2026-08-04 | spec-reviewer 재검증 반영 — FR-CON-13 phantom `status` 제거·S3 다이어그램 country/region 정정·FR-CON-06/13 "반영됨"으로 정정·부모 태그 spec-v1.0.11 갱신·FR-CON-19 org-mapping 삭제·FR-CON-17 종속 409·재시도 정책 소유(C-9). |
 | v0.4 | 2026-08-04 | spec-reviewer 3차(판정=baseline 준비됨) 반영 — FR-CON-26 configVersion(콘텐츠 해시=device 필드) → `ConfigEntry.version`(정수)로 정정·bare `R4` 라벨 제거(별도 GW 도메인·Appendix C-10)·§1.4 `PHI` 정의 추가. |
 | v0.5 | 2026-08-04 | spec-reviewer **4차 판정 = ✅ baseline 동결 가능**(3차 지적 3건 CLOSED·regression 없음). 잔여 비차단 🟢 반영(§1.1 PHI 첫 등장에 §1.4 참조). **baseline 후보.** |
 | v0.6 | 2026-08-05 | spec-reviewer **5차 적대적 완전성 패스** 반영 — H1: FR-CON-36 낙관적 잠금이 부모 계약(expectedVersion/409) 부재 → **클라이언트측 stale write 감지·경고로 하향**·서버 강제는 Appendix C-11 권고. §7.0 공통규칙에 **기본 정렬·시각(UTC) 표시·빈/로딩/오류 3상태** 추가(M1~M3·C-12). FR-CON-09 부모 §4.5.1→§7.3.1 정정(L1)·"Appendix C-N" 표기 통일(L2)·C-2/C-3/C-7 순방향 참조(L3)·수동등록 예외경로·접근성 Will-not-do(L4·S2)·강제 로그아웃 note(S1). + §2.6 **Region Directory=v1.0 배포 선결** 명시(EzServer 부트스트랩 앵커·gw1.2 아님·부모 §7.3.6 P1). |
 | v0.7 | 2026-08-05 | **FR-CON-36 용어 일관성 정정** — v1.0 편집 동시성 표기를 **stale write 감지(FR-CON-36)로 통일**: §3 E2E 커버리지·FR-CON-14·FR-CON-26에 남아 있던 "낙관적 잠금" 표기 제거(FR-CON-36 정의와 불일치 해소). "서버 강제 낙관적 잠금(expectedVersion+409)"은 미래 부모계약 확장 옵션(Appendix C-11) 지칭으로만 유지. |
 | v0.8 | 2026-08-05 | **§6 제목/내용 분리**(6.3.x·6.4·6.6.1·6.7~6.15 헤더에서 본문 줄바꿈 분리) · **§4.2 화면 맵(스크린 인벤토리) 표 추가**(화면=§7 기능 1:1·Refine Resource·라우트·역할 가시성·공통동작 구분·시각상세=LLD) · **§6.10 국제화 확정** — 표준 = PO + 소스 영어원문(심볼 키 금지)이고, 비교표로 **LinguiJS v4 선정**(i18next=키 기반 제약위반·react-intl=PO 적합성 약함). 워크플로(t()→extract→.po→compile)·`lingui.config` 규약·로케일·**cloudwebviewer 레퍼런스(repo 링크)** 명시. 핵심 결정 **E** 신설(Appendix A E·Appendix C-13). · **§5·§4.3/4.4/4.6도 제목/본문 분리**(§6과 동일 패턴·§2.x의 라벨식 "—"는 정당한 제목이라 유지) · **§1.2 핵심 결정 블록쿼트(A·B·C·E) 제거** — SRS 표준(§1.2=executive Product Scope)에 맞춰, 결정은 Appendix A Decision Log + 각 적용 절(§2.1.2·§4.5·§6.6·§6.5·§7.5·§6.10)로 정리(중복 제거·내용 손실 없음). |
 | v0.9 | 2026-08-05 | v0.8 **spec-reviewer 6차 재검증** 지적 반영 — **H1(차단)**: §4.2 화면 맵 FR-CON 그룹핑 정정(**04·05=권한 요청/승인**·**06·08=운영자·역할**·**07=§7.2 공통 표기 규약**으로 이동 — 부모 OpenAPI/§7.2 본문과 대조) · **M1**: "접근성/i18n(§6.10)"을 접근성(§1.2 Will-not-do)·i18n(§6.10)로 분리(§6.10은 i18n 전용) · **L1**: 헤딩 앞 빈 줄 3곳(§4.4→4.5·§4.5→4.6·§6.6.1→6.6.2) 보정. → **baseline 동결 가능**(회귀 없음). |
-| v0.10 | 2026-08-05 | **부모 Admin API 커버리지 감사** — OpenAPI `/v1/admin/*` **26개 엔드포인트가 모두 Console FR-CON에 매핑**됨을 교차 확인(clients·kill·payload는 `/clients`·`POST …/kill` 축약 경로로 참조). 잔여 2건 정리: FR-CON-37을 §7.11 v2.0 분산 목록에 추가(spec-reviewer L2)·FR-CON-26에 `/v1/admin/config` 경로 인용 보강. **§1.1에 "Sub-SRS 의미"(관계상 Sub·계약 소유=부모·문서는 완결 SRS) 주석 추가.** **§1.5 관련문서를 정본 repo URL(클릭 가능·부모 3종은 baseline 태그 `spec-v1.0.10` permalink)로 교체**(상대 경로 제거). baseline 동결 가능 유지. |
+| v0.10 | 2026-08-05 | **부모 Admin API 커버리지 감사** — OpenAPI `/v1/admin/*` **26개 엔드포인트가 모두 Console FR-CON에 매핑**됨을 교차 확인(clients·kill·payload는 `/clients`·`POST …/kill` 축약 경로로 참조). 잔여 2건 정리: FR-CON-37을 §7.11 v2.0 분산 목록에 추가(spec-reviewer L2)·FR-CON-26에 `/v1/admin/config` 경로 인용 보강. **§1.1에 "Sub-SRS 의미"(관계상 Sub·계약 소유=부모·문서는 완결 SRS) 주석 추가.** **§1.5 관련문서를 정본 repo URL(클릭 가능·부모 3종은 baseline 태그 `spec-v1.0.11` permalink)로 교체**(상대 경로 제거). baseline 동결 가능 유지. |
 | v0.11 | 2026-08-05 | 사장님 리뷰 반영(진행) — **§2.3.1 S1 로그인·부트스트랩 다이어그램에 Entra 액세스 토큰 검증 단계 명시**: `operatorAuth`(캐시된 Entra JWKS로 서명+`iss`·`aud`·`scp` claim 검증·요청마다·무상태) + `operator_role` RBAC 조회 → `accessState`를 흐름에 드러냄(기존엔 `operatorAuth` 한 단어로 압축돼 검증 절차가 안 보였음). Entra JWKS는 최초/kid 회전 시 fetch·캐시(요청마다 Entra 호출 아님·§7.1.4). · abc-dev-assistant(개인 repo)를 §1.5 관련문서에서 제외. · **최초 admin 부트스트랩 설계 추가(§2.3.2)** — first-admin 승인 데드락 해소: **seed된 최초 admin(GW DB seed·③-I 배포·TOFU 아님)** vs 이후 request→approve를 **상황별 플로우차트 + 시퀀스**로 명시, **부분 승인·Admin 조정**(FR-CON-05)·FR-CON-02 seed note 보강. **최초 admin seed는 부모 §7.1.4/§7.9.2 계약 추가 필요 — 표시만 하고 부모 미수정(Appendix B C-14·Console 확정 후 부모 반영).** · **break-glass 열람 사유를 세션 단위 재사용으로 다듬음**(FR-CON-22a·§2.3.5 — 건건 재입력 제거·건건 감사는 유지·GW 스펙 밖 세션 메커니즘은 미도입) + payload 열람 **사유(reason) 수집·저장 계약 부재를 C-15로 확정**(부모 검증: `audit_log`엔 actor·action·result·before/after·source_ip만·reason 컬럼 없음 / payload GET에 reason 파라미터 없음 → **API reason 전달 + audit_log reason 필드 둘 다** 필요·`operator_role.note`는 RBAC용 별개). · **부모 SRS 반영 대상 체크리스트를 부록에 한 블록으로 정리**(C-8·C-11·C-12·C-14·C-15)하고 §2.3.2 인라인 콜아웃 축소. · **S3 디바이스 enrollment 승인 리뷰 반영** — (1) 사유 저장 gap을 **C-15로 일반화**(payload·kill·거부 공통 — `audit_log` reason 필드 + 사유 필요 액션 API에 reason)·FR-CON-12에 kill 사유 C-15 선결 표시, (2) 거부는 **v1.0 명시 Reject**(→`rejected`·부모 상태 신설이 선결·C-16·기능은 v1.0이고 부모 반영 시점만 Console 확정 후)·방치 pending TTL 만료는 별개 안전망, (3) FR-CON-10·S3에 승인 엔드포인트(`PATCH …/devices/{id}` status=active) 인용. |
 | v0.12 | 2026-08-05 | **§1·§2 정독 리뷰 반영**(사장님 + spec-reviewer 체크리스트 A~N + 템플릿 §1~§2 대조) — §1.1 ③-C·버전 명시·"Case C" 외부라벨 제거 · §1.4에 **③-C/③-I/③-P·C/S·SoT·DLQ** 용어 추가 · §1.3 writing-tips 인용 제거 · §1.6 문서 구성 한 줄·§3/§5 읽기 행 추가 · **§2.1.1 GW 백엔드 박스(subgraph)화**·**§2.1.2 리전 스택에 감사로그·well-known** 추가 · **§2.2 GW 백엔드 박스로 §2.1과 external 정합**(GW Admin API 단일 노드·"GW 범위"→"GW 백엔드") · **§2.3.6 S6 시퀀스 다이어그램 추가** · authoring 메타 표현 정리(누락 점검·필수 점검·혼란 방지)·외부 가이드 인용(writing-tips·spec-philosophy) 제거·§1.5 provenance 축약. §2.1·§2.3(S4)·§2.4는 템플릿 정합 확인(무수정 통과). |
+| v0.13 | 2026-08-06 | **부모 baseline v1.0.11 반영·리전 교정 스윕** — 부모 GW SRS PR #12440(③b verbatim+JWKS)·#12453(prod 리전 시드니 교정·Console 전역 단일·JWS 회전·Region Directory) 병합·태그 `spec-v1.0.11`. §1.5 부모 계약 3종 핀 v1.0.10→v1.0.11. §2.1.1·§2.1.2·§2.3 등 **멜버른 apse4 → 시드니 apse2**(ap-southeast-4는 AWS IoT Core 미지원) 스윕. Console 전역 단일은 #12453이 확정(리전별 철회)이라 변경 없음. ZT↔Entra 층·전역 Console→리전별 Admin 도달 경로(§4.5.1)는 백로그 잔여. |
