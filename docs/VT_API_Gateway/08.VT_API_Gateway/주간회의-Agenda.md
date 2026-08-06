@@ -4,28 +4,22 @@
 
 - 이번 주 진행 _(프레임 · 8/13 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
   - **(8/6~8/13 완료) GW 자율 구현 범위 완결** — **P11 Admin CRUD 전 Task 완료**(11-1~11-6 머지: targets·policies·config/org-mappings·operators RBAC 생애주기·webhook-events break-glass·audit 전면·데이터분류 스캐폴드) + **P9-4 app-side graceful drain**(무유실·offline-hang 강제종료) → ④/인프라 무관 자율 가능 범위 소진 · 구현현황 = S3
-  - **(진행) T-AUTH-2-6 — GW JWKS 공개 엔드포인트(v1.0.11 승격) + ③b device 토큰 계약 정합** — `GET /.well-known/jwks.json`(CleverSpace GW Guard=외부 검증자 실재) + 토큰 `iss`/TTL≤15분/`aud`=GW수준. 착수(구현 중) → S3
+  - **(8/13 완료) T-AUTH-2-6 — GW JWKS 공개 엔드포인트(v1.0.11 승격) + ③b device 토큰 계약 정합** — `GET /.well-known/jwks.json`(무인증·개인키 미노출·CleverSpace GW Guard=외부 검증자) + 토큰 `iss`https형식/TTL≤15분/`aud`=GW수준. 머지 #12478(외부 검증 시뮬 실 jwt.verify·전체 e2e 430 회귀0) → S3 ②-f
   - **(v1.0.11 반영) 스펙 정합화** — prod 리전 **시드니 `apse2`** 교정(멜버른 apse4=IoT Core 미지원)·JWKS v1.0 승격·Console 전역 단일 확정 → 코드 영향은 T-AUTH-2-6뿐(리전=배포 config·grep 반전 확인·재작업 0) → 공유 S5
   - **(진행 중 실무) AWS 환경 분리** — 계정/네트워크·ESO/Parameter Store 경로·`.env.template`(Jack·Raymond·③-I) · GW_REGION dev 프로비저닝
   - **(잔여) EzServer OnePager 수령 확인** · 보류·선결(IO Scanner=`이월-R1`)은 이월 표 참조
   - _(이번 주 결정사항 = 회의 시 추가)_
 
 - 논의 사항 (이번 주 · 신규 논의/결정 안건)
-  - **R1. GW Console 멀티리전 운영자 인가(authz) 방식 확정 (8/6 제기·이월·미결)** — [논의·결정] 운영자 인증(authN)은 Entra(전역)로 해결됐으나, 인가(authz)는 현재 리전 DB의 `operator_role`(리전 silo·sync 없음)이라 멀티리전(gw/1.2)에서 admin·developer 같은 전역 역할을 리전마다 재부여해야 하고 새 리전엔 자동 적용되지 않는다(+리전별 첫-admin bootstrap 데드락). v1.0은 단일 리전이라 미발생이나 `operator_role` 데이터 모델을 지금 정해야 한다.
-    - **결정 필요**: ① 리전 간 인가를 전역 스토어로 동기화할지(전역 authz 계층 도입) · ② (핵심) 역할을 전 리전 동일로 강제할지 vs 리전별 차등 부여를 허용할지 · ③ admin·developer를 기본 all-regions로 둘지(주권 리전을 아우르는 글로벌 admin의 보안·규제 수용 여부).
-    - **GW 팀 제안**: 단일 전역 authz 스토어(operator=비-PHI라 전역 복제가 주권 위반 아님 · Region Directory·Entra와 같은 전역 계층) + grant별 `regionScope`(all / 특정 / 부분). admin·developer 기본 all-regions(필요 시 좁힘) · cs·operator는 승인 시 리전 선택. 수단=**DynamoDB Global Table**(비-PHI 다중 리전 자동 복제·리전 로컬 읽기). v1.0은 설계만 ready(단일 리전 인스턴스)·구현 gw/1.2.
-    - **영향·이해관계**: GW(`operator_role`·DBML)·③-C(승인 UX·리전 전환)·③-I(전역 스토어·복제)·보안/운영(글로벌 admin 정책). Jack의 "전역 Console→리전별 내부 Admin API 도달 경로"(§4.5.1 미결)·리전 전환 토큰 audience 건과 **한 묶음으로 논의 권장**.
-    - **성격/산출**: [논의·결정] — 결정 시 부모 §7.9.2·DBML(`operator_role.regionScope`·전역 스토어)·③-C Console SRS(운영자 멀티리전 authz 절)에 반영. v1.0 구현 불요(단일 리전)이나 데이터 모델·설계 방향은 지금 확정.
-    - (결정)
-  - (그 외 이번 주 확정분(R2·R2-1·R3·R4·R5) = 진행 요약 + 공유 S5 · 진행 중 실무(AWS 환경 분리)는 이번 주 진행 · 보류·선결(IO Scanner↔EzServer = `이월-R1` 등)은 아래 「이월 논의 사항」 표 참조.)
-  - _(회의 중 신규 안건 발생 시 여기 추가)_
+  - _R1(GW Console 멀티리전 운영자 authz)은 이번 주 결정 완료 → 스펙 세션이 §7.9.2·DBML(`operator_role`)·③-C Console SRS로 정리·반영. 아젠다 상시 논의에서 종료._
+  - _(이번 주 결정사항 = 스펙 세션 정리 후 반영 · 회의 중 신규 안건 발생 시 여기 추가 · 보류·선결은 아래 「이월 논의 사항」 표 참조.)_
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
   - **S1. 프로젝트 일정(Gantt) — 8/13 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **정본** = [개발 Roadmap 결정 §3.9](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>) (수정은 그쪽 먼저 · 7/23→7/30 변경은 정본 §3.9 동기화 완료).
     - **8/6→8/13 변경**:
       - **GW 자율 구현 범위 완결**: P8·P9 골격(app-side) + **P11 Admin CRUD 전부(11-1~11-6 머지)** + **P9-4 app-side drain**(무유실)
-      - **v1.0.11 정합화**: JWKS 엔드포인트 v1.0 승격 → **T-AUTH-2-6 진행 중** · prod 리전 시드니 `apse2` 교정(멜버른=IoT Core 미지원) · Console 전역 확정
+      - **v1.0.11 정합화**: JWKS 엔드포인트 v1.0 승격 → **T-AUTH-2-6 완료(#12478)** · prod 리전 시드니 `apse2` 교정(멜버른=IoT Core 미지원) · Console 전역 확정
     - **직전 7/30→8/6 변경 유지**:
       - region-silo(R2) 구현 재작업 완료(PR #12241·8/3·단일 datasource) · P6 프록시 완결 · R2-1 확정(서울=dev·호주 먼저 오픈)
     - **직전 7/23→7/30 변경 유지**:
@@ -139,7 +133,7 @@
       | **③-P-LMP LMP** | OnePager(조건부) | **미정 (ES 라이선스팀?)** | — | — |
       | **CleverLab** | ④ Sub-SRS(갈래B) | 미정 (보류) | — | — |
 
-      > **8/6 진행(7/30 반영)**
+      > **진행 배경 (누적·상시)**
       >
       > - **0단계 IO Scanner·④ AXS = 보류**(Straumann↔ES 데이터 흐름 협상) → **1·2·3단계 우선**.
       > - **③-P-CS CleverSpace·③-P-CO CleverOne OnePager 2개**(각 1·2·3단계=호환성+presigned+GW일원화 통합) **= Raymond·7/27 병행 착수**(deferred→active · CleverOne Nick→Raymond → 담당팀 전달).
@@ -151,8 +145,8 @@
       > - 순서·의존 = [Roadmap §3.9].
 
   - **S3. GW 구현 현황 — Phase·Task 스냅샷 (8/13·매주 갱신)** — 1단계 코어 완료 · 2단계 P8·P9·P11 완결 · 인증 v1.0.11 보강 중.
-    - **어디까지 왔나 (8/13)**: 1단계 코어(P0~P6·P10) 완료. 2단계는 **P8 골격(8-1·8-2·8-3) + P9 골격 app-side(9-1·9-2·9-3) + P9-4 drain + P11 Admin CRUD 전부(11-1~11-6 머지) 완결** — 로컬 더블 기준, 실연동은 ④ AXS 후. **인증 보강**: v1.0.11로 JWKS 엔드포인트 v1.0 승격 → **T-AUTH-2-6 진행 중**(공개키 게시+토큰 claim 정합). **④/인프라 무관 자율 가능 범위 소진**(9-4·12-2 후보 처리: 9-4 app-side 완료·12-2 compat E2E는 게이트 미배선(① One Pager 매트릭스)으로 블록). **남은 것 = P7(External Connector·AXS)·9-5(IoT)·P12-1(sandbox E2E)=④ AXS 실자격 선결 · 9-4 실 KEDA·0-5 잔여(자동배포)·P12-4=③-I 인프라(Jack) · P12-2(compat E2E)=① One Pager 매트릭스 확정 · P12-3(부하)=부하환경 · P7 골격(7-1/2/4/5)=로컬 더블 선행 가능(보류).** 구현 다음 통합·검증·QA 단계가 이어진다.
-    - 매 Task 완료 시 갱신 · _8/6 프레임 시작값 = 7/30 상태 · **8/3 region-silo 재작업 머지(PR #12241 → `9146ae3`) 반영**_
+    - **어디까지 왔나 (8/13)**: 1단계 코어(P0~P6·P10) 완료. 2단계는 **P8 골격(8-1·8-2·8-3) + P9 골격 app-side(9-1·9-2·9-3) + P9-4 drain + P11 Admin CRUD 전부(11-1~11-6 머지) 완결** — 로컬 더블 기준, 실연동은 ④ AXS 후. **인증 보강**: v1.0.11로 JWKS 엔드포인트 v1.0 승격 → **T-AUTH-2-6 완료(#12478)**(공개키 게시+토큰 claim 정합·개인키 미노출·외부 검증 시뮬). **④/인프라 무관 자율 가능 범위 소진**(9-4·12-2 후보 처리: 9-4 app-side 완료·12-2 compat E2E는 게이트 미배선(① One Pager 매트릭스)으로 블록). **남은 것 = P7(External Connector·AXS)·9-5(IoT)·P12-1(sandbox E2E)=④ AXS 실자격 선결 · 9-4 실 KEDA·0-5 잔여(자동배포)·P12-4=③-I 인프라(Jack) · P12-2(compat E2E)=① One Pager 매트릭스 확정 · P12-3(부하)=부하환경 · P7 골격(7-1/2/4/5)=로컬 더블 선행 가능(보류).** 구현 다음 통합·검증·QA 단계가 이어진다.
+    - 매 Task 완료 시 갱신.
     - **진행 단계** — 스펙(분석/설계)과 구현을 분리해 진행한다. 스펙은 HLD로 baseline 동결됐고 현재 구현(LLD 병행) 중이다. 구현이 끝이 아니라, QA 인계 전 개발팀이 통합·시스템 테스트로 동작을 확증하는 단계가 남고, 이어 QA·운영이 있다.
       - **스펙 — 분석/설계(HLD)**: SRS·DBML·OpenAPI·TCL baseline v1.0 동결 · 정합화(v1.0.1~v1.0.4) 지속 · LLD는 구현과 병행
       - **구현(LLD 병행)** — _구현 단계 내 진척(코딩 Task) · region-silo 재작업(8/3·PR #12241) 완료로 **P4 대부분 삭제·단일화** → Task 집합 축소·재산정 예정_: 1단계 코어 **P0~P6·P10 완료 + region-silo 재작업 완료** · 2단계 **P8 골격 완료(8-1·8-2·8-3)·P9 착수(9-1)** / P7·P11·P12는 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
@@ -235,7 +229,7 @@
 
       | Task | 내용 | 상태 | PR |
       | --- | --- | --- | --- |
-      | 2-6 JWKS 공개 + 토큰 claim 정합 | `GET /.well-known/jwks.json`(무인증·RS256 공개키·kid·Cache-Control·회전 구·신 동시게시)·외부 검증자(CleverSpace GW Guard)용 · 토큰 `iss=https://api.<region>.gw.<도메인>`·TTL≤15분 상한·`aud`=GW수준 정합 | 🟠 구현 중 | — |
+      | 2-6 JWKS 공개 + 토큰 claim 정합 | `GET /.well-known/jwks.json`(무인증·RS256 공개키·kid·Cache-Control·회전 구·신 동시게시·개인키 미노출)·외부 검증자(CleverSpace GW Guard)용 · 토큰 `iss=https://api.<region>.gw.<도메인>`·TTL≤15분 상한·`aud`=GW수준 정합 | ✅ 완료 | #12478 |
 
       > **②-f 비고**: v1.0.11(#12440)이 JWKS 엔드포인트를 **gw/1.2 백로그→v1.0 승격**(외부 검증자 실재). 비대칭 RS256·kid·공개키 JWK 파생은 이미 T-AUTH-2-1에 있어 **공개키 게시 + claim 3건 정합만 추가**(기존 토큰·개인키·검증 재작업 0). 리전 apse4→apse2·Console 전역은 config/타 소유(코드 무영향).
 
