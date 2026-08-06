@@ -7,7 +7,7 @@
 - **리뷰어**: Larry·Scott(필수) · Jack·Teddy·Thomas(옵션) · 우리=전규현
 - **커밋**: `88b17da`(원안) + `a6044df`(리뷰 반영분·**push 완료** 2026-08-05)
 - **최종 fetch**: 2026-08-05 (Update 1 포함) · 유효 thread 7건(초기 Nemesis 4 + Scott 승인 1 + **Update 1 Nemesis 2**) + 시스템 thread(리뷰어 지정·voted·push 알림)
-- **상태**: **Scott 승인 완료**(voted 10·aud 위험 수용) · Nemesis 🔧1·💡2·총평1 = **push 완료(a6044df)** · **답변 5건 게시 완료**
+- **상태**: **Scott 승인 완료**(voted 10·aud 위험 수용) · 초기 Nemesis 🔧1·💡2·총평1 = **push(a6044df)·답변 게시 완료** · Update 1 Nemesis 💡1 = **push(0a914c0)·게시 완료** · **Update 2 = Larry [Block]2·[Suggestion]3 + Nemesis 권장1(C-08~C-14) 전건 수용 → 편집 push(`2a16391`)·답변 7건 게시완료·Nemesis(83156·83157) resolve · **Larry vote 10 → #12440 병합 완료(2026-08-06)·baseline 태그 `spec-v1.0.11`**
 
 ---
 
@@ -134,10 +134,129 @@
 
 ---
 
+## Update 2 (2026-08-05 · Nemesis 재검토 Update 2 + Larry 리뷰 · **Larry voted -5 작성자 대기**)
+
+> **fetch 2026-08-06.** 신규 액티브 6건 — Nemesis Update 2 권장 1(C-08·총평 C-09) + **Larry [Block] 2·[Suggestion] 3**(C-10~C-14). 공통 진단: verbatim의 대가(‘GW 홉 경유’ 증명 상실 + 직접 호출 경로 revocation/rate-limit 미적용)를 문면이 지불 안 한 것처럼 서술 → **전건 수용(정밀 정정·계약 보강·verbatim 반전 아님, Larry도 verbatim 동의).**
+>
+> **처리 결과(2026-08-06):** 확정 4건(TTL `expires_in` ≤15분 · iss `https://api.<region>.gw.<도메인>` · aud=`GW`(비-target) · revocation=(c) TTL 상한) 반영 → §7.1.5·§7.1.1 Output·OpenAPI **편집 push(`2a16391`)** · **답변 7건 게시완료(comment id 2)** · **Nemesis 83156·83157 resolved(fixed)** · **Larry 83230~83234 active(재리뷰·재투표 대기)**.
+
+### C-08 · docs/specs/SRS.md:1886 (§7.1.5 aud 주의 문단) · [thread 83156] · 💡 권장 · 초안(게시 전)
+- **[민진우(Thomas)·Nemesis 🆔msfmxzzql · 83156]**
+  > From Nemesis(v0.6.0, 🆔msfmxzzql),
+  > **💡 권장**
+  > `aud` 주의 문단이 GW Guard의 신뢰 기준을 "**GW 서명 + `iss` + `exp` + device 활성**"으로 나열하는데, 이 중 앞의 세 가지(서명·`iss`·`exp`)는 GW Guard가 §7.1.5 검증 절차 2단계에서 **실제로 대조·검증하는** 항목인 반면, "**device 활성**"은 GW Guard가 토큰만 보고는 확인할 수 없는 상태다(lifecycle/revocation은 §7.1.1·§7.2.4로 GW 소유이며, 시퀀스 다이어그램 라인 1920 "GW→GW: 토큰 서명·lifecycle 검증(등록·active)"처럼 **매 프록시 홉에서 GW edge가 재검증**해 보장한다). 즉 "device 활성"은 GW Guard가 *평가하는 기준*이 아니라 *GW가 상류에 보장해 주는 전제*(라인 1864 신뢰 모델)로, 성격이 다른 두 부류를 한 목록에 섞으면 구현자가 GW Guard에서 device 활성/폐기 상태를 별도 확인해야 한다고 오해할 수 있다. 라인 1909가 "토큰 폐기·rate-limit은 GW 담당 → 중복 관리 불필요"라고 이미 못박은 것과도 정합되도록, "device 활성"은 GW 서명·`iss`·`exp` 검증에 GW edge의 per-hop lifecycle 보장이 더해져 **간접 보장**됨을 명시하면 검증 항목과 전제가 분리돼 애매함이 사라진다.
+- **[우리·판단]** 타당. GW Guard 검증 항목(서명·iss·exp)과 GW 보장 전제(device 활성=간접보장·GW 경유 한정) 분리. C-13·C-14와 정합.
+- **[우리·답변 초안]**
+  > 수용합니다. GW Guard가 실제 검증하는 항목(GW 서명·iss·exp)과 GW가 상류에서 보장하는 전제(device 활성)를 분리해 서술합니다. device 활성은 GW edge의 매 홉 lifecycle 재검증으로 간접 보장되며 이는 GW 경유 트래픽에 한정된다는 점(직접 경로엔 미치지 않아 TTL 상한으로 노출 창 제한)을 함께 명시해 검증 항목과 전제가 섞이지 않게 합니다.
+- **[편집안]** §7.1.5 aud 주의 문단: 검증 항목/전제 분리 + GW 경유 한정 명시.
+- **상태:** 게시완료(comment 2) · thread **resolved(fixed)**
+
+### C-09 · (일반·총평 Update 2) · [thread 83157] · 초안(게시 전)
+- **[민진우(Thomas)·Nemesis 🆔msfmxzzql · 83157]**
+  > From Nemesis(v0.6.0, 🆔msfmxzzql, ⏱2m00s, 🔢295.2k in/7.4k out),
+  > ## Code Review (Other) — Update 2
+  > 이번 증분은 이전 리뷰의 유일한 잔여 지적(§7.1.5 line comment — `iss` 기대값 미명시 + 서명 바인딩 목록에서 `iss` 누락)을 완전히 해소했다. (a) 검증 2단계(라인 1870)가 "`iss`가 배포 설정에 고정된 그 리전 GW issuer 식별자와 일치"로 기대값을 명문화하고 1단계 JWKS URL 고정·3단계 `region` 교차검증과의 정합까지 서술했으며, (b) 신원 계약의 "서명 바인딩(신뢰 가능)" 목록(라인 1881)에 `iss`를 추가하고, 상류의 §7.1.1 Output(라인 1799)·§2.3.2(라인 714) 토큰 claim 목록에도 `iss`를 함께 반영해 계약 전반이 일관된다.
+  > 구조적으로 나머지 신규 서술은 정합적이다. 구간별 헤더 표(라인 594)·③b 예시 HTTP(라인 643·645)·§7.1.5 본문·시퀀스 다이어그램·구현 책임 분담표가 모두 "GW는 ③b에서 자기 서명 device 토큰을 verbatim 전달, JWKS 공개 / CleverSpace GW Guard가 JWKS로 검증"이라는 한 계약으로 수렴한다. JWKS 호스트(`api.<region>.gw.<도메인>`)는 §7.1.1(라인 1804)·§7.1.5(라인 1869)에서 동일하게 고정됐고, 키 출처(Secrets Manager PEM·KMS CMK 아님·앱 동적 파생·프로비저닝=③-I) 서술도 §7.1.3.1과 어긋나지 않는다. 보안 8항목 표의 2컬럼(디바이스·프록시 면 / 운영자·관리 면) 분리와 `v1.1→gw/1.1` 버전 표기 정정, `scope` 예약(미사용) 정정도 §7.1.1·§7.2.2·§7.5.3과 정합한다. `aud` confused-deputy는 이전과 동일하게 "v1.0 의식적 수용"으로 acknowledged 되어 제외했다. 남은 지적은 위 line comment 한 건(신뢰 기준 목록에서 GW Guard가 *검증하는 항목*과 *GW가 보장하는 전제*의 분리)뿐이며 recommendation 수준이다.
+  > 1 line-specific finding(s) were posted as inline comments.
+- **[우리·판단]** 총평. 액션은 C-08. 반영 후 resolve.
+- **[우리·답변 초안]**
+  > 리뷰 감사합니다. 지적하신 검증 항목과 GW 보장 전제의 분리(위 line comment)를 반영했습니다.
+- **상태:** 게시완료(comment 2) · thread **resolved(fixed)**
+
+### C-10 · docs/specs/SRS.md:1865 (§7.1.5 신뢰 모델) · [thread 83230] · **[Block]** · 초안(게시 전)
+- **[고형용(Larry) · 83230]**
+  > **[Block] 신뢰 모델 — verbatim 이 포기한 속성을 문면이 여전히 주장합니다.**
+  > verbatim 선택에는 동의합니다. "target 을 추가해도 상류 인증 로직을 target별로 늘리지 않는다" 는 근거는 저희가 어서션을 권장할 때 든 근거보다 상위입니다 — 저희는 CleverSpace 하나를 보고 권장했고 GW 는 N개 target 플랫폼을 봤습니다. 되돌릴 뜻이 없습니다.
+  > 정정을 요청하는 것은 문면 하나입니다.
+  > > "GW Guard 는 그 서명을 GW JWKS 로 검증하기만 하면 **'정품 GW 트래픽'임을 암호학적으로 확인**한다."
+  > **서명 검증이 증명하는 것은 "GW 가 이 device 에게 이 토큰을 발급했다" 까지입니다.** "이 요청이 GW hop 을 지나왔다" 는 증명하지 못합니다. verbatim 토큰은 채널에 바인딩되지 않은 bearer 이고, DPoP(sender-constrained)는 §7.1.1 에서 gw/1.1 비목표입니다. 그리고 이건 **verbatim 을 고른 순간 원리적으로 사라진 속성**입니다 — 어서션이었다면 GW 개인키로만 만들 수 있는 객체가 hop 증거가 됐습니다. 즉 선택은 옳지만, 지불한 대가를 문면이 지불하지 않은 것처럼 적었습니다.
+  > 그리고 CleverSpace 는 "GW 만 도달 가능" 이라는 네트워크 전제를 만족시킬 수 없습니다. 브라우저 SPA·게스트 공유 링크(경로 B)를 계속 열어둬야 하고(#12239 L89 스레드에서 EOS 제외로 합의), 그 ingress 는 같은 호스트입니다. 유효한 device 토큰 보유자는 GW 를 우회해 직접 호출할 수 있고 GW Guard 는 그것을 구분하지 못합니다.
+  > **요청 3건 — 모두 문장 단위입니다.**
+  > 1. 이 불릿의 결론을 "…GW 가 **이 device 에게 발급한 토큰임을** 암호학적으로 확인한다" 로 정정.
+  > 2. 신뢰 모델에 전제 1줄 추가 — *"이 신뢰 모델은 GW Guard 가 붙은 라우트에 **GW 이외의 ingress 가 없을 때** 성립한다. 그 전제는 target 이 ingress 분리로 보장한다."*
+  > 3. 절 끝 "요약(계약 한 줄)" 의 *"'GW 통과 요청'임을 확인하고"* 도 같은 취지로 정정.
+  > *(CleverSpace 측 대응: GW Guard 라우트를 별도 host/ingress 로 정적 분리합니다. 요청 헤더 유무로 Guard 를 고르면 공격자가 Guard 를 고르게 되므로 데코레이터·호스트로만 선택합니다.)*
+- **[우리·판단]** 정확. verbatim은 "발급 사실"만 증명, "홉 경유"는 증명 불가. 3건 모두 수용(문장 단위 정정).
+- **[우리·답변 초안]**
+  > 지적이 정확합니다. verbatim을 택한 이상 서명이 증명하는 것은 "GW가 이 device에게 이 토큰을 발급했다"까지이고, "GW 홉을 경유했다"는 채널 바인딩이 없어 증명되지 않는다는 데 동의합니다. 세 가지 모두 반영합니다. (1) 결론을 "GW가 이 device에게 발급한 토큰임을 암호학적으로 확인한다"로 정정, (2) 신뢰 모델에 전제 한 줄 추가 — 이 모델은 GW Guard 라우트에 GW 이외의 ingress가 없을 때 성립하며 그 전제는 target이 host/ingress 분리로 보장한다, (3) 요약의 "GW 통과 요청" 표현도 같은 취지로 정정. 브라우저 SPA·게스트 공유 경로가 같은 호스트로 열려 있다는 점과 Guard 라우트를 host/ingress로 정적 분리하는 대응도 이 전제와 정합합니다.
+- **[편집안]** §7.1.5: (a) 결론 문면 정정 (b) 전제 1줄 추가(GW 이외 ingress 없음·target이 분리 보장) (c) 요약 한 줄 정정.
+- **상태:** 게시완료(comment 2) · active(Larry 재리뷰 대기)
+
+### C-11 · docs/specs/design/openapi/…openapi.yaml:1749 (TokenResponse.claims) · [thread 83231] · **[Block]** · 초안(게시 전)
+- **[고형용(Larry) · 83231]**
+  > **[Block] `aud` 예시가 §7.1.5 와 정반대이고 `iss` 가 빠졌습니다 — 그대로 두면 GW Guard 구현이 어긋납니다.**
+  > **① `aud` 예시가 target 서브도메인입니다.** 반면 §7.1.5 는 *"v1.0 device 토큰의 `aud` 는 CleverSpace 로 못박혀 있지 않다(발급 시점에 대상 target 미정)"* 로 적었습니다.
+  > `TokenRequest` 스키마를 확인하니 `grant_type`·`client_id`·`client_assertion_type`·`client_assertion`·`scope` 뿐이고 target/resource/audience 파라미터가 없으며 `scope` 는 v1.0 미사용·예약입니다. **GW 는 발급 시점에 대상 target 을 알 방법이 구조적으로 없으므로 §7.1.5 가 맞고 예시가 틀렸습니다.**
+  > 실패 모드가 둘인데 두 번째가 더 나쁩니다.
+  > - (i) 정본 예시를 따라 `aud === 'cleverspace.<region>.gw.<도메인>'` 검증을 넣으면 **100% 401**. 시끄럽게 실패하니 금방 발견됩니다.
+  > - (ii) **"`aud` 가 target 에 묶여 있으니 confused-deputy 는 이미 닫혔다"** 로 오독. §7.1.5 가 **명시적으로 수용한 위험**을 닫힌 것으로 착각하고 넘어갑니다. 조용히 실패합니다.
+  > **② `iss` 가 description 에 없습니다.** Update 1 이 §7.1.1 Output·§2.3.2·§7.1.5 서명 바인딩 목록에 `iss` 를 추가했는데 이 description 은 그대로 "device_id·region·aud·TTL" 입니다. §4.1 이 OpenAPI 를 스키마 정본으로 지정하므로 지금은 **정본이 본문보다 뒤처진 상태**입니다.
+  > **요청**: description 에 `iss` 추가 + *"`aud` 는 target-scoped 가 아니다"* 한 줄 + 예시를 실제 발급값으로 교체(`iss` 포함). 두 줄 수정입니다.
+  > 머지 전 처리를 부탁드립니다 — 가장 싸고, 정본이 구현을 틀리게 만드는 유일한 항목입니다.
+- **[우리·판단]** 정확·최우선(정본이 구현을 오도). TokenRequest에 target 파라미터 없음 → 발급 시 target 모름 → §7.1.5가 맞고 예시가 틀림. 수용.
+- **[우리·답변 초안]**
+  > 정확한 지적이라 머지 전에 반영합니다. TokenRequest에 target/resource/audience 파라미터가 없고 scope도 v1.0 미사용이라 GW는 발급 시점에 대상 target을 알 수 없으므로 §7.1.5가 맞고 OpenAPI 예시가 틀렸습니다. aud 예시를 target 서브도메인에서 실제 발급값으로 교체하고 "aud는 target-scoped가 아니다(confused-deputy는 v1.0 의식적 수용)"를 description에 명시하며, iss를 description과 예시에 추가해 OpenAPI 정본을 §7.1.1·§7.1.5 본문과 일치시킵니다.
+- **[편집안]** OpenAPI TokenResponse.claims: aud 예시 교체(비-target `GW`) + "aud target-scoped 아님" 1줄 + iss description·예시 추가.
+- **상태:** 게시완료(comment 2) · active(Larry 재리뷰 대기)
+
+### C-12 · docs/specs/SRS.md:1870 (§7.1.5 검증 2단계) · [thread 83232] · [Suggestion] · 초안(게시 전)
+- **[고형용(Larry) · 83232]**
+  > **[Suggestion] `iss` 기대값의 형식이 정의되지 않았습니다.**
+  > Update 1 로 `iss` 검증이 규범이 됐는데, **`iss` 값의 형식이 SRS·OpenAPI 어디에도 없습니다.** SRS 전문에서 `issuer` 는 §7.1.4(Entra) 맥락 1건뿐이고, OpenAPI `TokenResponse.claims` 예시에도 `iss` 가 없습니다.
+  > GW Guard 는 이 값을 배포 설정에 고정해 대조해야 하므로, 형식이 없으면 저희가 추측하게 됩니다. 후보가 최소 넷입니다 — `https://api.<region>.gw.<도메인>` / `api.<region>.gw.<도메인>` / `https://api.<region>.gw.<도메인>/v1` / 리전 라벨 또는 불투명 문자열. 틀리면 전건 401 이고, 이 절이 실패를 401 로 규정했으므로 원인 진단도 어렵습니다.
+  > **제안**: §7.1.1 Output 또는 이 절에 `iss` 값의 **형식 1줄**. `TokenResponse.claims` 예시에 실제 `iss` 값을 함께 넣어주시는 것으로도 충분합니다.
+  > 값·형식·기재 위치의 판단은 GW 에 맡깁니다. 정해진 형식만 알려주시면 저희가 설정으로 고정합니다.
+- **[우리·판단]** 타당. iss 형식 확정 필요. 제안: `https://api.<region>.gw.<도메인>`(리전 GW 베이스 URL·https·후행 경로 없음). 수용.
+- **[우리·답변 초안]**
+  > 반영합니다. iss 형식을 §7.1.1 Output에 명시합니다 — iss = https://api.<region>.gw.<도메인> (그 리전 GW 베이스 URL·https·후행 경로 없음). TokenResponse.claims 예시에도 이 값을 넣어 설정으로 고정하실 수 있게 합니다.
+- **[편집안]** §7.1.1 Output + OpenAPI 예시: iss 형식 `https://api.<region>.gw.<도메인>`.
+- **상태:** 게시완료(comment 2) · active(Larry 재리뷰 대기) · 확정: iss=`https://api.<region>.gw.<도메인>`
+
+### C-13 · docs/specs/SRS.md:1909 (§7.1.5 "중복 관리 불필요") · [thread 83233] · [Suggestion] · 초안(게시 전)
+- **[고형용(Larry) · 83233]**
+  > **[Suggestion] "중복 관리 불필요" 는 GW 경유 트래픽에 한정해서만 성립합니다.**
+  > > "토큰 폐기(`jti`)·rate-limit 은 GW 가 담당(§7.1.1)하므로 **중복 관리 불필요**."
+  > 직접 호출 경로에는 **revocation(§7.2.4 즉시 차단)도, kill-switch(§7.8.2)도, rate-limit 도 미치지 않습니다.** 무상태 검증만 하는 GW Guard 는 revoke 된 device 의 토큰을 TTL 만료까지 그대로 받습니다.
+  > 그리고 CleverSpace 가 이를 대체할 수단이 없습니다. #12239 스레드(③b 신원 전달)에서 *"EzServer 유효성 권위·해지 전파는 CleverSpace/OneID 쪽에서 정리"* 로 정리됐는데, 해지에는 두 방향이 있습니다.
+  > - **OneID 발 해지**(EzServer 가 OneID 에서 해지) — CleverSpace/OneID 가 처리합니다. 이 부분은 말씀대로입니다.
+  > - **GW 발 해지**(device revocation·kill-switch) — **GW 만 알고 있고 target 에 조회 수단이 없습니다.**
+  > 회귀는 아닙니다 — 오늘 EzServer 경로도 무상태입니다. 새로운 것은 **발급 권한이 GW 로 옮겨가는데 집행은 GW 경유 경로에만 남는다**, 즉 권한과 집행점이 분리되는 구조입니다.
+  > **제안**:
+  > 1. 이 문장에 **"단 GW 경유 트래픽에 한정"** 한정어 추가.
+  > 2. 아래 중 최소 하나 — (a) device 상태 조회 API(내부 B target 용) (b) revocation webhook (c) `expires_in` 상한 규범화(별 스레드). **(c) 가 가장 쌉니다** — target 이 못 하는 것을 "계약으로 상한이 있는 것" 으로 바꿔 줍니다.
+  > 어느 쪽이 GW 로드맵에 맞는지는 GW 판단에 맡깁니다. (a)·(b) 가 부담이면 (c) 만으로도 저희는 위험을 정량화할 수 있습니다.
+- **[우리·판단]** 정확. 권한(GW 발급)과 집행(GW 경유만)의 분리 구조 인정. v1.0=(c) TTL 상한 채택(C-14와 짝), (a)·(b)는 gw/1.1+. 수용.
+- **[우리·답변 초안]**
+  > 동의합니다. 발급 권한은 GW로 옮겨갔는데 집행(revocation·kill-switch·rate-limit)은 GW 경유 경로에만 미친다는 구조가 맞습니다. 해당 문장에 "GW 경유 트래픽에 한정" 한정어를 추가하고, 직접 호출 경로의 노출 창은 device access token TTL 상한으로 제한합니다(가장 싼 (c)안·아래 TTL 스레드와 함께). device 상태 조회 API와 revocation webhook은 gw/1.1+ 후속으로 남깁니다.
+- **[편집안]** §7.1.5: "GW 경유 한정" 한정어 + 직접 경로 노출 창=TTL 상한 제한 + (a)·(b) gw/1.1+ 후속.
+- **상태:** 게시완료(comment 2) · active(Larry 재리뷰 대기) · 확정: (c) TTL 상한(≤15분)·(a)(b) gw/1.1+
+
+### C-14 · docs/specs/SRS.md:1790 (§7.1.1 Output) · [thread 83234] · [Suggestion] · 초안(게시 전)
+- **[고형용(Larry) · 83234]**
+  > **[Suggestion] device access token TTL 의 규범값·상한이 없습니다.**
+  > Output 은 `expires_in`(초)만 규정하고 **숫자를 정하지 않습니다.** OpenAPI `TokenResponse` 예시에 `900` 이 있지만 예시일 뿐입니다.
+  > §7.1.5 의 무상태 검증 모델 때문에 이 값이 필요합니다 — **직접 호출 경로에서 revoke 된 device 가 계속 통과하는 창의 길이가 곧 이 TTL** 입니다. 규범값이 없으면 (i) GW Guard 측이 "허용 가능한 노출 창" 을 판단할 근거가 없고 (ii) GW 가 운영 중 값을 바꾸면 **target 의 위험도가 조용히 변합니다.**
+  > **제안**: 이 Output 항에 device access token TTL 의 **규범값 또는 상한**(예: ≤15분) 명시.
+  > 구체 값은 GW 운영 판단에 맡깁니다. 상한이 계약에 있기만 하면 저희는 그것을 전제로 설계할 수 있습니다.
+- **[우리·판단]** 정확(C-13과 짝). 직접 경로 revocation 창 = TTL. 규범 상한 명시. 제안: ≤15분(값은 상한 내 GW 판단). 수용.
+- **[우리·답변 초안]**
+  > 반영합니다. §7.1.1 Output에 device access token TTL의 규범 상한을 명시합니다(≤15분 제안 — 직접 호출 경로의 revocation 지연 창이 곧 이 TTL이므로 상한을 계약으로 둡니다). 구체 값은 상한 내에서 GW 운영 판단으로 정하되, 상한 자체는 계약에 남겨 target이 위험을 정량화할 수 있게 합니다.
+- **[편집안]** §7.1.1 Output: device access token TTL 규범 상한(≤15분) 명시 + OpenAPI 정합.
+- **상태:** 게시완료(comment 2) · active(Larry 재리뷰 대기) · 확정: `expires_in` ≤15분
+
+---
+
 ## 요약 (처리 현황)
-- **Scott(필수): 승인 완료.** Larry(필수): 미투표(리뷰 대기).
+- **Scott(필수): 승인 완료.** **Larry(필수): voted -5(작성자 대기)** — Update 2로 [Block] 2·[Suggestion] 3 제기(C-10~C-14). verbatim 결정엔 동의하며 문면·계약 정밀화 요청 → **전건 반영·답변 게시완료(push `2a16391`) → Larry vote 10 → #12440 병합 완료(2026-08-06)**.
 - **Nemesis 4건 전부 반영·push 완료**(`a6044df`): C-01 보안 수정(JWKS 신뢰 URL 고정·region 검증 후 교차검증) + C-02 rate-limit/CDN 전제 + C-03 Cache-Control 헤더 계약.
 - **답변 5건 게시 완료**(2026-08-05·전규현 명의·초기 라운드).
 - **Update 1(재검토·Nemesis)**: 이전 3건 해소 확인 + 잔여 💡 1건(C-06 `iss` 정밀화) **반영·push(`0a914c0`)·답변 게시 완료**.
 - **Nemesis 스레드 6건(83087~83090·83141·83142) 전부 resolved(fixed).** Scott 승인 스레드(83105)만 그대로 둠.
-- **미결:** ① **Larry 리뷰(대기·필수)** · ② 병합 후 태그 `spec-v1.0.11`·IP 갱신·구현세션 통지 · ③ Console Sub-SRS parent 핀 v1.0.10→v1.0.11(병합 후).
+- **Update 2(2026-08-06):** Larry [Block]2·[Suggestion]3 + Nemesis 권장1(C-08~C-14) 전건 수용 — **편집 push(`2a16391`)·답변 7건 게시·Nemesis(83156·83157) resolve 완료**.
+- **처리 완료:**
+  - ① **확정 4건 완료** — TTL `expires_in` ≤15분 · iss `https://api.<region>.gw.<도메인>` · aud=`GW`(비-target) · revocation=(c) TTL 상한((a)(b) gw/1.1+).
+  - ② **§7.1.5·§7.1.1 Output·OpenAPI 편집 push(`2a16391`)·답변 7건 게시·Nemesis 스레드 resolve 완료** · Larry 스레드(83230~83234) active(재리뷰 대기).
+- **병합 완료(2026-08-06):** #12440 Larry vote 10 승인 → 병합 · #12453(리전/Console)도 병합 · **baseline 태그 `spec-v1.0.11` 부여**(`a57dcf2`) · Console Sub-SRS parent 핀 v1.0.10→v1.0.11 스윕 완료.
+- **잔여:**
+  - IP 갱신·구현세션 통지(§7.1.5 ③b 계약·TTL ≤15분·iss 형식 `https://api.<region>.gw.<도메인>`).
+  - CleverSpace 측 OnePager(#12463·Larry·ezcloud) 회신 — P0-3 2건(OpenAPI 소스 자동생성 원칙·행위자 신원 문안) 처리 계획. 우리 #12440 반영은 정확히 옮겨짐(spot-check 확인).
