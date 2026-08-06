@@ -1377,7 +1377,13 @@
   - **(잔여) EzServer OnePager 수령 확인** · 보류·선결(IO Scanner=`이월-R1`)은 이월 표 참조
 
 - 논의 사항 (이번 주 · 신규 논의/결정 안건)
-  - **신규 논의 안건 없음** — 이번 주 확정분(R2·R2-1·R3·R4·R5) = 진행 요약 + 공유 S5 · 진행 중 실무(AWS 환경 분리)는 이번 주 진행 · 보류·선결(IO Scanner↔EzServer = `이월-R1` 등)은 아래 「이월 논의 사항」 표 참조.
+  - **R1. GW Console 멀티리전 운영자 인가(authz) 방식 확정 (신규·8/6)** — [논의·결정] 운영자 인증(authN)은 Entra(전역)로 해결됐으나, 인가(authz)는 현재 리전 DB의 `operator_role`(리전 silo·sync 없음)이라 멀티리전(gw/1.2)에서 admin·developer 같은 전역 역할을 리전마다 재부여해야 하고 새 리전엔 자동 적용되지 않는다(+리전별 첫-admin bootstrap 데드락). v1.0은 단일 리전이라 미발생이나 `operator_role` 데이터 모델을 지금 정해야 한다.
+    - **결정 필요**: ① 리전 간 인가를 전역 스토어로 동기화할지(전역 authz 계층 도입) · ② (핵심) 역할을 전 리전 동일로 강제할지 vs 리전별 차등 부여를 허용할지 · ③ admin·developer를 기본 all-regions로 둘지(주권 리전을 아우르는 글로벌 admin의 보안·규제 수용 여부).
+    - **GW 팀 제안**: 단일 전역 authz 스토어(operator=비-PHI라 전역 복제가 주권 위반 아님 · Region Directory·Entra와 같은 전역 계층) + grant별 `regionScope`(all / 특정 / 부분). admin·developer 기본 all-regions(필요 시 좁힘) · cs·operator는 승인 시 리전 선택. 수단=**DynamoDB Global Table**(비-PHI 다중 리전 자동 복제·리전 로컬 읽기). v1.0은 설계만 ready(단일 리전 인스턴스)·구현 gw/1.2.
+    - **영향·이해관계**: GW(`operator_role`·DBML)·③-C(승인 UX·리전 전환)·③-I(전역 스토어·복제)·보안/운영(글로벌 admin 정책). Jack의 "전역 Console→리전별 내부 Admin API 도달 경로"(§4.5.1 미결)·리전 전환 토큰 audience 건과 **한 묶음으로 논의 권장**.
+    - **성격/산출**: [논의·결정] — 결정 시 부모 §7.9.2·DBML(`operator_role.regionScope`·전역 스토어)·③-C Console SRS(운영자 멀티리전 authz 절)에 반영. v1.0 구현 불요(단일 리전)이나 데이터 모델·설계 방향은 지금 확정.
+    - (결정)
+  - (그 외 이번 주 확정분(R2·R2-1·R3·R4·R5) = 진행 요약 + 공유 S5 · 진행 중 실무(AWS 환경 분리)는 이번 주 진행 · 보류·선결(IO Scanner↔EzServer = `이월-R1` 등)은 아래 「이월 논의 사항」 표 참조.)
   - _(회의 중 신규 안건 발생 시 여기 추가)_
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
@@ -1510,7 +1516,7 @@
       > - 순서·의존 = [Roadmap §3.9].
 
   - **S3. GW 구현 현황 — Phase·Task 스냅샷 (8/6·매주 갱신)** — 1단계 코어 완료 · 2단계 P8 착수.
-    - **어디까지 왔나 (8/6)**: 1단계 코어(P0~P6·P10) 구현 완료. 2단계는 **P8 골격 완료(8-1·8-2·8-3) + P9 골격 app-side 완료(9-1·9-2·9-3 소비·분배·DLQ·무유실)** — 로컬 더블 기준, 실연동은 ④ AXS 후. **다음 = P11 Admin CRUD**(④ 무관·자율 진행 중). **P7·P12·P9-KEDA/IoT는 ④ AXS·인프라 선결로 대기.** 구현 다음 통합·검증·QA 단계가 이어진다.
+    - **어디까지 왔나 (8/6)**: 1단계 코어(P0~P6·P10) 구현 완료. 2단계는 **P8 골격 완료(8-1·8-2·8-3) + P9 골격 app-side 완료(9-1·9-2·9-3) + P11 Admin CRUD 구현 완료(11-1~11-5 머지·11-6 PR)** — 로컬 더블 기준, 실연동은 ④ AXS 후. **④ 무관·인프라 무관 자율 가능 범위 소진.** **남은 것 = P7(External Connector·AXS)·9-5(IoT)·P12(sandbox E2E)=④ AXS 실자격 선결 · 9-4(KEDA)·0-5 잔여(자동배포)=③-I 인프라(Jack) 선결 · 12-3(부하)=부하환경.** (자율 여력: P7 골격 7-1/2/4/5·9-4 app-side drain·12-2 compat E2E는 로컬 더블로 선행 가능.) 구현 다음 통합·검증·QA 단계가 이어진다.
     - 매 Task 완료 시 갱신 · _8/6 프레임 시작값 = 7/30 상태 · **8/3 region-silo 재작업 머지(PR #12241 → `9146ae3`) 반영**_
     - **진행 단계** — 스펙(분석/설계)과 구현을 분리해 진행한다. 스펙은 HLD로 baseline 동결됐고 현재 구현(LLD 병행) 중이다. 구현이 끝이 아니라, QA 인계 전 개발팀이 통합·시스템 테스트로 동작을 확증하는 단계가 남고, 이어 QA·운영이 있다.
       - **스펙 — 분석/설계(HLD)**: SRS·DBML·OpenAPI·TCL baseline v1.0 동결 · 정합화(v1.0.1~v1.0.4) 지속 · LLD는 구현과 병행
@@ -1576,7 +1582,7 @@
 
       > **P9 비고**: full-loop(수신→저장→분배→Mosquitto 구독자 더블)을 로컬로 그린(9-1) · 동반 = **런타임 dep 분류 가드 신설**(소스 devDep import 시 CI 실패·GATE 1b) · dev 실검증·실연동은 ④ AXS 후.
 
-      **②-e P11 Admin API·레지스트리·audit — Task 단위 (8/5~ · ④ 무관·자율 진행 · 코어 P0~P6 인증/DB 위에 관리면 축조)**
+      **②-e P11 Admin API·레지스트리·audit — Task 단위 (8/5~8/6 · ④ 무관·자율 · 구현 완료: 11-1~11-5 머지·11-6 PR · 코어 P0~P6 인증/DB 위에 관리면 축조)**
 
       | Task | 내용 | 상태 | PR |
       | --- | --- | --- | --- |
@@ -1585,8 +1591,8 @@
       | 11-2b config·org-mappings | 중앙 config(PUT 멱등·version 값변경시만++·updated_by 서버강제·NULLS NOT DISTINCT)·Org-ID↔ClinicID 매핑(복합PK·mapping_version++·이중 FK 400·복합키 커서)·감사 | ✅ 완료 | #12444 |
       | 11-3 operators·RBAC 생애주기 | 운영자 목록/상태·역할 생애주기 상태머신(직접부여·승인/거부/회수·행 보존)·self access-request·승인 큐·**마지막 admin 회수 409**(advisory lock 원자화·동시 회수→하나만·v1.0.10)·회수후 재부여(partial unique) | ✅ 완료 | #12456 |
       | 11-4 webhook-events + break-glass | 이벤트 메타 조회(PHI-free·필터·커서)·단건·**본문 열람(break-glass·KMS 복호·PHI masking·전량 감사)** · RBAC 티어(메타=read·payload=admin) · 복호 평문 유출 차단 | ✅ 완료 | #12459 |
-      | 11-5 audit 전면 커버리지 | GET /v1/admin/audit(필터·커서)·전 write 경로 감사 누락 점검 | ⬜ 대기 | — |
-      | 11-6 데이터 분류·크로스보더 동의 | 분류 태깅·동의 태그(컴플라이언스) | ⬜ 대기 | — |
+      | 11-5 audit 전면 커버리지 | GET /v1/admin/audit(actor/action/result/시각범위 필터·id DESC 커서·조회전용·RBAC admin)·**전 write 경로 감사 전수(14 엔드포인트·누락 0)** — device 전이·kill 감사 누락 보완(성공 시만·actor 위조차단·PHI 없음) | ✅ 완료 | #12469 |
+      | 11-6 데이터 분류·크로스보더 동의 | 경량 스캐폴드(v1.0 단일리전 no-op·gw/1.2 활성)·크로스보더 재동의 판정·자동이관 없음·consent 이력 audit·엔드포인트 없음 | ✅ 완료 | #12470 |
 
       > **P11 비고**: ④ AXS 실연동과 무관한 **관리·레지스트리·감사면**이라 자율 진행 중(코어 P0~P6 인증/RBAC/DB 완료가 선결이라 지금 가능). 11-1 이 target-cred CMK(§7.1.3.1 키 #3·payload 키와 별개)·secret-ref 코덱(libs/common 승격·admin write·receiver read 계약 단일화)을 도입 — Jack `alias/gw-target-cred-<region>` prod provisioning 후속.
 
@@ -1595,16 +1601,16 @@
       | Phase | 범위 | 상태 | 비고 |
       | --- | --- | --- | --- |
       | **P7 External Connector·AXS** | OAuth2 cc·egress 고정IP·앱 PDP egress·org-binding·presigned 중계 | ⬜ 대기 | 🔴 2단계·④ AXS 실연동 후(보류) |
-      | **P11 Admin API·audit·컴플라이언스** | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | 🟡 진행(11-1 완료·②-e) | ④ 무관·자율 진행 중 |
+      | **P11 Admin API·audit·컴플라이언스** | 전 CRUD·RBAC 생애주기·break-glass·audit 전면 | 🟢 완료(11-1~11-6 전부 머지·②-e) | ④ 무관·자율 완결 |
       | **P12 E2E·하드닝** | AXS sandbox E2E·compat E2E·부하·HA/KEDA 검증 | ⬜ 대기 | 🔴 2단계·④ AXS sandbox 실자격 |
 
       > **직전 주(7/30) 구현 요약 · P2~P6 완결** — 1단계 GW 독립 코어에서 **P2~P6 다섯 Phase를 완결**했다. **P2 인증**: device 면(2-1 private_key_jwt→RS256 토큰, 2-2 jti 1회 소비·검증후 정본 clientId rate-limit·revocation denylist, 2-3 deviceAuth Guard)에 operator 면(2-4 Entra OIDC+confused-deputy 방어+JIT, 2-5 RBAC deny-by-default+`/v1/admin/me`)을 더해 양 인증면을 완비. **P3 enrollment**: 개시/완료(3-1·3-2)에 이어 device 생애주기 상태머신·재-enroll 회전 옛 credential 폐기(3-3)·C/S 승인 slice+kill 즉시 denylist 전파(3-4)·미승인 pending 자동만료(3-5)로 종료. **P4 레지스트리·region resolution**: Region Resolver(mapping_version CAS·버전 조건부 캐시·4-1)·ClinicResolution+GET /v1/regions(4-2)·PATCH /me+PUT /me/region(4-3)·PHI region-boundary 앱 내부 PDP(4-4)·admin region 카탈로그 CRUD(4-5)로 완결. **P5 호환성 게이트**: Vatech-\* 파싱→400(5-1)·well-known 매트릭스 서빙(5-2)·semver 3단계 게이팅 guard(5-3). **P6 target-routed 프록시**: 서브도메인 라우터+SSRF fail-closed(6-1)·PEP 체인(auth 401→PDP 403→region)+verbatim bypass(6-2)·아웃바운드 복원력(6-3 D1~D3 타임아웃·취소 전파·에러 정규화·Idempotency-Key)로 완결. 모든 엔드포인트 Task에 **검증 4종(unit·e2e[실 DB·Valkey]·curl 왕복·DB/Valkey 조회)** 과 **E2E 반복성 하네스**(clean-slate·seed·FLUSHDB)를 적용했고, 보안 민감 Task(프록시·인증)는 **독립 적대적 pre-PR 리뷰**로 검증했다. (region-silo 재작업 상세는 위 ② Task 테이블 참조.)
 
-  - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/5 측정·post-T-ADM-11-3 · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산).
+  - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/6 측정·post-T-ADM-11-6 · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산).
 
     | 스코프 | Statements | Branches | Functions | Lines |
     | --- | --- | --- | --- | --- |
-    | **① 전역 (merged)** | **96.51%** | **91.97%** | **93.18%** | **96.30%** |
+    | **① 전역 (merged)** | **96.70%** | **92.36%** | **93.51%** | **96.49%** |
     | **② 보안 도메인 (merged)** | **98.56%** | **95.99%** | **100%** | **98.47%** |
     | **③ 핵심 보안 파일 16개 (merged·개별)** | — | **각 100%** | — | — |
     | _참고: 전역 (unit-only)_ | 77.73% | 83.02% | 72.15% | 78.73% |
@@ -1615,7 +1621,7 @@
     - **추천 기준값 (= 위 표의 'CI 게이트 floor' 행 · 회귀 방지 하한)**:
       - _① 전역 · ② 보안(합산)_: 재앙적 회귀 catch용 하한(달성치 대비 여유 有). 달성치 상승 시 floor 도 올려 개선을 잠금(**ratchet**).
       - _③ 핵심 파일(개별·branch ≥90)_: **규범적(실질 요구수준)** — 합산이 못 잡는 단일 파일의 보안 분기 공백을 차단. 현재 16개 전부 100%. 미커버는 (A)도달가능→테스트 / (B)도달불가→`istanbul ignore`+실증근거로만 처리(숫자 치팅 금지·적대 감사로 부당 ignore 색출·수정).
-      - _수준_: 업계 통상(라인 ~80% · 분기 70~80%가 "양호")보다 높음 · 가장 엄격한 **Branch 를 전역 92.0 / 보안 96.0% 달성**.
+      - _수준_: 업계 통상(라인 ~80% · 분기 70~80%가 "양호")보다 높음 · 가장 엄격한 **Branch 를 전역 92.2 / 보안 96.0% 달성**.
       - _한계_: %는 필요조건일 뿐 — 본 스윕은 **적대적 mutation testing**(방어 로직 역전 → 테스트 red 확인)으로 회귀 포착력까지 검증.
 
     - **CI 게이트·조회**:
