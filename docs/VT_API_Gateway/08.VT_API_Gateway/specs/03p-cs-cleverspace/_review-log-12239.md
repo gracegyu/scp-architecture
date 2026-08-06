@@ -1,4 +1,6 @@
-# ③-P-CS CleverSpace GW 적응 OnePager — 리뷰 코멘트 추적 (_review-log)
+# ③-P-CS CleverSpace GW 적응 OnePager — 리뷰 코멘트 추적 (PR #12239)
+
+> **PR**: https://dev.azure.com/ewoosoft/ezicloud/_git/ezcloud/pullrequest/12239 · 후속 완성본 = PR #12463(`_review-log-12463.md`).
 
 > **작업용 문서**. 각 스레드=코멘트 원문 전체 + 우리 입장·처리 주체.
 >

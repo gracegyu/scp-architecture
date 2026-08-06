@@ -2,7 +2,9 @@
 
 > **목적.** 부모 GW SRS(정본 = `vt-api-gateway` repo · `docs/specs/SRS.md`)에 반영해야 하나 **지금 당장 손대면 안 되는** 변경을 모아 추적한다.
 >
-> **원칙.** 진행 중 PR에 무관한 변경을 섞지 않는다(diff 오염·리뷰 지저분·스코프 훼손 방지). 현재 **PR #12440(③b verbatim/JWKS/scope · 브랜치 `spec/cleverspace-3b-verbatim-jwks` · Larry 리뷰 대기)** 진행 중 → 아래 항목은 **#12440 병합 이후 별도 spec PR**로 묶어 처리한다.
+> **원칙.** 진행 중 PR에 무관한 변경을 섞지 않는다(diff 오염·리뷰 지저분·스코프 훼손 방지). 아래 항목은 별도 spec PR로 묶어 처리한다.
+>
+> **2026-08-06 상태:** **#12440·#12453 병합 완료·baseline 태그 `spec-v1.0.11` 부여.** → **B-1~B-4는 트리거(#12440 병합) 충족 = 준비됨**(별도 spec PR로 묶어 처리·**사용자 확인 대기**). **B-5는 완료**(스윕·태그·핀).
 >
 > **위치 근거.** 정본 SRS는 `vt-api-gateway` repo. 이 디렉터리(`scp-architecture/…/03-srs-gateway`)는 리다이렉트 stub이라 SRS 본문은 편집하지 않고, **추적 문서(리뷰 로그·백로그)만** 둔다.
 
@@ -51,10 +53,15 @@
   - 부모 SRS 우리 편집분(#12440)에 apse4/멜버른 참조가 있으면 정합.
   - 세션 문맥/메모리의 "prod=Melbourne apse4" 갱신.
 - **[해소] Console 전역 단일 유지 — 2026-08-05 Jack 구두 합의.** PR 12453 초안이 Console을 리전별(`console.<region>.gw`)로 바꿨으나, 구두 논의 결과 **전역 단일(`console.gw.<도메인>`) 유지로 합의**(Jack이 해당 변경을 되돌리는 수정 커밋 게시 예정). 근거: SPA 호스팅 위치는 기능·주권과 무관 · 보안은 Cloudflare ZT + 리전별 Admin API Entra RBAC가 집행 · CF 단일 zone이면 도메인 스코프 Access 세션+CORS로 전역 성립 · 폐쇄국은 기존 격리 존 별도 배포 예외로 처리. → **§2.3.6 리전 스위처·호스트 규약 리워크 불요**(③-C 현행 유지). #12417 유지.
-- **[③-C 잔여] Cloudflare ZT ↔ Entra OIDC operatorAuth 계층 정리** — Console이 전역이어도 Jack이 도입한 ZT 엣지 통제와 우리 앱 인증(Entra OIDC)의 층 관계는 ③-C에서 반영(ZT=엣지 접근, Entra=앱 authN/authz). 토폴로지와 무관한 신규 항목.
+- **[③-C·③-I 잔여] 전역 Console → 리전별 내부 Admin API 도달 경로 정의** — PR 12453 `4b8acca`가 Console을 전역 단일로 확정하며 §4.5.1에 미결로 남긴 항목. 전역 SPA라 운영자 브라우저가 **내부 전용** `admin.<region>.gw`(공개 route 미등록·mesh DENY)를 직접 호출 → 정의 필요:
+  - ⓐ **브라우저 도달 경로** — Cloudflare ZT 뒤 노출 / 사설망·VPN / Console 오리진 경유 프록시 중 택1
+  - ⓑ **CORS** — 전역 Console origin ↔ 리전별 Admin API
+  - ⓒ **리전 전환 시 운영자 토큰 audience** 취급
+  - + **Cloudflare ZT(엣지 접근) ↔ Entra OIDC operatorAuth(앱 authN/authz) 층 관계** 반영.
+  - 소유=③-I + ③-C(§7.9·③-C Sub-SRS). **정의 전에는 Console↔Admin 경로 구축 불가**(Jack 명시). PR 병합 자체는 이 미결과 무관(설계 시점 항목).
 - **거버넌스 메모.** SRS PR은 GW 스펙 소유자를 **필수 리뷰어**로 걸어 문서 전체 정합을 항상 리뷰(다인 편집의 위험=섹션 간 불일치).
 - **출처.** 2026-08-05 브랜치 히스토리 검토.
-- **상태.** watch (Jack PR 병합 대기)
+- **상태.** ✅ **완료(2026-08-06)** — #12453 병합·`spec-v1.0.11` 태그·Console SRS `apse4→apse2` 스윕·부모 핀 v1.0.10→v1.0.11 완료(Console v0.13). **잔여 = §4.5.1 ⓐⓑⓒ(전역 Console→리전별 Admin 도달 경로)·ZT↔Entra 층** = ③-C/③-I 후속(주간회의 R1 안건과 연동).
 
 ---
 
