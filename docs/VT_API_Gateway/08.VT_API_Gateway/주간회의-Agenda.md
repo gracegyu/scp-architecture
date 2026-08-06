@@ -5,8 +5,7 @@
 - 이번 주 진행 _(프레임 · 8/13 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
   - **(8/6~8/13 완료) GW 자율 구현 범위 완결** — **P11 Admin CRUD 전 Task 완료**(11-1~11-6 머지: targets·policies·config/org-mappings·operators RBAC 생애주기·webhook-events break-glass·audit 전면·데이터분류 스캐폴드) + **P9-4 app-side graceful drain**(무유실·offline-hang 강제종료) → ④/인프라 무관 자율 가능 범위 소진 · 구현현황 = S3
   - **(8/13 완료) T-AUTH-2-6 — GW JWKS 공개 엔드포인트(v1.0.11 승격) + ③b device 토큰 계약 정합** — `GET /.well-known/jwks.json`(무인증·개인키 미노출·CleverSpace GW Guard=외부 검증자) + 토큰 `iss`https형식/TTL≤15분/`aud`=GW수준. 머지 #12478(외부 검증 시뮬 실 jwt.verify·전체 e2e 430 회귀0) → S3 ②-f
-  - **(v1.0.11 반영) 스펙 정합화** — prod 리전 **시드니 `apse2`** 교정(멜버른 apse4=IoT Core 미지원)·JWKS v1.0 승격·Console 전역 단일 확정 → 코드 영향은 T-AUTH-2-6뿐(리전=배포 config·grep 반전 확인·재작업 0) → 공유 S5
-  - **(진행 중 실무) AWS 환경 분리** — 계정/네트워크·ESO/Parameter Store 경로·`.env.template`(Jack·Raymond·③-I) · GW_REGION dev 프로비저닝
+  - **(v1.0.11 반영) 스펙 정합화** — prod 리전 **시드니 `apse2`** 교정(멜버른 apse4=IoT Core 미지원)·JWKS v1.0 승격·Console 전역 단일 확정 → 코드 영향은 T-AUTH-2-6뿐(리전=배포 config·grep 반전 확인·재작업 0)
   - **(잔여) EzServer OnePager 수령 확인** · 보류·선결(IO Scanner=`이월-R1`)은 이월 표 참조
   - _(이번 주 결정사항 = 회의 시 추가)_
 
@@ -255,60 +254,7 @@
     | **CI 게이트 floor — ② 보안** | 95 | 89 | 95 | 95 |
     | **CI 게이트 floor — ③ 핵심파일(개별·branch)** | — | **90** | — | — |
 
-    - **추천 기준값 (= 위 표의 'CI 게이트 floor' 행 · 회귀 방지 하한)**:
-      - _① 전역 · ② 보안(합산)_: 재앙적 회귀 catch용 하한(달성치 대비 여유 有). 달성치 상승 시 floor 도 올려 개선을 잠금(**ratchet**).
-      - _③ 핵심 파일(개별·branch ≥90)_: **규범적(실질 요구수준)** — 합산이 못 잡는 단일 파일의 보안 분기 공백을 차단. 현재 16개 전부 100%. 미커버는 (A)도달가능→테스트 / (B)도달불가→`istanbul ignore`+실증근거로만 처리(숫자 치팅 금지·적대 감사로 부당 ignore 색출·수정).
-      - _수준_: 업계 통상(라인 ~80% · 분기 70~80%가 "양호")보다 높음 · 가장 엄격한 **Branch 를 전역 92.4 / 보안 96.0% 달성**.
-      - _한계_: %는 필요조건일 뿐 — 본 스윕은 **적대적 mutation testing**(방어 로직 역전 → 테스트 red 확인)으로 회귀 포착력까지 검증.
-
-    - **CI 게이트·조회**:
-      - **게이트(차단)**: CI `GATE: merged coverage floor (unit+e2e)` 스텝이 전역/보안 8개 값 중 하나라도 floor 미달이면 **비-0 종료 → PR 머지 차단**(required check). _실증: 빌드 49327이 이 게이트에서 실패해 막혔다가 수정 후 통과._
-      - **조회 — 로그**: PR → **CI verify** → **`Verify gates`** 잡 → **`GATE: merged coverage floor (unit+e2e)`** 스텝 로그에 Coverage summary + floor 대조표 출력.
-      - **조회 — UI**: 빌드 **Coverage 탭**(`PublishCodeCoverageResults`·cobertura) — %·파일별·추세 시각화.
-      - **로컬 재현**: `make coverage-merged`.
-
-    - **범례**:
-      - **지표(4열)** — "해당 요소 중 테스트가 1회 이상 실행한 비율(%)":
-        - **Statements(구문)**: 실행 가능한 개별 구문의 실행 비율(기본 지표·코드 대부분에 대응).
-        - **Branches(분기)**: `if`/`switch`/삼항/`&&`·`||`·`??` 조건 분기의 **각 방향(true·false)** 실행 비율 — **가장 엄격**, "정상만 타고 오류·fail-closed 경로 미검증" 공백을 드러냄(보안 척도).
-        - **Functions(함수)**: 정의된 함수·메서드 중 1회 이상 호출된 비율.
-        - **Lines(라인)**: 실행 가능한 소스 라인의 실행 비율(Statements 와 유사·물리 라인 기준).
-      - **스코프 — 점점 좁고 엄격한 3단계(포함관계·중복 아님: 전역 ⊃ 보안 도메인 ⊃ 핵심 파일)**:
-        - **① 전역**: 앱 전체(`apps/**` + `libs/**`) **합산** — "레포 전반이 안 무너졌나". 가장 넓고 느슨.
-        - **② 보안 도메인**: 6개 보안 폴더(`auth`·`authz`·`enroll`·`proxy`·`webhooks`·`crypto`) **합산** — ①의 부분집합. PHI·자격증명·게이팅 민감 경로라 **전역보다 높은 floor**.
-        - **③ 핵심 보안 파일**: ② 안의 **보안 결정 파일을 파일별(개별)로** 검사(합산 아님·branch floor **≥90**). **왜 별도인가**: 합산(①②)은 자잘한 covered 코드가 많으면 **한 파일의 보안 분기 공백을 가릴 수 있다** — 파일별 게이트라야 "auth.service 하나가 무너져도" 잡는다. 미커버 중 **도달불가 방어 분기는 `istanbul ignore`+근거로 제외**해 reachable 기준으로 관리. **대상 목록**: `auth.service`·`device-token.verifier`·`signing-key.provider`(토큰 발급·검증), `hmac.guard`·`json-path`(webhook 인증·파싱), `kms-envelope`(PHI 암호화), `egress-allowlist`·`pdp.service`·`policy-resolution`(인가·SSRF), `enroll.service`·`enroll-complete.service`·`enroll-ip`·`pending-expiry.job`(enrollment·nonce), `proxy.service`·`router`·`proxy-timeout`(프록시 라우팅·타임아웃).
-        - **참고: 전역(unit-only)**: 단위 테스트만의 수치. 컨트롤러·가드·미들웨어·local 어댑터가 0%로 잡혀(그 계층은 e2e로 커버) 낮음 — merged 가 정본임을 보이는 대조치.
-      - **merged**: unit + e2e(실 DB/Valkey) 합산(nyc) — 두 실행을 합쳐야 "실제 실행·검증된" 라인이 정직하게 집계됨. 현재 테스트 규모 = **unit 841**(receiver store/sqs·dispatcher consumer 신규 포함) · e2e 는 webhook 저장·enqueue·**분배 full-loop(SQS→Mosquitto 구독자)** 포함. _표의 % 는 8/4 스윕 실측 기준값(이후 소규모 Task 델타는 자잘하며, 보안 per-file floor 유지)._
-
-  - **S4. 리전 자동 결정(country→region) 스펙 반영 (정보 공유)**
-    - 온보딩 시 EzServer가 **리전을 직접 고르지 않고**, Region Directory의 리전별 담당 국가(`countries`) 매핑으로 **자기 클리닉의 나라(LMP 라이선스/Clinic-ID)에 맞는 리전을 자동 결정**(R6).
-    - 지연(GeoDNS) 추천이 아니라 **주권상 결정적 매핑** + C/S 승인 검증.
-    - **v1.0은 production 단일(호주)이라 자명 → 실효는 gw/1.2 멀티리전**(당장 blocker 아님).
-    - 반영: SRS §2.3.1(온보딩·다이어그램)·§7.3.6(Region Directory `countries` 필드·규칙·JSON 샘플)·§7.3.1 + EzServer handoff · spec-v1.0.6(미커밋·누적).
-
-  - **S5. 이번 주 완료·확정 상세 (참고 · 논의 대상 아님 · 진행 요약의 근거)**
-    - **(8/3 완료) R2. GW 저장소 = 리전 완전 분리 — 스펙 + 구현 코드 모두 완료** _(결정 상세는 7/30 스냅샷 R2)_
-      - **스펙**: SRS·DBML·OpenAPI·env-reference·well-known·크로스팀 handoff 전면 개정 + 자동 코드리뷰 11라운드·Jack 인프라 리뷰 전건 반영(미해결 0) → PR #12207 머지(`a0d1600`·`spec-v1.0.5`) + #12231 머지(`9cc08fa`·`spec-v1.0.6`)(7/30). **변경 규모 = 12 files · +477 / −676 라인(순 −199)** — SRS +281/−253 · OpenAPI +57/−254 · DBML +32/−53 · UnitTCL +28/−62 · 기타(env-reference·well-known·handoff 등) +79/−54.
-      - **구현 코드**: PR #12241 머지(`9146ae3`·8/3) — 전역/리전 2-DB→단일 datasource·region=배포 상수·Region Resolver/리전 API(GET·PUT `/v1/regions`)/region_catalog CRUD 삭제·하드 FK·ClinicResolution=리전 echo. **변경 규모 = 139 files · +1,685 / −5,538 라인(순 −3,853)** — 앱 소스 65f · 테스트 46f · 설정·문서 23f · 마이그레이션/생성물 5f. 대량 삭제 = 2-DB·resolver·리전 API 복잡도 제거.
-      - **검증**: unit 534 · e2e 157 · CI green(build 20260803.1) · `verify-spec`/`verify-ci` 게이트 신설 · README 드리프트 정정(PR #12348). 후속 = IP Spec Index·체크박스 갱신.
-      - **PR**: [구현 #12241](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/12241) · [스펙 #12207](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/12207)
-    - **R2-1. 호주 first-open 리전 전략 — ✔ 확정**
-      - v1.0 production 리전 = **호주 멜버른(ap-southeast-4·`apse4`)** · **서울(apne2) = 비-prod 전용**(dev·test·staging). 호주 클리닉을 서울에 임시로 두지 않음. _(8/4 ③-I 확정: 비용 우위로 시드니 ap-southeast-2 대신 멜버른 ap-southeast-4 — spec-v1.0.8 교정)_
-      - region silo라 production은 리전별 독립 스택 1개씩(서울 production은 추후 추가 가능).
-      - '서울 임시 홈 → 호주 이전'(리전 통째·대량 이전) 시나리오 없음 — 호주 클리닉은 처음부터 호주 리전 온보딩(PHI residency).
-      - 스펙 영향: SRS §2.3.9 호주 임시-홈 예시 v1.0 제외(gw/1.2 재홈 역량만 존치)·기준 리전=호주 멜버른(dev=서울) — spec-v1.0.6 + 리전 라벨 apse4 교정 spec-v1.0.8.
-      - 유지: AXS webhook 콜백 org(클리닉)별 세분화 요청 계속.
-    - **R3. 제품 OnePager(③-P) 인계 — ✔ 방식 확정**
-      - CleverSpace(=EzCloud·git): PR 인계 완료 — `ezicloud/ezcloud`·`docs/onepager/gw_adaptation/CleverSpace-GW적응-OnePager.md`(정정본)·**PR #12239**(`d3f676a0`)·통지 Larry(고형용).
-      - CleverOne(svn): SharePoint 폴더 인계 완료 — `ProjectDoc/Clever One/srs/OnePager/gw_adaptation`(작성 Raymond)·통지 Nick(탁수용).
-      - EzServer: Teddy 수령·PR 착수 확인(`ezserver_suite/doc/onepager/gw_adaptation`).
-    - **R4. GW 도메인 별도(vatech.com 미사용) — ✔ 확정**
-      - vatech.com은 이메일 도메인이라 GW 관리 어렵고 혼란 소지 → GW는 별도 도메인(구체 도메인 지정 예정·③-I).
-      - 스펙 반영(완료·미커밋): GW 호스트 예시 `…gw.vatech.com` 34곳 → `gw.<도메인>` 플레이스홀더. `vks.vatech.com`·이메일 `@vatech.com`은 유지.
-    - **R5. GW Console v1/v2 분리 · v1.0 최소기능 선행 — ✔ 확정(전규현/Raymond)**
-      - Console이 있어야 온보딩·디바이스 승인 Flow가 돎 → v1.0 = Flow 동작 최소 스펙으로 착수 앞당김(v2 후속).
-      - v1.0 범위: 인증=MS Entra · Istio admin API 접근제어 · 페이지 접근 ZTNA.
-      - 소유=전규현/Raymond · 일정 v1.0 9월 착수(~28d)·v2 10월 중순(~10/15).
+  
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
