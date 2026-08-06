@@ -1434,7 +1434,14 @@
 
 - 논의 사항 (이번 주 · 신규 논의/결정 안건)
   - **R1. GW Console 멀티리전 운영자 인가(authz) 방식 확정 (신규·8/6)** — [논의·결정] 운영자 인증(authN)은 Entra(전역)로 해결됐으나, 인가(authz)는 현재 리전 DB의 `operator_role`(리전 silo·sync 없음)이라 멀티리전(gw/1.2)에서 admin·developer 같은 전역 역할을 리전마다 재부여해야 하고 새 리전엔 자동 적용되지 않는다(+리전별 첫-admin bootstrap 데드락). v1.0은 단일 리전이라 미발생이나 `operator_role` 데이터 모델을 지금 정해야 한다.
-    - **결정 필요**: ① 리전 간 인가를 전역 스토어로 동기화할지(전역 authz 계층 도입) · ② (핵심) 역할을 전 리전 동일로 강제할지 vs 리전별 차등 부여를 허용할지 · ③ admin·developer를 기본 all-regions로 둘지(주권 리전을 아우르는 글로벌 admin의 보안·규제 수용 여부).
+    - **결정 필요**: 
+      - ① 리전 간 인가를 전역 스토어로 동기화할지(전역 authz 계층 도입) ·
+      - ② (핵심) 역할을 전 리전 동일로 강제할지 vs 리전별 차등 부여를 허용할지 ·
+          - (결정) 모든 리전 동일하게 싱크
+              - (결정) Global dynamo DB를 싱크만 하고 직접 읽지는 않는다.
+      - ③ admin·developer를 기본 all-regions로 둘지(주권 리전을 아우르는 글로벌 admin의 보안·규제 수용 여부).
+      - (결정) Zero Trust를 빼고 S3, CloudFront로 한다.
+          - Entra로만 사용한다.
     - **GW 팀 제안**: 단일 전역 authz 스토어(operator=비-PHI라 전역 복제가 주권 위반 아님 · Region Directory·Entra와 같은 전역 계층) + grant별 `regionScope`(all / 특정 / 부분). admin·developer 기본 all-regions(필요 시 좁힘) · cs·operator는 승인 시 리전 선택. 수단=**DynamoDB Global Table**(비-PHI 다중 리전 자동 복제·리전 로컬 읽기). v1.0은 설계만 ready(단일 리전 인스턴스)·구현 gw/1.2.
     - **영향·이해관계**: GW(`operator_role`·DBML)·③-C(승인 UX·리전 전환)·③-I(전역 스토어·복제)·보안/운영(글로벌 admin 정책). Jack의 "전역 Console→리전별 내부 Admin API 도달 경로"(§4.5.1 미결)·리전 전환 토큰 audience 건과 **한 묶음으로 논의 권장**.
     - **성격/산출**: [논의·결정] — 결정 시 부모 §7.9.2·DBML(`operator_role.regionScope`·전역 스토어)·③-C Console SRS(운영자 멀티리전 authz 절)에 반영. v1.0 구현 불요(단일 리전)이나 데이터 모델·설계 방향은 지금 확정.
@@ -1529,6 +1536,9 @@
         section ▷ 병행 · 별도 프로젝트 (GW 아님)
         SectionView Module 구현 (Raymond·완료) :done, sv, 2026-07-13, 2026-07-30
     ```
+    - (결정) IOScanner는 Straumann의 제안을 받아드리는 방향을 우선순위를 높여서 진행한다.
+        - 관련된 프로토콜을 검토한다. 전규현/ Raymond
+        - EzServer SRS를 업데이트 해야 한다. 민진우/ Thomas , 정지홍 / Teddy  
 
   - **S2. 스펙 작성 테이블 — 제품별 개발 항목 종합 (제품 × 단계) · 매주 스냅샷** · 정본=[Roadmap §4](<VT API Gateway — PRD (v2)/VT API Gateway — 개발 Roadmap 결정.md>) (수정은 그쪽 먼저)
     - **각 셀 앞 이모지 = 그 항목을 다루는 스펙의 작성 진행**: ✅ baseline · 🟢 PR · 🟡 작성중 · ⬜ 미작성 (— = 해당 없음)
@@ -1727,6 +1737,11 @@
     - **R5. GW Console v1/v2 분리 · v1.0 최소기능 선행 — ✔ 확정(전규현/Raymond)**
       - Console이 있어야 온보딩·디바이스 승인 Flow가 돎 → v1.0 = Flow 동작 최소 스펙으로 착수 앞당김(v2 후속).
       - v1.0 범위: 인증=MS Entra · Istio admin API 접근제어 · 페이지 접근 ZTNA.
+        - (결정) Istio admin API 를 console에서 접근가능한 API(public)와 internal API(내부 network 내에서만 가능한)로 분리한다.
+          - internal API는 나중에 고려한다.
+        - (결정) shadcn(radix-ui)을 적용한다.
+            - https://ui.shadcn.com/
+            - https://github.com/topics/radix-ui
       - 소유=전규현/Raymond · 일정 v1.0 9월 착수(~28d)·v2 10월 중순(~10/15).
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
@@ -1743,3 +1758,37 @@
   | 14 | 관측성 앱↔인프라 계약 확정 — ①로그 필드 스키마(현행 pino 기본 필드 ↔ §6.3.2 최소셋 매핑·Appendix B #14) ②메트릭 export 배선(OTLP reader→Grafana Alloy 엔드포인트) | [논의·설계] | **추후 확정** — 트리거=③-I 관측 스택 구축 or P6 프록시 착수(먼저). Raymond 초안(필드 매핑표+엔드포인트 요구)→Jack(인프라) 비동기 합의. **앱 계약(stdout JSON+OTel·redaction) 이미 구현·무블로킹** |
   | 이월-R1 | IO Scanner↔EzServer 연동 방식 | [논의·선결] | **보류(7/23 결정)** — 이번 주 논의 「Straumann↔ES 데이터 흐름 협상」 결과에 종속(결정 시 이월-R1·④ AXS scope 착수 조건 확정) |
   - **차주 이월 후보**: 이월-R1(IO Scanner↔EzServer 연동 방식·**보류**)·이월-R2(목표일정·출시일 재검토) 미확정 시 다음 주 이월.
+
+---
+
+# 8/6 주간회의 결정사항
+
+> 2026-08-06 회의 결정 누적(진행 중 상시 추가).
+
+1. **EzServer ↔ VAG targets 연동 (Thomas 안건) — 해결(오해 해소).**
+   - (결정) Thomas의 오해였다. target에 따라 **EzServer가 다르게 분배**해야 하는 것으로 이해하고 있었으나, 실제는 **EzServer가 `Vatech-Target` 헤더만 붙여 전부 GW로 보내고, GW가 알아서 맞는 target으로 라우팅**한다(ADR-11 서브도메인 라우팅 — EzServer는 헤더→서브도메인 변환만). 이 점을 회신해 오해가 풀렸고 문제 해결.
+
+2. **User-Agent 제약 / Vatech-Clinic-Id 주입 — 해결(nginx 주입 가능).**
+   - (결정) 클라이언트가 ClinicID를 몰라 `Vatech-Clinic-Id`를 못 넣는 문제는 해결 가능. **EzServer nginx가 `Vatech-Target` 헤더가 있는 요청만 GW로 프록시**하고(헤더 없으면 기존 로컬 처리로 fall-through), **GW 분기에서 `Vatech-Clinic-Id`를 EzServer가 보유한 ClinicID로 주입**(`proxy_set_header`)한다. 클라이언트는 ClinicID를 몰라도 되고, 클라가 보낸 값이 있어도 덮어써 위조를 차단한다. ClinicID 값은 **GW enrollment 시 EzServer 콘솔이 nginx 설정을 자동 갱신·재시작**해 채우므로 클리닉마다 수기 작업이 없다. 구현 팁: `if + proxy_pass`(nginx "if is evil") 대신 `return 418 → error_page → @gw` 패턴.
+   - **후속 (SRS 업데이트)**: GW SRS 헤더 규약(§2.3.0)을 "`Vatech-Clinic-Id` = originator relay"에서 **"클리닉-바운드 홉(EzServer)이 주입"** 으로 정리(Thomas 헤더 batch). GW의 권위 클리닉은 서명된 device 토큰(`device_id → clinic`)이라 이 헤더는 **교차검증용**(§7.1.5)이므로 주입 오류가 GW 클리닉 판정을 깨뜨리지 않는다. nginx 설정 상세·자동화는 EzServer 팀(③-P-EZ) 소관.
+   - Teams 공유용 회신(nginx 예제 포함) 작성 완료.
+
+3. **GW Console 멀티리전 운영자 인가(authz) 방식 확정 (R1).**
+   - (결정) ① 운영자 역할을 **모든 리전에 동일하게 sync**(리전별 재부여·리전별 첫-admin bootstrap 데드락 제거). ② **DynamoDB Global Table = sync(복제) 전용 — GW는 DynamoDB를 직접 읽지 않고** 각 리전 로컬 스토어를 읽는다. ③ **Zero Trust 폐기 → S3 + CloudFront + Entra only**(Console 접근 통제 = Entra만).
+   - (반영) 부모 GW SRS(§7.9.2 전역 복제·`regionScope`·전역 bootstrap · DBML · §4.5.1 ZT→CloudFront) = 부모 백로그 **B-7** · GW Console(③-C · ZTNA 제거 · 운영자 authz UX) = Console 백로그 **CB-1**. **gw/1.2 트리거**(v1.0 단일 리전 구현 무영향·방향만 확정).
+   - (미결) sync 실시간성(DynamoDB Streams 이벤트 권장 / polling 대안) · ZT 제거 후 내부 Admin API 도달 경로(§4.5.1 — Entra는 인증만·네트워크 도달은 사내망/VPN vs 공개+Entra-gated 미정).
+
+4. **IO Scanner 연동 — Straumann 제안 수용 방향, 우선순위 상향.**
+   - (결정) IOScanner는 **Straumann의 제안을 받아들이는 방향**으로 우선순위를 높여 진행한다.
+     - 관련 프로토콜 검토 = 전규현/Raymond.
+     - EzServer SRS 업데이트 = 민진우/Thomas · 정지홍/Teddy.
+   - (흐름) IOScanner → **AXS로 직접 전송** → AXS가 **GW로 Webhook**(환자정보 + Organization-ID + 스캔데이터 URL) → GW가 **Org-ID→클리닉→EzServer** 찾아 **MQTT 하행** → EzServer가 수신·저장(EzServer 추가 구현). 스캔 데이터 본문은 AXS URL에서 EzServer가 직접 취득(GW 미경유 가능성).
+   - (GW 영향) 분석 후 backlog 기재·추후 SRS 반영(아래 분석 진행).
+
+5. **GW Console v1/v2 분리 · v1.0 최소기능 선행 · 기술 스택 확정 (R5).**
+   - (결정) ① Console **v1/v2 분리 · v1.0 최소기능(온보딩·디바이스 승인 Flow) 선행**(7/30 R5 계승). ② **기술 스택 확정 = Next.js + Refine + shadcn/ui(Radix UI primitives + Tailwind) + TanStack Query** — UI 킷 = **shadcn/ui**. ③ **internal API는 Console 소관 아님**(Console=SPA·GW Admin API 직접 소비·자체 백엔드 없음).
+   - (반영) GW Console 백로그 **CB-2**. Console SRS 스택 표기 "권장·LLD 확정" → **"확정"**(§2.2·§3.4.2·Appendix C-4). *LLD 참고: shadcn은 Refine 1급 UI 통합이 아니라 Radix+Tailwind 직접 구성 → Refine은 headless로.*
+
+6. **enroll CSR → 인증서(IoT Core mTLS) 계약 확정 (B-6 후속 · ③-P-EZ 회신).**
+   - (결정) ① **발급 시점 = complete(pending) 시점 발급 + IoT 정책 게이팅** — 인증서는 enroll complete 때 발급하되, device가 `active` 되기 전에는 IoT Core 접속·하행 수신이 정책으로 허용되지 않는다. ② **CSR 대상 키 = 별도 cert 키페어**(enroll `clientPublicKey`와 분리).
+   - (반영) 전용 endpoint 신설이 아니라 **기존 enroll/complete 확장** — OpenAPI `EnrollCompleteRequest.csr` + complete 응답 인증서 필드 신설, SRS §7.2·§7.6.6 교차참조. spec PR로 처리(PR-4).
