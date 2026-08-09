@@ -2,7 +2,7 @@
 
 create by: 전규현(Raymond)
 
-> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.11`) 후 `_status.md` 씨앗을 승격한 **초안(v0.13 · baseline 동결 가능 · v0.8 구조·§4.2 화면 맵·§6.10 국제화(PO→Lingui) · v0.9 재검증 · v0.10 커버리지 감사(26/26) · v0.11 리뷰 반영(S1·부트스트랩·break-glass·S3) · v0.12 §1·§2 정독 리뷰 · v0.13 부모 baseline v1.0.11 반영·apse4→apse2 스윕)**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준 정합 리라이트 반영.
+> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.12`) 후 `_status.md` 씨앗을 승격한 **초안(v0.14 · baseline 동결 가능 · v0.8 구조·§4.2 화면 맵·§6.10 국제화(PO→Lingui) · v0.9 재검증 · v0.10 커버리지 감사(26/26) · v0.11 리뷰 반영(S1·부트스트랩·break-glass·S3) · v0.12 §1·§2 정독 리뷰 · v0.13 부모 baseline v1.0.11 반영·apse4→apse2 스윕 · v0.14 CB 백로그 반영(ZTNA 제거→Entra 애플리케이션 계층·Admin API Entra-gated 공개·기술 스택 shadcn/ui 확정·부모 핀 v1.0.12) + §4~§7 리뷰)**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준 정합 리라이트 반영.
 
 ---
 
@@ -59,18 +59,18 @@ GW가 클리닉 EzServer를 온보딩하고 외부(AXS 등)·내부(CleverSpace 
 | **Entra** | MS365/Entra ID. 직원 IdP·Console SSO(OIDC) 발급자. 부모 §7.1.4. |
 | **RBAC** | 역할 기반 인가. 역할=`operator_role_type`{admin·developer·cs·operator}. authN=Entra·authz=GW. |
 | **break-glass** | 통제된 PHI payload 예외 열람(GW 복호·마스킹·사유·전량 감사). |
-| **ZTNA** | Zero Trust Network Access. Console 페이지 접근 경계(③-I). |
+| **접근 통제(Console)** | Console·Admin API 접근 통제 = **애플리케이션 계층 Entra 인증**(OIDC 로그인 + 요청마다 `operatorAuth`). **Zero Trust/ZTNA(엣지 강제)는 폐기**(부모 R1·2026-08-06·#12487). 호스팅 = S3 + CloudFront. |
 | **Region Directory** | 리전→`apiHost`·`webhookHostPattern` 정적 JSON(③-I 발행·부모 §7.3.6). |
 | **target(연동 대상)** | 외부/내부 연동 1건(라우팅+아웃바운드 자격+인바운드 webhook)을 담는 GW 레지스트리 레코드. |
 | **DLQ (Dead Letter Queue)** | 처리 실패한 webhook 이벤트를 격리하는 큐 — 재처리·triage 대상(부모 §7.6). |
 | **PHI** | Protected Health Information — 보호 대상 건강정보(환자정보). webhook payload에 포함될 수 있어 저장·열람을 통제(§6.2·§7.6). |
 
 ## 1.5 Related Documents (관련문서)
-> 링크는 **정본 repo의 클릭 가능한 URL**로 적는다(로컬/상대 경로 금지). 부모 계약 3종은 **baseline 태그(`spec-v1.0.11`) 고정 permalink**로 — 시간이 지나도 끊기지 않도록.
+> 링크는 **정본 repo의 클릭 가능한 URL**로 적는다(로컬/상대 경로 금지). 부모 계약 3종은 **baseline 태그(`spec-v1.0.12`) 고정 permalink**로 — 시간이 지나도 끊기지 않도록.
 
-- **부모 GW SRS** — [vt-api-gateway `docs/specs/SRS.md` @spec-v1.0.11](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md&version=GTspec-v1.0.11). Console 상속 근거: §7.9.1·§7.9.2·§7.1.4·§7.9.3·§7.6.3·§7.7.5·§7.8·§7.3.6.
-- **Admin OpenAPI** — [vt-api-gateway `design/openapi/vt-api-gateway.openapi.yaml` @spec-v1.0.11](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/openapi/vt-api-gateway.openapi.yaml&version=GTspec-v1.0.11) (계약 정본·타입 생성 원천).
-- **부모 DBML** — [vt-api-gateway `design/dbml/vt-api-gateway.dbml` @spec-v1.0.11](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/dbml/vt-api-gateway.dbml&version=GTspec-v1.0.11) (데이터 모델).
+- **부모 GW SRS** — [vt-api-gateway `docs/specs/SRS.md` @spec-v1.0.12](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md&version=GTspec-v1.0.12). Console 상속 근거: §7.9.1·§7.9.2·§7.1.4·§7.9.3·§7.6.3·§7.7.5·§7.8·§7.3.6·**§4.5.1(Admin API Entra-gated 공개·CORS·v1.0.12)**.
+- **Admin OpenAPI** — [vt-api-gateway `design/openapi/vt-api-gateway.openapi.yaml` @spec-v1.0.12](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/openapi/vt-api-gateway.openapi.yaml&version=GTspec-v1.0.12) (계약 정본·타입 생성 원천).
+- **부모 DBML** — [vt-api-gateway `design/dbml/vt-api-gateway.dbml` @spec-v1.0.12](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/dbml/vt-api-gateway.dbml&version=GTspec-v1.0.12) (데이터 모델).
 - **기능 v1/v2 분리** — [본 Sub-SRS 동 폴더 `기능-v1-v2-분리.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/03c-subsrs-gw-console/기능-v1-v2-분리.md)(승격 후 co-located).
 
 ## 1.6 Intended Audience and Reading Suggestions (대상 및 읽는 방법)
@@ -91,7 +91,7 @@ GW가 클리닉 EzServer를 온보딩하고 외부(AXS 등)·내부(CleverSpace 
 
 ## 1.7 Project Output (프로젝트 산출물)
 ### 1.7.1 Output Format (산출물 형태)
-**Web Application (SPA)**. 사내 배포 · ZTNA 경유 접근.
+**Web Application (SPA)**. S3 + CloudFront 정적 배포 · 애플리케이션 계층 Entra 인증으로 접근 통제(ZTNA 아님).
 
 ### 1.7.2 Output Name and Version (산출물명(가칭) 및 버전)
 **GW Console** (가칭). 레포(추천) `vt-api-gateway-console`(미생성). 초기 버전 v1.0.
@@ -114,12 +114,12 @@ Console은 **GW 생태계의 관리 프론트엔드**로, GW Admin API의 클라
 | **GW Admin API** | 회사 내부 시스템 | 모든 관리 동작의 백엔드(리전별 `admin.<region>.gw.<도메인>`). |
 | **Region Directory** | 외부 데이터 소스 | 리전 목록·라우팅 메타(정적 JSON·③-I 발행). |
 | **well-known 호환성 매트릭스** | 외부 데이터 소스 | 실효 매트릭스 읽기(뷰어). |
-| **ZTNA/사내망** | 인프라 경계 | Console 페이지·admin 엔드포인트 접근 통제(③-I). |
+| **Entra 인증(접근 통제)** | 애플리케이션 계층 | Console·Admin API 접근 통제 = 직원 IdP(Entra) OIDC + `operatorAuth`(엣지 ZTNA 폐기·부모 #12487). Admin API는 Entra-gated 공개. |
 
 ### 2.1.1 v1.0 — 단일 리전 조망
 ```mermaid
 flowchart LR
-  OP["운영자 브라우저"] -->|"ZTNA·사내망"| C["GW Console SPA · 단일 · 무상태"]
+  OP["운영자 브라우저"] -->|"HTTPS · Entra 인증"| C["GW Console SPA · 단일 · 무상태 · S3+CloudFront"]
   C -->|"OIDC 로그인"| E["MS Entra · 직원 IdP"]
   subgraph GW["GW 백엔드 (v1.0 · 시드니 apse2)"]
     A["GW Admin API · admin.apse2.gw.도메인"]
@@ -142,7 +142,7 @@ v1.0 production = 시드니(apse2) 단일이라 리전 스위칭이 자명.
 ### 2.1.2 gw/1.2 — 멀티리전 조망 (region silo)
 ```mermaid
 flowchart TB
-  OP["운영자 브라우저"] -->|"ZTNA"| C["GW Console SPA · 하나 · 무상태 · 리전 스위처"]
+  OP["운영자 브라우저"] -->|"HTTPS · Entra 인증"| C["GW Console SPA · 하나 · 무상태 · 리전 스위처"]
   C -->|"OIDC"| E["MS Entra"]
   C -->|"리전 목록"| RD["Region Directory · 정적 JSON"]
   C -. "선택 리전만 라이브 호출" .-> A1
@@ -164,10 +164,10 @@ flowchart TB
 - 리전 추가 = 스택 + Region Directory 행 추가일 뿐(기존 리전 무영향).
 
 ## 2.2 Overall System Configuration — GW Console 내부 구성 (Refine + Next.js)
-**컴포넌트 도출 기준 = 기술 스택(권장 Refine·핵심 결정 B)의 책임 경계.** Refine의 provider 3종이 각각 Entra·GW Admin·Region Directory에 매핑되고, 기능은 Resource 페이지로 나뉜다(§7과 1:1). Console 자체 저장소·비즈니스 로직은 없다(§6.4).
+**컴포넌트 도출 기준 = 확정 기술 스택(핵심 결정 B)의 책임 경계.** 스택 = **Next.js + Refine + shadcn/ui(Radix+Tailwind) + TanStack Query**(2026-08-06 R5 확정). shadcn/ui는 Refine의 1급 UI 통합(Ant/MUI/Chakra/Mantine)이 아니므로 **Refine은 headless(data/auth/routing provider)로 쓰고 UI는 shadcn으로 구성**한다. Refine의 provider 3종이 각각 Entra·GW Admin·Region Directory에 매핑되고, 기능은 Resource 페이지로 나뉜다(§7과 1:1). Console 자체 저장소·비즈니스 로직은 없다(§6.4).
 ```mermaid
 flowchart TB
-  OP["운영자 브라우저 · ZTNA<br/>Admin·C/S·Operator·Developer"] --> AUTH
+  OP["운영자 브라우저 · Entra 인증<br/>Admin·C/S·Operator·Developer"] --> AUTH
   OP --> RES
   subgraph SPA["GW Console SPA · Next.js + Refine"]
     RS["Region Switcher · Region Directory 읽어 base URL 결정"]
@@ -176,7 +176,7 @@ flowchart TB
     DP["dataProvider · GW Admin API 클라이언트·OpenAPI 타입"]
     QC["TanStack Query 캐시 = React Query"]
     RES["Resource 페이지 (§7 기능 단위)"]
-    VUI["UI kit · Ant Design/shadcn"]
+    VUI["UI kit · shadcn/ui (Radix+Tailwind)"]
     VW["호환성 매트릭스 뷰어 · well-known 읽기"]
   end
   AUTH --> ENTRA["MS Entra"]
@@ -201,7 +201,7 @@ flowchart TB
   VW --> WK
   A -->|"토큰 검증(Entra JWKS)"| ENTRA
 ```
-- **authProvider** = Entra OIDC 로그인·토큰·세션(§7.1). **accessControlProvider** = `/me` accessState·역할로 메뉴·액션 게이팅(§7.2·최소권한). **dataProvider** = GW Admin API 소비(OpenAPI 타입·리전 base는 Region Switcher 주입) + TanStack Query 캐시. **Resource 페이지** = §7 기능 단위. (프레임워크 확정 시 내부 구성 조정·§6.6.)
+- **authProvider** = Entra OIDC 로그인·토큰·세션(§7.1). **accessControlProvider** = `/me` accessState·역할로 메뉴·액션 게이팅(§7.2·최소권한). **dataProvider** = GW Admin API 소비(OpenAPI 타입·리전 base는 Region Switcher 주입) + TanStack Query 캐시. **Resource 페이지** = §7 기능 단위. (스택 확정 = Next.js+Refine(headless)+shadcn/ui+TanStack Query·§6.6·세부 버전만 LLD.)
 - **훔쳐보기 금지:** Console은 GW Admin API 외 어떤 내부 경로(DB·KMS·GW 내부 모듈)도 직접 호출하지 않는다.
 
 ## 2.3 Overall Operation (전체 동작방식) — 주요 시나리오·플로우
@@ -215,7 +215,7 @@ sequenceDiagram
     participant C as GW Console
     participant E as MS Entra
     participant GW as GW Admin API
-    OP->>C: 접속 (ZTNA 경계 통과)
+    OP->>C: 접속 (S3+CloudFront · Entra 인증)
     C->>E: OIDC 로그인 (Auth Code + PKCE)
     E-->>C: ID/Access 토큰
     GW->>E: (최초/kid 회전 시) Entra JWKS(공개키) fetch·캐시
@@ -385,7 +385,7 @@ sequenceDiagram
 | --- | --- | --- |
 | **Entra 테넌트·앱 등록**(claim·app role) | IT(부모 Appendix B #40·#38·Appendix C-2) | 로그인·통합 테스트 불가(§7.1). SRS 집필은 비차단. |
 | **GW Admin API baseline**(계약 안정) | GW(부모 §7.9.1·OpenAPI) | 계약 변동 시 영향 화면 재검토(§2.8). 현행 baseline 충족. |
-| **접근 경계**(Istio 내부전용 + ZTNA) | ③-I | 미비 시 배포 보안 공백. Console은 경계 뒤 동작(§6.2). |
+| **접근 통제**(애플리케이션 계층 Entra) | ③-I·③-C | Console·Admin API 모두 Entra 인증(operatorAuth)으로 통제. Admin API=Entra-gated 공개(부모 #12487). 미비 시 배포 보안 공백(§6.2). |
 | **역할 enum 동기**(GW·Console·DB) | GW+③-C | 새 역할은 양측 함께 릴리스(§7.2·런타임 무릴리스 추가 없음). |
 | **Region Directory·well-known 발행** | ③-I | **v1.0 배포 선결**(gw/1.2 아님·부모 §7.3.6 P1) — Region Directory는 Console 리전 스위처(FR-CON-03)뿐 아니라 **EzServer 부트스트랩(enroll)의 유일한 앵커**라 v1.0에 반드시 있어야 한다(v1.0=한 리전 1행). 미발행 시 리전 스위처·매트릭스 뷰어 동작 불가 + EzServer 온보딩 불가(§7.9·FR-CON-03). |
 
@@ -414,7 +414,7 @@ sequenceDiagram
 운영자 PC(사무). 서버측은 GW 배포 인프라(③-I·EKS)에 얹히며 별도 하드웨어 요구는 없다.
 
 ### 3.1.2 Software Environment (소프트웨어 환경)
-클라이언트는 **최신 상록(evergreen) 브라우저**(Chrome·Edge·Firefox)를 지원한다. 구형 IE는 지원하지 않는다(웹앱). 접근은 ZTNA 경계를 경유하며 HTTPS를 필수로 한다. (템플릿의 Windows OS 지원 표는 웹앱이라 **N/A**.)
+클라이언트는 **최신 상록(evergreen) 브라우저**(Chrome·Edge·Firefox)를 지원한다. 구형 IE는 지원하지 않는다(웹앱). 접근은 애플리케이션 계층 Entra 인증을 경유하며 HTTPS를 필수로 한다. (템플릿의 Windows OS 지원 표는 웹앱이라 **N/A**.)
 
 ## 3.2 Product Installation and Configuration (제품 설치 및 설정)
 웹으로 배포하며 별도 설치툴은 없다. 런타임 config는 리전별 GW Admin 엔드포인트, Entra OIDC 설정(발급자·clientId·audience·리다이렉트 URI), Region Directory URL이다.
@@ -427,7 +427,7 @@ SRS는 앱이 **소비하는 config 키(위)와 인증 요구**(OIDC Auth Code+P
 컨테이너 이미지로 SPA 정적 자산을 서빙한다. CD 매체 배포는 아니다(N/A).
 
 ### 3.3.2 Distribution Method (배포 방법)
-③-I가 **AWS 클라우드에 배포**한다 — SPA 정적 자산을 **S3 + CloudFront**(global 단일 호스트 `console.gw.<도메인>`·§4.5) 등 ③-I 표준으로 서빙한다(EKS 서빙도 가능·구체=③-I). "사내"는 배포 *위치*가 아니라 **접근 통제**를 뜻한다 — 공개 인터넷에 두되 **ZTNA + Entra**로 사내 직원만 접근한다(§6.2). 격리 존(중국 등)은 그 존 인프라에 별도 배포한다(§4.5). CI/CD는 GW와 동일 파이프라인(③-I·§3.6.2).
+③-I가 **AWS 클라우드에 배포**한다 — SPA 정적 자산을 **S3 + CloudFront**(global 단일 호스트 `console.gw.<도메인>`·§4.5·TLS/캐시=CloudFront·ACM cert)로 서빙한다. "사내"는 배포 *위치*가 아니라 **접근 통제**를 뜻한다 — 공개 인터넷에 두되 **애플리케이션 계층 Entra 인증**(OIDC + `operatorAuth`)으로 사내 직원만 접근한다(§6.2). **Zero Trust/ZTNA(엣지 강제)는 두지 않는다**(부모 R1·#12487). 격리 존(중국 등)은 그 존 인프라에 별도 배포한다(§4.5). CI/CD는 GW와 동일 파이프라인(③-I·§3.6.2).
 
 ### 3.3.3 Patch/Update Method (패치와 업데이트 방법)
 무중단 재배포(정적 자산 교체)로 갱신하며, 클라이언트는 새로고침으로 최신본을 받는다.
@@ -461,7 +461,7 @@ Console은 **GW Admin API·Entra(OIDC)·정적 자원(Region Directory·well-kno
 특별 HW 요구 없음 — 표준 개발 PC. 로컬 SPA 빌드·(선택) mock 서버·Docker 컨테이너 구동 가능 사양이면 충분하다.
 
 ### 3.4.2 Software Environment (소프트웨어 환경)
-Node.js(LTS) · **pnpm**(조직 표준) · **Next.js + Refine** · **TanStack Query**(=React Query) · UI kit(Ant Design 또는 shadcn/ui) · **OpenAPI 코드젠**(orval/openapi-typescript) · **MSW**(요청 mock) · **Playwright**(e2e) · Docker(로컬 GW/의존 구동·선택) · **Claude Code**(개발 표준) · VS Code. 구체 버전은 구현 착수 시 확정(§6.6 스택은 ③-C LLD 확정).
+Node.js(LTS) · **pnpm**(조직 표준) · **Next.js + Refine**(headless) · **TanStack Query**(=React Query) · **shadcn/ui**(Radix UI primitives + Tailwind·확정) · **OpenAPI 코드젠**(orval/openapi-typescript) · **MSW**(요청 mock) · **Playwright**(e2e) · Docker(로컬 GW/의존 구동·선택) · **Claude Code**(개발 표준) · VS Code. 스택은 확정(2026-08-06 R5)이고 **구체 버전만** 구현 착수 시 확정(§6.6·③-C LLD).
 
 ## 3.5 Test Environment (테스트 환경)
 
@@ -536,7 +536,7 @@ Jira(GW 프로젝트).
 GW Admin **OpenAPI**(타입 생성)·Entra OIDC. Console은 계약을 코드 생성으로 소비한다.
 
 ## 4.5 Communication Interface (통신 인터페이스)
-**HTTPS 필수** · OIDC(Auth Code+PKCE) · ZTNA 경유(③-I). CORS/CSP 등 보안 헤더는 배포(§6.2·③-I).
+**HTTPS 필수** · OIDC(Auth Code+PKCE) · 애플리케이션 계층 Entra 인증(ZTNA 아님·③-I). 전역 Console origin ↔ 리전별 Admin API **CORS** 허용(부모 §4.5.1). CORS/CSP 등 보안 헤더는 배포(§6.2·③-I).
 
 **Console 접속 호스트 (URL 규약):**
 - **기본 = 환경별 전역 단일 호스트** — **prod `console.gw.<도메인>` · dev `console.gw.dev.ezcld.net`**(환경 base 규약·staging=③-I). Console은 논리적으로 하나(결정 A)라 환경마다 접속 URL이 하나다. **리전 라벨을 붙이지 않는다.** 리전은 Console이 *호출하는* **Admin API base `admin.<region>.gw.<도메인>`**(FR-CON-03)에만 붙는다 — 전역 콘솔이 브라우저에서 각 리전 admin 엔드포인트를 스위칭 호출한다(콘솔 호스트 1개 ≠ 리전별).
@@ -577,7 +577,7 @@ GW Admin **OpenAPI**(타입 생성)·Entra OIDC. Console은 계약을 코드 생
 - **최소권한 UI** — 역할에 없는 기능은 비노출, 시도 시 GW 403.
 - **마스킹·직접 접근 금지** — credential/secret·PHI payload 마스킹, DB/KMS 직접 접근 금지(모두 GW 경유·break-glass는 사유+감사).
 - **전량 감사** — 모든 관리 변경·열람은 GW가 감사(부모 §7.9.3). Console은 이력 조회·표시.
-- **접근 경계** = Istio 내부전용 + ZTNA(③-I·구체=Appendix C-3)·전 구간 HTTPS.
+- **접근 통제** = 애플리케이션 계층 Entra 인증(OIDC + 요청마다 `operatorAuth`)·전 구간 HTTPS. Admin API는 **Entra-gated 공개**(부모 #12487·내부전용/mesh DENY 폐기)·전역 Console origin CORS 허용. Zero Trust/ZTNA는 두지 않는다(구체 하드닝 WAF·rate-limit=③-I·Appendix C-3).
 
 ## 6.3 Software System Attributes
 ### 6.3.1 Availability
@@ -611,7 +611,7 @@ IEC 62304·ISO 13485·감사 추적(부모 §7.9.3)·접근성(§1.2 Will not do
 
 ### 6.6.2 Other Constraints
 - 인증=Entra OIDC·인가=GW(자체 인증 도입 금지). GW가 SoT(Console에 로직·저장 금지).
-- **권장 스택 = Refine+Next.js**(핵심 결정 B·③-C LLD 확정·Appendix C-4).
+- **확정 스택 = Next.js + Refine(headless) + shadcn/ui(Radix+Tailwind) + TanStack Query**(핵심 결정 B·2026-08-06 R5·Appendix C-4·세부 버전만 ③-C LLD).
 - **훔쳐보기 금지** — GW Admin API 외 내부 경로 직접 호출 금지(§2.2).
 - 역할 enum은 GW·DB와 동기(§2.6).
 
@@ -619,8 +619,20 @@ IEC 62304·ISO 13485·감사 추적(부모 §7.9.3)·접근성(§1.2 Will not do
 상록 브라우저 통상 범위(별도 제약 없음).
 
 ## 6.8 Operations
-사내 운영자 업무시간 상시 사용. 백업/복구=GW측(Console 무상태). 감사 로그는 GW가 기록(§7.10).
-=> Raymond comment : 실제 GW console 운영하면서 운영자가 꼭 해야할 일을 기록한다. 보통은 주기적으로 할일, 긴급하게 할일 등을 기록한다. 
+사내 운영자 업무시간 상시 사용. 백업/복구=GW측(Console 무상태). 감사 로그는 GW가 기록(§7.10). 운영자 상시 업무를 아래로 규정한다(운영 경험 축적 시 ③-C·운영팀이 보강·확정).
+
+**정기(주기적) 업무.**
+- **권한 요청 큐 처리(Admin)** — `access-requests`(requested) 확인·승인/부분승인/거부(§7.2·FR-CON-05). 미처리 요청이 쌓이지 않게 정기 확인.
+- **Fleet 상태 점검(Admin·Operator)** — 오프라인·stale 디바이스, 버전 편차, 큐 적체를 대시보드에서 확인(§7.7).
+- **감사 로그 리뷰(Admin)** — 권한 변경·break-glass 열람·kill 등 민감 액션 이력 주기 점검(§7.10·부모 §7.9.3).
+- **호환성 매트릭스 확인(Admin)** — 배포된 실효 매트릭스가 최신인지 뷰어로 확인(§7.9·저작은 git/CI).
+- **오프보딩 반영 확인** — 퇴사자 Entra 비활성화 후 `suspended` 반영·잔여 역할 회수 확인(§7.2·최소권한).
+
+**긴급(비정기) 업무.**
+- **kill-switch(Admin)** — 오작동·침해 의심 디바이스 즉시 차단(확인·사유·감사·§7.3·§6.1). 비가역이므로 신중.
+- **break-glass payload 열람(제한 역할)** — 장애 triage 시 사유 입력 후 열람(건건 감사·§7.6·FR-CON-22).
+- **연동 대상 긴급 정지/자격 회전(Admin)** — target 장애·자격 유출 시 정책/자격 갱신(§7.5).
+- **enrollment 승인 지원(C/S)** — 현장 설치 시 실시간 디바이스 승인(§7.3·FR-CON-10).
 
 ## 6.9 Site Adaptation Requirements
 리전별 GW Admin 엔드포인트·Entra 설정 주입(환경 config). 별도 사이트 개조 없음.
@@ -688,10 +700,11 @@ GW pilot과 연계(별도 계획).
 - **FR-CON-01** [v1.0] **Entra SSO 로그인** — OIDC(Auth Code+PKCE)로 로그인·로그아웃한다. 자체 비밀번호 없음. *에러:* Entra 인증 실패·토큰 검증 실패 시 로그인 화면으로 복귀하고 사유를 표시한다.
 - **FR-CON-02** [v1.0] **부트스트랩 분기** — 로그인 후 `GET /v1/admin/me`의 `accessState`로 분기: `active`→역할별 메뉴 / `no_access`→권한 요청(§7.2) / `suspended`→정지 안내. *최초 admin:* 첫 사용자도 seed에 없으면 `no_access`이며, **최초 admin은 배포 seed로 `active`가 된다**(§2.3.2·부모 계약 추가 필요=Appendix B C-14). *에러:* `/me` 실패 시 재시도·오류 표시(무한 로딩 금지).
 - **FR-CON-03** [v1.0] **단일 Console·리전 스위처** — Region Directory에서 리전을 읽어 대상 리전을 전환하고, 이후 호출 base를 `admin.<region>.gw.<도메인>`로 둔다. 무상태·교차리전 집계 없음(§2.1.2·핵심 결정 A). *에러:* Directory 로드 실패 시 캐시된 마지막 목록 사용·경고 표시.
-  - **FR-CON-03a** [v2.0/gw1.2] 멀티리전 운영 확장 — 운영자 권한의 리전 간 조달(Entra 그룹→각 리전 역할)·주권 준수 범위 내 교차리전 요약 뷰.
+  - **FR-CON-03a** [v2.0/gw1.2] 멀티리전 운영 확장 — 역할은 **GW `operator_role`이 전 리전에 균일 복제**(§7.2 note·부모 §7.9.2·R1)라 리전별 조달이 없다(Entra=SSO만·authz=GW). 확장 범위 = 주권 준수 내 **교차리전 요약 뷰**(읽기·집계는 주권 경계 준수)뿐. *복제 계층=gw/1.2.*
 
 ## 7.2 운영자 RBAC·권한 요청/승인 [v1.0 필수]
 정본=부모 §7.1.4·§7.9.2.
+> **멀티리전 authz(gw/1.2·부모 R1).** 운영자 역할 부여는 **모든 리전에 동일하게 복제(균일 sync)** 되며 리전별로 다르게 주지 않는다(부모 §7.9.2). 즉 승인 UI에 **grant별 리전 스코프 선택은 없다** — 데이터 스코프(global/region/clinic·FR-CON-04)만 있고, "특정 리전 데이터만 담당"은 그 데이터 스코프(`scope_type=region`)로 표현한다. **리전 스위처(FR-CON-03)** 는 권한 축이 아니라 *호출 대상 Admin API base*를 고르는 것뿐이다(전역 admin은 전 리전 동일 권한으로 각 리전을 운영). v1.0 단일 리전이라 이 균일 복제는 자명(복제 계층 구현=gw/1.2·GW 읽기 경로는 항상 리전 로컬).
 - **FR-CON-04** [v1.0] **권한 요청**(no_access·본인) — 역할 멀티선택 + 스코프(기본 global) + 사유 → `POST /v1/admin/me/access-requests` → "승인 대기". *검증:* 최소 1개 역할 선택. *에러:* 중복 요청은 GW가 거절(409)→"이미 요청됨" 표시. 거부되면 사유 표시·재요청 가능.
 - **FR-CON-05** [v1.0] **Admin 승인 큐·조정**(admin) — `GET /v1/admin/access-requests`(requested) → **승인·부분 승인·거부**(`PATCH …/roles/{grantId}` — 요청 역할당 grant 1건이라 **일부만 active·나머지 reject** 가능) + **직접 조정**(요청과 무관하게 부여/회수=FR-CON-06). 즉 요청은 제안이고 **최종 역할은 Admin이 확정**한다. *Side effect:* 승인 시 대상 운영자의 다음 `/me`부터 역할 반영. *알림:* 요청 발생 알림 채널(이메일/Teams/인앱)은 ③-C 확정(Appendix C-6).
 - **FR-CON-06** [v1.0] **운영자 관리**(admin) — `GET /v1/admin/operators`(상태·역할 필터)·상세 → 직접 부여(`POST …/roles`)·회수(revoked)·정지/복구(status). *가드:* 본인 마지막 admin 역할 회수 방지 — **GW 서버가 강제**한다(`PATCH …/roles/{grantId}`가 시스템 마지막 admin 회수를 409로 거부·**부모 §7.9.2/OpenAPI에 반영됨**(spec-v1.0.11·`patchAdminOperatorRole` 409)). Console UI도 해당 버튼을 비활성화하되 **최종 강제는 서버**다(API 직접 호출로도 lock-out 불가). *Side effect:* suspended는 역할 무관 전면 차단.
@@ -771,7 +784,7 @@ GW pilot과 연계(별도 계획).
 | ID | 결정 | 대안·기각 사유 | 일시 |
 | --- | --- | --- | --- |
 | A | 단일 Console+리전 스위처 | 리전별 콘솔(번거로움)·교차리전 집계(주권 위반) 기각 | 2026-08-04 |
-| B | Refine+Next.js(권장) | React-admin(MUI 결속)·순수 Next.js(보일러플레이트) 후순위 | 2026-08-04 |
+| B | **확정: Next.js + Refine(headless) + shadcn/ui(Radix+Tailwind) + TanStack Query** | React-admin(MUI 결속)·순수 Next.js(보일러플레이트)·Ant Design 기각. shadcn은 Refine 1급 통합 아님 → Refine headless | 2026-08-04 권장 → **2026-08-06 R5 확정** |
 | C | 연동 대상 무관(generic) 화면 | 대상별 전용 화면(대상 추가마다 코드) 기각 | 2026-08-04 |
 | D | v1.0·v2.0 한 문서·v1 완전/v2 경량 | 별도 2문서(정합 유지비) 기각 | 2026-08-04 |
 | E | 국제화: 표준=PO+소스 영어원문(심볼 키 금지) → LinguiJS 선정 | i18next=키 기반(제약 위반)·react-intl=PO 적합성 약함 기각 · ref: cloudwebviewer | 2026-08-05 |
@@ -781,8 +794,8 @@ GW pilot과 연계(별도 계획).
 | --- | --- | --- |
 | C-1 | v1.0에 실제 등록·운영할 **연동 대상 시점**(내부 라우팅 vs 외부 AXS) | 제품/일정 — 8/6 공유·확인 |
 | C-2 | Entra 테넌트·앱 등록(claim·app role) | IT(Entra)·부모 Appendix B #40 |
-| C-3 | 접근 경계(Istio 내부전용 + ZTNA) 구체 | ③-I |
-| C-4 | 기술 스택 확정(Refine 권장) | ③-C LLD |
+| C-3 | 접근 통제 하드닝(Entra-gated 공개 Admin API·WAF·rate-limit·CORS) 구체 | ③-I |
+| C-4 | ~~기술 스택 확정~~ **해소(2026-08-06 R5)**: Next.js+Refine(headless)+shadcn/ui+TanStack Query 확정 · 세부 버전만 ③-C LLD | ③-C LLD(버전만) |
 | C-5 | break-glass payload 열람 **가능 역할 목록**(제한+사유+감사는 FR-CON-22로 확정) | 보안+③-C |
 | C-6 | 승인 요청 알림 채널(이메일/Teams/인앱) | ③-C |
 | C-7 | UI 상세 명세(레이아웃·컴포넌트) | ③-C(별도 UI 명세) |
@@ -792,15 +805,15 @@ GW pilot과 연계(별도 계획).
 | C-11 | **서버 강제 낙관적 잠금**(target·policy·clinic·config에 `expectedVersion`/`If-Match`+409) — 부모 OpenAPI 확장 필요. v1.0=클라이언트측 stale write 감지(FR-CON-36), 다중 운영자 안전 강화 시 권고 | GW+③-C(spec-change) |
 | C-12 | 목록 **기본 정렬·안정 정렬 계약**(현 부모 OpenAPI에 정렬 파라미터 없음) — GW 기본 정렬 보장 확인·계약화 | GW·목록 화면 착수 시 |
 | C-13 | 국제화 구체 — `@lingui/swc-plugin` Next 통합·SWC 설정·플러그인 버전·초기 카탈로그 부트스트랩(방식·설정 규약은 §6.10 확정) | ③-C LLD |
-| C-14 | **최초 admin 부트스트랩 seed** — JIT 생성 시 subject가 배포 seed에 있으면 `operator_role=admin` 부여(no_access 승인 데드락 방지·TOFU 아님·**GW DB seed**·③-I 배포 프로비저닝). **부모 GW SRS §7.1.4(JIT)·§7.9.2(RBAC)에 seed 계약 추가 필요**. §2.3.2 | GW(부모 SRS)·③-I · **Console baseline 후** |
+| C-14 | ✅ **반영됨(부모 v1.0.12·#12487)** — 전역 bootstrap seed가 부모 §7.9.2에 추가됨("최초 admin은 전역 seed로 1회 부여되어 전 리전에 복제"). JIT 생성 시 subject가 배포 seed면 `operator_role=admin`(no_access 데드락 방지·GW DB seed·③-I 프로비저닝)의 계약 근거 성립. 잔여(선택)=§7.1.4 JIT 서술의 seed 교차참조. §2.3.2 | ✅ GW 부모 반영 완료 |
 | C-15 | **사유(reason) 수집·저장 — 사유가 필요한 액션 공통·API+DB 둘 다 부재** — payload 열람(FR-CON-22a)·**device kill(FR-CON-12)**·enrollment 거부가 모두 "사유+감사"를 요구하지만 부모에 미지원: **(a)** 해당 액션 API(`GET …/payload`·`POST …/kill`·`PATCH …/devices/{id}`)에 **reason 전달 수단 없음**, **(b)** `audit_log`에 **사유 저장 필드 없음**(actor·action·result·before/after·source_ip만 — `operator_role.note`는 RBAC 사유라 별개). 액션 자체는 감사되나 **사유는 담을 곳이 없음**. → **부모 DBML/§7.9.3(audit_log reason 필드) + 사유 필요 액션 API에 reason 전달 추가**. §2.3.5·FR-CON-22a·FR-CON-12 | GW(부모 SRS·DBML)·보안 · **Console baseline 후** |
 | C-16 | **명시적 enrollment Reject (v1.0 기능)** — 운영자가 pending enroll을 **즉시 거부**(→`rejected` 상태·감사)하는 **v1.0** 기능. 현재 부모 `device_status`가 pending/active/suspended/revoked뿐이라 **`rejected` 상태(또는 reject 액션) 신설이 선결**이다 — 기능 버전은 v1.0이고 부모 반영 *시점*만 Console 확정 후다. (미처리 pending TTL 자동 만료는 abuse 방지 안전망으로 별개.) 부모 §7.2·§7.3.1·DBML `device_status`·`PATCH …/devices/{id}` 반영. §2.3.3·FR-CON-10 | GW(부모 SRS·DBML) · **Console baseline 후 반영** |
 
 ### 부모 SRS 반영 대상 (Console baseline 후 일괄)
 
-부모 GW SRS/OpenAPI 변경이 필요한 항목만 모은 체크리스트다(정본 상세=위 Appendix B 해당 행). **현재 부모 SRS는 모두 미수정**이며, 본 Console Sub-SRS가 baseline으로 확정되면 **하나의 spec-change로 부모에 반영**한다.
+부모 GW SRS/OpenAPI 변경이 필요한 항목만 모은 체크리스트다(정본 상세=위 Appendix B 해당 행). 일부는 **부모 v1.0.12(#12487)로 이미 반영**됐고(전역 bootstrap seed·Admin API Entra-gated 공개), 나머지 미반영분은 Console Sub-SRS baseline 확정 시 **하나의 spec-change로 부모에 반영**한다.
 
-- [ ] **C-14 (필수)** — 최초 admin 부트스트랩 seed: JIT 시 seed면 `admin` 부여 → 부모 §7.1.4·§7.9.2.
+- [x] **C-14 (반영됨·v1.0.12)** — 전역 bootstrap seed가 **부모 §7.9.2에 추가됨**("최초 admin은 전역 seed로 1회 부여"·#12487). 잔여(소규모)=§7.1.4 JIT 서술이 seed를 교차참조하도록 다듬기(선택).
 - [ ] **C-15 (필수)** — **사유(reason) 수집·저장(payload 열람·kill·거부 공통)**: 사유 필요 액션 API에 reason 전달 **+ `audit_log` reason 필드**(현재 둘 다 없음) → 부모 OpenAPI·DBML·§7.9.3.
 - [ ] **C-16 (v1.0·필수)** — 명시적 enrollment **Reject**(`rejected` 상태·즉시 거부) → 부모 `device_status`·§7.2. **v1.0 기능**·부모 상태 신설이 선결(Console 확정 후 반영). 방치 pending TTL 만료는 별개 안전망.
 - [ ] **C-11 (선택·권고)** — 서버 강제 낙관적 잠금(`expectedVersion`+409) → 부모 OpenAPI. v1.0은 클라이언트측 stale write 감지로 우회(FR-CON-36).
@@ -825,3 +838,4 @@ GW pilot과 연계(별도 계획).
 | v0.11 | 2026-08-05 | 사장님 리뷰 반영(진행) — **§2.3.1 S1 로그인·부트스트랩 다이어그램에 Entra 액세스 토큰 검증 단계 명시**: `operatorAuth`(캐시된 Entra JWKS로 서명+`iss`·`aud`·`scp` claim 검증·요청마다·무상태) + `operator_role` RBAC 조회 → `accessState`를 흐름에 드러냄(기존엔 `operatorAuth` 한 단어로 압축돼 검증 절차가 안 보였음). Entra JWKS는 최초/kid 회전 시 fetch·캐시(요청마다 Entra 호출 아님·§7.1.4). · abc-dev-assistant(개인 repo)를 §1.5 관련문서에서 제외. · **최초 admin 부트스트랩 설계 추가(§2.3.2)** — first-admin 승인 데드락 해소: **seed된 최초 admin(GW DB seed·③-I 배포·TOFU 아님)** vs 이후 request→approve를 **상황별 플로우차트 + 시퀀스**로 명시, **부분 승인·Admin 조정**(FR-CON-05)·FR-CON-02 seed note 보강. **최초 admin seed는 부모 §7.1.4/§7.9.2 계약 추가 필요 — 표시만 하고 부모 미수정(Appendix B C-14·Console 확정 후 부모 반영).** · **break-glass 열람 사유를 세션 단위 재사용으로 다듬음**(FR-CON-22a·§2.3.5 — 건건 재입력 제거·건건 감사는 유지·GW 스펙 밖 세션 메커니즘은 미도입) + payload 열람 **사유(reason) 수집·저장 계약 부재를 C-15로 확정**(부모 검증: `audit_log`엔 actor·action·result·before/after·source_ip만·reason 컬럼 없음 / payload GET에 reason 파라미터 없음 → **API reason 전달 + audit_log reason 필드 둘 다** 필요·`operator_role.note`는 RBAC용 별개). · **부모 SRS 반영 대상 체크리스트를 부록에 한 블록으로 정리**(C-8·C-11·C-12·C-14·C-15)하고 §2.3.2 인라인 콜아웃 축소. · **S3 디바이스 enrollment 승인 리뷰 반영** — (1) 사유 저장 gap을 **C-15로 일반화**(payload·kill·거부 공통 — `audit_log` reason 필드 + 사유 필요 액션 API에 reason)·FR-CON-12에 kill 사유 C-15 선결 표시, (2) 거부는 **v1.0 명시 Reject**(→`rejected`·부모 상태 신설이 선결·C-16·기능은 v1.0이고 부모 반영 시점만 Console 확정 후)·방치 pending TTL 만료는 별개 안전망, (3) FR-CON-10·S3에 승인 엔드포인트(`PATCH …/devices/{id}` status=active) 인용. |
 | v0.12 | 2026-08-05 | **§1·§2 정독 리뷰 반영**(사장님 + spec-reviewer 체크리스트 A~N + 템플릿 §1~§2 대조) — §1.1 ③-C·버전 명시·"Case C" 외부라벨 제거 · §1.4에 **③-C/③-I/③-P·C/S·SoT·DLQ** 용어 추가 · §1.3 writing-tips 인용 제거 · §1.6 문서 구성 한 줄·§3/§5 읽기 행 추가 · **§2.1.1 GW 백엔드 박스(subgraph)화**·**§2.1.2 리전 스택에 감사로그·well-known** 추가 · **§2.2 GW 백엔드 박스로 §2.1과 external 정합**(GW Admin API 단일 노드·"GW 범위"→"GW 백엔드") · **§2.3.6 S6 시퀀스 다이어그램 추가** · authoring 메타 표현 정리(누락 점검·필수 점검·혼란 방지)·외부 가이드 인용(writing-tips·spec-philosophy) 제거·§1.5 provenance 축약. §2.1·§2.3(S4)·§2.4는 템플릿 정합 확인(무수정 통과). |
 | v0.13 | 2026-08-06 | **부모 baseline v1.0.11 반영·리전 교정 스윕** — 부모 GW SRS PR #12440(③b verbatim+JWKS)·#12453(prod 리전 시드니 교정·Console 전역 단일·JWS 회전·Region Directory) 병합·태그 `spec-v1.0.11`. §1.5 부모 계약 3종 핀 v1.0.10→v1.0.11. §2.1.1·§2.1.2·§2.3 등 **멜버른 apse4 → 시드니 apse2**(ap-southeast-4는 AWS IoT Core 미지원) 스윕. Console 전역 단일은 #12453이 확정(리전별 철회)이라 변경 없음. ZT↔Entra 층·전역 Console→리전별 Admin 도달 경로(§4.5.1)는 백로그 잔여. |
+| v0.14 | 2026-08-10 | **CB 백로그 반영 + §4~§7 리뷰.** CB-1: **ZTNA/Zero Trust 제거 → 애플리케이션 계층 Entra 인증**(§1.4·§2.1 외부표·§2.1.1/2.1.2 다이어그램·§2.3 S1·§2.6·§3.1.2·§3.3.2·§4.5·§6.2·Appendix C-3 스윕)·**Admin API=Entra-gated 공개**(부모 #12487·내부전용/mesh DENY 폐기·CORS 명시). CB-2: **기술 스택 확정 = Next.js+Refine(headless)+shadcn/ui(Radix+Tailwind)+TanStack Query**(§2.2·§3.4.2·§6.5·Appendix A B·C-4 해소). 부모 핀 v1.0.11→**v1.0.12**(§1.5·상속 근거에 §4.5.1 추가). 멀티리전 authz는 **역할 전 리전 균일 sync**(부모 §7.9.2·regionScope 제거)·리전 스위처=운영 base만·gw/1.2(§7.2 note). §4~§7 리뷰 반영. |
