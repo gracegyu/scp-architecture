@@ -503,7 +503,31 @@ Jira(GW 프로젝트).
 
 ## 4.2 User Interface (사용자 인터페이스)
 논리 요구(레이아웃·컴포넌트 상세 = UI 명세/LLD·Appendix C-7):
-- 좌측 내비 = **역할별 메뉴**(권한 없는 항목 비노출). 상단 = 리전 컨텍스트·로그인 사용자.
+- **기본 화면 구조 (App Shell · 논리 구조).** 전 화면은 **지속되는 3-영역 셸** 안에서 렌더한다:
+  - **① 상단 App Bar**(전역·항상 노출) — **리전 스위처(FR-CON-03)** · 현재 로그인 운영자 · 로그아웃 · 현재 리전 컨텍스트 표시 · **알림 badge**(처리 대기 건수 — 예: 권한 요청 승인 큐 pending·FR-CON-05·알림 채널은 C-6).
+  - **② 좌측 Sidebar 내비** — **역할별 메뉴**(무권한 항목 비노출 · §7.2 accessControlProvider). 화면 맵(아래)의 기능 그룹과 대응.
+  - **③ 메인 콘텐츠 영역** — **브레드크럼**(현재 위치·상위 계층 이동) + §7 기능별 Resource 페이지(아래 화면 맵) · 전역 상태(로딩/오류/빈 §7.0)를 일관 표시.
+  - 로그인·OIDC 콜백만 셸 밖(미인증). *셸의 존재·각 영역이 담아야 할 것(요구)만 규정한다 — 시각 배치·치수·컴포넌트는 표준 admin 레이아웃이라 LLD(Appendix C-7)·Refine 스캐폴딩으로 흡수(화면 맵 "전역 크롬" 행).*
+
+```mermaid
+flowchart TB
+    subgraph SHELL["GW Console · App Shell (논리 구조 · 시각 상세=LLD)"]
+        AB["① 상단 App Bar — 리전 스위처 · 현재 운영자 · 알림 badge 🔔 · 로그아웃 · 리전 컨텍스트"]
+        subgraph BODY["본문 (Sidebar + 메인)"]
+            direction LR
+            SB["② 좌측 Sidebar<br/>역할별 메뉴<br/>(무권한 비노출)"]
+            subgraph MAIN["③ 메인 콘텐츠"]
+                direction TB
+                BC["브레드크럼 (현재 위치)"]
+                PG["Resource 페이지 (§7 · 화면 맵)<br/>로딩 · 오류 · 빈 3상태 일관"]
+                BC --- PG
+            end
+            SB --- MAIN
+        end
+        AB --- BODY
+    end
+```
+> 위는 **논리 영역 구조**(App Bar / Sidebar / 메인)만 나타낸다 — 정확한 폭·색·컴포넌트·반응형 규칙은 **LLD(Appendix C-7)**. 로그인·OIDC 콜백 화면은 이 셸 밖에서 렌더한다.
 - **마스킹**: credential/secret·PHI payload는 원문 미표시(해제 UI 없음).
 - **파괴적 액션 가드**: kill 등은 확인 다이얼로그·사유·위험색 구분(§7.3·§6.1).
 - 목록: 서버측 필터(정확 일치)·커서 페이지네이션(부모 §7.9.1 조회 규약).
@@ -736,6 +760,7 @@ GW pilot과 연계(별도 계획).
 - **FR-CON-17** [v1.0] **목록/상세/삭제** — GET 목록·상태(enabled)·편집(upsert)·`DELETE …/targets/{id}`. *Side effect:* 삭제는 라우팅·연동 중단 → 확인 가드. *에러:* 종속 참조(org_mapping·정책·webhook_event)가 있으면 **409** — 먼저 정리하도록 안내.
 - **FR-CON-18** [v1.0] **정책 편집** — target별 allowed_endpoints·scopes(`/v1/admin/policies` GET/POST/DELETE·deny-by-default·부모 #32).
 - **FR-CON-19** [v1.0] **org-mapping 관리** — (target_id,org_id)→clinic 목록·교정(`POST …/org-mappings`)·**삭제(`DELETE …/org-mappings`·연동 해지·확인 가드)**. 1차 입력=자가 등록(부모 §2.3.4). *검증:* 대상 clinic 존재.
+  - *범용 번역표(부모 §7.6.1):* `org_mapping`은 org 전용이 아니라 **`(target_id, 그 target의 외부 식별자) → clinic_id`** 범용 대응표다. 새 target이 clinicID·AXS org-id와 **다른 자기만의 식별자**를 써도 이 화면에서 **행을 추가**하면 되며(같은 표·스키마 변경 0), target별 전용 화면/구현이 아니다(핵심 결정 C·generic). 목적지가 클리닉이 아닌 수신자면 별개(부모 Appendix B #37).
 - **FR-CON-20** [v2.0] **연동 가입/구독 관리 고급 화면**(AXS link/check/unlink·customerNumber·동의 폴링) — AXS 특화·④ 소관 연계. v1.0은 out-of-band Org-ID를 FR-CON-19에 입력.
 
 ## 7.6 Webhook 이벤트 조회·payload break-glass 열람 [v1.0 주요]
@@ -838,4 +863,4 @@ GW pilot과 연계(별도 계획).
 | v0.11 | 2026-08-05 | 사장님 리뷰 반영(진행) — **§2.3.1 S1 로그인·부트스트랩 다이어그램에 Entra 액세스 토큰 검증 단계 명시**: `operatorAuth`(캐시된 Entra JWKS로 서명+`iss`·`aud`·`scp` claim 검증·요청마다·무상태) + `operator_role` RBAC 조회 → `accessState`를 흐름에 드러냄(기존엔 `operatorAuth` 한 단어로 압축돼 검증 절차가 안 보였음). Entra JWKS는 최초/kid 회전 시 fetch·캐시(요청마다 Entra 호출 아님·§7.1.4). · abc-dev-assistant(개인 repo)를 §1.5 관련문서에서 제외. · **최초 admin 부트스트랩 설계 추가(§2.3.2)** — first-admin 승인 데드락 해소: **seed된 최초 admin(GW DB seed·③-I 배포·TOFU 아님)** vs 이후 request→approve를 **상황별 플로우차트 + 시퀀스**로 명시, **부분 승인·Admin 조정**(FR-CON-05)·FR-CON-02 seed note 보강. **최초 admin seed는 부모 §7.1.4/§7.9.2 계약 추가 필요 — 표시만 하고 부모 미수정(Appendix B C-14·Console 확정 후 부모 반영).** · **break-glass 열람 사유를 세션 단위 재사용으로 다듬음**(FR-CON-22a·§2.3.5 — 건건 재입력 제거·건건 감사는 유지·GW 스펙 밖 세션 메커니즘은 미도입) + payload 열람 **사유(reason) 수집·저장 계약 부재를 C-15로 확정**(부모 검증: `audit_log`엔 actor·action·result·before/after·source_ip만·reason 컬럼 없음 / payload GET에 reason 파라미터 없음 → **API reason 전달 + audit_log reason 필드 둘 다** 필요·`operator_role.note`는 RBAC용 별개). · **부모 SRS 반영 대상 체크리스트를 부록에 한 블록으로 정리**(C-8·C-11·C-12·C-14·C-15)하고 §2.3.2 인라인 콜아웃 축소. · **S3 디바이스 enrollment 승인 리뷰 반영** — (1) 사유 저장 gap을 **C-15로 일반화**(payload·kill·거부 공통 — `audit_log` reason 필드 + 사유 필요 액션 API에 reason)·FR-CON-12에 kill 사유 C-15 선결 표시, (2) 거부는 **v1.0 명시 Reject**(→`rejected`·부모 상태 신설이 선결·C-16·기능은 v1.0이고 부모 반영 시점만 Console 확정 후)·방치 pending TTL 만료는 별개 안전망, (3) FR-CON-10·S3에 승인 엔드포인트(`PATCH …/devices/{id}` status=active) 인용. |
 | v0.12 | 2026-08-05 | **§1·§2 정독 리뷰 반영**(사장님 + spec-reviewer 체크리스트 A~N + 템플릿 §1~§2 대조) — §1.1 ③-C·버전 명시·"Case C" 외부라벨 제거 · §1.4에 **③-C/③-I/③-P·C/S·SoT·DLQ** 용어 추가 · §1.3 writing-tips 인용 제거 · §1.6 문서 구성 한 줄·§3/§5 읽기 행 추가 · **§2.1.1 GW 백엔드 박스(subgraph)화**·**§2.1.2 리전 스택에 감사로그·well-known** 추가 · **§2.2 GW 백엔드 박스로 §2.1과 external 정합**(GW Admin API 단일 노드·"GW 범위"→"GW 백엔드") · **§2.3.6 S6 시퀀스 다이어그램 추가** · authoring 메타 표현 정리(누락 점검·필수 점검·혼란 방지)·외부 가이드 인용(writing-tips·spec-philosophy) 제거·§1.5 provenance 축약. §2.1·§2.3(S4)·§2.4는 템플릿 정합 확인(무수정 통과). |
 | v0.13 | 2026-08-06 | **부모 baseline v1.0.11 반영·리전 교정 스윕** — 부모 GW SRS PR #12440(③b verbatim+JWKS)·#12453(prod 리전 시드니 교정·Console 전역 단일·JWS 회전·Region Directory) 병합·태그 `spec-v1.0.11`. §1.5 부모 계약 3종 핀 v1.0.10→v1.0.11. §2.1.1·§2.1.2·§2.3 등 **멜버른 apse4 → 시드니 apse2**(ap-southeast-4는 AWS IoT Core 미지원) 스윕. Console 전역 단일은 #12453이 확정(리전별 철회)이라 변경 없음. ZT↔Entra 층·전역 Console→리전별 Admin 도달 경로(§4.5.1)는 백로그 잔여. |
-| v0.14 | 2026-08-10 | **CB 백로그 반영 + §4~§7 리뷰.** CB-1: **ZTNA/Zero Trust 제거 → 애플리케이션 계층 Entra 인증**(§1.4·§2.1 외부표·§2.1.1/2.1.2 다이어그램·§2.3 S1·§2.6·§3.1.2·§3.3.2·§4.5·§6.2·Appendix C-3 스윕)·**Admin API=Entra-gated 공개**(부모 #12487·내부전용/mesh DENY 폐기·CORS 명시). CB-2: **기술 스택 확정 = Next.js+Refine(headless)+shadcn/ui(Radix+Tailwind)+TanStack Query**(§2.2·§3.4.2·§6.5·Appendix A B·C-4 해소). 부모 핀 v1.0.11→**v1.0.12**(§1.5·상속 근거에 §4.5.1 추가). 멀티리전 authz는 **역할 전 리전 균일 sync**(부모 §7.9.2·regionScope 제거)·리전 스위처=운영 base만·gw/1.2(§7.2 note). §4~§7 리뷰 반영. |
+| v0.14 | 2026-08-10 | **CB 백로그 반영 + §4~§7 리뷰.** CB-1: **ZTNA/Zero Trust 제거 → 애플리케이션 계층 Entra 인증**(§1.4·§2.1 외부표·§2.1.1/2.1.2 다이어그램·§2.3 S1·§2.6·§3.1.2·§3.3.2·§4.5·§6.2·Appendix C-3 스윕)·**Admin API=Entra-gated 공개**(부모 #12487·내부전용/mesh DENY 폐기·CORS 명시). CB-2: **기술 스택 확정 = Next.js+Refine(headless)+shadcn/ui(Radix+Tailwind)+TanStack Query**(§2.2·§3.4.2·§6.5·Appendix A B·C-4 해소). 부모 핀 v1.0.11→**v1.0.12**(§1.5·상속 근거에 §4.5.1 추가). 멀티리전 authz는 **역할 전 리전 균일 sync**(부모 §7.9.2·regionScope 제거)·리전 스위처=운영 base만·gw/1.2(§7.2 note). §4~§7 리뷰 반영(§6.8 운영자 업무 규정·FR-CON-03a 정합 정정·C-14 부모 v1.0.12 반영 확인). **FR-CON-19에 org_mapping 범용 번역표 판정**(새 target=행 추가·스키마 0·부모 §7.6.1 A안·PR #12555). |
