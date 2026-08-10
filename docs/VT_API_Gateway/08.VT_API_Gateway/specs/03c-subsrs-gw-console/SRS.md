@@ -201,7 +201,13 @@ flowchart TB
   VW --> WK
   A -->|"토큰 검증(Entra JWKS)"| ENTRA
 ```
-- **authProvider** = Entra OIDC 로그인·토큰·세션(§7.1). **accessControlProvider** = `/me` accessState·역할로 메뉴·액션 게이팅(§7.2·최소권한). **dataProvider** = GW Admin API 소비(OpenAPI 타입·리전 base는 Region Switcher 주입) + TanStack Query 캐시. **Resource 페이지** = §7 기능 단위. (스택 확정 = Next.js+Refine(headless)+shadcn/ui+TanStack Query·§6.6·세부 버전만 LLD.)
+Refine provider가 각 외부 시스템에 매핑되고, 기능은 Resource 페이지로 나뉜다:
+- **authProvider** — Entra OIDC 로그인·토큰·세션을 담당한다(§7.1).
+- **accessControlProvider** — `/me`의 accessState·역할로 메뉴·액션을 게이팅한다(§7.2·최소권한).
+- **dataProvider** — GW Admin API를 소비한다(OpenAPI 생성 타입 사용·리전 base는 Region Switcher가 주입). 서버 상태 캐시는 TanStack Query가 맡는다.
+- **Resource 페이지** — §7 기능 단위로 나뉜다(§7과 1:1).
+
+스택은 **Next.js + Refine(headless) + shadcn/ui + TanStack Query**로 확정이며 세부 버전만 LLD에서 정한다(§6.6).
 - **훔쳐보기 금지:** Console은 GW Admin API 외 어떤 내부 경로(DB·KMS·GW 내부 모듈)도 직접 호출하지 않는다.
 
 ## 2.3 Overall Operation (전체 동작방식) — 주요 시나리오·플로우
@@ -424,10 +430,15 @@ SRS는 앱이 **소비하는 config 키(위)와 인증 요구**(OIDC Auth Code+P
 ## 3.3 Distribution Environment (배포 환경)
 
 ### 3.3.1 Master Configuration (마스터 구성)
-컨테이너 이미지로 SPA 정적 자산을 서빙한다. CD 매체 배포는 아니다(N/A).
+릴리스 산출물은 **빌드된 SPA 정적 자산 번들**(불변 빌드 아티팩트)이며, 이 번들을 S3 + CloudFront로 서빙한다(§3.3.2).
 
 ### 3.3.2 Distribution Method (배포 방법)
-③-I가 **AWS 클라우드에 배포**한다 — SPA 정적 자산을 **S3 + CloudFront**(global 단일 호스트 `console.gw.<도메인>`·§4.5·TLS/캐시=CloudFront·ACM cert)로 서빙한다. "사내"는 배포 *위치*가 아니라 **접근 통제**를 뜻한다 — 공개 인터넷에 두되 **애플리케이션 계층 Entra 인증**(OIDC + `operatorAuth`)으로 사내 직원만 접근한다(§6.2). **Zero Trust/ZTNA(엣지 강제)는 두지 않는다**(부모 R1·#12487). 격리 존(중국 등)은 그 존 인프라에 별도 배포한다(§4.5). CI/CD는 GW와 동일 파이프라인(③-I·§3.6.2).
+③-I가 AWS 클라우드에 배포하며, 방식은 다음과 같다.
+- **호스팅** — SPA 정적 자산을 **S3 + CloudFront**로 서빙한다. 전역 단일 호스트 `console.gw.<도메인>`(§4.5)를 쓰고, TLS·캐시·엣지는 CloudFront가 담당하며 인증서는 ACM으로 발급한다.
+- **접근 통제** — 여기서 "사내"는 배포 *위치*가 아니라 *접근 통제*를 뜻한다. 즉 자산은 공개 인터넷에 두되, **애플리케이션 계층 Entra 인증**(OIDC 로그인 + 요청마다 `operatorAuth`)으로 사내 직원만 접근하게 한다(§6.2).
+- **Zero Trust 미도입** — 엣지에서 강제하는 Zero Trust/ZTNA는 두지 않는다(부모 R1·#12487에서 폐기). 방어는 위 애플리케이션 계층 인증이 담당한다.
+- **격리 존 예외** — 네트워크·규제상 격리된 존(중국 등)은 그 존 인프라에 Console을 별도로 배포한다(§4.5).
+- **CI/CD** — 별도 파이프라인을 두지 않고 GW와 동일한 파이프라인을 사용한다(③-I·§3.6.2).
 
 ### 3.3.3 Patch/Update Method (패치와 업데이트 방법)
 무중단 재배포(정적 자산 교체)로 갱신하며, 클라이언트는 새로고침으로 최신본을 받는다.
@@ -461,7 +472,12 @@ Console은 **GW Admin API·Entra(OIDC)·정적 자원(Region Directory·well-kno
 특별 HW 요구 없음 — 표준 개발 PC. 로컬 SPA 빌드·(선택) mock 서버·Docker 컨테이너 구동 가능 사양이면 충분하다.
 
 ### 3.4.2 Software Environment (소프트웨어 환경)
-Node.js(LTS) · **pnpm**(조직 표준) · **Next.js + Refine**(headless) · **TanStack Query**(=React Query) · **shadcn/ui**(Radix UI primitives + Tailwind·확정) · **OpenAPI 코드젠**(orval/openapi-typescript) · **MSW**(요청 mock) · **Playwright**(e2e) · Docker(로컬 GW/의존 구동·선택) · **Claude Code**(개발 표준) · VS Code. 스택은 확정(2026-08-06 R5)이고 **구체 버전만** 구현 착수 시 확정(§6.6·③-C LLD).
+스택은 2026-08-06 R5로 확정했고, 구체 버전만 구현 착수 시 확정한다(§6.6·③-C LLD). 구성은 다음과 같다.
+- **런타임·패키지 매니저** — Node.js(LTS)에 조직 표준인 **pnpm**을 쓴다.
+- **프레임워크·UI** — **Next.js + Refine**을 headless(data/auth/routing provider)로 쓰고, 화면은 **shadcn/ui**(Radix UI primitives + Tailwind)로 구성한다. 서버 상태는 **TanStack Query**(=React Query)로 다룬다.
+- **계약 소비** — GW OpenAPI에서 **코드젠**(orval/openapi-typescript)으로 타입·API 클라이언트를 생성한다.
+- **테스트·목** — 요청 목은 **MSW**, E2E는 **Playwright**로 한다.
+- **로컬 구동·도구** — 로컬에서 GW·의존을 띄울 때 **Docker**를 선택적으로 쓰고, 개발 표준 도구는 **Claude Code**와 **VS Code**다.
 
 ## 3.5 Test Environment (테스트 환경)
 
@@ -582,7 +598,9 @@ GW Admin **OpenAPI**(타입 생성)·Entra OIDC. Console은 계약을 코드 생
 동시 운영자 소수(수십 규모). 부모 §5의 device 트래픽과 별개.
 
 ## 5.3 Response Time
-체감 응답 = **GW Admin API 응답 + 클라이언트 렌더**. Console 자체 지연은 렌더에 한한다. 목록·상세는 GW 응답을 받는 즉시 커밋해 렌더한다(인위적 추가 지연 없음·대량은 커서 페이지네이션 분할). **주의:** 부모 §5는 device control-plane 전용이라 **Admin API 전용 SLA가 없다** — Admin API 성능 목표(p95 등)가 필요하면 부모 SRS에 별도 절을 신설해야 한다(Appendix C-8·소유=GW·시점=성능 요구 시).
+- **체감 응답 = GW Admin API 응답 + 클라이언트 렌더**이며, Console 자체 지연은 렌더에만 한한다.
+- 목록·상세는 GW 응답을 받는 즉시 커밋해 렌더한다(인위적 추가 지연을 두지 않고, 대량은 커서 페이지네이션으로 분할한다).
+- **주의 — Admin API 전용 SLA는 아직 없다.** 부모 §5는 device control-plane 전용이라, Admin API 성능 목표(p95 등)가 필요하면 부모 SRS에 별도 절을 신설해야 한다(Appendix C-8·소유=GW·시점=성능 요구 시).
 
 ## 5.4 Performance Dependency
 응답은 GW Admin API 응답 시간에 종속(상한). Console은 캐시(TanStack Query)로 재조회를 줄인다.
