@@ -568,8 +568,9 @@ flowchart TB
 
 | 화면 ID | 화면 (라우트·예시) | §7 | 유형(pg) | FR-CON | 역할 | 설명 |
 | --- | --- | --- | --- | --- | --- | --- |
-| **SCR-AUTH-01** | 로그인·세션 (`/login`·OIDC 콜백) | 7.1 | 인증 흐름 | 01·02 | 전원(미인증) | Entra OIDC(Auth Code+PKCE)로 로그인하고 콜백을 처리한 뒤 `/me`로 부트스트랩 분기한다(active/no_access/suspended). 셸 밖·자체 폼 없음. |
+| **SCR-AUTH-01** | 로그인·세션 (`/login`·OIDC 콜백) | 7.1 | 인증 흐름 | 01·02 | 전원(미인증) | **미인증 접속 시 자동으로 Entra 리다이렉트**(Auth Code+PKCE·팝업차단/실패 시 "로그인" 버튼 fallback). 콜백 처리 후 `/me`로 부트스트랩 분기(active/no_access/suspended). 셸 밖·자체 폼 없음. |
 | **SCR-AUTH-02** | 전역 App Shell·리전 스위처 (전역 크롬) | 7.1 | 전역 UI | 03 | 전원(항목 역할별) | App Bar(리전 스위처·현재 운영자·알림 badge·로그아웃)+Sidebar(역할별 메뉴)+콘텐츠 셸. 리전을 골라 호출 base를 전환한다. |
+| **SCR-AUTH-03** | 홈·대시보드 (`/`·역할별 착지) | 7.1 | dashboard | 02a·03 | Admin·Operator | 로그인 후 착지 화면. **[v1.0]=해당(단일) 리전 대시보드**(비-PHI 요약: 디바이스·fleet·승인 대기·target·매트릭스·감사 하이라이트). **gw/1.2=global 대시보드**(리전별 요약·FR-CON-03a·[v2.0])→리전 선택→리전 대시보드. 상세·PHI=in-region. |
 | **SCR-RBAC-01** | 권한 요청 (`/access-requests` 본인) | 7.2 | form | 04 | no_access 전원 | 역할 멀티선택+데이터 스코프(기본 global)+사유로 접근 권한을 요청한다. |
 | **SCR-RBAC-02** | 승인 큐·조정 (`/access-requests` admin) | 7.2 | list+action(pg) | 05 | Admin | requested 큐를 보고 승인·부분 승인·거부한다(요청 역할당 grant 1건). 오래된 순(FIFO). |
 | **SCR-RBAC-03** | 운영자 목록 (`/operators`) | 7.2 | list(pg) | 06 | Admin | 상태·역할로 운영자를 조회한다. |
@@ -767,9 +768,16 @@ GW pilot과 연계(별도 계획).
 - **빈/로딩/오류 상태:** 모든 목록·상세 화면은 (a) 빈 결과 (b) 로딩(무한 로딩 금지) (c) 오류(FR-CON-35) **3상태를 일관 표시**한다.
 
 ## 7.1 운영자 인증·세션 [v1.0 필수]
-> **화면(§4.2):** SCR-AUTH-01(로그인·세션)·SCR-AUTH-02(전역 App Shell·리전 스위처).
+> **화면(§4.2):** SCR-AUTH-01(로그인·세션)·SCR-AUTH-02(전역 App Shell·리전 스위처)·SCR-AUTH-03(홈·대시보드).
 - **FR-CON-01** [v1.0] **Entra SSO 로그인** — OIDC(Auth Code+PKCE)로 로그인·로그아웃한다. 자체 비밀번호 없음. *에러:* Entra 인증 실패·토큰 검증 실패 시 로그인 화면으로 복귀하고 사유를 표시한다.
-- **FR-CON-02** [v1.0] **부트스트랩 분기** — 로그인 후 `GET /v1/admin/me`의 `accessState`로 분기: `active`→역할별 메뉴 / `no_access`→권한 요청(§7.2) / `suspended`→정지 안내. *최초 admin:* 첫 사용자도 seed에 없으면 `no_access`이며, **최초 admin은 배포 seed로 `active`가 된다**(§2.3.2·부모 계약 추가 필요=Appendix B C-14). *에러:* `/me` 실패 시 재시도·오류 표시(무한 로딩 금지).
+- **FR-CON-02** [v1.0] **부트스트랩 분기·역할별 착지** — 로그인 후 `GET /v1/admin/me`의 `accessState`로 분기한다: `no_access`→권한 요청(§7.2·SCR-RBAC-01) / `suspended`→정지 안내 / `active`→**역할별 기본 착지(홈)**:
+  - **Admin** → **대시보드(SCR-AUTH-03)**
+  - **Operator** → Fleet 대시보드(SCR-FLEET-01)
+  - **C/S** → enrollment 승인 큐(SCR-DEV-03)
+  - **Developer** → 디바이스 목록(SCR-DEV-01)
+  - 멀티 역할이면 우선순위 **admin > operator > cs > developer**로 착지(세부 조정=LLD).
+  *최초 admin:* 첫 사용자도 seed에 없으면 `no_access`이며, **최초 admin은 배포 seed로 `active`가 된다**(§2.3.2·부모 계약 추가 필요=Appendix B C-14). *에러:* `/me` 실패 시 재시도·오류 표시(무한 로딩 금지).
+- **FR-CON-02a** [v1.0] **홈·대시보드**(SCR-AUTH-03·Admin·Operator 착지) — **[v1.0](gw/1.0)=바로 해당(단일) 리전 대시보드**: 그 리전의 **비-PHI 요약**(디바이스 active/pending/suspended 수·fleet 온라인 비율·승인 대기 건수·target/연동 상태·매트릭스 상태·최근 감사 하이라이트)을 보이고 상세는 각 화면으로 드릴다운한다. **`gw/1.2`=global 대시보드**(리전별 비-PHI 요약·**교차리전 요약 뷰**·FR-CON-03a·[v2.0]) → 리전 선택 → 그 리전 대시보드. **주권:** global 요약은 **비-PHI 카운트·헬스만**이고 상세·PHI·라이브 데이터는 **리전 내(in-region)**에서만 본다(§2.1.2·핵심 결정 A). *에러:* 요약 로드 실패 시 부분 표시·재시도(무한 로딩 금지).
 - **FR-CON-03** [v1.0] **단일 Console·리전 스위처** — Region Directory에서 리전을 읽어 대상 리전을 전환하고, 이후 호출 base를 `admin.<region>.gw.<도메인>`로 둔다. 무상태·교차리전 집계 없음(§2.1.2·핵심 결정 A). **GW 버전 의존:** 구조는 `[v1.0]`부터 두되, `gw/1.0`(단일 리전)에선 선택지가 1개라 스위칭이 자명하고 **실질 멀티리전 전환은 `gw/1.2`**부터 의미가 생긴다(리전 추가=Directory 행 증분·코드 무변경). *에러:* Directory 로드 실패 시 캐시된 마지막 목록 사용·경고 표시.
   - **FR-CON-03a** [v2.0] (GW `gw/1.2` 의존) 멀티리전 운영 확장 — 역할은 **GW `operator_role`이 전 리전에 균일 복제**(§7.2 note·부모 §7.9.2·R1)라 리전별 조달이 없다(Entra=SSO만·authz=GW). 확장 범위 = 주권 준수 내 **교차리전 요약 뷰**(읽기·집계는 주권 경계 준수)뿐. *복제 계층=`gw/1.2`.*
 
