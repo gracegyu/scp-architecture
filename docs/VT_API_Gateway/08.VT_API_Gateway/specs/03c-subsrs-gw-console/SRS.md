@@ -649,8 +649,12 @@ OpenAPI 타입 생성 소비로 계약 변경 추적. 역할·enum은 GW와 동�
 ### 6.3.4 Reliability
 파괴적 액션은 서버 확정 후 반영(낙관적 반영 금지). 실패 시 명확한 오류·재시도(§7.12). 편집 충돌은 v1.0에서 **클라이언트측 stale write 감지·경고**(FR-CON-36)로 다루며, 서버 강제 잠금은 부모 계약 확장 시(Appendix C-11).
 
-### 6.3.5 Remaining
-Usability(역할별 명료 메뉴·가드/마스킹으로 오조작 방지)·Testability(계약 기반 e2e).
+### 6.3.5 Remaining Attributes (기타 속성)
+앞의 6.3.1~6.3.4 외에 다음 품질 속성을 규정한다.
+- **Usability (사용성)** — 역할별 명료 메뉴(무권한 항목 비노출)·파괴적 액션 가드·민감정보 마스킹으로 오조작을 방지하고, 3상태(로딩/오류/빈·§7.0)·브레드크럼(§4.2)·국제화(§6.10)로 일관된 사용 경험을 준다. 시각 레이아웃 상세는 LLD(§4.2).
+- **Testability (시험 용이성)** — Console이 GW=SoT의 얇은 클라이언트(자체 로직·DB 없음·§6.4)라 **계약 기반 테스트로 결정적 검증**이 쉽다. 계층 전략(unit/component/e2e/시각 회귀)·자동화 목표·도구는 §3.5.
+- **Supportability (지원성·진단)** — 오류·예외는 사용자에게 명확히 표시하고(§7.12·FR-CON-33/35) 진단을 위해 브라우저 콘솔·모니터링으로 남긴다(구체 로깅·수집 파이프라인=③-I·LLD).
+- **그 외 속성 위치(중복 방지·포인터).** Security=§6.2 · Scalability·성능=§5(무상태 정적 SPA·CloudFront 확장) · Accessibility=형식 WCAG 목표는 범위 밖(§1.2 Will not do)이나 기본 접근성은 axe-core 자동 검사로 커버(§3.5 ④).
 
 ## 6.4 Logical Database Requirements
 **Console 자체 DB 없음**(GW가 SoT). 로컬 상태=세션 토큰·UI 상태뿐. 데이터 모델=부모 DBML 참조.
@@ -667,10 +671,8 @@ Usability(역할별 명료 메뉴·가드/마스킹으로 오조작 방지)·Tes
 IEC 62304·ISO 13485·감사 추적(부모 §7.9.3)·접근성(§1.2 Will not do)·i18n(§6.10).
 
 ### 6.6.2 Other Constraints
-- 인증=Entra OIDC·인가=GW(자체 인증 도입 금지). GW가 SoT(Console에 로직·저장 금지).
-- **확정 스택 = Next.js + Refine(headless) + shadcn/ui(Radix+Tailwind) + TanStack Query**(핵심 결정 B·2026-08-06 R5·Appendix C-4·세부 버전만 ③-C LLD).
-- **훔쳐보기 금지** — GW Admin API 외 내부 경로 직접 호출 금지(§2.2).
-- 역할 enum은 GW·DB와 동기(§2.6).
+- **코딩 규칙** — 조직 표준(es-platforms 규약·pnpm·TypeScript·Claude Code 개발 표준)을 따른다. **별도 Console 전용 코딩 규칙은 현재 명문화된 것이 없다**(생기면 여기 추가). 구체 lint/format(ESLint·Prettier 등) 설정은 ③-C LLD에서 확정한다.
+- **그 외 제약은 앞 절이 정본(중복 회피·포인터).** 인증=Entra·인가=GW·GW=SoT(Console에 로직·저장 없음)→§6.2·§6.4 · 기술 스택 확정→§3.4.2·Appendix A(결정 B) · 역할 enum GW·DB 동기→§2.6·§6.3.2 · Console은 GW Admin API만 소비(내부 경로 직접 호출 금지)→§1.2·§2.2.
 
 ## 6.7 Memory Constraints
 상록 브라우저 통상 범위(별도 제약 없음).
