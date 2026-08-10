@@ -144,7 +144,7 @@
       > - 순서·의존 = [Roadmap §3.9].
 
   - **S3. GW 구현 현황 — Phase·Task 스냅샷 (8/13·매주 갱신)** — 1단계 코어 완료 · 2단계 P8·P9·P11 완결 · 인증 v1.0.11 보강 중.
-    - **어디까지 왔나 (8/13)**: 1단계 코어(P0~P6·P10) 완료. 2단계는 **P8 골격(8-1·8-2·8-3) + P9 골격 app-side(9-1·9-2·9-3) + P9-4 drain + P11 Admin CRUD 전부(11-1~11-6 머지) 완결** — 로컬 더블 기준, 실연동은 ④ AXS 후. **인증 보강**: v1.0.11로 JWKS 엔드포인트 v1.0 승격 → **T-AUTH-2-6 완료(#12478)**(공개키 게시+토큰 claim 정합·개인키 미노출·외부 검증 시뮬). **④/인프라 무관 자율 가능 범위 소진**(9-4·12-2 후보 처리: 9-4 app-side 완료·12-2 compat E2E는 게이트 미배선(① One Pager 매트릭스)으로 블록). **남은 것 = P7(External Connector·AXS)·9-5(IoT)·P12-1(sandbox E2E)=④ AXS 실자격 선결 · 9-4 실 KEDA·0-5 잔여(자동배포)·P12-4=③-I 인프라(Jack) · P12-2(compat E2E)=① One Pager 매트릭스 확정 · P12-3(부하)=부하환경 · P7 골격(7-1/2/4/5)=로컬 더블 선행 가능(보류).** 구현 다음 통합·검증·QA 단계가 이어진다.
+    - **어디까지 왔나 (8/13)**: 1단계 코어(P0~P6·P10) 완료. 2단계는 **P8 골격(8-1·8-2·8-3) + P9 골격 app-side(9-1·9-2·9-3) + P9-4 drain + P11 Admin CRUD 전부(11-1~11-6 머지) 완결** — 로컬 더블 기준, 실연동은 ④ AXS 후. **인증 보강**: v1.0.11로 JWKS 엔드포인트 v1.0 승격 → **T-AUTH-2-6 완료(#12478)**(공개키 게시+토큰 claim 정합·개인키 미노출·외부 검증 시뮬). **v1.0.12 정합화**: (A) **enroll CSR→IoT Core mTLS cert 발급·폐기 완료(#12557)**(app-side·`IotCertPort`·발급 INACTIVE 게이팅·승인 활성·revoke/kill/재-enroll 폐기=REVOKED+detach·독립리뷰 Critical 수정) + (B) Admin API Entra-gated CORS(#12497). **④/인프라 무관 자율 가능 범위 소진**(9-4·12-2 후보 처리: 9-4 app-side 완료·12-2 compat E2E는 게이트 미배선(① One Pager 매트릭스)으로 블록). **남은 것 = P7(External Connector·AXS)·9-5(IoT)·P12-1(sandbox E2E)=④ AXS 실자격 선결 · 9-4 실 KEDA·0-5 잔여(자동배포)·P12-4=③-I 인프라(Jack) · P12-2(compat E2E)=① One Pager 매트릭스 확정 · P12-3(부하)=부하환경 · P7 골격(7-1/2/4/5)=로컬 더블 선행 가능(보류).** 구현 다음 통합·검증·QA 단계가 이어진다.
     - 매 Task 완료 시 갱신.
     - **진행 단계** — 스펙(분석/설계)과 구현을 분리해 진행한다. 스펙은 HLD로 baseline 동결됐고 현재 구현(LLD 병행) 중이다. 구현이 끝이 아니라, QA 인계 전 개발팀이 통합·시스템 테스트로 동작을 확증하는 단계가 남고, 이어 QA·운영이 있다.
       - **스펙 — 분석/설계(HLD)**: SRS·DBML·OpenAPI·TCL baseline v1.0 동결 · 정합화(v1.0.1~v1.0.4) 지속 · LLD는 구현과 병행
@@ -153,23 +153,43 @@
       - **개발 통합·검증(QA 인계 전)**: 통합 테스트 · 시스템 E2E(실 계약: AXS·CleverSpace·EzServer) · 성능·부하 · HA·복원력 · 보안 검토 → 동작 확증 후 QA 인계
       - **QA**: 릴리스 회귀 · QA TCL · V&V 산출물(IEC 62304 / ISO 13485)
       - **운영·릴리스**: staging/prod 배포(인프라) · AXS pilot
-    - **상태 범례**: ✅ 완료(main merge) · 🟠 진행중 · ⬜ 대기 · 🔴 외부/인프라 선결. **표기 규칙(간소화)**: 완료 Phase·전체 동일 상태 Phase = 1행 · 진행중이거나 Phase 내 상태 혼재만 Task 전개.
+    - **상태 범례**: 🔥 **이번주 완료**(8/6 회의 이후 따끈·main merge) · ✅ 이전 완료(8/6 이전 merge) · 🟠 진행중/검토 · ⬜ 대기 · 🔴 외부/인프라 선결. **표기 규칙**: **8/3 주간회의 이전 1단계 코어(P0~P6)** = 완료 Phase 1행 · **8/3 이후 작업(P8·P9·P10·P11·인증 2-6·v1.0.12·P7)** = **Task 단위 전개**(회의 진척 가시화) · 미착수/전체 동일 상태 Phase = 1행.
 
       | Phase | 범위 | 상태 | PR·비고 |
       | --- | --- | --- | --- |
       | **P0 플랫폼 스캐폴드** | 0-1~0-6(4-way·로컬환경·포트어댑터·더블·Prisma·관측·에러·Config·CI·Dockerfile) | ✅ 완료 | #11971~11995 · 자동배포(CD)=③-I(Jack) |
       | **P1 데이터 모델** | 1-1~1-7(스키마·KMS envelope·Redis·audit append-only·시드) | ✅ 완료 | #12006~12040 · region-silo 단일 datasource 재작업 반영 |
-      | **P2 인증** | 2-1~2-6(device private_key_jwt→RS256·operator Entra OIDC·RBAC·**JWKS v1.0.11**) | ✅ 완료 | #12094~**12478**(T-AUTH-2-6 포함) |
-      | **P3 enrollment·생애주기** | 3-1~3-5(개시/완료·상태머신·재-enroll 회전·C/S 승인·kill·pending 만료) | ✅ 완료 | #12158~12171 |
+      | **P2 인증** | 2-1~2-5(device private_key_jwt→RS256·operator Entra OIDC·RBAC) | ✅ 완료 | #12094~12143 · 2-6(JWKS)은 8/3 이후 Task 전개(아래) |
+      | **P3 enrollment·생애주기** | 3-1~3-5(개시/완료·상태머신·재-enroll 회전·C/S 승인·kill·pending 만료) | ✅ 완료 | #12158~12171 · v1.0.12 IoT cert 발급 확장=아래 #12557 |
       | **P4 region resolution** | 4-1~4-5(Resolver·ClinicResolution·PATCH/PUT me·PHI PDP·카탈로그) | ✅ 완료 | #12173~12191 · region-silo로 대부분 단일화 |
       | **P5 호환성 게이트** | 5-1~5-3(Vatech-* 파싱→400·well-known 서빙·semver 게이팅) | ✅ 완료 | #12194~12200 · 게이트 실 배선=①One Pager 매트릭스 후(→P12-2) |
       | **P6 target-routed 프록시** | 6-1~6-3(라우터·SSRF·PEP 체인·verbatim bypass·복원력) | ✅ 완료 | #12203~12213 |
-      | **P8 webhook 수신(Receiver)** | 8-1~8-3(HMAC·Host/SNI·멱등·payload KMS 암호화·SQS) | ✅ 완료 | #12369~12414 · 골격(로컬 더블)·실연동 ④ 후 |
-      | **P10 fleet·config·inventory** | 10-1~10-4(heartbeat·중앙 config·inventory·admin 조회) | ✅ 완료 | #12363~12368 |
-      | **P11 Admin API·audit** | 11-1~11-6(targets·policies·config/org-map·operators RBAC·webhook-events break-glass·audit·데이터분류) | ✅ 완료 | #12441~12470 |
-      | **P9 분배(Dispatcher)** 9-1~9-4 | SQS 소비·대상해석·MQTT QoS1·DLQ·attempt-cap·**app-side drain(무유실)** | ✅ 완료 | #12420~12471 · 골격·실 KEDA 검증=③-I |
-      | **P9** 9-5 | device IoT 프로비저닝(Thing/cert) | ⬜ 대기 | 🔴 ④ AXS/IoT Core |
-      | **P7 External Connector·AXS** | 7-1~7-5(OAuth2 cc·egress 고정IP·앱 PDP egress·org-binding·presigned 중계) | ⬜ 대기 | 🔴 ④ AXS 실연동 후 · 7-1/2/4/5 골격=로컬 선행 가능(보류) |
+      | ─ **8/3 주간회의 이후 (Task 단위)** ─ | | | |
+      | **P10** 10-1 | `POST /v1/fleet/heartbeat`·fleet_state·nextIntervalSeconds(§7.8.1) | ✅ 완료 | #12363 |
+      | **P10** 10-2 | 중앙 CentralConfigService(gw.*)·스코프 병합 resolve | ✅ 완료 | #12364 |
+      | **P10** 10-3 | 클라이언트 SW 인벤토리 수집(§7.8.5) | ✅ 완료 | #12366 |
+      | **P10** 10-4 | Admin fleet/clients 조회 3종(P10 완결) | ✅ 완료 | #12368 |
+      | **P8** 8-1 | webhook 수신 HMAC 검증·Receiver 골격(§7.6.2) | ✅ 완료 | #12369 |
+      | **P8** 8-2 | eventId 멱등·store-then-ack·payload KMS 암호화 저장 | ✅ 완료 | #12411 |
+      | **P8** 8-3 | webhook 저장 후 SQS enqueue(claim-check·재시도) | ✅ 완료 | #12414 · 골격(로컬 더블)·실연동 ④ 후 |
+      | **P9** 9-1~9-3 | Dispatcher SQS 소비·대상해석·미해석 DLQ·복호 후 MQTT publish | ✅ 완료 | #12420 (3 Task 1 PR) |
+      | **P9** 9-4 | app-side graceful scale-in drain(무유실·offline-hang 방지) | ✅ 완료 | #12471 · 실 KEDA 검증=③-I |
+      | **P11** 11-1 | targets 레지스트리 CRUD(credential/secret KMS envelope) | ✅ 완료 | #12441 |
+      | **P11** 11-2 | policies CRUD | ✅ 완료 | #12443 |
+      | **P11** 11-3 | operators·RBAC 역할 생애주기(마지막 admin lockout 방지·재부여) | ✅ 완료 | #12456 |
+      | **P11** 11-4 | webhook-events 조회·break-glass payload 열람(KMS 복호·PHI masking·감사) | ✅ 완료 | #12459 |
+      | **P11** 11-5 | `GET /v1/admin/audit`(조회 전용)·audit 전면 커버리지 sweep | ✅ 완료 | #12469 |
+      | **P11** 11-6 | 데이터 분류·크로스보더 동의 태깅(경량 스캐폴드·v1.0 no-op·gw/1.2 활성) | ✅ 완료 | #12470 |
+      | **P2** 2-6 | GW JWKS 공개 엔드포인트(v1.0.11 승격)+③b device 토큰 claim 정합 | 🔥 이번주 | #12478 |
+      | **v1.0.12** (B) | Admin API Entra-gated 공개 — CORS(#12487) | 🔥 이번주 | #12497 |
+      | **v1.0.12** (A) | enroll CSR(PKCS#10)→IoT Core mTLS cert 발급(INACTIVE 게이팅)·승인 활성·revoke/kill/재-enroll 폐기(app-side·`IotCertPort`·#12491) | 🔥 이번주 | #12557 · 폐기=REVOKED+detach(kill 무력화 방지·독립리뷰 Critical 수정)·개인키 GW 미수신 |
+      | **P7** 7-1 | External Connector 아웃바운드 OAuth2 토큰(client_credentials·soft-state 캐시·선제 갱신·dual-window·§7.1.3) | 🔥 이번주 | #12561 · 독립리뷰 High(fetch 타임아웃) 수정 |
+      | **P7** 7-4 | 클리닉 self org-binding 자가 등록(`POST /v1/clinics/me/org-bindings`→org_mapping·§2.3.4) | 🔥 이번주 | #12562 · admin org-mappings CRUD 는 11-3 기완성 |
+      | **P7** 7-2 | egress allowlist SSOT+PDP egress 집행(fail-closed·§7.5.3) | ✅ 완료 | T-REG-4-4(P4)에 기구현·#12187 계열 |
+      | **P7** 7-5 | presigned 중계 리전 guardrail wiring(TC-REG-42·§7.3.3·verbatim 중계=P6 기구현) | 🟠 검토중 | PR(검토)·독립리뷰 false-negative 우회 다수 차단 |
+      | **P7** 7-3 | AXS 커넥터 최초 실연동(verbatim·OAuth 주입·Org-ID) | 🔴 대기 | ④ AXS sandbox 실자격(Straumann·~8/18) |
+      | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | ⬜ 대기 | 🔴 ③-I/④ IoT Core(cert 발급 app-side=위 v1.0.12(A) 완료·DBML `iot_certificate_id`=스펙 세션) |
+      | **통합 검증** 시스템 E2E | 크로스-Phase 여정 — SYS-01(온보딩)·SYS-02(webhook 왕복 3앱)·SYS-04(kill 전파)·SYS-05(운영자 RBAC) | 🔥 이번주 | #12566·#12567·#12568 · 멀티앱(core+admin+receiver+dispatcher) 로컬 더블+실 DB/Valkey/SQS/MQTT/KMS · SYS-03=7-5·SYS-06/DISP-01=Phase e2e |
       | **P12 E2E·하드닝** | 12-1 AXS sandbox E2E · 12-2 compat E2E · 12-3 부하 · 12-4 HA/KEDA | ⬜ 대기 | 🔴 선결: 12-1=④ AXS · 12-2=①One Pager 매트릭스 · 12-3=부하환경 · 12-4=③-I 인프라 |
 
   - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/13 측정·post-T-AUTH-2-6 · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산).
