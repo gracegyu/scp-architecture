@@ -2,7 +2,7 @@
 
 create by: 전규현(Raymond)
 
-> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.12`) 후 `_status.md` 씨앗을 승격한 **초안(v0.14 · baseline 동결 가능 · v0.8 구조·§4.2 화면 맵·§6.10 국제화(PO→Lingui) · v0.9 재검증 · v0.10 커버리지 감사(26/26) · v0.11 리뷰 반영(S1·부트스트랩·break-glass·S3) · v0.12 §1·§2 정독 리뷰 · v0.13 부모 baseline v1.0.11 반영·apse4→apse2 스윕 · v0.14 CB 백로그 반영(ZTNA 제거→Entra 애플리케이션 계층·Admin API Entra-gated 공개·기술 스택 shadcn/ui 확정·부모 핀 v1.0.12) + §4~§7 리뷰)**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준 정합 리라이트 반영.
+> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.12`) 후 `_status.md` 씨앗을 승격한 **초안(v0.15 · baseline 동결 가능 · v0.8 구조·§4.2 화면 맵·§6.10 국제화(PO→Lingui) · v0.9 재검증 · v0.10 커버리지 감사(26/26) · v0.11 리뷰 반영(S1·부트스트랩·break-glass·S3) · v0.12 §1·§2 정독 리뷰 · v0.13 부모 baseline v1.0.11 반영·apse4→apse2 스윕 · v0.14 CB 백로그 반영(ZTNA 제거→Entra 애플리케이션 계층·Admin API Entra-gated 공개·기술 스택 shadcn/ui 확정·부모 핀 v1.0.12) + §4~§7 리뷰 · v0.15 버전 축 규약(Console `[v1.0]` vs GW `gw/1.x`)·가독성 list화·§4 인터페이스 정합)**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준 정합 리라이트 반영.
 
 ---
 
@@ -43,6 +43,11 @@ GW가 클리닉 EzServer를 온보딩하고 외부(AXS 등)·내부(CleverSpace 
 ## 1.3 Document Conventions (문서규칙)
 - **단계 규약(우선순위 대용):** 각 요구에 **[v1.0]** 또는 **[v2.0]** 태그. `[v1.0]`은 다시 **필수**(없으면 서비스 불가)/**주요**(필수 아니나 주요)로 나뉘고, `[v2.0]`은 부가·확장·고급이다. 분류 기준·전체 표 = 동 폴더 `기능-v1-v2-분리.md`(요약은 §2.7).
   - **부모 P1/P2/P3 매핑(참고):** 부모 GW SRS는 절별 `(P1/P2/P3)` 우선순위를 쓴다. 대응 = **[v1.0]필수 ≈ P1 · [v1.0]주요 ≈ P2 · [v2.0] ≈ P3+**. 본 Sub-SRS는 단계(버전) 축으로 표기하고 우선순위는 이 매핑으로 환산한다.
+- **버전 축 구분 (중요 · 혼동 방지):** 독립된 두 버전 축이 있으므로 표기를 분리한다.
+  - **Console(③-C) 자체 버전 = `[v1.0]`·`[v2.0]`**(대괄호). 본 Sub-SRS의 기능 단계 태그는 항상 이것이다(위 단계 규약).
+  - **부모 GW 플랫폼 버전 = `gw/1.0`·`gw/1.1`·`gw/1.2`**(소문자 `gw/` 접두). **"단일 리전"은 `gw/1.0`, "멀티리전(region silo 활성)"은 `gw/1.2`의 성질**이다.
+  - **대괄호 없는 `v1.0`/`v1.2`를 GW 의미로 쓰지 않는다** — GW 버전은 반드시 `gw/1.x`로 적어 Console `[v1.0]`과 구분한다.
+  - **Console 기능이 특정 GW 버전에 의존하면 둘 다 표기**한다(Console에서 만들되 완전 동작이 GW 버전에 걸리는 경우). 예: "리전 스위처 `[v1.0]`(gw/1.0 단일 리전이라 선택지 1개·자명) — 실질 멀티리전 전환은 `gw/1.2`". 이렇게 **"어느 GW 버전부터 의미가 생기나"** 를 명시한다.
 - **동사 규약:** 필수="~해야 한다/한다", 권장="~하는 것이 좋다", 선택="~할 수 있다", 비목표="~하지 않는다".
 - **상속:** 상위 절의 단계 태그는 하위에 상속된다(하위에 별도 표기 없으면 상위 따름). 상위가 [v2.0]인데 하위만 [v1.0]일 수 없다.
 - **표기:** 색깔만으로 정보를 전달하지 않는다(텍스트 표기 우선). 부모 참조는 `부모 §X`, FR 식별자는 `FR-CON-NN`.
@@ -116,12 +121,12 @@ Console은 **GW 생태계의 관리 프론트엔드**로, GW Admin API의 클라
 | **well-known 호환성 매트릭스** | 외부 데이터 소스 | 실효 매트릭스 읽기(뷰어). |
 | **Entra 인증(접근 통제)** | 애플리케이션 계층 | Console·Admin API 접근 통제 = 직원 IdP(Entra) OIDC + `operatorAuth`(엣지 ZTNA 폐기·부모 #12487). Admin API는 Entra-gated 공개. |
 
-### 2.1.1 v1.0 — 단일 리전 조망
+### 2.1.1 gw/1.0 — 단일 리전 조망 (Console [v1.0])
 ```mermaid
 flowchart LR
   OP["운영자 브라우저"] -->|"HTTPS · Entra 인증"| C["GW Console SPA · 단일 · 무상태 · S3+CloudFront"]
   C -->|"OIDC 로그인"| E["MS Entra · 직원 IdP"]
-  subgraph GW["GW 백엔드 (v1.0 · 시드니 apse2)"]
+  subgraph GW["GW 백엔드 (gw/1.0 · 시드니 apse2)"]
     A["GW Admin API · admin.apse2.gw.도메인"]
     DB[("리전 로컬 DB · SoT")]
     KMS["KMS · 복호는 GW만"]
@@ -137,7 +142,7 @@ flowchart LR
   C -->|"읽기"| RD
   C -->|"읽기"| WK
 ```
-v1.0 production = 시드니(apse2) 단일이라 리전 스위칭이 자명.
+gw/1.0 production = 시드니(apse2) 단일이라 리전 스위칭이 자명(Console [v1.0]).
 
 ### 2.1.2 gw/1.2 — 멀티리전 조망 (region silo)
 ```mermaid
@@ -292,7 +297,7 @@ sequenceDiagram
     participant GW as GW Admin API(선택 리전)
     Note over CS,GW: 전제 — EzServer가 나라(country→region)로 리전 자동 결정해 그 리전 GW에 enroll → device=pending (부모 §2.3.1)
     CS->>C: 리전 컨텍스트 선택 (Region Directory·FR-CON-03)
-    Note over CS,C: v1.0=단일(시드니) 자동·자명 · gw/1.2=담당 리전 선택
+    Note over CS,C: gw/1.0=단일(시드니) 자동·자명 · gw/1.2=담당 리전 선택
     CS->>C: 승인 대기 디바이스 목록
     C->>GW: GET /v1/admin/devices?status=pending (선택 리전)
     GW-->>C: pending 목록 (clinic 요약 임베드 · country 필요 시 clinic 드릴스루)
@@ -302,7 +307,7 @@ sequenceDiagram
     Note over CS,GW: C/S는 device 리전을 지정하지 않음 — enroll이 이미 정함 · C/S는 맞는지 확인만
     Note over CS,GW: 없으면 device 서비스 불가한 ★핵심 게이트 · 거부=v1.0 명시 Reject(→rejected·부모 상태 신설 선결·C-16) · 방치 pending은 TTL 만료(7일·별개 안전망)
 ```
-> **리전은 "선택"이 아니라 "확인"이다.** device의 리전은 enroll 시 EzServer가 나라로 자동 결정해 이미 그 리전 DB에 있다. C/S가 하는 일은 (1) **콘솔의 리전 컨텍스트**를 그 리전으로 두고(스위처·v1.0 단일이라 자동) (2) 배정이 **맞는지 확인**하는 것이지 device에 리전을 부여하는 것이 아니다. 틀렸으면 승인하지 않고 재-enroll/마이그레이션으로 교정한다(부모 §2.3.1·§7.3.4).
+> **리전은 "선택"이 아니라 "확인"이다.** device의 리전은 enroll 시 EzServer가 나라로 자동 결정해 이미 그 리전 DB에 있다. C/S가 하는 일은 (1) **콘솔의 리전 컨텍스트**를 그 리전으로 두고(스위처·gw/1.0 단일이라 자동) (2) 배정이 **맞는지 확인**하는 것이지 device에 리전을 부여하는 것이 아니다. 틀렸으면 승인하지 않고 재-enroll/마이그레이션으로 교정한다(부모 §2.3.1·§7.3.4).
 
 ### 2.3.4 S4 — 연동 대상(target) 등록
 ```mermaid
@@ -357,12 +362,12 @@ sequenceDiagram
     OP->>C: 대상 리전 선택
     C->>C: 선택 리전의 admin host를 API base로 설정
     C->>A: 이후 API는 선택 리전만 호출
-    Note over C,A: 한 번에 한 리전만 라이브 · 교차리전 집계/저장 없음(주권) · v1.0=단일(시드니) · gw/1.2=Directory 행 추가
+    Note over C,A: 한 번에 한 리전만 라이브 · 교차리전 집계/저장 없음(주권) · gw/1.0=단일(시드니) · gw/1.2=Directory 행 추가
 ```
 1. Console은 Region Directory에서 리전 목록·`apiHost`를 읽는다.
 2. 운영자가 대상 리전을 선택하면 이후 API 호출 base = `admin.<region>.gw.<도메인>`.
 3. 화면은 선택 리전만 라이브 호출·표시한다(교차리전 집계·저장 없음·주권 유지).
-4. v1.0=단일(시드니)이라 선택지가 하나다. gw/1.2=Region Directory 행만 늘어난다(§2.1.2·FR-CON-03).
+4. `gw/1.0`=단일(시드니)이라 선택지가 하나다. `gw/1.2`=Region Directory 행만 늘어난다(§2.1.2·FR-CON-03).
 
 ## 2.4 Product Functions (제품 주요 기능 — §7과 1:1)
 - **운영자 로그인·세션**(§7.1) — 직원 SSO로 안전하게 콘솔에 들어온다.
@@ -393,7 +398,7 @@ sequenceDiagram
 | **GW Admin API baseline**(계약 안정) | GW(부모 §7.9.1·OpenAPI) | 계약 변동 시 영향 화면 재검토(§2.8). 현행 baseline 충족. |
 | **접근 통제**(애플리케이션 계층 Entra) | ③-I·③-C | Console·Admin API 모두 Entra 인증(operatorAuth)으로 통제. Admin API=Entra-gated 공개(부모 #12487). 미비 시 배포 보안 공백(§6.2). |
 | **역할 enum 동기**(GW·Console·DB) | GW+③-C | 새 역할은 양측 함께 릴리스(§7.2·런타임 무릴리스 추가 없음). |
-| **Region Directory·well-known 발행** | ③-I | **v1.0 배포 선결**(gw/1.2 아님·부모 §7.3.6 P1) — Region Directory는 Console 리전 스위처(FR-CON-03)뿐 아니라 **EzServer 부트스트랩(enroll)의 유일한 앵커**라 v1.0에 반드시 있어야 한다(v1.0=한 리전 1행). 미발행 시 리전 스위처·매트릭스 뷰어 동작 불가 + EzServer 온보딩 불가(§7.9·FR-CON-03). |
+| **Region Directory·well-known 발행** | ③-I | **`gw/1.0` 배포 선결**(gw/1.2 아님·부모 §7.3.6 P1) — Region Directory는 Console 리전 스위처(FR-CON-03)뿐 아니라 **EzServer 부트스트랩(enroll)의 유일한 앵커**라 `gw/1.0`(첫 릴리스)부터 반드시 있어야 한다(`gw/1.0`=한 리전 1행). 미발행 시 리전 스위처·매트릭스 뷰어 동작 불가 + EzServer 온보딩 불가(§7.9·FR-CON-03). |
 
 ## 2.7 Apportioning of Requirements (단계별 요구사항)
 | 단계 | 범위 | 대표 |
@@ -482,6 +487,14 @@ Console은 **GW Admin API·Entra(OIDC)·정적 자원(Region Directory·well-kno
 ## 3.5 Test Environment (테스트 환경)
 
 테스트(staging)는 **운영 유사·축소** 환경으로 통합·E2E·인수 검증을 수행한다. 개발(로컬·mock 위주·§3.4)과 달리 **가능한 한 실 staging GW·Entra에 붙여** 계약·인증 경로를 검증한다.
+
+**테스트 자동화 전략 (계층 · 소수 인력 대비 최대 자동화).** 개발 인력이 적으므로 **값싸고 안정적인 하위 계층(unit·component)에 무게를 싣고**, 비싼 상위 계층(e2e)은 핵심 여정에 집중하며, 모든 계층을 CI 게이트(§3.6.2)로 강제한다. Console이 GW=SoT의 얇은 클라이언트(자체 로직·DB 없음·§6.4)라 하위 계층으로 대부분을 커버할 수 있다.
+- **① Unit (주력·최다)** — dataProvider 매퍼·accessControlProvider 역할→권한 게이팅(§7.2)·form 검증(OpenAPI 스키마)·stale-write 감지(FR-CON-36)·마스킹·UTC 포맷 등 순수 로직을 **Vitest**로 검증한다. 빠르고 안정적이라 회귀 방어의 주력이다.
+- **② Component/통합** — **React Testing Library + MSW**(OpenAPI에서 목 생성)로 Resource 페이지 렌더·역할별 메뉴 노출/숨김·**3상태(로딩/오류/빈)**·form 제출→올바른 API 호출·409 충돌 경고를 검증한다. 역할·API 응답을 주입해 결정적으로 돌린다.
+- **③ E2E (핵심 여정 한정)** — **Playwright**로 로그인→부트스트랩 분기·enroll 승인·break-glass(사유)·RBAC(403/no_access/suspended)·리전 컨텍스트 같은 사용자 여정을 검증한다. 비용·flaky 위험이 커 전 화면이 아니라 핵심 경로에 집중한다.
+- **④ 시각 회귀·접근성 (자동화 가능·보조)** — 최종 미관 '판단'은 사람 몫이나 **시각 검증 자체는 자동화한다**: **Playwright 스크린샷 회귀**(`toHaveScreenshot`·무료·내장)로 레이아웃·스타일 변경을 diff 감지하고, **axe-core**로 대비·aria·포커스 등 객관적 접근성 검사를 pass/fail 자동화한다. 사람은 **의도된 변경의 baseline 승인**과 최종 미관 판단만 하므로, "전 화면 수동 재확인"이 "가끔 diff 승인"으로 줄어든다. AI 시각 도구(Applitools/Chromatic)는 오탐을 더 줄이나 유료라 필요 시 도입한다. 시각은 동작이 아니라 SRS 요구가 아니며 LLD·CI 옵션이다(§4.2).
+- **커버리지 목표** — SRS가 규정하는 UI 요구는 전부 **동작(behavior)**이므로 ①~③으로 **자동화 100%에 근접**을 목표한다(사람은 시각 미관·baseline 승인만). 구체 러너·버전·커버리지 임계는 LLD에서 확정한다.
+- **도구 선택 (전략만 고정 · 구체는 LLD · 2026 초 기준).** E2E는 **Playwright를 권장 기본값**으로 한다(무료·멀티 브라우저·저flaky). 컴포넌트/시각 계층은 **Storybook + Vitest addon·Chromatic** 등을 LLD에서 평가한다(shadcn 컴포넌트 UI에 레버리지 큼 — story 하나로 컴포넌트 테스트·시각 회귀·문서 동시). AI/로우코드 e2e(testRigor·Mabl·Applitools 등)는 **유지보수가 병목이 될 때** 검토한다(유료·벤더 락인). 도구 생태계가 빠르게 바뀌므로 **SRS는 전략만 고정하고, 구체 도구·버전은 구현 착수 시 재확인**한다.
 - **대상 GW**: staging GW Admin API(실). 데이터는 GW의 **시드/E2E 반복성 하네스**(부모 §3.5·globalSetup migrate+seed·resetState TRUNCATE+캐시 flush·tx 격리)로 **결정적 상태**를 만든다.
 - **인증**: Entra **테스트 테넌트**(실 OIDC) — dev의 OIDC mock과 달리 실 로그인·역할 클레임→운영자 역할 매핑 경로를 검증(§3.2·§7.2).
 - **정적 자원**: staging Region Directory·well-known(실 발행본 또는 staging 사본).
@@ -492,7 +505,7 @@ Console은 **GW Admin API·Entra(OIDC)·정적 자원(Region Directory·well-kno
 클라우드(AWS staging)·운영 §3.1.1 축소본. Console은 무상태 SPA라 별도 서버 HW 요구가 없다(정적 서빙).
 
 ### 3.5.2 Software Environment (소프트웨어 환경)
-개발(§3.4.2)과 동일 스택의 축소본 + **Playwright**(E2E)·계약 기반 목(필요 시). 구체 버전·도구는 구현 착수 시(LLD) 확정한다.
+개발(§3.4.2)과 동일 스택의 축소본 + 테스트 러너: **Vitest**(unit)·**React Testing Library + MSW**(component·계약 기반 목)·**Playwright**(e2e·스크린샷 시각 회귀)·**axe-core**(접근성). 구체 버전·커버리지 임계는 구현 착수 시(LLD) 확정한다(전략=§3.5).
 
 ## 3.6 Configuration Management (형상관리)
 
@@ -513,9 +526,10 @@ Jira(GW 프로젝트).
 # 4 External Interface Requirements (외부 인터페이스 요구사항)
 
 ## 4.1 System Interfaces (시스템 인터페이스)
-- **GW Admin API**(부모 §7.9.1·OpenAPI 정본) — 모든 관리 동작의 백엔드. 인증=요청별 `operatorAuth`(Entra Bearer). 리전 base=`admin.<region>.gw.<도메인>`. *상세 시그니처·payload·상태코드는 OpenAPI(SSOT), 본 문서는 목적·동작·에러만.*
-- **MS Entra(OIDC)** — Authorization Code + PKCE. discovery·JWKS 표준.
-- **Region Directory / well-known 매트릭스** — 정적 JSON 읽기(③-I 발행).
+- **GW Admin API**(부모 §7.9.1) — 모든 관리 동작의 백엔드. 인증=요청별 `operatorAuth`(Entra Bearer). 런타임 base=`admin.<region>.gw.<도메인>`(주입 키 `GW_ADMIN_BASE`·§3.4). **계약 정본(OpenAPI·타입 생성 원천)** = [vt-api-gateway `docs/specs/design/openapi/vt-api-gateway.openapi.yaml` @spec-v1.0.12](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/openapi/vt-api-gateway.openapi.yaml&version=GTspec-v1.0.12). *상세 시그니처·payload·상태코드는 OpenAPI(SSOT), 본 문서는 목적·동작·에러만.*
+- **MS Entra(OIDC)** — Authorization Code + PKCE. discovery·JWKS 표준(발급자·엔드포인트는 Entra 테넌트 config·§3.4 `ENTRA_*`·설정 절차=[Entra 설정 가이드](Entra-설정-가이드.md)).
+- **Region Directory**(정적 JSON·③-I 발행·부모 §7.3.6) — 리전 목록·라우팅 메타를 읽는다. 런타임 URL(리전 독립·S3+CloudFront) = `https://regions.gw.<도메인>/regions.json`. *구체 `<도메인>`은 미확정(C-10)이라 live 링크가 아니라 패턴이며, 실제 값은 주입 키 `REGION_DIRECTORY_URL`(§3.4)로 받는다.* **버전:** Region Directory는 `gw/1.0`(v1.0 배포)부터 존재하고 Console이 `[v1.0]`에서 읽는다(단일 리전·1행). 다중 리전 목록을 이용한 **실질 스위칭은 `gw/1.2`**부터다(§2.6·FR-CON-03).
+- **well-known 호환성 매트릭스**(부모 §7.7.5·§7.7.2) — GW가 서빙하는 실효 매트릭스(읽기 전용·뷰어 §7.9)를 읽는다. 런타임 경로 = GW api 호스트의 `/.well-known/{env}/server-configuration.json`(주입 키 `WELLKNOWN_URL`·§3.4). **저작 정본(소스)** = git `vt-api-gateway`의 `config/compat-matrix.yaml`(CI가 검증·발행·부모 §7.7.5).
 
 ## 4.2 User Interface (사용자 인터페이스)
 논리 요구(레이아웃·컴포넌트 상세 = UI 명세/LLD·Appendix C-7):
@@ -544,7 +558,7 @@ flowchart TB
     end
 ```
 > 위는 **논리 영역 구조**(App Bar / Sidebar / 메인)만 나타낸다 — 정확한 폭·색·컴포넌트·반응형 규칙은 **LLD(Appendix C-7)**. 로그인·OIDC 콜백 화면은 이 셸 밖에서 렌더한다.
-- **로그인 화면 (셸 밖·최소·v1.0 확정).** 자체 credential 폼·비밀번호 **없음**(§6.2) — **Entra OIDC(Auth Code+PKCE) 리다이렉트**만 한다: "Entra로 로그인" 실행 → **Entra 호스팅 로그인**(우리 화면 아님) → 콜백 처리 → 성공 시 부트스트랩 분기(FR-CON-02·active/no_access/suspended), 실패 시 사유 표시·재시도(FR-CON-01·§2.3.1 S1). 우리 UI 몫은 launch·콜백·오류뿐이라 **별도 상세화 불요**(리전 전환 UX는 v1.0 단일 리전이라 자명 — 멀티리전 스위칭·토큰 audience는 gw/1.2·FR-CON-03a·Appendix B #52 (b)로 추적).
+- **로그인 화면 (셸 밖·최소·[v1.0] 확정).** 자체 credential 폼·비밀번호 **없음**(§6.2) — **Entra OIDC(Auth Code+PKCE) 리다이렉트**만 한다: "Entra로 로그인" 실행 → **Entra 호스팅 로그인**(우리 화면 아님) → 콜백 처리 → 성공 시 부트스트랩 분기(FR-CON-02·active/no_access/suspended), 실패 시 사유 표시·재시도(FR-CON-01·§2.3.1 S1). 우리 UI 몫은 launch·콜백·오류뿐이라 **별도 상세화 불요**(리전 전환 UX는 `gw/1.0` 단일 리전이라 자명 — 멀티리전 스위칭·토큰 audience는 `gw/1.2`·FR-CON-03a·Appendix B #52 (b)로 추적).
 - **마스킹**: credential/secret·PHI payload는 원문 미표시(해제 UI 없음).
 - **파괴적 액션 가드**: kill 등은 확인 다이얼로그·사유·위험색 구분(§7.3·§6.1).
 - 목록: 서버측 필터(정확 일치)·커서 페이지네이션(부모 §7.9.1 조회 규약).
@@ -574,13 +588,12 @@ flowchart TB
 없음(하드웨어 직접 제어 없음).
 
 ## 4.4 Software Interface
-GW Admin **OpenAPI**(타입 생성)·Entra OIDC. Console은 계약을 코드 생성으로 소비한다.
-- **OpenAPI 정본(계약·타입 생성 원천)** = [vt-api-gateway `docs/specs/design/openapi/vt-api-gateway.openapi.yaml` @spec-v1.0.12](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/openapi/vt-api-gateway.openapi.yaml&version=GTspec-v1.0.12). Console은 이 파일을 코드젠(orval/openapi-typescript·§3.4.2)으로 소비하며, **버전은 baseline 태그 permalink로 고정**한다(부모 계약 변경 시 §1.5 핀과 함께 갱신).
+Console의 소프트웨어 인터페이스(GW Admin API·**OpenAPI 계약**·Entra OIDC·Region Directory·well-known 매트릭스)는 **§4.1에 정의**한다(여기서 중복 기재하지 않는다). **그 외 별도 SW 인터페이스는 없다** — Console은 자체 백엔드·네이티브 라이브러리 연동 없이 브라우저에서 위 인터페이스만 소비한다(§6.4). *(프레임워크·코드젠 등은 인터페이스가 아니라 빌드 툴체인 → §3.4.2.)*
 
 ## 4.5 Communication Interface (통신 인터페이스)
-**HTTPS 필수** · OIDC(Auth Code+PKCE) · 애플리케이션 계층 Entra 인증(ZTNA 아님·③-I). 전역 Console origin ↔ 리전별 Admin API **CORS** 허용(부모 §4.5.1). CORS/CSP 등 보안 헤더는 배포(§6.2·③-I).
+표준 웹 통신만 사용한다 — 브라우저의 **HTTPS/TLS over 공개 인터넷**. **무선·Bluetooth·위성 등 특수 통신 인터페이스는 해당 없음(None·웹 SPA).** 애플리케이션 프로토콜·연동 인터페이스(OIDC·GW Admin API 등)는 **§4.1**에, 보안 헤더(CORS·CSP)·접근 통제는 **§6.2**에 있다(여기서 중복 기재하지 않는다). §4.1 외 유일한 통신 인터페이스 항목은 아래 **DNS·접속 호스트 규약**이다.
 
-**Console 접속 호스트 (URL 규약):**
+**DNS·접속 호스트 (URL 규약):**
 - **기본 = 환경별 전역 단일 호스트** — **prod `console.gw.<도메인>` · dev `console.gw.dev.ezcld.net`**(환경 base 규약·staging=③-I). Console은 논리적으로 하나(결정 A)라 환경마다 접속 URL이 하나다. **리전 라벨을 붙이지 않는다.** 리전은 Console이 *호출하는* **Admin API base `admin.<region>.gw.<도메인>`**(FR-CON-03)에만 붙는다 — 전역 콘솔이 브라우저에서 각 리전 admin 엔드포인트를 스위칭 호출한다(콘솔 호스트 1개 ≠ 리전별).
 - **격리 존 예외(중국 등)** — 네트워크·규제상 global 콘솔에 도달·허용되지 않는 존은 **그 존 전용 Console을 독립 배포**한다(같은 코드베이스·별 호스트 예 `console.<zone>.gw.<도메인>` 또는 존 전용 도메인·그 존만 서비스·global 스위처에 미포함). **도메인 규약은 이 per-zone 배포를 처음부터 수용**해야 한다.
 - 구체 `<도메인>`은 **별도 GW 도메인**(vatech.com 미사용) 확정 후, 호스트 provisioning은 ③-I(Appendix C-10).
@@ -631,7 +644,7 @@ Console 다운은 GW 데이터 경로 무영향(관리면만). GW Admin API 가�
 OpenAPI 타입 생성 소비로 계약 변경 추적. 역할·enum은 GW와 동기(§2.6).
 
 ### 6.3.3 Portability
-상록 브라우저 표준 웹(특정 OS 비종속). 멀티리전 대비 base URL 주입 분리(§2.1.2).
+상록 브라우저 표준 웹(특정 OS 비종속). `gw/1.2` 멀티리전 대비 base URL 주입 분리(§2.1.2).
 
 ### 6.3.4 Reliability
 파괴적 액션은 서버 확정 후 반영(낙관적 반영 금지). 실패 시 명확한 오류·재시도(§7.12). 편집 충돌은 v1.0에서 **클라이언트측 stale write 감지·경고**(FR-CON-36)로 다루며, 서버 강제 잠금은 부모 계약 확장 시(Appendix C-11).
@@ -743,12 +756,12 @@ GW pilot과 연계(별도 계획).
 ## 7.1 운영자 인증·세션 [v1.0 필수]
 - **FR-CON-01** [v1.0] **Entra SSO 로그인** — OIDC(Auth Code+PKCE)로 로그인·로그아웃한다. 자체 비밀번호 없음. *에러:* Entra 인증 실패·토큰 검증 실패 시 로그인 화면으로 복귀하고 사유를 표시한다.
 - **FR-CON-02** [v1.0] **부트스트랩 분기** — 로그인 후 `GET /v1/admin/me`의 `accessState`로 분기: `active`→역할별 메뉴 / `no_access`→권한 요청(§7.2) / `suspended`→정지 안내. *최초 admin:* 첫 사용자도 seed에 없으면 `no_access`이며, **최초 admin은 배포 seed로 `active`가 된다**(§2.3.2·부모 계약 추가 필요=Appendix B C-14). *에러:* `/me` 실패 시 재시도·오류 표시(무한 로딩 금지).
-- **FR-CON-03** [v1.0] **단일 Console·리전 스위처** — Region Directory에서 리전을 읽어 대상 리전을 전환하고, 이후 호출 base를 `admin.<region>.gw.<도메인>`로 둔다. 무상태·교차리전 집계 없음(§2.1.2·핵심 결정 A). *에러:* Directory 로드 실패 시 캐시된 마지막 목록 사용·경고 표시.
-  - **FR-CON-03a** [v2.0/gw1.2] 멀티리전 운영 확장 — 역할은 **GW `operator_role`이 전 리전에 균일 복제**(§7.2 note·부모 §7.9.2·R1)라 리전별 조달이 없다(Entra=SSO만·authz=GW). 확장 범위 = 주권 준수 내 **교차리전 요약 뷰**(읽기·집계는 주권 경계 준수)뿐. *복제 계층=gw/1.2.*
+- **FR-CON-03** [v1.0] **단일 Console·리전 스위처** — Region Directory에서 리전을 읽어 대상 리전을 전환하고, 이후 호출 base를 `admin.<region>.gw.<도메인>`로 둔다. 무상태·교차리전 집계 없음(§2.1.2·핵심 결정 A). **GW 버전 의존:** 구조는 `[v1.0]`부터 두되, `gw/1.0`(단일 리전)에선 선택지가 1개라 스위칭이 자명하고 **실질 멀티리전 전환은 `gw/1.2`**부터 의미가 생긴다(리전 추가=Directory 행 증분·코드 무변경). *에러:* Directory 로드 실패 시 캐시된 마지막 목록 사용·경고 표시.
+  - **FR-CON-03a** [v2.0] (GW `gw/1.2` 의존) 멀티리전 운영 확장 — 역할은 **GW `operator_role`이 전 리전에 균일 복제**(§7.2 note·부모 §7.9.2·R1)라 리전별 조달이 없다(Entra=SSO만·authz=GW). 확장 범위 = 주권 준수 내 **교차리전 요약 뷰**(읽기·집계는 주권 경계 준수)뿐. *복제 계층=`gw/1.2`.*
 
 ## 7.2 운영자 RBAC·권한 요청/승인 [v1.0 필수]
 정본=부모 §7.1.4·§7.9.2.
-> **멀티리전 authz(gw/1.2·부모 R1).** 운영자 역할 부여는 **모든 리전에 동일하게 복제(균일 sync)** 되며 리전별로 다르게 주지 않는다(부모 §7.9.2). 즉 승인 UI에 **grant별 리전 스코프 선택은 없다** — 데이터 스코프(global/region/clinic·FR-CON-04)만 있고, "특정 리전 데이터만 담당"은 그 데이터 스코프(`scope_type=region`)로 표현한다. **리전 스위처(FR-CON-03)** 는 권한 축이 아니라 *호출 대상 Admin API base*를 고르는 것뿐이다(전역 admin은 전 리전 동일 권한으로 각 리전을 운영). v1.0 단일 리전이라 이 균일 복제는 자명(복제 계층 구현=gw/1.2·GW 읽기 경로는 항상 리전 로컬).
+> **멀티리전 authz(gw/1.2·부모 R1).** 운영자 역할 부여는 **모든 리전에 동일하게 복제(균일 sync)** 되며 리전별로 다르게 주지 않는다(부모 §7.9.2). 즉 승인 UI에 **grant별 리전 스코프 선택은 없다** — 데이터 스코프(global/region/clinic·FR-CON-04)만 있고, "특정 리전 데이터만 담당"은 그 데이터 스코프(`scope_type=region`)로 표현한다. **리전 스위처(FR-CON-03)** 는 권한 축이 아니라 *호출 대상 Admin API base*를 고르는 것뿐이다(전역 admin은 전 리전 동일 권한으로 각 리전을 운영). `gw/1.0` 단일 리전이라 이 균일 복제는 자명(복제 계층 구현=`gw/1.2`·GW 읽기 경로는 항상 리전 로컬).
 - **FR-CON-04** [v1.0] **권한 요청**(no_access·본인) — 역할 멀티선택 + 스코프(기본 global) + 사유 → `POST /v1/admin/me/access-requests` → "승인 대기". *검증:* 최소 1개 역할 선택. *에러:* 중복 요청은 GW가 거절(409)→"이미 요청됨" 표시. 거부되면 사유 표시·재요청 가능.
 - **FR-CON-05** [v1.0] **Admin 승인 큐·조정**(admin) — `GET /v1/admin/access-requests`(requested) → **승인·부분 승인·거부**(`PATCH …/roles/{grantId}` — 요청 역할당 grant 1건이라 **일부만 active·나머지 reject** 가능) + **직접 조정**(요청과 무관하게 부여/회수=FR-CON-06). 즉 요청은 제안이고 **최종 역할은 Admin이 확정**한다. *Side effect:* 승인 시 대상 운영자의 다음 `/me`부터 역할 반영. *알림:* 요청 발생 알림 채널(이메일/Teams/인앱)은 ③-C 확정(Appendix C-6).
 - **FR-CON-06** [v1.0] **운영자 관리**(admin) — `GET /v1/admin/operators`(상태·역할 필터)·상세 → 직접 부여(`POST …/roles`)·회수(revoked)·정지/복구(status). *가드:* 본인 마지막 admin 역할 회수 방지 — **GW 서버가 강제**한다(`PATCH …/roles/{grantId}`가 시스템 마지막 admin 회수를 409로 거부·**부모 §7.9.2/OpenAPI에 반영됨**(spec-v1.0.12·`patchAdminOperatorRole` 409)). Console UI도 해당 버튼을 비활성화하되 **최종 강제는 서버**다(API 직접 호출로도 lock-out 불가). *Side effect:* suspended는 역할 무관 전면 차단.
@@ -765,7 +778,7 @@ GW pilot과 연계(별도 계획).
 ## 7.4 클리닉 관리·관계 [v1.0]
 정본=부모 §7.3·Appendix B #47. 보조 워크스페이스=Clinic 뷰.
 - **FR-CON-13** [v1.0·필수(조회)] **클리닉 목록/상세** — 컬럼: clinic·country·**deviceCount·orgBindingStatus**. **region은 컬럼 아님**(배포 상수·상단 리전 컨텍스트로 1회 표시·FR-CON-09 동일). *(clinic은 device 같은 lifecycle status가 없다 — 부모 `getAdminClinics` 규약.)* `deviceCount`·`orgBindingStatus`는 **GW가 Clinic 목록 응답에 제공하는 읽기전용 요약 필드**다 — 집계는 GW(SoT)가 수행하며 클라이언트 N+1 집계를 하지 않는다. *이 두 필드는 부모 §7.9.1 Clinic DTO에 반영됨*(읽기전용·additive·비파괴·spec-v1.0.12). 상세 탭=[clinic 정보(region 표시)]·[org-bindings]·[소속 device 목록(`GET …/clinics/{id}/devices`)]·[SW 인벤토리]·[clinic-scope 정책·config].
-- **FR-CON-14** [v1.0·주요(교정)] **편집면 단일화(3갈래 분리)** — 실제 API 계약이 셋이라 갈래를 나눈다: (a) **clinic 표시정보**(name·country_code·address·phone·website) 교정 = Clinic 화면 `PATCH …/clinics/{id}`로 단일화 · (b) **org-binding** 교정 = org-mapping 화면(별도 API·FR-CON-19) · (c) **region은 v1.0 교정 API 없음** — 변경=교차리전 마이그레이션(부모 §7.3.4·부모 Appendix B #50·gw/1.2 이후). device 수명주기는 Device 화면에서만. 같은 필드를 두 화면에서 고치지 않는다. *동시성:* stale write 감지(FR-CON-36).
+- **FR-CON-14** [v1.0·주요(교정)] **편집면 단일화(3갈래 분리)** — 실제 API 계약이 셋이라 갈래를 나눈다: (a) **clinic 표시정보**(name·country_code·address·phone·website) 교정 = Clinic 화면 `PATCH …/clinics/{id}`로 단일화 · (b) **org-binding** 교정 = org-mapping 화면(별도 API·FR-CON-19) · (c) **region 교정 API는 `gw/1.0`에 없음** — 변경=교차리전 마이그레이션(부모 §7.3.4·부모 Appendix B #50·`gw/1.2` 이후). device 수명주기는 Device 화면에서만. 같은 필드를 두 화면에서 고치지 않는다. *동시성:* stale write 감지(FR-CON-36).
 - **FR-CON-15** [v1.0] **양방향 드릴스루** — Device↔Clinic 상호 링크.
 > **device-self 혼동 금지:** `/v1/clinics/me/*`(디바이스 자가 평면)는 actor가 다르므로 운영자 화면과 합치지 않는다(§1.2 Will-not-do).
 
@@ -884,3 +897,4 @@ GW pilot과 연계(별도 계획).
 | v0.12 | 2026-08-05 | **§1·§2 정독 리뷰 반영**(사장님 + spec-reviewer 체크리스트 A~N + 템플릿 §1~§2 대조) — §1.1 ③-C·버전 명시·"Case C" 외부라벨 제거 · §1.4에 **③-C/③-I/③-P·C/S·SoT·DLQ** 용어 추가 · §1.3 writing-tips 인용 제거 · §1.6 문서 구성 한 줄·§3/§5 읽기 행 추가 · **§2.1.1 GW 백엔드 박스(subgraph)화**·**§2.1.2 리전 스택에 감사로그·well-known** 추가 · **§2.2 GW 백엔드 박스로 §2.1과 external 정합**(GW Admin API 단일 노드·"GW 범위"→"GW 백엔드") · **§2.3.6 S6 시퀀스 다이어그램 추가** · authoring 메타 표현 정리(누락 점검·필수 점검·혼란 방지)·외부 가이드 인용(writing-tips·spec-philosophy) 제거·§1.5 provenance 축약. §2.1·§2.3(S4)·§2.4는 템플릿 정합 확인(무수정 통과). |
 | v0.13 | 2026-08-06 | **부모 baseline v1.0.11 반영·리전 교정 스윕** — 부모 GW SRS PR #12440(③b verbatim+JWKS)·#12453(prod 리전 시드니 교정·Console 전역 단일·JWS 회전·Region Directory) 병합·태그 `spec-v1.0.11`. §1.5 부모 계약 3종 핀 v1.0.10→v1.0.11. §2.1.1·§2.1.2·§2.3 등 **멜버른 apse4 → 시드니 apse2**(ap-southeast-4는 AWS IoT Core 미지원) 스윕. Console 전역 단일은 #12453이 확정(리전별 철회)이라 변경 없음. ZT↔Entra 층·전역 Console→리전별 Admin 도달 경로(§4.5.1)는 백로그 잔여. |
 | v0.14 | 2026-08-10 | **CB 백로그 반영 + §4~§7 리뷰.** CB-1: **ZTNA/Zero Trust 제거 → 애플리케이션 계층 Entra 인증**(§1.4·§2.1 외부표·§2.1.1/2.1.2 다이어그램·§2.3 S1·§2.6·§3.1.2·§3.3.2·§4.5·§6.2·Appendix C-3 스윕)·**Admin API=Entra-gated 공개**(부모 #12487·내부전용/mesh DENY 폐기·CORS 명시). CB-2: **기술 스택 확정 = Next.js+Refine(headless)+shadcn/ui(Radix+Tailwind)+TanStack Query**(§2.2·§3.4.2·§6.5·Appendix A B·C-4 해소). 부모 핀 v1.0.11→**v1.0.12**(§1.5·상속 근거에 §4.5.1 추가). 멀티리전 authz는 **역할 전 리전 균일 sync**(부모 §7.9.2·regionScope 제거)·리전 스위처=운영 base만·gw/1.2(§7.2 note). §4~§7 리뷰 반영(§6.8 운영자 업무 규정·FR-CON-03a 정합 정정·C-14 부모 v1.0.12 반영 확인). **FR-CON-19에 org_mapping 범용 번역표 판정**(새 target=행 추가·스키마 0·부모 §7.6.1 A안·PR #12555). |
+| v0.15 | 2026-08-10 | **버전 축 규약 + 가독성·정합 정리(draft 다듬기).** §1.3에 **버전 축 구분 규약** 신설 — Console `[v1.0]/[v2.0]` vs 부모 GW `gw/1.x`(단일 리전=gw/1.0·멀티리전=gw/1.2)·대괄호 없는 `v1.x`를 GW 의미로 금지·GW 버전 의존은 둘 다 표기. 문서 전체에서 GW-배포 의미의 `v1.0`→`gw/1.0` 정정(§2.1.1 제목·다이어그램·§2.6·§7.2·FR-CON-03/03a/14·로그인·Region Directory). §3.3.1(CD 언급 제거·컨테이너→S3 정합)·§3.3.2·§3.4.2·§2.2·§5.3 긴 나열→서술식 list. §4.1에 OpenAPI/Region Directory/well-known **URL·버전 명기**, §4.4 OpenAPI 중복 제거(§4.1로 통합·§4.4=그 외 SW 없음). §4.2 **App Shell 구조+다이어그램**·브레드크럼·알림 badge·로그인 화면. §3.5 **테스트 자동화 전략**(계층·소수 인력 대비·시각 회귀 자동·도구 선택 Playwright+Storybook/Vitest). |
