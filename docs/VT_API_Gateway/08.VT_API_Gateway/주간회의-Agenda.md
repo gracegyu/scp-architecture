@@ -143,8 +143,8 @@
       > - CleverOne OnePager는 지금 작성(연동 *구현*만 post-v1.0).
       > - 순서·의존 = [Roadmap §3.9].
 
-  - **S3. GW 구현 현황 — Phase·Task 스냅샷 (8/13·매주 갱신)** — 1단계 코어 완료 · 2단계 P8·P9·P11 완결 · 인증 v1.0.11 보강 중.
-    - **어디까지 왔나 (8/13)**: 1단계 코어(P0~P6·P10) 완료. 2단계는 **P8 골격(8-1·8-2·8-3) + P9 골격 app-side(9-1·9-2·9-3) + P9-4 drain + P11 Admin CRUD 전부(11-1~11-6 머지) 완결** — 로컬 더블 기준, 실연동은 ④ AXS 후. **인증 보강**: v1.0.11로 JWKS 엔드포인트 v1.0 승격 → **T-AUTH-2-6 완료(#12478)**(공개키 게시+토큰 claim 정합·개인키 미노출·외부 검증 시뮬). **v1.0.12 정합화**: (A) **enroll CSR→IoT Core mTLS cert 발급·폐기 완료(#12557)**(app-side·`IotCertPort`·발급 INACTIVE 게이팅·승인 활성·revoke/kill/재-enroll 폐기=REVOKED+detach·독립리뷰 Critical 수정) + (B) Admin API Entra-gated CORS(#12497). **④/인프라 무관 자율 가능 범위 소진**(9-4·12-2 후보 처리: 9-4 app-side 완료·12-2 compat E2E는 게이트 미배선(① One Pager 매트릭스)으로 블록). **남은 것 = P7(External Connector·AXS)·9-5(IoT)·P12-1(sandbox E2E)=④ AXS 실자격 선결 · 9-4 실 KEDA·0-5 잔여(자동배포)·P12-4=③-I 인프라(Jack) · P12-2(compat E2E)=① One Pager 매트릭스 확정 · P12-3(부하)=부하환경 · P7 골격(7-1/2/4/5)=로컬 더블 선행 가능(보류).** 구현 다음 통합·검증·QA 단계가 이어진다.
+  - **S3. GW 구현 현황 — Phase·Task 스냅샷 (8/13·매주 갱신)** — 1단계 코어 완료 · 2단계 P8·P9·P11 완결 · P7 골격(7-1/2/4/5)·시스템 E2E·프록시 복원력 하드닝 완료 · 정합화 v1.0.12·v1.0.15 반영(v1.0.16 착수) · 남은 실연동은 ④/인프라 선결.
+    - **어디까지 왔나 (8/13)**: 1단계 코어(P0~P6·P10) 완료. 2단계는 **P8 골격(8-1·8-2·8-3) + P9 골격 app-side(9-1·9-2·9-3) + P9-4 drain + P11 Admin CRUD 전부(11-1~11-6 머지) 완결** — 로컬 더블 기준, 실연동은 ④ AXS 후. **인증 보강**: v1.0.11로 JWKS 엔드포인트 v1.0 승격 → **T-AUTH-2-6 완료(#12478)**(공개키 게시+토큰 claim 정합·개인키 미노출·외부 검증 시뮬). **v1.0.12 정합화**: (A) **enroll CSR→IoT Core mTLS cert 발급·폐기 완료(#12557)**(app-side·`IotCertPort`·발급 INACTIVE 게이팅·승인 활성·revoke/kill/재-enroll 폐기=REVOKED+detach·독립리뷰 Critical 수정) + (B) Admin API Entra-gated CORS(#12497). **④/인프라 무관 자율 가능 범위 소진**(9-4·12-2 후보 처리: 9-4 app-side 완료·12-2 compat E2E는 게이트 미배선(① One Pager 매트릭스)으로 블록). **P7 골격(7-1·7-2·7-4·7-5) 완료**(로컬 더블·실연동 7-3=④ AXS 후) + **시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝(#12569·#12570) 완료** + **정합화 v1.0.15(T-ENR-3-7·#12576) 완료·v1.0.16(T-ADM-11-7·clinic.memo) 착수**. **남은 것(외부/인프라 선결) = 7-3·P12-1(sandbox E2E)=④ AXS 실자격 · 9-5(실 IoT)·9-4 실 KEDA·0-5 잔여(자동배포)·P12-4=③-I 인프라(Jack) · P12-2(compat E2E)=① One Pager 매트릭스 확정 · P12-3(부하)=부하환경.** 구현 다음 통합·검증·QA 단계가 이어진다.
     - 매 Task 완료 시 갱신.
     - **진행 단계** — 스펙(분석/설계)과 구현을 분리해 진행한다. 스펙은 HLD로 baseline 동결됐고 현재 구현(LLD 병행) 중이다. 구현이 끝이 아니라, QA 인계 전 개발팀이 통합·시스템 테스트로 동작을 확증하는 단계가 남고, 이어 QA·운영이 있다.
       - **스펙 — 분석/설계(HLD)**: SRS·DBML·OpenAPI·TCL baseline v1.0 동결 · 정합화(v1.0.1~v1.0.4) 지속 · LLD는 구현과 병행
@@ -186,13 +186,17 @@
       | **P7** 7-1 | External Connector 아웃바운드 OAuth2 토큰(client_credentials·soft-state 캐시·선제 갱신·dual-window·§7.1.3) | 🔥 이번주 | #12561 · 독립리뷰 High(fetch 타임아웃) 수정 |
       | **P7** 7-4 | 클리닉 self org-binding 자가 등록(`POST /v1/clinics/me/org-bindings`→org_mapping·§2.3.4) | 🔥 이번주 | #12562 · admin org-mappings CRUD 는 11-3 기완성 |
       | **P7** 7-2 | egress allowlist SSOT+PDP egress 집행(fail-closed·§7.5.3) | ✅ 완료 | T-REG-4-4(P4)에 기구현·#12187 계열 |
-      | **P7** 7-5 | presigned 중계 리전 guardrail wiring(TC-REG-42·§7.3.3·verbatim 중계=P6 기구현) | 🟠 검토중 | PR(검토)·독립리뷰 false-negative 우회 다수 차단 |
+      | **P7** 7-5 | presigned 중계 리전 guardrail wiring(TC-REG-42·§7.3.3·verbatim 중계=P6 기구현) | 🔥 이번주 | #12564 · 독립리뷰 Critical/High(JSON `\/` escape·size-cap·content-type allowlist·Location 헤더 우회) 다수 차단 |
       | **P7** 7-3 | AXS 커넥터 최초 실연동(verbatim·OAuth 주입·Org-ID) | 🔴 대기 | ④ AXS sandbox 실자격(Straumann·~8/18) |
       | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | ⬜ 대기 | 🔴 ③-I/④ IoT Core(cert 발급 app-side=위 v1.0.12(A) 완료·DBML `iot_certificate_id`=스펙 세션) |
       | **통합 검증** 시스템 E2E | 크로스-Phase 여정 — SYS-01(온보딩)·SYS-02(webhook 왕복 3앱)·SYS-04(kill 전파)·SYS-05(운영자 RBAC) | 🔥 이번주 | #12566·#12567·#12568 · 멀티앱(core+admin+receiver+dispatcher) 로컬 더블+실 DB/Valkey/SQS/MQTT/KMS · SYS-03=7-5·SYS-06/DISP-01=Phase e2e |
+      | **P6 하드닝** 프록시 복원력 | 장애주입 e2e(느린 업스트림→504 TARGET_TIMEOUT·죽은→502·hang 없음·§7.5.4) + deadline-abort realm-무관 정규화 fix | 🔥 이번주 | #12569·#12570 · isAbortLike를 Error\|DOMException 로(deadline-abort=DOMException)·502는 jest VM realm 아티팩트로 확정(프로덕션 이미 504)·독립리뷰가 최초 오진단 정정 |
+      | **v1.0.15** (A·B) | enroll 명시적 Reject(`device_status +rejected`·pending→rejected 종단·PATCH devices) + 감사 사유(`audit_log.reason`·payload break-glass reason 필수·kill/reject 저장)(T-ENR-3-7) | 🔥 이번주 | #12576 · DB 마이그레이션 2건 · device write RBAC=cs·admin 대칭 · 독립리뷰 2회(무감사 상태변경·배열 reason 500·kill RBAC 우회 수정) |
+      | **v1.0.16** clinic.memo | clinic 식별 메모(`clinic.memo`·GW 소유·admin·cs 편집·List/상세 노출·device-self 제외·변경 감사 `clinic.memo.update`)(T-ADM-11-7) | 🟠 착수예정 | spec-v1.0.16(#12575) · DB 마이그레이션 1건 · LMP 표시필드와 별개(enroll/self-PATCH 미간섭) |
+      | **v1.0.13/14** | 코드 **무영향** — 13=org_mapping 범용 번역표 판정(문서) · 14=authz 복제 방식 DynamoDB Global Table+Streams 확정(gw/1.2·v1.0 복제대상 0) | — | 스펙 핀만 상향(#12555·#12558) · v1.0 코드 작업 0 |
       | **P12 E2E·하드닝** | 12-1 AXS sandbox E2E · 12-2 compat E2E · 12-3 부하 · 12-4 HA/KEDA | ⬜ 대기 | 🔴 선결: 12-1=④ AXS · 12-2=①One Pager 매트릭스 · 12-3=부하환경 · 12-4=③-I 인프라 |
 
-  - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/13 재측정·post-v1.0.12/P7/시스템-E2E · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산). **정지트리 실측·merged floor 게이트 통과**(v1.0.12 A/B·7-1/2/4/5·시스템 E2E SYS-01/02/04/05 반영).
+  - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/13 재측정·post-v1.0.12/P7/시스템-E2E · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산). **정지트리 실측·merged floor 게이트 통과**(v1.0.12 A/B·7-1/2/4/5·시스템 E2E SYS-01/02/04/05 반영). *(v1.0.15 T-ENR-3-7·v1.0.16 T-ADM-11-7 반영 재측정은 각 머지 후 정지트리에서 수행 — 신규 로직 전부 unit+e2e 동반이라 floor 유지 예상.)*
 
     | 스코프 | Statements | Branches | Functions | Lines |
     | --- | --- | --- | --- | --- |
