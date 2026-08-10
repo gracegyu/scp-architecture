@@ -2,7 +2,7 @@
 
 create by: 전규현(Raymond)
 
-> **문서 상태.** ③ GW SRS baseline(`spec-v1.0.12`) 후 `_status.md` 씨앗을 승격한 **초안(v0.16 · baseline 동결 가능 · v0.8 구조·§4.2 화면 맵·§6.10 국제화(PO→Lingui) · v0.9 재검증 · v0.10 커버리지 감사(26/26) · v0.11 리뷰 반영(S1·부트스트랩·break-glass·S3) · v0.12 §1·§2 정독 리뷰 · v0.13 부모 baseline v1.0.11 반영·apse4→apse2 스윕 · v0.14 CB 백로그 반영(ZTNA 제거→Entra 애플리케이션 계층·Admin API Entra-gated 공개·기술 스택 shadcn/ui 확정·부모 핀 v1.0.12) + §4~§7 리뷰 · v0.15 버전 축 규약(Console `[v1.0]` vs GW `gw/1.x`)·가독성 list화·§4 인터페이스 정합 · v0.16 spec-reviewer 재리뷰 반영(C-15/C-16 부모 반영 완료·핀 v1.0.15·cs clinic PATCH 확장→C-17·kill 권한·알림 채널·OPA 표현·spec 태그 축))**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`). ABC 스펙 표준 정합 리라이트 반영.
+> **문서 상태.** ③ GW SRS 씨앗(`_status.md`)을 승격한 **초안 v0.17 · baseline 동결 가능**. 부모 = **GW SRS**(`vt-api-gateway/docs/specs/SRS.md`) · baseline 핀 = **`spec-v1.0.16`**(§1.5). 버전별 변경 내역은 문서 말미 **변경 이력** 참조.
 
 ---
 
@@ -47,7 +47,7 @@ GW가 클리닉 EzServer를 온보딩하고 외부(AXS 등)·내부(CleverSpace 
   - **Console(③-C) 자체 버전 = `[v1.0]`·`[v2.0]`**(대괄호). 본 Sub-SRS의 기능 단계 태그는 항상 이것이다(위 단계 규약).
   - **부모 GW 플랫폼 버전 = `gw/1.0`·`gw/1.1`·`gw/1.2`**(소문자 `gw/` 접두). **"단일 리전"은 `gw/1.0`, "멀티리전(region silo 활성)"은 `gw/1.2`의 성질**이다.
   - **대괄호 없는 `v1.0`/`v1.2`를 GW 의미로 쓰지 않는다** — GW 버전은 반드시 `gw/1.x`로 적어 Console `[v1.0]`과 구분한다.
-  - **부모 스펙 문서 baseline 태그 = `spec-v1.0.X`**(git 태그·permalink 고정용·§1.5·§4.1)는 **제3의 축**이다 — 부모 *문서*가 개정될 때마다 증가하는 **문서 버전 식별자**로, Console `[v1.0]`·GW 플랫폼 `gw/1.x`(기능 버전)와 무관하다(예: `spec-v1.0.15`는 gw/1.0 계약의 15번째 문서 baseline).
+  - **부모 스펙 문서 baseline 태그 = `spec-v1.0.X`**(git 태그·permalink 고정용·§1.5·§4.1)는 **제3의 축**이다 — 부모 *문서*가 개정될 때마다 증가하는 **문서 버전 식별자**로, Console `[v1.0]`·GW 플랫폼 `gw/1.x`(기능 버전)와 무관하다(예: `spec-v1.0.16`은 gw/1.0 계약의 16번째 문서 baseline).
   - **Console 기능이 특정 GW 버전에 의존하면 둘 다 표기**한다(Console에서 만들되 완전 동작이 GW 버전에 걸리는 경우). 예: "리전 스위처 `[v1.0]`(gw/1.0 단일 리전이라 선택지 1개·자명) — 실질 멀티리전 전환은 `gw/1.2`". 이렇게 **"어느 GW 버전부터 의미가 생기나"** 를 명시한다.
 - **동사 규약:** 필수="~해야 한다/한다", 권장="~하는 것이 좋다", 선택="~할 수 있다", 비목표="~하지 않는다".
 - **상속:** 상위 절의 단계 태그는 하위에 상속된다(하위에 별도 표기 없으면 상위 따름). 상위가 [v2.0]인데 하위만 [v1.0]일 수 없다.
@@ -65,18 +65,18 @@ GW가 클리닉 EzServer를 온보딩하고 외부(AXS 등)·내부(CleverSpace 
 | **Entra** | MS365/Entra ID. 직원 IdP·Console SSO(OIDC) 발급자. 부모 §7.1.4. |
 | **RBAC** | 역할 기반 인가. 역할=`operator_role_type`{admin·developer·cs·operator}. authN=Entra·authz=GW. |
 | **break-glass** | 통제된 PHI payload 예외 열람(GW 복호·마스킹·사유·전량 감사). |
-| **접근 통제(Console)** | Console·Admin API 접근 통제 = **애플리케이션 계층 Entra 인증**(OIDC 로그인 + 요청마다 `operatorAuth`). **Zero Trust/ZTNA(엣지 강제)는 폐기**(부모 R1·2026-08-06·#12487). 호스팅 = S3 + CloudFront. |
+| **접근 통제(Console)** | Console·Admin API 접근 통제 = **애플리케이션 계층 Entra 인증**(OIDC 로그인 + 요청마다 `operatorAuth`). **Zero Trust/ZTNA(엣지 강제)는 폐기**(부모 R1). 호스팅 = S3 + CloudFront. |
 | **Region Directory** | 리전→`apiHost`·`webhookHostPattern` 정적 JSON(③-I 발행·부모 §7.3.6). |
 | **target(연동 대상)** | 외부/내부 연동 1건(라우팅+아웃바운드 자격+인바운드 webhook)을 담는 GW 레지스트리 레코드. |
 | **DLQ (Dead Letter Queue)** | 처리 실패한 webhook 이벤트를 격리하는 큐 — 재처리·triage 대상(부모 §7.6). |
 | **PHI** | Protected Health Information — 보호 대상 건강정보(환자정보). webhook payload에 포함될 수 있어 저장·열람을 통제(§6.2·§7.6). |
 
 ## 1.5 Related Documents (관련문서)
-> 링크는 **정본 repo의 클릭 가능한 URL**로 적는다(로컬/상대 경로 금지). 부모 계약 3종은 **baseline 태그(`spec-v1.0.15`) 고정 permalink**로 — 시간이 지나도 끊기지 않도록.
+> 링크는 **정본 repo의 클릭 가능한 URL**로 적는다(로컬/상대 경로 금지). 부모 계약 3종은 **baseline 태그(`spec-v1.0.16`) 고정 permalink**로 — 시간이 지나도 끊기지 않도록.
 
-- **부모 GW SRS** — [vt-api-gateway `docs/specs/SRS.md` @spec-v1.0.15](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md&version=GTspec-v1.0.15). Console 상속 근거: §7.9.1·§7.9.2·§7.1.4·§7.9.3(audit_log.reason)·§7.6.3·§7.7.5·§7.8·§7.3.6·§7.2.3/§7.2.5(device_status=rejected)·**§4.5.1(Admin API Entra-gated 공개·CORS)**.
-- **Admin OpenAPI** — [vt-api-gateway `design/openapi/vt-api-gateway.openapi.yaml` @spec-v1.0.15](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/openapi/vt-api-gateway.openapi.yaml&version=GTspec-v1.0.15) (계약 정본·타입 생성 원천).
-- **부모 DBML** — [vt-api-gateway `design/dbml/vt-api-gateway.dbml` @spec-v1.0.15](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/dbml/vt-api-gateway.dbml&version=GTspec-v1.0.15) (데이터 모델).
+- **부모 GW SRS** — [vt-api-gateway `docs/specs/SRS.md` @spec-v1.0.16](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md&version=GTspec-v1.0.16). Console 상속 근거: §7.9.1(테넌트·clinic 관리·`clinic.memo`)·§7.9.2·§7.1.4·§7.9.3(audit_log.reason)·§7.6.3·§7.7.5·§7.8·§7.3.6·§7.2.5(device_status=rejected)·**§4.5.1(Admin API Entra-gated 공개·CORS)**.
+- **Admin OpenAPI** — [vt-api-gateway `design/openapi/vt-api-gateway.openapi.yaml` @spec-v1.0.16](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/openapi/vt-api-gateway.openapi.yaml&version=GTspec-v1.0.16) (계약 정본·타입 생성 원천).
+- **부모 DBML** — [vt-api-gateway `design/dbml/vt-api-gateway.dbml` @spec-v1.0.16](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/dbml/vt-api-gateway.dbml&version=GTspec-v1.0.16) (데이터 모델).
 - **기능 v1/v2 분리** — [본 Sub-SRS 동 폴더 `기능-v1-v2-분리.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/03c-subsrs-gw-console/기능-v1-v2-분리.md)(승격 후 co-located).
 
 ## 1.6 Intended Audience and Reading Suggestions (대상 및 읽는 방법)
@@ -120,7 +120,7 @@ Console은 **GW 생태계의 관리 프론트엔드**로, GW Admin API의 클라
 | **GW Admin API** | 회사 내부 시스템 | 모든 관리 동작의 백엔드(리전별 `admin.<region>.gw.<도메인>`). |
 | **Region Directory** | 외부 데이터 소스 | 리전 목록·라우팅 메타(정적 JSON·③-I 발행). |
 | **well-known 호환성 매트릭스** | 외부 데이터 소스 | 실효 매트릭스 읽기(뷰어). |
-| **Entra 인증(접근 통제)** | 애플리케이션 계층 | Console·Admin API 접근 통제 = 직원 IdP(Entra) OIDC + `operatorAuth`(엣지 ZTNA 폐기·부모 #12487). Admin API는 Entra-gated 공개. |
+| **Entra 인증(접근 통제)** | 애플리케이션 계층 | Console·Admin API 접근 통제 = 직원 IdP(Entra) OIDC + `operatorAuth`(엣지 ZTNA 폐기·부모 R1). Admin API는 Entra-gated 공개. |
 
 ### 2.1.1 gw/1.0 — 단일 리전 조망 (Console [v1.0])
 ```mermaid
@@ -244,12 +244,12 @@ sequenceDiagram
         C-->>OP: 계정 정지 안내
     end
     Note over C,GW: Console 무상태 · 토큰/UI 상태만 · 데이터는 매 요청 라이브
-    Note over GW: 최초 admin은 배포 seed(GW DB·③-I)로 부여 — no_access 데드락 방지(TOFU 아님). seed는 부모 반영 필요(C-14·「부모 SRS 반영 대상」)
+    Note over GW: 최초 admin은 배포 seed(GW DB·③-I)로 부여 — no_access 데드락 방지(TOFU 아님·부모 §7.9.2 전역 seed)
 ```
 
 ### 2.3.2 S2 — 온보딩: 최초 admin 부트스트랩 · 권한 요청→승인
 
-> **부트스트랩 seed 정책:** 최초 admin은 **GW DB seed**(③-I 배포 시 초기 admin의 Entra `oid` 지정·Entra 그룹 아님 — authz=GW DB 원칙)로 부여한다. seed 부여는 백엔드 계약이라 **부모 SRS 반영이 필요**하다(Appendix B **C-14** · 「부모 SRS 반영 대상」).
+> **부트스트랩 seed 정책:** 최초 admin은 **GW DB seed**(③-I 배포 시 초기 admin의 Entra `oid` 지정·Entra 그룹 아님 — authz=GW DB 원칙)로 부여한다. seed 부여는 부모 §7.9.2(전역 bootstrap seed)가 뒷받침한다.
 
 **온보딩 상태 결정 (상황별).** 최초 admin은 seed로, 이후 사용자는 요청→승인으로 온보딩된다 — "먼저 로그인한 사람이 admin"(TOFU)은 쓰지 않는다.
 ```mermaid
@@ -306,7 +306,7 @@ sequenceDiagram
     C->>GW: PATCH /v1/admin/devices/{id} status=active (승인)
     GW-->>C: active · 감사(device.approve)
     Note over CS,GW: C/S는 device 리전을 지정하지 않음 — enroll이 이미 정함 · C/S는 맞는지 확인만
-    Note over CS,GW: 없으면 device 서비스 불가한 ★핵심 게이트 · 거부=v1.0 명시 Reject(→rejected·부모 반영됨·spec-v1.0.15·C-16) · 방치 pending은 TTL 만료(7일·별개 안전망)
+    Note over CS,GW: 없으면 device 서비스 불가한 ★핵심 게이트 · 거부=v1.0 명시 Reject(→rejected) · 방치 pending은 TTL 만료(7일·별개 안전망)
 ```
 > **리전은 "선택"이 아니라 "확인"이다.** device의 리전은 enroll 시 EzServer가 나라로 자동 결정해 이미 그 리전 DB에 있다. C/S가 하는 일은 (1) **콘솔의 리전 컨텍스트**를 그 리전으로 두고(스위처·gw/1.0 단일이라 자동) (2) 배정이 **맞는지 확인**하는 것이지 device에 리전을 부여하는 것이 아니다. 틀렸으면 승인하지 않고 재-enroll/마이그레이션으로 교정한다(부모 §2.3.1·§7.3.4).
 
@@ -343,7 +343,7 @@ sequenceDiagram
     GW-->>C: 메타 목록 (payload 미포함)
     OP->>C: (열람 세션 첫 건) 사유 1회 입력 → 세션 내 재사용
     OP->>C: payload 열람 요청 (사유 재입력 없음)
-    C->>GW: GET /v1/admin/webhook-events/{id}/payload (사유 전달=부모 계약 C-15 선결)
+    C->>GW: GET /v1/admin/webhook-events/{id}/payload (reason 필수)
     GW->>GW: 복호 · PHI masking · 건건 전량 감사(webhook.payload.view)
     GW-->>C: 마스킹된 payload
     C-->>OP: 마스킹 응답만 표시 (해제 UI 없음)
@@ -397,7 +397,7 @@ sequenceDiagram
 | --- | --- | --- |
 | **Entra 테넌트·앱 등록**(claim·app role) | IT(부모 Appendix B #40·#38·Appendix C-2) | 로그인·통합 테스트 불가(§7.1). SRS 집필은 비차단. |
 | **GW Admin API baseline**(계약 안정) | GW(부모 §7.9.1·OpenAPI) | 계약 변동 시 영향 화면 재검토(§2.8). 현행 baseline 충족. |
-| **접근 통제**(애플리케이션 계층 Entra) | ③-I·③-C | Console·Admin API 모두 Entra 인증(operatorAuth)으로 통제. Admin API=Entra-gated 공개(부모 #12487). 미비 시 배포 보안 공백(§6.2). |
+| **접근 통제**(애플리케이션 계층 Entra) | ③-I·③-C | Console·Admin API 모두 Entra 인증(operatorAuth)으로 통제. Admin API=Entra-gated 공개. 미비 시 배포 보안 공백(§6.2). |
 | **역할 enum 동기**(GW·Console·DB) | GW+③-C | 새 역할은 양측 함께 릴리스(§7.2·런타임 무릴리스 추가 없음). |
 | **Region Directory·well-known 발행** | ③-I | **`gw/1.0` 배포 선결**(gw/1.2 아님·부모 §7.3.6 P1) — Region Directory는 Console 리전 스위처(FR-CON-03)뿐 아니라 **EzServer 부트스트랩(enroll)의 유일한 앵커**라 `gw/1.0`(첫 릴리스)부터 반드시 있어야 한다(`gw/1.0`=한 리전 1행). 미발행 시 리전 스위처·매트릭스 뷰어 동작 불가 + EzServer 온보딩 불가(§7.9·FR-CON-03). |
 
@@ -442,7 +442,7 @@ SRS는 앱이 **소비하는 config 키(위)와 인증 요구**(OIDC Auth Code+P
 ③-I가 AWS 클라우드에 배포하며, 방식은 다음과 같다.
 - **호스팅** — SPA 정적 자산을 **S3 + CloudFront**로 서빙한다. 전역 단일 호스트 `console.gw.<도메인>`(§4.5)를 쓰고, TLS·캐시·엣지는 CloudFront가 담당하며 인증서는 ACM으로 발급한다.
 - **접근 통제** — 여기서 "사내"는 배포 *위치*가 아니라 *접근 통제*를 뜻한다. 즉 자산은 공개 인터넷에 두되, **애플리케이션 계층 Entra 인증**(OIDC 로그인 + 요청마다 `operatorAuth`)으로 사내 직원만 접근하게 한다(§6.2).
-- **Zero Trust 미도입** — 엣지에서 강제하는 Zero Trust/ZTNA는 두지 않는다(부모 R1·#12487에서 폐기). 방어는 위 애플리케이션 계층 인증이 담당한다.
+- **Zero Trust 미도입** — 엣지에서 강제하는 Zero Trust/ZTNA는 두지 않는다(부모 R1에서 폐기). 방어는 위 애플리케이션 계층 인증이 담당한다.
 - **격리 존 예외** — 네트워크·규제상 격리된 존(중국 등)은 그 존 인프라에 Console을 별도로 배포한다(§4.5).
 - **CI/CD** — 별도 파이프라인을 두지 않고 GW와 동일한 파이프라인을 사용한다(③-I·§3.6.2).
 
@@ -527,7 +527,7 @@ Jira(GW 프로젝트).
 # 4 External Interface Requirements (외부 인터페이스 요구사항)
 
 ## 4.1 System Interfaces (시스템 인터페이스)
-- **GW Admin API**(부모 §7.9.1) — 모든 관리 동작의 백엔드. 인증=요청별 `operatorAuth`(Entra Bearer). 런타임 base=`admin.<region>.gw.<도메인>`(주입 키 `GW_ADMIN_BASE`·§3.4). **계약 정본(OpenAPI·타입 생성 원천)** = [vt-api-gateway `docs/specs/design/openapi/vt-api-gateway.openapi.yaml` @spec-v1.0.15](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/openapi/vt-api-gateway.openapi.yaml&version=GTspec-v1.0.15). *상세 시그니처·payload·상태코드는 OpenAPI(SSOT), 본 문서는 목적·동작·에러만.*
+- **GW Admin API**(부모 §7.9.1) — 모든 관리 동작의 백엔드. 인증=요청별 `operatorAuth`(Entra Bearer). 런타임 base=`admin.<region>.gw.<도메인>`(주입 키 `GW_ADMIN_BASE`·§3.4). **계약 정본(OpenAPI·타입 생성 원천)** = [vt-api-gateway `docs/specs/design/openapi/vt-api-gateway.openapi.yaml` @spec-v1.0.16](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/openapi/vt-api-gateway.openapi.yaml&version=GTspec-v1.0.16). *상세 시그니처·payload·상태코드는 OpenAPI(SSOT), 본 문서는 목적·동작·에러만.*
 - **MS Entra(OIDC)** — Authorization Code + PKCE. discovery·JWKS 표준(발급자·엔드포인트는 Entra 테넌트 config·§3.4 `ENTRA_*`·설정 절차=[Entra 설정 가이드](Entra-설정-가이드.md)).
 - **Region Directory**(정적 JSON·③-I 발행·부모 §7.3.6) — 리전 목록·라우팅 메타를 읽는다. 런타임 URL(리전 독립·S3+CloudFront) = `https://regions.gw.<도메인>/regions.json`. *구체 `<도메인>`은 미확정(C-10)이라 live 링크가 아니라 패턴이며, 실제 값은 주입 키 `REGION_DIRECTORY_URL`(§3.4)로 받는다.* **버전:** Region Directory는 `gw/1.0`(v1.0 배포)부터 존재하고 Console이 `[v1.0]`에서 읽는다(단일 리전·1행). 다중 리전 목록을 이용한 **실질 스위칭은 `gw/1.2`**부터다(§2.6·FR-CON-03).
 - **well-known 호환성 매트릭스**(부모 §7.7.5·§7.7.2) — GW가 서빙하는 실효 매트릭스(읽기 전용·뷰어 §7.9)를 읽는다. 런타임 경로 = GW api 호스트의 `/.well-known/{env}/server-configuration.json`(주입 키 `WELLKNOWN_URL`·§3.4). **저작 정본(소스)** = git `vt-api-gateway`의 `config/compat-matrix.yaml`(CI가 검증·발행·부모 §7.7.5).
@@ -647,7 +647,7 @@ Console의 소프트웨어 인터페이스(GW Admin API·**OpenAPI 계약**·Ent
 - **최소권한 UI** — 역할에 없는 기능은 비노출, 시도 시 GW 403.
 - **마스킹·직접 접근 금지** — credential/secret·PHI payload 마스킹, DB/KMS 직접 접근 금지(모두 GW 경유·break-glass는 사유+감사).
 - **전량 감사** — 모든 관리 변경·열람은 GW가 감사(부모 §7.9.3). Console은 이력 조회·표시.
-- **접근 통제** = 애플리케이션 계층 Entra 인증(OIDC + 요청마다 `operatorAuth`)·전 구간 HTTPS. Admin API는 **Entra-gated 공개**(부모 #12487·내부전용/mesh DENY 폐기)·전역 Console origin CORS 허용. Zero Trust/ZTNA는 두지 않는다(구체 하드닝 WAF·rate-limit=③-I·Appendix C-3).
+- **접근 통제** = 애플리케이션 계층 Entra 인증(OIDC + 요청마다 `operatorAuth`)·전 구간 HTTPS. Admin API는 **Entra-gated 공개**(부모 R1·내부전용/mesh DENY 폐기)·전역 Console origin CORS 허용. Zero Trust/ZTNA는 두지 않는다(구체 하드닝 WAF·rate-limit=③-I·Appendix C-3).
 
 ## 6.3 Software System Attributes
 ### 6.3.1 Availability
@@ -780,7 +780,7 @@ GW pilot과 연계(별도 계획).
   - **C/S** → enrollment 승인 큐(SCR-DEV-03)
   - **Developer** → 디바이스 목록(SCR-DEV-01)
   - 멀티 역할이면 우선순위 **admin > operator > cs > developer**로 착지(세부 조정=LLD).
-  *최초 admin:* 첫 사용자도 seed에 없으면 `no_access`이며, **최초 admin은 배포 seed로 `active`가 된다**(§2.3.2·부모 계약 추가 필요=Appendix B C-14). *에러:* `/me` 실패 시 재시도·오류 표시(무한 로딩 금지).
+  *최초 admin:* 첫 사용자도 seed에 없으면 `no_access`이며, **최초 admin은 배포 seed로 `active`가 된다**(§2.3.2·부모 §7.9.2 전역 bootstrap seed). *에러:* `/me` 실패 시 재시도·오류 표시(무한 로딩 금지).
 - **FR-CON-02a** [v1.0] **홈·대시보드**(SCR-AUTH-03·Admin·Operator 착지) — **[v1.0](gw/1.0)=바로 해당(단일) 리전 대시보드**: 그 리전의 **비-PHI 요약**(디바이스 active/pending/suspended 수·fleet 온라인 비율·승인 대기 건수·target/연동 상태·매트릭스 상태·최근 감사 하이라이트)을 보이고 상세는 각 화면으로 드릴다운한다. **`gw/1.2`=global 대시보드**(리전별 비-PHI 요약·**교차리전 요약 뷰**·FR-CON-03a·[v2.0]) → 리전 선택 → 그 리전 대시보드. **주권:** global 요약은 **비-PHI 카운트·헬스만**이고 상세·PHI·라이브 데이터는 **리전 내(in-region)**에서만 본다(§2.1.2·핵심 결정 A). *에러:* 요약 로드 실패 시 부분 표시·재시도(무한 로딩 금지).
 - **FR-CON-03** [v1.0] **단일 Console·리전 스위처** — Region Directory에서 리전을 읽어 대상 리전을 전환하고, 이후 호출 base를 `admin.<region>.gw.<도메인>`로 둔다. 무상태·교차리전 집계 없음(§2.1.2·핵심 결정 A). **GW 버전 의존:** 구조는 `[v1.0]`부터 두되, `gw/1.0`(단일 리전)에선 선택지가 1개라 스위칭이 자명하고 **실질 멀티리전 전환은 `gw/1.2`**부터 의미가 생긴다(리전 추가=Directory 행 증분·코드 무변경). *에러:* Directory 로드 실패 시 캐시된 마지막 목록 사용·경고 표시.
   - **FR-CON-03a** [v2.0] (GW `gw/1.2` 의존) 멀티리전 운영 확장 — 역할은 **GW `operator_role`이 전 리전에 균일 복제**(§7.2 note·부모 §7.9.2·R1)라 리전별 조달이 없다(Entra=SSO만·authz=GW). 확장 범위 = 주권 준수 내 **교차리전 요약 뷰**(읽기·집계는 주권 경계 준수)뿐. *복제 계층=`gw/1.2`.*
@@ -791,7 +791,7 @@ GW pilot과 연계(별도 계획).
 > **멀티리전 authz(gw/1.2·부모 R1).** 운영자 역할 부여는 **모든 리전에 동일하게 복제(균일 sync)** 되며 리전별로 다르게 주지 않는다(부모 §7.9.2). 즉 승인 UI에 **grant별 리전 스코프 선택은 없다** — 데이터 스코프(global/region/clinic·FR-CON-04)만 있고, "특정 리전 데이터만 담당"은 그 데이터 스코프(`scope_type=region`)로 표현한다. **리전 스위처(FR-CON-03)** 는 권한 축이 아니라 *호출 대상 Admin API base*를 고르는 것뿐이다(전역 admin은 전 리전 동일 권한으로 각 리전을 운영). `gw/1.0` 단일 리전이라 이 균일 복제는 자명(복제 계층 구현=`gw/1.2`·GW 읽기 경로는 항상 리전 로컬).
 - **FR-CON-04** [v1.0] **권한 요청**(no_access·본인) — 역할 멀티선택 + 스코프(기본 global) + 사유 → `POST /v1/admin/me/access-requests` → "승인 대기". *검증:* 최소 1개 역할 선택. *에러:* 중복 요청은 GW가 거절(409)→"이미 요청됨" 표시. 거부되면 사유 표시·재요청 가능.
 - **FR-CON-05** [v1.0] **Admin 승인 큐·조정**(admin) — `GET /v1/admin/access-requests`(requested) → **승인·부분 승인·거부**(`PATCH …/roles/{grantId}` — 요청 역할당 grant 1건이라 **일부만 active·나머지 reject** 가능) + **직접 조정**(요청과 무관하게 부여/회수=FR-CON-06). 즉 요청은 제안이고 **최종 역할은 Admin이 확정**한다. *Side effect:* 승인 시 대상 운영자의 다음 `/me`부터 역할 반영. *알림:* **인앱 알림 badge=v1.0 확정**(§4.2 App Bar) · **외부 채널(이메일/Teams)만 후속 확정**(③-C·Appendix C-6).
-- **FR-CON-06** [v1.0] **운영자 관리**(admin) — `GET /v1/admin/operators`(상태·역할 필터)·상세 → 직접 부여(`POST …/roles`)·회수(revoked)·정지/복구(status). *가드:* 본인 마지막 admin 역할 회수 방지 — **GW 서버가 강제**한다(`PATCH …/roles/{grantId}`가 시스템 마지막 admin 회수를 409로 거부·**부모 §7.9.2/OpenAPI에 반영됨**(spec-v1.0.12·`patchAdminOperatorRole` 409)). Console UI도 해당 버튼을 비활성화하되 **최종 강제는 서버**다(API 직접 호출로도 lock-out 불가). *Side effect:* suspended는 역할 무관 전면 차단.
+- **FR-CON-06** [v1.0] **운영자 관리**(admin) — `GET /v1/admin/operators`(상태·역할 필터)·상세 → 직접 부여(`POST …/roles`)·회수(revoked)·정지/복구(status). *가드:* 본인 마지막 admin 역할 회수 방지 — **GW 서버가 강제**한다(`PATCH …/roles/{grantId}`가 시스템 마지막 admin 회수를 409로 거부·부모 §7.9.2·`patchAdminOperatorRole`). Console UI도 해당 버튼을 비활성화하되 **최종 강제는 서버**다(API 직접 호출로도 lock-out 불가). *Side effect:* suspended는 역할 무관 전면 차단.
 - **FR-CON-07** [v1.0] **표기 규약** — 역할=멀티(체크박스)·서열 UI 금지·설명 툴팁. CS=global 자동(클리닉 선택 UI 불필요). 거부/회수 이력 상태로 노출(삭제 아님).
 - **FR-CON-08** [v2.0] **역할 카탈로그 편집 UI** — 새 역할·권한 매핑 편집(현재 역할=코드 enum이라 코드 변경 동반 → 고급).
 
@@ -832,14 +832,14 @@ GW pilot과 연계(별도 계획).
 > **화면(§4.2):** SCR-DEV-01(목록)·02(상세)·03(enrollment 승인 큐).
 정본=부모 §7.2·§7.9.1. 주 워크스페이스=Device 뷰.
 - **FR-CON-09** [v1.0] **디바이스 목록/상세** — 컬럼: device·clinic(임베드 요약)·status. **region은 컬럼이 아니다** — 배포 상수(부모 §7.3.1)라 Console이 보는 단일 리전(한 번에 한 리전만·FR-CON-03) 안에서 전 행이 동일하므로, **현재 리전은 상단 App Bar(SCR-AUTH-02)의 리전 컨텍스트로 1회 표시**한다(행마다 반복 안 함). gw/1.2에서도 리전 선택 후 그 리전만 보므로 유효(리전별 요약은 목록이 아니라 대시보드 SCR-AUTH-03). 상세 탭=[상태·수명주기]·[인증·키]·[소속 clinic 카드(읽기+링크)]. clinic 요약은 `Device` 응답 임베드 사용(2차 콜 불필요). *경계:* pending 0건·목록 비었을 때 빈 상태 UI.
-- **FR-CON-10** [v1.0·필수] **Enrollment 승인**(cs) — 선택 리전 컨텍스트(FR-CON-03)의 `pending→active` 활성화(**`PATCH /v1/admin/devices/{id}`·status=active**)·거부. ★없으면 device 서비스 불가. *권한:* cs·admin만. *검증:* 설치 확인 + **리전 적정성 확인** — device 리전은 enroll이 이미 결정(EzServer country→region)하므로 C/S는 **지정이 아니라 확인**만 한다. *거부(Reject):* **v1.0 거부 = 명시적 Reject** — 운영자가 pending enroll을 **즉시 거부**하면 `rejected` 상태로 전이하고 감사한다(`PATCH …/devices/{id}`·status=rejected·reason). **부모 §7.2.3/§7.2.5·DBML `device_status=rejected`에 반영됨**(spec-v1.0.15·#12571·Appendix B C-16). *(미승인·미거부로 방치된 pending은 이와 별개로 TTL 자동 만료·부모 §2.3.1·기본 7일 — abuse 방지 안전망.)* *인수(성공):* 승인 후 상태가 `active`로 반영되고 감사(`device.approve`)가 남는다. *에러:* 리전 배정이 틀렸으면 승인하지 않고 재-enroll/마이그레이션(부모 §7.3.4) 안내.
+- **FR-CON-10** [v1.0·필수] **Enrollment 승인**(cs) — 선택 리전 컨텍스트(FR-CON-03)의 `pending→active` 활성화(**`PATCH /v1/admin/devices/{id}`·status=active**)·거부. ★없으면 device 서비스 불가. *권한:* cs·admin만. *검증:* 설치 확인 + **리전 적정성 확인** — device 리전은 enroll이 이미 결정(EzServer country→region)하므로 C/S는 **지정이 아니라 확인**만 한다. *거부(Reject):* **v1.0 거부 = 명시적 Reject** — 운영자가 pending enroll을 **즉시 거부**하면 `rejected` 상태로 전이하고 사유와 함께 감사한다(`PATCH …/devices/{id}`·status=rejected·reason·부모 §7.2.5). *(미승인·미거부로 방치된 pending은 이와 별개로 TTL 자동 만료·부모 §2.3.1·기본 7일 — abuse 방지 안전망.)* *인수(성공):* 승인 후 상태가 `active`로 반영되고 감사(`device.approve`)가 남는다. *에러:* 리전 배정이 틀렸으면 승인하지 않고 재-enroll/마이그레이션(부모 §7.3.4) 안내.
 - **FR-CON-11** [v1.0] **수명주기 액션** — suspend/resume(active↔suspended·복구 가능)·**kill(→revoked·`POST …/kill`)**.
-- **FR-CON-12** [v1.0] **kill 가드**(안전·§6.1) — 확인 다이얼로그(device 식별·영향)·2차 확인/**사유**·권한 제한·실행 시 승인자·시각 감사 노출. **kill 사유의 GW 수집·저장은 부모에 반영됨**(`POST …/kill` body에 reason·`audit_log.reason` — spec-v1.0.15·#12571·Appendix B C-15). revoked는 되돌리기 없음(재서비스=재-enroll 안내). suspend와 위험색으로 시각 분리. *멱등:* 이미 revoked면 재-kill은 무효(상태 표시).
+- **FR-CON-12** [v1.0] **kill 가드**(안전·§6.1) — 확인 다이얼로그(device 식별·영향)·2차 확인/**사유**·권한 제한·실행 시 승인자·시각 감사 노출. kill 사유는 `POST …/kill` body의 `reason`으로 전달해 `audit_log.reason`에 저장한다(부모 §7.9.3). revoked는 되돌리기 없음(재서비스=재-enroll 안내). suspend와 위험색으로 시각 분리. *멱등:* 이미 revoked면 재-kill은 무효(상태 표시).
 
 ## 7.4 클리닉 관리·관계 [v1.0]
 > **화면(§4.2):** SCR-CLN-01(목록)·02(상세·memo 편집).
 정본=부모 §7.3·Appendix B #47. 보조 워크스페이스=Clinic 뷰.
-- **FR-CON-13** [v1.0·필수(조회)] **클리닉 목록/상세** — 컬럼: clinic·country·**memo(식별·FR-CON-14)**·**deviceCount·orgBindingStatus**. **region은 컬럼 아님**(배포 상수·상단 리전 컨텍스트로 1회 표시·FR-CON-09 동일). *(clinic은 device 같은 lifecycle status가 없다 — 부모 `getAdminClinics` 규약.)* `deviceCount`·`orgBindingStatus`는 **GW가 Clinic 목록 응답에 제공하는 읽기전용 요약 필드**다 — 집계는 GW(SoT)가 수행하며 클라이언트 N+1 집계를 하지 않는다. *이 두 필드는 부모 §7.9.1 Clinic DTO에 반영됨*(읽기전용·additive·비파괴·spec-v1.0.12). 상세 탭=[clinic 정보(region 표시)]·[org-bindings]·[소속 device 목록(`GET …/clinics/{id}/devices`)]·[SW 인벤토리]·[clinic-scope 정책·config].
+- **FR-CON-13** [v1.0·필수(조회)] **클리닉 목록/상세** — 컬럼: clinic·country·**memo(식별·FR-CON-14)**·**deviceCount·orgBindingStatus**. **region은 컬럼 아님**(배포 상수·상단 리전 컨텍스트로 1회 표시·FR-CON-09 동일). *(clinic은 device 같은 lifecycle status가 없다 — 부모 `getAdminClinics` 규약.)* `deviceCount`·`orgBindingStatus`는 **GW가 Clinic 목록 응답에 제공하는 읽기전용 요약 필드**다 — 집계는 GW(SoT)가 수행하며 클라이언트 N+1 집계를 하지 않는다. *이 두 필드는 부모 §7.9.1 Clinic DTO의 읽기전용 요약 필드다.* 상세 탭=[clinic 정보(region 표시)]·[org-bindings]·[소속 device 목록(`GET …/clinics/{id}/devices`)]·[SW 인벤토리]·[clinic-scope 정책·config].
 - **FR-CON-14** [v1.0·주요] **clinic LMP 표시필드=읽기전용 + 식별 메모(memo) 편집** —
   - **(a) LMP 표시필드 = 읽기전용.** name·country_code·address·phone·website는 **LMP가 SoT**(enroll 스냅샷·부모 §2.3.1)라 Console은 **조회만** 하고 편집면을 두지 않는다. 낡은 값의 갱신 원천은 **LMP→EzServer 자가 보정**(`PATCH /v1/clinics/me`)이며, GW 손편집은 그 보정이 덮어써 divergence를 만들므로 두지 않는다. 표시필드 교정 API(`PATCH …/clinics/{id}`)는 부모에 예외 ops로 남되 **Console v1.0 미노출**.
   - **(a') 식별 메모(memo) = GW 소유 단일 필드.** LMP 정보가 부족해 클리닉 식별이 어려운 경우(간판 없음·표시명 모호 등) 운영자가 식별 힌트를 남기는 **GW 소유 `clinic.memo`**(부모 §7.9.1·LMP와 별개라 enroll/self-PATCH가 안 건드림). **Admin·C/S 편집**(`PATCH /v1/admin/clinics/{id}/memo`) · 변경은 **audit_log(before/after)** 로 이력 보존(별도 로그 테이블 없음) · **비워서 삭제**(오입력 정정) · **PHI 금지**. **식별 보조라 목록(SCR-CLN-01)에도 컬럼으로 노출**되고 상세에서 편집한다.
@@ -869,7 +869,7 @@ GW pilot과 연계(별도 계획).
 정본=부모 §7.6.3·§7.9.1.
 - **FR-CON-21** [v1.0] **이벤트 메타 검색/단건** — `GET /v1/admin/webhook-events`(target/clinic/event_type/state/기간 필터)·단건(DLQ triage·메타 전용·payload 미포함).
 - **FR-CON-22** [v1.0] **payload break-glass 열람** — `GET …/{eventId}/payload`(GW 복호·PHI masking·전량 감사 `webhook.payload.view`). Console은 마스킹 응답만 표시(해제 UI 금지·직접 DB/KMS 없음).
-  - **FR-CON-22a** [v1.0] PHI 접근이라 **열람은 지정 역할로 제한**(무권한은 UI·엔드포인트 비노출·403)하고 **사유 확보 + 건건 전량 감사**를 요구한다(규제·§6.2). **사유는 건건 재입력이 아니라 열람 세션 단위로 1회 받아 재사용**한다(Console이 세션 내 사유를 유지·프리필해 재입력 마찰 제거)—단 **매 payload 열람은 그대로 건건 감사**한다(감사는 축약하지 않음). 열람 가능 역할 목록만 Appendix C-5(보안+③-C). *열람 **액션**은 부모가 건건 감사(`webhook.payload.view`·§7.9.3)하고, **사유(reason) 확보·저장 수단도 부모에 반영됨** — payload GET에 **필수 `reason` 쿼리**·`audit_log.reason` 필드(spec-v1.0.15·#12571·Appendix B C-15). break-glass는 사유 없이 열람 불가(400).*
+  - **FR-CON-22a** [v1.0] PHI 접근이라 **열람은 지정 역할로 제한**(무권한은 UI·엔드포인트 비노출·403)하고 **사유 확보 + 건건 전량 감사**를 요구한다(규제·§6.2). **사유는 건건 재입력이 아니라 열람 세션 단위로 1회 받아 재사용**한다(Console이 세션 내 사유를 유지·프리필해 재입력 마찰 제거)—단 **매 payload 열람은 그대로 건건 감사**한다(감사는 축약하지 않음). 열람 가능 역할 목록만 Appendix C-5(보안+③-C). *열람 액션은 부모가 건건 감사하고(`webhook.payload.view`·§7.9.3), 사유는 payload GET의 **필수 `reason` 쿼리**로 전달해 `audit_log.reason`에 저장한다 — break-glass는 사유 없이 열람 불가(400).*
 
 ## 7.7 Fleet·클라이언트 SW 인벤토리 [v1.0 주요 / 일부 v2.0]
 > **화면(§4.2):** SCR-FLEET-01(Fleet 대시보드)·02(SW 인벤토리).
