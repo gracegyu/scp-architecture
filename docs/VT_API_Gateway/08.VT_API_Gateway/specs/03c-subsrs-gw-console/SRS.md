@@ -564,23 +564,35 @@ flowchart TB
 - 목록: 서버측 필터(정확 일치)·커서 페이지네이션(부모 §7.9.1 조회 규약).
 - 접근성 = §1.2(Will not do) · i18n = §6.10.
 
-**화면 맵 (스크린 인벤토리).** 화면은 **§7 기능 그룹과 1:1**이며 Refine Resource 페이지로 스캐폴딩한다(§2.2). 아래는 만들 화면의 전체 목록(구현 커버리지 기준)이다. 라우트는 예시이고, **역할 게이팅 정밀 규약 = 각 FR-CON·accessControlProvider(§7.2)**, **시각 레이아웃·컴포넌트 상세 = LLD(Appendix C-7)**.
+**화면 카탈로그 (스크린 인벤토리·ID).** 화면마다 **`SCR-<도메인>-NN` ID**를 부여해 IP가 화면 단위로 Task를 분해할 수 있게 한다(화면 1개 = 구현 단위 1개). 각 화면은 Refine Resource 페이지로 스캐폴딩한다(§2.2). 라우트는 예시이고, **동작 정밀 규약=담는 FR-CON(§7)·역할 게이팅=accessControlProvider(§7.2)**, **시각 레이아웃·컴포넌트 상세=LLD(Appendix C-7)**. 유형 `list`는 pg(pagination) 유무를 표기한다.
 
-| 화면 (라우트·예시) | §7 | 담는 FR-CON | 주 역할 가시성 | 유형 |
-| --- | --- | --- | --- | --- |
-| 로그인·세션 (`/login`·OIDC 콜백) | 7.1 | 01·02 | 전원(미인증→로그인) | 인증 흐름 |
-| 전역 크롬 — 리전 스위처·상단바·좌측 내비 | 7.1 | 03 | 전원(항목은 역할별 노출) | 전역 UI |
-| 운영자·역할 (`/operators`) | 7.2 | 06 · 08(v2.0) | Admin | 목록·상세·역할 부여/회수·정지 |
-| 권한 요청/승인 (`/access-requests`) | 7.2 | 04·05 | 요청=전원(no_access) · 승인=Admin | 본인 요청·Admin 승인 큐 |
-| 디바이스 (`/devices`) | 7.3 | 09·10·11·12 | Admin · C/S(enroll 승인) | 목록·상세·수명주기 |
-| 클리닉 (`/clinics`) | 7.4 | 13·14·15 | Admin · C/S | 목록·상세·편집 |
-| 연동 대상·정책 (`/targets`) | 7.5 | 16·17·18·19·20 | Admin | 목록·상세·편집(generic) |
-| Webhook 이벤트 (`/webhook-events`) | 7.6 | 21·22 | Admin · payload 열람=break-glass 역할(C-5) | 목록·단건·열람 |
-| Fleet·SW 인벤토리 (`/fleet`·`/clients`) | 7.7 | 23·24·25 | Admin · C/S(뷰) | 대시보드·목록 |
-| 중앙 config (`/config`) | 7.8 | 26·27 | Admin | 목록·편집·publish |
-| 호환성 매트릭스 (`/compat-matrix`) | 7.9 | 28 | Admin · C/S(뷰) | 뷰어(읽기전용) |
-| 감사 로그 (`/audit`) | 7.10 | 29·30 | Admin | 목록·조회 |
-| [v2.0] 확장 화면 | 7.11 | 31·32 | (v2.0) | 후속 |
+| 화면 ID | 화면 (라우트·예시) | §7 | 유형(pg) | FR-CON | 역할 | 설명 |
+| --- | --- | --- | --- | --- | --- | --- |
+| **SCR-AUTH-01** | 로그인·세션 (`/login`·OIDC 콜백) | 7.1 | 인증 흐름 | 01·02 | 전원(미인증) | Entra OIDC(Auth Code+PKCE)로 로그인하고 콜백을 처리한 뒤 `/me`로 부트스트랩 분기한다(active/no_access/suspended). 셸 밖·자체 폼 없음. |
+| **SCR-AUTH-02** | 전역 App Shell·리전 스위처 (전역 크롬) | 7.1 | 전역 UI | 03 | 전원(항목 역할별) | App Bar(리전 스위처·현재 운영자·알림 badge·로그아웃)+Sidebar(역할별 메뉴)+콘텐츠 셸. 리전을 골라 호출 base를 전환한다. |
+| **SCR-RBAC-01** | 권한 요청 (`/access-requests` 본인) | 7.2 | form | 04 | no_access 전원 | 역할 멀티선택+데이터 스코프(기본 global)+사유로 접근 권한을 요청한다. |
+| **SCR-RBAC-02** | 승인 큐·조정 (`/access-requests` admin) | 7.2 | list+action(pg) | 05 | Admin | requested 큐를 보고 승인·부분 승인·거부한다(요청 역할당 grant 1건). 오래된 순(FIFO). |
+| **SCR-RBAC-03** | 운영자 목록 (`/operators`) | 7.2 | list(pg) | 06 | Admin | 상태·역할로 운영자를 조회한다. |
+| **SCR-RBAC-04** | 운영자 상세·역할 관리 (`/operators/{id}`) | 7.2 | detail+action | 06·07 | Admin | 직접 역할 부여/회수·정지/복구. 시스템 마지막 admin 회수는 서버가 막는다(버튼 비활성+409). |
+| **SCR-DEV-01** | 디바이스 목록 (`/devices`) | 7.3 | list(pg) | 09 | Admin·C/S | status·clinic 필터로 조회한다. region은 상단 컨텍스트로 1회 표시. |
+| **SCR-DEV-02** | 디바이스 상세 (`/devices/{id}`) | 7.3 | detail+action | 09·11·12 | Admin·C/S | 상태·수명주기·인증/키·소속 clinic 카드를 보여준다. suspend/kill은 확인 가드. |
+| **SCR-DEV-03** | enrollment 승인 큐 (`/devices?status=pending`) | 7.3 | list+action(pg) | 10 | C/S·Admin | pending 디바이스를 승인(→active)하거나 거부(Reject)한다. |
+| **SCR-CLN-01** | 클리닉 목록 (`/clinics`) | 7.4 | list(pg) | 13 | Admin·C/S | clinic·country·deviceCount·orgBindingStatus를 조회한다(요약은 GW 집계). |
+| **SCR-CLN-02** | 클리닉 상세·편집 (`/clinics/{id}`) | 7.4 | detail+edit | 13·14·15 | Admin·C/S | clinic 표시정보 편집(PATCH)·org-bindings·소속 device·SW 인벤토리·정책/config. Device와 상호 드릴스루. |
+| **SCR-TGT-01** | 연동 대상 목록 (`/targets`) | 7.5 | list(pg) | 17 | Admin | 등록된 target과 상태(enabled)를 조회한다(대상 무관·generic). |
+| **SCR-TGT-02** | 연동 대상 추가·편집 (`/targets/new`·`/{id}/edit`) | 7.5 | add/edit | 16·17 | Admin | 한 폼 3섹션(라우팅·아웃바운드 자격·인바운드 webhook)으로 target을 upsert한다. |
+| **SCR-TGT-03** | 연동 대상 상세·삭제 (`/targets/{id}`) | 7.5 | detail+action | 17 | Admin | target 상세·삭제(종속 참조 있으면 409 안내·확인 가드). |
+| **SCR-TGT-04** | 정책 편집 (`/targets/{id}/policy`) | 7.5 | edit | 18 | Admin | target별 allowed_endpoints·scopes(deny-by-default) 편집. |
+| **SCR-TGT-05** | org-mapping 관리 (`/org-mappings`) | 7.5 | list+edit(pg) | 19 | Admin | (target,org_id)→clinic 목록·교정·삭제(연동 해지·확인 가드). |
+| **SCR-WH-01** | Webhook 이벤트 목록·검색 (`/webhook-events`) | 7.6 | list(pg) | 21 | Admin | target/clinic/event_type/state/기간 필터로 이벤트 메타를 조회한다. |
+| **SCR-WH-02** | Webhook 이벤트 단건 (`/webhook-events/{id}`) | 7.6 | detail | 21 | Admin | 단건 메타(payload 미포함)로 DLQ triage. |
+| **SCR-WH-03** | payload break-glass 열람 (모달/액션) | 7.6 | action | 22 | break-glass 역할(C-5) | 사유 입력 후 마스킹된 payload를 열람한다(건건 전량 감사·해제 UI 없음). |
+| **SCR-FLEET-01** | Fleet 대시보드 (`/fleet`) | 7.7 | dashboard | 23 | Admin·C/S(뷰) | heartbeat·online·버전을 본다(staleOnly·clinicId 필터). |
+| **SCR-FLEET-02** | SW 인벤토리 (`/clients`·clinic 탭) | 7.7 | list(pg) | 24 | Admin·C/S(뷰) | (product,version,os) 튜플로 클라이언트 SW를 본다("대수" 표시 금지). |
+| **SCR-CFG-01** | 중앙 config (`/config`) | 7.8 | list+edit(pg) | 26 | Admin | gw.* config 조회·편집·publish(행 버전 표시·stale write 감지). |
+| **SCR-COMPAT-01** | 호환성 매트릭스 뷰어 (`/compat-matrix`) | 7.9 | viewer | 28 | Admin·C/S(뷰) | well-known 실효 매트릭스를 읽기 전용으로 본다(저작=git/CI). |
+| **SCR-AUDIT-01** | 감사 로그 조회 (`/audit`) | 7.10 | list(pg) | 29 | Admin | actor·action·result·기간 필터·커서로 감사 이력을 조회한다(before/after 스냅샷·쓰기 없음). |
+| **SCR-V2-\*** | [v2.0] 확장 화면 | 7.11 | 후속 | 08·20·25·27·30·31·32·37 | (v2.0) | 온보딩 마법사·AXS 가입/구독 관리·인벤토리 추세·config rollout·고급 감사 분석·역할 카탈로그 편집·멀티리전 운영 뷰·데이터 export. 상세는 v2.0 착수 시 SCR-ID 승격. |
 
 > **공통 동작(화면 아님).** §7.0(기본 정렬·UTC 표시·빈/로딩/오류 3상태)·§7.12(FR-CON-33~37: 세션·오류·stale write 감지)는 개별 화면이 아니라 **전 화면 공통 규칙**이다. 또한 **FR-CON-07**(역할 표기 규약 — 멀티선택·서열 UI 금지·CS=global 자동·거부/회수 이력 노출)은 §7.2 두 화면(운영자·권한 요청/승인) **공통 규약**이다. 시각 레이아웃·컴포넌트 상세는 SRS 범위 밖이며 **구현 단계에서 Refine 스캐폴딩 + 반복 확정**한다(§4.2 상단·Appendix C-7).
 
@@ -756,12 +768,14 @@ GW pilot과 연계(별도 계획).
 - **빈/로딩/오류 상태:** 모든 목록·상세 화면은 (a) 빈 결과 (b) 로딩(무한 로딩 금지) (c) 오류(FR-CON-35) **3상태를 일관 표시**한다.
 
 ## 7.1 운영자 인증·세션 [v1.0 필수]
+> **화면(§4.2):** SCR-AUTH-01(로그인·세션)·SCR-AUTH-02(전역 App Shell·리전 스위처).
 - **FR-CON-01** [v1.0] **Entra SSO 로그인** — OIDC(Auth Code+PKCE)로 로그인·로그아웃한다. 자체 비밀번호 없음. *에러:* Entra 인증 실패·토큰 검증 실패 시 로그인 화면으로 복귀하고 사유를 표시한다.
 - **FR-CON-02** [v1.0] **부트스트랩 분기** — 로그인 후 `GET /v1/admin/me`의 `accessState`로 분기: `active`→역할별 메뉴 / `no_access`→권한 요청(§7.2) / `suspended`→정지 안내. *최초 admin:* 첫 사용자도 seed에 없으면 `no_access`이며, **최초 admin은 배포 seed로 `active`가 된다**(§2.3.2·부모 계약 추가 필요=Appendix B C-14). *에러:* `/me` 실패 시 재시도·오류 표시(무한 로딩 금지).
 - **FR-CON-03** [v1.0] **단일 Console·리전 스위처** — Region Directory에서 리전을 읽어 대상 리전을 전환하고, 이후 호출 base를 `admin.<region>.gw.<도메인>`로 둔다. 무상태·교차리전 집계 없음(§2.1.2·핵심 결정 A). **GW 버전 의존:** 구조는 `[v1.0]`부터 두되, `gw/1.0`(단일 리전)에선 선택지가 1개라 스위칭이 자명하고 **실질 멀티리전 전환은 `gw/1.2`**부터 의미가 생긴다(리전 추가=Directory 행 증분·코드 무변경). *에러:* Directory 로드 실패 시 캐시된 마지막 목록 사용·경고 표시.
   - **FR-CON-03a** [v2.0] (GW `gw/1.2` 의존) 멀티리전 운영 확장 — 역할은 **GW `operator_role`이 전 리전에 균일 복제**(§7.2 note·부모 §7.9.2·R1)라 리전별 조달이 없다(Entra=SSO만·authz=GW). 확장 범위 = 주권 준수 내 **교차리전 요약 뷰**(읽기·집계는 주권 경계 준수)뿐. *복제 계층=`gw/1.2`.*
 
 ## 7.2 운영자 RBAC·권한 요청/승인 [v1.0 필수]
+> **화면(§4.2):** SCR-RBAC-01(권한 요청)·02(승인 큐)·03(운영자 목록)·04(운영자 상세·역할 관리).
 정본=부모 §7.1.4·§7.9.2.
 > **멀티리전 authz(gw/1.2·부모 R1).** 운영자 역할 부여는 **모든 리전에 동일하게 복제(균일 sync)** 되며 리전별로 다르게 주지 않는다(부모 §7.9.2). 즉 승인 UI에 **grant별 리전 스코프 선택은 없다** — 데이터 스코프(global/region/clinic·FR-CON-04)만 있고, "특정 리전 데이터만 담당"은 그 데이터 스코프(`scope_type=region`)로 표현한다. **리전 스위처(FR-CON-03)** 는 권한 축이 아니라 *호출 대상 Admin API base*를 고르는 것뿐이다(전역 admin은 전 리전 동일 권한으로 각 리전을 운영). `gw/1.0` 단일 리전이라 이 균일 복제는 자명(복제 계층 구현=`gw/1.2`·GW 읽기 경로는 항상 리전 로컬).
 - **FR-CON-04** [v1.0] **권한 요청**(no_access·본인) — 역할 멀티선택 + 스코프(기본 global) + 사유 → `POST /v1/admin/me/access-requests` → "승인 대기". *검증:* 최소 1개 역할 선택. *에러:* 중복 요청은 GW가 거절(409)→"이미 요청됨" 표시. 거부되면 사유 표시·재요청 가능.
@@ -771,6 +785,7 @@ GW pilot과 연계(별도 계획).
 - **FR-CON-08** [v2.0] **역할 카탈로그 편집 UI** — 새 역할·권한 매핑 편집(현재 역할=코드 enum이라 코드 변경 동반 → 고급).
 
 ## 7.3 디바이스 관리·수명주기 [v1.0 필수]
+> **화면(§4.2):** SCR-DEV-01(목록)·02(상세)·03(enrollment 승인 큐).
 정본=부모 §7.2·§7.9.1. 주 워크스페이스=Device 뷰.
 - **FR-CON-09** [v1.0] **디바이스 목록/상세** — 컬럼: device·clinic(임베드 요약)·status. **region은 컬럼이 아니다** — 배포 상수라 전 행이 동일하므로(부모 §7.3.1·§2.1.1) **현재 리전 컨텍스트로 화면 상단에 1회 표시**(FR-CON-03). 상세 탭=[상태·수명주기]·[인증·키]·[소속 clinic 카드(읽기+링크)]. clinic 요약은 `Device` 응답 임베드 사용(2차 콜 불필요). *경계:* pending 0건·목록 비었을 때 빈 상태 UI.
 - **FR-CON-10** [v1.0·필수] **Enrollment 승인**(cs) — 선택 리전 컨텍스트(FR-CON-03)의 `pending→active` 활성화(**`PATCH /v1/admin/devices/{id}`·status=active**)·거부. ★없으면 device 서비스 불가. *권한:* cs·admin만. *검증:* 설치 확인 + **리전 적정성 확인** — device 리전은 enroll이 이미 결정(EzServer country→region)하므로 C/S는 **지정이 아니라 확인**만 한다. *거부(Reject):* **v1.0 거부 = 명시적 Reject** — 운영자가 pending enroll을 **즉시 거부**하면 `rejected` 상태로 전이하고 감사한다. **단 부모 `device_status`가 pending/active/suspended/revoked뿐이라 `rejected` 상태 신설이 선결**(Appendix B **C-16** — Console 확정 후 부모 반영·기능은 v1.0). *(미승인·미거부로 방치된 pending은 이와 별개로 TTL 자동 만료·부모 §2.3.1·기본 7일 — abuse 방지 안전망.)* *인수(성공):* 승인 후 상태가 `active`로 반영되고 감사(`device.approve`)가 남는다. *에러:* 리전 배정이 틀렸으면 승인하지 않고 재-enroll/마이그레이션(부모 §7.3.4) 안내.
@@ -778,6 +793,7 @@ GW pilot과 연계(별도 계획).
 - **FR-CON-12** [v1.0] **kill 가드**(안전·§6.1) — 확인 다이얼로그(device 식별·영향)·2차 확인/**사유**·권한 제한·실행 시 승인자·시각 감사 노출. **단 kill 사유의 GW 수집·저장은 부모 미지원**(`POST …/kill`에 reason 없음·`audit_log`에 reason 필드 없음 → Appendix B **C-15** 선결). revoked는 되돌리기 없음(재서비스=재-enroll 안내). suspend와 위험색으로 시각 분리. *멱등:* 이미 revoked면 재-kill은 무효(상태 표시).
 
 ## 7.4 클리닉 관리·관계 [v1.0]
+> **화면(§4.2):** SCR-CLN-01(목록)·02(상세·편집).
 정본=부모 §7.3·Appendix B #47. 보조 워크스페이스=Clinic 뷰.
 - **FR-CON-13** [v1.0·필수(조회)] **클리닉 목록/상세** — 컬럼: clinic·country·**deviceCount·orgBindingStatus**. **region은 컬럼 아님**(배포 상수·상단 리전 컨텍스트로 1회 표시·FR-CON-09 동일). *(clinic은 device 같은 lifecycle status가 없다 — 부모 `getAdminClinics` 규약.)* `deviceCount`·`orgBindingStatus`는 **GW가 Clinic 목록 응답에 제공하는 읽기전용 요약 필드**다 — 집계는 GW(SoT)가 수행하며 클라이언트 N+1 집계를 하지 않는다. *이 두 필드는 부모 §7.9.1 Clinic DTO에 반영됨*(읽기전용·additive·비파괴·spec-v1.0.12). 상세 탭=[clinic 정보(region 표시)]·[org-bindings]·[소속 device 목록(`GET …/clinics/{id}/devices`)]·[SW 인벤토리]·[clinic-scope 정책·config].
 - **FR-CON-14** [v1.0·주요(교정)] **편집면 단일화(3갈래 분리)** — 실제 API 계약이 셋이라 갈래를 나눈다: (a) **clinic 표시정보**(name·country_code·address·phone·website) 교정 = Clinic 화면 `PATCH …/clinics/{id}`로 단일화 · (b) **org-binding** 교정 = org-mapping 화면(별도 API·FR-CON-19) · (c) **region 교정 API는 `gw/1.0`에 없음** — 변경=교차리전 마이그레이션(부모 §7.3.4·부모 Appendix B #50·`gw/1.2` 이후). device 수명주기는 Device 화면에서만. 같은 필드를 두 화면에서 고치지 않는다. *동시성:* stale write 감지(FR-CON-36).
@@ -785,6 +801,7 @@ GW pilot과 연계(별도 계획).
 > **device-self 혼동 금지:** `/v1/clinics/me/*`(디바이스 자가 평면)는 actor가 다르므로 운영자 화면과 합치지 않는다(§1.2 Will-not-do).
 
 ## 7.5 연동 대상(target) 관리·정책·org-mapping [v1.0 주요]
+> **화면(§4.2):** SCR-TGT-01(목록)·02(추가·편집)·03(상세·삭제)·04(정책 편집)·05(org-mapping 관리).
 정본=부모 §7.5·§7.6·§7.9.1. **대상 무관(generic)·핵심 결정 C.**
 - **FR-CON-16** [v1.0] **[연동 대상 추가] 화면**(한 폼·3섹션 → `POST /v1/admin/targets` 1회):
   1. 라우팅(모든 대상): target_id·host·profile(internal/external)·timeout.
@@ -799,27 +816,32 @@ GW pilot과 연계(별도 계획).
 - **FR-CON-20** [v2.0] **연동 가입/구독 관리 고급 화면**(AXS link/check/unlink·customerNumber·동의 폴링) — AXS 특화·④ 소관 연계. v1.0은 out-of-band Org-ID를 FR-CON-19에 입력.
 
 ## 7.6 Webhook 이벤트 조회·payload break-glass 열람 [v1.0 주요]
+> **화면(§4.2):** SCR-WH-01(목록·검색)·02(단건)·03(payload break-glass 열람).
 정본=부모 §7.6.3·§7.9.1.
 - **FR-CON-21** [v1.0] **이벤트 메타 검색/단건** — `GET /v1/admin/webhook-events`(target/clinic/event_type/state/기간 필터)·단건(DLQ triage·메타 전용·payload 미포함).
 - **FR-CON-22** [v1.0] **payload break-glass 열람** — `GET …/{eventId}/payload`(GW 복호·PHI masking·전량 감사 `webhook.payload.view`). Console은 마스킹 응답만 표시(해제 UI 금지·직접 DB/KMS 없음).
   - **FR-CON-22a** [v1.0] PHI 접근이라 **열람은 지정 역할로 제한**(무권한은 UI·엔드포인트 비노출·403)하고 **사유 확보 + 건건 전량 감사**를 요구한다(규제·§6.2). **사유는 건건 재입력이 아니라 열람 세션 단위로 1회 받아 재사용**한다(Console이 세션 내 사유를 유지·프리필해 재입력 마찰 제거)—단 **매 payload 열람은 그대로 건건 감사**한다(감사는 축약하지 않음). 열람 가능 역할 목록만 Appendix C-5(보안+③-C). *열람 **액션**은 부모가 이미 건건 감사(`webhook.payload.view`·§7.9.3)하지만, **사유(reason) 자체를 받아 저장하는 수단은 부모에 없다** — payload GET에 reason 파라미터 없음·`audit_log`에 reason 필드 없음. 사유 확보·저장을 계약으로 성립시키려면 부모 반영이 선결이다(Appendix B **C-15**: API reason 전달 + audit_log reason 필드).*
 
 ## 7.7 Fleet·클라이언트 SW 인벤토리 [v1.0 주요 / 일부 v2.0]
+> **화면(§4.2):** SCR-FLEET-01(Fleet 대시보드)·02(SW 인벤토리).
 정본=부모 §7.8.1·§7.8.5.
 - **FR-CON-23** [v1.0] **Fleet 상태** — `GET /v1/admin/fleet`(heartbeat·online·버전·**staleOnly·clinicId 필터**). *`product` 필터는 fleet에 없다* — product 축은 클라이언트 SW 인벤토리(FR-CON-24·`/clients`)에만 귀속.
 - **FR-CON-24** [v1.0] **SW 인벤토리 조회** — Clinic 상세 탭: EzServer 버전·OS(fleet) + 앞단 클라이언트(`GET …/clinics/{id}/clients`). **표기=(product,version,os) 튜플·"대수" 표시 금지**·lastSeen=recency(확정 아님).
 - **FR-CON-25** [v2.0] **인벤토리 추세·업그레이드 캠페인 뷰**.
 
 ## 7.8 중앙 config 관리 [v1.0 주요]
+> **화면(§4.2):** SCR-CFG-01(중앙 config CRUD·publish).
 정본=부모 §7.8.4.
 - **FR-CON-26** [v1.0] **gw.* config CRUD·publish** — `/v1/admin/config`로 조회·편집·publish(감사 `config.publish`)·**행 버전(`ConfigEntry.version`·정수) 표시**. *(콘텐츠 해시 `configVersion`은 device 측 fleet config pull 필드[gw/1.1+·v1.0 미사용]라 Admin config 화면 범위 아님.)* *동시성:* stale write 감지(FR-CON-36·행 `version` 표시). *경계:* gw.* 스코프만(device.* 원격 config는 v2.0).
 - **FR-CON-27** [v2.0] **rollout/카나리·명명 그룹·device 원격 config**(gw/1.1+).
 
 ## 7.9 호환성 매트릭스 뷰어 [v1.0 주요]
+> **화면(§4.2):** SCR-COMPAT-01(매트릭스 뷰어).
 정본=부모 §7.7.5.
 - **FR-CON-28** [v1.0] **읽기 전용 뷰어** — well-known 실효 매트릭스 표시(+선택 스키마 검증·미리보기). 편집·업로드 저작면 없음(저작=git/CI). 긴급 차단은 config push(§7.8) 소관.
 
 ## 7.10 감사 로그 조회 [v1.0 필수]
+> **화면(§4.2):** SCR-AUDIT-01(감사 로그 조회).
 정본=부모 §7.9.3.
 - **FR-CON-29** [v1.0] **감사 조회** — `GET /v1/admin/audit`(actor·action·result 정확 일치·기간 필터·커서). before/after 부분 스냅샷 표시(PHI·원문 secret 없음). **쓰기 없음**(시스템 기록).
 - **FR-CON-30** [v2.0] **고급 감사 분석·리포트**.
@@ -899,4 +921,4 @@ GW pilot과 연계(별도 계획).
 | v0.12 | 2026-08-05 | **§1·§2 정독 리뷰 반영**(사장님 + spec-reviewer 체크리스트 A~N + 템플릿 §1~§2 대조) — §1.1 ③-C·버전 명시·"Case C" 외부라벨 제거 · §1.4에 **③-C/③-I/③-P·C/S·SoT·DLQ** 용어 추가 · §1.3 writing-tips 인용 제거 · §1.6 문서 구성 한 줄·§3/§5 읽기 행 추가 · **§2.1.1 GW 백엔드 박스(subgraph)화**·**§2.1.2 리전 스택에 감사로그·well-known** 추가 · **§2.2 GW 백엔드 박스로 §2.1과 external 정합**(GW Admin API 단일 노드·"GW 범위"→"GW 백엔드") · **§2.3.6 S6 시퀀스 다이어그램 추가** · authoring 메타 표현 정리(누락 점검·필수 점검·혼란 방지)·외부 가이드 인용(writing-tips·spec-philosophy) 제거·§1.5 provenance 축약. §2.1·§2.3(S4)·§2.4는 템플릿 정합 확인(무수정 통과). |
 | v0.13 | 2026-08-06 | **부모 baseline v1.0.11 반영·리전 교정 스윕** — 부모 GW SRS PR #12440(③b verbatim+JWKS)·#12453(prod 리전 시드니 교정·Console 전역 단일·JWS 회전·Region Directory) 병합·태그 `spec-v1.0.11`. §1.5 부모 계약 3종 핀 v1.0.10→v1.0.11. §2.1.1·§2.1.2·§2.3 등 **멜버른 apse4 → 시드니 apse2**(ap-southeast-4는 AWS IoT Core 미지원) 스윕. Console 전역 단일은 #12453이 확정(리전별 철회)이라 변경 없음. ZT↔Entra 층·전역 Console→리전별 Admin 도달 경로(§4.5.1)는 백로그 잔여. |
 | v0.14 | 2026-08-10 | **CB 백로그 반영 + §4~§7 리뷰.** CB-1: **ZTNA/Zero Trust 제거 → 애플리케이션 계층 Entra 인증**(§1.4·§2.1 외부표·§2.1.1/2.1.2 다이어그램·§2.3 S1·§2.6·§3.1.2·§3.3.2·§4.5·§6.2·Appendix C-3 스윕)·**Admin API=Entra-gated 공개**(부모 #12487·내부전용/mesh DENY 폐기·CORS 명시). CB-2: **기술 스택 확정 = Next.js+Refine(headless)+shadcn/ui(Radix+Tailwind)+TanStack Query**(§2.2·§3.4.2·§6.5·Appendix A B·C-4 해소). 부모 핀 v1.0.11→**v1.0.12**(§1.5·상속 근거에 §4.5.1 추가). 멀티리전 authz는 **역할 전 리전 균일 sync**(부모 §7.9.2·regionScope 제거)·리전 스위처=운영 base만·gw/1.2(§7.2 note). §4~§7 리뷰 반영(§6.8 운영자 업무 규정·FR-CON-03a 정합 정정·C-14 부모 v1.0.12 반영 확인). **FR-CON-19에 org_mapping 범용 번역표 판정**(새 target=행 추가·스키마 0·부모 §7.6.1 A안·PR #12555). |
-| v0.15 | 2026-08-10 | **버전 축 규약 + 가독성·정합 정리(draft 다듬기).** §1.3에 **버전 축 구분 규약** 신설 — Console `[v1.0]/[v2.0]` vs 부모 GW `gw/1.x`(단일 리전=gw/1.0·멀티리전=gw/1.2)·대괄호 없는 `v1.x`를 GW 의미로 금지·GW 버전 의존은 둘 다 표기. 문서 전체에서 GW-배포 의미의 `v1.0`→`gw/1.0` 정정(§2.1.1 제목·다이어그램·§2.6·§7.2·FR-CON-03/03a/14·로그인·Region Directory). §3.3.1(CD 언급 제거·컨테이너→S3 정합)·§3.3.2·§3.4.2·§2.2·§5.3 긴 나열→서술식 list. §4.1에 OpenAPI/Region Directory/well-known **URL·버전 명기**, §4.4 OpenAPI 중복 제거(§4.1로 통합·§4.4=그 외 SW 없음). §4.2 **App Shell 구조+다이어그램**·브레드크럼·알림 badge·로그인 화면. §3.5 **테스트 자동화 전략**(계층·소수 인력 대비·시각 회귀 자동·도구 선택 Playwright+Storybook/Vitest). |
+| v0.15 | 2026-08-10 | **버전 축 규약 + 가독성·정합 정리(draft 다듬기).** §1.3에 **버전 축 구분 규약** 신설 — Console `[v1.0]/[v2.0]` vs 부모 GW `gw/1.x`(단일 리전=gw/1.0·멀티리전=gw/1.2)·대괄호 없는 `v1.x`를 GW 의미로 금지·GW 버전 의존은 둘 다 표기. 문서 전체에서 GW-배포 의미의 `v1.0`→`gw/1.0` 정정(§2.1.1 제목·다이어그램·§2.6·§7.2·FR-CON-03/03a/14·로그인·Region Directory). §3.3.1(CD 언급 제거·컨테이너→S3 정합)·§3.3.2·§3.4.2·§2.2·§5.3 긴 나열→서술식 list. §4.1에 OpenAPI/Region Directory/well-known **URL·버전 명기**, §4.4 OpenAPI 중복 제거(§4.1로 통합·§4.4=그 외 SW 없음). §4.2 **App Shell 구조+다이어그램**·브레드크럼·알림 badge·로그인 화면. §3.5 **테스트 자동화 전략**(계층·소수 인력 대비·시각 회귀 자동·도구 선택 Playwright+Storybook/Vitest). **화면 카탈로그(SCR-ID) 신설** — §4.2를 화면-레벨 카탈로그(`SCR-<도메인>-NN`·유형·pg·FR-CON·역할·설명)로 확장하고 §7 각 기능에 "화면: SCR-xx" 참조 추가(IP 화면 단위 Task 분해용·단일 출처). §3.3.1 CD 언급 제거. |
