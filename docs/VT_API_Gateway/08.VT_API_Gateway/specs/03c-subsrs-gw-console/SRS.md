@@ -528,6 +528,7 @@ flowchart TB
     end
 ```
 > 위는 **논리 영역 구조**(App Bar / Sidebar / 메인)만 나타낸다 — 정확한 폭·색·컴포넌트·반응형 규칙은 **LLD(Appendix C-7)**. 로그인·OIDC 콜백 화면은 이 셸 밖에서 렌더한다.
+- **로그인 화면 (셸 밖·최소·v1.0 확정).** 자체 credential 폼·비밀번호 **없음**(§6.2) — **Entra OIDC(Auth Code+PKCE) 리다이렉트**만 한다: "Entra로 로그인" 실행 → **Entra 호스팅 로그인**(우리 화면 아님) → 콜백 처리 → 성공 시 부트스트랩 분기(FR-CON-02·active/no_access/suspended), 실패 시 사유 표시·재시도(FR-CON-01·§2.3.1 S1). 우리 UI 몫은 launch·콜백·오류뿐이라 **별도 상세화 불요**(리전 전환 UX는 v1.0 단일 리전이라 자명 — 멀티리전 스위칭·토큰 audience는 gw/1.2·FR-CON-03a·Appendix B #52 (b)로 추적).
 - **마스킹**: credential/secret·PHI payload는 원문 미표시(해제 UI 없음).
 - **파괴적 액션 가드**: kill 등은 확인 다이얼로그·사유·위험색 구분(§7.3·§6.1).
 - 목록: 서버측 필터(정확 일치)·커서 페이지네이션(부모 §7.9.1 조회 규약).
@@ -558,6 +559,7 @@ flowchart TB
 
 ## 4.4 Software Interface
 GW Admin **OpenAPI**(타입 생성)·Entra OIDC. Console은 계약을 코드 생성으로 소비한다.
+- **OpenAPI 정본(계약·타입 생성 원천)** = [vt-api-gateway `docs/specs/design/openapi/vt-api-gateway.openapi.yaml` @spec-v1.0.12](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/design/openapi/vt-api-gateway.openapi.yaml&version=GTspec-v1.0.12). Console은 이 파일을 코드젠(orval/openapi-typescript·§3.4.2)으로 소비하며, **버전은 baseline 태그 permalink로 고정**한다(부모 계약 변경 시 §1.5 핀과 함께 갱신).
 
 ## 4.5 Communication Interface (통신 인터페이스)
 **HTTPS 필수** · OIDC(Auth Code+PKCE) · 애플리케이션 계층 Entra 인증(ZTNA 아님·③-I). 전역 Console origin ↔ 리전별 Admin API **CORS** 허용(부모 §4.5.1). CORS/CSP 등 보안 헤더는 배포(§6.2·③-I).
