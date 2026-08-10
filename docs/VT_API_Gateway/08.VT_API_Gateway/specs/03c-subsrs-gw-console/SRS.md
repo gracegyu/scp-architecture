@@ -581,9 +581,8 @@ flowchart TB
 | **SCR-CLN-02** | 클리닉 상세·편집 (`/clinics/{id}`) | 7.4 | detail+edit | 13·14·15 | Admin·C/S | clinic 표시정보 편집(PATCH)·org-bindings·소속 device·SW 인벤토리·정책/config. Device와 상호 드릴스루. |
 | **SCR-TGT-01** | 연동 대상 목록 (`/targets`) | 7.5 | list(pg) | 17 | Admin | 등록된 target과 상태(enabled)를 조회한다(대상 무관·generic). |
 | **SCR-TGT-02** | 연동 대상 추가·편집 (`/targets/new`·`/{id}/edit`) | 7.5 | add/edit | 16·17 | Admin | 한 폼 3섹션(라우팅·아웃바운드 자격·인바운드 webhook)으로 target을 upsert한다. |
-| **SCR-TGT-03** | 연동 대상 상세·삭제 (`/targets/{id}`) | 7.5 | detail+action | 17 | Admin | target 상세·삭제(종속 참조 있으면 409 안내·확인 가드). |
-| **SCR-TGT-04** | 정책 편집 (`/targets/{id}/policy`) | 7.5 | edit | 18 | Admin | target별 allowed_endpoints·scopes(deny-by-default) 편집. |
-| **SCR-TGT-05** | org-mapping 관리 (`/org-mappings`) | 7.5 | list+edit(pg) | 19 | Admin | (target,org_id)→clinic 목록·교정·삭제(연동 해지·확인 가드). |
+| **SCR-TGT-03** | 연동 대상 상세·삭제·정책 편집 (`/targets/{id}`) | 7.5 | detail+edit+action | 17·18 | Admin | target 상세·삭제(종속 참조 있으면 409 안내·확인 가드)와 **정책 편집**(target별 allowed_endpoints·scopes·deny-by-default)을 한 화면에서 다룬다. |
+| **SCR-TGT-04** | org-mapping 관리 (`/org-mappings`) | 7.5 | list+edit(pg) | 19 | Admin | (target,org_id)→clinic 목록·교정·삭제(연동 해지·확인 가드). |
 | **SCR-WH-01** | Webhook 이벤트 목록·검색 (`/webhook-events`) | 7.6 | list(pg) | 21 | Admin | target/clinic/event_type/state/기간 필터로 이벤트 메타를 조회한다. |
 | **SCR-WH-02** | Webhook 이벤트 단건 (`/webhook-events/{id}`) | 7.6 | detail | 21 | Admin | 단건 메타(payload 미포함)로 DLQ triage. |
 | **SCR-WH-03** | payload break-glass 열람 (모달/액션) | 7.6 | action | 22 | break-glass 역할(C-5) | 사유 입력 후 마스킹된 payload를 열람한다(건건 전량 감사·해제 UI 없음). |
@@ -801,7 +800,7 @@ GW pilot과 연계(별도 계획).
 > **device-self 혼동 금지:** `/v1/clinics/me/*`(디바이스 자가 평면)는 actor가 다르므로 운영자 화면과 합치지 않는다(§1.2 Will-not-do).
 
 ## 7.5 연동 대상(target) 관리·정책·org-mapping [v1.0 주요]
-> **화면(§4.2):** SCR-TGT-01(목록)·02(추가·편집)·03(상세·삭제)·04(정책 편집)·05(org-mapping 관리).
+> **화면(§4.2):** SCR-TGT-01(목록)·02(추가·편집)·03(상세·삭제·정책 편집)·04(org-mapping 관리).
 정본=부모 §7.5·§7.6·§7.9.1. **대상 무관(generic)·핵심 결정 C.**
 - **FR-CON-16** [v1.0] **[연동 대상 추가] 화면**(한 폼·3섹션 → `POST /v1/admin/targets` 1회):
   1. 라우팅(모든 대상): target_id·host·profile(internal/external)·timeout.
