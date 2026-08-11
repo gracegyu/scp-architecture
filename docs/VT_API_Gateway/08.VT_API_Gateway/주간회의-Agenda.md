@@ -6,7 +6,7 @@
   - **(8/6~8/13 완료) GW 자율 구현 범위 완결** — **P11 Admin CRUD 전 Task 완료**(11-1~11-6 머지: targets·policies·config/org-mappings·operators RBAC 생애주기·webhook-events break-glass·audit 전면·데이터분류 스캐폴드) + **P9-4 app-side graceful drain**(무유실·offline-hang 강제종료) → ④/인프라 무관 자율 가능 범위 소진 · 구현현황 = S3
   - **(8/13 완료) T-AUTH-2-6 — GW JWKS 공개 엔드포인트(v1.0.11 승격) + ③b device 토큰 계약 정합** — `GET /.well-known/jwks.json`(무인증·개인키 미노출·CleverSpace GW Guard=외부 검증자) + 토큰 `iss`https형식/TTL≤15분/`aud`=GW수준. 머지 #12478(외부 검증 시뮬 실 jwt.verify·전체 e2e 430 회귀0) → S3 ②-f
   - **(v1.0.11 반영) 스펙 정합화** — prod 리전 **시드니 `apse2`** 교정(멜버른 apse4=IoT Core 미지원)·JWKS v1.0 승격·Console 전역 단일 확정 → 코드 영향은 T-AUTH-2-6뿐(리전=배포 config·grep 반전 확인·재작업 0)
-  - **(잔여) EzServer OnePager 수령 확인**. *(IO Scanner=AXS webhook 흡수·GW 무관·이월-R1 종료.)*
+  - **(잔여) EzServer OnePager 수령 확인**. _(IO Scanner=AXS webhook 흡수·GW 무관·이월-R1 종료.)_
   - _(이번 주 결정사항 = 회의 시 추가)_
 
 - 논의 사항 (이번 주 · 신규 논의/결정 안건)
@@ -15,7 +15,7 @@
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
   - **S1. 프로젝트 일정(Gantt) — 8/13 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
-    - **정본 = 본 Agenda(S1 Gantt).** *개발 Roadmap 결정.md는 폐기(더 이상 사용 안 함) — 이 스냅샷이 현행 정본이며 여기서 직접 갱신한다.*
+    - **정본 = 본 Agenda(S1 Gantt).** _개발 Roadmap 결정.md는 폐기(더 이상 사용 안 함) — 이 스냅샷이 현행 정본이며 여기서 직접 갱신한다._
     - **8/6→8/13 변경**:
       - **GW 자율 구현 범위 완결**: P8·P9 골격(app-side) + **P11 Admin CRUD 전부(11-1~11-6 머지)** + **P9-4 app-side drain**(무유실)
       - **v1.0.11 정합화**: JWKS 엔드포인트 v1.0 승격 → **T-AUTH-2-6 완료(#12478)** · prod 리전 시드니 `apse2` 교정(멜버른=IoT Core 미지원) · Console 전역 확정
@@ -26,18 +26,10 @@
       - ③-P-CS CleverSpace·③-P-CO CleverOne OnePager 2개 = Raymond·7/27 병행 착수(각 1·2·3단계 통합 · ①호환성·②Presigned One Pager 폐지→두 제품 OnePager에 흡수 · CleverOne Nick→Raymond)
       - 1·2·3단계 우선
     - **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 빨강=외부/미정 선결
-    - **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) *(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)*
+    - **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
     - **병행 별도 프로젝트**: `SectionView Module 구현`(7/13~2주·Raymond·**GW 아님**·완료)은 `▷ 병행` 섹션에 표기
     - **GW 구현 = 2단계 병행(유지)** — 1단계 GW 독립 코어(P0~P6·P10)는 ③ baseline 고정으로 **정상 진행**(IO Scanner 보류 영향 없음). 2단계 AXS 연동(P7~P12)은 **PPR sandbox 자격 확보로 착수 가능**(prod 자격=NDA후·§S3).
-    - (결정)
-      - GW Console v1.0 최소기능으로 앞으로 당겨서 진행한다. 전규현/ Raymond
-        - **③-C Console Sub-SRS 작성 착수(8/5)** — **gw/1.0 대응 baseline(필수+주요) 완전 + 이후(gw/1.1·gw/1.2·GW-무관 후속) 방향** 한 문서로 baseline 동결 가능 수준까지 초안 완료·리뷰 중(**버전 축을 GW에 정렬**·v1.0/v2.0 2단 폐기). **차주초 PR 예정**.
-      - GW Console
-        - MS Entra로 연동
-        - infra
-          - istio로 admin api 접근권한 제어
-          - 페이지접근도 ZeroTrust 에서만 접근 가능하게한다.
 
     ```mermaid
     gantt
@@ -101,7 +93,7 @@
         SectionView Module 구현 (Raymond·완료) :done, sv, 2026-07-13, 2026-07-30
     ```
 
-  - **S2. 스펙 작성 테이블 — 제품별 개발 항목 종합 (제품 × 단계) · 매주 스냅샷** · **정본 = 본 Agenda(S2)** (*Roadmap 결정.md 폐기 — 이 표가 현행 정본*)
+  - **S2. 스펙 작성 테이블 — 제품별 개발 항목 종합 (제품 × 단계) · 매주 스냅샷** · **정본 = 본 Agenda(S2)** (_Roadmap 결정.md 폐기 — 이 표가 현행 정본_)
     - **각 셀 앞 이모지 = 그 항목을 다루는 스펙의 작성 진행**: ✅ baseline · 🟢 PR · 🟡 작성중 · ⬜ 미작성 (— = 해당 없음)
 
       | 제품 | 0단계(IO Scanner 수집 — **AXS webhook 흡수·GW 무관·R1 종료**) | 1단계(호환성) | 2단계(presigned) | 3단계(GW 일원화) | 4단계(멀티리전) | 5단계(Straumann) | 후속 | 스펙 산출물(단위·유형) |
@@ -212,4 +204,4 @@
   | 11 | 호환성 매트릭스 확정본 | [정보] | CleverSpace/CleverOne OnePager 의존(①폐지·흡수) — 초안 7/27 작성·확정값은 담당팀 baseline 후 |
   | 14 | 관측성 앱↔인프라 계약 확정 — ①로그 필드 스키마(현행 pino 기본 필드 ↔ §6.3.2 최소셋 매핑·Appendix B #14) ②메트릭 export 배선(OTLP reader→Grafana Alloy 엔드포인트) | [논의·설계] | **추후 확정** — 트리거=③-I 관측 스택 구축 or P6 프록시 착수(먼저). Raymond 초안(필드 매핑표+엔드포인트 요구)→Jack(인프라) 비동기 합의. **앱 계약(stdout JSON+OTel·redaction) 이미 구현·무블로킹** |
   | 이월-R1 | IO Scanner↔EzServer 연동 방식 | [종료] | **종료** — IO Scanner 데이터는 **AXS webhook으로 수신 확정**. GW/③는 별도 IO Scanner 연동 없음(target 무관 webhook 수신·P8·§7.6). Straumann 내부(IO Scanner→AXS)는 ④ 소관이라 GW 스코프 밖. |
-  - **차주 이월 후보**: 이월-R2(목표일정·출시일 재검토) 미확정 시 다음 주 이월. *(이월-R1=종료.)*
+  - **차주 이월 후보**: 이월-R2(목표일정·출시일 재검토) 미확정 시 다음 주 이월. _(이월-R1=종료.)_
