@@ -52,8 +52,8 @@
         baseline v1.0 (7/20 확정·spec-v1.0.1 정합화 7/22) :milestone, done, srsbl, 2026-07-20, 0d
 
         section GW 구현 → E2E → 출시 (③ SRS 완료 직후 착수 · 2단계 병행 · Raymond 부분투입)
-        1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·진행중) :active, implindep, 2026-07-21, 45d
-        2단계 AXS 연동 (P7~P12·④ AXS 보류 해제 후)   :implaxs, after implindep, 40d
+        1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·진행중) :active, implindep, 2026-07-21, 21d
+        2단계 AXS 연동 (P7~P12·④ AXS 보류 해제 후)   :implaxs, after implindep, 7d
         AXS E2E (sandbox)              :e2e, after implaxs, 14d
         개발환경 연동 완료(9월·R2)       :milestone, dev9, 2026-09-30, 0d
         v1.0 production 연동 완료(10월·R2·재검토) :milestone, rel, 2026-10-31, 0d
@@ -66,7 +66,7 @@
 
         section ③-P-EZ EzServer 연동 스펙 (① 초안+PR=Raymond → ② Teddy 상세·리뷰·수정 → ③ baseline · IO Scanner부=보류)
         ① 초안+PR (Raymond·기본 GW연동) :done, ezw, 2026-07-20, 5d
-        ② Teddy 상세작성·리뷰·수정 :active, ezpr, after ezw, 14d
+        ② Teddy 상세작성·리뷰·수정 :active, ezpr, after ezw, 21d
         ③ baseline :milestone, ezbl, after ezpr, 0d
 
         section ③-P-CS CleverSpace OnePager (① 초안+PR=Raymond → ② CleverSpace팀(Larry) 상세·리뷰·수정 → ③ baseline)
@@ -157,20 +157,20 @@
 
       | Phase / Task | 범위 | 상태 | PR·비고 |
       | --- | --- | --- | --- |
-      | ─ **1단계 코어 (완료·Phase 1행)** ─ | | | |
+      | ─ **1단계 코어 (완료·Phase 1행)** ─ |  |  |  |
       | **P0 플랫폼 스캐폴드** | 0-1~0-6(4-way·로컬환경·포트어댑터·더블·Prisma·관측·에러·Config·CI·Dockerfile) | ✅ 완료 | #11971~11995 · 자동배포(CD)=③-I(Jack) |
       | **P1 데이터 모델** | 1-1~1-7(스키마·KMS envelope·Redis·audit append-only·시드) | ✅ 완료 | #12006~12040 · region-silo 단일 datasource 반영 |
       | **P2 인증** | 2-1~2-5(device private_key_jwt→RS256·operator Entra OIDC·RBAC) | ✅ 완료 | #12094~12143 · 2-6(JWKS)=이번주(아래) |
       | **P3 enrollment·생애주기** | 3-1~3-5(개시/완료·상태머신·재-enroll 회전·C/S 승인·kill·pending 만료) | ✅ 완료 | #12158~12171 |
       | **P4 region resolution** | 4-1~4-5(Resolver·ClinicResolution·PATCH/PUT me·PHI PDP·카탈로그) | ✅ 완료 | #12173~12191 · region-silo로 대부분 단일화 |
-      | **P5 호환성 게이트** | 5-1~5-3(Vatech-* 파싱→400·well-known 서빙·semver 게이팅) | ✅ 완료 | #12194~12200 · 게이트 실배선=①One Pager 후(→P12-2) |
+      | **P5 호환성 게이트** | 5-1~5-3(Vatech-\* 파싱→400·well-known 서빙·semver 게이팅) | ✅ 완료 | #12194~12200 · 게이트 실배선=①One Pager 후(→P12-2) |
       | **P6 target-routed 프록시** | 6-1~6-3(라우터·SSRF·PEP 체인·verbatim bypass·복원력) | ✅ 완료 | #12203~12213 · 복원력 하드닝=이번주(아래) |
-      | ─ **2단계 완료 Phase (지난주까지·Phase 1행)** ─ | | | |
+      | ─ **2단계 완료 Phase (지난주까지·Phase 1행)** ─ |  |  |  |
       | **P8 webhook 수신** | 8-1~8-3(HMAC 검증·eventId 멱등·store-then-ack·payload KMS 저장·SQS enqueue) | ✅ 완료 | #12369·#12411·#12414 · 골격(로컬 더블)·실연동 ④ 후 |
       | **P9 Dispatcher·분배** | 9-1~9-4(SQS 소비·대상해석·미해석 DLQ·복호 후 MQTT publish·graceful drain) | ✅ 완료 | #12420·#12471 · 9-5(실 IoT)=대기(아래)·실 KEDA=③-I |
       | **P10 fleet·중앙 config** | 10-1~10-4(heartbeat/fleet_state·CentralConfig·SW 인벤토리·admin fleet/clients 조회) | ✅ 완료 | #12363~12368 |
       | **P11 Admin CRUD** | 11-1~11-6(targets·policies·operators RBAC 생애주기·webhook-events break-glass·audit 전면·데이터분류 스캐폴드) | ✅ 완료 | #12441~12470 |
-      | ─ **이번주 완료 🔥 (8/6~8/13·Task 단위) + 진행 Phase(P7)** ─ | | | |
+      | ─ **이번주 완료 🔥 (8/6~8/13·Task 단위) + 진행 Phase(P7)** ─ |  |  |  |
       | **P2** 2-6 | GW JWKS 공개 엔드포인트(v1.0.11 승격)+③b device 토큰 claim 정합 | 🔥 이번주 | #12478 |
       | **v1.0.12** (A) | enroll CSR(PKCS#10)→IoT Core mTLS cert 발급(INACTIVE 게이팅)·승인 활성·revoke/kill/재-enroll 폐기(REVOKED+detach·app-side·`IotCertPort`) | 🔥 이번주 | #12557 · 개인키 GW 미수신·독립리뷰 Critical 수정 |
       | **v1.0.12** (B) | Admin API Entra-gated 공개 — CORS | 🔥 이번주 | #12497 |
@@ -184,24 +184,22 @@
       | **P7** 7-5 | presigned 중계 리전 guardrail wiring(TC-REG-42·§7.3.3·verbatim 중계=P6 기구현) | 🔥 이번주 | #12564 · 독립리뷰 Critical/High 다수 차단 |
       | **P7** 7-2 | egress allowlist SSOT+PDP egress 집행(fail-closed·§7.5.3) | 🔥 이번주 | #12564(7-5 와 공동 PR) · egress 집행 로직은 P4 T-REG-4-4(#12187)에 기구현 → 이번주 7-2 Task 로 확인·종결 |
       | **P7** 7-3 | AXS 커넥터 최초 실연동(verbatim·OAuth 주입·Org-ID) | 🔴 대기 | ④ AXS sandbox 실자격(Straumann·~8/18) |
-      | ─ **대기·무영향** ─ | | | |
+      | ─ **대기·무영향** ─ |  |  |  |
       | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | 🔴 대기 | ③-I/④ IoT Core(cert 발급 app-side=v1.0.12(A) 완료·DBML `iot_certificate_id`=스펙 세션) |
       | **v1.0.13/14** | 코드 **무영향** — 13=org_mapping 범용 번역표 판정(문서) · 14=authz 복제 DynamoDB Global Table+Streams(gw/1.2·v1.0 복제대상 0) | — | 스펙 핀만 상향(#12555·#12558) |
       | **P12 E2E·하드닝** | 12-1 AXS sandbox E2E · 12-2 compat E2E · 12-3 부하 · 12-4 HA/KEDA | ⬜ 대기 | 🔴 선결: 12-1=④ AXS · 12-2=①One Pager · 12-3=부하환경 · 12-4=③-I |
 
-  - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/13 재측정·post-v1.0.12/P7/시스템-E2E · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산). **정지트리 실측·merged floor 게이트 통과**(v1.0.12 A/B·7-1/2/4/5·시스템 E2E SYS-01/02/04/05 반영). *(v1.0.15 T-ENR-3-7·v1.0.16 T-ADM-11-7 반영 재측정은 각 머지 후 정지트리에서 수행 — 신규 로직 전부 unit+e2e 동반이라 floor 유지 예상.)*
+  - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/13 재측정·post-v1.0.12/P7/시스템-E2E · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산). **정지트리 실측·merged floor 게이트 통과**(v1.0.12 A/B·7-1/2/4/5·시스템 E2E SYS-01/02/04/05 반영). _(v1.0.15 T-ENR-3-7·v1.0.16 T-ADM-11-7 반영 재측정은 각 머지 후 정지트리에서 수행 — 신규 로직 전부 unit+e2e 동반이라 floor 유지 예상.)_
 
-    | 스코프 | Statements | Branches | Functions | Lines |
-    | --- | --- | --- | --- | --- |
-    | **① 전역 (merged)** | **96.50%** | **91.82%** | **93.46%** | **96.28%** |
-    | **② 보안 도메인 (merged)** | **98.49%** | **95.91%** | **100%** | **98.39%** |
-    | **③ 핵심 보안 파일 16개 (merged·개별)** | — | **각 100%** | — | — |
-    | _참고: 전역 (unit-only)_ | 77.73% | 83.02% | 72.15% | 78.73% |
-    | **CI 게이트 floor — ① 전역** | 92 | 87 | 88 | 92 |
-    | **CI 게이트 floor — ② 보안** | 95 | 89 | 95 | 95 |
-    | **CI 게이트 floor — ③ 핵심파일(개별·branch)** | — | **90** | — | — |
-
-  
+    | 스코프                                        | Statements | Branches    | Functions  | Lines      |
+    | --------------------------------------------- | ---------- | ----------- | ---------- | ---------- |
+    | **① 전역 (merged)**                           | **96.50%** | **91.82%**  | **93.46%** | **96.28%** |
+    | **② 보안 도메인 (merged)**                    | **98.49%** | **95.91%**  | **100%**   | **98.39%** |
+    | **③ 핵심 보안 파일 16개 (merged·개별)**       | —          | **각 100%** | —          | —          |
+    | _참고: 전역 (unit-only)_                      | 77.73%     | 83.02%      | 72.15%     | 78.73%     |
+    | **CI 게이트 floor — ① 전역**                  | 92         | 87          | 88         | 92         |
+    | **CI 게이트 floor — ② 보안**                  | 95         | 89          | 95         | 95         |
+    | **CI 게이트 floor — ③ 핵심파일(개별·branch)** | —          | **90**      | —          | —          |
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
