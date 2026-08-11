@@ -167,10 +167,11 @@
       | **P7** 7-2 | egress allowlist SSOT+PDP egress 집행(fail-closed·§7.5.3) | 🔥 이번주 | #12564(7-5 와 공동 PR) · egress 집행 로직은 P4 T-REG-4-4(#12187)에 기구현 → 이번주 7-2 Task 로 확인·종결 |
       | **P7** 7-3 | AXS 커넥터 최초 실연동(아웃바운드 커넥터 토큰·Organization-ID 주입·verbatim·fail-closed) | 🔥 이번주 | #12584(Phase1) · AXS PPR 샌드박스 자격 확보 → 아웃바운드 배선(토큰/Org-ID 주입·스푸핑 차단)·실 AXS 왕복 실측 · 업무 API happy=AXS org **consent 선결**(Straumann 수령 대기) |
       | **T-E2E-12-1** 실-AXS e2e | 실-AXS regression 스위트(skip-가드·`test:e2e:axs`)+아웃바운드 실측 3케이스 · **실 AXS 가 GW gzip content-encoding 버그 노출·수정**(모든 gzip 업스트림 영향) | 🔥 이번주 | #12600(Phase2) · 업무 happy=consent·인바운드 webhook=공개 ingress·CI 게이트=변수그룹 후속 |
+      | **T-E2E-12-2** compat 게이팅 e2e | semver 3단계 게이팅(TC-CFG-18~22·major 차단·minor 경고·patch 무시·헤더 누락·originator/Via worst)을 **실 HTTP 왕복**으로 재실행(실 미들웨어+실 가드+실 매트릭스·17 케이스) · **프로덕션 코드 무변경·순수 테스트** | 🔥 이번주 | #12606 · 가드=opt-in·실 EP 미배선이라 테스트 probe 에 실 가드 부착(프로덕션 `@CompatGate` 채택 시 이관) · 독립리뷰 High/Med 0 |
       | ─ **대기·무영향** ─ |  |  |  |
       | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | 🔴 대기 | ③-I/④ IoT Core(cert 발급 app-side=v1.0.12(A) 완료·DBML `iot_certificate_id`=스펙 세션) |
       | **v1.0.13/14** | 코드 **무영향** — 13=org_mapping 범용 번역표 판정(문서) · 14=authz 복제 DynamoDB Global Table+Streams(gw/1.2·v1.0 복제대상 0) | — | 스펙 핀만 상향(#12555·#12558) |
-      | **P12 E2E·하드닝** | 12-1 AXS sandbox E2E · 12-2 compat E2E · 12-3 부하 · 12-4 HA/KEDA | ⬜ 대기 | 🔴 선결: 12-1=④ AXS · 12-2=①One Pager · 12-3=부하환경 · 12-4=③-I |
+      | **P12 E2E·하드닝** | 12-1 AXS sandbox E2E(부분·#12600) · **12-2 compat E2E=완료(#12606·이번주)** · 12-3 부하 · 12-4 HA/KEDA | ◑ 진행 | 🔴 잔여 선결: 12-1 happy=④ AXS consent · 12-3=부하환경 · 12-4=③-I(Multi-AZ) |
 
   - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/13 재측정·post-v1.0.12/P7/시스템-E2E · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산). **정지트리 실측·merged floor 게이트 통과**(v1.0.12 A/B·7-1/2/4/5·시스템 E2E SYS-01/02/04/05 반영). _(v1.0.15 T-ENR-3-7·v1.0.16 T-ADM-11-7 반영 재측정은 각 머지 후 정지트리에서 수행 — 신규 로직 전부 unit+e2e 동반이라 floor 유지 예상.)_
 
