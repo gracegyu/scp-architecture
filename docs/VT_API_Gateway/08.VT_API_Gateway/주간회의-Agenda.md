@@ -3,14 +3,16 @@
 > **과거 주차(6/25~8/6)는 [`주간회의-Agenda-Archive.md`](주간회의-Agenda-Archive.md)로 이관·보존**(가끔 조회용). 본 문서는 **8/13 현행 주차만** 유지한다. 틀(논의/공유/이월)은 이전 주와 동일하며 **Gantt(S1)·스펙 작성 테이블(S2)은 매주 상시 포함**한다. _※ `(프레임)` 표시 항목은 8/13 회의 시 확정한다._
 
 - 이번 주 진행 _(프레임 · 8/13 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
-  - **(8/6~8/13 완료) 2단계 자율 구현 진척** — v1.0.12(enroll CSR→IoT Core mTLS cert·Admin API Entra-gated CORS)·P7 커넥터 골격(7-1/2/4/5)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15(enroll Reject·감사 사유)·v1.0.16(clinic.memo·admin clinics 목록/상세)·11-8(admin ClinicInfo 교정) → **Task 단위 상세·PR = 공유 S3**
-  - **(잔여) EzServer OnePager 수령 확인.**
+  - **[GW 백엔드]** (8/6~8/13 완료) **2단계 자율 구현 진척** — v1.0.12(enroll CSR→IoT Core mTLS cert·Admin API Entra-gated CORS)·P7 커넥터 골격(7-1/2/4/5)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15(enroll Reject·감사 사유)·v1.0.16(clinic.memo·admin clinics 목록/상세)·11-8(admin ClinicInfo 교정) → **Task 단위 상세·PR = 공유 S3**
+  - **[GW Console]** (8/11~8/12 완료) **Sub-SRS + IP baseline** — 전용 repo `vt-api-gateway-console`에 **SRS baseline v1.0**(#12602 머지·tag `spec-v1.0`·리뷰 민진우·정우혁 반영) + **Console IP v1.0 baseline**(8/12·PL=Raymond·ip-reviewer+사람 리뷰). 구현=별도 frontend 세션 대기 → 상세 = 공유 **S4**.
+  - **[제품 연동 스펙]** (잔여) EzServer OnePager 수령 확인.
   - _(이번 주 결정사항 = 회의 시 추가)_
 
 - 논의 사항 (이번 주 · 신규 논의/결정 안건)
   - _(이번 주 결정사항 = 스펙 세션 정리 후 반영 · 회의 중 신규 안건 발생 시 여기 추가 · 보류·선결은 아래 「이월 논의 사항」 표 참조.)_
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
+  - **트랙 구분(혼동 방지)** — **GW 백엔드(③)** = S1 Gantt · S2 스펙 테이블 · **S3 구현 현황**(부모 SRS `spec-v1.0.18`·NestJS 코어·구현 Task) / **GW Console(③-C)** = **S4 현황**(전용 repo `vt-api-gateway-console`·frontend·Console SRS+IP baseline·별도 세션). 두 트랙은 **repo·스택·세션이 다르다.** _이번주 진행 항목은 **[GW 백엔드]/[GW Console]/[제품 연동 스펙]** prefix로 트랙을 표시한다._
   - **S1. 프로젝트 일정(Gantt) — 8/13 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **정본 = 본 Agenda(S1 Gantt).** _개발 Roadmap 결정.md는 폐기(더 이상 사용 안 함) — 이 스냅샷이 현행 정본이며 여기서 직접 갱신한다._
     - **8/6→8/13 변경**:
@@ -67,10 +69,11 @@
         프로파일 확정                  :milestone, axsbl, after axsw, 0d
         AXS prod 자격(NDA 후·Straumann·선결) :crit, credp, 2026-08-18, 21d
 
-        section ③-C GW Console — gw/1.0 대응 v1.0 (Flow 최소기능·MS Entra 앱계층 인증 · SRS 8/5·전규현/Raymond)
-        SRS 작성 (8/5 착수)            :active, consrsw, 2026-08-05, 6d
-        SRS PR 리뷰·수정 (차주초)       :consrspr, 2026-08-11, 14d
-        v1.0 최소 구현 (Flow 동작 최소) :conv1, after consrspr, 28d
+        section ③-C GW Console — gw/1.0 대응 v1.0 (frontend·별도 repo·전규현/Raymond)
+        SRS 작성 (8/5)                :done, consrsw, 2026-08-05, 6d
+        SRS baseline (#12602·8/11)     :milestone, done, consrspr, 2026-08-11, 0d
+        Console IP v0.1 (8/11)         :done, conip, 2026-08-11, 1d
+        v1.0 구현 (별도 frontend 세션·mock-first) :conv1, after conip, 28d
         v1.0 최소기능 완료             :milestone, conv1m, after conv1, 0d
         section ③-C GW Console 후속 (gw/1.1·gw/1.2·GW-무관 부가 — 일정 미고정·상당 후행)
         후속 확장 (해당 GW 역량 활성 후·부가는 요청 시 그때그때) :conv2, after conv1m, 30d
@@ -92,8 +95,8 @@
       | **CleverOne**(OnePager 지금·연동 구현 post-v1.0) | — | 🟡 Vatech-\* 헤더·well-known·fallback | 🟡 presigned 업로드 이용 | 🟡 Direct→GW 경유 | ⬜ Region 선택 UI(대안)·ClinicID | — | — | **🟢 ③-P-CO CleverOne OnePager 인계(SharePoint gw_adaptation)** — CleverOne 팀(Nick) 검토 · 담당=Nick·작성=Raymond |
       | **EzServer(EZ)** | ⬜ IO Scanner 데이터 수신(방식 R1·**보류**·TBD) | 🟡 헤더 대리 전달 | 🟡 전송 로직(presigned 직접) | 🟡 GW 경유 전환 | 🟡 ClinicID·Region·클리닉 등록(잠정) | 🟡 AXS(갈래A)·presigned 직접(IO Scanner 세부=TBD) | ⬜ Rust 재개발 | **🟡 ③-P-EZ One Pager 초안 작성됨**(Raymond→EzServer 팀) — `specs/03p-ez-ezserver/EzServer-GW적응-OnePager.md` · ④(갈래A) |
       | **CleverLab** | — | — | — | — | — | ⬜ AXS 오더·상태·확정(갈래B)·presigned | — | ④ Sub-SRS(갈래B) |
-      | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 리전 라벨 호스트·Region Directory·HA(K8s)·Route53·RDS(리전 단일) | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS ✅ baseline(spec-v1.0.4)** · region-silo `spec-v1.0.5` PR 리뷰중 · ④ connector ⬜(보류) |
-      | **GW Console** | — | — | — | — | 🟡 Admin Web Console gw/1.0 대응 최소(MS Entra 앱계층 인증·Admin API Entra-gated) | ⬜ 온보딩·Org-ID 관리 등 **후속**(gw/1.1·1.2·부가·미정) | — | ⬜ ③-C Sub-SRS gw/1.0 대응 baseline **9월 착수 예정**(R5 당김 결정·전규현/Raymond) |
+      | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 리전 라벨 호스트·Region Directory·HA(K8s)·Route53·RDS(리전 단일) | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS ✅ baseline v1.0 · 현행 동결 `spec-v1.0.18`**(정합화 누적) · ④ connector ⬜(보류) |
+      | **GW Console**(③-C·frontend) | — | — | — | — | 🟢 Admin Web Console gw/1.0 대응(MS Entra 앱계층·Admin API Entra-gated) | ⬜ 온보딩·Org-ID 관리 등 **후속**(gw/1.1·1.2·부가·미정) | — | **✅ ③-C Sub-SRS baseline(`spec-v1.0`·#12602 머지 8/11)** · Console IP v0.1 작성 · 구현=별도 frontend 세션 → **S4** |
       | **인프라** | — | — | — | 🟢 dev·qa·stag(단일 Region)·prod(Region별) | 🟢 Route53·K8s·비-AWS minio | 🟢 AXS 고정IP·샌드박스 | — | **🟢 ③-I IaC 구축 계획서 — PR #11973 병합(7/27)·Jack 상세 반영**(Raymond diagram+SRS추출→Jack) — 정본 `vt-api-gateway-infra` · **baseline tag 불요**(living doc) · **AWS 4계층** · **+ 8/4 KMS 키 토폴로지 provisioning ask**(spec-v1.0.7·handoff-infra 항목5 — 리전별 CMK `gw-payload`/`gw-target-cred`·pod별 grant·dev payload CMK 선생성) |
       | **외부(Straumann AXS)** | — | — | — | — | — | 🟡 **PPR sandbox 자격=확보(8/11)** · ⬜ prod(정식계약)=NDA 후(선결) | — | ④ 입력(외부 제공) |
       | **LMP(License Portal, 바텍)** | — | — | — | — | — | — | ⬜ (조건부) 제3자 서명 attestation | **enroll B안 시만**·ES 라이선스팀(R9·B-42) |
@@ -102,8 +105,8 @@
 
       | 단위 | 스펙 문서 | Repo (Azure DevOps) | 경로 | baseline tag |
       | --- | --- | --- | --- | --- |
-      | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway` | `docs/specs/SRS.md` · `docs/specs/design/`(openapi·dbml) · `docs/specs/UnitTCL.md` | **`spec-v1.0.4`**(최신 baseline) · region-silo `spec-v1.0.5`(PR 리뷰중) |
-      | **③-C GW Console** | Sub-SRS | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console` (별도 repo·GW 소유→이관) | **작성 중(초안·경로=R3 확정 대기)** | **작성 중(8/5 착수)·차주초 PR 예정** |
+      | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway` | `docs/specs/SRS.md` · `docs/specs/design/`(openapi·dbml) · `docs/specs/UnitTCL.md` | **`spec-v1.0.18`**(현행 동결 · baseline v1.0 후 정합화 누적) |
+      | **③-C GW Console** | Sub-SRS(+Console IP) | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console` (전용 repo) | `docs/specs/SRS.md` | **✅ `spec-v1.0`**(baseline·#12602 머지 8/11) |
       | **④ AXS** | **경량 연동 프로파일**(스펙·구현 아님) | 〃 vt-api-gateway (GW 소유) | `docs/specs/04-subsrs-straumann-axs/` | **연동 config·AXS OpenAPI 참조·org_mapping 의미**(경량)·**PPR sandbox 자격 확보·착수 가능**(prod=NDA후·구현=2단계 P7) |
       | **③-I 인프라** | IaC 구축계획서 | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-infra` | `docs/IaC-구축계획서.md` | **PR #11973 병합(7/27)** · baseline tag 불요(living doc) |
       | **③-P-EZ EzServer** | GW적응 OnePager | `https://dev.azure.com/ewoosoft/ezserver/_git/ezserver_suite` (branch `v6.5.x`) | `doc/onepager/gw_adaptation/Confidential_gw_adaptation_onepager.md` | 미부여(EzServer 팀 baseline 예정·R3 확인) |
@@ -123,7 +126,7 @@
       > - CleverOne OnePager는 지금 작성(연동 *구현*만 post-v1.0).
       > - 순서·의존 = 본 Agenda S1 Gantt(Roadmap 결정.md 폐기).
 
-  - **S3. GW 구현 현황 — Phase·Task 스냅샷 (8/13·매주 갱신)**
+  - **S3. GW 백엔드(③) 구현 현황 — Phase·Task 스냅샷 (8/13·매주 갱신)** _(NestJS 코어·부모 SRS — Console은 S4)_
     - **어디까지 왔나 (8/13)**
       - 완료
         - 1단계 코어 — P0~P6·P10
@@ -167,7 +170,8 @@
       | **P7** 7-2 | egress allowlist SSOT+PDP egress 집행(fail-closed·§7.5.3) | 🔥 이번주 | #12564(7-5 와 공동 PR) · egress 집행 로직은 P4 T-REG-4-4(#12187)에 기구현 → 이번주 7-2 Task 로 확인·종결 |
       | **P7** 7-3 | AXS 커넥터 최초 실연동(아웃바운드 커넥터 토큰·Organization-ID 주입·verbatim·fail-closed) | 🔥 이번주 | #12584(Phase1) · AXS PPR 샌드박스 자격 확보 → 아웃바운드 배선(토큰/Org-ID 주입·스푸핑 차단)·실 AXS 왕복 실측 · 업무 API happy=AXS org **consent 선결**(Straumann 수령 대기) |
       | **T-E2E-12-1** 실-AXS e2e | 실-AXS regression 스위트(skip-가드·`test:e2e:axs`)+아웃바운드 실측 3케이스 · **실 AXS 가 GW gzip content-encoding 버그 노출·수정**(모든 gzip 업스트림 영향) | 🔥 이번주 | #12600(Phase2) · 업무 happy=consent·인바운드 webhook=공개 ingress·CI 게이트=변수그룹 후속 |
-      | **T-E2E-12-2** compat 게이팅 e2e | semver 3단계 게이팅(TC-CFG-18~22·major 차단·minor 경고·patch 무시·헤더 누락·originator/Via worst)을 **실 HTTP 왕복**으로 재실행(실 미들웨어+실 가드+실 매트릭스·17 케이스) · **프로덕션 코드 무변경·순수 테스트** | 🔥 이번주 | #12606 · 가드=opt-in·실 EP 미배선이라 테스트 probe 에 실 가드 부착(프로덕션 `@CompatGate` 채택 시 이관) · 독립리뷰 High/Med 0 |
+      | **T-E2E-12-2** compat 게이팅 e2e | semver 3단계 게이팅(TC-CFG-18~22·major 차단·minor 경고·patch 무시·헤더 누락·originator/Via worst)을 **실 HTTP 왕복**으로 재실행(실 미들웨어+실 가드·**프로덕션 코드 무변경·순수 테스트**) | 🔥 이번주 | #12606 초판(17)→ **v1.0.18에서 고정 fixture로 운영 분리·33 케이스 확장(#12612)** · 가드=opt-in·실 EP 미배선이라 테스트 probe 에 실 가드 부착 · 독립리뷰 High/Med 0 |
+      | **v1.0.18** T-CFG-5-4 compat-matrix 발행 | 호환성 매트릭스 **YAML(SSOT)→JSON 렌더러·발행 파이프라인·검증**(정합화·계약/DB 무변경) — 발행 게이트(스키마·표준 errorCode/제품 allowlist·id 유일·≤8KB) · 생성 JSON 미커밋(gitignore·SSOT=yaml) · **행동 e2e는 고정 fixture로 운영과 분리**·yaml→json→서빙 파이프라인 e2e 신설 | 🔥 이번주 | #12612 + #12613(파이프라인 분리) · **compat-matrix.yml=validate 전용**(GW 단독·**등록됨·Azure 실행 succeeded**·PR 게이트) / **compat-matrix-publish.yml=publish**(③-I grant 선결이라 repo 저작만·**등록은 ③-I 나중에**·Azure는 커넥션을 파싱시점 검사라 분리 불가피) · 독립리뷰 2회(High/Med 0·48/48 실행검증) · 실 min 값=One Pager 후 |
       | ─ **대기·무영향** ─ |  |  |  |
       | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | 🔴 대기 | ③-I/④ IoT Core(cert 발급 app-side=v1.0.12(A) 완료·DBML `iot_certificate_id`=스펙 세션) |
       | **v1.0.13/14** | 코드 **무영향** — 13=org_mapping 범용 번역표 판정(문서) · 14=authz 복제 DynamoDB Global Table+Streams(gw/1.2·v1.0 복제대상 0) | — | 스펙 핀만 상향(#12555·#12558) |
@@ -184,6 +188,40 @@
     | **CI 게이트 floor — ① 전역**                  | 92         | 87          | 88         | 92         |
     | **CI 게이트 floor — ② 보안**                  | 95         | 89          | 95         | 95         |
     | **CI 게이트 floor — ③ 핵심파일(개별·branch)** | —          | **90**      | —          | —          |
+
+  - **S4. GW Console(③-C) 현황 — frontend · 전용 repo (8/13)** _(GW 백엔드=S3와 분리 — repo·스택·세션 다름)_
+    - **repo·스택**: `vt-api-gateway-console`(전용) · Next.js + Refine(headless) + shadcn/ui + TanStack Query · 부모 GW Admin API를 **코드젠으로 소비**(자체 백엔드 없음).
+    - **SRS**: ✅ **baseline v1.0**(#12602 머지 8/11 · tag `spec-v1.0`). gw/1.0 대응 완전 규격 + gw/1.1·gw/1.2·후속은 방향. 리뷰(민진우·정우혁) 반영·스레드 resolve.
+    - **IP**: ✅ **baseline v1.0**(8/12 · PL=Raymond · ip-reviewer 점검 + 사람 리뷰 · `abc-dev-assistant/projects/vt-api-gateway-console/`·P0~P8·51 Task). 범위 = **gw/1.0 baseline(필수+주요)**. 부모 계약 핀 = `spec-v1.0.18`.
+    - **다음**: 별도 **frontend 세션** 오픈 → P0(스캐폴드·codegen·MSW·mock-first)부터. **Entra/실 GW 없이 mock으로 대부분 진행 가능**(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
+    - **GW(백엔드)와의 경계**: Console = Admin API(§7.9) 소비 + well-known/Region Directory 읽기만. **구현 경계** — enroll cert 발급·operator authz 복제·compat-matrix 발행은 **GW/③-I 소관(Console 아님)**. Console→부모 계약 반영은 부모 spec PR로(예: 표시필드 PATCH 봉인=`spec-v1.0.17`).
+    - **상태 범례**: ✅ 완료 · 🟠 진행중 · ⬜ 착수 대기(frontend 세션 전) · 🔴 외부/인프라 선결
+    - **Phase 현황 (8/13)** — 스펙·IP = 완료, 구현 = 별도 frontend 세션 착수 대기(mock-first). _(S3 GW 백엔드와 동일 형식 · 구현 시작 시 Task 단위로 전개)_
+
+      | Phase / 항목 | 범위 | 상태 | 비고 |
+      | --- | --- | --- | --- |
+      | ─ **선행 (스펙·계획)** ─ |  |  |  |
+      | **Console SRS** | gw/1.0 대응 완전 규격 + gw/1.1·1.2·후속 방향 | ✅ baseline v1.0 | #12602 머지 8/11 · tag `spec-v1.0` · 리뷰(민진우·정우혁) 반영 |
+      | **Console IP** | P0~P8 · 51 Task · gw/1.0 범위 | ✅ baseline v1.0 | 8/12 · PL=Raymond · ip-reviewer+사람 리뷰 · 부모 핀 `spec-v1.0.18` |
+      | ─ **구현 (별도 frontend 세션 · 착수 대기)** ─ |  |  |  |
+      | **P0** 스캐폴드·툴체인 | Next.js+Refine+shadcn+TanStack · OpenAPI codegen · MSW · authProvider(mock\|entra) · App Shell · CI · 리뷰용 정적배포 | ⬜ 대기 | 착수 진입점 · mock-first |
+      | **P1** 인증·RBAC·홈 | 로그인 · `/me` 부트스트랩 분기 · 리전 스위처 · 역할별 홈 · 권한 요청/승인 · 운영자 관리 | ⬜ 대기 | risk:auth(1-5 매트릭스·1-9 last-admin 가드) |
+      | **P2** enrollment·디바이스 | 디바이스 목록/상세 · enrollment 승인/거부 · 수명주기(suspend/resume/kill) | ⬜ 대기 | ★서비스 개통 게이트 |
+      | **P3** 클리닉 | 목록/상세 · LMP 읽기전용 · 식별 memo 편집 · Device↔Clinic 드릴스루 | ⬜ 대기 | 표시필드 PATCH=봉인(미노출·`spec-v1.0.17`) |
+      | **P4** 연동 대상·정책·org-mapping | target 등록(3섹션 폼) · 정책 편집 · org-mapping 관리 | ⬜ 대기 | credential 마스킹 |
+      | **P5** webhook·break-glass | 이벤트 메타 조회 · payload break-glass 열람(PHI) | ⬜ 대기 | risk:security(5-3 PHI 마스킹) |
+      | **P6** fleet·config·매트릭스·감사 | fleet 대시보드 · SW 인벤토리 · 중앙 config · **매트릭스 뷰어(읽기전용)** · 감사 로그 | ⬜ 대기 | 매트릭스 발행은 GW 소관(Console=뷰어) |
+      | **P7** 공통 UX·i18n·동시성·보안 | 세션 만료 · 403 · 오류 재시도 · stale-write 전체 적용 · i18n · 보안 리뷰 · 접근성 | ⬜ 대기 | risk:security(7-6 저장 점검) |
+      | **P8** 실 e2e·시각회귀·배포 | Entra dev 전환 · staging GW e2e · 시각 baseline 승인 · prod 배포 | ⬜ 대기 | 🔴 선결 C-2(Entra)·C-10(도메인)·C-3(CORS)=③-I/IT |
+
+  - **S4-1. 커버리지 계획 (frontend · 착수 후 실측 · S3-1 대응)** — Console도 커버리지 측정·CI floor 게이트를 둔다(SRS §3.5·§3.6.2). **BE와 방식 차이**: BE의 merged(unit+e2e 합산·보안파일 개별 100%) 대신, Console은 **Vitest(v8) 기준 unit+component 커버리지**를 정본으로 하고 e2e는 여정 커버리지로 별도 관리. **실측 값은 `T-FE-0-8`(테스트 하네스) 이후·각 Task 완료 시** 아래 표에 채운다(현재 미착수라 값 없음).
+    - **측정 대상·비대상**: 라인% = Vitest(unit+component) · **e2e(Playwright)** = 핵심 여정 커버리지 체크리스트(로그인·enroll 승인·break-glass·RBAC 403·리전 컨텍스트) · **시각회귀·접근성(axe)** = %가 아닌 pass/fail 게이트.
+
+      | 스코프 | Statements | Branches | Functions | Lines | 비고 |
+      | --- | --- | --- | --- | --- | --- |
+      | **① 전역 (unit+component)** | 측정 예정 | 측정 예정 | 측정 예정 | 측정 예정 | Vitest(v8) · 착수 후 실측 |
+      | **② 민감 로직** (권한 게이팅·PHI 마스킹·stale-write·dataProvider) | 측정 예정 | 측정 예정 | 측정 예정 | 측정 예정 | BE '보안 도메인' 대응 서브스코프 |
+      | **CI 게이트 floor** | TBD(LLD) | TBD(LLD) | TBD(LLD) | TBD(LLD) | 임계값=LLD 확정(§3.5·§3.6.2) |
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
