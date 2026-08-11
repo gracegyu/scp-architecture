@@ -37,7 +37,7 @@
 
 ## 3. 앱↔Entra 계약 (변경 시 SRS 영향)
 - 역할 클레임 이름·형식이 바뀌면 **GW authz 매핑·Console 역할 게이팅**(부모 §7.9.2·Console §7.2)에 영향 → 변경 관리.
-- 리다이렉트 URI는 도메인(§R4 `<도메인>`) 확정에 종속.
+- 리다이렉트 URI는 도메인(`<도메인>`·Console SRS Appendix C-10) 확정에 종속.
 
 ## 4. 미결 (IT/③-I 확정)
 - C-2(Console SRS Appendix B): 테넌트·앱 등록·claim/역할 구체값.
