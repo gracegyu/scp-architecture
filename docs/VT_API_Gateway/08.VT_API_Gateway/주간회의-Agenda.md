@@ -164,7 +164,8 @@
       | **P7** 7-4 | 클리닉 self org-binding 자가 등록(`POST /v1/clinics/me/org-bindings`→org_mapping·§2.3.4) | 🔥 이번주 | #12562 |
       | **P7** 7-5 | presigned 중계 리전 guardrail wiring(TC-REG-42·§7.3.3·verbatim 중계=P6 기구현) | 🔥 이번주 | #12564 · 독립리뷰 Critical/High 다수 차단 |
       | **P7** 7-2 | egress allowlist SSOT+PDP egress 집행(fail-closed·§7.5.3) | 🔥 이번주 | #12564(7-5 와 공동 PR) · egress 집행 로직은 P4 T-REG-4-4(#12187)에 기구현 → 이번주 7-2 Task 로 확인·종결 |
-      | **P7** 7-3 | AXS 커넥터 최초 실연동(verbatim·OAuth 주입·Org-ID) | 🔴 대기 | ④ AXS sandbox 실자격(Straumann·~8/18) |
+      | **P7** 7-3 | AXS 커넥터 최초 실연동(아웃바운드 커넥터 토큰·Organization-ID 주입·verbatim·fail-closed) | 🔥 이번주 | #12584(Phase1) · AXS PPR 샌드박스 자격 확보 → 아웃바운드 배선(토큰/Org-ID 주입·스푸핑 차단)·실 AXS 왕복 실측 · 업무 API happy=AXS org **consent 선결**(Straumann 수령 대기) |
+      | **T-E2E-12-1** 실-AXS e2e | 실-AXS regression 스위트(skip-가드·`test:e2e:axs`)+아웃바운드 실측 3케이스 · **실 AXS 가 GW gzip content-encoding 버그 노출·수정**(모든 gzip 업스트림 영향) | 🔥 이번주 | #12600(Phase2) · 업무 happy=consent·인바운드 webhook=공개 ingress·CI 게이트=변수그룹 후속 |
       | ─ **대기·무영향** ─ |  |  |  |
       | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | 🔴 대기 | ③-I/④ IoT Core(cert 발급 app-side=v1.0.12(A) 완료·DBML `iot_certificate_id`=스펙 세션) |
       | **v1.0.13/14** | 코드 **무영향** — 13=org_mapping 범용 번역표 판정(문서) · 14=authz 복제 DynamoDB Global Table+Streams(gw/1.2·v1.0 복제대상 0) | — | 스펙 핀만 상향(#12555·#12558) |
