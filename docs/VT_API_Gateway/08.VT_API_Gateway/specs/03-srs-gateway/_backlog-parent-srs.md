@@ -39,6 +39,7 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 - **방침(사용자·2026-08-10).** 자잘한 주석·문안 정합은 건건 PR로 올리지 말고 **여기 모아 두었다가 한꺼번에 1개 spec PR**로 처리한다(PR 노이즈·리뷰 부담 감소). 계약/스키마 무변경·저위험만 해당(실질 변경은 별도).
 - **항목:**
   - **(1) `org_mapping` 카디널리티 명시** — DBML `org_mapping` 주석에 한 줄: **희소(sparse)·clinic × target 전조합 아님·실제 연동한 (clinic,target) 쌍당 1행(연결 시 생성)·미연동 클리닉=0행·클리닉당=연동 target 수(0..N)·enrollment과 직교·org_id→clinic은 N:1 허용.** 현재 "연결 시 자가 등록"만 있어 카디널리티가 암묵(리뷰어 반복 질문 유발). 대상=DBML `org_mapping` 주석. 출처=2026-08-10 사용자 질의.
+  - **(2) OnePager 철자·폐지된 ① 참조 정합** — ① **`One Pager`(두 단어)→`OnePager`**(한 단어) · ② **`① (API) 호환성 One Pager`(폐지·제품 OnePager에 흡수)→`제품 OnePager(CleverSpace·CleverOne·EzServer) baseline`** 또는 `호환성 매트릭스 확정값`. 대상=SRS §7.7·§7.7.5·Appendix B #8 · compat-matrix `README`·`handoff/compat-matrix-infra.md`·`config/compat-matrix/compat-matrix.yaml`·`design/compat-matrix/compat-matrix.sample.yaml`. *(미커밋 IP·구현세션 알림·B-12는 이미 정정 완료.)* 출처=2026-08-11 사용자 교정([[onepager-terminology]]).
 - **트리거.** 항목이 몇 개 쌓이거나 다른 저위험 문안 PR을 올릴 때 함께. 대상 repo=vt-api-gateway(DBML·SRS).
 
 ### B-11. [gw/1.2] 멀티리전 확대 시 스펙 상세화 — roll-up 색인 (중복 기재 금지)
