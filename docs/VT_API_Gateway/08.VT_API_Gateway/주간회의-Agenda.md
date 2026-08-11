@@ -3,7 +3,7 @@
 > **과거 주차(6/25~8/6)는 [`주간회의-Agenda-Archive.md`](주간회의-Agenda-Archive.md)로 이관·보존**(가끔 조회용). 본 문서는 **8/13 현행 주차만** 유지한다. 틀(논의/공유/이월)은 이전 주와 동일하며 **Gantt(S1)·스펙 작성 테이블(S2)은 매주 상시 포함**한다. _※ `(프레임)` 표시 항목은 8/13 회의 시 확정한다._
 
 - 이번 주 진행 _(프레임 · 8/13 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
-  - **[GW 백엔드]** (8/6~8/13 완료) **2단계 자율 구현 진척** — v1.0.12(enroll CSR→IoT Core mTLS cert·Admin API Entra-gated CORS)·P7 커넥터 골격(7-1/2/4/5)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15(enroll Reject·감사 사유)·v1.0.16(clinic.memo·admin clinics 목록/상세)·11-8(admin ClinicInfo 교정) → **Task 단위 상세·PR = 공유 S3**
+  - **[GW 백엔드]** (8/6~8/13 완료) **2단계 자율 구현 진척** — v1.0.12(enroll CSR→IoT Core mTLS cert·Admin API Entra-gated CORS)·P7 커넥터(7-1/2/4/5 골격 + **7-3 AXS 최초 실연동**)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15(enroll Reject·감사 사유)·v1.0.16(clinic.memo·admin clinics 목록/상세)·11-8(admin ClinicInfo 교정)+**v1.0.17 11-8b(표시필드 PATCH v1.0 봉인)**·**T-E2E-12-1(실-AXS e2e 스캐폴드)·12-2(compat 게이팅 e2e)**·**v1.0.18 T-CFG-5-4(compat-matrix YAML→JSON 발행 파이프라인)** → **Task 단위 상세·PR = 공유 S3**
   - **[GW Console]** (8/11~8/12 완료) **Sub-SRS + IP baseline** — 전용 repo `vt-api-gateway-console`에 **SRS baseline v1.0**(#12602 머지·tag `spec-v1.0`·리뷰 민진우·정우혁 반영) + **Console IP v1.0 baseline**(8/12·PL=Raymond·ip-reviewer+사람 리뷰). 구현=별도 frontend 세션 대기 → 상세 = 공유 **S4**.
   - **[제품 연동 스펙]** (잔여) EzServer OnePager 수령 확인.
   - _(이번 주 결정사항 = 회의 시 추가)_
@@ -16,7 +16,7 @@
   - **S1. 프로젝트 일정(Gantt) — 8/13 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **정본 = 본 Agenda(S1 Gantt).** _개발 Roadmap 결정.md는 폐기(더 이상 사용 안 함) — 이 스냅샷이 현행 정본이며 여기서 직접 갱신한다._
     - **8/6→8/13 변경**:
-      - 2단계 자율 구현 진척: v1.0.12(enroll CSR→IoT mTLS·Admin CORS)·P7 골격(7-1/2/4/5)·시스템 E2E·프록시 복원력 하드닝·v1.0.15·v1.0.16·11-8 — 상세=S3
+      - 2단계 자율 구현 진척: v1.0.12(enroll CSR→IoT mTLS·Admin CORS)·P7(7-1/2/4/5 골격+7-3 AXS 실연동)·시스템 E2E·프록시 복원력 하드닝·v1.0.15·v1.0.16·11-8·v1.0.17(11-8b 봉인)·T-E2E-12-1/12-2·v1.0.18(T-CFG-5-4 compat-matrix 발행) — 상세=S3
     - **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 빨강=외부/미정 선결
     - **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
@@ -173,6 +173,7 @@
       | **T-E2E-12-2** compat 게이팅 e2e | semver 3단계 게이팅(TC-CFG-18~22·major 차단·minor 경고·patch 무시·헤더 누락·originator/Via worst)을 **실 HTTP 왕복**으로 재실행(실 미들웨어+실 가드·**프로덕션 코드 무변경·순수 테스트**) | 🔥 이번주 | #12606 초판(17)→ **v1.0.18에서 고정 fixture로 운영 분리·33 케이스 확장(#12612)** · 가드=opt-in·실 EP 미배선이라 테스트 probe 에 실 가드 부착 · 독립리뷰 High/Med 0 |
       | **v1.0.18** T-CFG-5-4 compat-matrix 발행 | 호환성 매트릭스 **YAML(SSOT)→JSON 렌더러·발행 파이프라인·검증**(정합화·계약/DB 무변경) — 발행 게이트(스키마·표준 errorCode/제품 allowlist·id 유일·≤8KB) · 생성 JSON 미커밋(gitignore·SSOT=yaml) · **행동 e2e는 고정 fixture로 운영과 분리**·yaml→json→서빙 파이프라인 e2e 신설 | 🔥 이번주 | #12612 + #12613(파이프라인 분리) · **compat-matrix.yml=validate 전용**(GW 단독·**등록됨·Azure 실행 succeeded**·PR 게이트) / **compat-matrix-publish.yml=publish**(③-I grant 선결이라 repo 저작만·**등록은 ③-I 나중에**·Azure는 커넥션을 파싱시점 검사라 분리 불가피) · 독립리뷰 2회(High/Med 0·48/48 실행검증) · 실 min 값=One Pager 후 |
       | ─ **대기·무영향** ─ |  |  |  |
+      | **P0** 0-5 | CI 파이프라인·Dockerfile(4타겟·스캔·lint·build·unit·e2e 게이트)=완료 · **자동배포(CD) 잔여** — ECR/ArgoCD·main→DEV·tag prefix→TEST/PROD(deploy stage `condition:false` 자리표시자·T-PLAT-0-5 `[~]부분완료`) | 🔴 부분 | ③-I(Jack Azure Flow 템플릿 수령 후) · Dockerfile es-base 전환(0-5b)=완료(#12163) |
       | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | 🔴 대기 | ③-I/④ IoT Core(cert 발급 app-side=v1.0.12(A) 완료·DBML `iot_certificate_id`=스펙 세션) |
       | **v1.0.13/14** | 코드 **무영향** — 13=org_mapping 범용 번역표 판정(문서) · 14=authz 복제 DynamoDB Global Table+Streams(gw/1.2·v1.0 복제대상 0) | — | 스펙 핀만 상향(#12555·#12558) |
       | **P12 E2E·하드닝** | 12-1 AXS sandbox E2E(부분·#12600) · **12-2 compat E2E=완료(#12606·이번주)** · 12-3 부하 · 12-4 HA/KEDA | ◑ 진행 | 🔴 잔여 선결: 12-1 happy=④ AXS consent · 12-3=부하환경 · 12-4=③-I(Multi-AZ) |
