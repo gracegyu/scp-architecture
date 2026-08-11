@@ -3,28 +3,18 @@
 > **과거 주차(6/25~8/6)는 [`주간회의-Agenda-Archive.md`](주간회의-Agenda-Archive.md)로 이관·보존**(가끔 조회용). 본 문서는 **8/13 현행 주차만** 유지한다. 틀(논의/공유/이월)은 이전 주와 동일하며 **Gantt(S1)·스펙 작성 테이블(S2)은 매주 상시 포함**한다. _※ `(프레임)` 표시 항목은 8/13 회의 시 확정한다._
 
 - 이번 주 진행 _(프레임 · 8/13 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
-  - **(8/6~8/13 완료) GW 자율 구현 범위 완결** — **P11 Admin CRUD 전 Task 완료**(11-1~11-6 머지: targets·policies·config/org-mappings·operators RBAC 생애주기·webhook-events break-glass·audit 전면·데이터분류 스캐폴드) + **P9-4 app-side graceful drain**(무유실·offline-hang 강제종료) → ④/인프라 무관 자율 가능 범위 소진 · 구현현황 = S3
-  - **(8/13 완료) T-AUTH-2-6 — GW JWKS 공개 엔드포인트(v1.0.11 승격) + ③b device 토큰 계약 정합** — `GET /.well-known/jwks.json`(무인증·개인키 미노출·CleverSpace GW Guard=외부 검증자) + 토큰 `iss`https형식/TTL≤15분/`aud`=GW수준. 머지 #12478(외부 검증 시뮬 실 jwt.verify·전체 e2e 430 회귀0) → S3 ②-f
-  - **(v1.0.11 반영) 스펙 정합화** — prod 리전 **시드니 `apse2`** 교정(멜버른 apse4=IoT Core 미지원)·JWKS v1.0 승격·Console 전역 단일 확정 → 코드 영향은 T-AUTH-2-6뿐(리전=배포 config·grep 반전 확인·재작업 0)
-  - **(잔여) EzServer OnePager 수령 확인**. _(IO Scanner=AXS webhook 흡수·GW 무관·이월-R1 종료.)_
+  - **(8/6~8/13 완료) 2단계 자율 구현 진척** — v1.0.12(enroll CSR→IoT Core mTLS cert·Admin API Entra-gated CORS)·P7 커넥터 골격(7-1/2/4/5)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15(enroll Reject·감사 사유)·v1.0.16(clinic.memo·admin clinics 목록/상세)·11-8(admin ClinicInfo 교정) → **Task 단위 상세·PR = 공유 S3**
+  - **(잔여) EzServer OnePager 수령 확인.**
   - _(이번 주 결정사항 = 회의 시 추가)_
 
 - 논의 사항 (이번 주 · 신규 논의/결정 안건)
-  - _R1(GW Console 멀티리전 운영자 authz)은 이번 주 결정 완료 → 스펙 세션이 §7.9.2·DBML(`operator_role`)·③-C Console SRS로 정리·반영. 아젠다 상시 논의에서 종료._
   - _(이번 주 결정사항 = 스펙 세션 정리 후 반영 · 회의 중 신규 안건 발생 시 여기 추가 · 보류·선결은 아래 「이월 논의 사항」 표 참조.)_
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
   - **S1. 프로젝트 일정(Gantt) — 8/13 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **정본 = 본 Agenda(S1 Gantt).** _개발 Roadmap 결정.md는 폐기(더 이상 사용 안 함) — 이 스냅샷이 현행 정본이며 여기서 직접 갱신한다._
     - **8/6→8/13 변경**:
-      - **GW 자율 구현 범위 완결**: P8·P9 골격(app-side) + **P11 Admin CRUD 전부(11-1~11-6 머지)** + **P9-4 app-side drain**(무유실)
-      - **v1.0.11 정합화**: JWKS 엔드포인트 v1.0 승격 → **T-AUTH-2-6 완료(#12478)** · prod 리전 시드니 `apse2` 교정(멜버른=IoT Core 미지원) · Console 전역 확정
-    - **직전 7/30→8/6 변경 유지**:
-      - region-silo(R2) 구현 재작업 완료(PR #12241·8/3·단일 datasource) · P6 프록시 완결 · R2-1 확정(서울=dev·호주 먼저 오픈)
-    - **직전 7/23→7/30 변경 유지**:
-      - 0단계 IO Scanner·④ AXS = 보류(Straumann 협상)
-      - ③-P-CS CleverSpace·③-P-CO CleverOne OnePager 2개 = Raymond·7/27 병행 착수(각 1·2·3단계 통합 · ①호환성·②Presigned One Pager 폐지→두 제품 OnePager에 흡수 · CleverOne Nick→Raymond)
-      - 1·2·3단계 우선
+      - 2단계 자율 구현 진척: v1.0.12(enroll CSR→IoT mTLS·Admin CORS)·P7 골격(7-1/2/4/5)·시스템 E2E·프록시 복원력 하드닝·v1.0.15·v1.0.16·11-8 — 상세=S3
     - **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 빨강=외부/미정 선결
     - **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
@@ -33,7 +23,7 @@
 
     ```mermaid
     gantt
-        title v1.0 = Straumann IO Scanner 연동 — 10월 출시 목표(역산·잠정) · 7/23 결정(IO Scanner 보류·1·2·3단계 우선) 반영
+        title v1.0 = Straumann(AXS) 첫 외부연동 — 10월 출시 목표(역산·잠정)
         dateFormat YYYY-MM-DD
         axisFormat %m/%d
         todayMarker stroke-width:3px,stroke:#d33,opacity:0.6
@@ -105,7 +95,7 @@
       | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 리전 라벨 호스트·Region Directory·HA(K8s)·Route53·RDS(리전 단일) | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS ✅ baseline(spec-v1.0.4)** · region-silo `spec-v1.0.5` PR 리뷰중 · ④ connector ⬜(보류) |
       | **GW Console** | — | — | — | — | 🟡 Admin Web Console gw/1.0 대응 최소(MS Entra 앱계층 인증·Admin API Entra-gated) | ⬜ 온보딩·Org-ID 관리 등 **후속**(gw/1.1·1.2·부가·미정) | — | ⬜ ③-C Sub-SRS gw/1.0 대응 baseline **9월 착수 예정**(R5 당김 결정·전규현/Raymond) |
       | **인프라** | — | — | — | 🟢 dev·qa·stag(단일 Region)·prod(Region별) | 🟢 Route53·K8s·비-AWS minio | 🟢 AXS 고정IP·샌드박스 | — | **🟢 ③-I IaC 구축 계획서 — PR #11973 병합(7/27)·Jack 상세 반영**(Raymond diagram+SRS추출→Jack) — 정본 `vt-api-gateway-infra` · **baseline tag 불요**(living doc) · **AWS 4계층** · **+ 8/4 KMS 키 토폴로지 provisioning ask**(spec-v1.0.7·handoff-infra 항목5 — 리전별 CMK `gw-payload`/`gw-target-cred`·pod별 grant·dev payload CMK 선생성) |
-      | **외부(Straumann AXS)** | — | — | — | — | — | ⬜ API·OAuth·샌드박스·자격증명(선결·**협상중**) | — | ④ 입력(외부 제공) |
+      | **외부(Straumann AXS)** | — | — | — | — | — | 🟡 **PPR sandbox 자격=확보(8/11)** · ⬜ prod(정식계약)=NDA 후(선결) | — | ④ 입력(외부 제공) |
       | **LMP(License Portal, 바텍)** | — | — | — | — | — | — | ⬜ (조건부) 제3자 서명 attestation | **enroll B안 시만**·ES 라이선스팀(R9·B-42) |
 
     - **스펙 문서 등록처·경로·baseline (SSOT)** — 각 제품 스펙 정본의 Repo·경로·태그. _(미정 = R3에서 등록처 확정 · OnePager는 담당팀 baseline 시 tag 부여)_
@@ -196,12 +186,11 @@
   | # | 항목 | 타입 | 상태 |
   | --- | --- | --- | --- |
   | 4 | Webhook 클라우드 분배(CleverLab 갈래B) | [논의] | v1.0 제외 — Open 후 결정 |
-  | 6 | AXS sandbox 자격증명(Straumann 제공) | [정보] | pilot·E2E 블로커 — 확보 시점?(협상중) |
+  | 6 | AXS **prod** 자격(Straumann 정식계약) | [정보] | **PPR sandbox=확보(8/11)** · prod=NDA 후(pilot·실 E2E 선결) |
   | 7 | 경로 B EOS 시점 | [논의] | 리뷰서 workaround·지속성 확정(§2.8) — EOS *시점*만 PM·CS/CO OnePager 미정(①흡수) |
   | 8 | v1.0 목표 RPS·동시 세션 | [정보] | 인프라/규모 PL 입력 대기 |
   | 9 | RTO/RPO·유지보수 윈도우 | [정보] | 인프라 설계 단계 — failover 요건은 R2(저장소 전역일관 vs 리전분리·Q3) 결정과 연계 |
   | 10 | 감사·consent 보존 기간 | [정보] | 법무 확인 대기 |
   | 11 | 호환성 매트릭스 확정본 | [정보] | CleverSpace/CleverOne OnePager 의존(①폐지·흡수) — 초안 7/27 작성·확정값은 담당팀 baseline 후 |
   | 14 | 관측성 앱↔인프라 계약 확정 — ①로그 필드 스키마(현행 pino 기본 필드 ↔ §6.3.2 최소셋 매핑·Appendix B #14) ②메트릭 export 배선(OTLP reader→Grafana Alloy 엔드포인트) | [논의·설계] | **추후 확정** — 트리거=③-I 관측 스택 구축 or P6 프록시 착수(먼저). Raymond 초안(필드 매핑표+엔드포인트 요구)→Jack(인프라) 비동기 합의. **앱 계약(stdout JSON+OTel·redaction) 이미 구현·무블로킹** |
-  | 이월-R1 | IO Scanner↔EzServer 연동 방식 | [종료] | **종료** — IO Scanner 데이터는 **AXS webhook으로 수신 확정**. GW/③는 별도 IO Scanner 연동 없음(target 무관 webhook 수신·P8·§7.6). Straumann 내부(IO Scanner→AXS)는 ④ 소관이라 GW 스코프 밖. |
-  - **차주 이월 후보**: 이월-R2(목표일정·출시일 재검토) 미확정 시 다음 주 이월. _(이월-R1=종료.)_
+  - **차주 이월 후보**: 이월-R2(목표일정·출시일 재검토) 미확정 시 다음 주 이월.
