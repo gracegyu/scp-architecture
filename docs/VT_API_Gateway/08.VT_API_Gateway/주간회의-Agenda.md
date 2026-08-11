@@ -178,6 +178,7 @@
       | **P6 하드닝** 프록시 복원력 | 장애주입 e2e(504 TARGET_TIMEOUT·502·hang 없음·§7.5.4)+deadline-abort 정규화 fix | 🔥 이번주 | #12569·#12570 · 독립리뷰가 오진단 정정(프로덕션 이미 504) |
       | **v1.0.15** (A·B) | enroll 명시적 Reject(`device_status +rejected`·pending→rejected 종단·PATCH devices) + 감사 사유(`audit_log.reason`·payload reason 필수·kill/reject 저장)(T-ENR-3-7) | 🔥 이번주 | #12576 · DB 마이그레이션 2건 · device write RBAC=cs·admin · 독립리뷰 2회 |
       | **v1.0.16** clinic.memo | clinic 식별 메모(`clinic.memo`) + **admin clinics 목록/상세 신규**(memo·deviceCount·orgBindingStatus·v1.0.10 note 해소)·admin·cs 편집·device-self 제외·변경 감사 `clinic.memo.update`(T-ADM-11-7) | 🔥 이번주 | #12578 · DB 마이그레이션 1건 · LMP 표시필드와 별개(enroll/self-PATCH 미간섭) · 독립리뷰 actionable 0 |
+      | **P11** 11-8 | admin ClinicInfo 교정 `PATCH /v1/admin/clinics/{id}`(name·country·address·phone·website·admin·cs·audit `clinic.info.update`·mapping_version 불변)(T-ADM-11-8·스펙-코드 갭) | 🔥 이번주 | #12581 · 계약 기존(OpenAPI patchAdminClinicsById) 미구현이던 갭 · 검증 로직 core self-PATCH 와 libs 공유 추출 · 독립리뷰 High/Med 0 |
       | **P7** 7-1 | External Connector 아웃바운드 OAuth2 토큰(client_credentials·soft-state 캐시·dual-window·§7.1.3) | 🔥 이번주 | #12561 · 독립리뷰 High(fetch 타임아웃) 수정 |
       | **P7** 7-4 | 클리닉 self org-binding 자가 등록(`POST /v1/clinics/me/org-bindings`→org_mapping·§2.3.4) | 🔥 이번주 | #12562 |
       | **P7** 7-5 | presigned 중계 리전 guardrail wiring(TC-REG-42·§7.3.3·verbatim 중계=P6 기구현) | 🔥 이번주 | #12564 · 독립리뷰 Critical/High 다수 차단 |
