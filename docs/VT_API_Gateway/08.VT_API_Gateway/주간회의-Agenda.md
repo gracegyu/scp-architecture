@@ -123,16 +123,18 @@
       > - CleverOne OnePager는 지금 작성(연동 *구현*만 post-v1.0).
       > - 순서·의존 = 본 Agenda S1 Gantt(Roadmap 결정.md 폐기).
 
-  - **S3. GW 구현 현황 — Phase·Task 스냅샷 (8/13·매주 갱신)** — 1단계 코어 완료 · 2단계 P8·P9·P10·P11 완결 · P7 골격(7-1/2/4/5)·시스템 E2E·프록시 복원력 하드닝 완료 · 정합화 v1.0.12·v1.0.15·v1.0.16 반영(admin clinics 목록/상세 신설 포함) · 남은 실연동은 ④/인프라 선결.
-    - **어디까지 왔나 (8/13)**: 1단계 코어(P0~P6·P10) 완료. 2단계는 **P8 골격(8-1·8-2·8-3) + P9 골격 app-side(9-1·9-2·9-3) + P9-4 drain + P11 Admin CRUD 전부(11-1~11-6 머지) 완결** — 로컬 더블 기준, 실연동은 ④ AXS 후. **인증 보강**: v1.0.11로 JWKS 엔드포인트 v1.0 승격 → **T-AUTH-2-6 완료(#12478)**(공개키 게시+토큰 claim 정합·개인키 미노출·외부 검증 시뮬). **v1.0.12 정합화**: (A) **enroll CSR→IoT Core mTLS cert 발급·폐기 완료(#12557)**(app-side·`IotCertPort`·발급 INACTIVE 게이팅·승인 활성·revoke/kill/재-enroll 폐기=REVOKED+detach·독립리뷰 Critical 수정) + (B) Admin API Entra-gated CORS(#12497). **④/인프라 무관 자율 가능 범위 소진**(9-4·12-2 후보 처리: 9-4 app-side 완료·12-2 compat E2E는 게이트 미배선(① One Pager 매트릭스)으로 블록). **P7 골격(7-1·7-2·7-4·7-5) 완료**(로컬 더블·실연동 7-3=④ AXS 후) + **시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝(#12569·#12570) 완료** + **정합화 v1.0.15(T-ENR-3-7·#12576) 완료·v1.0.16(T-ADM-11-7·clinic.memo) 착수**. **남은 것(외부/인프라 선결) = 7-3·P12-1(sandbox E2E)=④ AXS 실자격 · 9-5(실 IoT)·9-4 실 KEDA·0-5 잔여(자동배포)·P12-4=③-I 인프라(Jack) · P12-2(compat E2E)=① One Pager 매트릭스 확정 · P12-3(부하)=부하환경.** 구현 다음 통합·검증·QA 단계가 이어진다.
-    - 매 Task 완료 시 갱신.
-    - **진행 단계** — 스펙(분석/설계)과 구현을 분리해 진행한다. 스펙은 HLD로 baseline 동결됐고 현재 구현(LLD 병행) 중이다. 구현이 끝이 아니라, QA 인계 전 개발팀이 통합·시스템 테스트로 동작을 확증하는 단계가 남고, 이어 QA·운영이 있다.
-      - **스펙 — 분석/설계(HLD)**: SRS·DBML·OpenAPI·TCL baseline v1.0 동결 · 정합화(v1.0.1~v1.0.4) 지속 · LLD는 구현과 병행
-      - **구현(LLD 병행)** — _구현 단계 내 진척(코딩 Task) · region-silo 재작업(8/3·PR #12241) 완료로 **P4 대부분 삭제·단일화** → Task 집합 축소·재산정 예정_: 1단계 코어 **P0~P6·P10 완료 + region-silo 재작업 완료** · 2단계 **P8 골격 완료(8-1·8-2·8-3)·P9 착수(9-1)** / P7·P11·P12는 ④ 연동 Spec 후 · Task별 검증 4종(unit·e2e·curl·DB)
-      - **✅ region-silo(R2·spec-v1.0.5/1.0.6) 재작업 완료(8/3·PR #12241 머지 `9146ae3`)**: 아래 ✅완료 중 **P1 T-DATA-1-1(전역/리전 2-DB)·1-6(region_catalog 시드) · P3 T-ENR-3-2(GeoDNS default region 배정) · P4 전체(Region Resolver·GET /v1/regions·PUT /me/region·region 카탈로그 CRUD) · P6 T-PXY-6-2의 region 해석 단계**가 리전 완전 분리로 **삭제·단일화됨**(단일 datasource·region=배포 상수·Region Directory·리전 변경=마이그레이션·ClinicResolution=리전 echo·하드 FK). **완료 이력은 아래 표에 보존**(당시 PR 기준)하되 현행 코드는 단일 datasource. 검증: unit 534·e2e 157·CI green(build 20260803.1)·`verify-spec`/`verify-ci` 게이트 신설.
-      - **개발 통합·검증(QA 인계 전)**: 통합 테스트 · 시스템 E2E(실 계약: AXS·CleverSpace·EzServer) · 성능·부하 · HA·복원력 · 보안 검토 → 동작 확증 후 QA 인계
-      - **QA**: 릴리스 회귀 · QA TCL · V&V 산출물(IEC 62304 / ISO 13485)
-      - **운영·릴리스**: staging/prod 배포(인프라) · AXS pilot
+  - **S3. GW 구현 현황 — Phase·Task 스냅샷 (8/13·매주 갱신)**
+    - **어디까지 왔나 (8/13)**
+      - 완료
+        - 1단계 코어 — P0~P6·P10
+        - 2단계 골격 — P8·P9·P11 (로컬 더블 기준·실연동 ④ AXS 후)
+      - 이번 주(8/6~8/13) — v1.0.12(enroll CSR→IoT mTLS·Admin CORS)·P7 커넥터 골격(7-1/2/4/5)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15(enroll Reject·감사 사유)·v1.0.16(clinic.memo·admin clinics 목록/상세)·11-8(ClinicInfo 교정)
+      - 남은 것 (외부·인프라 선결)
+        - ④ AXS 실자격 → 7-3(커넥터 실연동)·12-1(sandbox E2E)
+        - ③-I 인프라 → 9-5(실 IoT)·9-4(실 KEDA)·0-5(자동배포)·12-4(HA/KEDA)
+        - ① One Pager 매트릭스 → 12-2(compat E2E) · 부하환경 → 12-3(부하)
+      - 다음 단계 — 개발 통합·검증(통합·시스템 E2E·부하·HA·보안) → QA(회귀·V&V·IEC 62304/ISO 13485) → 운영·릴리스(staging/prod·AXS pilot)
+    - **참고** — 스펙=HLD baseline(v1.0) 동결·LLD는 구현 병행 · region-silo 재작업(8/3·#12241)으로 P4 대부분 단일화(단일 datasource·region=배포 상수) · Task별 검증 4종(unit·e2e·curl·DB) · 매 Task 완료 시 갱신
     - **상태 범례**: 🔥 **이번주 완료**(8/6 회의 이후 main merge) · ✅ 이전 완료 · 🟠 진행중/착수예정 · ⬜ 대기 · 🔴 외부/인프라 선결. **표기 규칙(8/13)**: **이번주 완료(🔥)는 Task 단위**로 전개(진척 가시화) · **완료 Phase(지난주까지·전체 동일 상태)는 Phase 1행**으로 묶음 · **Phase 내 상태가 다른 Task만 별도 행**(예: P9-5) · 미착수 Phase = 1행.
 
       | Phase / Task | 범위 | 상태 | PR·비고 |
@@ -140,7 +142,7 @@
       | ─ **1단계 코어 (완료·Phase 1행)** ─ |  |  |  |
       | **P0 플랫폼 스캐폴드** | 0-1~0-6(4-way·로컬환경·포트어댑터·더블·Prisma·관측·에러·Config·CI·Dockerfile) | ✅ 완료 | #11971~11995 · 자동배포(CD)=③-I(Jack) |
       | **P1 데이터 모델** | 1-1~1-7(스키마·KMS envelope·Redis·audit append-only·시드) | ✅ 완료 | #12006~12040 · region-silo 단일 datasource 반영 |
-      | **P2 인증** | 2-1~2-5(device private_key_jwt→RS256·operator Entra OIDC·RBAC) | ✅ 완료 | #12094~12143 · 2-6(JWKS)=이번주(아래) |
+      | **P2 인증** | 2-1~2-6(device private_key_jwt→RS256·operator Entra OIDC·RBAC·JWKS 공개 엔드포인트) | ✅ 완료 | #12094~12143·#12478(2-6 JWKS·v1.0.11 승격) |
       | **P3 enrollment·생애주기** | 3-1~3-5(개시/완료·상태머신·재-enroll 회전·C/S 승인·kill·pending 만료) | ✅ 완료 | #12158~12171 |
       | **P4 region resolution** | 4-1~4-5(Resolver·ClinicResolution·PATCH/PUT me·PHI PDP·카탈로그) | ✅ 완료 | #12173~12191 · region-silo로 대부분 단일화 |
       | **P5 호환성 게이트** | 5-1~5-3(Vatech-\* 파싱→400·well-known 서빙·semver 게이팅) | ✅ 완료 | #12194~12200 · 게이트 실배선=①One Pager 후(→P12-2) |
@@ -151,7 +153,6 @@
       | **P10 fleet·중앙 config** | 10-1~10-4(heartbeat/fleet_state·CentralConfig·SW 인벤토리·admin fleet/clients 조회) | ✅ 완료 | #12363~12368 |
       | **P11 Admin CRUD** | 11-1~11-6(targets·policies·operators RBAC 생애주기·webhook-events break-glass·audit 전면·데이터분류 스캐폴드) | ✅ 완료 | #12441~12470 |
       | ─ **이번주 완료 🔥 (8/6~8/13·Task 단위) + 진행 Phase(P7)** ─ |  |  |  |
-      | **P2** 2-6 | GW JWKS 공개 엔드포인트(v1.0.11 승격)+③b device 토큰 claim 정합 | 🔥 이번주 | #12478 |
       | **v1.0.12** (A) | enroll CSR(PKCS#10)→IoT Core mTLS cert 발급(INACTIVE 게이팅)·승인 활성·revoke/kill/재-enroll 폐기(REVOKED+detach·app-side·`IotCertPort`) | 🔥 이번주 | #12557 · 개인키 GW 미수신·독립리뷰 Critical 수정 |
       | **v1.0.12** (B) | Admin API Entra-gated 공개 — CORS | 🔥 이번주 | #12497 |
       | **시스템 E2E** | SYS-01(온보딩)·02(webhook 왕복 3앱)·04(kill 전파)·05(운영자 RBAC) | 🔥 이번주 | #12566~12568 · 멀티앱(core+admin+receiver+dispatcher) 로컬 더블+실 DB/Valkey/SQS/MQTT/KMS |
