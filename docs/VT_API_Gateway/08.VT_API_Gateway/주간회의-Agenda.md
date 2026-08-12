@@ -4,7 +4,7 @@
 
 - 이번 주 진행 _(프레임 · 8/13 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
   - **[GW 백엔드]** (8/6~8/13 완료) **2단계 자율 구현 진척** — v1.0.12(enroll CSR→IoT Core mTLS cert·Admin API Entra-gated CORS)·P7 커넥터(7-1/2/4/5 골격 + **7-3 AXS 최초 실연동**)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15(enroll Reject·감사 사유)·v1.0.16(clinic.memo·admin clinics 목록/상세)·11-8(admin ClinicInfo 교정)+**v1.0.17 11-8b(표시필드 PATCH v1.0 봉인)**·**T-E2E-12-1(실-AXS e2e 스캐폴드)·12-2(compat 게이팅 e2e)**·**v1.0.18 T-CFG-5-4(compat-matrix YAML→JSON 발행 파이프라인)** → **Task 단위 상세·PR = 공유 S3**
-  - **[GW Console]** (8/11~8/12 완료) **Sub-SRS + 구현 착수** — 전용 repo `vt-api-gateway-console`에 **SRS baseline v1.0**(#12602 머지·tag `spec-v1.0`·리뷰 민진우·정우혁 반영) + **P0 구현 착수**(`T-FE-0-1` 스캐폴드 #12617 머지·스택 버전 확정·**폰트를 CleverSpace와 통일**) → 상세 = 공유 **S4**.
+  - **[GW Console]** (8/11~8/12 완료) **Sub-SRS + 구현 착수** — 전용 repo `vt-api-gateway-console`에 **SRS baseline v1.0**(#12602 머지·tag `spec-v1.0`·리뷰 민진우·정우혁 반영) + **P0 구현 착수·5 Task 머지**(0-1 스캐폴드[스택 버전 확정·**폰트를 CleverSpace와 통일**]·0-2 코드젠+커서 어댑터·0-3 MSW 목·0-4 authProvider[risk:auth]·0-5 App Shell) → 상세 = 공유 **S4**.
   - **[제품 연동 스펙]** (잔여) EzServer OnePager 수령 확인.
   - _(이번 주 결정사항 = 회의 시 추가)_
 
@@ -19,14 +19,12 @@
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
   - **트랙 구분(혼동 방지)** — **GW 백엔드(③)** = S1 Gantt · S2 스펙 테이블 · **S3 구현 현황**(부모 SRS `spec-v1.0.18`·NestJS 코어·구현 Task) / **GW Console(③-C)** = **S4 현황**(전용 repo `vt-api-gateway-console`·frontend·Console SRS. 두 트랙은 **repo·스택·세션이 다르다.** _이번주 진행 항목은 **[GW 백엔드]/[GW Console]/[제품 연동 스펙]** prefix로 트랙을 표시한다._
   - **S1. 프로젝트 일정(Gantt) — 8/13 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
-    - **정본 = 본 Agenda(S1 Gantt).** _개발 Roadmap 결정.md는 폐기(더 이상 사용 안 함) — 이 스냅샷이 현행 정본이며 여기서 직접 갱신한다._
-    - **8/6→8/13 변경**:
-      - 2단계 자율 구현 진척: v1.0.12(enroll CSR→IoT mTLS·Admin CORS)·P7(7-1/2/4/5 골격+7-3 AXS 실연동)·시스템 E2E·프록시 복원력 하드닝·v1.0.15·v1.0.16·11-8·v1.0.17(11-8b 봉인)·T-E2E-12-1/12-2·v1.0.18(T-CFG-5-4 compat-matrix 발행) — 상세=S3
-    - **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · 빨강=외부/미정 선결
-    - **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
+    - **진행률(구현)**:
+      - **GW ≈ 93%**(IP Task 69/74 머지·코어 구현 완료 — 잔여 5개는 ③-I 인프라·Straumann 의존 통합/E2E/배포로 GW 코드가 아님)
+      - **GW Console ≈ 10%**(IP Task 5/51 머지 — P0 0-1~0-5: 스캐폴드·코드젠·MSW·authProvider·App Shell)
+
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
-    - **병행 별도 프로젝트**: `SectionView Module 구현`(7/13~2주·Raymond·**GW 아님**·완료)은 `▷ 병행` 섹션에 표기
-    - **GW 구현 = 1단계 완료·2단계 진행중** — 1단계 GW 독립 코어(P0~P6·P10)는 ③ baseline 고정으로 **완료**(IO Scanner 보류 영향 없음·잔여=T-PLAT-0-5 자동배포=③-I 인프라·코어코드 아님). 2단계 AXS 연동(P7~P12)은 **PPR sandbox 자격 확보로 착수·대부분 완료**(P7 AXS 실연동·시스템/compat E2E·P12 부분 — AXS 업무 happy-path=Straumann consent 대기·부하/HA=③-I·prod 자격=NDA후·§S3).
+    - **범례** — **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · **빨강=외부/미정 선결** / **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
 
     ```mermaid
     gantt
@@ -40,7 +38,7 @@
         PR 리뷰·수정                  :done, srspr, 2026-07-13, 2026-07-20
         baseline v1.0 (7/20 확정·spec-v1.0.1 정합화 7/22) :milestone, done, srsbl, 2026-07-20, 0d
 
-        section GW 구현 → E2E → 출시 (③ SRS 완료 직후 착수 · 2단계 병행 · Raymond 부분투입)
+        section GW 구현 → E2E → 출시 (구현 ~93% · ③ SRS 완료 직후 착수 · 2단계 병행 · Raymond 부분투입)
         1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·완료) :done, implindep, 2026-07-21, 21d
         2단계 AXS 연동 (P7~P12·P8/9/11 병행·P7 AXS 실연동·P12 부분) :active, implaxs, 2026-07-28, 21d
         AXS E2E (sandbox·12-1 스캐폴드·happy=Straumann 대기)  :e2e, after implaxs, 14d
@@ -74,7 +72,7 @@
         프로파일 확정                  :milestone, axsbl, after axsw, 0d
         AXS prod 자격(NDA 후·Straumann·선결) :crit, credp, 2026-08-18, 21d
 
-        section ③-C GW Console — gw/1.0 대응 v1.0 (frontend·별도 repo·전규현/Raymond)
+        section ③-C GW Console — gw/1.0 대응 v1.0 (구현 ~5% · frontend·별도 repo·전규현/Raymond)
         SRS 작성 (8/5)                :done, consrsw, 2026-08-05, 6d
         SRS baseline (#12602·8/11)     :milestone, done, consrspr, 2026-08-11, 0d
         v1.0 구현 (별도 frontend 세션·mock-first) :active, conv1, 2026-08-12, 28d
@@ -85,9 +83,6 @@
 
         section v1.0 이후 (deferred · post-v1.0)
         CleverOne 연동 *구현* (스펙은 지금·구현 post-v1.0) :codef, after rel, 14d
-
-        section ▷ 병행 · 별도 프로젝트 (GW 아님)
-        SectionView Module 구현 (Raymond·완료) :done, sv, 2026-07-13, 2026-07-30
     ```
 
   - **S2. 스펙 작성 테이블 — 제품별 개발 항목 종합 (제품 × 단계) · 매주 스냅샷** · **정본 = 본 Agenda(S2)** (_Roadmap 결정.md 폐기 — 이 표가 현행 정본_)
@@ -212,8 +207,9 @@
       | **P0** 0-2 | 부모 OpenAPI 코드젠(openapi-typescript Node API)+타입 클라이언트(openapi-fetch)+커서 페이지네이션 어댑터+`codegen:api --check` 드리프트 감지·Vitest unit 프로젝트(25 케이스) | 🔥 이번주 | **#12621**(머지 `6223e8b`) · 독립리뷰 2라운드 반영 8건·스킵 3건 · 생성물 커밋·헤더에 계약 리비전 git 실측 · **부모 계약 이슈 발견**(커서 페이지네이션 — 아래 이월 논의 참조) |
       | **P0** 0-3 | MSW 목 — accessState 3케이스 × 역할 4종 시나리오(`?mock=` 전환)·`/v1/admin/me` 핸들러(경로를 계약 경로로 타입 제한·origin 와일드카드)·browser/server 진입점 | 🔥 이번주 | **#12623**(머지 `ff8f127`) · **리뷰가 High 1건 적발**: 목이 prod 번들에 남아 있었다(=인증 우회 경로 배포) → 리터럴 `NODE_ENV` 가드로 해소, 청크 1.2M→900K·MSW 참조 1→0 실측 · 활성 조건 = `AUTH_MODE=mock` AND `NODE_ENV!==production` |
       | **P0** 0-4 **risk:auth** | authProvider `AUTH_MODE=mock\|entra` 스위치(entra=OIDC 배선 골격·토큰 sessionStorage·401 로그아웃/403 유지) + accessControlProvider **deny-by-default** 골격 + `verify:bundle` 배포본 검사 스크립트 | 🔥 이번주 | **#12626**(머지 `19eac25`) · **risk:auth 기계 검증**: `.next/static`+`.next/server` 266파일에서 우회 표지·mock fixture·MSW **0건**, 가드 제거 대조 빌드 1건 검출로 검사 유효성 확인 · 구현 중 tree-shaking 실패 2건 자체 적발(조건을 함수로 감싸면 안 접힘 = 0-3 MSW와 동일 유형·미사용 export 표지는 항상 제거돼 무용지물) · 리뷰 반영 3건 |
+      | **P0** 0-5 | App Shell 3-영역 골격(App Bar·Sidebar·메인+브레드크럼·각 영역=슬롯)+로딩/오류/빈 공통 컴포넌트(무한 로딩 금지·재시도)·vitest component 프로젝트(jsdom+RTL) 신설 | 🔥 이번주 | **#12627**(머지 `d15b076`) · `test:component` 15 케이스 · Sidebar 역할 게이팅은 의도적 미적용(deny-by-default라 지금 걸면 전 항목 소멸 → 1-3에서) · 리뷰 반영 4건 + **High 1건 실측 반증**(한글 폰트 정상 - @font-face 126개·U+AC00 포함) |
       | ─ **대기·잔여** ─ |  |  |  |
-      | **P0** 0-5~0-10 | App Shell+3상태(0-5)·env·dataProvider·정적 스텁(0-6)·i18n Lingui(0-7)·테스트 하네스+CI 게이트(0-8)·README(0-9)·리뷰용 mock 정적배포(0-10) | ⬜ 대기 | P0 진행중(10 중 4 완료) · **다음 착수=0-5**(App Shell — 화면이 처음 생김) · **`verify:bundle` CI 배선=0-8**(그 전까지 로컬 수동) |
+      | **P0** 0-6~0-10 | env·dataProvider·정적 스텁(0-6)·i18n Lingui(0-7)·테스트 하네스+CI 게이트(0-8)·README(0-9)·리뷰용 mock 정적배포(0-10) | ⬜ 대기 | P0 진행중(10 중 5 완료) · **다음 착수=0-6**(env·dataProvider 실물 배선) · **`verify:bundle` CI 배선=0-8**(그 전까지 로컬 수동) |
       | **P1** 인증·RBAC·홈 | 1-1~1-9(로그인·`/me` 부트스트랩 분기·리전 스위처·역할별 홈·권한 요청/승인·운영자 관리) | ⬜ 대기 | risk:auth(1-5 매트릭스·1-9 last-admin 가드) · **완료 시 로컬 GW 실데이터 확인 가능** |
       | **P2** enrollment·디바이스 | 2-1~2-5(디바이스 목록/상세·enrollment 승인/거부·수명주기 suspend/resume/kill) | ⬜ 대기 | ★서비스 개통 게이트 · 2-5 kill=비가역 사람 확인 |
       | **P3** 클리닉 | 3-1~3-4(목록/상세·LMP 읽기전용·식별 memo 편집·Device↔Clinic 드릴스루) | ⬜ 대기 | 표시필드 PATCH=봉인(미노출·`spec-v1.0.17`) |
@@ -226,11 +222,11 @@
   - **S4-1. 커버리지 계획 (frontend · 착수 후 실측 · S3-1 대응)** — Console도 커버리지 측정·CI floor 게이트를 둔다(SRS §3.5·§3.6.2). **BE와 방식 차이**: BE의 merged(unit+e2e 합산·보안파일 개별 100%) 대신, Console은 **Vitest(v8) 기준 unit+component 커버리지**를 정본으로 하고 e2e는 여정 커버리지로 별도 관리. **실측 값은 `T-FE-0-8`(테스트 하네스) 이후·각 Task 완료 시** 아래 표에 채운다(현재 미착수라 값 없음).
     - **측정 대상·비대상**: 라인% = Vitest(unit+component) · **e2e(Playwright)** = 핵심 여정 커버리지 체크리스트(로그인·enroll 승인·break-glass·RBAC 403·리전 컨텍스트) · **시각회귀·접근성(axe)** = %가 아닌 pass/fail 게이트.
 
-      | 스코프 | Statements | Branches | Functions | Lines | 비고 |
-      | --- | --- | --- | --- | --- | --- |
-      | **① 전역 (unit+component)** | 측정 예정 | 측정 예정 | 측정 예정 | 측정 예정 | Vitest(v8) · 착수 후 실측 |
-      | **② 민감 로직** (권한 게이팅·PHI 마스킹·stale-write·dataProvider) | 측정 예정 | 측정 예정 | 측정 예정 | 측정 예정 | BE '보안 도메인' 대응 서브스코프 |
-      | **CI 게이트 floor** | TBD(LLD) | TBD(LLD) | TBD(LLD) | TBD(LLD) | 임계값=LLD 확정(§3.5·§3.6.2) |
+      | 스코프                                                            | Statements | Branches  | Functions | Lines     | 비고                             |
+      | ----------------------------------------------------------------- | ---------- | --------- | --------- | --------- | -------------------------------- |
+      | **① 전역 (unit+component)**                                       | 측정 예정  | 측정 예정 | 측정 예정 | 측정 예정 | Vitest(v8) · 착수 후 실측        |
+      | **② 민감 로직** (권한 게이팅·PHI 마스킹·stale-write·dataProvider) | 측정 예정  | 측정 예정 | 측정 예정 | 측정 예정 | BE '보안 도메인' 대응 서브스코프 |
+      | **CI 게이트 floor**                                               | TBD(LLD)   | TBD(LLD)  | TBD(LLD)  | TBD(LLD)  | 임계값=LLD 확정(§3.5·§3.6.2)     |
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
