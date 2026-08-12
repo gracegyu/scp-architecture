@@ -1,0 +1,57 @@
+# Thomas 문의
+
+- Dentbird 연동시 고려사항
+  - 연동 시나리오 (TBD): https://vatechcorp-my.sharepoint.com/shared?listurl=%2Fpersonal%2Fjoy%5Fshin%5Fewoosoft%5Fcom%2FDocuments&viewid=ebc8906e%2Db3a2%2D4150%2D84e5%2Df8bbdebbc451&ga=1&id=%2Fpersonal%2Fjoy%5Fshin%5Fewoosoft%5Fcom%2FDocuments%2FJoy%5FOneDrive%2F14%2E%20%ED%95%B4%EC%9E%90%2F7%2E%20%EC%9D%B4%EB%A7%88%EA%B3%A0%EC%9B%8D%EC%8A%A4%2F%5BES%2D%EC%9D%B4%EB%A7%88%EA%B3%A0%EC%9B%8D%EC%8A%A4%5D%5F20260416%5FClever%20One%5FDentbird%20%EC%97%B0%EB%8F%99%20%EC%8B%9C%EB%82%98%EB%A6%AC%EC%98%A4%2Epdf&parent=%2Fpersonal%2Fjoy%5Fshin%5Fewoosoft%5Fcom%2FDocuments%2FJoy%5FOneDrive%2F14%2E%20%ED%95%B4%EC%9E%90%2F7%2E%20%EC%9D%B4%EB%A7%88%EA%B3%A0%EC%9B%8D%EC%8A%A4
+  - 연동 관련 문서 (Dentbird): https://docs.dentbird.com/dentbird-partner-integration-guide.html
+    - (답변) 전체 맥락: Dentbird는 AXS와 동형의 "외부 target"이라 대부분 기존 GW 메커니즘(target 레지스트리·org_mapping·아웃바운드 Connector·인바운드 webhook 수신·MQTT 분배)으로 수용된다. 8/4 정리대로 EzServer는 `Vatech-Target` 헤더만 붙이고 라우팅은 GW가 한다(SRS §2.3.0·ADR-11). 시나리오 PDF·Dentbird partner guide 확인 전이라 일부는 잠정("확인 필요").
+      - 정본: 신규 target 온보딩 runbook — https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/manual/target-onboarding.md · GW SRS — https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md
+  - 1. Account의 credential을 넣게 되어 있는데, Dentbird에 전달 방안?
+    - API 대한 정보가 정확하지 않아 어떻게 전달하는지는 모르나 header를 통해 전달하지 않을까 추측
+    - EzServer enrollment 과정에서 credential을 설정할 수도 있지 않을까?
+    - EzServer에서 넣어야 한다면 EzServer 수정 필요
+      - (답변) credential(아웃바운드 자격)은 GW의 target 설정 소관이다(SRS §7.5.1 Connector 프레임워크). EzServer enrollment에 넣는 것은 경계 혼선 — EzServer는 `Vatech-Target`만 붙이고, GW가 target별 자격을 붙여 Dentbird로 중계한다.
+        - 확인 1) 인증 방식: 현 Connector는 AXS의 OAuth2 client_credentials 중심(§7.5.2). Dentbird가 정적 API key(header) 방식이면 Connector가 정적 자격 주입을 지원하는지 확인 필요(미지원 시 소폭 확장) → partner guide로 확정.
+        - 확인 2) credential 스코프(가장 큰 설계 포인트): 자격이 target 단위 1개(파트너 공용)인지, clinic마다 다른 Dentbird 계정 자격인지. clinic별이면 target-단위 자격으로 부족 → org_binding 수준의 per-clinic secret 저장·주입 설계가 필요(AXS와 다를 수 있는 지점).
+        - 정본: GW SRS §7.5(Connector·egress) — https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md · 절차 — https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/manual/target-onboarding.md (Step 2)
+  - 2. Dentbird가 Webhook을 제공하는 데, 이를 CleverOne에서 받을 방법은?
+    - EzServer가 VAG MQTT에서 받은 메시지를 그대로 MQTT로 C1에 전달하면 될까?
+      - (답변) GW가 Dentbird → GW webhook 수신·검증·payload 저장 → dispatcher → MQTT(IoT Core)로 해당 clinic의 EzServer 전달까지 이미 지원한다(§7.6). "EzServer가 MQTT로 C1에 전달"은 마지막 홉(EzServer→CleverOne)으로 EzServer/C1 소관이며 원칙적으로 맞다.
+        - 확인) Dentbird webhook payload의 어느 필드가 clinic/org 식별자인지(org_mapping 키가 돼야 target→clinic 분배 가능) + webhook 인증 방식(HMAC secret 등).
+        - 정본: GW SRS §7.6(webhook) — https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md · 절차 — https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/manual/target-onboarding.md (Step 4)
+- 다중 target (AXS, CleverSpace, Dentbird, Pearl 등) 연동 방안
+  - 1. 하나의 clinic에 대해서 EzServer와 VAG가 연동되면 해당 region의 모든 target 에 대해서 연동이 가능한 상태가 되는가?
+    - (답변) 아니오. enrollment(device active)는 GW 연결을 여는 것이고, 실제 target 연동은 target별 org_binding + 자격이 있어야 한다(target별 opt-in · §7.5·org_mapping 생애주기). "모든 target 자동 연동"이 아니다.
+      - 정본: GW SRS §7.5·org_mapping 생애주기 §2.3.4 — https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md · 절차 — https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/manual/target-onboarding.md (Step 5)
+  - 2. clinic 별로 target 연동을 달리한다면 켜고 끄는 것을 어디서 하는가? VAG GW console, EzServer Web Console?
+    - EzServer WebConsole에서 한다면 target 목록을 받을 수 있는 API를 VAG가 제공해야 한다.
+    - on/off 외에 추가 정보(credential 등)이 있다면 이것도 API 에 포함되어야 한다.
+      - (답변) 핵심 정책 결정 — 두 갈래.
+        - (a) GW Console(운영자 주도): 기존 org-mapping·org-bindings 화면으로 이미 가능. 추가 GW 기능 불필요.
+        - (b) EzServer WebConsole(clinic 자체 on/off): self org-binding 생성은 있으나, "clinic이 붙을 수 있는 target 목록 조회" self-plane discovery API는 아직 없다. Thomas가 말한 "target 목록 API를 VAG가 제공"이 이것 — 8/4에 "필요하면 별도 스코핑"으로 유보한 항목이 (b)면 신규 GW 기능으로 부상한다. credential까지 self로 입력받으면 self 평면 secret 제출 경로도 설계 대상.
+        - → on/off 주체(운영자 vs 고객)를 먼저 정해야 신규 API 필요 여부가 갈린다.
+        - 정본: 신규 target 온보딩 runbook (Step 5·on/off 주체) — https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/manual/target-onboarding.md
+- 신규 target 추가시 VAG에 등록 절차
+  - 어떤 VTS 이슈로 생성? ESIP?
+  - target 등록용 이슈 생성 template 이 있음 좋겠음.
+    - target 명
+    - dev endpoint
+    - production endpoint
+    - webhook url
+    - api 문서 url
+      - (답변) GW는 신규 target = 레지스트리 1행 추가(코드·경로 변경 없음). template 제안은 채택 권장. GW 등록에 실제로 필요한 필드를 더한다.
+        - Thomas 제안 유지: target 명 / dev·production endpoint / webhook url / api 문서 url
+        - + 아웃바운드 인증 방식(OAuth2 client_credentials / 정적 API key 등)
+        - + 인바운드 webhook 인증(HMAC secret 여부)
+        - + org 식별 방식(요청·webhook에서 org_id를 뽑는 필드)
+        - 절차가 SRS 여러 절에 흩어져 있어, GW spec repo `docs/manual/`에 "신규 target 온보딩 runbook"을 신설했다(Azure DevOps Wiki publish 가능·반복 연동 가속·이슈 template 근거).
+        - 정본: 신규 target 온보딩 runbook — https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/manual/target-onboarding.md · (근거) GW SRS — https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md
+- (참고) org_mapping 은 언제 생기나 — 헷갈리는 지점 정리
+  - 한 줄 요약: 클리닉이 그 연동을 **"켤 때" 딱 1건** 생긴다. **최초 데이터(프록시) 요청 때 자동으로 생기는 게 아니다.**
+  - 생기는 지점: EzServer가 GW로 보내는 `POST /v1/clinics/me/org-bindings`(= "이 연동 켜기" 등록 요청) 1건 → GW DB에 (외부 Org-ID ↔ clinic) **한 행** 기록. 이때 외부 target(AXS·Dentbird)은 **호출하지 않는다**(순수 GW 로컬 기록).
+  - "그럼 target으로 첫 요청 올 때 생기나?" → 아니다. 실제 프록시/webhook 요청은 이 매핑이 **이미 있다고 전제**한다.
+    - 왜 미리 있어야 하나: org_mapping은 **양방향 키**다. ① 인바운드 webhook은 대상이 "외부 Org-ID"로 보내오므로 "이게 어느 clinic이냐"를 이 매핑으로 되짚어야 분배되고, ② 아웃바운드는 그 clinic의 Organization-ID 주입에 쓴다. 요청만으로 "어느 조직 = 어느 clinic"을 안전하게 확정할 수 없어(신뢰·동의) 미리 등록한다.
+  - 헷갈리는 **세 행위**를 분리하면 명확해진다:
+    - ① device enrollment(승인·active): GW와의 **연결만** 연다. target 연동과 무관.
+    - ② org_mapping 등록(로컬): `POST /v1/clinics/me/org-bindings` → GW DB 1행. **← org_mapping이 생기는 유일한 지점.** target 미호출.
+    - ③ 외부 연동 링크(원격): 대상 쪽에 실제로 연결(예: AXS `link` API 호출·별도 프록시 호출). ②와 **별개 행위.** (Dentbird는 이런 원격 "연결" 호출이 있는지 partner guide 확인 — 없으면 ②만으로 끝.)
+  - 순서 예 (AXS 기준): A(이미 연동·organizationId 보유) = ②만 · B(Straumann 고객·미연동) = ③(`link`)로 organizationId 획득 → ② · C(비-Straumann) = Straumann 고객가입(수동) 선행 → B로 수렴.
