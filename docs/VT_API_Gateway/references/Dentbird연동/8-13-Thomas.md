@@ -35,13 +35,13 @@
 - Dentbird 연동시 고려사항
   - 연동 시나리오 (TBD): https://vatechcorp-my.sharepoint.com/shared?listurl=%2Fpersonal%2Fjoy%5Fshin%5Fewoosoft%5Fcom%2FDocuments&viewid=ebc8906e%2Db3a2%2D4150%2D84e5%2Df8bbdebbc451&ga=1&id=%2Fpersonal%2Fjoy%5Fshin%5Fewoosoft%5Fcom%2FDocuments%2FJoy%5FOneDrive%2F14%2E%20%ED%95%B4%EC%9E%90%2F7%2E%20%EC%9D%B4%EB%A7%88%EA%B3%A0%EC%9B%8D%EC%8A%A4%2F%5BES%2D%EC%9D%B4%EB%A7%88%EA%B3%A0%EC%9B%8D%EC%8A%A4%5D%5F20260416%5FClever%20One%5FDentbird%20%EC%97%B0%EB%8F%99%20%EC%8B%9C%EB%82%98%EB%A6%AC%EC%98%A4%2Epdf&parent=%2Fpersonal%2Fjoy%5Fshin%5Fewoosoft%5Fcom%2FDocuments%2FJoy%5FOneDrive%2F14%2E%20%ED%95%B4%EC%9E%90%2F7%2E%20%EC%9D%B4%EB%A7%88%EA%B3%A0%EC%9B%8D%EC%8A%A4
   - 연동 관련 문서 (Dentbird): https://docs.dentbird.com/dentbird-partner-integration-guide.html
-  - 1. Account의 credential을 넣게 되어 있는데, Dentbird에 전달 방안?
+  - Account의 credential을 넣게 되어 있는데, Dentbird에 전달 방안?
     - API 대한 정보가 정확하지 않아 어떻게 전달하는지는 모르나 header를 통해 전달하지 않을까 추측
     - EzServer enrollment 과정에서 credential을 설정할 수도 있지 않을까?
     - EzServer에서 넣어야 한다면 EzServer 수정 필요
       - ➡️ (B안 기준) credential은 **GW target 자격**으로 두고 **KMS custody + GW가 아웃바운드 주입**(§7.5.1). 고객이 이마고웍스에서 받은 자격을 **Clever One 클라이언트가 아니라 GW에 등록**한다(운영자 Console 또는 self-plane). EzServer는 `Vatech-Target`만 붙이고 자격은 GW가 얹는다(EzServer에 credential 안 넣음 — 경계 혼선 회피).
         - 확정 필요: 인증 방식(OAuth2 vs 정적 API key — 후자면 Connector 정적 주입 지원 확인) · 스코프(target 단위 vs per-clinic → per-clinic이면 org_binding 수준 secret custody 신규).
-  - 2. Dentbird가 Webhook을 제공하는 데, 이를 CleverOne에서 받을 방법은?
+  - Dentbird가 Webhook을 제공하는 데, 이를 CleverOne에서 받을 방법은?
     - EzServer가 VAG MQTT에서 받은 메시지를 그대로 MQTT로 C1에 전달하면 될까?
       - ➡️ (B안 기준) **Dentbird → GW 공개 webhook 수신·검증·payload 저장 → dispatcher → MQTT(IoT Core)로 해당 clinic의 EzServer → Clever One**(§7.6). 그린 대로 "EzServer가 MQTT로 받아 C1 전달"이 이 경로의 마지막 홉이다. **A안(직접)으로는 온프렘 클라에 공개 inbound가 없어 webhook 수신 불가**(polling 우회만) → 이 요구가 B안을 사실상 강제한다.
         - 확정 필요: webhook payload의 org/clinic 식별 필드(org_mapping 키) · webhook 인증(HMAC secret 등).
