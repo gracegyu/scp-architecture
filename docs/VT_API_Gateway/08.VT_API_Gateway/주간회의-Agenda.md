@@ -9,6 +9,11 @@
   - _(이번 주 결정사항 = 회의 시 추가)_
 
 - 논의 사항 (이번 주 · 신규 논의/결정 안건)
+  - **[결정] GW Admin API 커서 페이지네이션 응답 엔벨로프 통일 (부모 OpenAPI `spec-v1.0.19`)** — Console 구현(`T-FE-0-2`) 중 발견. `cursor`·`limit` 파라미터를 받는 오퍼레이션 **13개 중 10개가 맨 배열을 반환**해 `nextCursor`를 실을 자리가 없다 → **계약상 2페이지 이후를 요청할 방법이 없다.**
+    - 엔벨로프(3): `getAdminFleet`·`getAdminClients`·`getAdminClinicClients` / **맨 배열(10)**: `getAdminDevices`·`getAdminOperators`·`getAdminAccessRequests`·`getAdminClinics`·`getAdminClinicDevices`·`getAdminAudit`·`getAdminOrgMappings`·`getAdminWebhookEvents`·`getAdminConfig`·`getAdminPolicies`
+    - 영향: SCR-DEV-01·SCR-RBAC-03·SCR-AUDIT-01·SCR-WH-01 등 **Console 목록 화면 대부분**(P2~P6). IP `T-FE-1-8`·`T-FE-2-1` 등의 dod가 커서 페이지네이션을 요구하는데 계약상 성립하지 않는다. GW 백엔드 구현이 이미 배열을 반환한다면 **응답 형태 변경 = breaking change**라 GW 측 작업도 동반된다.
+    - 부수: `limit` 기본값이 오퍼레이션마다 **20/50으로 갈리고** 4개는 `maximum` 미선언 → 함께 정리 권장.
+    - 조치안: 부모 스펙 세션에서 `{items, nextCursor}`로 통일(공용 `*Page` 스키마 재사용). Console은 그때까지 **다음 페이지 없음으로 degrade**(어댑터가 두 형태 모두 처리하므로 계약 수정 시 Console 코드 변경 불요).
   - _(이번 주 결정사항 = 스펙 세션 정리 후 반영 · 회의 중 신규 안건 발생 시 여기 추가 · 보류·선결은 아래 「이월 논의 사항」 표 참조.)_
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
@@ -174,7 +179,6 @@
       | ─ **대기·무영향** ─ |  |  |  |
       | **P0** 0-5 | CI 파이프라인·Dockerfile(4타겟·스캔·lint·build·unit·e2e 게이트)=완료 · **자동배포(CD) 잔여** — ECR/ArgoCD·main→DEV·tag prefix→TEST/PROD(deploy stage `condition:false` 자리표시자·T-PLAT-0-5 `[~]부분완료`) | 🔴 부분 | ③-I(Jack Azure Flow 템플릿 수령 후) · Dockerfile es-base 전환(0-5b)=완료(#12163) |
       | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | 🔴 대기 | ③-I/④ IoT Core(cert 발급 app-side=v1.0.12(A) 완료·DBML `iot_certificate_id`=스펙 세션) |
-      | **v1.0.13/14** | 코드 **무영향** — 13=org_mapping 범용 번역표 판정(문서) · 14=authz 복제 DynamoDB Global Table+Streams(gw/1.2·v1.0 복제대상 0) | — | 스펙 핀만 상향(#12555·#12558) |
       | **P12 E2E·하드닝** | 12-1 AXS sandbox E2E(부분·#12600) · **12-2 compat E2E=완료(#12606·이번주)** · 12-3 부하 · 12-4 HA/KEDA | ◑ 진행 | 🔴 잔여 선결: 12-1 happy=④ AXS consent · 12-3=부하환경 · 12-4=③-I(Multi-AZ) |
 
   - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/13 재측정·post-v1.0.12/P7/시스템-E2E · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산). **정지트리 실측·merged floor 게이트 통과**(v1.0.12 A/B·7-1/2/4/5·시스템 E2E SYS-01/02/04/05 반영). _(v1.0.15 T-ENR-3-7·v1.0.16 T-ADM-11-7 반영 재측정은 각 머지 후 정지트리에서 수행 — 신규 로직 전부 unit+e2e 동반이라 floor 유지 예상.)_
@@ -205,8 +209,9 @@
       | **Console SRS** | gw/1.0 대응 완전 규격 + gw/1.1·1.2·후속 방향 | ✅ 완료 | #12602 머지 8/11 · baseline `spec-v1.0` · 리뷰(민진우·정우혁) 반영 |
       | ─ **이번주 완료 🔥 (8/6~8/13·Task 단위) + 진행 Phase(P0)** ─ |  |  |  |
       | **P0** 0-1 | Next 16.3.0+Refine 5(headless)+shadcn(radix·Tailwind v4)+TanStack Query 스캐폴드 · dev 포트 3100 · `app/`+`src/`(별칭 `@/*`→`./src/*`) · ESLint+Prettier · 온보딩 README · `.env.example` · **폰트 CleverSpace 통일**(Noto Sans/KR·next/font 자체 호스팅) | 🔥 이번주 | **#12617**(머지 `5d20fbc`) · 독립리뷰 2라운드 반영 12건·스킵 1건(테스트 하네스=0-8) · 실결함 3건 수정(한글 폰트 폴백 미종결·`font-mono` 무동작·Node 20.9/20.10 config 로드 사망) · dataProvider=자리표시자(0-2/0-6에서 교체) · 정적 export 전환=0-10 이연 |
+      | **P0** 0-2 | 부모 OpenAPI 코드젠(openapi-typescript Node API)+타입 클라이언트(openapi-fetch)+커서 페이지네이션 어댑터+`codegen:api --check` 드리프트 감지·Vitest unit 프로젝트(25 케이스) | 🔥 이번주 | **#12621**(머지 `6223e8b`) · 독립리뷰 2라운드 반영 8건·스킵 3건 · 생성물 커밋·헤더에 계약 리비전 git 실측 · **부모 계약 이슈 발견**(커서 페이지네이션 — 아래 이월 논의 참조) |
       | ─ **대기·잔여** ─ |  |  |  |
-      | **P0** 0-2~0-10 | 코드젠(0-2)·MSW(0-3)·authProvider mock\|entra(0-4)·App Shell+3상태(0-5)·env·dataProvider·정적 스텁(0-6)·i18n Lingui(0-7)·테스트 하네스+CI 게이트(0-8)·README(0-9)·리뷰용 mock 정적배포(0-10) | ⬜ 대기 | P0 진행중(10 중 1 완료) · **다음 착수=0-2**(부모 OpenAPI 코드젠+커서 페이지네이션 어댑터) · 0-4=risk:auth(mock이 prod 번들 미포함 사람 확인) |
+      | **P0** 0-3~0-10 | MSW(0-3)·authProvider mock\|entra(0-4)·App Shell+3상태(0-5)·env·dataProvider·정적 스텁(0-6)·i18n Lingui(0-7)·테스트 하네스+CI 게이트(0-8)·README(0-9)·리뷰용 mock 정적배포(0-10) | ⬜ 대기 | P0 진행중(10 중 2 완료) · **다음 착수=0-3**(MSW 목 핸들러) · 0-4=risk:auth(mock이 prod 번들 미포함 사람 확인) |
       | **P1** 인증·RBAC·홈 | 1-1~1-9(로그인·`/me` 부트스트랩 분기·리전 스위처·역할별 홈·권한 요청/승인·운영자 관리) | ⬜ 대기 | risk:auth(1-5 매트릭스·1-9 last-admin 가드) · **완료 시 로컬 GW 실데이터 확인 가능** |
       | **P2** enrollment·디바이스 | 2-1~2-5(디바이스 목록/상세·enrollment 승인/거부·수명주기 suspend/resume/kill) | ⬜ 대기 | ★서비스 개통 게이트 · 2-5 kill=비가역 사람 확인 |
       | **P3** 클리닉 | 3-1~3-4(목록/상세·LMP 읽기전용·식별 memo 편집·Device↔Clinic 드릴스루) | ⬜ 대기 | 표시필드 PATCH=봉인(미노출·`spec-v1.0.17`) |
