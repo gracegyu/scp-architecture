@@ -3,9 +3,14 @@
 > **과거 주차(6/25~8/6)는 [`주간회의-Agenda-Archive.md`](주간회의-Agenda-Archive.md)로 이관·보존**(가끔 조회용). 본 문서는 **8/13 현행 주차만** 유지한다. 틀(논의/공유/이월)은 이전 주와 동일하며 **Gantt(S1)·스펙 작성 테이블(S2)은 매주 상시 포함**한다. _※ `(프레임)` 표시 항목은 8/13 회의 시 확정한다._
 
 - 이번 주 진행 _(프레임 · 8/13 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
-  - **[GW 백엔드]** (8/6~8/13 완료) **2단계 자율 구현 진척** — v1.0.12(enroll CSR→IoT Core mTLS cert·Admin API Entra-gated CORS)·P7 커넥터(7-1/2/4/5 골격 + **7-3 AXS 최초 실연동**)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15(enroll Reject·감사 사유)·v1.0.16(clinic.memo·admin clinics 목록/상세)·11-8(admin ClinicInfo 교정)+**v1.0.17 11-8b(표시필드 PATCH v1.0 봉인)**·**T-E2E-12-1(실-AXS e2e 스캐폴드)·12-2(compat 게이팅 e2e)**·**v1.0.18 T-CFG-5-4(compat-matrix YAML→JSON 발행 파이프라인)**·**v1.0.19 T-ADM-11-9(admin device 조회 3라우트=목록·단건·nested·Console P2 선결 BUG-001 해소)** → **Task 단위 상세·PR = 공유 S3**
-  - **[GW Console]** (8/11~8/12 완료) **Sub-SRS + 구현 착수** — 전용 repo `vt-api-gateway-console`에 **SRS baseline v1.0**(#12602 머지·tag `spec-v1.0`·리뷰 민진우·정우혁 반영) + **P0 구현 착수·5 Task 머지**(0-1 스캐폴드[스택 버전 확정·**폰트를 CleverSpace와 통일**]·0-2 코드젠+커서 어댑터·0-3 MSW 목·0-4 authProvider[risk:auth]·0-5 App Shell·0-6 dataProvider 실물·0-7 i18n·0-8 CI 게이트·0-9 README 실검증) → 상세 = 공유 **S4**.
-  - **[제품 연동 스펙]** (잔여) EzServer OnePager 수령 확인.
+  - **[GW 백엔드]** 2단계 자율 구현 진척 · 코어 ~93% _(Task별 상세·PR = 공유 S3)_
+    - **AXS 실연동** — 아웃바운드 happy(orders/patients 200·org id 교정) + 커넥터 토큰·Organization-ID 주입(P7)
+    - **식별 헤더 2계층** — `Vatech-Clinic-Id` 하드 필수·OS/UA best-effort (v1.0.20/21)
+    - **admin device 조회 3라우트** — Console P2 선결·BUG-001 해소 (v1.0.19)
+    - **compat-matrix 발행 파이프라인** + enroll/clinic 정합(Reject·memo·표시필드 봉인) (v1.0.15~18)
+  - **[GW Console]** SRS baseline v1.0 + **P0 완료**(10 Task) _(상세 = 공유 S4)_
+    - 전용 repo 스캐폴드~dataProvider·i18n·CI 게이트
+  - **[제품 연동 스펙]** EzServer OnePager 수령 확인 (잔여)
   - _(이번 주 결정사항 = 회의 시 추가)_
 
 - 논의 사항 (이번 주 · 신규 논의/결정 안건)
@@ -20,8 +25,8 @@
   - **트랙 구분(혼동 방지)** — **GW 백엔드(③)** = S1 Gantt · S2 스펙 테이블 · **S3 구현 현황**(부모 SRS `spec-v1.0.18`·NestJS 코어·구현 Task) / **GW Console(③-C)** = **S4 현황**(전용 repo `vt-api-gateway-console`·frontend·Console SRS. 두 트랙은 **repo·스택·세션이 다르다.** _이번주 진행 항목은 **[GW 백엔드]/[GW Console]/[제품 연동 스펙]** prefix로 트랙을 표시한다._
   - **S1. 프로젝트 일정(Gantt) — 8/13 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **진행률(구현)**:
-      - **GW ≈ 95%**(IP Task 70/74 머지·코어 구현 완료 — 잔여 4개는 ③-I 인프라·Straumann 의존 통합/E2E/배포로 GW 코드가 아님)
-      - **GW Console ≈ 18%**(IP Task 9/51 머지 — P0 0-1~0-9)
+      - **GW ≈ 93%**(IP Task 71/76 — T-E2E-12-1 성격별 3분할[아웃바운드 완료·presign·인바운드]로 total +2·코어 구현 완료 — 잔여 5개 중 GW 착수 가능=1[T-E2E-12-5 presign], 나머지 4개는 ③-I 인프라·Straumann 의존이라 GW 코드 아님)
+      - **GW Console ≈ 20%**(IP Task 10/51 머지 — **P0 완료**)
 
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
     - **범례** — **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · **빨강=외부/미정 선결** / **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
@@ -41,7 +46,7 @@
         section GW 구현 → E2E → 출시 (구현 ~93% · ③ SRS 완료 직후 착수 · 2단계 병행 · Raymond 부분투입)
         1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·완료) :done, implindep, 2026-07-21, 21d
         2단계 AXS 연동 (P7~P12·P8/9/11 병행·P7 AXS 실연동·P12 부분) :active, implaxs, 2026-07-28, 21d
-        AXS E2E (sandbox·12-1 스캐폴드·happy=Straumann 대기)  :e2e, after implaxs, 14d
+        AXS E2E (sandbox·12-1·업무 happy 커버 #12655·webhook 인바운드=③-I 대기)  :e2e, after implaxs, 14d
         개발환경 연동 완료(9월·R2)       :milestone, dev9, 2026-09-30, 0d
         v1.0 production 연동 완료(10월·R2·재검토) :milestone, rel, 2026-10-31, 0d
 
@@ -72,7 +77,7 @@
         프로파일 확정                  :milestone, axsbl, after axsw, 0d
         AXS prod 자격(NDA 후·Straumann·선결) :crit, credp, 2026-08-18, 21d
 
-        section ③-C GW Console — gw/1.0 대응 v1.0 (구현 ~5% · frontend·별도 repo·전규현/Raymond)
+        section ③-C GW Console — gw/1.0 대응 v1.0 (구현 ~20%·P0 완료 · frontend·별도 repo·전규현/Raymond)
         SRS 작성 (8/5)                :done, consrsw, 2026-08-05, 6d
         SRS baseline (#12602·8/11)     :milestone, done, consrspr, 2026-08-11, 0d
         v1.0 구현 (별도 frontend 세션·mock-first) :active, conv1, 2026-08-12, 28d
@@ -167,15 +172,18 @@
       | **P7** 7-4 | 클리닉 self org-binding 자가 등록(`POST /v1/clinics/me/org-bindings`→org_mapping·§2.3.4) | 🔥 이번주 | #12562 |
       | **P7** 7-5 | presigned 중계 리전 guardrail wiring(TC-REG-42·§7.3.3·verbatim 중계=P6 기구현) | 🔥 이번주 | #12564 · 독립리뷰 Critical/High 다수 차단 |
       | **P7** 7-2 | egress allowlist SSOT+PDP egress 집행(fail-closed·§7.5.3) | 🔥 이번주 | #12564(7-5 와 공동 PR) · egress 집행 로직은 P4 T-REG-4-4(#12187)에 기구현 → 이번주 7-2 Task 로 확인·종결 |
-      | **P7** 7-3 | AXS 커넥터 최초 실연동(아웃바운드 커넥터 토큰·Organization-ID 주입·verbatim·fail-closed) | 🔥 이번주 | #12584(Phase1) · AXS PPR 샌드박스 자격 확보 → 아웃바운드 배선(토큰/Org-ID 주입·스푸핑 차단)·실 AXS 왕복 실측 · 업무 API happy=AXS org **consent 선결**(Straumann 수령 대기) |
-      | **T-E2E-12-1** 실-AXS e2e | 실-AXS regression 스위트(skip-가드·`test:e2e:axs`)+아웃바운드 실측 3케이스 · **실 AXS 가 GW gzip content-encoding 버그 노출·수정**(모든 gzip 업스트림 영향) | 🔥 이번주 | #12600(Phase2) · 업무 happy=consent·인바운드 webhook=공개 ingress·CI 게이트=변수그룹 후속 |
+      | **P7** 7-3 | AXS 커넥터 최초 실연동(아웃바운드 커넥터 토큰·Organization-ID 주입·verbatim·fail-closed) | 🔥 이번주 | #12584(Phase1) · AXS PPR 샌드박스 자격 확보 → 아웃바운드 배선(토큰/Org-ID 주입·스푸핑 차단)·실 AXS 왕복 실측 · 업무 API happy=**해소**(#12655·org id 교정 `ea789014`→`a1fb9b17`·customerNumber 불필요) |
+      | **T-E2E-12-1** AXS 아웃바운드 e2e | 실-AXS regression(토큰·Org-ID 주입·verbatim·**orders/patients happy 200**·org 미연동 403 fail-closed)·실 AXS gzip 버그 수정 | ✅ 완료 | #12584/#12600/**#12655** · **성격별 3분할**(아웃바운드 완료/presign/인바운드) · happy 500 원인=우리 org id 오설정(`ea789014`→approve org `a1fb9b17`)·**customerNumber 불필요** |
+      | **T-E2E-12-5** AXS presign 중계 e2e | presign 발급 중계·바이트 GW 미경유·fss guardrail(E2E-SYS-03·아웃바운드) | 🟡 착수가능 | **GW 몫·공개 ingress 불요**(12-1 배선 재사용) · 선행=sandbox 실 파일/order 존재 조사 · 로컬 더블(proxy.e2e) 커버 |
+      | **T-E2E-12-6** AXS 인바운드+MQTT e2e | 실 AXS→GW webhook 왕복(E2E-SYS-02)+역방향 MQTT 다운링크 실 IoT | 🔴 대기 | ③-I **공개 ingress + 실 IoT Core** 선결(T-DISP-9-5 연관) · 로컬 더블(sys-02) 커버 유지 |
       | **T-E2E-12-2** compat 게이팅 e2e | semver 3단계 게이팅(TC-CFG-18~22·major 차단·minor 경고·patch 무시·헤더 누락·originator/Via worst)을 **실 HTTP 왕복**으로 재실행(실 미들웨어+실 가드·**프로덕션 코드 무변경·순수 테스트**) | 🔥 이번주 | #12606 초판(17)→ **v1.0.18에서 고정 fixture로 운영 분리·33 케이스 확장(#12612)** · 가드=opt-in·실 EP 미배선이라 테스트 probe 에 실 가드 부착 · 독립리뷰 High/Med 0 |
       | **v1.0.18** T-CFG-5-4 compat-matrix 발행 | 호환성 매트릭스 **YAML(SSOT)→JSON 렌더러·발행 파이프라인·검증**(정합화·계약/DB 무변경) — 발행 게이트(스키마·표준 errorCode/제품 allowlist·id 유일·≤8KB) · 생성 JSON 미커밋(gitignore·SSOT=yaml) · **행동 e2e는 고정 fixture로 운영과 분리**·yaml→json→서빙 파이프라인 e2e 신설 | 🔥 이번주 | #12612 + #12613(파이프라인 분리) · **compat-matrix.yml=validate 전용**(GW 단독·**등록됨·Azure 실행 succeeded**·PR 게이트) / **compat-matrix-publish.yml=publish**(③-I grant 선결이라 repo 저작만·**등록은 ③-I 나중에**·Azure는 커넥션을 파싱시점 검사라 분리 불가피) · 독립리뷰 2회(High/Med 0·48/48 실행검증) · 실 min 값=One Pager 후 |
       | **v1.0.19** T-ADM-11-9 device 조회 3라우트 | admin device **목록·단건·clinic nested** GET 신설(`getAdminDevices`·`getAdminDevicesById`·`getAdminClinicDevices`→`DevicePage`/`Device`) — 계약엔 있으나 미구현(404)이던 갭(BUG-001) · status·clinicId 필터(exact)·커서·clinic 요약 임베드(#47·N+1 회피) · 조회 전용 `DeviceReadService` 분리 · `DEVICE_READ_ROLES`=admin/op/dev/**cs**(cs=승인 큐 조회 주체) | 🔥 이번주 | #12637 · **Console P2(디바이스 화면·SCR-DEV-01~03) 선결 해소** · 지시서 §B(목록 2)+버그(단건 1) 범위 병합 · unit 14·e2e 11(실 DB·커서 2p flat+nested·RBAC 4역할·401/403/404/400·read-only)·admin 542 회귀 green · 독립 적대 리뷰 10항목 0건 · A/C(엔벨로프·limit)=코드 무변경 · UnitTCL/§7.9.2 cs 근거=스펙 후속 |
+      | **v1.0.20/21** T-CFG-5-1 식별 헤더 2계층 | §7.7.1 식별 헤더 필수성 **2계층** 정합 — 하드 필수(`Vatech-Product`·`Version`·**`Clinic-Id`**)/best-effort(`OS`·`User-Agent`·omit·누락 비오류) · **실측 델타=Clinic-Id 선택→하드 필수화**(OS·UA는 이미 정합) · 전역 유지(enroll/token 포함·`/.well-known`·`/health` 면제) · clinic-less 확장 여지 메모 | 🔥 이번주 | #12646 · header.middleware unit 2계층 재작성(TC-CFG-21 하드필수 3종 누락 400·21b OS·UA 누락 통과)·`VATECH_TEST_HEADERS`+e2e 반영·**전체 e2e 518 green**·독립 적대 리뷰 actionable 0 · 한계=중복헤더 rawHeaders 후속·enroll/token 클라 헤더 ③-P 확인 · OpenAPI/DBML 무변경·UnitTCL 문안=스펙 세션(v1.0.21) |
       | ─ **대기·무영향** ─ |  |  |  |
       | **P0** 0-5 | CI 파이프라인·Dockerfile(4타겟·스캔·lint·build·unit·e2e 게이트)=완료 · **자동배포(CD) 잔여** — ECR/ArgoCD·main→DEV·tag prefix→TEST/PROD(deploy stage `condition:false` 자리표시자·T-PLAT-0-5 `[~]부분완료`) | 🔴 부분 | ③-I(Jack Azure Flow 템플릿 수령 후) · Dockerfile es-base 전환(0-5b)=완료(#12163) |
       | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | 🔴 대기 | ③-I/④ IoT Core(cert 발급 app-side=v1.0.12(A) 완료·DBML `iot_certificate_id`=스펙 세션) |
-      | **P12 E2E·하드닝** | 12-1 AXS sandbox E2E(부분·#12600) · **12-2 compat E2E=완료(#12606·이번주)** · 12-3 부하 · 12-4 HA/KEDA | ◑ 진행 | 🔴 잔여 선결: 12-1 happy=④ AXS consent · 12-3=부하환경 · 12-4=③-I(Multi-AZ) |
+      | **P12 E2E·하드닝** | **12-1 아웃바운드=완료(#12655)** · 12-5 presign · 12-6 인바운드+MQTT · **12-2 compat=완료(#12606)** · 12-3 부하 · 12-4 HA/KEDA | ◑ 진행 | 🔴 잔여: **12-5=GW 착수가능**(실 파일 조사) · 12-6=③-I 공개 ingress+실 IoT · 12-3=부하환경 · 12-4=③-I(Multi-AZ) |
 
   - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/13 재측정·post-v1.0.12/P7/시스템-E2E · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산). **정지트리 실측·merged floor 게이트 통과**(v1.0.12 A/B·7-1/2/4/5·시스템 E2E SYS-01/02/04/05 반영). _(v1.0.15 T-ENR-3-7·v1.0.16 T-ADM-11-7 반영 재측정은 각 머지 후 정지트리에서 수행 — 신규 로직 전부 unit+e2e 동반이라 floor 유지 예상.)_
 
@@ -213,9 +221,9 @@
       | **P0** 0-7 | i18n(Lingui) 스캐폴드 — ko_KR·en_US(POSIX)·소스=영어 원문 msgid·PO 카탈로그 + 국제화 공통 모듈(UTC+로컬 병기·24시간제) | 🔥 이번주 | **#12633**(머지 `1df11b5`) · 추출 5·미번역 0 · **리뷰 2라운드가 커서 버그 2건 적발**(Refine이 되돌려주는 cursor를 안 읽어 같은 페이지 무한 append / 숫자 페이지를 조용히 버려 1페이지가 2페이지로 표시) — 모두 수정·회귀 테스트 · Lingui v6 CLI가 Node 22+ 전용이라 v5 고정 |
       | **P0** 0-8 | 테스트 하네스 완성(Playwright e2e·axe a11y·커버리지 floor) + **CI 게이트 배선**(`azure-pipelines.yml` 8게이트·부모 레포 동반 체크아웃으로 계약 드리프트 실대조) | 🔥 이번주 | **#12636**(머지 `4a5c857`) · 126 unit+component·e2e 3·a11y 1·커버리지 88.8/87.7/87.7/90.8 · **빌드 게이트를 최악 조합(mock+prod)으로 실행**해 `.env` 오배포 시나리오를 실제로 검사 · 리뷰 반영 5건 중 연쇄 적발(e2e가 목 모드가 아니었음→StrictMode 중복 start 오류→리팩터가 만든 MSW 번들 잔존) · **부모 `spec-v1.0.19` 반영 동반**(13종 `*Page` 확보·degrade 어댑터 제거) · **잔여: Build validation 등록(사람 1회)** |
       | **P0** 0-9 | 제품 레포 README — **신규 클론 실검증**(문서 작성이 아니라 dod가 요구한 "클론 후 기동 성공"을 실제로 수행) | 🔥 이번주 | **#12639**(머지 `078c0f5`) · 빈틈 2건 발견·보완(목 모드 켜는 법 부재·Playwright 브라우저 설치 안내 부재) · **리뷰 High 2건=화면 차단급**(`targets`는 계약상 비페이지 배열인데 계약 위반으로 던져 SCR-TGT-01 항상 실패 / ★개통 게이트 `PATCH devices/{id}`가 200+빈 본문인데 204만 걸러내 JSON 파싱 오류) · CI 계약 체크아웃을 IP 동결 태그로 고정 |
+      | **P0** 0-10 | 리뷰용 mock 정적 프리뷰(빌드·서빙·배포 스크립트+CI stage) — **P0 완료(10/10)** | 🔥 이번주 | **#12644**(머지 `bdc32ae`) · 미결 3건 처리(프리뷰 전용 플래그로 인증 가드 충돌 해소·정적 export는 프리뷰만·mockServiceWorker prod 제외는 8-4) · **가드를 열며 실제 유출을 게이트가 적발**(미설정 `NEXT_PUBLIC_*`은 치환되지 않아 조건이 안 접힘 → 목이 prod 번들에 실림) · `verify:bundle` 양방향화 · 리뷰 반영 6건 · **잔여: 배포 인프라 grant(③-I) 요청서 별도 PR** |
       | ─ **대기·잔여** ─ |  |  |  |
-      | **P0** 0-10 | 리뷰용 mock 정적배포(설치 0 링크 공유) | ⬜ 대기 | P0 진행중(**10 중 9 완료**) · **다음 착수=0-10**(P0 마지막) · 여기서 미결 3건 정리: 정적 export 전환·프리뷰 배포와 인증 가드 충돌·`public/mockServiceWorker.js` 배포 제외 |
-      | **P1** 인증·RBAC·홈 | 1-1~1-9(로그인·`/me` 부트스트랩 분기·리전 스위처·역할별 홈·권한 요청/승인·운영자 관리) | ⬜ 대기 | risk:auth(1-5 매트릭스·1-9 last-admin 가드) · **완료 시 로컬 GW 실데이터 확인 가능** |
+      | **P1** 인증·RBAC·홈 | 1-1~1-9(로그인·`/me` 부트스트랩 분기·리전 스위처·역할별 홈·권한 요청/승인·운영자 관리) | ⬜ 대기 | **P0 전부 완료 → 다음 착수=P1** · risk:auth(1-5 매트릭스·1-9 last-admin 가드) · **완료 시 로컬 GW 실데이터 확인 가능** |
       | **P2** enrollment·디바이스 | 2-1~2-5(디바이스 목록/상세·enrollment 승인/거부·수명주기 suspend/resume/kill) | ⬜ 대기 | ★서비스 개통 게이트 · 2-5 kill=비가역 사람 확인 |
       | **P3** 클리닉 | 3-1~3-4(목록/상세·LMP 읽기전용·식별 memo 편집·Device↔Clinic 드릴스루) | ⬜ 대기 | 표시필드 PATCH=봉인(미노출·`spec-v1.0.17`) |
       | **P4** 연동 대상·정책·org-mapping | 4-1~4-4(target 등록 3섹션 폼·삭제 409 가드·정책 편집·org-mapping 관리) | ⬜ 대기 | credential 마스킹 · stale-write 베이스라인(4-3) |
