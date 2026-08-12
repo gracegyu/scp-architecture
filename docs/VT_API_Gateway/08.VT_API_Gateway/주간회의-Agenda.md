@@ -4,7 +4,7 @@
 
 - 이번 주 진행 _(프레임 · 8/13 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
   - **[GW 백엔드]** (8/6~8/13 완료) **2단계 자율 구현 진척** — v1.0.12(enroll CSR→IoT Core mTLS cert·Admin API Entra-gated CORS)·P7 커넥터(7-1/2/4/5 골격 + **7-3 AXS 최초 실연동**)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15(enroll Reject·감사 사유)·v1.0.16(clinic.memo·admin clinics 목록/상세)·11-8(admin ClinicInfo 교정)+**v1.0.17 11-8b(표시필드 PATCH v1.0 봉인)**·**T-E2E-12-1(실-AXS e2e 스캐폴드)·12-2(compat 게이팅 e2e)**·**v1.0.18 T-CFG-5-4(compat-matrix YAML→JSON 발행 파이프라인)** → **Task 단위 상세·PR = 공유 S3**
-  - **[GW Console]** (8/11~8/12 완료) **Sub-SRS + IP baseline** — 전용 repo `vt-api-gateway-console`에 **SRS baseline v1.0**(#12602 머지·tag `spec-v1.0`·리뷰 민진우·정우혁 반영) + **Console IP v1.0 baseline**(8/12·PL=Raymond·ip-reviewer+사람 리뷰). 구현=별도 frontend 세션 대기 → 상세 = 공유 **S4**.
+  - **[GW Console]** (8/11~8/12 완료) **Sub-SRS + IP baseline + 구현 착수** — 전용 repo `vt-api-gateway-console`에 **SRS baseline v1.0**(#12602 머지·tag `spec-v1.0`·리뷰 민진우·정우혁 반영) + **Console IP v1.0 baseline**(8/12·PL=Raymond·ip-reviewer+사람 리뷰) + **P0 구현 착수**(`T-FE-0-1` 스캐폴드 #12617 머지·스택 버전 확정·**폰트를 CleverSpace와 통일**) → 상세 = 공유 **S4**.
   - **[제품 연동 스펙]** (잔여) EzServer OnePager 수령 확인.
   - _(이번 주 결정사항 = 회의 시 추가)_
 
@@ -21,7 +21,7 @@
     - **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
     - **병행 별도 프로젝트**: `SectionView Module 구현`(7/13~2주·Raymond·**GW 아님**·완료)은 `▷ 병행` 섹션에 표기
-    - **GW 구현 = 2단계 병행(유지)** — 1단계 GW 독립 코어(P0~P6·P10)는 ③ baseline 고정으로 **정상 진행**(IO Scanner 보류 영향 없음). 2단계 AXS 연동(P7~P12)은 **PPR sandbox 자격 확보로 착수 가능**(prod 자격=NDA후·§S3).
+    - **GW 구현 = 1단계 완료·2단계 진행중** — 1단계 GW 독립 코어(P0~P6·P10)는 ③ baseline 고정으로 **완료**(IO Scanner 보류 영향 없음·잔여=T-PLAT-0-5 자동배포=③-I 인프라·코어코드 아님). 2단계 AXS 연동(P7~P12)은 **PPR sandbox 자격 확보로 착수·대부분 완료**(P7 AXS 실연동·시스템/compat E2E·P12 부분 — AXS 업무 happy-path=Straumann consent 대기·부하/HA=③-I·prod 자격=NDA후·§S3).
 
     ```mermaid
     gantt
@@ -36,9 +36,9 @@
         baseline v1.0 (7/20 확정·spec-v1.0.1 정합화 7/22) :milestone, done, srsbl, 2026-07-20, 0d
 
         section GW 구현 → E2E → 출시 (③ SRS 완료 직후 착수 · 2단계 병행 · Raymond 부분투입)
-        1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·진행중) :active, implindep, 2026-07-21, 21d
-        2단계 AXS 연동 (P7~P12·④ AXS 보류 해제 후)   :implaxs, after implindep, 7d
-        AXS E2E (sandbox)              :e2e, after implaxs, 14d
+        1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·완료) :done, implindep, 2026-07-21, 21d
+        2단계 AXS 연동 (P7~P12·P8/9/11 병행·P7 AXS 실연동·P12 부분) :active, implaxs, 2026-07-28, 21d
+        AXS E2E (sandbox·12-1 스캐폴드·happy=Straumann 대기)  :e2e, after implaxs, 14d
         개발환경 연동 완료(9월·R2)       :milestone, dev9, 2026-09-30, 0d
         v1.0 production 연동 완료(10월·R2·재검토) :milestone, rel, 2026-10-31, 0d
 
@@ -72,8 +72,8 @@
         section ③-C GW Console — gw/1.0 대응 v1.0 (frontend·별도 repo·전규현/Raymond)
         SRS 작성 (8/5)                :done, consrsw, 2026-08-05, 6d
         SRS baseline (#12602·8/11)     :milestone, done, consrspr, 2026-08-11, 0d
-        Console IP v0.1 (8/11)         :done, conip, 2026-08-11, 1d
-        v1.0 구현 (별도 frontend 세션·mock-first) :conv1, after conip, 28d
+        Console IP v1.0 baseline (8/12) :milestone, done, conip, 2026-08-12, 0d
+        v1.0 구현 (별도 frontend 세션·mock-first) :active, conv1, 2026-08-12, 28d
         v1.0 최소기능 완료             :milestone, conv1m, after conv1, 0d
         section ③-C GW Console 후속 (gw/1.1·gw/1.2·GW-무관 부가 — 일정 미고정·상당 후행)
         후속 확장 (해당 GW 역량 활성 후·부가는 요청 시 그때그때) :conv2, after conv1m, 30d
@@ -191,29 +191,33 @@
     | **CI 게이트 floor — ③ 핵심파일(개별·branch)** | —          | **90**      | —          | —          |
 
   - **S4. GW Console(③-C) 현황 — frontend · 전용 repo (8/13)** _(GW 백엔드=S3와 분리 — repo·스택·세션 다름)_
-    - **repo·스택**: `vt-api-gateway-console`(전용) · Next.js + Refine(headless) + shadcn/ui + TanStack Query · 부모 GW Admin API를 **코드젠으로 소비**(자체 백엔드 없음).
+    - **repo·스택**: `vt-api-gateway-console`(전용) · Next.js + Refine(headless) + shadcn/ui + TanStack Query · 부모 GW Admin API를 **코드젠으로 소비**(자체 백엔드 없음). **버전 확정(8/12·T-FE-0-1)** = Next 16.3.0(App Router·Turbopack)·React 19.2.8·Refine 5.0.12·TanStack Query 5.101.4·shadcn CLI 4.17.0(base=radix·Tailwind v4)·pnpm 9.15.9 · dev 포트 3100.
+    - **폰트 = CleverSpace(호스트)와 통일(8/12)**: `'Noto Sans','Noto Sans KR','Segoe UI',sans-serif`. 단 로딩은 Google Fonts CDN 링크가 아니라 **`next/font` 자체 호스팅** — 런타임 외부 요청이 없어 CSP 허용 도메인을 늘리지 않는다(SRS §6.2·C-3). _(Next 템플릿 기본값 Geist는 한글 글리프가 없어 한글이 브라우저 기본 폰트로 떨어지던 문제도 함께 해소.)_
     - **SRS**: ✅ **baseline v1.0**(#12602 머지 8/11 · tag `spec-v1.0`). gw/1.0 대응 완전 규격 + gw/1.1·gw/1.2·후속은 방향. 리뷰(민진우·정우혁) 반영·스레드 resolve.
     - **IP**: ✅ **baseline v1.0**(8/12 · PL=Raymond · ip-reviewer 점검 + 사람 리뷰 · `abc-dev-assistant/projects/vt-api-gateway-console/`·P0~P8·51 Task). 범위 = **gw/1.0 baseline(필수+주요)**. 부모 계약 핀 = `spec-v1.0.18`.
-    - **다음**: 별도 **frontend 세션** 오픈 → P0(스캐폴드·codegen·MSW·mock-first)부터. **Entra/실 GW 없이 mock으로 대부분 진행 가능**(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
+    - **구현 착수(8/12)**: 별도 **frontend 세션** 오픈 완료 → P0 진행중(`T-FE-0-1` 스캐폴드 **PR #12617 머지**). Task 단위 PR → 사람 머지(유인 모드·IP §7). **Entra/실 GW 없이 mock으로 대부분 진행 가능**(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
+    - **로컬 실데이터 확인 시점**: GW Admin이 Entra-gated라 **P1(인증·RBAC) 완료 후**부터 로컬 GW(Docker)+로컬 Postgres 실데이터를 브라우저로 상시 확인 가능(P8 대기 불필요). 그 전에는 MSW mock 화면.
     - **GW(백엔드)와의 경계**: Console = Admin API(§7.9) 소비 + well-known/Region Directory 읽기만. **구현 경계** — enroll cert 발급·operator authz 복제·compat-matrix 발행은 **GW/③-I 소관(Console 아님)**. Console→부모 계약 반영은 부모 spec PR로(예: 표시필드 PATCH 봉인=`spec-v1.0.17`).
-    - **상태 범례**: ✅ 완료 · 🟠 진행중 · ⬜ 착수 대기(frontend 세션 전) · 🔴 외부/인프라 선결
-    - **Phase 현황 (8/13)** — 스펙·IP = 완료, 구현 = 별도 frontend 세션 착수 대기(mock-first). _(S3 GW 백엔드와 동일 형식 · 구현 시작 시 Task 단위로 전개)_
+    - **참고** — 계약=Console SRS baseline(`spec-v1.0`) 동결·부모 계약 핀 `spec-v1.0.18` · Task별 검증(`typecheck`·`lint`·`format:check`·`build` + 각 Task `dod[]`) · **PR 전 독립 적대 리뷰 게이트**(`rv_prompt`·CodeReviewAgent 동일 규칙) 통과 필수 · 매 Task 완료 시 갱신
+    - **상태 범례**(S3와 동일): 🔥 **이번주 완료**(8/6 회의 이후 main merge) · ✅ 이전 완료 · 🟠 진행중/착수예정 · ⬜ 대기 · 🔴 외부/인프라 선결. **표기 규칙(8/13)**: **이번주 완료(🔥)는 Task 단위**로 전개(진척 가시화) · **완료 Phase(지난주까지·전체 동일 상태)는 Phase 1행**으로 묶음 · **Phase 내 상태가 다른 Task만 별도 행**(예: P0-1) · 미착수 Phase = 1행.
 
-      | Phase / 항목 | 범위 | 상태 | 비고 |
+      | Phase / Task | 범위 | 상태 | PR·비고 |
       | --- | --- | --- | --- |
-      | ─ **선행 (스펙·계획)** ─ |  |  |  |
-      | **Console SRS** | gw/1.0 대응 완전 규격 + gw/1.1·1.2·후속 방향 | ✅ baseline v1.0 | #12602 머지 8/11 · tag `spec-v1.0` · 리뷰(민진우·정우혁) 반영 |
-      | **Console IP** | P0~P8 · 51 Task · gw/1.0 범위 | ✅ baseline v1.0 | 8/12 · PL=Raymond · ip-reviewer+사람 리뷰 · 부모 핀 `spec-v1.0.18` |
-      | ─ **구현 (별도 frontend 세션 · 착수 대기)** ─ |  |  |  |
-      | **P0** 스캐폴드·툴체인 | Next.js+Refine+shadcn+TanStack · OpenAPI codegen · MSW · authProvider(mock\|entra) · App Shell · CI · 리뷰용 정적배포 | ⬜ 대기 | 착수 진입점 · mock-first |
-      | **P1** 인증·RBAC·홈 | 로그인 · `/me` 부트스트랩 분기 · 리전 스위처 · 역할별 홈 · 권한 요청/승인 · 운영자 관리 | ⬜ 대기 | risk:auth(1-5 매트릭스·1-9 last-admin 가드) |
-      | **P2** enrollment·디바이스 | 디바이스 목록/상세 · enrollment 승인/거부 · 수명주기(suspend/resume/kill) | ⬜ 대기 | ★서비스 개통 게이트 |
-      | **P3** 클리닉 | 목록/상세 · LMP 읽기전용 · 식별 memo 편집 · Device↔Clinic 드릴스루 | ⬜ 대기 | 표시필드 PATCH=봉인(미노출·`spec-v1.0.17`) |
-      | **P4** 연동 대상·정책·org-mapping | target 등록(3섹션 폼) · 정책 편집 · org-mapping 관리 | ⬜ 대기 | credential 마스킹 |
-      | **P5** webhook·break-glass | 이벤트 메타 조회 · payload break-glass 열람(PHI) | ⬜ 대기 | risk:security(5-3 PHI 마스킹) |
-      | **P6** fleet·config·매트릭스·감사 | fleet 대시보드 · SW 인벤토리 · 중앙 config · **매트릭스 뷰어(읽기전용)** · 감사 로그 | ⬜ 대기 | 매트릭스 발행은 GW 소관(Console=뷰어) |
-      | **P7** 공통 UX·i18n·동시성·보안 | 세션 만료 · 403 · 오류 재시도 · stale-write 전체 적용 · i18n · 보안 리뷰 · 접근성 | ⬜ 대기 | risk:security(7-6 저장 점검) |
-      | **P8** 실 e2e·시각회귀·배포 | Entra dev 전환 · staging GW e2e · 시각 baseline 승인 · prod 배포 | ⬜ 대기 | 🔴 선결 C-2(Entra)·C-10(도메인)·C-3(CORS)=③-I/IT |
+      | ─ **선행 스펙·계획 (완료·1행)** ─ |  |  |  |
+      | **Console SRS** | gw/1.0 대응 완전 규격 + gw/1.1·1.2·후속 방향 | ✅ 완료 | #12602 머지 8/11 · baseline `spec-v1.0` · 리뷰(민진우·정우혁) 반영 |
+      | **Console IP** | P0~P8 · 51 Task · gw/1.0 범위 | ✅ 완료 | baseline v1.0(8/12) · PL=Raymond · ip-reviewer+사람 리뷰 · 부모 핀 `spec-v1.0.18` |
+      | ─ **이번주 완료 🔥 (8/6~8/13·Task 단위) + 진행 Phase(P0)** ─ |  |  |  |
+      | **P0** 0-1 | Next 16.3.0+Refine 5(headless)+shadcn(radix·Tailwind v4)+TanStack Query 스캐폴드 · dev 포트 3100 · `app/`+`src/`(별칭 `@/*`→`./src/*`) · ESLint+Prettier · 온보딩 README · `.env.example` · **폰트 CleverSpace 통일**(Noto Sans/KR·next/font 자체 호스팅) | 🔥 이번주 | **#12617**(머지 `5d20fbc`) · 독립리뷰 2라운드 반영 12건·스킵 1건(테스트 하네스=0-8) · 실결함 3건 수정(한글 폰트 폴백 미종결·`font-mono` 무동작·Node 20.9/20.10 config 로드 사망) · dataProvider=자리표시자(0-2/0-6에서 교체) · 정적 export 전환=0-10 이연 |
+      | ─ **대기·잔여** ─ |  |  |  |
+      | **P0** 0-2~0-10 | 코드젠(0-2)·MSW(0-3)·authProvider mock\|entra(0-4)·App Shell+3상태(0-5)·env·dataProvider·정적 스텁(0-6)·i18n Lingui(0-7)·테스트 하네스+CI 게이트(0-8)·README(0-9)·리뷰용 mock 정적배포(0-10) | ⬜ 대기 | P0 진행중(10 중 1 완료) · **다음 착수=0-2**(부모 OpenAPI 코드젠+커서 페이지네이션 어댑터) · 0-4=risk:auth(mock이 prod 번들 미포함 사람 확인) |
+      | **P1** 인증·RBAC·홈 | 1-1~1-9(로그인·`/me` 부트스트랩 분기·리전 스위처·역할별 홈·권한 요청/승인·운영자 관리) | ⬜ 대기 | risk:auth(1-5 매트릭스·1-9 last-admin 가드) · **완료 시 로컬 GW 실데이터 확인 가능** |
+      | **P2** enrollment·디바이스 | 2-1~2-5(디바이스 목록/상세·enrollment 승인/거부·수명주기 suspend/resume/kill) | ⬜ 대기 | ★서비스 개통 게이트 · 2-5 kill=비가역 사람 확인 |
+      | **P3** 클리닉 | 3-1~3-4(목록/상세·LMP 읽기전용·식별 memo 편집·Device↔Clinic 드릴스루) | ⬜ 대기 | 표시필드 PATCH=봉인(미노출·`spec-v1.0.17`) |
+      | **P4** 연동 대상·정책·org-mapping | 4-1~4-4(target 등록 3섹션 폼·삭제 409 가드·정책 편집·org-mapping 관리) | ⬜ 대기 | credential 마스킹 · stale-write 베이스라인(4-3) |
+      | **P5** webhook·break-glass | 5-1~5-3(이벤트 메타 조회·payload break-glass 열람 PHI) | ⬜ 대기 | risk:security(5-3 PHI 마스킹) · 열람 역할=C-5 확정 대기(잠정 admin) |
+      | **P6** fleet·config·매트릭스·감사 | 6-1~6-5(fleet 대시보드·SW 인벤토리·중앙 config·**매트릭스 뷰어**·감사 로그) | ⬜ 대기 | 매트릭스 발행은 GW 소관(Console=뷰어) |
+      | **P7** 공통 UX·i18n·동시성·보안 | 7-1~7-7(세션 만료·403·오류 재시도·stale-write 전체 적용·i18n·보안 리뷰·접근성/시각회귀 게이트) | ⬜ 대기 | risk:security(7-6 저장 점검) |
+      | **P8** 실 e2e·시각회귀·배포 | 8-1~8-4(Entra dev 전환·staging GW e2e·시각 baseline 승인·prod 배포) | 🔴 대기 | 선결 C-2(Entra)·C-10(도메인)·C-3(CORS)=③-I/IT · C-10 미확정 시 8-4는 BLOCKER |
 
   - **S4-1. 커버리지 계획 (frontend · 착수 후 실측 · S3-1 대응)** — Console도 커버리지 측정·CI floor 게이트를 둔다(SRS §3.5·§3.6.2). **BE와 방식 차이**: BE의 merged(unit+e2e 합산·보안파일 개별 100%) 대신, Console은 **Vitest(v8) 기준 unit+component 커버리지**를 정본으로 하고 e2e는 여정 커버리지로 별도 관리. **실측 값은 `T-FE-0-8`(테스트 하네스) 이후·각 Task 완료 시** 아래 표에 채운다(현재 미착수라 값 없음).
     - **측정 대상·비대상**: 라인% = Vitest(unit+component) · **e2e(Playwright)** = 핵심 여정 커버리지 체크리스트(로그인·enroll 승인·break-glass·RBAC 403·리전 컨텍스트) · **시각회귀·접근성(axe)** = %가 아닌 pass/fail 게이트.
