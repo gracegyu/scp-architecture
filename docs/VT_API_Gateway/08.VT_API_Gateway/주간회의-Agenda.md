@@ -4,7 +4,7 @@
 
 - 이번 주 진행 _(프레임 · 8/13 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
   - **[GW 백엔드]** (8/6~8/13 완료) **2단계 자율 구현 진척** — v1.0.12(enroll CSR→IoT Core mTLS cert·Admin API Entra-gated CORS)·P7 커넥터(7-1/2/4/5 골격 + **7-3 AXS 최초 실연동**)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15(enroll Reject·감사 사유)·v1.0.16(clinic.memo·admin clinics 목록/상세)·11-8(admin ClinicInfo 교정)+**v1.0.17 11-8b(표시필드 PATCH v1.0 봉인)**·**T-E2E-12-1(실-AXS e2e 스캐폴드)·12-2(compat 게이팅 e2e)**·**v1.0.18 T-CFG-5-4(compat-matrix YAML→JSON 발행 파이프라인)** → **Task 단위 상세·PR = 공유 S3**
-  - **[GW Console]** (8/11~8/12 완료) **Sub-SRS + IP baseline + 구현 착수** — 전용 repo `vt-api-gateway-console`에 **SRS baseline v1.0**(#12602 머지·tag `spec-v1.0`·리뷰 민진우·정우혁 반영) + **Console IP v1.0 baseline**(8/12·PL=Raymond·ip-reviewer+사람 리뷰) + **P0 구현 착수**(`T-FE-0-1` 스캐폴드 #12617 머지·스택 버전 확정·**폰트를 CleverSpace와 통일**) → 상세 = 공유 **S4**.
+  - **[GW Console]** (8/11~8/12 완료) **Sub-SRS + 구현 착수** — 전용 repo `vt-api-gateway-console`에 **SRS baseline v1.0**(#12602 머지·tag `spec-v1.0`·리뷰 민진우·정우혁 반영) + **P0 구현 착수**(`T-FE-0-1` 스캐폴드 #12617 머지·스택 버전 확정·**폰트를 CleverSpace와 통일**) → 상세 = 공유 **S4**.
   - **[제품 연동 스펙]** (잔여) EzServer OnePager 수령 확인.
   - _(이번 주 결정사항 = 회의 시 추가)_
 
@@ -12,7 +12,7 @@
   - _(이번 주 결정사항 = 스펙 세션 정리 후 반영 · 회의 중 신규 안건 발생 시 여기 추가 · 보류·선결은 아래 「이월 논의 사항」 표 참조.)_
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
-  - **트랙 구분(혼동 방지)** — **GW 백엔드(③)** = S1 Gantt · S2 스펙 테이블 · **S3 구현 현황**(부모 SRS `spec-v1.0.18`·NestJS 코어·구현 Task) / **GW Console(③-C)** = **S4 현황**(전용 repo `vt-api-gateway-console`·frontend·Console SRS+IP baseline·별도 세션). 두 트랙은 **repo·스택·세션이 다르다.** _이번주 진행 항목은 **[GW 백엔드]/[GW Console]/[제품 연동 스펙]** prefix로 트랙을 표시한다._
+  - **트랙 구분(혼동 방지)** — **GW 백엔드(③)** = S1 Gantt · S2 스펙 테이블 · **S3 구현 현황**(부모 SRS `spec-v1.0.18`·NestJS 코어·구현 Task) / **GW Console(③-C)** = **S4 현황**(전용 repo `vt-api-gateway-console`·frontend·Console SRS. 두 트랙은 **repo·스택·세션이 다르다.** _이번주 진행 항목은 **[GW 백엔드]/[GW Console]/[제품 연동 스펙]** prefix로 트랙을 표시한다._
   - **S1. 프로젝트 일정(Gantt) — 8/13 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **정본 = 본 Agenda(S1 Gantt).** _개발 Roadmap 결정.md는 폐기(더 이상 사용 안 함) — 이 스냅샷이 현행 정본이며 여기서 직접 갱신한다._
     - **8/6→8/13 변경**:
@@ -72,7 +72,6 @@
         section ③-C GW Console — gw/1.0 대응 v1.0 (frontend·별도 repo·전규현/Raymond)
         SRS 작성 (8/5)                :done, consrsw, 2026-08-05, 6d
         SRS baseline (#12602·8/11)     :milestone, done, consrspr, 2026-08-11, 0d
-        Console IP v1.0 baseline (8/12) :milestone, done, conip, 2026-08-12, 0d
         v1.0 구현 (별도 frontend 세션·mock-first) :active, conv1, 2026-08-12, 28d
         v1.0 최소기능 완료             :milestone, conv1m, after conv1, 0d
         section ③-C GW Console 후속 (gw/1.1·gw/1.2·GW-무관 부가 — 일정 미고정·상당 후행)
@@ -96,7 +95,7 @@
       | **EzServer(EZ)** | ⬜ IO Scanner 데이터 수신(방식 R1·**보류**·TBD) | 🟡 헤더 대리 전달 | 🟡 전송 로직(presigned 직접) | 🟡 GW 경유 전환 | 🟡 ClinicID·Region·클리닉 등록(잠정) | 🟡 AXS(갈래A)·presigned 직접(IO Scanner 세부=TBD) | ⬜ Rust 재개발 | **🟡 ③-P-EZ One Pager 초안 작성됨**(Raymond→EzServer 팀) — `specs/03p-ez-ezserver/EzServer-GW적응-OnePager.md` · ④(갈래A) |
       | **CleverLab** | — | — | — | — | — | ⬜ AXS 오더·상태·확정(갈래B)·presigned | — | ④ Sub-SRS(갈래B) |
       | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 리전 라벨 호스트·Region Directory·HA(K8s)·Route53·RDS(리전 단일) | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS ✅ baseline v1.0 · 현행 동결 `spec-v1.0.18`**(정합화 누적) · ④ connector ⬜(보류) |
-      | **GW Console**(③-C·frontend) | — | — | — | — | 🟢 Admin Web Console gw/1.0 대응(MS Entra 앱계층·Admin API Entra-gated) | ⬜ 온보딩·Org-ID 관리 등 **후속**(gw/1.1·1.2·부가·미정) | — | **✅ ③-C Sub-SRS baseline(`spec-v1.0`·#12602 머지 8/11)** · Console IP v0.1 작성 · 구현=별도 frontend 세션 → **S4** |
+      | **GW Console**(③-C·frontend) | — | — | — | — | 🟢 Admin Web Console gw/1.0 대응(MS Entra 앱계층·Admin API Entra-gated) | ⬜ 온보딩·Org-ID 관리 등 **후속**(gw/1.1·1.2·부가·미정) | — | **✅ ③-C Sub-SRS baseline(`spec-v1.0`·#12602 머지 8/11)** · 구현=별도 frontend 세션 → **S4** |
       | **인프라** | — | — | — | 🟢 dev·qa·stag(단일 Region)·prod(Region별) | 🟢 Route53·K8s·비-AWS minio | 🟢 AXS 고정IP·샌드박스 | — | **🟢 ③-I IaC 구축 계획서 — PR #11973 병합(7/27)·Jack 상세 반영**(Raymond diagram+SRS추출→Jack) — 정본 `vt-api-gateway-infra` · **baseline tag 불요**(living doc) · **AWS 4계층** · **+ 8/4 KMS 키 토폴로지 provisioning ask**(spec-v1.0.7·handoff-infra 항목5 — 리전별 CMK `gw-payload`/`gw-target-cred`·pod별 grant·dev payload CMK 선생성) |
       | **외부(Straumann AXS)** | — | — | — | — | — | 🟡 **PPR sandbox 자격=확보(8/11)** · ⬜ prod(정식계약)=NDA 후(선결) | — | ④ 입력(외부 제공) |
       | **LMP(License Portal, 바텍)** | — | — | — | — | — | — | ⬜ (조건부) 제3자 서명 attestation | **enroll B안 시만**·ES 라이선스팀(R9·B-42) |
@@ -106,7 +105,7 @@
       | 단위 | 스펙 문서 | Repo (Azure DevOps) | 경로 | baseline tag |
       | --- | --- | --- | --- | --- |
       | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway` | `docs/specs/SRS.md` · `docs/specs/design/`(openapi·dbml) · `docs/specs/UnitTCL.md` | **`spec-v1.0.18`**(현행 동결 · baseline v1.0 후 정합화 누적) |
-      | **③-C GW Console** | Sub-SRS(+Console IP) | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console` (전용 repo) | `docs/specs/SRS.md` | **✅ `spec-v1.0`**(baseline·#12602 머지 8/11) |
+      | **③-C GW Console** | Sub-SRS | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console` (전용 repo) | `docs/specs/SRS.md` | **✅ `spec-v1.0`**(baseline·#12602 머지 8/11) |
       | **④ AXS** | **경량 연동 프로파일**(스펙·구현 아님) | 〃 vt-api-gateway (GW 소유) | `docs/specs/04-subsrs-straumann-axs/` | **연동 config·AXS OpenAPI 참조·org_mapping 의미**(경량)·**PPR sandbox 자격 확보·착수 가능**(prod=NDA후·구현=2단계 P7) |
       | **③-I 인프라** | IaC 구축계획서 | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-infra` | `docs/IaC-구축계획서.md` | **PR #11973 병합(7/27)** · baseline tag 불요(living doc) |
       | **③-P-EZ EzServer** | GW적응 OnePager | `https://dev.azure.com/ewoosoft/ezserver/_git/ezserver_suite` (branch `v6.5.x`) | `doc/onepager/gw_adaptation/Confidential_gw_adaptation_onepager.md` | 미부여(EzServer 팀 baseline 예정·R3 확인) |
@@ -194,7 +193,6 @@
     - **repo·스택**: `vt-api-gateway-console`(전용) · Next.js + Refine(headless) + shadcn/ui + TanStack Query · 부모 GW Admin API를 **코드젠으로 소비**(자체 백엔드 없음). **버전 확정(8/12·T-FE-0-1)** = Next 16.3.0(App Router·Turbopack)·React 19.2.8·Refine 5.0.12·TanStack Query 5.101.4·shadcn CLI 4.17.0(base=radix·Tailwind v4)·pnpm 9.15.9 · dev 포트 3100.
     - **폰트 = CleverSpace(호스트)와 통일(8/12)**: `'Noto Sans','Noto Sans KR','Segoe UI',sans-serif`. 단 로딩은 Google Fonts CDN 링크가 아니라 **`next/font` 자체 호스팅** — 런타임 외부 요청이 없어 CSP 허용 도메인을 늘리지 않는다(SRS §6.2·C-3). _(Next 템플릿 기본값 Geist는 한글 글리프가 없어 한글이 브라우저 기본 폰트로 떨어지던 문제도 함께 해소.)_
     - **SRS**: ✅ **baseline v1.0**(#12602 머지 8/11 · tag `spec-v1.0`). gw/1.0 대응 완전 규격 + gw/1.1·gw/1.2·후속은 방향. 리뷰(민진우·정우혁) 반영·스레드 resolve.
-    - **IP**: ✅ **baseline v1.0**(8/12 · PL=Raymond · ip-reviewer 점검 + 사람 리뷰 · `abc-dev-assistant/projects/vt-api-gateway-console/`·P0~P8·51 Task). 범위 = **gw/1.0 baseline(필수+주요)**. 부모 계약 핀 = `spec-v1.0.18`.
     - **구현 착수(8/12)**: 별도 **frontend 세션** 오픈 완료 → P0 진행중(`T-FE-0-1` 스캐폴드 **PR #12617 머지**). Task 단위 PR → 사람 머지(유인 모드·IP §7). **Entra/실 GW 없이 mock으로 대부분 진행 가능**(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
     - **로컬 실데이터 확인 시점**: GW Admin이 Entra-gated라 **P1(인증·RBAC) 완료 후**부터 로컬 GW(Docker)+로컬 Postgres 실데이터를 브라우저로 상시 확인 가능(P8 대기 불필요). 그 전에는 MSW mock 화면.
     - **GW(백엔드)와의 경계**: Console = Admin API(§7.9) 소비 + well-known/Region Directory 읽기만. **구현 경계** — enroll cert 발급·operator authz 복제·compat-matrix 발행은 **GW/③-I 소관(Console 아님)**. Console→부모 계약 반영은 부모 spec PR로(예: 표시필드 PATCH 봉인=`spec-v1.0.17`).
@@ -205,7 +203,6 @@
       | --- | --- | --- | --- |
       | ─ **선행 스펙·계획 (완료·1행)** ─ |  |  |  |
       | **Console SRS** | gw/1.0 대응 완전 규격 + gw/1.1·1.2·후속 방향 | ✅ 완료 | #12602 머지 8/11 · baseline `spec-v1.0` · 리뷰(민진우·정우혁) 반영 |
-      | **Console IP** | P0~P8 · 51 Task · gw/1.0 범위 | ✅ 완료 | baseline v1.0(8/12) · PL=Raymond · ip-reviewer+사람 리뷰 · 부모 핀 `spec-v1.0.18` |
       | ─ **이번주 완료 🔥 (8/6~8/13·Task 단위) + 진행 Phase(P0)** ─ |  |  |  |
       | **P0** 0-1 | Next 16.3.0+Refine 5(headless)+shadcn(radix·Tailwind v4)+TanStack Query 스캐폴드 · dev 포트 3100 · `app/`+`src/`(별칭 `@/*`→`./src/*`) · ESLint+Prettier · 온보딩 README · `.env.example` · **폰트 CleverSpace 통일**(Noto Sans/KR·next/font 자체 호스팅) | 🔥 이번주 | **#12617**(머지 `5d20fbc`) · 독립리뷰 2라운드 반영 12건·스킵 1건(테스트 하네스=0-8) · 실결함 3건 수정(한글 폰트 폴백 미종결·`font-mono` 무동작·Node 20.9/20.10 config 로드 사망) · dataProvider=자리표시자(0-2/0-6에서 교체) · 정적 export 전환=0-10 이연 |
       | ─ **대기·잔여** ─ |  |  |  |
