@@ -35,7 +35,8 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 - **묶음.** 아래 참조의 **클라이언트 식별 헤더 제약(Thomas 헤더 배치)** 와 **동일 PR** — User-Agent/OS 회의 결정 후 착수.
 - **출처.** 2026-08-05 사용자(Roadmap 동결).
 
-### B-10. 문서 정합 묶음 (저위험 주석·문안 — 모아서 1 PR)
+### B-10. 문서 정합 묶음 (저위험 주석·문안 — 모아서 1 PR) — **✅ 1차 batch 머지(PR #12632·`e865d77`·2026-08-12)**
+- **✅ 처리(2026-08-12·PR #12632).** 아래 (1)(2) 모두 반영·머지: DBML `org_mapping` 카디널리티 주석 + compat-matrix 범위(SRS §7.7/§7.7.5·Appendix B #8·DBML·well-known README·compat-matrix sample/yaml·config README/yaml·handoff) OnePager 철자·폐지된 ① 호환성 OnePager→제품 OnePager 정정. **범위 밖 보존**: §1.2/§1.5의 "One Pager"·② Presigned OnePager 참조(별도 sweep 필요 시). **이 항목은 재사용 버킷** — 이후 새 저위험 문안이 쌓이면 다시 모아 batch.
 - **방침(사용자·2026-08-10).** 자잘한 주석·문안 정합은 건건 PR로 올리지 말고 **여기 모아 두었다가 한꺼번에 1개 spec PR**로 처리한다(PR 노이즈·리뷰 부담 감소). 계약/스키마 무변경·저위험만 해당(실질 변경은 별도).
 - **항목:**
   - **(1) `org_mapping` 카디널리티 명시** — DBML `org_mapping` 주석에 한 줄: **희소(sparse)·clinic × target 전조합 아님·실제 연동한 (clinic,target) 쌍당 1행(연결 시 생성)·미연동 클리닉=0행·클리닉당=연동 target 수(0..N)·enrollment과 직교·org_id→clinic은 N:1 허용.** 현재 "연결 시 자가 등록"만 있어 카디널리티가 암묵(리뷰어 반복 질문 유발). 대상=DBML `org_mapping` 주석. 출처=2026-08-10 사용자 질의.
@@ -67,4 +68,10 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 ## 참조 — 별도로 추적 중인 배치 (여기서 중복 기재하지 않음)
 - **클라이언트 식별 헤더 제약(Thomas 헤더 배치)** — User-Agent 변경 불가·Vatech-OS 획득 불가·Vatech-Clinic-Id 자체 설정 불가(2026-08-06 주간회의 Thomas 안건). 일부 방향 확정(Clinic-Id=EzServer nginx 주입=결정 2 / UA=자체 헤더·OS=best-effort). **SRS 반영(§7.7.1 필수성 완화+missing 헤더 정책·§7.8.5 인벤토리 튜플 부분 허용·§2.3.0 헤더 세트 표 웹 originator 케이스)은 헤더 PR로**, 위 **B-4(잔여)와 동일 PR**. 선결: 웹 프론트엔드가 GW로 직접 originate 하는지.
 - **Console SRS 자체 변경** — Console 백로그 `03c-subsrs-gw-console/_backlog-console.md`(CB-1 ZTNA 제거·운영자 멀티리전 authz UX / CB-2 v1·v2 분리·기술 스택 shadcn). **#12487 확정 후 CB-1 착수.**
-- **Console → 부모 계약 변경** — Console SRS Appendix B "부모 SRS 반영 대상"(C-8·C-11·C-12·C-14·C-15·C-16). Console SRS baseline 후 반영.
+- **Console → 부모 계약 변경** — 정본 추적 = Console SRS Appendix B "부모 SRS 반영 대상". **상태 점검(2026-08-12):**
+  - ✅ **반영 완료(3)**: C-14(전역 bootstrap seed·§7.9.2·`spec-v1.0.12`·#12487) · C-15(사유 reason 저장·`audit_log.reason`+API·`spec-v1.0.15`·#12571) · C-16(enrollment Reject·`device_status=rejected`·`spec-v1.0.15`·#12571). *(구 참조 목록의 C-14·15·16은 완료 → 제거.)*
+  - ⬜ **잔여(전부 비차단 · 계약 변경이라 B-10 저위험 문안과 분리·별도 부모 spec PR):**
+    - **C-17**(실질적·구 목록 누락) — 역할×액션 권한 매트릭스 → 부모 §7.9.2 **명문화 + GW 코드/OPA 강제**. admin·cs 확정, **operator/developer 셀 = 보안/GW 확정 선결**. 신규 API 계약 아님(operatorAuth+OPA 기존). 트리거=Console baseline(met) + 보안/GW 결정.
+    - **C-11**(선택·권고) — 서버 강제 낙관적 잠금(`expectedVersion`/If-Match+409) → 부모 OpenAPI. v1.0=클라측 stale-write(FR-CON-36) 우회.
+    - **C-12**(확인·소규모) — 목록 기본/안정 정렬 계약 → 부모 OpenAPI(현 정렬 파라미터 없음·GW 기본 정렬 확인).
+    - **C-8**(선택·성능 요구 시) — Admin API 전용 성능 SLA 절 → 부모 §5(현 §5=device control-plane 전용). v1.0 저 RPS·사내라 불요.

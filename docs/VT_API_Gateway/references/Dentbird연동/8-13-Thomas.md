@@ -8,6 +8,7 @@
     - 기술(결정적): Dentbird webhook은 온프렘 클라(공개 inbound 없음)가 못 받는다 → **GW 공개 수신 + MQTT 하향만 가능** → B안 사실상 강제.
   - 경계 조정: 가입/구독 [Link] 브라우저 흐름은 **계정 provisioning**이라 **직접 유지**(referral 보존), **케이스 데이터·credential만 GW로**.
   - 실현성: **AXS target 모델 재사용**이라 난이도 **중**. 신규 = per-clinic 자격 custody(인증 모델에 따라) · 대용량 케이스 파일 프록시 · Clever One 경유 전환.
+  - **협상 레버리지(B안 리스크 완화)**: Dentbird(이마고웍스)는 **Straumann 같은 대형사가 아니라**, 미확인 항목(인증 방식·webhook·presigned URL 등)을 **GW(B안)에 맞게 지원해달라고 연동 협의에서 요청할 여지**가 있다. AXS는 고정 API에 우리가 적응해야 했지만, Dentbird는 **양방향 협의**가 가능해 B안의 불확실성·공수를 낮출 수 있다.
   - A vs B 비교:
 
     | 항목 | A안 (직접·현 시나리오) | B안 (GW 경유) ← 권고 |
@@ -15,18 +16,18 @@
     | ES 정책(모든 outbound GW) | 위반 | 부합 |
     | webhook 수신 | 불가(온프렘 공개 inbound 없음 → polling만) | GW 공개 수신 → MQTT로 온프렘 push |
     | 보안 거버넌스(egress·감사·정책) | 없음(GW 밖) | 중앙 chokepoint |
-    | credential 위치 | Clever One 클라(client-side secret) | GW(KMS custody) |
+    | credential 위치 | CleverOne/EzServer 클라측 — 클리닉 내 **다중 Client**라 credential 분산 저장·관리 복잡(client-side secret) | GW(clinic당 1개·KMS custody) |
     | PHI 규제(IEC 62304/ISO 13485) | 거버넌스 밖(위험) | 거버넌스 안 |
-    | 구현 공수 | ~0(product 기설계) | 중(Clever One 재작업 + per-clinic 자격 + 대용량 + EzServer) |
+    | 구현 공수 | **GW=0이나 0 아님** — CleverOne(설정 UI·credential 입력/저장) + EzServer 신규 구현 필요(클리닉 내 다중 Client·credential 분산으로 오히려 복잡) | 중(CleverOne 재작업 + GW per-clinic 자격 + 대용량 + EzServer) |
     | GW팀 운영 부담 | 없음 | 있음(크리티컬 패스) |
-    | 대용량 케이스 파일 | 직접(성능 자유) | GW 프록시 부담 → presigned 검토(§4.1.4) |
+    | 대용량 케이스 파일 | 직접(성능 자유) | GW 프록시 부담 · presigned 우회(§4.1.4)는 **Dentbird가 presigned URL 지원 시에만**(API 미확인) — 미지원이면 GW 직접 프록시 또는 **Dentbird에 지원 요청**(대형사 아님) |
     | referral 정산 | 자연 | signup 직접 유지 시 동일 |
     | 기존 자산 재사용 | — | AXS target 모델 대부분 재사용 |
 
   - 확정 필요(B안 공수·설계 확정용):
     - Dentbird 인증 모델 — 파트너/OAuth(Vatech=integrating entity·per-clinic link·AXS 동형 → 쉬움) vs per-customer API key(clinic마다 구독 → per-clinic 자격 custody 필요). ← B 난이도를 가름.
     - webhook 스펙 — 제공 이벤트·인증(HMAC secret 등)·payload의 org/clinic 식별 필드.
-    - 업로드(케이스 파일) 방식·크기 — GW 프록시 vs presigned.
+    - 업로드(케이스 파일) 방식·크기 — GW 프록시 vs presigned. **presigned 우회는 Dentbird API가 presigned URL 발급/직접 업로드를 지원해야 성립**(미확인·API 문서 확인 선결) — 미지원이면 대용량도 GW가 직접 프록시(부담 감수).
     - ⚠️ **위 3항목은 Dentbird API 문서를 확인하지 못해 전부 미확정이다** — `docs.dentbird.com`은 랜딩/목차만 공개. 상세 섹션 접근 또는 이마고웍스 기술 확인이 **선결**이며, 그 전엔 B안 공수·설계가 확정 불가.
   - 정본:
     - 신규 target 온보딩 runbook — https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/manual/target-onboarding.md
