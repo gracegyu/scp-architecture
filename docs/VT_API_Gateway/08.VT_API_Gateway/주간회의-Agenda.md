@@ -4,7 +4,7 @@
 
 - 이번 주 진행 _(프레임 · 8/13 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
   - **[GW 백엔드]** (8/6~8/13 완료) **2단계 자율 구현 진척** — v1.0.12(enroll CSR→IoT Core mTLS cert·Admin API Entra-gated CORS)·P7 커넥터(7-1/2/4/5 골격 + **7-3 AXS 최초 실연동**)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15(enroll Reject·감사 사유)·v1.0.16(clinic.memo·admin clinics 목록/상세)·11-8(admin ClinicInfo 교정)+**v1.0.17 11-8b(표시필드 PATCH v1.0 봉인)**·**T-E2E-12-1(실-AXS e2e 스캐폴드)·12-2(compat 게이팅 e2e)**·**v1.0.18 T-CFG-5-4(compat-matrix YAML→JSON 발행 파이프라인)** → **Task 단위 상세·PR = 공유 S3**
-  - **[GW Console]** (8/11~8/12 완료) **Sub-SRS + 구현 착수** — 전용 repo `vt-api-gateway-console`에 **SRS baseline v1.0**(#12602 머지·tag `spec-v1.0`·리뷰 민진우·정우혁 반영) + **P0 구현 착수·5 Task 머지**(0-1 스캐폴드[스택 버전 확정·**폰트를 CleverSpace와 통일**]·0-2 코드젠+커서 어댑터·0-3 MSW 목·0-4 authProvider[risk:auth]·0-5 App Shell) → 상세 = 공유 **S4**.
+  - **[GW Console]** (8/11~8/12 완료) **Sub-SRS + 구현 착수** — 전용 repo `vt-api-gateway-console`에 **SRS baseline v1.0**(#12602 머지·tag `spec-v1.0`·리뷰 민진우·정우혁 반영) + **P0 구현 착수·5 Task 머지**(0-1 스캐폴드[스택 버전 확정·**폰트를 CleverSpace와 통일**]·0-2 코드젠+커서 어댑터·0-3 MSW 목·0-4 authProvider[risk:auth]·0-5 App Shell·0-6 dataProvider 실물) → 상세 = 공유 **S4**.
   - **[제품 연동 스펙]** (잔여) EzServer OnePager 수령 확인.
   - _(이번 주 결정사항 = 회의 시 추가)_
 
@@ -21,7 +21,7 @@
   - **S1. 프로젝트 일정(Gantt) — 8/13 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **진행률(구현)**:
       - **GW ≈ 93%**(IP Task 69/74 머지·코어 구현 완료 — 잔여 5개는 ③-I 인프라·Straumann 의존 통합/E2E/배포로 GW 코드가 아님)
-      - **GW Console ≈ 10%**(IP Task 5/51 머지 — P0 0-1~0-5: 스캐폴드·코드젠·MSW·authProvider·App Shell)
+      - **GW Console ≈ 12%**(IP Task 6/51 머지 — P0 0-1~0-6: 스캐폴드·코드젠·MSW·authProvider·App Shell·dataProvider)
 
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
     - **범례** — **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · **빨강=외부/미정 선결** / **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
@@ -208,8 +208,9 @@
       | **P0** 0-3 | MSW 목 — accessState 3케이스 × 역할 4종 시나리오(`?mock=` 전환)·`/v1/admin/me` 핸들러(경로를 계약 경로로 타입 제한·origin 와일드카드)·browser/server 진입점 | 🔥 이번주 | **#12623**(머지 `ff8f127`) · **리뷰가 High 1건 적발**: 목이 prod 번들에 남아 있었다(=인증 우회 경로 배포) → 리터럴 `NODE_ENV` 가드로 해소, 청크 1.2M→900K·MSW 참조 1→0 실측 · 활성 조건 = `AUTH_MODE=mock` AND `NODE_ENV!==production` |
       | **P0** 0-4 **risk:auth** | authProvider `AUTH_MODE=mock\|entra` 스위치(entra=OIDC 배선 골격·토큰 sessionStorage·401 로그아웃/403 유지) + accessControlProvider **deny-by-default** 골격 + `verify:bundle` 배포본 검사 스크립트 | 🔥 이번주 | **#12626**(머지 `19eac25`) · **risk:auth 기계 검증**: `.next/static`+`.next/server` 266파일에서 우회 표지·mock fixture·MSW **0건**, 가드 제거 대조 빌드 1건 검출로 검사 유효성 확인 · 구현 중 tree-shaking 실패 2건 자체 적발(조건을 함수로 감싸면 안 접힘 = 0-3 MSW와 동일 유형·미사용 export 표지는 항상 제거돼 무용지물) · 리뷰 반영 3건 |
       | **P0** 0-5 | App Shell 3-영역 골격(App Bar·Sidebar·메인+브레드크럼·각 영역=슬롯)+로딩/오류/빈 공통 컴포넌트(무한 로딩 금지·재시도)·vitest component 프로젝트(jsdom+RTL) 신설 | 🔥 이번주 | **#12627**(머지 `d15b076`) · `test:component` 15 케이스 · Sidebar 역할 게이팅은 의도적 미적용(deny-by-default라 지금 걸면 전 항목 소멸 → 1-3에서) · 리뷰 반영 4건 + **High 1건 실측 반증**(한글 폰트 정상 - @font-face 126개·U+AC00 포함) |
+      | **P0** 0-6 | env 설정(`NEXT_PUBLIC_*`·목 기본값/실연동 fail-fast) + **dataProvider 실물**(자리표시자 교체·커서 어댑터 연결·리소스↔계약경로를 `keyof paths`로 타입 고정) + Region Directory/well-known 정적 스텁 | 🔥 이번주 | **#12631**(머지 `37896b0`) · `test:unit` 89 케이스 · **리뷰 High**: `.env.example`이 빈 값이라 문서대로 `cp` 하면 목 모드가 즉시 실패(`??`가 빈 문자열을 못 걸름) — 회귀 테스트가 잘못된 이유로 통과하던 것까지 적발 · **계약 실측**: 6개 리소스는 단건 경로 자체가 없고 자리표시자 이름도 리소스마다 다름 |
       | ─ **대기·잔여** ─ |  |  |  |
-      | **P0** 0-6~0-10 | env·dataProvider·정적 스텁(0-6)·i18n Lingui(0-7)·테스트 하네스+CI 게이트(0-8)·README(0-9)·리뷰용 mock 정적배포(0-10) | ⬜ 대기 | P0 진행중(10 중 5 완료) · **다음 착수=0-6**(env·dataProvider 실물 배선) · **`verify:bundle` CI 배선=0-8**(그 전까지 로컬 수동) |
+      | **P0** 0-7~0-10 | i18n Lingui(0-7)·테스트 하네스+CI 게이트(0-8)·README(0-9)·리뷰용 mock 정적배포(0-10) | ⬜ 대기 | P0 진행중(10 중 6 완료) · **다음 착수=0-7**(i18n Lingui 스캐폴드) · **`verify:bundle` CI 배선=0-8**(그 전까지 로컬 수동) |
       | **P1** 인증·RBAC·홈 | 1-1~1-9(로그인·`/me` 부트스트랩 분기·리전 스위처·역할별 홈·권한 요청/승인·운영자 관리) | ⬜ 대기 | risk:auth(1-5 매트릭스·1-9 last-admin 가드) · **완료 시 로컬 GW 실데이터 확인 가능** |
       | **P2** enrollment·디바이스 | 2-1~2-5(디바이스 목록/상세·enrollment 승인/거부·수명주기 suspend/resume/kill) | ⬜ 대기 | ★서비스 개통 게이트 · 2-5 kill=비가역 사람 확인 |
       | **P3** 클리닉 | 3-1~3-4(목록/상세·LMP 읽기전용·식별 memo 편집·Device↔Clinic 드릴스루) | ⬜ 대기 | 표시필드 PATCH=봉인(미노출·`spec-v1.0.17`) |
