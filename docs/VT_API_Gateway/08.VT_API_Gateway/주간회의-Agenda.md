@@ -25,7 +25,7 @@
   - **트랙 구분(혼동 방지)** — **GW 백엔드(③)** = S1 Gantt · S2 스펙 테이블 · **S3 구현 현황**(부모 SRS `spec-v1.0.18`·NestJS 코어·구현 Task) / **GW Console(③-C)** = **S4 현황**(전용 repo `vt-api-gateway-console`·frontend·Console SRS. 두 트랙은 **repo·스택·세션이 다르다.** _이번주 진행 항목은 **[GW 백엔드]/[GW Console]/[제품 연동 스펙]** prefix로 트랙을 표시한다._
   - **S1. 프로젝트 일정(Gantt) — 8/13 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **진행률(구현)**:
-      - **GW ≈ 93%**(IP Task 71/76 — T-E2E-12-1 성격별 3분할[아웃바운드 완료·presign·인바운드]로 total +2·코어 구현 완료 — 잔여 5개 중 GW 착수 가능=1[T-E2E-12-5 presign], 나머지 4개는 ③-I 인프라·Straumann 의존이라 GW 코드 아님)
+      - **GW ≈ 93%**(IP Task 71/76 — T-E2E-12-1 성격별 3분할로 total +2·코어 구현 완료 — 잔여 5개는 모두 외부 선결/데이터 의존: 12-5 **업로드 presign 발급 실측은 완료**(다운로드 실물·order 파일=content/Straumann 선결)·12-6/12-3/12-4/9-5=③-I 인프라 — **GW 코어 코드로 지금 더 할 것은 없음**)
       - **GW Console ≈ 22%**(IP Task 11/51 머지 — **P0 완료 + P1 착수**)
 
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
@@ -174,7 +174,7 @@
       | **P7** 7-2 | egress allowlist SSOT+PDP egress 집행(fail-closed·§7.5.3) | 🔥 이번주 | #12564(7-5 와 공동 PR) · egress 집행 로직은 P4 T-REG-4-4(#12187)에 기구현 → 이번주 7-2 Task 로 확인·종결 |
       | **P7** 7-3 | AXS 커넥터 최초 실연동(아웃바운드 커넥터 토큰·Organization-ID 주입·verbatim·fail-closed) | 🔥 이번주 | #12584(Phase1) · AXS PPR 샌드박스 자격 확보 → 아웃바운드 배선(토큰/Org-ID 주입·스푸핑 차단)·실 AXS 왕복 실측 · 업무 API happy=**해소**(#12655·org id 교정 `ea789014`→`a1fb9b17`·customerNumber 불필요) |
       | **T-E2E-12-1** AXS 아웃바운드 e2e | 실-AXS regression(토큰·Org-ID 주입·verbatim·**orders/patients happy 200**·org 미연동 403 fail-closed)·실 AXS gzip 버그 수정 | ✅ 완료 | #12584/#12600/**#12655** · **성격별 3분할**(아웃바운드 완료/presign/인바운드) · happy 500 원인=우리 org id 오설정(`ea789014`→approve org `a1fb9b17`)·**customerNumber 불필요** |
-      | **T-E2E-12-5** AXS presign 중계 e2e | presign 발급 중계·바이트 GW 미경유·fss guardrail(E2E-SYS-03·아웃바운드) | 🟡 착수가능 | **GW 몫·공개 ingress 불요**(12-1 배선 재사용) · 선행=sandbox 실 파일/order 존재 조사 · 로컬 더블(proxy.e2e) 커버 |
+      | **T-E2E-12-5** AXS presign 중계 e2e | presign 발급 중계·바이트 GW 미경유(E2E-SYS-03·아웃바운드) | ◑ 부분(#12660) | **업로드 presign 발급 verbatim 실측 완료**(create `storageUrl`·필드 원형·Org-ID 주입·5/5 green) · **캡처**: `storageUrl`=fss 호스트·서명 없음→fss API 경로 가능성(§4.1.4=스펙 세션 확인) · defer=다운로드 실물(content 선결)·order 파일(Straumann)·바이트 전송=non-goal |
       | **T-E2E-12-6** AXS 인바운드+MQTT e2e | 실 AXS→GW webhook 왕복(E2E-SYS-02)+역방향 MQTT 다운링크 실 IoT | 🔴 대기 | ③-I **공개 ingress + 실 IoT Core** 선결(T-DISP-9-5 연관) · 로컬 더블(sys-02) 커버 유지 |
       | **T-E2E-12-2** compat 게이팅 e2e | semver 3단계 게이팅(TC-CFG-18~22·major 차단·minor 경고·patch 무시·헤더 누락·originator/Via worst)을 **실 HTTP 왕복**으로 재실행(실 미들웨어+실 가드·**프로덕션 코드 무변경·순수 테스트**) | 🔥 이번주 | #12606 초판(17)→ **v1.0.18에서 고정 fixture로 운영 분리·33 케이스 확장(#12612)** · 가드=opt-in·실 EP 미배선이라 테스트 probe 에 실 가드 부착 · 독립리뷰 High/Med 0 |
       | **v1.0.18** T-CFG-5-4 compat-matrix 발행 | 호환성 매트릭스 **YAML(SSOT)→JSON 렌더러·발행 파이프라인·검증**(정합화·계약/DB 무변경) — 발행 게이트(스키마·표준 errorCode/제품 allowlist·id 유일·≤8KB) · 생성 JSON 미커밋(gitignore·SSOT=yaml) · **행동 e2e는 고정 fixture로 운영과 분리**·yaml→json→서빙 파이프라인 e2e 신설 | 🔥 이번주 | #12612 + #12613(파이프라인 분리) · **compat-matrix.yml=validate 전용**(GW 단독·**등록됨·Azure 실행 succeeded**·PR 게이트) / **compat-matrix-publish.yml=publish**(③-I grant 선결이라 repo 저작만·**등록은 ③-I 나중에**·Azure는 커넥션을 파싱시점 검사라 분리 불가피) · 독립리뷰 2회(High/Med 0·48/48 실행검증) · 실 min 값=One Pager 후 |
@@ -183,7 +183,7 @@
       | ─ **대기·무영향** ─ |  |  |  |
       | **P0** 0-5 | CI 파이프라인·Dockerfile(4타겟·스캔·lint·build·unit·e2e 게이트)=완료 · **자동배포(CD) 잔여** — ECR/ArgoCD·main→DEV·tag prefix→TEST/PROD(deploy stage `condition:false` 자리표시자·T-PLAT-0-5 `[~]부분완료`) | 🔴 부분 | ③-I(Jack Azure Flow 템플릿 수령 후) · Dockerfile es-base 전환(0-5b)=완료(#12163) |
       | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | 🔴 대기 | ③-I/④ IoT Core(cert 발급 app-side=v1.0.12(A) 완료·DBML `iot_certificate_id`=스펙 세션) |
-      | **P12 E2E·하드닝** | **12-1 아웃바운드=완료(#12655)** · 12-5 presign · 12-6 인바운드+MQTT · **12-2 compat=완료(#12606)** · 12-3 부하 · 12-4 HA/KEDA | ◑ 진행 | 🔴 잔여: **12-5=GW 착수가능**(실 파일 조사) · 12-6=③-I 공개 ingress+실 IoT · 12-3=부하환경 · 12-4=③-I(Multi-AZ) |
+      | **P12 E2E·하드닝** | **12-1 아웃바운드=완료(#12655)** · 12-5 presign(발급 실측 #12660) · 12-6 인바운드+MQTT · **12-2 compat=완료(#12606)** · 12-3 부하 · 12-4 HA/KEDA | ◑ 진행 | 🔴 잔여: 12-5=**업로드 발급 실측 완료**·다운로드 실물/fss=defer · 12-6=③-I 공개 ingress+실 IoT · 12-3=부하환경 · 12-4=③-I(Multi-AZ) |
 
   - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/13 재측정·post-v1.0.12/P7/시스템-E2E · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산). **정지트리 실측·merged floor 게이트 통과**(v1.0.12 A/B·7-1/2/4/5·시스템 E2E SYS-01/02/04/05 반영). _(v1.0.15 T-ENR-3-7·v1.0.16 T-ADM-11-7 반영 재측정은 각 머지 후 정지트리에서 수행 — 신규 로직 전부 unit+e2e 동반이라 floor 유지 예상.)_
 
