@@ -107,5 +107,12 @@
 - C1→EzServer->VAG->Target->webhook-(MQTT)->EzServer-(MQTT)>C1에서 요청한 C1만 받을 방법은? (한 클리닉에 여러곳의 C1 이 설치되었다고 가정시)
     1. 현재 C1→EzServer간 direct 연동시, requestId 같은 것을 심어서 요청하면 MQTT body에 담아서 return 해줌.
     2. AXS, Dentbird의 경우는 어떻게 할지? 추가로 webhook을 쓰는 곳은 EzServer 업그레이드 없이 지원할 방법은?
-    - ➡️ **correlation(request) ID가 왕복 내내 보존**돼야 특정 C1로 되돌릴 수 있다: C1이 correlationId 부여 → GW가 Dentbird로 전달 → **Dentbird가 webhook payload에 echo** → GW가 org_mapping으로 clinic 판정 후 그 EzServer MQTT로 **correlationId 포함** 전달 → EzServer가 correlationId로 요청 C1에 라우팅(지금 requestId 방식 재사용). GW는 clinic까지, **C1 지목은 EzServer가**(기존 MQTT 라우팅 재사용이라 EzServer 큰 변경 없이 가능). **핵심 선결 = Dentbird가 correlation/case ID를 webhook에 echo하는가**(안 하면 clinic 내 브로드캐스트 → 각 C1이 자기 것만 필터). → Dentbird 확인 목록 추가.
+    - ➡️ **요청↔결과를 잇는 "번호"(correlation key)가 webhook에 실려 오기만 하면 된다.** 흐름: C1 요청에 번호 부여 → GW가 target 전달 → **target이 결과 webhook에 그 번호 echo** → GW가 org_mapping으로 clinic 판정 후 그 EzServer로 MQTT push(번호 포함) → **EzServer는 clinic 안에 broadcast, 각 C1은 자기 번호만 필터**(지금 requestId 방식 그대로). GW=clinic까지, C1 지목=EzServer(기존 MQTT 재사용·큰 변경 없음). **선결 = 그 번호가 (우리가 붙인 것이든 target이 발급한 것이든) webhook에 실려 오는가** → Dentbird 확인 목록.
+      - AXS도 가능한지 확인한다. 전규현/ Raymond 
+        - ➡️ **된다 — 번호 = AXS가 발급한 `orderId`.** create 요청엔 우리 번호를 못 붙이지만(요청 필드 = `owner`·`patient`·`restorations`·`implantSites`·`expectedDeliveryDate`·`notes`뿐), create 응답이 `orderId`(uuid)를 주고 `order.updated` webhook이 그 `orderId`를 echo한다 → EzServer/GW가 (orderId ↔ 원 C1) 매핑만 잡아두면 broadcast 후 요청한 C1만 집는다. 파일/스캔(IO Scanner)은 번호가 `patient.id`+`file.id`. 즉 "우리 주입"은 아니어도 **"target 발급 번호 echo"로 성립**한다(`customOrderId`는 create 입력 아님·상세/검색/webhook에만 등장).
 - 공유: EzServer Sub-SRS 담당자는 민진우/ Thomas 로 변경됨
+
+- 📌 (단계 결정 · 2026-08-13) **Dentbird 연동 = 1차 기존 방식(직접) · 2차 GW 연동**
+  - **1단계('26.10):** 기존 방식 = **A안(직접·GW 비경유)** — 계정 등록·가입 링크·데이터(CT/IO) Dentbird 전송. 빠른 런칭 우선.
+  - **2단계('27.03):** **B안(GW 경유)** 로 전환 — Dentbird 설계 데이터를 EzServer에 저장(=결과 반환). 이 **인바운드 webhook** 요구가 GW 공개 수신을 강제 → B안 필요.
+  - ⇒ 위 ⭐ B안 권고·➡️ 답변들(per-clinic 자격 custody·webhook 수신·correlation·대용량 바이트 프록시 등)은 **2단계 설계 기준**이다. **1단계는 직접이라 GW 무관.**
