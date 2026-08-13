@@ -18,6 +18,61 @@ _열린 항목 없음_ — CB-1(멀티리전 운영자 authz·ZTNA 제거→Entr
 
 ---
 
+## Entra 실환경 검증 대기 (트리거: IT/③-I 앱 등록 회신)
+
+> **왜 여기 있나.** `T-FE-1-1`(SCR-AUTH-01·PR #12658·머지 `0ea8af0`·2026-08-13)로 Entra OIDC(Auth Code+PKCE)를 **코드는 실배선**했지만, **실제 Entra 테넌트로 로그인해 본 적은 없다**. 지금 통과한 검증은 목 우회 경로와 MSAL 호출 규약(모듈 경계 mock)까지다. 아래는 앱 등록이 끝나는 순간 그대로 소진할 체크리스트다.
+> **정본:** 절차·값=`Entra-설정-가이드.md` · 인증 요구=SRS §3.2·§7.1 · env=§3.4. **IP Task:** `T-FE-8-1`(`[risk:auth]` 실 Entra 검증) → `T-FE-8-2`(staging 핵심 여정). 이 목록은 그 Task의 DoD 재료다.
+
+### 1) 선행 조건 (이게 와야 시작)
+
+| # | 필요한 것 | 소관 |
+| --- | --- | --- |
+| 1 | **Console SPA 앱** 등록(공개 클라이언트·PKCE·client secret 없음) + **GW Admin API 앱**(Expose an API·Application ID URI·delegated scope) — 2-앱 구조 | IT |
+| 2 | redirect URI **`http://localhost:3100/auth/callback`** 등록(SPA는 포트 **정확 일치**) · **로그아웃 URI `http://localhost:3100/login`** 도 함께 | IT |
+| 3 | 회신 값 4종 → `NEXT_PUBLIC_ENTRA_ISSUER`·`CLIENT_ID`·`AUDIENCE`·`REDIRECT_URI` | IT |
+| 4 | 앱 역할/그룹 클레임 발급 구성(`admin`·`cs`·`operator`·`developer` → GW `operator_role` 매핑) | IT + GW |
+| 5 | 로컬에서 붙을 **dev GW Admin API**(또는 로컬 GW `:3001`) + **CORS allowed origin** | GW BE (GW IP P11) |
+
+### 2) 환경 전환
+
+- `.env.local`에 `NEXT_PUBLIC_AUTH_MODE=entra` + `ENTRA_*` 4키(템플릿=repo `.env.example`).
+- ⚠ **`AUTH_MODE=entra`면 MSW 목이 함께 꺼진다**(`src/mocks/enabled.ts`는 `AUTH_MODE=mock`일 때만 켠다) → **실 GW가 떠 있어야** 화면이 뜬다. 인증만 실물로 바꿔 목 데이터를 보는 조합은 없다.
+- ⚠ `NEXT_PUBLIC_*`는 **빌드 타임 주입**이라 값을 바꾸면 dev 서버를 재시작해야 한다.
+
+### 3) 실제로 확인할 것 (코드로는 증명 불가·실물로만 드러남)
+
+| # | 확인 | 틀렸을 때 증상 |
+| --- | --- | --- |
+| 1 | **issuer→authority 변환** — `ISSUER`에 `…/{tenant}/v2.0`을 넣어도 discovery 성공 | `/v2.0/v2.0/.well-known/…`을 찾아 로그인이 통째로 실패 |
+| 2 | **토큰의 `aud`·`scp`** — jwt.ms로 디코드해 `aud`=GW Admin API 앱, `scp` 비어있지 않음, `iss`·`tid` 일치 | GW가 `/v1/admin/*` **전 요청을 401**로 막는다 |
+| 3 | `{audience}/.default` scope가 **실제로 발급되는지**(scope 이름 TBD를 우회하려고 쓴 방식) | 동의 화면 오류 또는 `scp` 누락 |
+| 4 | **`GET /v1/admin/me` 200** — GW가 그 토큰을 받아들이는지 | 401이면 #2 셋 중 하나가 어긋난 것 |
+| 5 | 미인증으로 `/devices` 직접 진입 → `/login?to=/devices` → 로그인 후 **`/devices`로 복귀** | 매번 홈으로 떨어짐 |
+| 6 | **무음 갱신** — 토큰 만료(Entra 세션 정책 종속) 후에도 화면이 계속 동작 | 갑자기 401 → 강제 로그아웃(FR-CON-33 위반) |
+| 7 | **로그아웃** — `logoutRedirect` 후 다시 진입 시 계정 선택 없이 자동 재로그인되지 **않음** | 공용 PC에서 이전 사용자로 재진입 |
+| 8 | 실패 경로 — 잘못된 clientId/redirect로 **사유가 화면에 표시**되고 조용히 실패하지 않음 | 흰 화면 또는 무한 왕복 |
+| 9 | 역할 클레임 → GW `operator_role` 매핑이 실제로 성립(`/me`의 roles) | 권한 매트릭스(`T-FE-1-5`)가 전부 헛돎 |
+
+### 4) 미리 적어 두는 함정 (디버깅 시간 절약용)
+
+- **MSAL v5의 `navigateToLoginRequestUrl`은 config가 아니라 `handleRedirectPromise()` 인자이고 기본값이 `true`** — 코드에는 `false`로 고정해 뒀다(회귀 테스트 있음). 이 값이 살아나면 콜백 화면이 렌더되기 전에 브라우저가 옮겨져 **복귀 경로 결정과 실패 사유 표시가 동시에 죽는다**.
+- **`postLogoutRedirectUri`(`{origin}/login`)도 Entra에 로그아웃 URI로 등록**돼야 한다. 미등록이면 로그아웃 직후 Entra 오류 페이지에 착지한다.
+- **`.default`는 다른 scope와 섞어 요청할 수 없다.**
+- **SPA redirect는 포트 wildcard 불가** — 3100 고정(§ IP 준비 메모).
+- 토큰 캐시는 **MSAL이 sessionStorage에** 들고 있다(SRS §6.3). 앱이 따로 복사해 두지 않으므로, 디버깅 시 `gw-console.access-token` 같은 자체 키를 찾지 말 것(존재하지 않는다).
+
+### 5) 배포 호스트에서만 드러나는 것 ⚠
+
+**localhost 검증만으로는 절대 드러나지 않는 결함이 하나 있다.** 정적 export는 라우트마다 별도 HTML(`out/auth/callback.html`)을 내는데, `docs/handoff/infra-requests.md` §2가 요청한 CloudFront 구성(**S3 OAC + `403`·`404` → `/index.html`**)만으로는 URI가 S3 키로 그대로 매핑돼 `/auth/callback` 키를 못 찾고 **홈 화면으로 떨어진다**. CloudFront를 흉내낸 서버로 실측 확인(2026-08-13):
+
+```
+GET /auth/callback?code=…  →  본문: "P0 스캐폴드 진행 중 — App Shell 골격" (홈)
+```
+
+즉 **Entra가 되돌려준 code가 처리되지 않아 실 dev 로그인이 조용히 실패한다.** 콜백만이 아니라 `/devices` 등 **모든 딥링크·새로고침**이 같은 증상이다. 확장자 없는 경로를 `<path>.html`로 바꾸는 **CloudFront Function(viewer-request)** 이 필요하고, `index.html` fallback은 그다음 단계다. 로컬 프리뷰 서버(`scripts/serve-preview.mjs`)는 `.html`을 붙여 보므로 이 차이가 드러나지 않는다. → **③-I 요청서 §2 항목 2에 반영 필요**(반영 여부=PL 판단).
+
+---
+
 ## IP 준비 메모 (구현 세션 인계 — Console SRS baseline 후 Console IP로 반영)
 
 > **성격 구분.** 백로그 항목(위) = *Console SRS에 넣을 변경*. 이 섹션 = *SRS 변경이 아니라, 추후 **Console IP** 작성 시 챙길 구현 인계 메모*(잊지 않으려 미리 캡처). **트리거 = Console SRS baseline → 스펙 세션이 Console IP 작성**(현재 Console IP 없음·부모 GW IP와 별개).
