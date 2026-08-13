@@ -70,6 +70,36 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 - **트리거.** CI 크기 게이트가 8KB(안전 임계) 임박/초과를 경고할 때. (그 전엔 착수 불요·YAGNI.)
 - **출처.** 2026-08-11 사용자(백로그화).
 
+### B-13. 로컬 개발 DB와 e2e DB 분리 + 운영자 시드 스크립트 — Console 로컬 실연동이 e2e에 지워진다
+
+- **현상.** Console이 로컬에서 실 GW admin API를 붙여 쓰는데(2026-08-13 개통), **GW e2e를 한 번 돌리면 Console의 운영자 역할이 사라진다.** `test/harness/reset.ts`가 clean-slate를 위해 `operator`·`operator_role`을 포함한 **전 앱 테이블을 TRUNCATE … RESTART IDENTITY CASCADE** 하고, 로컬 개발과 e2e가 **같은 docker DB(`localhost:15432/gw`)를 공유**하기 때문이다. 증상은 Console이 `accessState=no_access`를 받아 권한 요청 화면으로 리다이렉트되는 것이다(FR-CON-02 정상 동작·데이터가 없어졌을 뿐).
+- **방향(영향 없음 확인).** 반대 방향은 문제가 아니다 — 시드한 행은 e2e가 **시작할 때 truncate** 하므로 어떤 단언에도 영향을 주지 않는다(`reset.ts` 주석: "참조 시드가 없어 전 테이블을 무조건 truncate 한다"). 즉 **개발 시드 → e2e 영향 없음 / e2e → 개발 시드 소실**의 단방향이다.
+- **해결안 (권장 순).**
+  1. **e2e를 별도 DB로 분리** — ⭐ 가장 깨끗하다. **격리 경로가 이미 둘 다 있다.**
+
+     | | 방식 A — 컨테이너 2개 | 방식 B — 데이터베이스 2개 |
+     | --- | --- | --- |
+     | 방법 | `TEST_USE_CONTAINERS=1` → `e2e-global-setup.ts`가 testcontainers로 임시 인스턴스 기동 후 `DATABASE_URL` 덮어씀 | 같은 컨테이너 안에 `gw`(개발) + `gw_test`(e2e) 두 데이터베이스 |
+     | 격리 | 완벽(매 실행 새 인스턴스) | 충분 — `TRUNCATE`는 **데이터베이스 경계를 넘지 않는다** |
+     | 비용 | 매 실행 컨테이너 기동 대기 | 없음(즉시) |
+     | 현재 | **CI가 이미 이 모드** | 가드가 `*_test`를 **이미 허용**(`isLocalOrTestDbUrl`) |
+
+     **로컬은 B, CI는 A**를 권한다. 컨테이너를 하나 더 띄울 이유가 없고(같은 Postgres 인스턴스 안에서 데이터베이스는 서로 완전히 격리된다), CI는 매번 깨끗한 인스턴스가 맞다. B의 절차는 3줄이다:
+
+     ```bash
+     PGPASSWORD=gwpass createdb -h localhost -p 15432 -U gw gw_test          # 1회
+     DATABASE_URL=postgresql://gw:gwpass@localhost:15432/gw_test pnpm prisma:migrate:deploy
+     DATABASE_URL=postgresql://gw:gwpass@localhost:15432/gw_test pnpm test:e2e
+     ```
+
+     남는 일은 **마이그레이션을 두 DB에 적용하는 절차를 어디에 둘지**(`Makefile`·`package.json` 스크립트·README) 정하는 것뿐이다. `seed-guard.ts`가 `/_test$/`를 허용하도록 이미 만들어져 있어 파괴적 작업 가드도 그대로 통과한다 — 이 구성을 염두에 둔 설계로 보인다.
+  2. **멱등 운영자 시드 스크립트**(`pnpm dev:operator`) — 1과 **함께** 두는 것이 좋다. DB가 어떤 이유로든(수동 `prisma migrate reset`·볼륨 삭제) 비면 한 줄로 복구된다. 기존 `scripts/dev-device.ts`(clinic·device idempotent upsert)의 **형제**이고, `assertDestructiveDbAllowed()` 가드를 그대로 재사용한다. 필요 입력은 subject UUID·role·scope뿐이다. ⚠ `operator_role.requested_at`·`decided_at`은 timestamp가 아니라 **epoch ms(bigint)** 다(Console 세션이 처음에 `now()`로 넣어 실패).
+  3. **e2e 종료 후 재시드**(사용자 최초 제안) — 동작은 하지만 1·2보다 약하다: ① `resetState`가 **테스트 사이마다** 돌아 e2e 실행 **도중 내내** 개발 데이터가 없다(수 분간 Console이 no_access) ② e2e가 중단·크래시하면 teardown이 안 돈다 ③ **테스트 하네스가 개발 편의 데이터를 쓰게 되는 결합**이 생긴다.
+- **산출물 = GW README + 스크립트. SRS 변경 없음**(2026-08-13 판단·재론 불요). 근거 세 가지다. ① SRS **§3.5 Test Environment는 staging AWS 환경**(EKS·RDS·AXS sandbox·PHI 금지)을 규정할 뿐 로컬 개발 DB 토폴로지를 다루지 않고, **§3.5.2가 "단위(Jest)·E2E·부하 테스트 도구 = 구현 착수 시(LLD) 확정"으로 명시 위임**한다 — `TEST_USE_CONTAINERS`·`gw_test`·`reset.ts`가 이미 SRS 없이 만들어진 것도 같은 이유다. ② 유일한 후보 자리인 **§6.3.5 Remaining Attributes는 `그 외 None`으로 닫혀 있고** SRS 전체에 Testability라는 단어가 없다 — 게다가 품질특성 Testability는 *제품이 테스트 가능하게 설계됐는가*(관측성·결정론)를 뜻해, **개발 중 로컬 워크로드 충돌**인 이 건과 층이 다르다. ③ **운영 시스템은 무관**하다(리전 사일로 = 리전당 DB 1개, 프로덕션에 test DB가 없다) — FR·계약·데이터 모델·배포 토폴로지 어느 것도 안 바뀐다. 따라서 적을 곳은 **GW `README.md`의 로컬 실행 절**(이미 `cp .env.example .env`·`make dev-up`·admin fail-closed 안내가 있는 곳)이다.
+- **소유.** **GW.** DB 스키마·`seed-guard`·`dev-device.ts` 선례가 모두 GW에 있고, Console 레포에는 Postgres 클라이언트 의존성이 아예 없다(프론트 레포에 `pg`를 넣는 건 잘못된 방향). Console은 로컬 OIDC 발급자(`pnpm dev:oidc`)까지만 소유한다.
+- **트리거.** Console이 로컬 실 GW로 P2 이후 화면을 개발하는 동안 계속 겪는다 — **지금 착수 가치가 있다**. 다만 SQL 한 줄로 복구되므로 차단은 아니다.
+- **출처.** 2026-08-13 Console 세션 실측(로컬 실연동 개통 중 발견) · 사용자 지시로 백로그화.
+
 ---
 
 ## 참조 — 별도로 추적 중인 배치 (여기서 중복 기재하지 않음)
