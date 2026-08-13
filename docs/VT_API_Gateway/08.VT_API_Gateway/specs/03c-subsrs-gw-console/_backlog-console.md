@@ -36,7 +36,8 @@ _열린 항목 없음_ — CB-1(멀티리전 운영자 authz·ZTNA 제거→Entr
 ### 2) 환경 전환
 
 - `.env.local`에 `NEXT_PUBLIC_AUTH_MODE=entra` + `ENTRA_*` 4키(템플릿=repo `.env.example`).
-- ⚠ **`AUTH_MODE=entra`면 MSW 목이 함께 꺼진다**(`src/mocks/enabled.ts`는 `AUTH_MODE=mock`일 때만 켠다) → **실 GW가 떠 있어야** 화면이 뜬다. 인증만 실물로 바꿔 목 데이터를 보는 조합은 없다.
+- ⚠ **`AUTH_MODE=entra`면 MSW 목이 함께 꺼진다**(`src/mocks/enabled.ts`) → **실 GW가 떠 있어야** 화면이 뜬다. 인증만 실물로 바꾸고 목 데이터를 보는 조합은 여전히 없다(그럴 이유가 없다).
+- 반대 조합(**인증은 목 + 데이터는 실 GW**)은 2026-08-13에 생겼다 — `NEXT_PUBLIC_GW_LIVE=true`. Entra 앱 등록 전에 로컬 GW 실데이터를 보기 위한 경로이며 §3-2 참조.
 - ⚠ `NEXT_PUBLIC_*`는 **빌드 타임 주입**이라 값을 바꾸면 dev 서버를 재시작해야 한다.
 
 ### 3) 실제로 확인할 것 (코드로는 증명 불가·실물로만 드러남)
@@ -52,6 +53,29 @@ _열린 항목 없음_ — CB-1(멀티리전 운영자 authz·ZTNA 제거→Entr
 | 7 | **로그아웃** — `logoutRedirect` 후 다시 진입 시 계정 선택 없이 자동 재로그인되지 **않음** | 공용 PC에서 이전 사용자로 재진입 |
 | 8 | 실패 경로 — 잘못된 clientId/redirect로 **사유가 화면에 표시**되고 조용히 실패하지 않음 | 흰 화면 또는 무한 왕복 |
 | 9 | 역할 클레임 → GW `operator_role` 매핑이 실제로 성립(`/me`의 roles) | 권한 매트릭스(`T-FE-1-5`)가 전부 헛돎 |
+
+### 3-1) P1에서 미룬 `[manual][risk:auth]` 2건 (실 GW 없이는 증명 불가)
+
+구현 중 "지금은 증명할 수 없다"고 판단해 미룬 것들이다. **MSW가 403/409를 준다는 건 "우리 목이 그렇게 준다"만 보여줄 뿐** 서버가 실제로 막는지와는 무관하다. 둘 다 실 dev GW가 필요하다.
+
+| # | 확인 | 유래 | 방법 |
+| --- | --- | --- | --- |
+| 1 | **무권한 역할로 API를 직접 호출하면 서버가 403을 내는가** — UI 게이팅은 클라 우회 가능이라 최종 인가는 서버여야 한다(SRS §7.2 결정 K) | `T-FE-1-5` dod | cs 토큰으로 `GET /v1/admin/operators`를 curl → 403 기대. Console UI를 거치지 않는 것이 요점 |
+| 2 | **시스템 마지막 admin 회수를 서버가 409로 거부하는가** — Console UI 가드와 서버 판정이 **일치**하는지 | `T-FE-1-9` risk | admin이 1명뿐인 상태를 만들고 `PATCH …/roles/{grantId}` `status=revoked` → 409 기대. UI 버튼 비활성과 같은 시점에 막히는지 대조 |
+
+⚠ 2번은 **lock-out 되면 Console 자체 복구 수단이 없다**(서버 seed 재배포 필요). 반드시 **버릴 수 있는 로컬/dev DB**에서만 시도한다.
+
+### 3-2) Entra 전환 시 걷어낼 임시 경로
+
+Entra 앱 등록 전 로컬에서 실 GW 데이터를 보려고 만든 우회로다. 전환 후 **코드는 그대로 두고 env만 끄면 된다**(오프라인 개발에 계속 쓸모가 있다).
+
+| 대상 | 지금 | Entra 후 |
+| --- | --- | --- |
+| Console `.env.local` | `NEXT_PUBLIC_AUTH_MODE=mock` · `NEXT_PUBLIC_GW_LIVE=true` · `NEXT_PUBLIC_DEV_OPERATOR_TOKEN=…` | `NEXT_PUBLIC_AUTH_MODE=entra` + `ENTRA_*` 4키 (앞의 세 줄 삭제) |
+| GW `.env` | `GW_OPERATOR_OIDC_*` → `http://127.0.0.1:3099` | 실 Entra issuer·JWKS·audience |
+| 로컬 발급자 | `pnpm dev:oidc` 상시 기동 필요 | 불필요 |
+
+**코드 변경 0건**이다 — `AUTH_MODE=entra`면 MSW가 꺼지고 MSAL 경로로 붙는다(T-FE-1-1에서 실 경로를 먼저 만들어 뒀다). `GW_LIVE`는 `NODE_ENV !== production`에서만 살아 있어 실 배포에는 영향이 없고, `verify:bundle`이 매 PR 그 사실을 검사한다.
 
 ### 4) 미리 적어 두는 함정 (디버깅 시간 절약용)
 
