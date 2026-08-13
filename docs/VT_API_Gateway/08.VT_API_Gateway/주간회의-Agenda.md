@@ -3,7 +3,7 @@
 - 이번 주 진행 _(프레임 · 8/20 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
   - **[GW 백엔드]** **AXS 아웃바운드 E2E 완료** — 실 AXS regression(토큰·Org-ID 주입·verbatim·orders/patients happy 200·org 미연동 403 fail-closed) _(상세 = 공유 S3)_
     - 잔여는 전부 외부 선결(③-I 공개 ingress·실 IoT Core / Straumann prod 자격 / 부하환경)
-  - **[GW Console]** **P1 인증·RBAC 5/9** — Entra 로그인·`/me` 부트스트랩 분기·역할×액션 매트릭스·App Shell(리전 컨텍스트)·홈 대시보드 _(상세 = 공유 S4)_
+  - **[GW Console]** **P1 인증·RBAC 8/9** — Entra 로그인·`/me` 부트스트랩 분기·역할×액션 매트릭스·App Shell(리전 컨텍스트)·홈 대시보드 _(상세 = 공유 S4)_
   - **[제품 연동 스펙]** EzServer OnePager 수령 확인 (잔여)
   - _(이번 주 결정사항 = 회의 시 추가)_
 
@@ -14,7 +14,7 @@
   - **S1. 프로젝트 일정(Gantt) — 8/20 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **진행률(구현)**:
       - **GW ≈ 93%**(IP Task 71/76 — T-E2E-12-1 성격별 3분할[아웃바운드 완료·presign·인바운드]로 total +2·코어 구현 완료 — 잔여 5개 중 GW 착수 가능=1[T-E2E-12-5 presign], 나머지 4개는 ③-I 인프라·Straumann 의존이라 GW 코드 아님)
-      - **GW Console ≈ 29%**(IP Task 15/51 머지 — **P0 완료 · P1 5/9**)
+      - **GW Console ≈ 35%**(IP Task 18/51 머지 — **P0 완료 · P1 8/9**)
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
     - **범례** — **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · **빨강=외부/미정 선결** / **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
 
@@ -64,7 +64,7 @@
         프로파일 확정                  :milestone, axsbl, after axsw, 0d
         AXS prod 자격(NDA 후·Straumann·선결) :crit, credp, 2026-08-18, 21d
 
-        section ③-C GW Console — gw/1.0 대응 v1.0 (구현 ~29%·P0 완료·P1 5/9 · frontend·별도 repo·전규현/Raymond)
+        section ③-C GW Console — gw/1.0 대응 v1.0 (구현 ~35%·P0 완료·P1 8/9 · frontend·별도 repo·전규현/Raymond)
         SRS 작성 (8/5)                :done, consrsw, 2026-08-05, 6d
         SRS baseline (#12602·8/11)     :milestone, done, consrspr, 2026-08-11, 0d
         v1.0 구현 (별도 frontend 세션·mock-first) :active, conv1, 2026-08-12, 28d
@@ -178,7 +178,7 @@
     - **repo·스택**: `vt-api-gateway-console`(전용) · Next.js + Refine(headless) + shadcn/ui + TanStack Query · 부모 GW Admin API를 **코드젠으로 소비**(자체 백엔드 없음). **버전 확정(8/12·T-FE-0-1)** = Next 16.3.0(App Router·Turbopack)·React 19.2.8·Refine 5.0.12·TanStack Query 5.101.4·shadcn CLI 4.17.0(base=radix·Tailwind v4)·pnpm 9.15.9 · dev 포트 3100.
     - **폰트 = CleverSpace(호스트)와 통일(8/12)**: `'Noto Sans','Noto Sans KR','Segoe UI',sans-serif`. 단 로딩은 Google Fonts CDN 링크가 아니라 **`next/font` 자체 호스팅** — 런타임 외부 요청이 없어 CSP 허용 도메인을 늘리지 않는다(SRS §6.2·C-3). _(Next 템플릿 기본값 Geist는 한글 글리프가 없어 한글이 브라우저 기본 폰트로 떨어지던 문제도 함께 해소.)_
     - **SRS**: ✅ **baseline v1.0**(#12602 머지 8/11 · tag `spec-v1.0`). gw/1.0 대응 완전 규격 + gw/1.1·gw/1.2·후속은 방향. 리뷰(민진우·정우혁) 반영·스레드 resolve.
-    - **구현 착수(8/12)**: 별도 **frontend 세션** 오픈 완료 → **P0 완료(10/10) → P1 5/9(8/13)**. Task 단위 PR → 사람 머지(유인 모드·IP §7). **Entra/실 GW 없이 mock으로 대부분 진행 가능**(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
+    - **구현 착수(8/12)**: 별도 **frontend 세션** 오픈 완료 → **P0 완료(10/10) → P1 8/9(8/13)**. Task 단위 PR → 사람 머지(유인 모드·IP §7). **Entra/실 GW 없이 mock으로 대부분 진행 가능**(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
     - **로컬 실데이터 확인 시점**: GW Admin이 Entra-gated라 **P1(인증·RBAC) 완료 후**부터 로컬 GW(Docker)+로컬 Postgres 실데이터를 브라우저로 상시 확인 가능(P8 대기 불필요). 그 전에는 MSW mock 화면.
     - **⚠ Entra 실환경 검증은 아직 0회(8/13)**: `T-FE-1-1`이 OIDC를 **코드로는 실배선**했으나 실 테넌트 로그인은 IT 앱 등록 회신 이후다. 그때 소진할 체크리스트(선행 5·확인 9·함정 5·배포 호스트 전용 1)를 **`_backlog-console.md` §"Entra 실환경 검증 대기"** 에 확정해 뒀고, IP `T-FE-8-1`이 이를 DoD로 참조한다.
     - **GW(백엔드)와의 경계**: Console = Admin API(§7.9) 소비 + well-known/Region Directory 읽기만. **구현 경계** — enroll cert 발급·operator authz 복제·compat-matrix 발행은 **GW/③-I 소관(Console 아님)**. Console→부모 계약 반영은 부모 spec PR로(예: 표시필드 PATCH 봉인=`spec-v1.0.17`).
@@ -197,8 +197,11 @@
       | **P1** 1-5 **risk:auth** | SRS §7.2 역할×액션 매트릭스(**21행×4역할**) 코드화 + accessControlProvider 실판정 + Sidebar 메뉴 게이팅(무권한 비노출) | 🔥 이번주 | **#12663**(머지 `09e9a62`) · 270 unit+component·e2e 19·커버리지 90.2/86.9/89.0/92.0 · **자체 적발 2건**: ① **실제 앱에서 메뉴 전멸** — `useCan` 결과를 TanStack Query가 캐시하는데 키에 세션이 없고 이펙트가 자식→부모 순이라 "부트스트랩 전=거부"가 굳음(컴포넌트 테스트로는 원리상 못 잡음 → **e2e 추가**, 가드 되돌린 대조에서 6건 실패로 유효성 확인) ② 매트릭스를 SRS에서 **독립 전사**해 대조하다 불일치 1건 적발(감사 로그 developer 열 — 구현이 맞음) · **미충족(의도적)**: `[manual]` 서버 403 실강제는 실 GW 없이 증명 불가 → 8-1로 이관 |
       | **P1** 1-3 | SCR-AUTH-02 App Shell 완성 — Region Directory 연동 리전 컨텍스트 · 승인 대기 badge · 운영자 메뉴(로그아웃) · App Bar 슬롯을 셸이 기본 충전 | 🔥 이번주 | **#12665**(머지 `597adf9`) · 308 unit+component·e2e 26·a11y 4·커버리지 91.2/86.7/91.4/93.4 · **리전 1개면 스위처 없이 컨텍스트 표시**(선택지 1개 select는 조작하는 척만 함) · 단일 리전은 env `GW_ADMIN_BASE` 유지(Directory host로 덮으면 로컬 개발 즉사) · 리전 전환 시 이전 리전 데이터는 버리되 `/me`는 유지(역할=전 리전 균일 복제·결정 G) · 로컬 스텁 `regions.json`을 **prod 시드니→dev 서울(apne2)** 교정 · ⚠ **Directory 스키마에 `adminHost` 없음**(Console이 부르는 호스트가 계약에 없고 DNS 관례로만 존재) → 스펙 세션 전달 |
       | **P1** 1-4 | SCR-AUTH-03 홈·대시보드 — 비-PHI 요약 6종(디바이스 상태별·fleet 온라인·승인 대기·연동 대상·매트릭스 상태·최근 감사)+드릴다운 | 🔥 이번주 | **#12666**(머지 `14f5c47`) · 367 unit+component·e2e 26·커버리지 92.6/87.7/93.0/94.4 · **계약에 집계 엔드포인트가 하나도 없다**(전 리소스 커서 페이지네이션·`total` 없음) → 한 페이지를 세고 **더 있으면 `100+`로 드러냄**(200건인데 100으로 보이면 다 처리한 줄 안다) · fleet은 비율이라 더 위험 → **표본 크기 병기** · `targets`만 맨 배열이라 정확한 총계 · 카드별 독립 로드/실패(부분 표시·재시도) · 무권한 카드는 비렌더 · MSW 목 4종 확장(P2~P6 재사용) |
+      | **P1** 1-6 | SCR-RBAC-01 권한 요청 — 역할 체크박스 멀티선택+사유·최소 1개 검증·409 중복 분리 · `no_access` 분기를 안내→요청 화면 이동으로 교체 | 🔥 이번주 | **#12667**(머지 `44a689d`) · 382 unit+component·e2e 31·a11y 4(폼 라벨 연결) · **라우트를 `(shell)` 밖에 배치** — 주 사용자가 no_access인데 셸 안이면 BootstrapGate가 막아 **정작 권한을 요청할 방법이 없어진다** · 보유·대기 역할은 체크박스 잠금(409 예방) · 스코프 global 고정(FR-CON-04/07·최종 역할은 Admin 확정) · ⚠ 거부 사유 표시는 계약상 필드 불명확으로 1-7에서 확인 후 부착 |
+      | **P1** 1-7 | SCR-RBAC-02 승인 큐·조정 — requested 큐 오래된순·**역할 단위 부분 승인**·거부 사유 인라인 · 화면 단위 권한 게이팅(`RequireCan`) | 🔥 이번주 | **#12668**(머지 `b993fa7`) · 405 unit+component·e2e 35·a11y 5 · **행=운영자가 아니라 요청 역할 1건**(운영자로 묶으면 부분 승인 표현 불가) · 1-6 보류였던 **거부 사유 표시 해소**(`note`가 요청/결정 겸용이고 `decidedAt`이 유일한 구분 신호) · **목 인프라 결함 선제 수정**: `mockPath`가 OpenAPI `{param}`을 MSW `:param`으로 안 바꿔 매처가 조용히 미적용 — P2 이후 단건 경로 전부가 겪을 자리 |
+      | **P1** 1-8 | SCR-RBAC-03 운영자 목록 — 상태·역할 필터 + **커서 페이지네이션**(P0 어댑터 실화면 첫 검증) | 🔥 이번주 | **#12670** · 434 unit+component·e2e 40·a11y 6 · 페이지 번호 대신 **더 보기**(계약에 총계·페이지 번호 없음) · 빈 필터 미전송(빈 문자열=정확일치 0건) · 실효 역할만 표시 · **목 결함 수정**: `page()`가 커서를 소비하지 않아 더 보기가 같은 25건을 재첨부(오류 없이 목록만 길어져 미노출) — T-FE-0-7 리뷰가 어댑터에서 잡았던 유형이 목 쪽에 재발 |
       | ─ **대기·잔여** ─ |  |  |  |
-      | **P1** 1-6~1-9 | 권한 요청(SCR-RBAC-01)·승인 큐(02)·운영자 목록(03)·상세·역할 관리(04) | 🟠 진행중 | **P1 5/9** · 다음=**1-6**(권한 요청) · risk:auth(1-9 last-admin 가드) · **P1 완료 시 로컬 GW 실데이터 확인 가능** |
+      | **P1** 1-9 **risk:auth** | 운영자 상세·역할 관리(SCR-RBAC-04) — 부여/회수·정지/복구 + **마지막 admin 회수 방지 가드** | 🟠 진행중 | **P1 8/9** · 다음=**1-9**(P1 마지막) · **완료 시 로컬 GW 실데이터 확인 가능** · risk:auth(1-9 last-admin 가드) · **P1 완료 시 로컬 GW 실데이터 확인 가능** |
       | **P2** enrollment·디바이스 | 2-1~2-5(디바이스 목록/상세·enrollment 승인/거부·수명주기 suspend/resume/kill) | ⬜ 대기 | ★서비스 개통 게이트 · 2-5 kill=비가역 사람 확인 |
       | **P3** 클리닉 | 3-1~3-4(목록/상세·LMP 읽기전용·식별 memo 편집·Device↔Clinic 드릴스루) | ⬜ 대기 | 표시필드 PATCH=봉인(미노출·`spec-v1.0.17`) |
       | **P4** 연동 대상·정책·org-mapping | 4-1~4-4(target 등록 3섹션 폼·삭제 409 가드·정책 편집·org-mapping 관리) | ⬜ 대기 | credential 마스킹 · stale-write 베이스라인(4-3) |
