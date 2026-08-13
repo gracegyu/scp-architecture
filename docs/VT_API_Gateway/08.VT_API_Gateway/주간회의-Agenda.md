@@ -161,7 +161,7 @@
       | **P11 Admin CRUD** | 11-1~11-6(targets·policies·operators RBAC 생애주기·webhook-events break-glass·audit 전면·데이터분류 스캐폴드) | ✅ 완료 | #12441~12470 |
       | ─ **이번주 완료 🔥 (8/6~8/13·Task 단위) + 진행 Phase(P7)** ─ |  |  |  |
       | **v1.0.12** (A) | enroll CSR(PKCS#10)→IoT Core mTLS cert 발급(INACTIVE 게이팅)·승인 활성·revoke/kill/재-enroll 폐기(REVOKED+detach·app-side·`IotCertPort`) | 🔥 이번주 | #12557 · 개인키 GW 미수신·독립리뷰 Critical 수정 |
-      | **v1.0.12** (B) | Admin API Entra-gated 공개 — CORS | 🔥 이번주 | #12497 |
+      | **v1.0.12** (B) | Admin API Entra-gated 공개 — CORS(config allowlist·와일드카드 금지) | 🔥 이번주 | #12497 · **+로컬 origin 확장(#12657·저우선)**: validation 에 http localhost 예외+시드(로컬 Console→dev Admin API)·cors e2e 5·적대리뷰 0 |
       | **시스템 E2E** | SYS-01(온보딩)·02(webhook 왕복 3앱)·04(kill 전파)·05(운영자 RBAC) | 🔥 이번주 | #12566~12568 · 멀티앱(core+admin+receiver+dispatcher) 로컬 더블+실 DB/Valkey/SQS/MQTT/KMS |
       | **P6 하드닝** 프록시 복원력 | 장애주입 e2e(504 TARGET_TIMEOUT·502·hang 없음·§7.5.4)+deadline-abort 정규화 fix | 🔥 이번주 | #12569·#12570 · 독립리뷰가 오진단 정정(프로덕션 이미 504) |
       | **v1.0.15** (A·B) | enroll 명시적 Reject(`device_status +rejected`·pending→rejected 종단·PATCH devices) + 감사 사유(`audit_log.reason`·payload reason 필수·kill/reject 저장)(T-ENR-3-7) | 🔥 이번주 | #12576 · DB 마이그레이션 2건 · device write RBAC=cs·admin · 독립리뷰 2회 |
