@@ -1,10 +1,11 @@
 # VT API Gateway — 8/20 주간회의 Agenda
 
 - 이번 주 진행 _(프레임 · 8/20 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
-  - **[GW 백엔드]** **AXS 아웃바운드 E2E 완료** — 실 AXS regression(토큰·Org-ID 주입·verbatim·orders/patients happy 200·org 미연동 403 fail-closed) _(상세 = 공유 S3)_
+  - **[GW 백엔드]** **AXS 파일 전송 개정 구현 완료 — 4 PR 머지**(spec-v1.0.20~24) — 커넥터 전략(connector_type 파생·DBML 무변경)·다운로드 전체경로 E2E·파일 webhook 라우팅 E2E·업로드 토큰 위임 사이드카 _(상세 = 공유 S3)_
+    - 업로드=fss OAuth(presigned 아님) → GW 가 create-document 응답에 위임 토큰 사이드카 부착→EzServer 직접 업로드(바이트 GW 미경유) · 다운로드=Blob SAS 미경유 유지
+    - AXS 아웃바운드 E2E(토큰·Org-ID·verbatim·happy 200·fail-closed) 완료 유지
     - 잔여는 전부 외부 선결(③-I 공개 ingress·실 IoT Core / Straumann prod 자격 / 부하환경)
-    - **AXS 업로드 스펙 개정**(PR #12669·리뷰 중) — 업로드=presigned 아님(fss OAuth) → **GW 토큰 위임**(create-document 응답 사이드카 토큰 → EzServer 직접 PUT·바이트 GW 미경유)·다운로드=Blob SAS 유지 · 구현 스코프 선행 착수(전략·다운로드·webhook E2E, 사이드카는 태깅 후)
-  - **[GW Console]** **P1 인증·RBAC 완료(9/9)** — Entra 로그인·`/me` 부트스트랩 분기·역할×액션 매트릭스·App Shell(리전 컨텍스트)·홈 대시보드 _(상세 = 공유 S4)_
+  - **[GW Console]** **P1 인증·RBAC 완료(9/9) → P2 진행(4/5) — ★개통 게이트 통과** — Entra 로그인·`/me` 부트스트랩 분기·역할×액션 매트릭스·App Shell(리전 컨텍스트)·홈 대시보드 + **디바이스 목록·상세·enrollment 승인·수명주기(SCR-DEV-01~03)** _(상세 = 공유 S4)_
   - **[제품 연동 스펙]** EzServer OnePager 수령 확인 (잔여)
   - _(이번 주 결정사항 = 회의 시 추가)_
 
@@ -15,8 +16,8 @@
   - **[GW 스펙 결정·2026-08-13] webhook 하행 MQTT = envelope 없는 payload verbatim · 128KB 초과 = v1.0 미지원(명시 제한)** — 스펙(§7.6.6 "얇은 envelope")이 실제 구현(무-envelope verbatim)과 달라 구현 기준으로 정정. 하행은 원 payload를 wrapper 없이 verbatim 발행(EzServer 맥락 = 토픽 clinicId + payload 필드 messageId·eventType 등). IoT Core 128KB 초과 payload는 **v1.0 미처리 · 절대 자르지 않음**(알림/PHI 무결성) → 발행 실패 시 **DLQ·알람으로 표면화**(무통보 유실 없음). 대용량 오프로드+포인터 폴백은 gw/1.1+ 백로그. (AXS 파일 전송 PR #12669에 흡수)
   - **S1. 프로젝트 일정(Gantt) — 8/20 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **진행률(구현)**:
-      - **GW ≈ 93%**(IP Task 71/76 — T-E2E-12-1 성격별 3분할[아웃바운드 완료·presign·인바운드]로 total +2·코어 구현 완료 — 잔여 5개 중 GW 착수 가능=1[T-E2E-12-5 presign], 나머지 4개는 ③-I 인프라·Straumann 의존이라 GW 코드 아님)
-      - **GW Console ≈ 37%**(IP Task 19/51 머지 — **P0·P1 완료** · 다음 P2)
+      - **GW ≈ 97%**(**AXS 파일 전송 개정 4 PR 완료**[7-6 커넥터전략·12-8 다운로드·12-9 webhook·7-7 업로드위임+12-7]·spec-v1.0.24 — 코어·AXS 연동 구현 완료 · **잔여는 전부 외부 게이트**(GW 코드 아님): 12-6 인바운드[③-I ingress+실 IoT]·12-3 부하환경·12-4 HA[③-I Multi-AZ]·9-5 IoT 프로비저닝[③-I]·order 파일 presign[Straumann 시드])
+      - **GW Console ≈ 45%**(IP Task 23/51 머지 — **P0·P1 완료** · **P2 진행 4/5·★개통 게이트 완료**)
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
     - **범례** — **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · **빨강=외부/미정 선결** / **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
 
@@ -32,7 +33,7 @@
         PR 리뷰·수정                  :done, srspr, 2026-07-13, 2026-07-20
         baseline v1.0 (7/20 확정·spec-v1.0.1 정합화 7/22) :milestone, done, srsbl, 2026-07-20, 0d
 
-        section GW 구현 → E2E → 출시 (구현 ~93% · ③ SRS 완료 직후 착수 · 2단계 병행 · Raymond 부분투입)
+        section GW 구현 → E2E → 출시 (구현 ~97% · ③ SRS 완료 직후 착수 · 2단계 병행 · Raymond 부분투입)
         1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·완료) :done, implindep, 2026-07-21, 21d
         2단계 AXS 연동 (P7~P12·P8/9/11 병행·P7 AXS 실연동·P12 부분) :active, implaxs, 2026-07-28, 21d
         AXS E2E (sandbox·12-1·업무 happy 커버 #12655·webhook 인바운드=③-I 대기)  :e2e, after implaxs, 14d
@@ -66,7 +67,7 @@
         프로파일 확정                  :milestone, axsbl, after axsw, 0d
         AXS prod 자격(NDA 후·Straumann·선결) :crit, credp, 2026-08-18, 21d
 
-        section ③-C GW Console — gw/1.0 대응 v1.0 (구현 ~37%·P0·P1 완료 · frontend·별도 repo·전규현/Raymond)
+        section ③-C GW Console — gw/1.0 대응 v1.0 (구현 ~45%·P0·P1 완료·P2 진행 · frontend·별도 repo·전규현/Raymond)
         SRS 작성 (8/5)                :done, consrsw, 2026-08-05, 6d
         SRS baseline (#12602·8/11)     :milestone, done, consrspr, 2026-08-11, 0d
         v1.0 구현 (별도 frontend 세션·mock-first) :active, conv1, 2026-08-12, 28d
@@ -88,7 +89,7 @@
       | **CleverOne**(OnePager 지금·연동 구현 post-v1.0) | — | 🟡 Vatech-\* 헤더·well-known·fallback | 🟡 presigned 업로드 이용 | 🟡 Direct→GW 경유 | ⬜ Region 선택 UI(대안)·ClinicID | — | — | **🟢 ③-P-CO CleverOne OnePager 인계(SharePoint gw_adaptation)** — CleverOne 팀(Nick) 검토 · 담당=Nick·작성=Raymond |
       | **EzServer(EZ)** | ⬜ IO Scanner 데이터 수신(방식 R1·**보류**·TBD) | 🟡 헤더 대리 전달 | 🟡 전송 로직(presigned 직접) | 🟡 GW 경유 전환 | 🟡 ClinicID·Region·클리닉 등록(잠정) | 🟡 AXS(갈래A)·presigned 직접(IO Scanner 세부=TBD) | ⬜ Rust 재개발 | **🟡 ③-P-EZ One Pager 초안 작성됨**(Raymond→EzServer 팀) — `specs/03p-ez-ezserver/EzServer-GW적응-OnePager.md` · ④(갈래A) |
       | **CleverLab** | — | — | — | — | — | ⬜ AXS 오더·상태·확정(갈래B)·presigned | — | ④ Sub-SRS(갈래B) |
-      | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 리전 라벨 호스트·Region Directory·HA(K8s)·Route53·RDS(리전 단일) | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS ✅ baseline v1.0 · 현행 동결 `spec-v1.0.18`**(정합화 누적) · ④ connector ⬜(보류) |
+      | **VatechAPIGateway** | — | 🟢 ↳3단계 흡수(호환 게이트·§7.7) | 🟢 ↳3단계 흡수(presigned 중계·§4.1.4) | 🟢 본체·라우팅·인증·호환·presigned 중계·경로B 흡수 | 🟢 리전 라벨 호스트·Region Directory·HA(K8s)·Route53·RDS(리전 단일) | ⬜ AXS OAuth 중계·Org-ID·온보딩·인바운드·고정IP | — | **③ SRS ✅ baseline v1.0 · 현행 동결 `spec-v1.0.24`**(정합화 누적) · ④ connector ⬜(보류) |
       | **GW Console**(③-C·frontend) | — | — | — | — | 🟢 Admin Web Console gw/1.0 대응(MS Entra 앱계층·Admin API Entra-gated) | ⬜ 온보딩·Org-ID 관리 등 **후속**(gw/1.1·1.2·부가·미정) | — | **✅ ③-C Sub-SRS baseline(`spec-v1.0`·#12602 머지 8/11)** · 구현=별도 frontend 세션 → **S4** |
       | **인프라** | — | — | — | 🟢 dev·qa·stag(단일 Region)·prod(Region별) | 🟢 Route53·K8s·비-AWS minio | 🟢 AXS 고정IP·샌드박스 | — | **🟢 ③-I IaC 구축 계획서 — PR #11973 병합(7/27)·Jack 상세 반영**(Raymond diagram+SRS추출→Jack) — 정본 `vt-api-gateway-infra` · **baseline tag 불요**(living doc) · **AWS 4계층** · **+ 8/4 KMS 키 토폴로지 provisioning ask**(spec-v1.0.7·handoff-infra 항목5 — 리전별 CMK `gw-payload`/`gw-target-cred`·pod별 grant·dev payload CMK 선생성) |
       | **외부(Straumann AXS)** | — | — | — | — | — | 🟡 **PPR sandbox 자격=확보(8/11)** · ⬜ prod(정식계약)=NDA 후(선결) | — | ④ 입력(외부 제공) |
@@ -98,7 +99,7 @@
 
       | 단위 | 스펙 문서 | Repo (Azure DevOps) | 경로 | baseline tag |
       | --- | --- | --- | --- | --- |
-      | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway` | `docs/specs/SRS.md` · `docs/specs/design/`(openapi·dbml) · `docs/specs/UnitTCL.md` | **`spec-v1.0.18`**(현행 동결 · baseline v1.0 후 정합화 누적) |
+      | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway` | `docs/specs/SRS.md` · `docs/specs/design/`(openapi·dbml) · `docs/specs/UnitTCL.md` | **`spec-v1.0.24`**(현행 동결 · baseline v1.0 후 정합화 누적) |
       | **③-C GW Console** | Sub-SRS | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console` (전용 repo) | `docs/specs/SRS.md` | **✅ `spec-v1.0`**(baseline·#12602 머지 8/11) |
       | **④ AXS** | **경량 연동 프로파일**(스펙·구현 아님) | 〃 vt-api-gateway (GW 소유) | `docs/specs/04-subsrs-straumann-axs/` | **연동 config·AXS OpenAPI 참조·org_mapping 의미**(경량)·**PPR sandbox 자격 확보·착수 가능**(prod=NDA후·구현=2단계 P7) |
       | **③-I 인프라** | IaC 구축계획서 | `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-infra` | `docs/IaC-구축계획서.md` | **PR #11973 병합(7/27)** · baseline tag 불요(living doc) |
@@ -125,7 +126,7 @@
         - 1단계 코어 — P0~P6·P10
         - 2단계 골격 — P8·P9·P11 (로컬 더블 기준·실연동 ④ AXS 후)
       - 직전 주(8/6~8/13) — v1.0.12(enroll CSR→IoT mTLS·Admin CORS)·**P7 커넥터 완료**(7-1~7-5·AXS 최초 실연동)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15~21(enroll Reject·감사 사유·clinic.memo·표시필드 봉인·compat-matrix 발행·**admin device 조회 3라우트**·식별 헤더 2계층)
-      - 이번 주(8/13~8/20) — GW 백엔드 main merge **없음**(잔여는 전부 ③-I·Straumann 선결) · **Console(③-C)이 P1 진행**(S4)·11-8(ClinicInfo 교정)
+      - 이번 주(8/13~8/20) — GW 백엔드 main merge **없음**(잔여는 전부 ③-I·Straumann 선결) · **Console(③-C)이 P1 완료→P2 진행**(S4)·11-8(ClinicInfo 교정)
       - 남은 것 (외부·인프라 선결)
         - ④ AXS 실자격 → 7-3(커넥터 실연동)·12-1(sandbox E2E)
         - ③-I 인프라 → 9-5(실 IoT)·9-4(실 KEDA)·0-5(자동배포)·12-4(HA/KEDA)
@@ -158,18 +159,22 @@
       | ─ **이번주 완료 🔥 (8/13~8/20) + 진행 Phase(P12 AXS E2E·Task 단위)** ─ |  |  |  |
       | **T-E2E-12-1** AXS 아웃바운드 e2e | 실-AXS regression(토큰·Org-ID 주입·verbatim·**orders/patients happy 200**·org 미연동 403 fail-closed)·실 AXS gzip 버그 수정 | 🔥 이번주 | #12584/#12600/**#12655** · **성격별 3분할**(아웃바운드 완료/presign/인바운드) · happy 500 원인=우리 org id 오설정(`ea789014`→approve org `a1fb9b17`)·**customerNumber 불필요** |
       | **T-E2E-12-5** AXS presign 중계 e2e | presign 발급 중계·바이트 GW 미경유(E2E-SYS-03·아웃바운드) | ◑ 부분(#12660) | **업로드 presign 발급 verbatim 실측 완료**(create `storageUrl`·필드 원형·Org-ID 주입·5/5 green) · **캡처**: `storageUrl`=fss 호스트·서명 없음→fss API 경로 가능성(§4.1.4=스펙 세션 확인) · defer=다운로드 실물(content 선결)·order 파일(Straumann)·바이트 전송=non-goal |
+      | **T-CONN-7-6** 커넥터 전략 | `connector_type` 파생(internal_bypass/oauth2_cc)·capability(inject_org_id·delegate_upload_token) 코드 상수·**DBML 무변경** | 🔥 이번주 | **#12673** · proxy.service 주입 분기→`ConnectorStrategy` dispatch(순수 리팩터·기존 7-3 회귀 0)·switch/never fail-open 차단 · external+credential無=verbatim(주입 off·거부 아님·C-07 확정) |
+      | **T-E2E-12-8** AXS 다운로드 전체경로 | 문서조회→SAS 다운로드·바이트 **GW 미경유**(§957·Blob SAS)·발급 verbatim·리전 guardrail(TC-REG-42) | 🔥 이번주 | **#12679** · Blob SAS 더블(서명·만료 검증)·무인증 GET 200·만료/위조 403 · guardrail=**AWS-리전 presign 한정 best-effort**(Azure Blob=no-op·AXS 리전주권=org-link ④)·6/6 |
+      | **T-E2E-12-9** 파일 webhook 라우팅 | 파일이벤트(uploaded/updated/deleted) GW 관통·`files[].id`·`storageUri` **무필터 verbatim**·무-envelope | 🔥 이번주 | **#12676** · 실 3앱 관통·eventType 무관 라우팅(organizationId만)·eventId 멱등·주권(타 clinic 0건)·4/4 |
+      | **T-CONN-7-7** 업로드 토큰 위임 사이드카 + **T-E2E-12-7** | create-document 응답(body `storageUrl` 트리거)에 `X-Vatech-Upload-Authorization`(fresh 위임 토큰)·`-Organization-Id` 부착→EzServer fss 직접 업로드(바이트 미경유) | 🔥 이번주 | **#12684** · `applyResponse` 응답 훅·`acquireDelegatedToken`(캐시 우회 fresh·재사용 금지)·멱등 캐시 밖·redaction 마스킹·`filterResponseHeaders` 위조 봉인(rv High 반영)·5/5 · A-2(멱등 재생 실패=502 신호) spec-v1.0.24 확정 |
       | **T-E2E-12-6** AXS 인바운드+MQTT e2e | 실 AXS→GW webhook 왕복(E2E-SYS-02)+역방향 MQTT 다운링크 실 IoT | 🔴 대기 | ③-I **공개 ingress + 실 IoT Core** 선결(T-DISP-9-5 연관) · 로컬 더블(sys-02) 커버 유지 |
       | ─ **대기·무영향** ─ |  |  |  |
       | **P0** 0-5 | CI 파이프라인·Dockerfile(4타겟·스캔·lint·build·unit·e2e 게이트)=완료 · **자동배포(CD) 잔여** — ECR/ArgoCD·main→DEV·tag prefix→TEST/PROD(deploy stage `condition:false` 자리표시자·T-PLAT-0-5 `[~]부분완료`) | 🔴 부분 | ③-I(Jack Azure Flow 템플릿 수령 후) · Dockerfile es-base 전환(0-5b)=완료(#12163) |
       | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | 🔴 대기 | ③-I/④ IoT Core(cert 발급 app-side=v1.0.12(A) 완료·DBML `iot_certificate_id`=스펙 세션) |
-      | **P12 E2E·하드닝** | **12-1 아웃바운드=완료(#12655)** · 12-5 presign(발급 실측 #12660) · 12-6 인바운드+MQTT · **12-2 compat=완료(#12606)** · 12-3 부하 · 12-4 HA/KEDA | ◑ 진행 | 🔴 잔여: 12-5=**업로드 발급 실측 완료**·다운로드 실물/fss=defer · 12-6=③-I 공개 ingress+실 IoT · 12-3=부하환경 · 12-4=③-I(Multi-AZ) |
+      | **P12 E2E·하드닝** | **12-1 아웃바운드=완료(#12655)** · **12-5 presign 발급(#12660)** · **12-7 업로드위임(#12684)** · **12-8 다운로드(#12679)** · **12-9 webhook라우팅(#12676)** · **12-2 compat=완료(#12606)** · 12-6 인바운드+MQTT · 12-3 부하 · 12-4 HA/KEDA | ◑ 진행 | ✅ 12-5·12-7·12-8·12-9 완료(AXS 파일 전송 개정) · 🔴 잔여: 12-6=③-I 공개 ingress+실 IoT · 12-3=부하환경 · 12-4=③-I(Multi-AZ) |
 
-  - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/13 재측정·post-v1.0.12/P7/시스템-E2E · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산). **정지트리 실측·merged floor 게이트 통과**(v1.0.12 A/B·7-1/2/4/5·시스템 E2E SYS-01/02/04/05 반영). _(8/13 재측정: v1.0.19 admin device 3라우트·v1.0.20/21 식별 헤더 2계층·CORS local origin·AXS happy/presign 반영 — 신규 로직 전부 unit+e2e 동반이라 **전역·보안 floor + 핵심 보안파일 per-file branch(≥90%) 모두 통과**.)_
+  - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/13 재측정·post-v1.0.12/P7/시스템-E2E · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산). **정지트리 실측·merged floor 게이트 통과**(v1.0.12 A/B·7-1/2/4/5·시스템 E2E SYS-01/02/04/05 반영). _(8/13 재측정: **AXS 파일 전송 개정 4 PR**(7-6 커넥터전략·12-8 다운로드·12-9 webhook·7-7 업로드위임+12-7) + spec-v1.0.20~24 반영 — 신규 로직 전부 unit+e2e 동반이라 **전역·보안 floor + 핵심 보안파일 per-file branch(≥90%·proxy.service 등 16개 각 100%) 모두 통과** · e2e 545 green.)_
 
     | 스코프                                        | Statements | Branches    | Functions  | Lines      |
     | --------------------------------------------- | ---------- | ----------- | ---------- | ---------- |
-    | **① 전역 (merged)**                           | **96.71%** | **91.86%**  | **93.81%** | **96.51%** |
-    | **② 보안 도메인 (merged)**                    | **98.47%** | **95.82%**  | **100%**   | **98.37%** |
+    | **① 전역 (merged)**                           | **96.72%** | **91.88%**  | **93.89%** | **96.51%** |
+    | **② 보안 도메인 (merged)**                    | **98.51%** | **95.98%**  | **100%**   | **98.42%** |
     | **③ 핵심 보안 파일 16개 (merged·개별)**       | —          | **각 100%** | —          | —          |
     | _참고: 전역 (unit-only)_                      | 77.73%     | 83.02%      | 72.15%     | 78.73%     |
     | **CI 게이트 floor — ① 전역**                  | 92         | 87          | 88         | 92         |
@@ -180,11 +185,11 @@
     - **repo·스택**: `vt-api-gateway-console`(전용) · Next.js + Refine(headless) + shadcn/ui + TanStack Query · 부모 GW Admin API를 **코드젠으로 소비**(자체 백엔드 없음). **버전 확정(8/12·T-FE-0-1)** = Next 16.3.0(App Router·Turbopack)·React 19.2.8·Refine 5.0.12·TanStack Query 5.101.4·shadcn CLI 4.17.0(base=radix·Tailwind v4)·pnpm 9.15.9 · dev 포트 3100.
     - **폰트 = CleverSpace(호스트)와 통일(8/12)**: `'Noto Sans','Noto Sans KR','Segoe UI',sans-serif`. 단 로딩은 Google Fonts CDN 링크가 아니라 **`next/font` 자체 호스팅** — 런타임 외부 요청이 없어 CSP 허용 도메인을 늘리지 않는다(SRS §6.2·C-3). _(Next 템플릿 기본값 Geist는 한글 글리프가 없어 한글이 브라우저 기본 폰트로 떨어지던 문제도 함께 해소.)_
     - **SRS**: ✅ **baseline v1.0**(#12602 머지 8/11 · tag `spec-v1.0`). gw/1.0 대응 완전 규격 + gw/1.1·gw/1.2·후속은 방향. 리뷰(민진우·정우혁) 반영·스레드 resolve.
-    - **구현 착수(8/12)**: 별도 **frontend 세션** 오픈 완료 → **P0(10/10)·P1(9/9) 완료(8/13) → 다음 P2**. Task 단위 PR → 사람 머지(유인 모드·IP §7). **Entra/실 GW 없이 mock으로 대부분 진행 가능**(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
+    - **구현 착수(8/12)**: 별도 **frontend 세션** 오픈 완료 → **P0(10/10)·P1(9/9) 완료(8/13) → P2 진행(4/5·★개통 게이트 완료)**. Task 단위 PR → 사람 머지(유인 모드·IP §7). **Entra/실 GW 없이 mock으로 대부분 진행 가능**(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
     - **로컬 실데이터 확인 시점**: GW Admin이 Entra-gated라 **P1(인증·RBAC) 완료 후**부터 로컬 GW(Docker)+로컬 Postgres 실데이터를 브라우저로 상시 확인 가능(P8 대기 불필요). 그 전에는 MSW mock 화면.
     - **⚠ Entra 실환경 검증은 아직 0회(8/13)**: `T-FE-1-1`이 OIDC를 **코드로는 실배선**했으나 실 테넌트 로그인은 IT 앱 등록 회신 이후다. 그때 소진할 체크리스트(선행 5·확인 9·함정 5·배포 호스트 전용 1)를 **`_backlog-console.md` §"Entra 실환경 검증 대기"** 에 확정해 뒀고, IP `T-FE-8-1`이 이를 DoD로 참조한다.
     - **GW(백엔드)와의 경계**: Console = Admin API(§7.9) 소비 + well-known/Region Directory 읽기만. **구현 경계** — enroll cert 발급·operator authz 복제·compat-matrix 발행은 **GW/③-I 소관(Console 아님)**. Console→부모 계약 반영은 부모 spec PR로(예: 표시필드 PATCH 봉인=`spec-v1.0.17`).
-    - **참고** — 계약=Console SRS baseline(`spec-v1.0`) 동결·부모 계약 핀 `spec-v1.0.18` · Task별 검증(`typecheck`·`lint`·`format:check`·`build` + 각 Task `dod[]`) · **PR 전 독립 적대 리뷰 게이트**(`rv_prompt`·CodeReviewAgent 동일 규칙) 통과 필수 · 매 Task 완료 시 갱신
+    - **참고** — 계약=Console SRS baseline(`spec-v1.0`) 동결·부모 계약 핀 `spec-v1.0.20` · Task별 검증(`typecheck`·`lint`·`format:check`·`build` + 각 Task `dod[]`) · **PR 전 독립 적대 리뷰 게이트**(`rv_prompt`·CodeReviewAgent 동일 규칙) 통과 필수 · 매 Task 완료 시 갱신
     - **상태 범례**(S3와 동일): 🔥 **이번주 완료**(8/13 회의 이후 main merge) · ✅ 이전 완료 · 🟠 진행중/착수예정 · ⬜ 대기 · 🔴 외부/인프라 선결. **표기 규칙(8/20)**: **이번주 완료(🔥)는 Task 단위**로 전개(진척 가시화) · **완료 Phase(지난주까지·전체 동일 상태)는 Phase 1행**으로 묶음 · **Phase 내 상태가 다른 Task만 별도 행**(예: P0-1) · 미착수 Phase = 1행.
 
       | Phase / Task | 범위 | 상태 | PR·비고 |
@@ -204,8 +209,12 @@
       | **P1** 1-8 | SCR-RBAC-03 운영자 목록 — 상태·역할 필터 + **커서 페이지네이션**(P0 어댑터 실화면 첫 검증) | 🔥 이번주 | **#12670** · 434 unit+component·e2e 40·a11y 6 · 페이지 번호 대신 **더 보기**(계약에 총계·페이지 번호 없음) · 빈 필터 미전송(빈 문자열=정확일치 0건) · 실효 역할만 표시 · **목 결함 수정**: `page()`가 커서를 소비하지 않아 더 보기가 같은 25건을 재첨부(오류 없이 목록만 길어져 미노출) — T-FE-0-7 리뷰가 어댑터에서 잡았던 유형이 목 쪽에 재발 |
       | **P1** 1-9 **risk:auth** | SCR-RBAC-04 운영자 상세·역할 관리 — 역할 직접 부여/회수·정지/복구 + **시스템 마지막 admin 회수 방지 가드** | 🔥 이번주 | **#12671**(머지 `a923f1e`) · **P1 완료(9/9)** · 445 unit+component·e2e 46·a11y 7 · 가드는 "내 admin을 뺏는가"가 아니라 **"시스템에 admin이 남는가"**(SRS §7.2) — `limit=2`로 마지막 여부만 확인(계약에 total 없음) · **UI 가드는 편의일 뿐이라 2층**(버튼 비활성 + 409를 다른 문구로 안내·최종 강제는 서버) · ⚠ **정적 export가 동적 라우트를 못 만듦**(`generateStaticParams` 요구) → `operators/detail?id=`로 전환, 같은 제약이 2-2·3-2·4-3·5-2에도 있어 IP outputs[] 일괄 교정 |
       | **개발환경** 로컬 실 GW 연동 | Console이 Entra 없이 **로컬 GW admin API 실데이터**를 조회하는 경로 개통 — 로컬 OIDC 발급자(`pnpm dev:oidc`)+`NEXT_PUBLIC_GW_LIVE` 스위치 | 🔥 이번주 | **#12674·#12677** · **실측**: 토큰 미첨부 401/첨부 200 · admin 시드 후 대시보드가 실 GW **6개 호출 전부 200**(카드 수치 0 = 빈 DB를 실제로 읽은 증거) · 부모 레포 무수정(그쪽 구현 진행 중) · **번들 유출을 게이트가 적발**(모듈 경계 함수 호출은 안 접힘 — T-FE-0-4·0-10에 이은 3번째) → 리터럴 인라인으로 해소 · ⚠ **GW e2e가 로컬 DB를 truncate해 개발 시드가 소실**됨 → 부모 백로그 **B-13** 등록 |
+      | **P2** 2-1 | SCR-DEV-01 디바이스 목록 — `status`·`clinicId` 필터 + 커서 페이지네이션 · clinic **요약 임베드**(2차 조회 없음) | 🔥 이번주 | **#12680**(머지 `f2372d5`) · 487 unit+component·e2e 54·a11y 8·커버리지 91.3/87.8/89.8/92.6 · **region은 컬럼이 아니다**(배포 상수 → 단일 리전 안에서 전 행 동일 · 상단 App Bar가 1회 표시·FR-CON-09 규정) · **상태 필터는 계약 enum 5개 그대로**(줄이면 종단 상태 `rejected`·`revoked` 디바이스를 찾을 방법이 없어짐) · clinic-less는 "미배정"으로 **명시**(빈칸이면 데이터 누락과 구분 불가) · 클리닉 필터는 **제출 시 적용**(불투명 id라 타이핑마다 요청하면 대부분 0건 조회) · URL `?clinicId=` 씨앗 수용(P3 드릴스루 대비) · ⚠ **부수 결함 자체 적발**: 로컬 실 GW용 `.env.local`의 `GW_LIVE=true`가 Playwright dev 서버로 새어 MSW를 끄고 **e2e 전 스펙이 실 GW로 나가 붕괴**(46건 중 2건만 통과) — CI엔 `.env.local`이 없어 **CI 초록·로컬만 실패**하는 유형 → `webServer.env`에서 명시 차단 |
+      | **P2** 2-2 | SCR-DEV-02 디바이스 상세 — FR-CON-09 3탭(상태·수명주기 / 인증·키 / 소속 clinic) 조회 전용 | 🔥 이번주 | **#12682**(머지 `7ecbf96`) · 505 unit+component·e2e 63·a11y 9·커버리지 91.1/87.7/89.3/92.4 · **상태의 의미를 함께 표기** — 값만 보면 `rejected`(한 번도 활성화된 적 없는 enroll 거부)와 `revoked`(운영 중이던 것 폐기)가 구분 안 됨·취할 행동이 다름 → `Record<DeviceStatus,…>`로 두어 계약에 상태가 늘면 **컴파일이 깨지게** 함 · **client id·공개키는 비가림**(계약 "비밀 아님" 명시 · 가리면 GW 로그 `client_id` 대조 불가 = 진단 차단) · 미발급은 빈칸 아닌 "미발급+이유" · clinic은 **읽기전용 임베드**(2차 조회 없음·테스트가 호출 횟수 검증) · **클리닉 링크는 미배선**(클리닉 화면 부재 → 정적 배포 404 = "링크 깨짐"과 구분 불가·드릴스루=3-4) · **탭=shadcn/radix 도입**(기존 의존성·신규 0 — 직접 구현 시 화살표 키 이동이 조용히 누락되는데 axe가 못 잡음·P3/P4 재사용) · ⚠ **대조 실행에서 자체 테스트 결함 적발**: 시각 비교가 라벨을 포함해 바꿔치기해도 통과 → 값만 비교로 교정·재대조 확인 |
+      | **P2** 2-3 ★개통 게이트 | SCR-DEV-03 enrollment 승인 큐 — 승인=`PATCH status=active` / 거부=`status=rejected`+`reason` | 🔥 이번주 | **#12683**(머지 `455f01e`) · 530 unit+component·e2e 72·a11y 10·커버리지 91.2/87.2/89.9/92.4 · **승인 전 확인을 명시적으로 수령** — FR-CON-10 검증(설치+리전 적정성)은 눈으로 하는 일이라 코드가 대신 못 함 · 바로 누르게 두면 큐를 훑으며 연달아 승인해 **검증 단계가 사실상 소멸** · 확인은 **행 단위**(큐 전체 1개면 한 번 체크 후 나머지 통과) · **거부 사유 UI 필수 강제**(부모 API는 optional이나 거부=종단·복구 불가 → SRS가 UI를 더 엄격히 규정) · **승인엔 사유 미첨부**(빈 문자열이면 감사 로그에서 "사유 없이 결정"과 구분 불가) · **현재 리전+담당 국가 표시**(디바이스 응답에 region 컬럼 자체가 없음=배포 상수 → Region Directory `countries`) · **멱등**(낡은 행엔 버튼 대신 현재 상태) · 화면은 **결정 권한**(cs·admin)으로 개방 · ⚠ **누락 자체 적발**: 착지 경로 목록에 `/devices`(2-1 누락)·`/devices/pending` 미등록 → **cs·developer가 홈에 착지**하던 것 교정 · ⚠ **e2e가 실제 결함 적발**: 리전 요약이 모듈 저장소를 렌더 1회만 읽어 Directory 지연 시 안내 미표시(컴포넌트 테스트로는 원리상 불가) → 훅 구독으로 교정 |
+      | **P2** 2-4 | 수명주기 suspend/resume — 상세 [상태·수명주기] 탭의 `active ↔ suspended` + 확인창 | 🔥 이번주 | **#12685**(머지 `a00faab`) · 551 unit+component·e2e 79·a11y 10·커버리지 91.3/87.5/89.8/92.5 · **확인창이 결과를 행동으로 기술**("상태를 suspended로"는 상태명 전사일 뿐 결과 미전달 · 대상 deviceId 병기 = 오선택 감지) · **갈 곳 없으면 액션 미배치**(pending=enrollment 소관·권한 상이 / rejected·revoked=종단) — 비활성 버튼은 "무권한"과 "상태상 불가"를 구분 못 함 · **사유는 선택**(SRS의 UI 강제는 거부·kill 둘뿐 = **모두 비가역**인데 정지는 복구 가능 · 빈 값/공백 미전송) · **실패 시 확인창 유지**(Radix 기본=즉시 닫기 → 오류 표시 위치 소멸 = "적용된 줄" 오인) · **AlertDialog=shadcn/radix 도입**(의존성 0 · 포커스 트랩·Esc·aria-modal은 axe 미검출 · 2-5 kill 재사용) · 목에 §7.2.3 **전이표** 추가 · ⚠ **기존 테스트 경합 적발**: 역할별 착지 e2e 3건이 리다이렉트 **전** URL에 즉시 일치해 통과(2-3에서 경로를 채웠는데도 초록이던 이유) → `waitForURL`로 교정 |
       | ─ **대기·잔여** ─ |  |  |  |
-      | **P2** enrollment·디바이스 | 2-1~2-5(디바이스 목록/상세·enrollment 승인/거부·수명주기 suspend/resume/kill) | 🟠 착수예정 | **P1 완료(9/9) → 다음=P2** · ★서비스 개통 게이트 · **로컬 실 GW로 개발 가능**(#12674) · risk:auth(1-9 last-admin 가드) · **P1 완료 시 로컬 GW 실데이터 확인 가능** |
+      | **P2** enrollment·디바이스 | 잔여 2-5(kill=revoke · **비가역 파괴적 액션**) | ◑ 진행 **4/5** | 2-1(#12680)·2-2(#12682)·**2-3 ★개통 게이트**(#12683)·2-4(#12685) · 2-5는 `POST …/kill`(PATCH 아님)·사유 UI 필수·위험색 분리·**`[manual]` 사람 클릭 검증 필요**(비가역·재서비스=재-enroll뿐) |
       | **P3** 클리닉 | 3-1~3-4(목록/상세·LMP 읽기전용·식별 memo 편집·Device↔Clinic 드릴스루) | ⬜ 대기 | 표시필드 PATCH=봉인(미노출·`spec-v1.0.17`) |
       | **P4** 연동 대상·정책·org-mapping | 4-1~4-4(target 등록 3섹션 폼·삭제 409 가드·정책 편집·org-mapping 관리) | ⬜ 대기 | credential 마스킹 · stale-write 베이스라인(4-3) |
       | **P5** webhook·break-glass | 5-1~5-3(이벤트 메타 조회·payload break-glass 열람 PHI) | ⬜ 대기 | risk:security(5-3 PHI 마스킹) · 열람 역할=C-5 확정 대기(잠정 admin) |
