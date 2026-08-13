@@ -36,6 +36,14 @@
 - Dentbird 연동시 고려사항
   - 연동 시나리오 (TBD): https://vatechcorp-my.sharepoint.com/shared?listurl=%2Fpersonal%2Fjoy%5Fshin%5Fewoosoft%5Fcom%2FDocuments&viewid=ebc8906e%2Db3a2%2D4150%2D84e5%2Df8bbdebbc451&ga=1&id=%2Fpersonal%2Fjoy%5Fshin%5Fewoosoft%5Fcom%2FDocuments%2FJoy%5FOneDrive%2F14%2E%20%ED%95%B4%EC%9E%90%2F7%2E%20%EC%9D%B4%EB%A7%88%EA%B3%A0%EC%9B%8D%EC%8A%A4%2F%5BES%2D%EC%9D%B4%EB%A7%88%EA%B3%A0%EC%9B%8D%EC%8A%A4%5D%5F20260416%5FClever%20One%5FDentbird%20%EC%97%B0%EB%8F%99%20%EC%8B%9C%EB%82%98%EB%A6%AC%EC%98%A4%2Epdf&parent=%2Fpersonal%2Fjoy%5Fshin%5Fewoosoft%5Fcom%2FDocuments%2FJoy%5FOneDrive%2F14%2E%20%ED%95%B4%EC%9E%90%2F7%2E%20%EC%9D%B4%EB%A7%88%EA%B3%A0%EC%9B%8D%EC%8A%A4
   - 연동 관련 문서 (Dentbird): https://docs.dentbird.com/dentbird-partner-integration-guide.html
+  - 연동 관련 이슈: PLAN-1270 - 이마고웍스사와 Dentbird 서비스 연동을 위한 협업을 검토한다.
+    - 1단계 ('26.10월 목표)
+        - Dentbird의 계정 정도는 ES 제품에 등록하여 연동
+        - 서비스 가입 페이지 링크
+        - 데이터(CT/ IO Scanner 등) 를 선택 후 Dentbird 전송 기능 실행
+    - 2단계 ('27.03월 목표)
+        - 1단계 기능 모두
+        - Dentbird의 디자인 데이터를 EzServer에 저장
   - Account의 credential을 넣게 되어 있는데, Dentbird에 전달 방안?
     - API 대한 정보가 정확하지 않아 어떻게 전달하는지는 모르나 header를 통해 전달하지 않을까 추측
     - EzServer enrollment 과정에서 credential을 설정할 수도 있지 않을까?
@@ -73,3 +81,31 @@
     - ② org_mapping 등록(로컬): `POST /v1/clinics/me/org-bindings` → GW DB 1행. **← org_mapping이 생기는 유일한 지점.** target 미호출.
     - ③ 외부 연동 링크(원격): 대상 쪽에 실제로 연결(예: AXS `link` API 호출·별도 프록시 호출). ②와 **별개 행위.** (Dentbird는 이런 원격 "연결" 호출이 있는지 확정 필요 — 없으면 ②만으로 끝.)
   - 순서 예 (AXS 기준·클리닉 케이스, A안/B안과 무관): (i) 이미 연동(organizationId 보유) = ②만 · (ii) Straumann 고객·미연동 = ③(`link`)로 organizationId 획득 → ② · (iii) 비-Straumann = Straumann 고객가입(수동) 선행 → (ii)로 수렴.
+
+- EzServer 가 bypass 역할만할 때 device token이 사용하는지?
+    1. 없다면 아무나(?) clinic id를 알면 호출가능한가? (보안상 이슈는 없을지?)
+    2. 사용한다면 device token 갱신(15분)마다 nginx를 재시작이 필요하다. 아니면 nginx extension으로 구현해야 한다.
+    - ➡️ (B안 기준) 예, EzServer→GW는 **항상 device token 필수**(§7.1.1·`private_key_jwt`). 없으면 (1)의 우려대로 clinic id만 알면 아무나 GW 호출 가능 → token이 그 구멍을 막는다. (2) TTL ≤15분이라 **nginx 재시작이 아니라 토큰 갱신 에이전트 + 동적 주입**으로 푼다(njs/lua가 캐시 토큰 참조 · 사이드카가 갱신한 토큰을 파일/변수로 · auth_request 서브리퀘스트). 재시작 방식 비권장. 갱신·주입 메커니즘은 EzServer(③-P-EZ) 설계.
+- Data 보안 이슈
+    1. C1-(HTTP or self signed certificate HTTPS)->EzServer-(HTTPS)>VAG-(HTTPS)>Target 구간에서
+        1. C1→EzServer 구간에서
+            1. HTTP 허용?
+            2. self-signed HTTP를 쓴다하더라도 MITM 공격에 취약한데, VAG나 Target의 민감정보가 노출될 우려를 감수해도 괜찮은지?
+    - ➡️ C1→EzServer는 **클리닉 내부 구간**이라 GW 신뢰경계 밖(§2.2 — GW 미관측·EzServer 계층 소관). **이 구간엔 민감 자격이 안 실린다** — device token은 EzServer가 붙이고 target 자격은 GW가 얹으므로 평문에 노출되는 건 원 요청 본문뿐(target·device token 아님). 그래도 내부망이라도 **TLS 권장**(MITM·PHI). HTTP 허용·인증서 정책은 **EzServer/클리닉 LAN 소관(③-P-EZ)**, GW는 EzServer→GW(HTTPS·인증)부터 책임.
+- EzServer->VAG 간 통신에 항상 Authorization: Bearer <EzServer device token> 넣으면 Clever->EzServer->VAG->target 간의 CleverOne이 target으로부터 받은 Authorization 값은 어떻게 전달?
+    1. 중간의 VAG가 VAG 자체 token으로 교체를 한다면
+        1. C1이 받은 token과 정보가 다를텐데 괜찮을지?
+        2. VAG에서 교체시 로깅이 되어야 디버깅이 가능할 듯
+    - ➡️ (B안 기준) auth가 **홉마다 계층 분리**: EzServer→GW=device token(GW 인증), GW→Dentbird=**target 자격을 GW가 주입**(§7.1.3 External Connector). 즉 **CleverOne은 target 자격을 안 들고 있다** → "C1이 받은 token과 다르다"는 문제가 B안에선 발생 안 함(A안보다 단순). 주입/교체는 GW가 **감사 로그**로 남겨 디버깅 가능. 원 요청 body는 verbatim 통과(§4.1.4).
+- C1이나 Ezserver단에서 PKCE인증시 VAG를 통할지?
+    1. 이때 redirect uri는?
+    2. 현재 EzServer의 WebConsole 에서 CleverSpace 연동시, CleverSpace login 주소를 cleverspace의 wellknown 을 조회해서 사용한다. (강석진/ Levi 확인)
+        1. https://auth.oneid.cleverspacecloud.com/realms/oneid/protocol/openid-connect/auth?client_id=b4e0acc2-3039-4a8c-9b8e-7485cce4749a&response_type=code&scope=openid&redirect_uri=http%3A%2F%2F172.26.111.116%3A43112%2Fwebconsole%3Faction%3Dlogin&code_challenge_method=S256&code_challenge=c4OjwvTGgWL8BIUQOwTLt_mcYne4iB-IvC_mdvAYZHY&state=a6d32a99-d7f9-4441-901f-965ec7fa8d9c&nonce=352e92ec-7454-4f3d-9e28-31e8fbacf2cc
+        2. OneID는 region/realm이 변동가능성이 있다. (아직 미정)
+    3. 현재 CleverOne도 직접 PKCE인증을 사용한다.
+    - ➡️ 파트너/서비스 인증(client_credentials·정적 API key)은 **GW가 서버측 주입**이라 사용자 PKCE가 GW를 통할 일 없음(AXS 동형). **사용자 로그인(OIDC/PKCE)이 필요하면 GW 밖 직접** — OneID(CleverSpace)가 GW에 없는 것과 동일([[oneid-not-in-gw-at-all]]). 즉 (2)의 CleverSpace well-known 로그인·(3)의 CleverOne PKCE는 **GW 밖 직접 흐름**이고 redirect uri도 해당 IdP 것. **단 Dentbird 인증이 파트너 서버인증인지 사용자 로그인인지 미확인** — 확정 선결(현재는 파트너 인증 가정).
+- C1→EzServer->VAG->Target->webhook-(MQTT)->EzServer-(MQTT)>C1에서 요청한 C1만 받을 방법은? (한 클리닉에 여러곳의 C1 이 설치되었다고 가정시)
+    1. 현재 C1→EzServer간 direct 연동시, requestId 같은 것을 심어서 요청하면 MQTT body에 담아서 return 해줌.
+    2. AXS, Dentbird의 경우는 어떻게 할지? 추가로 webhook을 쓰는 곳은 EzServer 업그레이드 없이 지원할 방법은?
+    - ➡️ **correlation(request) ID가 왕복 내내 보존**돼야 특정 C1로 되돌릴 수 있다: C1이 correlationId 부여 → GW가 Dentbird로 전달 → **Dentbird가 webhook payload에 echo** → GW가 org_mapping으로 clinic 판정 후 그 EzServer MQTT로 **correlationId 포함** 전달 → EzServer가 correlationId로 요청 C1에 라우팅(지금 requestId 방식 재사용). GW는 clinic까지, **C1 지목은 EzServer가**(기존 MQTT 라우팅 재사용이라 EzServer 큰 변경 없이 가능). **핵심 선결 = Dentbird가 correlation/case ID를 webhook에 echo하는가**(안 하면 clinic 내 브로드캐스트 → 각 C1이 자기 것만 필터). → Dentbird 확인 목록 추가.
+- 공유: EzServer Sub-SRS 담당자는 민진우/ Thomas 로 변경됨
