@@ -15,7 +15,7 @@
 
     | # | 요청 | 수신 | dev | prod |
     | --- | --- | --- | --- | --- |
-    | 1 | Region Directory 호스팅 (**우선순위 1** · EzServer enroll 앵커 · Console 리전목록도 소비) | ③-I | ☐ 마감 8/21 | ☐ 도메인 확정 후 |
+    | 1 | Region Directory 호스팅 (**우선순위 1** · EzServer enroll 앵커 · Console 리전목록도 소비) | ③-I | **✅ publish 완료**(8/18·`regions.gw.dev.ezcld.net`·스키마 §7.3.6 정합 확인) | ☐ 도메인 확정 후 |
     | 2 | GW Console dev 호스팅 (프리뷰 우선 배포 · `console.gw.dev.ezcld.net`) | ③-I | ☐ 마감 8/14 (**경과**) · _우리 파이프라인/스크립트 준비완료 → Jack S3·서비스커넥션만 대기_ | ☐ 도메인 확정 후 (별도) |
     | 3 | 운영자 로그인 Entra (GW Admin API app + Console SPA app · 2앱 · PKCE) | IT · ③-I | ☐ 마감 8/21 | ☐ 도메인 확정 후 |
   - **[GW 구현 선결 추적 · 외부 인프라·자격]** — GW 백엔드 E2E·배포가 **외부 선결**로 막힌 Task들(정본=IP 부록 B·gated Task). 회의에서 **소유별 상태·ETA 확인**(③-I / Straumann·영업).
@@ -35,10 +35,11 @@
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
   - **[GW 스펙 결정·2026-08-13] webhook 하행 MQTT = envelope 없는 payload verbatim · 128KB 초과 = v1.0 미지원(명시 제한)** — 스펙(§7.6.6 "얇은 envelope")이 실제 구현(무-envelope verbatim)과 달라 구현 기준으로 정정. 하행은 원 payload를 wrapper 없이 verbatim 발행(EzServer 맥락 = 토픽 clinicId + payload 필드 messageId·eventType 등). IoT Core 128KB 초과 payload는 **v1.0 미처리 · 절대 자르지 않음**(알림/PHI 무결성) → 발행 실패 시 **DLQ·알람으로 표면화**(무통보 유실 없음). 대용량 오프로드+포인터 폴백은 gw/1.1+ 백로그. (AXS 파일 전송 PR #12669에 흡수)
+  - **[GW 스펙 개정·2026-08-18] 감사 로그(audit) 계약 확장 — 리소스별 변경 이력 + 사유(reason) 조회 지원** — 파괴적·관리 액션의 감사 추적성을 높이려 `AuditLog`를 **additive로 확장**(비파괴·기존 영향 0). ① **리소스 축**(`resourceType`/`resourceId`) 추가 → "이 device/clinic/target의 최근 변경 이력"을 리소스별로 조회(그전엔 전역 목록만·`spec-v1.0.25`). ② **사유(`reason`) 응답 노출** → kill·enroll 거부·payload break-glass가 저장하던 사유를 감사에서 **되읽기 가능**(규제·PHI break-glass 대응 — 받아만 두던 것을 조회 가능하게·`spec-v1.0.26`). ③ device **kill 종단 재호출 = 409** 계약 정합(구현은 이미 그렇게 동작·문서만 일치·`spec-v1.0.27`). **GW 백엔드(T-DATA-1-9)·Console(T-FE-6-6 감사·상세 화면) 반영 완료.** *(발단 = Console 감사·kill 화면 구현 중 계약 갭 발견 → 스펙 세션 정합.)*
   - **S1. 프로젝트 일정(Gantt) — 8/20 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **진행률(구현)**:
       - **GW ≈ 97%**(**AXS 파일 전송 개정 4 PR 완료**[7-6 커넥터전략·12-8 다운로드·12-9 webhook·7-7 업로드위임+12-7]·spec-v1.0.24 — 코어·AXS 연동 구현 완료 · **잔여는 전부 외부 게이트**(GW 코드 아님): 12-6 인바운드[③-I ingress+실 IoT]·12-3 부하환경·12-4 HA[③-I Multi-AZ]·9-5 IoT 프로비저닝[③-I]·order 파일 presign[Straumann 시드])
-      - **GW Console ≈ 92%**(IP Task 47/51 머지 — **P0~P7 완료** · 잔여 = **P8(실 e2e·배포)만** · **8/13 저녁부터 무인 모드**(PR auto-complete))
+      - **GW Console ≈ 92%**(IP Task **48/52 완료 + P8 2건 부분완료**(T-FE-6-6 신설·완료) — **P0~P7 전부 완료** · 잔여 P8 4건은 **전부 외부 선결 대기**(C-2 Entra·staging GW·C-3 CORS·C-10 도메인) · 8/13 저녁부터 무인 모드)
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
     - **범례** — **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · **빨강=외부/미정 선결** / **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
 
@@ -88,7 +89,7 @@
         프로파일 확정                  :milestone, axsbl, after axsw, 0d
         AXS prod 자격(NDA 후·Straumann·선결) :crit, credp, 2026-08-18, 21d
 
-        section ③-C GW Console — gw/1.0 대응 v1.0 (구현 ~92%·P0~P7 완료·P8만 잔여 · frontend·별도 repo·전규현/Raymond)
+        section ③-C GW Console — gw/1.0 대응 v1.0 (구현 ~92%·P0~P7 완료·P8=외부 선결 대기 · frontend·별도 repo·전규현/Raymond)
         SRS 작성 (8/5)                :done, consrsw, 2026-08-05, 6d
         SRS baseline (#12602·8/11)     :milestone, done, consrspr, 2026-08-11, 0d
         v1.0 구현 (별도 frontend 세션·mock-first) :active, conv1, 2026-08-12, 28d
@@ -184,6 +185,8 @@
       | **T-E2E-12-8** AXS 다운로드 전체경로 | 문서조회→SAS 다운로드·바이트 **GW 미경유**(§957·Blob SAS)·발급 verbatim·리전 guardrail(TC-REG-42) | 🔥 이번주 | **#12679** · Blob SAS 더블(서명·만료 검증)·무인증 GET 200·만료/위조 403 · guardrail=**AWS-리전 presign 한정 best-effort**(Azure Blob=no-op·AXS 리전주권=org-link ④)·6/6 |
       | **T-E2E-12-9** 파일 webhook 라우팅 | 파일이벤트(uploaded/updated/deleted) GW 관통·`files[].id`·`storageUri` **무필터 verbatim**·무-envelope | 🔥 이번주 | **#12676** · 실 3앱 관통·eventType 무관 라우팅(organizationId만)·eventId 멱등·주권(타 clinic 0건)·4/4 |
       | **T-CONN-7-7** 업로드 토큰 위임 사이드카 + **T-E2E-12-7** | create-document 응답(body `storageUrl` 트리거)에 `X-Vatech-Upload-Authorization`(fresh 위임 토큰)·`-Organization-Id` 부착→EzServer fss 직접 업로드(바이트 미경유) | 🔥 이번주 | **#12684** · `applyResponse` 응답 훅·`acquireDelegatedToken`(캐시 우회 fresh·재사용 금지)·멱등 캐시 밖·redaction 마스킹·`filterResponseHeaders` 위조 봉인(rv High 반영)·5/5 · A-2(멱등 재생 실패=502 신호) spec-v1.0.24 확정 |
+      | **T-DATA-1-8** 로컬/e2e DB 분리 + operator 시드 | `gw_test` 격리(`make db-test-setup`·`test-e2e-local`)·멱등 `dev:operator`+`dev-scenario`·`dev-db-reset` 시드 — **B-13 해소**(Console 로컬 실연동이 GW e2e에 지워지던 문제) | 🔥 이번주 | **#12714**·후속 #12716·#12719 · SRS 무변경(§3.5.2 위임·GW README) |
+      | **T-DATA-1-9** 감사 리소스 축 + `reason` 노출 | `audit_log`에 `resource_type`/`resource_id`(복합 인덱스) + `reason` 응답 노출 — 부모 **B-14**(`spec-v1.0.25`·#12725)·**B-15**(`spec-v1.0.26`·#12735) · Console "이 리소스의 최근 변경 이력"+"왜"(reason) 언블록(CB-3·CB-4 해소) | 🔥 이번주 | **#12739** · 매퍼 3필드 camel·read 필터(resource 축만·reason 비필터)·write 20지점(region relocation만 NULL) · 스펙 세션 §7.9.3 delta 정합 ✓ |
       | **T-E2E-12-6** AXS 인바운드+MQTT e2e | 실 AXS→GW webhook 왕복(E2E-SYS-02)+역방향 MQTT 다운링크 실 IoT | 🔴 대기 | ③-I **공개 ingress + 실 IoT Core** 선결(T-DISP-9-5 연관) · 로컬 더블(sys-02) 커버 유지 |
       | ─ **대기·무영향** ─ |  |  |  |
       | **P0** 0-5 | CI 파이프라인·Dockerfile(4타겟·스캔·lint·build·unit·e2e 게이트)=완료 · **자동배포(CD) 잔여** — ECR/ArgoCD·main→DEV·tag prefix→TEST/PROD(deploy stage `condition:false` 자리표시자·T-PLAT-0-5 `[~]부분완료`) | 🔴 부분 | ③-I(Jack Azure Flow 템플릿 수령 후) · Dockerfile es-base 전환(0-5b)=완료(#12163) |
@@ -241,12 +244,14 @@
       | **P5** 5-1~5-3 **PHI** | webhook 이벤트 메타 목록/단건(DLQ triage) + **payload break-glass 열람** | 🔥 이번주 | **#12717**(머지 `c699d4a`·3 Task 묶음) · 752 unit+component·e2e 128·a11y 19·커버리지 90.9/85.6/86.2/91.7 · ⚠**메타 화면에 payload가 없다**(계약 메타=PHI-free · 목록이 본문을 끌어오면 **그 순간 PHI 화면이 되고 역할 제한·건건 감사가 통째로 우회**) — 테스트가 "본문 덤프 자리 부재"로 검증 · break-glass = **지정 역할만 노출**(잠정 admin·**C-5 확정 대기** — PHI라 넓히는 쪽 오류는 되돌릴 수 없어 최소로) · **사유 없이 요청 미발신**(계약상 400이지만 눌러 보고 알게 하는 건 PHI 화면에서 할 일이 아님) · **마스킹 해제 UI 없음**(SRS 명시) · `redacted=false`면 그 사실 명시 · **사유는 세션 1회 재사용**(건마다 재입력시키면 아무 글자나 넣게 돼 사유 확보가 형식만 남음)·**감사는 축약 안 함** · ⚠ **목을 실 GW에 맞춰 정정**: device 무효 전이는 **409**(200 no-op 아님·GW 세션 확인) → T-FE-8-2 대조 항목 1건 해소 · ⬜ **`[manual]` 미충족**: 마스킹 응답이 콘솔/네트워크/클립보드에 원문 노출 없는지 + 무권한 403인지 **사람 1회 확인**(규제·법적 책임)·**PL 대기** |
       | **P6** 6-1~6-5 | fleet 대시보드·**SW 인벤토리**·중앙 config·호환성 매트릭스 뷰어·감사 로그 | 🔥 이번주 | **#12720**(5 Task 묶음) · 813 unit+component·e2e 140·a11y 24·커버리지 92.1/86.6/87.2/92.8 · ★**SW 인벤토리에 "대수" 미표시**(헤더 관측·식별 id 없음 → 버전 **존재 여부**만 · 카운트를 붙이면 자산 대장으로 읽혀 라이선스·롤아웃 판단이 틀린다) · **`os=null` 행 유지**(감추면 관측된 버전이 통째로 사라짐) · fleet `online`은 **서버 파생값 그대로**(자체 판정 시 임계값이 두 곳) · **한 페이지 비율임을 명시**(총계 부재인데 "N% 온라인"은 전수로 읽힘) · **product 필터 없음**(fleet=EzServer 자신) · config는 **`gw.*` 한정**(`device.*`는 pull 경로가 다름)·**행 version 표시**·stale-write 재사용 · 매트릭스는 **저작면 없음**(발행 파이프라인 밖에서 값이 갈라짐)·실패 시 캐시+stale · 감사는 **읽기 전용**(쓰기 API 부재·규제) · 부수: 목 audit 필터 누락을 **e2e가 적발** · **README UI 통합테스트 절 신설**(GW README와 짝·시드 3종·신원 일치·e2e 격리·**동기화 표**) |
       | **P7** 7-1~7-7 | 공통 UX·i18n·동시성·보안 — 세션 만료·403·오류 분류·stale-write 통합·i18n 전면·보안 리뷰·a11y/시각회귀 게이트 | 🔥 이번주 | **#12724**(7 Task 묶음) · 877 unit+component·e2e 140·**a11y 27**(14→27)·**visual baseline 17**·**i18n 미번역 0건**·커버리지 91.9/86.2/87.3/92.6 · 유휴 30분+1분 전 경고·**만료 후 활동 미집계**(세면 마우스 한 번에 세션이 되살아나 타임아웃이 무의미) · 오류를 **행동 가능한 종류로 분류**·**재시도는 의미 있을 때만**(권한/입력/충돌에 붙이면 같은 실패 반복) · `allowsOptimisticUpdate()`를 함수로 둬 **규칙을 테스트가 확인** · stale-write **소스 회귀 검사**(화면마다 따로 구현하면 한 곳만 고치고 나머지는 무경고 덮어쓰기·리뷰로도 안 잡힘) · i18n **선택값 유지**+`useSyncExternalStore`로 **하이드레이션 불일치 회피**(정적 export) · ⚠ **a11y가 실제 결함 적발**: `<html lang>`에 `ko_KR`(BCP 47 위반) → **27개 전 화면 실패** → `ko-KR` 교정 · 보안: 저장소 정책 가드 + **저장 키 전수 목록을 테스트가 고정** + 체크리스트 문서 · ⬜ **`[manual]` 미충족**: devtools로 PHI·자격 잔존/CSP 적용 **사람 1회 검사**·**PL 대기** |
+      | **P8** 8-2·8-3 자동화분 | 시각회귀 CI 배선 + staging **대체 커버 명시**(dod 허용) | 🔥 이번주 | **#12727** · ⚠ **실제 결함 적발**: 시각 baseline 경로에 `{platform}`이 빠져 **macOS baseline을 Linux CI가 비교 → 전 화면 실패**(그 빨강은 "화면 변경"이 아니라 "OS 상이"라 무정보) → 플랫폼별 분리·재생성 · 시각회귀는 **차단 게이트 아님**(linux baseline 부재 · 아티팩트로 발행 → 사람 확인·커밋 후 필수화 = 8-3 승인) · axe는 **이미 차단 게이트** · staging은 **핵심 여정 5개를 목으로 대체 커버**하고 **목으로 증명 안 되는 것을 여정별로 명시**(특히 RBAC는 UI 게이팅만·**서버 인가 미검증**) · 대체 스펙 존재를 테스트가 고정 |
+      | **P6** 6-6 신설 | 감사 **리소스 축** 소비(`resourceType`/`resourceId`) — **CB-3 해소** | 🔥 이번주 | **#12733** · 부모 **B-14**(`spec-v1.0.25`)로 막혀 있던 "이 리소스의 변경 이력"이 가능해짐 → device·clinic·target 상세에 **최근 변경** 절 신설 + 감사 화면 필터 2종 · **계약 baseline 이동 전 실측**(Operating Mode §7 준수 — 필드 2·쿼리 2 additive라 breaking 아님·기존 영향 0) · ⚠**명명 주의** `targetType` 아닌 **`resourceType`**(프록시 target·ADR-11과 충돌 회피) · 권한 없으면 **절 자체를 미렌더**(빈 절은 "이력 없음"으로 오독) · ⚠ **새 빈틈 CB-4**: `AuditLog` 응답에 **`reason` 부재** — kill·거부·break-glass가 사유를 **필수로 받아 저장**하는데 **읽을 수단이 없음**(파괴적 액션의 핵심 정보인데 규제 대응으로 받아만 둔 상태) · ⚠ **자체 회귀 적발**: #12727이 넣은 vitest 메타 테스트를 Playwright가 집어 **e2e 전체가 죽어 있었음**(그 PR이 e2e 미실행 → main 유입) → `testMatch` 교정 |
       | ─ **대기·잔여** ─ |  |  |  |
       | **P4** 연동 대상 | 4-1~4-4 전부 완료 | ✅ **완료 4/4** | #12715 |
       | **P5** webhook·break-glass | 5-1~5-3 전부 완료 | ✅ **완료 3/3** | #12717 · ⬜ 잔여 = `[manual]` PHI 노출 사람 확인 1건 |
       | **P6** fleet·config·매트릭스·감사 | 6-1~6-5 전부 완료 | ✅ **완료 5/5** | #12720 |
       | **P7** 공통 UX·i18n·동시성·보안 | 7-1~7-7 전부 완료 | ✅ **완료 7/7** | #12724 · ⬜ 잔여 = `[manual]` 보안 실검사 1건 |
-      | **P8** 실 e2e·시각회귀·배포 | 8-1~8-4(Entra dev 전환·staging GW e2e·시각 baseline 승인·prod 배포) | 🔴 대기 | 선결 C-2(Entra)·C-10(도메인)·C-3(CORS)=③-I/IT · C-10 미확정 시 8-4는 BLOCKER |
+      | **P8** 실 e2e·배포 | 8-1 Entra dev 전환 · 8-2 staging 실연동 · 8-3 baseline 승인 · 8-4 prod 배포 | 🔴 **외부 선결 대기** | 8-1=**C-2**(IT 앱 등록)+`[manual]` 실 로그인 · 8-2=staging GW·**C-3**(CORS) · 8-3=linux baseline 사람 확인 · 8-4=**C-10**(도메인) **BLOCKER**+**Operating Mode §7이 prod 배포를 무인 대상에서 제외** |
 
   - **S4-1. 커버리지 계획 (frontend · 착수 후 실측 · S3-1 대응)** — Console도 커버리지 측정·CI floor 게이트를 둔다(SRS §3.5·§3.6.2). **BE와 방식 차이**: BE의 merged(unit+e2e 합산·보안파일 개별 100%) 대신, Console은 **Vitest(v8) 기준 unit+component 커버리지**를 정본으로 하고 e2e는 여정 커버리지로 별도 관리. **실측 값은 `T-FE-0-8`(테스트 하네스) 이후·각 Task 완료 시** 아래 표에 채운다(현재 미착수라 값 없음).
     - **측정 대상·비대상**: 라인% = Vitest(unit+component) · **e2e(Playwright)** = 핵심 여정 커버리지 체크리스트(로그인·enroll 승인·break-glass·RBAC 403·리전 컨텍스트) · **시각회귀·접근성(axe)** = %가 아닌 pass/fail 게이트.

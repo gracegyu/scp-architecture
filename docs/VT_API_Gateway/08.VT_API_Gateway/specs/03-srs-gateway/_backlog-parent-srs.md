@@ -24,25 +24,21 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 - **후속(스펙 세션 완료·spec-v1.0.12).** `spec-v1.0.12` 태그 · 구현세션 알림(v1.0.12 확정본) · IP 핀 갱신 + **T-ENR-3-6 신설**(enroll CSR→cert·게이팅·폐기) + Admin API CORS(P11 📌). → **구현세션 인계 준비 완료.**
 - **잔여(gw/1.2·Appendix B #52).** 멀티리전 복제 계층(전역 seed·DynamoDB Global Table/Streams)·리전 전환 audience(§4.5.1 ⓒ). Console 반영 = Console 백로그 CB-1(부모 B-7 확정으로 트리거 met).
 - **B-10 1차 batch** — ✅ 머지(PR #12632·`e865d77`·2026-08-12): DBML `org_mapping` 카디널리티 주석 + compat-matrix 범위(SRS §7.7/§7.7.5·Appendix B #8·DBML·well-known README·compat-matrix sample/yaml·config README/yaml·handoff)의 OnePager 철자·폐지된 ① 호환성 OnePager→제품 OnePager 정정. **계약/스키마 무변경**. *(범위 밖 잔여 = §1.2/§1.5·② Presigned OnePager 문안 → 아래 **B-10-2**로 이월.)*
-- **현행 baseline = `spec-v1.0.19`(`f762cb2`).** v1.0.13~1.0.19 누적(위 B-10 문안 + **#12634 admin 페이지네이션 응답 array→`*Page` 엔벨로프 통일**[구현 세션 지시서 처리·A·C 코드 무변경·B=신규 Task T-ADM-11-9]·SRS §7.9.1 커서 rationale 등). 상세 진행 이력 정본 = IP `projects/vt-api-gateway/ImplementationPlan.md` §2 노트.
+- **B-4(주 범위)** — ✅ 머지(#12638·`spec-v1.0.20`·2026-08-12): '개발 Roadmap 결정' 문서 참조 **전체 제거**(§7.7.1/§2.3.0·일반명사 Roadmap 유지) + §7.7.1 식별 헤더 필수성 **2계층**(하드=Product·Version·Clinic-Id / best-effort=OS·UA·omit·누락 비오류) + §7.7.4 에러 정합 + §7.8.5 OS 부분 튜플·UA 원문 저장. 구현=T-CFG-5-1 헤더 미들웨어 조정(#12646). *(잔여=web-originator 헤더 세트·gated·비차단 → 진행 중 **B-4(잔여·web-originator)** 유지.)*
+- **B-13** — ✅ 완료(#12714 `890c921`·후속 #12716·#12719·2026-08-18): 로컬 개발 DB / e2e DB 분리(`gw_test`·`make db-test-setup`·`make test-e2e-local`) + 멱등 `dev:operator` 시드. 구현=IP `T-DATA-1-8`. **SRS 무변경**(§3.5.2 위임·GW README).
+- **B-14** — ✅ 해소(#12725·`spec-v1.0.25`·2026-08-18): AuditLog 리소스 축 `resourceType`/`resourceId` additive(SRS §7.9.3 + OpenAPI `AuditLog` 2필드/`GET /v1/admin/audit` 2필터 + DBML `audit_log` 2컬럼·복합 인덱스 + db-jsonb). 명명=resourceType(잠정 targetType 이탈·GW 프록시 대상 target 과 이름충돌 회피). 구현=IP `T-DATA-1-9`. Console 소비=`T-FE-6-6`.
+- **B-15** — ✅ 해소(#12735·`spec-v1.0.26`·2026-08-18): AuditLog 응답에 `reason` 노출(정합화·OpenAPI+SRS §7.9.3+db-jsonb·**DBML 무변경**[컬럼 기존]·필터 없음). kill·거부·break-glass 사유를 감사 조회에서 되읽기 가능. 구현=`T-DATA-1-9`에 흡수. Console CB-4.
+- **B-16** — ✅ 해소(#12740·`spec-v1.0.27`·2026-08-18): kill 엔드포인트에 `409` 선언(종단 재-kill=`assertTransition` 위반·PATCH와 정합·정합화). OpenAPI + SRS §7.2.3. **구현 무변경**(impl 이미 409 반환·계약만 정합). 연계 Console FR-CON-12 문구 정정=`spec-v1.0.2`(#12741).
+- **현행 baseline = `spec-v1.0.27`(`927fc71`).** v1.0.13~1.0.27 누적. 상세 진행 이력 정본 = IP `projects/vt-api-gateway/ImplementationPlan.md` §2 노트.
 
 ---
 
 ## 진행 중 백로그
 
-### B-4(잔여). 헤더 표준 Roadmap 死링크 흡수 + 식별 헤더 missing 정책 — **PR #12638 올림(머지 대기)**
-- **범위(잔여만).** B-4의 Roadmap 死링크 안전분은 #12483 반영됨. 잔여 = §7.7.1·§2.3.0이 **폐기된 Roadmap을 위임 참조(死링크)** 하는 것 + 식별 헤더 missing 정책 명문화:
-  - **§7.7.1** "규칙 상세는 Roadmap §5·§5.1" — 클라이언트 식별 헤더 규칙을 SRS §7.7.1로 **흡수**하고 위임 문구 삭제([[roadmap-file-deprecated]]·죽은 문서라 死링크 정합은 회의 무관·상시 가능). + **missing 정책 명문화(아래 확정 반영).**
-  - **§7.8.5** — best-effort 헤더 누락 시 인벤토리 **부분 튜플 허용**.
-  - **§2.3.0** "(Roadmap §5.1)" — "GW→외부로 내부 `Vatech-*` 미전달" 규칙을 SRS 자체로 자립.
-- **✅ 헤더 취급 확정(사용자·2026-08-12).** 식별 헤더는 **best-effort(선택)** — 신뢰성 있게 설정 가능할 때만 전송, 불가 시 **생략(omit)**(허위·placeholder 값 금지):
-  - **User-Agent** — 주입 불가 시 **미전송**.
-  - **OS(`Vatech-OS`)** — 획득 불가 시 **미전송**.
-  - **Clinic-Id** — 예외(EzServer nginx 주입=신뢰 소스라 계속 전송·결정 2).
-  - GW는 누락을 **허용·degrade**(거부 금지) → §7.7.1 필수성 완화 + §7.8.5 부분 튜플로 명문화.
-- **상태(2026-08-12).** **PR #12638**(`spec/roadmap-deref-hdr`) 올림 — '개발 Roadmap 결정' 문서 참조 **전체 제거**(§7.7.1/§2.3.0 포함·일반명사 Roadmap은 유지) + §7.7.1 필수성 **2계층**(Product·Version·Clinic-Id=하드 필수 / OS·UA=best-effort·omit) + §7.7.4 에러 정합 + §7.8.5 OS 부분 튜플·UA 원문 저장 전방 note. 머지 시 완료로 이동.
-- **잔여(web-originator 스코프 gated·비차단).** §2.3.0 웹 originator 헤더 세트 표 *세부* + **UA 기반 웹 클라 인벤토리 정식화**(product/version NOT NULL 완화·UA 파싱으로 식별키 소싱). 웹이 GW로 직접 originate 하는지(§2.3.0) 확정 후. UA 원문은 이미 `client_inventory.user_agent`에 저장돼 원자료 손실 없음(파싱만 지연).
-- **출처.** Roadmap 死링크=2026-08-05(Roadmap 동결) · 헤더 정책=2026-08-12 사용자.
+### B-4(잔여·web-originator). 웹 originator 헤더 세트·UA 기반 인벤토리 정식화 — gated·비차단
+- **주 범위는 완료·이동.** Roadmap 死링크 제거 + §7.7.1 식별 헤더 2계층 + §7.7.4 + §7.8.5는 **#12638(`spec-v1.0.20`) 머지**로 완료(위 완료 이력). 여기 남는 건 web-originator 스코프뿐.
+- **잔여(gated·비차단).** §2.3.0 웹 originator 헤더 세트 표 *세부* + **UA 기반 웹 클라 인벤토리 정식화**(product/version NOT NULL 완화·UA 파싱으로 식별키 소싱). **웹이 GW로 직접 originate 하는지(§2.3.0) 확정 후.** UA 원문은 이미 `client_inventory.user_agent`에 저장돼 원자료 손실 없음(파싱만 지연).
+- **출처.** 헤더 정책=2026-08-12 사용자 · web-originator 스코프 gated.
 
 ### B-10-2. 저위험 문안 버킷 (2차·재사용) — 모아서 1 PR
 - **방침**(B-10 1차 완료 후 승계·사용자 2026-08-10): 자잘한 주석·문안 정합은 건건 올리지 말고 여기 모아 **한꺼번에 1개 spec PR**로 처리한다(PR 노이즈·리뷰 부담 감소). 계약/스키마 무변경·저위험만(실질 변경은 별도).
@@ -70,48 +66,10 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 - **트리거.** CI 크기 게이트가 8KB(안전 임계) 임박/초과를 경고할 때. (그 전엔 착수 불요·YAGNI.)
 - **출처.** 2026-08-11 사용자(백로그화).
 
-### B-13. 로컬 개발 DB와 e2e DB 분리 + 운영자 시드 스크립트 — Console 로컬 실연동이 e2e에 지워진다
-
-- **현상.** Console이 로컬에서 실 GW admin API를 붙여 쓰는데(2026-08-13 개통), **GW e2e를 한 번 돌리면 Console의 운영자 역할이 사라진다.** `test/harness/reset.ts`가 clean-slate를 위해 `operator`·`operator_role`을 포함한 **전 앱 테이블을 TRUNCATE … RESTART IDENTITY CASCADE** 하고, 로컬 개발과 e2e가 **같은 docker DB(`localhost:15432/gw`)를 공유**하기 때문이다. 증상은 Console이 `accessState=no_access`를 받아 권한 요청 화면으로 리다이렉트되는 것이다(FR-CON-02 정상 동작·데이터가 없어졌을 뿐).
-- **방향(영향 없음 확인).** 반대 방향은 문제가 아니다 — 시드한 행은 e2e가 **시작할 때 truncate** 하므로 어떤 단언에도 영향을 주지 않는다(`reset.ts` 주석: "참조 시드가 없어 전 테이블을 무조건 truncate 한다"). 즉 **개발 시드 → e2e 영향 없음 / e2e → 개발 시드 소실**의 단방향이다.
-- **해결안 (권장 순).**
-  1. **e2e를 별도 DB로 분리** — ⭐ 가장 깨끗하다. **격리 경로가 이미 둘 다 있다.**
-
-     | | 방식 A — 컨테이너 2개 | 방식 B — 데이터베이스 2개 |
-     | --- | --- | --- |
-     | 방법 | `TEST_USE_CONTAINERS=1` → `e2e-global-setup.ts`가 testcontainers로 임시 인스턴스 기동 후 `DATABASE_URL` 덮어씀 | 같은 컨테이너 안에 `gw`(개발) + `gw_test`(e2e) 두 데이터베이스 |
-     | 격리 | 완벽(매 실행 새 인스턴스) | 충분 — `TRUNCATE`는 **데이터베이스 경계를 넘지 않는다** |
-     | 비용 | 매 실행 컨테이너 기동 대기 | 없음(즉시) |
-     | 현재 | **CI가 이미 이 모드** | 가드가 `*_test`를 **이미 허용**(`isLocalOrTestDbUrl`) |
-
-     **로컬은 B, CI는 A**를 권한다. 컨테이너를 하나 더 띄울 이유가 없고(같은 Postgres 인스턴스 안에서 데이터베이스는 서로 완전히 격리된다), CI는 매번 깨끗한 인스턴스가 맞다. B의 절차는 3줄이다:
-
-     ```bash
-     PGPASSWORD=gwpass createdb -h localhost -p 15432 -U gw gw_test          # 1회
-     DATABASE_URL=postgresql://gw:gwpass@localhost:15432/gw_test pnpm prisma:migrate:deploy
-     DATABASE_URL=postgresql://gw:gwpass@localhost:15432/gw_test pnpm test:e2e
-     ```
-
-     남는 일은 **마이그레이션을 두 DB에 적용하는 절차를 어디에 둘지**(`Makefile`·`package.json` 스크립트·README) 정하는 것뿐이다. `seed-guard.ts`가 `/_test$/`를 허용하도록 이미 만들어져 있어 파괴적 작업 가드도 그대로 통과한다 — 이 구성을 염두에 둔 설계로 보인다.
-  2. **멱등 운영자 시드 스크립트**(`pnpm dev:operator`) — 1과 **함께** 두는 것이 좋다. DB가 어떤 이유로든(수동 `prisma migrate reset`·볼륨 삭제) 비면 한 줄로 복구된다. 기존 `scripts/dev-device.ts`(clinic·device idempotent upsert)의 **형제**이고, `assertDestructiveDbAllowed()` 가드를 그대로 재사용한다. 필요 입력은 subject UUID·role·scope뿐이다. ⚠ `operator_role.requested_at`·`decided_at`은 timestamp가 아니라 **epoch ms(bigint)** 다(Console 세션이 처음에 `now()`로 넣어 실패).
-  3. **e2e 종료 후 재시드**(사용자 최초 제안) — 동작은 하지만 1·2보다 약하다: ① `resetState`가 **테스트 사이마다** 돌아 e2e 실행 **도중 내내** 개발 데이터가 없다(수 분간 Console이 no_access) ② e2e가 중단·크래시하면 teardown이 안 돈다 ③ **테스트 하네스가 개발 편의 데이터를 쓰게 되는 결합**이 생긴다.
-- **산출물 = GW README + 스크립트. SRS 변경 없음**(2026-08-13 판단·재론 불요). 근거 세 가지다. ① SRS **§3.5 Test Environment는 staging AWS 환경**(EKS·RDS·AXS sandbox·PHI 금지)을 규정할 뿐 로컬 개발 DB 토폴로지를 다루지 않고, **§3.5.2가 "단위(Jest)·E2E·부하 테스트 도구 = 구현 착수 시(LLD) 확정"으로 명시 위임**한다 — `TEST_USE_CONTAINERS`·`gw_test`·`reset.ts`가 이미 SRS 없이 만들어진 것도 같은 이유다. ② 유일한 후보 자리인 **§6.3.5 Remaining Attributes는 `그 외 None`으로 닫혀 있고** SRS 전체에 Testability라는 단어가 없다 — 게다가 품질특성 Testability는 *제품이 테스트 가능하게 설계됐는가*(관측성·결정론)를 뜻해, **개발 중 로컬 워크로드 충돌**인 이 건과 층이 다르다. ③ **운영 시스템은 무관**하다(리전 사일로 = 리전당 DB 1개, 프로덕션에 test DB가 없다) — FR·계약·데이터 모델·배포 토폴로지 어느 것도 안 바뀐다. 따라서 적을 곳은 **GW `README.md`의 로컬 실행 절**(이미 `cp .env.example .env`·`make dev-up`·admin fail-closed 안내가 있는 곳)이다.
-- **소유.** **GW.** DB 스키마·`seed-guard`·`dev-device.ts` 선례가 모두 GW에 있고, Console 레포에는 Postgres 클라이언트 의존성이 아예 없다(프론트 레포에 `pg`를 넣는 건 잘못된 방향). Console은 로컬 OIDC 발급자(`pnpm dev:oidc`)까지만 소유한다.
-- **트리거.** Console이 로컬 실 GW로 P2 이후 화면을 개발하는 동안 계속 겪는다 — **지금 착수 가치가 있다**. 다만 SQL 한 줄로 복구되므로 차단은 아니다.
-- **출처.** 2026-08-13 Console 세션 실측(로컬 실연동 개통 중 발견) · 사용자 지시로 백로그화.
-
-### B-14. AuditLog 대상 축(targetType/targetId) — 리소스별 감사·변경 이력 필터
-- **현상.** 부모 OpenAPI `AuditLog`에 **대상 리소스 축이 없다**(필드=`id`·`ts`·`actor`·`action`·`result`·`beforeState`·`afterState`·`sourceIp` / 쿼리=`actor`·`action`·`result`·`from`·`to`·`limit`·`cursor`). "이 device/clinic/target의 감사·변경 이력"을 **어느 화면도 못 건다**. FR-CON-12 kill 가드의 "실행 시 승인자·시각 감사 노출"·device/clinic/target 상세의 "최근 변경 이력"이 전부 같은 필터 필요. `action=device.kill`로 좁혀도 **어느 리소스인지 못 구분**(다른 건 승인자·시각 오표시 위험). `beforeState`/`afterState`는 필터 축 아님·부분 스냅샷이라 보장 없음.
-- **결정(2026-08-13·스펙 세션).** **(a) 채택** — `AuditLog` 응답에 `targetType`·`targetId`(읽기전용) 추가 + **동명 쿼리 필터**. additive·비파괴. 소유=GW(§7.9.3 + OpenAPI `AuditLog`). (b) 쿼리필터만(응답 스키마 불변)은 목록에 "무엇에 대한 변경"을 못 보여줘 기각.
-- **비차단.** Console 잠정 처리 = kill 확인 화면에 **방금 실행한 사실만**(실행 시각·`/me` 실행자·"감사 기록됨" 안내·감사 항목 자체는 미pull) — 계약으로 확인 못 하는 걸 추측 표시 안 함(정확한 선택). 반영은 T-FE-6-5(감사 화면)+각 상세 화면 붙일 때. Console SRS Appendix B 새 C-항목·IP는 **Console 세션 소유**.
-- **관찰(2026-08-18·Console).** `T-FE-6-5`(감사 로그 화면) 착수에서 제약 실증 — 대상 축이 없어 **"이 리소스의 최근 변경 이력"을 device/clinic/target 어느 상세 화면에도 붙일 수 없고**, 감사 화면이 **전역 목록으로만** 존재((b)안이었으면 목록에서 "무엇에 대한 변경"조차 미표시 — (a) 채택 타당성 재확인).
-- **spec PR 트리거.** 감사 화면 작업 착수 시(또는 사용자 go). 대상=OpenAPI(S-GW-2) `AuditLog` additive + SRS §7.9.3 필터 축. redocly valid·기존 감사 저장 무변경(컬럼 노출·필터만). **← 2026-08-18 T-FE-6-5 착수로 트리거 조건 충족·사용자 go 대기.**
-- **출처.** 2026-08-13 Console 세션(FR-CON-12 kill 가드 구현 중 발견).
-
 ---
 
 ## 참조 — 별도로 추적 중인 배치 (여기서 중복 기재하지 않음)
-- **클라이언트 식별 헤더 제약(Thomas 헤더 배치)** — User-Agent 변경 불가·Vatech-OS 획득 불가·Vatech-Clinic-Id 자체 설정 불가(2026-08-06 주간회의 Thomas 안건). **방향 확정**: Clinic-Id=EzServer nginx 주입(결정 2) / **UA·OS=best-effort — 설정·획득 불가 시 omit(2026-08-12 확정)**. SRS 반영(§7.7.1 필수성 완화+missing=omit 정책·§7.8.5 부분 튜플·§2.3.0 헤더 세트 표)은 위 **B-4(잔여)와 동일 PR로 착수 가능**(회의 대기 없음). §2.3.0 웹 originator 세트 표 세부는 웹의 GW 직접 originate 여부에 따라 달라지나 비차단(degrade).
+- **클라이언트 식별 헤더 제약(Thomas 헤더 배치)** — User-Agent 변경 불가·Vatech-OS 획득 불가·Vatech-Clinic-Id 자체 설정 불가(2026-08-06 주간회의 Thomas 안건). **방향 확정**: Clinic-Id=EzServer nginx 주입(결정 2) / **UA·OS=best-effort — 설정·획득 불가 시 omit(2026-08-12 확정)**. 주 범위는 **B-4(#12638) 머지 완료** · 잔여 §2.3.0 웹 originator 세트 표 세부는 웹의 GW 직접 originate 여부에 따라 달라지나 비차단(degrade·B-4 잔여).
 - **Console SRS 자체 변경** — Console 백로그 `03c-subsrs-gw-console/_backlog-console.md`(CB-1 ZTNA 제거·운영자 멀티리전 authz UX / CB-2 v1·v2 분리·기술 스택 shadcn). **#12487 확정 후 CB-1 착수.**
 - **Console → 부모 계약 변경** — 정본 추적 = Console SRS Appendix B "부모 SRS 반영 대상". **상태 점검(2026-08-12):**
   - ✅ **반영 완료(3)**: C-14(전역 bootstrap seed·§7.9.2·`spec-v1.0.12`·#12487) · C-15(사유 reason 저장·`audit_log.reason`+API·`spec-v1.0.15`·#12571) · C-16(enrollment Reject·`device_status=rejected`·`spec-v1.0.15`·#12571).
@@ -124,4 +82,4 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 ---
 
 ## (검토) 추가 후보 — 결정 대기
-- **Dentbird 연동 (A 직접 vs B GW 경유) 결정 시 부모 반영** — B(GW 경유) 채택 시 부모 SRS/OpenAPI 델타 발생 가능(target discovery self-plane API·per-clinic 자격 custody·Connector 정적 자격 주입 등). **현재는 미결**(A/B 결정·PHI 여부·Dentbird API 미확인). 추적=`references/Dentbird연동/8-13-Thomas.md`. **결정+확인 후 정식 백로그 항목(B-13)으로 승격**. *(아직 백로그 아님 — 조건부 후보.)*
+- **Dentbird 연동 (A 직접 vs B GW 경유) 결정 시 부모 반영** — B(GW 경유) 채택 시 부모 SRS/OpenAPI 델타 발생 가능(target discovery self-plane API·per-clinic 자격 custody·Connector 정적 자격 주입 등). **현재는 미결**(A/B 결정·PHI 여부·Dentbird API 미확인). 추적=`references/Dentbird연동/8-13-Thomas.md`. **결정+확인 후 정식 백로그 항목으로 승격**. *(아직 백로그 아님 — 조건부 후보.)*

@@ -12,19 +12,127 @@
 
 ---
 
+## 다음 할 일 — 열린 액션 색인 (2026-08-18 기준)
+
+> **이 절의 목적.** "다음 할 일이 뭐야"에 한 곳에서 답하기 위한 **색인**이다. 상세는 각 정본(IP Task 카드·SRS Appendix B)에 있고 여기서는 **누가 막고 있는지**만 적는다 — 중복 기재하면 어긋난다.
+>
+> **현재 상태: 구현 세션이 무인으로 더 진행할 Task는 없다.** IP 48/52 완료, 잔여 4건은 전부 외부 선결 대기다.
+
+### A. PL이 지금 바로 할 수 있는 것 — `[manual]` 3건
+
+자동 테스트로 증명할 수 없어 사람이 1회 확인해야 하는 항목이다. **셋 다 코드·자동 테스트는 완료**돼 있고 확인만 남았다.
+
+| # | 무엇 | 확인 경로 | 근거 |
+|---|---|---|---|
+| A-1 | **kill 다이얼로그 오조작 방지** — 문구·2차 확인·감사 노출이 실제로 사람을 멈추게 하는가 | `/devices/detail?id=dev-active-0&mock=operator` → [상태·수명주기] → "긴급 정지" | `T-FE-2-5` dod `[manual][risk:auth]` |
+| A-2 | **PHI·자격 실검사** — devtools로 저장소·네트워크·콘솔에 원문이 남지 않는지 + CSP 적용 | 체크리스트 = `vt-api-gateway-console/docs/security-review-checklist.md` **§2**(항목별 체크박스 준비됨) | `T-FE-7-6` dod `[manual][risk:security]` |
+| A-3 | **시각 baseline 승인** — CI 첫 실행이 뽑은 **linux** baseline 확인·커밋 후 `continueOnError` 제거 → 차단 게이트로 전환 | ✅ **차단 해소** — build 50750 아티팩트 `visual-baselines` 에 linux 17종 생성됨 | `T-FE-8-3` dod `[manual]` |
+
+### B. CI 게이트가 아직 문지기가 아니다 — ⚠ **CI가 한 번도 돈 적이 없다**
+
+**2026-08-18 실측**(`az pipelines list` · `az repos policy list`):
+
+| 확인한 것 | 결과 |
+|---|---|
+| Console 파이프라인 등록 | ❌ **없음** — `azure-pipelines.yml`이 레포에 있을 뿐 **Azure DevOps에 파이프라인으로 등록되지 않았다** |
+| main 브랜치 정책 | ❌ **0건** — Build validation도, 최소 리뷰어도, PR 필수도 없다 |
+
+**그래서 지금까지의 품질 근거는 전부 구현 세션의 로컬 실행이다.** 무인 모드로 auto-complete 머지한 PR들이 CI를 통과한 것이 아니라 **CI가 돌지 않았다.** 8종 게이트를 매 PR 전에 로컬에서 돌리고 결과를 PR 본문에 적어 왔지만, **기계가 강제한 적은 없다.**
+
+#### ⚠ 이건 Jack(③-I) 대기가 **아니다** — CI와 CD를 구분한다
+
+처음에 "PL만 할 수 있는 설정"으로 적었다가 확인 후 정정한다. **CI 게이트와 배포(CD)는 필요한 것이 다르다.**
+
+| | 필요한 것 | 소유 | 지금 |
+|---|---|---|---|
+| **CI 게이트**(lint·typecheck·test·build·e2e·a11y·verify) | 파이프라인 생성 + 브랜치 정책 등록 | **Azure DevOps 프로젝트 권한자** | ❌ 미등록 — **지금 바로 가능** |
+| **CD**(프리뷰·prod 배포) | S3·CloudFront·**AWS service connection**·IAM | **③-I Jack** | ⏳ `infra-requests.md` #2 · 8/14 마감 경과 |
+
+**CI가 Jack을 기다릴 이유가 없는 근거**(실측):
+- Console `azure-pipelines.yml`의 pool = **`vmImage: ubuntu-latest`**(MS 호스팅 에이전트 — 자체 인프라 불요)
+- 같은 조직·프로젝트의 GW 파이프라인들도 **같은 pool**을 쓰고 **2026-08-18 실제로 성공**(`vt-api-gateway-ci`)
+- 즉 호스팅 에이전트·병렬 슬롯이 **이미 있다**. Console은 파이프라인을 **만들기만** 하면 된다.
+
+Jack이 필요한 건 `docs/handoff/infra-requests.md` 요청 #2가 열거한 **배포 자원**뿐이다(S3 버킷·CloudFront·ACM·service connection·CI IAM·회신 값). Agenda도 같게 적고 있다 — *"우리 파이프라인/스크립트 준비완료 → Jack S3·서비스커넥션만 대기"*.
+
+#### 진행 상황 (2026-08-18)
+
+| # | 무엇 | 상태 |
+|---|---|---|
+| B-1 | **파이프라인 등록** — `vt-api-gateway-console-ci` (definition **334**) | ✅ **완료** |
+| B-2 | **main 브랜치 정책에 Build validation(차단) 추가** | ⛔ **권한 거부** — PL이 걸어야 한다 |
+| B-3 | **첫 CI 실행으로 linux 시각 baseline 확보** | ✅ **완료** — build 50750 아티팩트 `visual-baselines` 17종 |
+
+**B-2 실행 명령**(PL이 그대로 실행하면 된다):
+
+```bash
+repoid=$(az repos show --organization https://dev.azure.com/ewoosoft --project es-platforms \
+  --repository vt-api-gateway-console --query id -o tsv)
+az repos policy build create --organization https://dev.azure.com/ewoosoft --project es-platforms \
+  --repository-id "$repoid" --branch main --blocking true --enabled true \
+  --build-definition-id 334 --display-name "CI 게이트" \
+  --queue-on-source-update-only true --manual-queue-only false --valid-duration 720
+```
+
+#### ⚠ CI 첫 실행이 **로컬 8종 게이트가 못 잡던 결함을 즉시 잡았다**
+
+`build 50740` 이 `GATE: contract drift`에서 실패했다. 원인 둘 다 **로컬에서는 구조적으로 드러날 수 없는 것**이었다:
+
+1. **생성물 헤더에 로컬 파일 경로가 박혀 있었다.** `원천: ${relative(repoRoot, specPath)}`가 본문에 들어가 `--check`가 환경에 종속됐다 — 로컬 우회 경로(`/tmp/...`)와 CI 형제 체크아웃이 **같은 계약에서도 다른 파일**을 만든다. 추적성은 경로가 아니라 **리비전**이 진다.
+2. **CI 계약 핀이 `spec-v1.0.20`으로 낡아 있었다.** 생성물은 v1.0.26까지 따라와 있었다.
+
+→ **PR #12744**로 수정, `build 50750` 전 차단 게이트 통과.
+
+**그리고 이 게이트는 로컬에서 충실히 돌지 않는다** — 형제 `../vt-api-gateway`는 GW 세션이 쓰는 작업 트리라 핀 태그가 아닌 브랜치에 있는 게 정상이다. **핀 태그를 깨끗이 체크아웃하는 CI가 이 게이트의 유일한 권위다.** B-2가 걸리기 전까지는 이 사실이 특히 중요하다.
+
+### C. 외부 선결 대기 — P8 4건 (정본 = IP Task 카드)
+
+| Task | 막는 것 | 소유 |
+|---|---|---|
+| `T-FE-8-1` Entra dev 전환 | **C-2** 테넌트·앱 등록 | IT |
+| `T-FE-8-2` staging 실연동 | staging GW 배포 · **C-3** CORS | ③-I |
+| `T-FE-8-3` baseline 승인 | 사람 판단(위 A-3) | PL |
+| `T-FE-8-4` prod 배포 | **C-10** 도메인 확정 · **BLOCKER** | 회의·③-I |
+
+> `T-FE-8-4`는 도메인이 확정돼도 **무인 대상이 아니다** — IP §7 Operating Mode가 "prod 배포 자동 실행 금지"로 명시적으로 제외한다.
+>
+> `T-FE-8-2`는 dod가 허용한 **MSW 대체 커버가 이미 적용**돼 있다(`tests/e2e/staging/README.md` — 여정별로 *목이 증명하지 못하는 것*까지 적어 뒀다).
+>
+> **2026-08-18 — Region Directory dev 실물이 떴다**(③-I publish): `https://regions.gw.dev.ezcld.net/regions.json`. 스키마 §7.3.6 정합 확인됨(`apne2`·`KR`·`active`·`api.apne2.gw.dev.ezcld.net`·`{target}.webhook.apne2.gw.dev.ezcld.net`). `T-FE-8-2`에서 로컬 스텁 대신 이 URL로 리전 컨텍스트를 검증한다.
+>
+> ⚠ **로컬 개발은 그대로 `GW_ADMIN_BASE`를 쓴다** — 단일리전 로컬에서 Directory host로 덮으면 즉시 죽는다.
+> ⚠ **`adminHost`는 Directory 스키마에 여전히 없다**(실물에서도 확인). 지금은 DNS 관례/env로 가고 별개 스펙 건으로 추적 중이다.
+
+### D. 결정이 나면 생기는 후속 구현 — 4건 (전부 비차단)
+
+지금은 잠정값으로 동작 중이라 **화면은 정상**이다. 결정이 나면 **상수·훅만** 손보면 된다.
+
+| 항목 | 지금 | 결정 후 할 일 |
+|---|---|---|
+| **C-5** break-glass 열람 역할 | **잠정 admin만**(PHI라 넓히는 쪽 오류는 되돌릴 수 없어 최소로) | `permissions.ts`의 `webhook-events.payload.view` 부여 역할 + 매트릭스 테스트 행 갱신 |
+| **C-11** 서버 낙관적 잠금 | 클라이언트측 stale-write **감지**(`useStaleWriteGuard`) | 서버가 `expectedVersion`+409를 강제하면 **훅을 걷어낸다**(방지가 아니라 감지였다) |
+| **C-12** 정렬 계약 | GW 기본 정렬에 의존(정렬 파라미터 없음) | 파라미터가 생기면 목록 화면에 배선 |
+| **C-17** operator/developer 매트릭스 | draft 매트릭스로 UI 게이팅(서버 강제는 GW) | 확정되면 §7.2 매트릭스 상수 + `permissions.test.ts` 기대표 갱신 |
+
+### E. 스펙 세션 작업 대기 — 1건 (Console 구현 영향 없음)
+
+| 항목 | 내용 |
+|---|---|
+| **FR-CON-12 문구 정정** | `*멱등:* 이미 revoked면 재-kill은 무효(상태 표시)` — **FR-CON-10과 같은 형태의 모호함**이다("무효"의 주어가 UI인지 서버인지 없음). GW 확인 결과 종단 상태 kill도 **409**다(`kill()`이 `PATCH→revoked`와 **같은 경로**·`assertTransition` 통과). FR-CON-10(#12728)과 같은 방식으로 정정 예정. **Console 구현 영향 없음** — 목은 이미 409이고 UI는 종단 상태에 kill 버튼을 두지 않는다. |
+
+---
+
 ## 백로그 항목
 
-CB-1(멀티리전 운영자 authz·ZTNA 제거→Entra)·CB-2(v1.0 최소기능 선행·기술 스택 확정)는 **SRS baseline에 반영 완료**(상세는 git 이력).
+> **현재 열린 항목 없음** — CB-1~CB-4 전부 반영·해소(아래 완료 이력). 새 변경이 생기면 여기에 CB-5~ 로 추가한다.
 
-### CB-3. 감사 로그에 대상 리소스 축이 없다 — 어느 화면도 "이 리소스의 변경 이력"을 못 건다
+---
 
-- **현상.** 부모 OpenAPI `AuditLog`에 **대상 리소스를 가리키는 필드가 없다**(필드 = `id`·`ts`·`actor`·`action`·`result`·`beforeState`·`afterState`·`sourceIp`). `GET /v1/admin/audit`의 필터도 `actor`·`action`·`result`·`from`·`to`뿐이라 **"이 디바이스에 대한 감사 항목"을 조회할 방법이 없다**. `action=device.kill`로 좁혀도 *어느* 디바이스인지 알 수 없다.
-- **막히는 것.** **FR-CON-12**가 kill 가드 요건으로 요구하는 "실행 시 **승인자·시각 감사 노출**"을 감사 로그에서 끌어올 수 없다. kill만의 문제가 아니다 — **디바이스 상세·클리닉 상세·target 상세의 "최근 변경 이력"이 전부 같은 필터를 필요로 하는데 지금은 어느 화면도 못 건다**.
-- **T-FE-2-5의 잠정 처리(적용됨).** 계약으로 확인할 수 없는 것을 추측해 보여주는 쪽이 더 위험하다고 판단했다 — 다른 건의 승인자·시각을 이 디바이스의 것처럼 표시할 수 있다. 그래서 **방금 실행한 사실만** 남긴다: 실행 시각(우리가 찍음·200 응답에 본문이 없다) + 실행자(`/me`) + "감사 로그에 기록되었습니다" 안내. **감사 항목 자체는 끌어오지 않는다.**
-- **해결 방향(스펙 세션 합의·2026-08-13).** `AuditLog` 응답에 **`targetType`·`targetId`(읽기전용) 추가 + 동명 쿼리 필터**. `beforeState`/`afterState`는 필터 축이 아니고 "부분 스냅샷"이라 보장이 없어 대안이 못 된다. **additive라 비파괴**. 소유 = **GW**(§7.9.3 audit + OpenAPI `AuditLog`).
-- **추적.** 부모 GW 백로그 **B-14**(스펙 세션이 등록). spec PR은 감사 화면 작업 트리거 또는 PL go 시점.
-- **상태.** 🟢 **비차단.** 반영되면 `T-FE-6-5`(감사 로그 화면)과 함께 각 상세 화면에 "이 리소스의 최근 변경" 절을 붙인다. 그때 이 항목의 잠정 처리를 걷어낸다.
-- **출처.** 2026-08-13 Console 세션(`T-FE-2-5` 구현 중 발견) · 스펙 세션 확인.
+## 완료·반영 이력
+
+- **CB-1**(멀티리전 운영자 authz·ZTNA 제거→Entra) · **CB-2**(v1.0 최소기능 선행·기술 스택 확정) — ✅ **SRS baseline 반영 완료**(상세=git 이력).
+- **CB-3**(감사 로그 대상 리소스 축 부재) — ✅ **해소(2026-08-18)**: 부모가 `AuditLog`에 **`resourceType`/`resourceId`** additive(부모 B-14·`spec-v1.0.25`·`3b6a834`). ⚠ 명명=`resourceType`(targetType 아님 — GW 프록시 대상 target·ADR-11과 이름충돌 회피·값에 `target`도 옴). Console 반영=**`T-FE-6-6`**(codegen 재생성·감사 화면 두 필터·device/clinic/target 상세 `ResourceHistory` 신설). `T-FE-2-5` kill 잠정 처리는 유지(방금-실행-사실 vs 서버 감사 이력=출처 다름). 발견=`T-FE-2-5`(2026-08-13).
+- **CB-4**(감사 응답에 `reason` 부재) — ✅ **해소(2026-08-18)**: 부모가 `AuditLog`에 **`reason`(read-only·nullable)** additive(부모 B-15·`spec-v1.0.26`·`7734c22`·#12735). DB 컬럼·write 기존, read 스키마만 빠졌던 **정합 갭**. GW 구현=`T-DATA-1-9` 흡수(같은 매퍼·별 PR 없음). Console 반영=**`T-FE-6-6`**(codegen·`ResourceHistory`·감사 화면에 사유 표시·**truncate 안 함**·`null`이면 빈 자리 안 만듦). 발견=`T-FE-6-6`(2026-08-18).
 
 ---
 
