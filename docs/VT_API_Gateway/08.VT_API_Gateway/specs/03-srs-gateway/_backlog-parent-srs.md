@@ -100,6 +100,14 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 - **트리거.** Console이 로컬 실 GW로 P2 이후 화면을 개발하는 동안 계속 겪는다 — **지금 착수 가치가 있다**. 다만 SQL 한 줄로 복구되므로 차단은 아니다.
 - **출처.** 2026-08-13 Console 세션 실측(로컬 실연동 개통 중 발견) · 사용자 지시로 백로그화.
 
+### B-14. AuditLog 대상 축(targetType/targetId) — 리소스별 감사·변경 이력 필터
+- **현상.** 부모 OpenAPI `AuditLog`에 **대상 리소스 축이 없다**(필드=`id`·`ts`·`actor`·`action`·`result`·`beforeState`·`afterState`·`sourceIp` / 쿼리=`actor`·`action`·`result`·`from`·`to`·`limit`·`cursor`). "이 device/clinic/target의 감사·변경 이력"을 **어느 화면도 못 건다**. FR-CON-12 kill 가드의 "실행 시 승인자·시각 감사 노출"·device/clinic/target 상세의 "최근 변경 이력"이 전부 같은 필터 필요. `action=device.kill`로 좁혀도 **어느 리소스인지 못 구분**(다른 건 승인자·시각 오표시 위험). `beforeState`/`afterState`는 필터 축 아님·부분 스냅샷이라 보장 없음.
+- **결정(2026-08-13·스펙 세션).** **(a) 채택** — `AuditLog` 응답에 `targetType`·`targetId`(읽기전용) 추가 + **동명 쿼리 필터**. additive·비파괴. 소유=GW(§7.9.3 + OpenAPI `AuditLog`). (b) 쿼리필터만(응답 스키마 불변)은 목록에 "무엇에 대한 변경"을 못 보여줘 기각.
+- **비차단.** Console 잠정 처리 = kill 확인 화면에 **방금 실행한 사실만**(실행 시각·`/me` 실행자·"감사 기록됨" 안내·감사 항목 자체는 미pull) — 계약으로 확인 못 하는 걸 추측 표시 안 함(정확한 선택). 반영은 T-FE-6-5(감사 화면)+각 상세 화면 붙일 때. Console SRS Appendix B 새 C-항목·IP는 **Console 세션 소유**.
+- **관찰(2026-08-18·Console).** `T-FE-6-5`(감사 로그 화면) 착수에서 제약 실증 — 대상 축이 없어 **"이 리소스의 최근 변경 이력"을 device/clinic/target 어느 상세 화면에도 붙일 수 없고**, 감사 화면이 **전역 목록으로만** 존재((b)안이었으면 목록에서 "무엇에 대한 변경"조차 미표시 — (a) 채택 타당성 재확인).
+- **spec PR 트리거.** 감사 화면 작업 착수 시(또는 사용자 go). 대상=OpenAPI(S-GW-2) `AuditLog` additive + SRS §7.9.3 필터 축. redocly valid·기존 감사 저장 무변경(컬럼 노출·필터만). **← 2026-08-18 T-FE-6-5 착수로 트리거 조건 충족·사용자 go 대기.**
+- **출처.** 2026-08-13 Console 세션(FR-CON-12 kill 가드 구현 중 발견).
+
 ---
 
 ## 참조 — 별도로 추적 중인 배치 (여기서 중복 기재하지 않음)

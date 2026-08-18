@@ -5,19 +5,40 @@
     - 업로드=fss OAuth(presigned 아님) → GW 가 create-document 응답에 위임 토큰 사이드카 부착→EzServer 직접 업로드(바이트 GW 미경유) · 다운로드=Blob SAS 미경유 유지
     - AXS 아웃바운드 E2E(토큰·Org-ID·verbatim·happy 200·fail-closed) 완료 유지
     - 잔여는 전부 외부 선결(③-I 공개 ingress·실 IoT Core / Straumann prod 자격 / 부하환경)
-  - **[GW Console]** **P1 인증·RBAC 완료(9/9) → P2 진행(4/5) — ★개통 게이트 통과** — Entra 로그인·`/me` 부트스트랩 분기·역할×액션 매트릭스·App Shell(리전 컨텍스트)·홈 대시보드 + **디바이스 목록·상세·enrollment 승인·수명주기(SCR-DEV-01~03)** _(상세 = 공유 S4)_
+  - **[GW Console]** **P1~P7 완료(9/9·5/5·4/4·4/4·3/3·5/5·7/7) — ★개통 게이트 통과 · 무인 모드 전환** — Entra 로그인·`/me` 부트스트랩 분기·역할×액션 매트릭스·App Shell(리전 컨텍스트)·홈 대시보드 + **디바이스 목록·상세·enrollment 승인·수명주기(SCR-DEV-01~03)** _(상세 = 공유 S4)_
   - **[제품 연동 스펙]** EzServer OnePager 수령 확인 (잔여)
   - _(이번 주 결정사항 = 회의 시 추가)_
 
 - 논의 사항 (이번 주 · 신규 논의/결정 안건)
   - _(이번 주 결정사항 = 스펙 세션 정리 후 반영 · 회의 중 신규 안건 발생 시 여기 추가 · 보류·선결은 아래 「이월 논의 사항」 표 참조.)_
+  - **[③-I Jack 인프라 요청 추적 · PR #12653]** — GW Console repo `infra-requests.md`로 Jack(③-I)·IT에 3건 요청. 회의에서 **Jack 상태·ETA 확인**(아래 #2 마감 경과). PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653
+
+    | # | 요청 | 수신 | dev | prod |
+    | --- | --- | --- | --- | --- |
+    | 1 | Region Directory 호스팅 (**우선순위 1** · EzServer enroll 앵커 · Console 리전목록도 소비) | ③-I | ☐ 마감 8/21 | ☐ 도메인 확정 후 |
+    | 2 | GW Console dev 호스팅 (프리뷰 우선 배포 · `console.gw.dev.ezcld.net`) | ③-I | ☐ 마감 8/14 (**경과**) · _우리 파이프라인/스크립트 준비완료 → Jack S3·서비스커넥션만 대기_ | ☐ 도메인 확정 후 (별도) |
+    | 3 | 운영자 로그인 Entra (GW Admin API app + Console SPA app · 2앱 · PKCE) | IT · ③-I | ☐ 마감 8/21 | ☐ 도메인 확정 후 |
+  - **[GW 구현 선결 추적 · 외부 인프라·자격]** — GW 백엔드 E2E·배포가 **외부 선결**로 막힌 Task들(정본=IP 부록 B·gated Task). 회의에서 **소유별 상태·ETA 확인**(③-I / Straumann·영업).
+
+    | # | 선결 항목 | 막는 Task | 소유 | dev | prod |
+    | --- | --- | --- | --- | --- | --- |
+    | 1 | 공개 ingress (AXS→GW webhook 수신 인터넷 endpoint) | T-E2E-12-6 | ③-I | ☐ | ☐ |
+    | 2 | 실 IoT Core (MQTT 다운링크 · Thing/policy · IRSA · 리전 endpoint) | T-E2E-12-6 · T-DISP-9-5 | ③-I | ☐ | ☐ |
+    | 3 | 자동배포 파이프라인 (Azure Flow 템플릿 → ECR/ArgoCD) | T-INFRA-0-5 | ③-I | ☐ main→DEV | ☐ tag→TEST/PROD |
+    | 4 | Parameter Store write IAM + ESO + AWS 커넥션/Environment | compat publish (T-CFG-5-4) · config 서빙 · 배포 | ③-I | ☐ | ☐ |
+    | 5 | Multi-AZ HA | T-E2E-12-4 (HA/KEDA) | ③-I | — | ☐ |
+    | 6 | 부하 테스트 환경 (전용) | T-E2E-12-3 (부하) | ③-I | — | ☐ |
+    | 7 | AXS 자격 | AXS 실연동 E2E | Straumann · 영업 | ✅ sandbox (8/11) | ☐ prod (NDA후) |
+    | 8 | 파일 붙은 lab order 시드 (order 결과 파일 presign) | T-E2E-12-5 (다운로드 실물) | Straumann · ④ | ☐ (sandbox) | — |
+
+    _(`—`=해당 없음 · customerNumber/integratingEntityId=불필요 판명·선결 아님.)_
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
   - **[GW 스펙 결정·2026-08-13] webhook 하행 MQTT = envelope 없는 payload verbatim · 128KB 초과 = v1.0 미지원(명시 제한)** — 스펙(§7.6.6 "얇은 envelope")이 실제 구현(무-envelope verbatim)과 달라 구현 기준으로 정정. 하행은 원 payload를 wrapper 없이 verbatim 발행(EzServer 맥락 = 토픽 clinicId + payload 필드 messageId·eventType 등). IoT Core 128KB 초과 payload는 **v1.0 미처리 · 절대 자르지 않음**(알림/PHI 무결성) → 발행 실패 시 **DLQ·알람으로 표면화**(무통보 유실 없음). 대용량 오프로드+포인터 폴백은 gw/1.1+ 백로그. (AXS 파일 전송 PR #12669에 흡수)
   - **S1. 프로젝트 일정(Gantt) — 8/20 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **진행률(구현)**:
       - **GW ≈ 97%**(**AXS 파일 전송 개정 4 PR 완료**[7-6 커넥터전략·12-8 다운로드·12-9 webhook·7-7 업로드위임+12-7]·spec-v1.0.24 — 코어·AXS 연동 구현 완료 · **잔여는 전부 외부 게이트**(GW 코드 아님): 12-6 인바운드[③-I ingress+실 IoT]·12-3 부하환경·12-4 HA[③-I Multi-AZ]·9-5 IoT 프로비저닝[③-I]·order 파일 presign[Straumann 시드])
-      - **GW Console ≈ 45%**(IP Task 23/51 머지 — **P0·P1 완료** · **P2 진행 4/5·★개통 게이트 완료**)
+      - **GW Console ≈ 92%**(IP Task 47/51 머지 — **P0~P7 완료** · 잔여 = **P8(실 e2e·배포)만** · **8/13 저녁부터 무인 모드**(PR auto-complete))
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
     - **범례** — **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · **빨강=외부/미정 선결** / **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
 
@@ -67,7 +88,7 @@
         프로파일 확정                  :milestone, axsbl, after axsw, 0d
         AXS prod 자격(NDA 후·Straumann·선결) :crit, credp, 2026-08-18, 21d
 
-        section ③-C GW Console — gw/1.0 대응 v1.0 (구현 ~45%·P0·P1 완료·P2 진행 · frontend·별도 repo·전규현/Raymond)
+        section ③-C GW Console — gw/1.0 대응 v1.0 (구현 ~92%·P0~P7 완료·P8만 잔여 · frontend·별도 repo·전규현/Raymond)
         SRS 작성 (8/5)                :done, consrsw, 2026-08-05, 6d
         SRS baseline (#12602·8/11)     :milestone, done, consrspr, 2026-08-11, 0d
         v1.0 구현 (별도 frontend 세션·mock-first) :active, conv1, 2026-08-12, 28d
@@ -185,7 +206,7 @@
     - **repo·스택**: `vt-api-gateway-console`(전용) · Next.js + Refine(headless) + shadcn/ui + TanStack Query · 부모 GW Admin API를 **코드젠으로 소비**(자체 백엔드 없음). **버전 확정(8/12·T-FE-0-1)** = Next 16.3.0(App Router·Turbopack)·React 19.2.8·Refine 5.0.12·TanStack Query 5.101.4·shadcn CLI 4.17.0(base=radix·Tailwind v4)·pnpm 9.15.9 · dev 포트 3100.
     - **폰트 = CleverSpace(호스트)와 통일(8/12)**: `'Noto Sans','Noto Sans KR','Segoe UI',sans-serif`. 단 로딩은 Google Fonts CDN 링크가 아니라 **`next/font` 자체 호스팅** — 런타임 외부 요청이 없어 CSP 허용 도메인을 늘리지 않는다(SRS §6.2·C-3). _(Next 템플릿 기본값 Geist는 한글 글리프가 없어 한글이 브라우저 기본 폰트로 떨어지던 문제도 함께 해소.)_
     - **SRS**: ✅ **baseline v1.0**(#12602 머지 8/11 · tag `spec-v1.0`). gw/1.0 대응 완전 규격 + gw/1.1·gw/1.2·후속은 방향. 리뷰(민진우·정우혁) 반영·스레드 resolve.
-    - **구현 착수(8/12)**: 별도 **frontend 세션** 오픈 완료 → **P0(10/10)·P1(9/9) 완료(8/13) → P2 진행(4/5·★개통 게이트 완료)**. Task 단위 PR → 사람 머지(유인 모드·IP §7). **Entra/실 GW 없이 mock으로 대부분 진행 가능**(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
+    - **구현 착수(8/12)**: 별도 **frontend 세션** 오픈 완료 → **P0(10/10)·P1(9/9)·P2(5/5)·P3(4/4)·P4(4/4)·P5(3/3)·P6(5/5)·P7(7/7) 완료 → **P8만 잔여**. 8/13 저녁 **유인 → 무인 전환**(PR auto-complete·IP §7 v1.4) — 전환 근거 = 도입 조건이던 "1개 Phase 유인 완주" 충족. Task 단위 PR → 사람 머지(유인 모드·IP §7). **Entra/실 GW 없이 mock으로 대부분 진행 가능**(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
     - **로컬 실데이터 확인 시점**: GW Admin이 Entra-gated라 **P1(인증·RBAC) 완료 후**부터 로컬 GW(Docker)+로컬 Postgres 실데이터를 브라우저로 상시 확인 가능(P8 대기 불필요). 그 전에는 MSW mock 화면.
     - **⚠ Entra 실환경 검증은 아직 0회(8/13)**: `T-FE-1-1`이 OIDC를 **코드로는 실배선**했으나 실 테넌트 로그인은 IT 앱 등록 회신 이후다. 그때 소진할 체크리스트(선행 5·확인 9·함정 5·배포 호스트 전용 1)를 **`_backlog-console.md` §"Entra 실환경 검증 대기"** 에 확정해 뒀고, IP `T-FE-8-1`이 이를 DoD로 참조한다.
     - **GW(백엔드)와의 경계**: Console = Admin API(§7.9) 소비 + well-known/Region Directory 읽기만. **구현 경계** — enroll cert 발급·operator authz 복제·compat-matrix 발행은 **GW/③-I 소관(Console 아님)**. Console→부모 계약 반영은 부모 spec PR로(예: 표시필드 PATCH 봉인=`spec-v1.0.17`).
@@ -213,13 +234,18 @@
       | **P2** 2-2 | SCR-DEV-02 디바이스 상세 — FR-CON-09 3탭(상태·수명주기 / 인증·키 / 소속 clinic) 조회 전용 | 🔥 이번주 | **#12682**(머지 `7ecbf96`) · 505 unit+component·e2e 63·a11y 9·커버리지 91.1/87.7/89.3/92.4 · **상태의 의미를 함께 표기** — 값만 보면 `rejected`(한 번도 활성화된 적 없는 enroll 거부)와 `revoked`(운영 중이던 것 폐기)가 구분 안 됨·취할 행동이 다름 → `Record<DeviceStatus,…>`로 두어 계약에 상태가 늘면 **컴파일이 깨지게** 함 · **client id·공개키는 비가림**(계약 "비밀 아님" 명시 · 가리면 GW 로그 `client_id` 대조 불가 = 진단 차단) · 미발급은 빈칸 아닌 "미발급+이유" · clinic은 **읽기전용 임베드**(2차 조회 없음·테스트가 호출 횟수 검증) · **클리닉 링크는 미배선**(클리닉 화면 부재 → 정적 배포 404 = "링크 깨짐"과 구분 불가·드릴스루=3-4) · **탭=shadcn/radix 도입**(기존 의존성·신규 0 — 직접 구현 시 화살표 키 이동이 조용히 누락되는데 axe가 못 잡음·P3/P4 재사용) · ⚠ **대조 실행에서 자체 테스트 결함 적발**: 시각 비교가 라벨을 포함해 바꿔치기해도 통과 → 값만 비교로 교정·재대조 확인 |
       | **P2** 2-3 ★개통 게이트 | SCR-DEV-03 enrollment 승인 큐 — 승인=`PATCH status=active` / 거부=`status=rejected`+`reason` | 🔥 이번주 | **#12683**(머지 `455f01e`) · 530 unit+component·e2e 72·a11y 10·커버리지 91.2/87.2/89.9/92.4 · **승인 전 확인을 명시적으로 수령** — FR-CON-10 검증(설치+리전 적정성)은 눈으로 하는 일이라 코드가 대신 못 함 · 바로 누르게 두면 큐를 훑으며 연달아 승인해 **검증 단계가 사실상 소멸** · 확인은 **행 단위**(큐 전체 1개면 한 번 체크 후 나머지 통과) · **거부 사유 UI 필수 강제**(부모 API는 optional이나 거부=종단·복구 불가 → SRS가 UI를 더 엄격히 규정) · **승인엔 사유 미첨부**(빈 문자열이면 감사 로그에서 "사유 없이 결정"과 구분 불가) · **현재 리전+담당 국가 표시**(디바이스 응답에 region 컬럼 자체가 없음=배포 상수 → Region Directory `countries`) · **멱등**(낡은 행엔 버튼 대신 현재 상태) · 화면은 **결정 권한**(cs·admin)으로 개방 · ⚠ **누락 자체 적발**: 착지 경로 목록에 `/devices`(2-1 누락)·`/devices/pending` 미등록 → **cs·developer가 홈에 착지**하던 것 교정 · ⚠ **e2e가 실제 결함 적발**: 리전 요약이 모듈 저장소를 렌더 1회만 읽어 Directory 지연 시 안내 미표시(컴포넌트 테스트로는 원리상 불가) → 훅 구독으로 교정 |
       | **P2** 2-4 | 수명주기 suspend/resume — 상세 [상태·수명주기] 탭의 `active ↔ suspended` + 확인창 | 🔥 이번주 | **#12685**(머지 `a00faab`) · 551 unit+component·e2e 79·a11y 10·커버리지 91.3/87.5/89.8/92.5 · **확인창이 결과를 행동으로 기술**("상태를 suspended로"는 상태명 전사일 뿐 결과 미전달 · 대상 deviceId 병기 = 오선택 감지) · **갈 곳 없으면 액션 미배치**(pending=enrollment 소관·권한 상이 / rejected·revoked=종단) — 비활성 버튼은 "무권한"과 "상태상 불가"를 구분 못 함 · **사유는 선택**(SRS의 UI 강제는 거부·kill 둘뿐 = **모두 비가역**인데 정지는 복구 가능 · 빈 값/공백 미전송) · **실패 시 확인창 유지**(Radix 기본=즉시 닫기 → 오류 표시 위치 소멸 = "적용된 줄" 오인) · **AlertDialog=shadcn/radix 도입**(의존성 0 · 포커스 트랩·Esc·aria-modal은 axe 미검출 · 2-5 kill 재사용) · 목에 §7.2.3 **전이표** 추가 · ⚠ **기존 테스트 경합 적발**: 역할별 착지 e2e 3건이 리다이렉트 **전** URL에 즉시 일치해 통과(2-3에서 경로를 채웠는데도 초록이던 이유) → `waitForURL`로 교정 |
+      | **P2** 2-5 **비가역** | kill(→revoked) 가드 — 전용 `POST …/kill` · 사유 필수+2차 확인 · 위험색 분리 · 승인자·시각 노출 | 🔥 이번주 | **#12687**(머지 `a4eab99`·**무인 auto-complete 첫 적용**) · 573 unit+component·e2e 88·a11y 11·커버리지 90.9/86.7/89.4/92.0 · 검증 대상 = "실행되는가"가 아니라 **"실수로 실행되지 않는가"** · **전용 POST**(PATCH로 revoked를 보내면 상태만 바뀌고 **이미 발급된 단명 토큰이 남은 수명 동안 통과** — kill은 denylist 즉시 전파·§7.2.4) · **사유 필수+2차 확인**(사유는 "왜"를 적는 칸일 뿐 "정말 할 것인가"를 묻는 장치가 아님 · **취소 후 재개방 시 가드 초기화**) · 확인창에 **비가역성+재-enroll이 유일 복귀 경로+suspend 대안** 명기(계약 명시 오용 방지) · 위험색 분리를 e2e가 class 비교로 검증 · ⚠ **계약 빈틈**: `AuditLog`에 대상 축(`targetType`/`targetId`) 부재 → "이 디바이스의 감사 항목" 조회 불가 · 추측 표시 대신 **방금 실행한 사실만** 남기는 보수적 처리 · 부모 백로그 **B-14**·Console **CB-3** 등록(비차단) · ⬜ **`[manual]` 미충족**: 확인창 문구가 실제 오조작을 막는지 **사람 1회 클릭 검증** — 자동 테스트는 문구 존재만 봄 · **PL 확인 대기** |
+      | **P2** enrollment·디바이스 | 2-1~2-5 전부 완료(목록·상세·★enrollment 승인·수명주기·kill) | ✅ **완료 5/5** | #12680·#12682·**#12683 ★개통 게이트**·#12685·#12687 · ⬜ 잔여 = 2-5 `[manual]` 사람 클릭 검증 1건(비차단·PL 대기) |
+      | **P3** 3-1~3-4 | 클리닉 — 목록·상세(탭 4종)·식별 memo 편집·Device↔Clinic 양방향 드릴스루 | 🔥 이번주 | **#12713**(머지 `44d0c3f`·4 Task 묶음) · 633 unit+component·e2e 101·a11y 13·커버리지 91.8/86.8/89.1/92.8 · ★**LMP 표시필드 봉인 검증**(§7.2 봉인¹ — API가 살아 있어 UI 노출이 곧 divergence · 테스트가 정보 탭 입력이 memo 하나뿐임을 세어 확인) · **clinic에는 lifecycle status가 없어 상태 필터를 두지 않음**(없는 축으로 필터를 만들면 계약에 없는 파라미터를 보냄) · LMP 미제공 값은 빈칸이 아니라 명시(빈칸이면 "화면이 못 읽은 것"과 구분 불가 = memo의 존재 이유) · memo는 **전용 경로**·빈 값 null 통일·**서버 400을 일반 오류와 다른 문구로**(할 일이 다름)·PHI 금지 명기 · SW 인벤토리에 **관측 한계 명기**(식별 id 없음 → 튜플 단위·설치 대수 아님·자산 대장 오독 방지) · 드릴스루는 `?clinicId=` 필터 전달(32자 불투명 id를 손으로 옮겨 적게 두지 않음) · 목 세션 저장소 공용화 |
+      | **P4** 4-1~4-4 | 연동 대상 — 목록·3섹션 폼(자격 마스킹)·상세/삭제/정책·org-mapping | 🔥 이번주 | **#12715**(머지 `f879912`·4 Task 묶음) · 719 unit+component·e2e 117·a11y 17·커버리지 91.8/86.5/87.2/92.5 · ⚠**[risk:security] 자격은 write-only** — 계약이 원문을 응답에 안 주므로 **편집 진입에서도 빈칸**(마스킹된 가짜 값을 채우면 **그 문자열이 그대로 저장돼 실 시크릿이 망가짐**) · **internal에는 자격 절 미표시**(보여 주면 채워 넣고 계약상 있을 수 없는 곳으로 감) · **JSONPath 저장 전 검증**(틀려도 저장은 되고 **webhook 수신 시점**에야 실패 → 등록 화면과 아주 먼 곳에서 원인 모를 오류) · **목록은 커서 pg 아님**(계약이 맨 배열 — "더 보기"는 오지 않는 커서를 기다림) · 삭제 **409를 일반 오류와 분리**("다시 시도"가 아니라 "먼저 정리") · **stale-write 감지**(계약에 낙관적 잠금 부재=C-11 → 두 사람이 열어 두면 뒤가 앞을 조용히 덮어씀 · 방지 아닌 감지·최종 강제는 서버) · org-mapping은 **범용 번역표** 명기(§7.6.1 결정 C — AXS 전용 오해 시 target마다 전용 화면 요구) · ⚠ **a11y 실제 결함 2건**: shadcn 생성 destructive 버튼 대비 **4:1로 AA 미달**(kill/삭제 버튼) + **a11y 스펙이 권한 게이팅 컨트롤이 나타나기 전에 검사해 오래 은폐**돼 있던 것 → 둘 다 교정 |
+      | **P5** 5-1~5-3 **PHI** | webhook 이벤트 메타 목록/단건(DLQ triage) + **payload break-glass 열람** | 🔥 이번주 | **#12717**(머지 `c699d4a`·3 Task 묶음) · 752 unit+component·e2e 128·a11y 19·커버리지 90.9/85.6/86.2/91.7 · ⚠**메타 화면에 payload가 없다**(계약 메타=PHI-free · 목록이 본문을 끌어오면 **그 순간 PHI 화면이 되고 역할 제한·건건 감사가 통째로 우회**) — 테스트가 "본문 덤프 자리 부재"로 검증 · break-glass = **지정 역할만 노출**(잠정 admin·**C-5 확정 대기** — PHI라 넓히는 쪽 오류는 되돌릴 수 없어 최소로) · **사유 없이 요청 미발신**(계약상 400이지만 눌러 보고 알게 하는 건 PHI 화면에서 할 일이 아님) · **마스킹 해제 UI 없음**(SRS 명시) · `redacted=false`면 그 사실 명시 · **사유는 세션 1회 재사용**(건마다 재입력시키면 아무 글자나 넣게 돼 사유 확보가 형식만 남음)·**감사는 축약 안 함** · ⚠ **목을 실 GW에 맞춰 정정**: device 무효 전이는 **409**(200 no-op 아님·GW 세션 확인) → T-FE-8-2 대조 항목 1건 해소 · ⬜ **`[manual]` 미충족**: 마스킹 응답이 콘솔/네트워크/클립보드에 원문 노출 없는지 + 무권한 403인지 **사람 1회 확인**(규제·법적 책임)·**PL 대기** |
+      | **P6** 6-1~6-5 | fleet 대시보드·**SW 인벤토리**·중앙 config·호환성 매트릭스 뷰어·감사 로그 | 🔥 이번주 | **#12720**(5 Task 묶음) · 813 unit+component·e2e 140·a11y 24·커버리지 92.1/86.6/87.2/92.8 · ★**SW 인벤토리에 "대수" 미표시**(헤더 관측·식별 id 없음 → 버전 **존재 여부**만 · 카운트를 붙이면 자산 대장으로 읽혀 라이선스·롤아웃 판단이 틀린다) · **`os=null` 행 유지**(감추면 관측된 버전이 통째로 사라짐) · fleet `online`은 **서버 파생값 그대로**(자체 판정 시 임계값이 두 곳) · **한 페이지 비율임을 명시**(총계 부재인데 "N% 온라인"은 전수로 읽힘) · **product 필터 없음**(fleet=EzServer 자신) · config는 **`gw.*` 한정**(`device.*`는 pull 경로가 다름)·**행 version 표시**·stale-write 재사용 · 매트릭스는 **저작면 없음**(발행 파이프라인 밖에서 값이 갈라짐)·실패 시 캐시+stale · 감사는 **읽기 전용**(쓰기 API 부재·규제) · 부수: 목 audit 필터 누락을 **e2e가 적발** · **README UI 통합테스트 절 신설**(GW README와 짝·시드 3종·신원 일치·e2e 격리·**동기화 표**) |
+      | **P7** 7-1~7-7 | 공통 UX·i18n·동시성·보안 — 세션 만료·403·오류 분류·stale-write 통합·i18n 전면·보안 리뷰·a11y/시각회귀 게이트 | 🔥 이번주 | **#12724**(7 Task 묶음) · 877 unit+component·e2e 140·**a11y 27**(14→27)·**visual baseline 17**·**i18n 미번역 0건**·커버리지 91.9/86.2/87.3/92.6 · 유휴 30분+1분 전 경고·**만료 후 활동 미집계**(세면 마우스 한 번에 세션이 되살아나 타임아웃이 무의미) · 오류를 **행동 가능한 종류로 분류**·**재시도는 의미 있을 때만**(권한/입력/충돌에 붙이면 같은 실패 반복) · `allowsOptimisticUpdate()`를 함수로 둬 **규칙을 테스트가 확인** · stale-write **소스 회귀 검사**(화면마다 따로 구현하면 한 곳만 고치고 나머지는 무경고 덮어쓰기·리뷰로도 안 잡힘) · i18n **선택값 유지**+`useSyncExternalStore`로 **하이드레이션 불일치 회피**(정적 export) · ⚠ **a11y가 실제 결함 적발**: `<html lang>`에 `ko_KR`(BCP 47 위반) → **27개 전 화면 실패** → `ko-KR` 교정 · 보안: 저장소 정책 가드 + **저장 키 전수 목록을 테스트가 고정** + 체크리스트 문서 · ⬜ **`[manual]` 미충족**: devtools로 PHI·자격 잔존/CSP 적용 **사람 1회 검사**·**PL 대기** |
       | ─ **대기·잔여** ─ |  |  |  |
-      | **P2** enrollment·디바이스 | 잔여 2-5(kill=revoke · **비가역 파괴적 액션**) | ◑ 진행 **4/5** | 2-1(#12680)·2-2(#12682)·**2-3 ★개통 게이트**(#12683)·2-4(#12685) · 2-5는 `POST …/kill`(PATCH 아님)·사유 UI 필수·위험색 분리·**`[manual]` 사람 클릭 검증 필요**(비가역·재서비스=재-enroll뿐) |
-      | **P3** 클리닉 | 3-1~3-4(목록/상세·LMP 읽기전용·식별 memo 편집·Device↔Clinic 드릴스루) | ⬜ 대기 | 표시필드 PATCH=봉인(미노출·`spec-v1.0.17`) |
-      | **P4** 연동 대상·정책·org-mapping | 4-1~4-4(target 등록 3섹션 폼·삭제 409 가드·정책 편집·org-mapping 관리) | ⬜ 대기 | credential 마스킹 · stale-write 베이스라인(4-3) |
-      | **P5** webhook·break-glass | 5-1~5-3(이벤트 메타 조회·payload break-glass 열람 PHI) | ⬜ 대기 | risk:security(5-3 PHI 마스킹) · 열람 역할=C-5 확정 대기(잠정 admin) |
-      | **P6** fleet·config·매트릭스·감사 | 6-1~6-5(fleet 대시보드·SW 인벤토리·중앙 config·**매트릭스 뷰어**·감사 로그) | ⬜ 대기 | 매트릭스 발행은 GW 소관(Console=뷰어) |
-      | **P7** 공통 UX·i18n·동시성·보안 | 7-1~7-7(세션 만료·403·오류 재시도·stale-write 전체 적용·i18n·보안 리뷰·접근성/시각회귀 게이트) | ⬜ 대기 | risk:security(7-6 저장 점검) |
+      | **P4** 연동 대상 | 4-1~4-4 전부 완료 | ✅ **완료 4/4** | #12715 |
+      | **P5** webhook·break-glass | 5-1~5-3 전부 완료 | ✅ **완료 3/3** | #12717 · ⬜ 잔여 = `[manual]` PHI 노출 사람 확인 1건 |
+      | **P6** fleet·config·매트릭스·감사 | 6-1~6-5 전부 완료 | ✅ **완료 5/5** | #12720 |
+      | **P7** 공통 UX·i18n·동시성·보안 | 7-1~7-7 전부 완료 | ✅ **완료 7/7** | #12724 · ⬜ 잔여 = `[manual]` 보안 실검사 1건 |
       | **P8** 실 e2e·시각회귀·배포 | 8-1~8-4(Entra dev 전환·staging GW e2e·시각 baseline 승인·prod 배포) | 🔴 대기 | 선결 C-2(Entra)·C-10(도메인)·C-3(CORS)=③-I/IT · C-10 미확정 시 8-4는 BLOCKER |
 
   - **S4-1. 커버리지 계획 (frontend · 착수 후 실측 · S3-1 대응)** — Console도 커버리지 측정·CI floor 게이트를 둔다(SRS §3.5·§3.6.2). **BE와 방식 차이**: BE의 merged(unit+e2e 합산·보안파일 개별 100%) 대신, Console은 **Vitest(v8) 기준 unit+component 커버리지**를 정본으로 하고 e2e는 여정 커버리지로 별도 관리. **실측 값은 `T-FE-0-8`(테스트 하네스) 이후·각 Task 완료 시** 아래 표에 채운다(현재 미착수라 값 없음).
