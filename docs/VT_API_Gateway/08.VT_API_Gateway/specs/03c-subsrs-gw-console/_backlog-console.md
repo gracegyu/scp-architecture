@@ -18,7 +18,7 @@
 >
 > **현재 상태: 구현 세션이 무인으로 더 진행할 Task는 없다.** IP 48/52 완료, 잔여 4건은 전부 외부 선결 대기다.
 
-### A. PL이 지금 바로 할 수 있는 것 — `[manual]` 3건
+### A. PL이 지금 바로 할 수 있는 것 — `[manual]` 2건 (+1 해소)
 
 자동 테스트로 증명할 수 없어 사람이 1회 확인해야 하는 항목이다. **셋 다 코드·자동 테스트는 완료**돼 있고 확인만 남았다.
 
@@ -26,64 +26,30 @@
 |---|---|---|---|
 | A-1 | **kill 다이얼로그 오조작 방지** — 문구·2차 확인·감사 노출이 실제로 사람을 멈추게 하는가 | `/devices/detail?id=dev-active-0&mock=operator` → [상태·수명주기] → "긴급 정지" | `T-FE-2-5` dod `[manual][risk:auth]` |
 | A-2 | **PHI·자격 실검사** — devtools로 저장소·네트워크·콘솔에 원문이 남지 않는지 + CSP 적용 | 체크리스트 = `vt-api-gateway-console/docs/security-review-checklist.md` **§2**(항목별 체크박스 준비됨) | `T-FE-7-6` dod `[manual][risk:security]` |
-| A-3 | **시각 baseline 승인** — CI 첫 실행이 뽑은 **linux** baseline 확인·커밋 후 `continueOnError` 제거 → 차단 게이트로 전환 | ✅ **차단 해소** — build 50750 아티팩트 `visual-baselines` 에 linux 17종 생성됨 | `T-FE-8-3` dod `[manual]` |
+| A-3 | **시각 baseline 승인** | ✅ **기계적 부분 완료** — linux 17종 커밋 · `continueOnError` 제거 → **차단 게이트** 전환(PR #12744). baseline은 구현 세션이 열어 확인했다(dev 배지 제거·리전 표시명이 실물 Directory와 일치). ⚠ **최종 미관 판단은 여전히 PL 몫**이며, 하려면 `tests/visual/__screenshots__/linux/` 17장을 보면 된다 | `T-FE-8-3` dod `[manual]` |
 
-### B. CI 게이트가 아직 문지기가 아니다 — ⚠ **CI가 한 번도 돈 적이 없다**
+### B. CI 게이트 — ✅ **해소 (2026-08-18)**
 
-**2026-08-18 실측**(`az pipelines list` · `az repos policy list`):
-
-| 확인한 것 | 결과 |
-|---|---|
-| Console 파이프라인 등록 | ❌ **없음** — `azure-pipelines.yml`이 레포에 있을 뿐 **Azure DevOps에 파이프라인으로 등록되지 않았다** |
-| main 브랜치 정책 | ❌ **0건** — Build validation도, 최소 리뷰어도, PR 필수도 없다 |
-
-**그래서 지금까지의 품질 근거는 전부 구현 세션의 로컬 실행이다.** 무인 모드로 auto-complete 머지한 PR들이 CI를 통과한 것이 아니라 **CI가 돌지 않았다.** 8종 게이트를 매 PR 전에 로컬에서 돌리고 결과를 PR 본문에 적어 왔지만, **기계가 강제한 적은 없다.**
-
-#### ⚠ 이건 Jack(③-I) 대기가 **아니다** — CI와 CD를 구분한다
-
-처음에 "PL만 할 수 있는 설정"으로 적었다가 확인 후 정정한다. **CI 게이트와 배포(CD)는 필요한 것이 다르다.**
-
-| | 필요한 것 | 소유 | 지금 |
-|---|---|---|---|
-| **CI 게이트**(lint·typecheck·test·build·e2e·a11y·verify) | 파이프라인 생성 + 브랜치 정책 등록 | **Azure DevOps 프로젝트 권한자** | ❌ 미등록 — **지금 바로 가능** |
-| **CD**(프리뷰·prod 배포) | S3·CloudFront·**AWS service connection**·IAM | **③-I Jack** | ⏳ `infra-requests.md` #2 · 8/14 마감 경과 |
-
-**CI가 Jack을 기다릴 이유가 없는 근거**(실측):
-- Console `azure-pipelines.yml`의 pool = **`vmImage: ubuntu-latest`**(MS 호스팅 에이전트 — 자체 인프라 불요)
-- 같은 조직·프로젝트의 GW 파이프라인들도 **같은 pool**을 쓰고 **2026-08-18 실제로 성공**(`vt-api-gateway-ci`)
-- 즉 호스팅 에이전트·병렬 슬롯이 **이미 있다**. Console은 파이프라인을 **만들기만** 하면 된다.
-
-Jack이 필요한 건 `docs/handoff/infra-requests.md` 요청 #2가 열거한 **배포 자원**뿐이다(S3 버킷·CloudFront·ACM·service connection·CI IAM·회신 값). Agenda도 같게 적고 있다 — *"우리 파이프라인/스크립트 준비완료 → Jack S3·서비스커넥션만 대기"*.
-
-#### 진행 상황 (2026-08-18)
+PR #12744(머지 `5331365`)로 **CI가 실제 문지기가 됐다.** `T-FE-0-8` dod 충족.
 
 | # | 무엇 | 상태 |
 |---|---|---|
-| B-1 | **파이프라인 등록** — `vt-api-gateway-console-ci` (definition **334**) | ✅ **완료** |
-| B-2 | **main 브랜치 정책에 Build validation(차단) 추가** | ⛔ **권한 거부** — PL이 걸어야 한다 |
-| B-3 | **첫 CI 실행으로 linux 시각 baseline 확보** | ✅ **완료** — build 50750 아티팩트 `visual-baselines` 17종 |
+| B-1 | 파이프라인 등록 — `vt-api-gateway-console-ci` (definition **334**) | ✅ |
+| B-2 | main 브랜치 정책 **Build validation(차단·만료 즉시)** | ✅ PL 등록 · PR #12744에서 `approved`·차단=True 평가 확인 |
+| B-3 | linux 시각 baseline 17종 확정 | ✅ 커밋 완료 → 시각 회귀도 **차단 게이트** |
 
-**B-2 실행 명령**(PL이 그대로 실행하면 된다):
+**등록 전까지의 상태**: `azure-pipelines.yml`이 레포에 있을 뿐 Azure DevOps에 등록되지 않았고 main 브랜치 정책도 0건이었다. **CI가 한 번도 돈 적이 없었다** — 그동안의 품질 근거는 전부 구현 세션의 로컬 실행이었다(무인 auto-complete 머지 포함).
 
-```bash
-repoid=$(az repos show --organization https://dev.azure.com/ewoosoft --project es-platforms \
-  --repository vt-api-gateway-console --query id -o tsv)
-az repos policy build create --organization https://dev.azure.com/ewoosoft --project es-platforms \
-  --repository-id "$repoid" --branch main --blocking true --enabled true \
-  --build-definition-id 334 --display-name "CI 게이트" \
-  --queue-on-source-update-only true --manual-queue-only false --valid-duration 720
-```
+#### ⚠ 첫 CI가 잡은 것 — 로컬 8종 게이트로는 구조적으로 못 잡는 결함 4건
 
-#### ⚠ CI 첫 실행이 **로컬 8종 게이트가 못 잡던 결함을 즉시 잡았다**
+| # | 결함 | 왜 로컬이 못 잡나 |
+|---|---|---|
+| 1 | 생성물 헤더에 **로컬 파일 경로**가 박혀 `codegen --check`가 환경 종속 | 로컬은 우회 경로(`/tmp/...`), CI는 형제 체크아웃 → **계약이 같아도 drift**. 한 환경에서만 돌면 영원히 안 보인다 |
+| 2 | CI 계약 핀이 **`spec-v1.0.20`**으로 낡음(생성물은 v1.0.26) | 핀은 파이프라인에만 있고 로컬은 형제 레포 HEAD를 본다 |
+| 3 | Playwright CI 설정 3종(**`forbidOnly`**·`retries`·html 리포터)이 Azure에서 통째로 죽음 | `process.env.CI`만 봤는데 **Azure는 `TF_BUILD`를 세팅한다.** `forbidOnly`가 죽어 있으면 `test.only` 하나로 **나머지 e2e가 조용히 안 돌고 CI는 초록**이 된다 |
+| 4 | 시각 회귀 임계 `maxDiffPixelRatio: 0.01`(≈9,200px)이 과도하게 관대 | 리전명 변경·dev 배지 소멸·감사 2줄 증가가 전부 "같다"로 통과. `maxDiffPixels: 100`으로 교체(AA 잡음 0 실측) |
 
-`build 50740` 이 `GATE: contract drift`에서 실패했다. 원인 둘 다 **로컬에서는 구조적으로 드러날 수 없는 것**이었다:
-
-1. **생성물 헤더에 로컬 파일 경로가 박혀 있었다.** `원천: ${relative(repoRoot, specPath)}`가 본문에 들어가 `--check`가 환경에 종속됐다 — 로컬 우회 경로(`/tmp/...`)와 CI 형제 체크아웃이 **같은 계약에서도 다른 파일**을 만든다. 추적성은 경로가 아니라 **리비전**이 진다.
-2. **CI 계약 핀이 `spec-v1.0.20`으로 낡아 있었다.** 생성물은 v1.0.26까지 따라와 있었다.
-
-→ **PR #12744**로 수정, `build 50750` 전 차단 게이트 통과.
-
-**그리고 이 게이트는 로컬에서 충실히 돌지 않는다** — 형제 `../vt-api-gateway`는 GW 세션이 쓰는 작업 트리라 핀 태그가 아닌 브랜치에 있는 게 정상이다. **핀 태그를 깨끗이 체크아웃하는 CI가 이 게이트의 유일한 권위다.** B-2가 걸리기 전까지는 이 사실이 특히 중요하다.
+> **교훈**: CI가 없으면 **CI 전용 설정이 작동하는지도 아무도 모른다.** 3·4는 게이트가 있다고 믿는 상태에서 실제로는 아무것도 안 지키던 경우다.
 
 ### C. 외부 선결 대기 — P8 4건 (정본 = IP Task 카드)
 
@@ -93,6 +59,8 @@ az repos policy build create --organization https://dev.azure.com/ewoosoft --pro
 | `T-FE-8-2` staging 실연동 | staging GW 배포 · **C-3** CORS | ③-I |
 | `T-FE-8-3` baseline 승인 | 사람 판단(위 A-3) | PL |
 | `T-FE-8-4` prod 배포 | **C-10** 도메인 확정 · **BLOCKER** | 회의·③-I |
+
+> ⚠ **2026-08-18 — 새 활성 블로커**: dev 프리뷰 배포가 **CloudFront viewer-request Function 없이는 배포돼도 앱이 안 돈다**(딥링크·`/auth/callback` 전부 홈으로 떨어짐 · 실측 2회). 소유 = **③-I Jack**. 상세·근거·배포 후 확인 절차 = 아래 **§5)**. 요청서 정정은 **PR #12752**로 올려 뒀다.
 
 > `T-FE-8-4`는 도메인이 확정돼도 **무인 대상이 아니다** — IP §7 Operating Mode가 "prod 배포 자동 실행 금지"로 명시적으로 제외한다.
 >
@@ -203,15 +171,43 @@ Entra 앱 등록 전 로컬에서 실 GW 데이터를 보려고 만든 우회로
 - **SPA redirect는 포트 wildcard 불가** — 3100 고정(§ IP 준비 메모).
 - 토큰 캐시는 **MSAL이 sessionStorage에** 들고 있다(SRS §6.3). 앱이 따로 복사해 두지 않으므로, 디버깅 시 `gw-console.access-token` 같은 자체 키를 찾지 말 것(존재하지 않는다).
 
-### 5) 배포 호스트에서만 드러나는 것 ⚠
+### 5) 배포 호스트에서만 드러나는 것 ⚠ — **활성 블로커 (2026-08-18)**
 
-**localhost 검증만으로는 절대 드러나지 않는 결함이 하나 있다.** 정적 export는 라우트마다 별도 HTML(`out/auth/callback.html`)을 내는데, `docs/handoff/infra-requests.md` §2가 요청한 CloudFront 구성(**S3 OAC + `403`·`404` → `/index.html`**)만으로는 URI가 S3 키로 그대로 매핑돼 `/auth/callback` 키를 못 찾고 **홈 화면으로 떨어진다**. CloudFront를 흉내낸 서버로 실측 확인(2026-08-13):
+정적 export는 라우트마다 개별 HTML을 낸다(`out/devices.html` · `out/auth/callback.html` — `out/devices/index.html`이 **아니다**). CloudFront가 URI를 S3 키로 그대로 매핑하니 `/devices`는 없는 키이고, `403`·`404` → `/index.html` fallback만 있으면 **홈이 200으로 내려온다.**
 
+**실측 2회** — 2026-08-13(최초 발견) · 2026-08-18(현 산출물로 재현, `cmp` 바이트 비교):
+
+| 요청 | rewrite Function 없음 | 있음 |
+| --- | --- | --- |
+| `GET /devices` | 본문 = **`out/index.html`**(홈) | `out/devices.html` ✅ |
+| `GET /auth/callback?code=…` | 본문 = **`out/index.html`**(홈) | `out/auth/callback.html` ✅ |
+
+**`/auth/callback`이 홈으로 떨어지면 Entra가 되돌려준 `code`를 아무도 처리하지 않아 실 로그인이 조용히 실패한다.** 딥링크·새로고침 전부 같은 증상이다.
+
+필요한 것: **확장자 없는 경로 → `.html` viewer-request CloudFront Function**(URI에 `.` 없으면 `.html` 붙이기, 루트는 `/index.html`). `403`/`404` fallback은 **그 다음** 단계다.
+
+| # | 무엇 | 소유 | 상태 |
+| --- | --- | --- | --- |
+| 5-1 | 요청서 §2 항목 2에 Function을 **필수**로 명시 | Console | ✅ **PR #12752**(PL 리뷰 대기) |
+| 5-2 | es-infra CloudFront `E165UOG7NKHXXZ`에 Function 추가 | **③-I Jack** | ⛔ **활성 블로커** — PL이 Teams 전달 |
+| 5-3 | Jack CD PR #12743(파이프라인) | ③-I | 문제없음 · 그대로 진행 |
+| 5-4 | 배포 후 딥링크 **자동** 스모크 체크를 CD 스테이지에 추가 | Console | ⏳ **#12743 머지 후** (같은 `azure-pipelines.yml`이라 지금 하면 충돌) |
+
+**배포 후 확인**(수동·1줄):
+
+```bash
+diff <(curl -s https://console.gw.dev.ezcld.net/devices) \
+     <(curl -s https://console.gw.dev.ezcld.net/)
+# **달라야 한다.** 같으면 홈으로 떨어진 것 = Function 없음
 ```
-GET /auth/callback?code=…  →  본문: "P0 스캐폴드 진행 중 — App Shell 골격" (홈)
-```
 
-즉 **Entra가 되돌려준 code가 처리되지 않아 실 dev 로그인이 조용히 실패한다.** 콜백만이 아니라 `/devices` 등 **모든 딥링크·새로고침**이 같은 증상이다. 확장자 없는 경로를 `<path>.html`로 바꾸는 **CloudFront Function(viewer-request)** 이 필요하고, `index.html` fallback은 그다음 단계다. 로컬 프리뷰 서버(`scripts/serve-preview.mjs`)는 `.html`을 붙여 보므로 이 차이가 드러나지 않는다. → **③-I 요청서 §2 항목 2에 반영 필요**(반영 여부=PL 판단).
+> ⚠ **로컬 프리뷰 서버(`scripts/serve-preview.mjs`)로는 이 결함이 안 드러난다** — 그쪽은 `.html`을 붙여 보기 때문이다. "로컬에서 잘 되던데요"는 근거가 못 된다.
+
+#### ⚠ 이 항목이 살아남은 방식 — 추적 자체의 실패
+
+2026-08-13에 **실측까지 마치고** "→ ③-I 요청서 §2 항목 2에 반영 필요(**반영 여부=PL 판단**)"로 적어 두었는데, **그 뒤 아무도 집지 않아 요청서에 반영되지 않은 채 ③-I로 나갔다.** 그래서 es-infra는 요청서대로 만들었고, 결함은 Jack의 CD PR이 올라온 **5일 뒤**에야 다시 발견됐다.
+
+**교훈: "PL 판단"으로 남긴 항목은 소유자와 기한이 없으면 사라진다.** 판단이 필요한 항목도 **누가·언제까지 판단할지**를 같이 적는다. 위 표처럼 소유·상태를 붙여 둔다.
 
 ---
 

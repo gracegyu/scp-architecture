@@ -6,18 +6,25 @@
     - AXS 아웃바운드 E2E(토큰·Org-ID·verbatim·happy 200·fail-closed) 완료 유지
     - 잔여는 전부 외부 선결(③-I 공개 ingress·실 IoT Core / Straumann prod 자격 / 부하환경)
   - **[GW Console]** **P1~P7 완료(9/9·5/5·4/4·4/4·3/3·5/5·7/7) — ★개통 게이트 통과 · 무인 모드 전환** — Entra 로그인·`/me` 부트스트랩 분기·역할×액션 매트릭스·App Shell(리전 컨텍스트)·홈 대시보드 + **디바이스 목록·상세·enrollment 승인·수명주기(SCR-DEV-01~03)** _(상세 = 공유 S4)_
+  - **[GW Console]** **dev 호스팅 배포 개통 — `console.gw.dev.ezcld.net` 접속 가능(8/19)** — ③-I(Jack)가 CD 파이프라인(PR #12743)·CloudFront viewer-request Function 반영 완료 → **main 머지 시 자동 배포**. **이번 주 = 목(mock) 데이터 · 로그인 없음**(화면 검토용) → **차주 = dev GW + DB + Entra 접목** _(상세 = 공유 S5)_
   - **[제품 연동 스펙]** EzServer OnePager 수령 확인 (잔여)
   - _(이번 주 결정사항 = 회의 시 추가)_
 
 - 논의 사항 (이번 주 · 신규 논의/결정 안건)
   - _(이번 주 결정사항 = 스펙 세션 정리 후 반영 · 회의 중 신규 안건 발생 시 여기 추가 · 보류·선결은 아래 「이월 논의 사항」 표 참조.)_
+  - **R1. [⚠ 보안 · 즉시] GW Console dev 프리뷰가 인터넷에 공개돼 있다 — 접근 제한 적용 요청** — `console.gw.dev.ezcld.net` 이 **사내망 밖에서도 열린다**(8/19 실측 — 사내 Wi-Fi 끄고 휴대폰 LTE 접속 성공). 이 빌드는 **로그인을 우회한 목 빌드**라 인증 없이 전 화면 구조가 노출된다. 실 GW·Entra·PHI 에는 접근하지 않으나(목 데이터·브라우저 안에서 생성), **관리 콘솔의 화면 구성·메뉴·용어·운영 개념이 그대로 보인다.**
+    - **설계상 엣지 ZTNA 가 없다**(운영 접근 통제 = 앱 계층 Entra) → **목 빌드 구간에서는 접근 제한이 유일한 방어선**이다(요청서 §2 서두에 명시).
+    - `infra-requests.md` §2 **항목 3 = "접근 제한 (사내 한정 · IP allowlist / VPN / Basic 인증 등 ③-I 표준)"** — 이번 완료 통지(Function·CD 2건)에 **이 항목이 포함되지 않았다.**
+    - **요청**: ③-I 표준 방식으로 사내 한정 적용. 실 Entra 빌드로 전환하면 통제가 앱 계층으로 넘어가므로 그때는 완화 가능(방어 심화로 유지해도 됨).
+    - _(참고: DNS 는 공개 등록이라 주소 자체는 외부에서 찾을 수 있다 — 제한은 엣지에서 걸어야 한다.)_
   - **[③-I Jack 인프라 요청 추적 · PR #12653]** — GW Console repo `infra-requests.md`로 Jack(③-I)·IT에 3건 요청. 회의에서 **Jack 상태·ETA 확인**(아래 #2 마감 경과). PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653
 
     | # | 요청 | 수신 | dev | prod |
     | --- | --- | --- | --- | --- |
     | 1 | Region Directory 호스팅 (**우선순위 1** · EzServer enroll 앵커 · Console 리전목록도 소비) | ③-I | **✅ publish 완료**(8/18·`regions.gw.dev.ezcld.net`·스키마 §7.3.6 정합 확인) | ☐ 도메인 확정 후 |
-    | 2 | GW Console dev 호스팅 (프리뷰 우선 배포 · `console.gw.dev.ezcld.net`) | ③-I | ☐ 마감 8/14 (**경과**) · _우리 파이프라인/스크립트 준비완료 → Jack S3·서비스커넥션만 대기_ | ☐ 도메인 확정 후 (별도) |
-    | 3 | 운영자 로그인 Entra (GW Admin API app + Console SPA app · 2앱 · PKCE) | IT · ③-I | ☐ 마감 8/21 | ☐ 도메인 확정 후 |
+    | 2 | GW Console dev 호스팅 (프리뷰 우선 배포 · `console.gw.dev.ezcld.net`) | ③-I | **✅ 배포 개통(8/19)** — S3·CloudFront·서비스커넥션·CD 파이프라인(#12743)·딥링크 rewrite Function 완료 · ⚠ **접근 제한(요청 항목 3) 미적용 — 아래 논의 R1** | ☐ 도메인 확정 후 (별도) |
+    | 2-3 | ↳ **접근 제한 (사내 한정)** — 위 #2 의 미완 항목 | ③-I | ⛔ **미적용 · 현재 인터넷 공개**(8/19 LTE 실측) → 논의 **R1** | ☐ |
+    | 3 | 운영자 로그인 Entra (GW Admin API app + Console SPA app · 2앱 · PKCE) | IT · ③-I | ☐ 마감 8/21 · **등록 절차·회신 양식 문서 제공 완료**(`Entra-설정-가이드.md` · `entra-values.md`) | ☐ 도메인 확정 후 |
   - **[GW 구현 선결 추적 · 외부 인프라·자격]** — GW 백엔드 E2E·배포가 **외부 선결**로 막힌 Task들(정본=IP 부록 B·gated Task). 회의에서 **소유별 상태·ETA 확인**(③-I / Straumann·영업).
 
     | # | 선결 항목 | 막는 Task | 소유 | dev | prod |
@@ -36,9 +43,35 @@
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
   - **[GW 스펙 결정·2026-08-13] webhook 하행 MQTT = envelope 없는 payload verbatim · 128KB 초과 = v1.0 미지원(명시 제한)** — 스펙(§7.6.6 "얇은 envelope")이 실제 구현(무-envelope verbatim)과 달라 구현 기준으로 정정. 하행은 원 payload를 wrapper 없이 verbatim 발행(EzServer 맥락 = 토픽 clinicId + payload 필드 messageId·eventType 등). IoT Core 128KB 초과 payload는 **v1.0 미처리 · 절대 자르지 않음**(알림/PHI 무결성) → 발행 실패 시 **DLQ·알람으로 표면화**(무통보 유실 없음). 대용량 오프로드+포인터 폴백은 gw/1.1+ 백로그. (AXS 파일 전송 PR #12669에 흡수)
   - **[GW 스펙 개정·2026-08-18] 감사 로그(audit) 계약 확장 — 리소스별 변경 이력 + 사유(reason) 조회 지원** — 파괴적·관리 액션의 감사 추적성을 높이려 `AuditLog`를 **additive로 확장**(비파괴·기존 영향 0). ① **리소스 축**(`resourceType`/`resourceId`) 추가 → "이 device/clinic/target의 최근 변경 이력"을 리소스별로 조회(그전엔 전역 목록만·`spec-v1.0.25`). ② **사유(`reason`) 응답 노출** → kill·enroll 거부·payload break-glass가 저장하던 사유를 감사에서 **되읽기 가능**(규제·PHI break-glass 대응 — 받아만 두던 것을 조회 가능하게·`spec-v1.0.26`). ③ device **kill 종단 재호출 = 409** 계약 정합(구현은 이미 그렇게 동작·문서만 일치·`spec-v1.0.27`). **GW 백엔드(T-DATA-1-9)·Console(T-FE-6-6 감사·상세 화면) 반영 완료.** *(발단 = Console 감사·kill 화면 구현 중 계약 갭 발견 → 스펙 세션 정합.)*
+  - **S5. GW Console dev 배포 개통 — 이번 주는 목(mock), 차주에 실 연동** — `console.gw.dev.ezcld.net` 이 열렸다. **설치 없이 링크만으로 전 화면을 볼 수 있다**(로그인 불필요).
+    - **개통까지 ③-I(Jack)가 완료한 것**: S3 + CloudFront + ACM · AWS 서비스커넥션 · **CD 파이프라인**(PR #12743 — main 머지 시 자동 배포) · **딥링크 rewrite Function**.
+      - Function 은 **없으면 배포는 되는데 앱이 안 도는** 항목이었다 — 정적 export 는 라우트마다 개별 HTML(`devices.html`)을 내는데 CloudFront 가 URI 를 S3 키로 그대로 매핑해, fallback 만 있으면 `/devices`·`/auth/callback` 이 **홈으로 200 을 반환**한다(로그인 콜백이 홈이 되어 **로그인이 조용히 실패**). 구현 세션이 CloudFront 동작을 흉내 낸 서버로 사전 실측해 발견 → 요청서 정정 → Jack 반영 → **배포 후 재실측 통과**(8/19).
+      - 재발 방지로 **배포 스크립트 자체에 딥링크 검증**을 넣었다(별도 파이프라인 스텝 아님 — 누가 어떤 파이프라인에서 배포하든 따라온다). 깨지면 배포가 **실패**한다.
+    - **이번 주 = 목(mock) 빌드다.** 화면 검토·리뷰용이며, 아래 대조가 요점이다.
+
+      |            | `console.gw.dev.ezcld.net` (이번 주)   | 로컬 `localhost:3100`                          |
+      | ---------- | -------------------------------------- | ---------------------------------------------- |
+      | 인증       | 없음 (목 우회)                          | 없음 (목 우회)                                  |
+      | 데이터     | **MSW 픽스처** (브라우저 안에서 생성)    | **실 GW + 로컬 DB**                             |
+      | 토큰       | 안 씀                                   | `DEV_OPERATOR_TOKEN` (**8시간**)                |
+      | 만료되면   | 해당 없음                               | `invalid access token` → `pnpm dev:operator-token` |
+
+      → **배포본 데이터는 seed 도 실데이터도 아니다.** 서버에 갔다 온 적이 없어 값이 항상 같고 만료도 없다. **실제 동작(GW 왕복·권한 판정·상태 전이) 확인은 로컬 경로**로 한다.
+    - **차주 = dev GW + DB + Entra 접목** — 아래 셋이 준비되면 실 빌드로 전환한다(전부 ③-I·IT 소관 · Console 코드 작업 없음).
+
+      | # | 선결 | 소유 | 어디서 추적하나 |
+      | --- | --- | --- | --- |
+      | 1 | **Entra 앱 등록 2건**(GW Admin API · Console SPA/PKCE) + 값 회신 | IT · ③-I | **③-I 요청 추적 #3** (마감 8/21) · 등록 절차·회신 양식 문서 제공 완료 |
+      | 2 | **dev GW 백엔드 배포**(core/admin/receiver/dispatcher 4앱 · `api.apne2.gw.dev.ezcld.net`) | ③-I | **GW 선결 추적 #3**(자동배포 파이프라인 main→DEV) + **#4**(env 주입 = Parameter Store·ESO) |
+      | 3 | **접근 제한**(목 빌드 구간) | ③-I | **③-I 요청 추적 #2-3** → 논의 **R1** |
+
+      > **CORS 는 별도 선결이 아니다.** `GW_CONSOLE_ORIGIN` 은 **GW admin 앱의 env** 이고(Console `.env` 아님) 값도 이미 `http://localhost:3100,https://console.gw.dev.ezcld.net` 으로 확정돼 있다(`env-reference.md`). **dev GW 백엔드가 배포될 때 함께 올라간다** — 위 #2 에 포함되며 따로 신청할 것이 없다. (prod 은 Helm override.)
+
+      **Console 코드 작업은 0 이다.** 전환은 빌드 플래그(`AUTH_MODE=entra`)만 바꿔 같은 호스트에 재배포하는 것이라 **URL 이 유지된다** — 지금 공유한 링크를 그대로 쓴다.
+    - ⚠ **접근 제한은 아직 안 걸려 있다** — 위 논의 **R1** 참조.
   - **S1. 프로젝트 일정(Gantt) — 8/20 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **진행률(구현)**:
-      - **GW ≈ 97%**(**AXS 파일 전송 개정 4 PR 완료**[7-6 커넥터전략·12-8 다운로드·12-9 webhook·7-7 업로드위임+12-7]·spec-v1.0.24 — 코어·AXS 연동 구현 완료 · **잔여는 전부 외부 게이트**(GW 코드 아님): 12-6 인바운드[③-I ingress+실 IoT]·12-3 부하환경·12-4 HA[③-I Multi-AZ]·9-5 IoT 프로비저닝[③-I]·order 파일 presign[Straumann 시드])
+      - **GW ≈ 99%(코드 feature-complete)** — AXS 파일 전송 개정 4 PR + **이번주 9-5(a) IoT authz 어댑터(mock·#12747)·12-3 부하 하네스(k6·#12761) 코드 완료**로 GW **코드는 사실상 완결** · **잔여는 전부 ③-I 실 인프라 측정**(GW 코드 아님): 12-6 인바운드[③-I ingress+실 IoT]·12-3 실 §5 측정[③-I staging]·12-4 HA[③-I Multi-AZ]·9-5(b) 실 IoT 프로비저닝[③-I]·order 파일 presign[Straumann 시드]
       - **GW Console ≈ 92%**(IP Task **48/52 완료 + P8 2건 부분완료**(T-FE-6-6 신설·완료) — **P0~P7 전부 완료** · 잔여 P8 4건은 **전부 외부 선결 대기**(C-2 Entra·staging GW·C-3 CORS·C-10 도메인) · 8/13 저녁부터 무인 모드)
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
     - **범례** — **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · **빨강=외부/미정 선결** / **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
@@ -148,7 +181,7 @@
         - 1단계 코어 — P0~P6·P10
         - 2단계 골격 — P8·P9·P11 (로컬 더블 기준·실연동 ④ AXS 후)
       - 직전 주(8/6~8/13) — v1.0.12(enroll CSR→IoT mTLS·Admin CORS)·**P7 커넥터 완료**(7-1~7-5·AXS 최초 실연동)·시스템 E2E(SYS-01/02/04/05)·프록시 복원력 하드닝·v1.0.15~21(enroll Reject·감사 사유·clinic.memo·표시필드 봉인·compat-matrix 발행·**admin device 조회 3라우트**·식별 헤더 2계층)
-      - 이번 주(8/13~8/20) — GW 백엔드 main merge **없음**(잔여는 전부 ③-I·Straumann 선결) · **Console(③-C)이 P1 완료→P2 진행**(S4)·11-8(ClinicInfo 교정)
+      - 이번 주(8/13~8/20) — **GW 백엔드 코드 feature-complete** — 9-5(a) IoT authz 어댑터(mock·#12747)·12-3 부하 하네스(k6·#12761) merge → **잔여는 전부 ③-I 실 인프라 측정**(GW 코드 아님·Straumann 시드 별도) · **Console(③-C)이 P1 완료→P2 진행**(S4)·11-8(ClinicInfo 교정)
       - 남은 것 (외부·인프라 선결)
         - ④ AXS 실자격 → 7-3(커넥터 실연동)·12-1(sandbox E2E)
         - ③-I 인프라 → 9-5(실 IoT)·9-4(실 KEDA)·0-5(자동배포)·12-4(HA/KEDA)
@@ -190,8 +223,8 @@
       | **T-E2E-12-6** AXS 인바운드+MQTT e2e | 실 AXS→GW webhook 왕복(E2E-SYS-02)+역방향 MQTT 다운링크 실 IoT | 🔴 대기 | ③-I **공개 ingress + 실 IoT Core** 선결(T-DISP-9-5 연관) · 로컬 더블(sys-02) 커버 유지 |
       | ─ **대기·무영향** ─ |  |  |  |
       | **P0** 0-5 | CI 파이프라인·Dockerfile(4타겟·스캔·lint·build·unit·e2e 게이트)=완료 · **자동배포(CD) 잔여** — ECR/ArgoCD·main→DEV·tag prefix→TEST/PROD(deploy stage `condition:false` 자리표시자·T-PLAT-0-5 `[~]부분완료`) | 🔴 부분 | ③-I(Jack Azure Flow 템플릿 수령 후) · Dockerfile es-base 전환(0-5b)=완료(#12163) |
-      | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | 🔴 대기 | ③-I/④ IoT Core(cert 발급 app-side=v1.0.12(A) 완료·DBML `iot_certificate_id`=스펙 세션) |
-      | **P12 E2E·하드닝** | **12-1 아웃바운드=완료(#12655)** · **12-5 presign 발급(#12660)** · **12-7 업로드위임(#12684)** · **12-8 다운로드(#12679)** · **12-9 webhook라우팅(#12676)** · **12-2 compat=완료(#12606)** · 12-6 인바운드+MQTT · 12-3 부하 · 12-4 HA/KEDA | ◑ 진행 | ✅ 12-5·12-7·12-8·12-9 완료(AXS 파일 전송 개정) · 🔴 잔여: 12-6=③-I 공개 ingress+실 IoT · 12-3=부하환경 · 12-4=③-I(Multi-AZ) |
+      | **P9** 9-5 | device **실** IoT 프로비저닝(Thing/정책 attach·실 cert 발급 인프라) | ◑ (a)코드완료·(b)③-I | **(a) 코드 완료 #12747**(IoT 포트어댑터·최소권한 policy·과도권한 거부·enroll 배선 mock) · **(b) 실 IoT Core mTLS·타클리닉 차단 실증=③-I 게이트** · cert 발급 app-side=v1.0.12(A) 완료 · 실 전환 시 §7.6.6 v1.0.29~32(공유 policy·client-id=deviceId·`$share/ezserver`) 반영 |
+      | **P12 E2E·하드닝** | **12-1 아웃바운드=완료(#12655)** · **12-5 presign 발급(#12660)** · **12-7 업로드위임(#12684)** · **12-8 다운로드(#12679)** · **12-9 webhook라우팅(#12676)** · **12-2 compat=완료(#12606)** · 12-6 인바운드+MQTT · 12-3 부하 · 12-4 HA/KEDA | ◑ 진행 | ✅ 12-5·12-7·12-8·12-9 완료(AXS 파일 전송 개정) · 🔴 잔여: 12-6=③-I 공개 ingress+실 IoT · **12-3=하네스 완료(#12761·k6)·실 §5 측정=③-I staging** · 12-4=③-I(Multi-AZ) |
 
   - **S3-1. 커버리지 현황 (구현과 분리 · merged=unit+e2e 합산 · 8/13 재측정·post-v1.0.12/P7/시스템-E2E · 매 Task 완료 시 갱신)** — 커버리지 스윕(1·2·3순위 101 케이스·PR #12372) 후 실측, 이후 Task마다 재측정. 정본 기준 = **merged**(단위+통합 합산). **정지트리 실측·merged floor 게이트 통과**(v1.0.12 A/B·7-1/2/4/5·시스템 E2E SYS-01/02/04/05 반영). _(8/13 재측정: **AXS 파일 전송 개정 4 PR**(7-6 커넥터전략·12-8 다운로드·12-9 webhook·7-7 업로드위임+12-7) + spec-v1.0.20~24 반영 — 신규 로직 전부 unit+e2e 동반이라 **전역·보안 floor + 핵심 보안파일 per-file branch(≥90%·proxy.service 등 16개 각 100%) 모두 통과** · e2e 545 green.)_
 
