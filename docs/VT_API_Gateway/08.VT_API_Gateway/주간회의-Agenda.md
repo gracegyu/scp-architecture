@@ -7,6 +7,7 @@
     - 잔여는 전부 외부 선결(③-I 공개 ingress·실 IoT Core / Straumann prod 자격 / 부하환경)
   - **[GW Console]** **P1~P7 완료(9/9·5/5·4/4·4/4·3/3·5/5·7/7) — ★개통 게이트 통과 · 무인 모드 전환** — Entra 로그인·`/me` 부트스트랩 분기·역할×액션 매트릭스·App Shell(리전 컨텍스트)·홈 대시보드 + **디바이스 목록·상세·enrollment 승인·수명주기(SCR-DEV-01~03)** _(상세 = 공유 S4)_
   - **[GW Console]** **dev 호스팅 배포 개통 — `console.gw.dev.ezcld.net` 접속 가능(8/19)** — ③-I(Jack)가 CD 파이프라인(PR #12743)·CloudFront viewer-request Function 반영 완료 → **main 머지 시 자동 배포**. **이번 주 = 목(mock) 데이터 · 로그인 없음**(화면 검토용) → **차주 = dev GW + DB + Entra 접목** _(상세 = 공유 S5)_
+  - **[GW Console]** **GW와의 정합성 확인 진행 중** — 실 GW 접목에 앞서 Console 전 화면을 GW 실동작과 하나씩 맞춰 본다. 계약 문서만으로 드러나지 않는 부분이 있어, 통합 단계에서 걸릴 지점을 미리 정리하는 작업이다(**완료된 화면 포함**). _(상세 = S4)_
   - **[제품 연동 스펙]** EzServer OnePager 수령 확인 (잔여)
   - _(이번 주 결정사항 = 회의 시 추가)_
 
@@ -76,8 +77,8 @@
 
   - **S1. 프로젝트 일정(Gantt) — 8/20 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **진행률(구현)**:
-      - **GW ≈ 99%(코드 feature-complete)** — AXS 파일 전송 개정 4 PR + **이번주 9-5(a) IoT authz 어댑터(mock·#12747)·12-3 부하 하네스(k6·#12761) 코드 완료**로 GW **코드는 사실상 완결** · **잔여는 전부 ③-I 실 인프라 측정**(GW 코드 아님): 12-6 인바운드[③-I ingress+실 IoT]·12-3 실 §5 측정[③-I staging]·12-4 HA[③-I Multi-AZ]·9-5(b) 실 IoT 프로비저닝[③-I]·order 파일 presign[Straumann 시드]
-      - **GW Console ≈ 92%**(IP Task **48/52 완료 + P8 2건 부분완료**(T-FE-6-6 신설·완료) — **P0~P7 전부 완료** · 잔여 P8 4건은 **전부 외부 선결 대기**(C-2 Entra·staging GW·C-3 CORS·C-10 도메인) · 8/13 저녁부터 무인 모드)
+      - **GW ≈ 90%(v1.0 계획 기능 구현 완결 · 통합·검증·계약 경화 잔여)** — AXS 파일 전송 개정 4 PR + 9-5(a) IoT authz 어댑터(mock·#12747)·12-3 부하 하네스(k6·#12761) 코드 완료로 **v1.0 계획 기능 구현은 완결**. 구현 완료가 개발 완료는 아니며 잔여는 세 갈래: ① **③-I 실 인프라 게이트**(12-6 인바운드[ingress+실 IoT]·12-3 실 §5 측정[staging]·12-4 HA[Multi-AZ]·9-5(b) 실 IoT 프로비저닝·order presign[Straumann 시드]) · ② **개발 통합·검증**(통합·시스템 E2E·성능/부하·보안 — QA 인계 전 개발팀 확증) · ③ **API 계약·문서 정합 경화**(OpenAPI를 코드에서 생성해 소스=SSOT로 일원화·as-built 정밀화 지속 — 문서가 항상 최신 유지)
+      - **GW Console ≈ 85%**(IP Task **48/52 완료 + P8 2건 부분완료** — **P0~P7 전부 완료** · 잔여 P8 4건은 **전부 외부 선결 대기**(C-2 Entra·staging GW·C-3 CORS·C-10 도메인) · **GW와의 정합성 확인 진행 중**(완료 화면 포함) — 확인이 끝나기 전까지는 완료로 세지 않는다)
     - **목표 = 10월 출시**(역산·잠정 — 2단계는 AXS **PPR 자격 확보로 착수 가능**·잔여 변수 = **prod 자격(NDA후)·부하환경**)
     - **범례** — **막대 색**: 작성=기본 · PR=강조 · ◆=baseline/마일스톤 · **빨강=외부/미정 선결** / **선결(빨강)**: AXS **prod** 자격(NDA 후·Straumann) _(PPR sandbox 자격=확보 8/11 · IO Scanner=AXS webhook 흡수·GW 무관·R1 종료)_
 
@@ -250,6 +251,7 @@
     - **폰트 = CleverSpace(호스트)와 통일(8/12)**: `'Noto Sans','Noto Sans KR','Segoe UI',sans-serif`. 단 로딩은 Google Fonts CDN 링크가 아니라 **`next/font` 자체 호스팅** — 런타임 외부 요청이 없어 CSP 허용 도메인을 늘리지 않는다(SRS §6.2·C-3). _(Next 템플릿 기본값 Geist는 한글 글리프가 없어 한글이 브라우저 기본 폰트로 떨어지던 문제도 함께 해소.)_
     - **SRS**: ✅ **baseline v1.0**(#12602 머지 8/11 · tag `spec-v1.0`). gw/1.0 대응 완전 규격 + gw/1.1·gw/1.2·후속은 방향. 리뷰(민진우·정우혁) 반영·스레드 resolve.
     - **구현 착수(8/12)**: 별도 **frontend 세션** 오픈 완료 → **P0(10/10)·P1(9/9)·P2(5/5)·P3(4/4)·P4(4/4)·P5(3/3)·P6(5/5)·P7(7/7) 완료 → **P8만 잔여**. 8/13 저녁 **유인 → 무인 전환**(PR auto-complete·IP §7 v1.4) — 전환 근거 = 도입 조건이던 "1개 Phase 유인 완주" 충족. Task 단위 PR → 사람 머지(유인 모드·IP §7). **Entra/실 GW 없이 mock으로 대부분 진행 가능\*\*(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
+    - **GW와의 정합성 확인 진행 중(8/19~)**: 실 GW 접목 전에 Console 전 화면을 GW 실동작과 맞춰 본다. 계약 문서에 드러나지 않는 동작이 있어 **완료된 화면도 함께 확인**하며, 확인 결과를 반영하기 전까지는 진행률에 완료로 세지 않는다(85%).
     - **로컬 실데이터 확인 시점**: GW Admin이 Entra-gated라 **P1(인증·RBAC) 완료 후**부터 로컬 GW(Docker)+로컬 Postgres 실데이터를 브라우저로 상시 확인 가능(P8 대기 불필요). 그 전에는 MSW mock 화면.
     - **⚠ Entra 실환경 검증은 아직 0회(8/13)**: `T-FE-1-1`이 OIDC를 **코드로는 실배선**했으나 실 테넌트 로그인은 IT 앱 등록 회신 이후다. 그때 소진할 체크리스트(선행 5·확인 9·함정 5·배포 호스트 전용 1)를 **`_backlog-console.md` §"Entra 실환경 검증 대기"** 에 확정해 뒀고, IP `T-FE-8-1`이 이를 DoD로 참조한다.
     - **GW(백엔드)와의 경계**: Console = Admin API(§7.9) 소비 + well-known/Region Directory 읽기만. **구현 경계** — enroll cert 발급·operator authz 복제·compat-matrix 발행은 **GW/③-I 소관(Console 아님)**. Console→부모 계약 반영은 부모 spec PR로(예: 표시필드 PATCH 봉인=`spec-v1.0.17`).
@@ -293,14 +295,15 @@
       | **P7** 공통 UX·i18n·동시성·보안 | 7-1~7-7 전부 완료 | ✅ **완료 7/7** | #12724 · ⬜ 잔여 = `[manual]` 보안 실검사 1건 |
       | **P8** 실 e2e·배포 | 8-1 Entra dev 전환 · 8-2 staging 실연동 · 8-3 baseline 승인 · 8-4 prod 배포 | 🔴 **외부 선결 대기** | 8-1=**C-2**(IT 앱 등록)+`[manual]` 실 로그인 · 8-2=staging GW·**C-3**(CORS) · 8-3=linux baseline 사람 확인 · 8-4=**C-10**(도메인) **BLOCKER**+**Operating Mode §7이 prod 배포를 무인 대상에서 제외** |
 
-  - **S4-1. 커버리지 계획 (frontend · 착수 후 실측 · S3-1 대응)** — Console도 커버리지 측정·CI floor 게이트를 둔다(SRS §3.5·§3.6.2). **BE와 방식 차이**: BE의 merged(unit+e2e 합산·보안파일 개별 100%) 대신, Console은 **Vitest(v8) 기준 unit+component 커버리지**를 정본으로 하고 e2e는 여정 커버리지로 별도 관리. **실측 값은 `T-FE-0-8`(테스트 하네스) 이후·각 Task 완료 시** 아래 표에 채운다(현재 미착수라 값 없음).
-    - **측정 대상·비대상**: 라인% = Vitest(unit+component) · **e2e(Playwright)** = 핵심 여정 커버리지 체크리스트(로그인·enroll 승인·break-glass·RBAC 403·리전 컨텍스트) · **시각회귀·접근성(axe)** = %가 아닌 pass/fail 게이트.
+  - **S4-1. 커버리지 현황 (frontend · 8/20 실측 · S3-1 대응)** — Console도 커버리지 측정·CI floor 게이트를 둔다(SRS §3.5·§3.6.2). **BE와 방식 차이**: BE의 merged(unit+e2e 합산·보안파일 개별 100%) 대신, Console은 **Vitest(v8) 기준 unit+component 커버리지**를 정본으로 하고 e2e는 여정 커버리지로 별도 관리. **매 Task 완료 시 재측정하며 CI가 floor 미달을 차단**한다(`GATE: unit + component`).
+    - **측정 대상·비대상**: 라인% = Vitest(unit+component · 63 파일·1,000 케이스) · **e2e(Playwright 122건)** = 핵심 여정 커버리지 체크리스트(로그인·enroll 승인·break-glass·RBAC 403·리전 컨텍스트) · **시각회귀(17종)·접근성(axe)** = %가 아닌 pass/fail 게이트.
 
-      | 스코프                                                            | Statements | Branches  | Functions | Lines     | 비고                             |
-      | ----------------------------------------------------------------- | ---------- | --------- | --------- | --------- | -------------------------------- |
-      | **① 전역 (unit+component)**                                       | 측정 예정  | 측정 예정 | 측정 예정 | 측정 예정 | Vitest(v8) · 착수 후 실측        |
-      | **② 민감 로직** (권한 게이팅·PHI 마스킹·stale-write·dataProvider) | 측정 예정  | 측정 예정 | 측정 예정 | 측정 예정 | BE '보안 도메인' 대응 서브스코프 |
-      | **CI 게이트 floor**                                               | TBD(LLD)   | TBD(LLD)  | TBD(LLD)  | TBD(LLD)  | 임계값=LLD 확정(§3.5·§3.6.2)     |
+      | 스코프                                                            | Statements | Branches   | Functions  | Lines      | 비고                                       |
+      | ----------------------------------------------------------------- | ---------- | ---------- | ---------- | ---------- | ------------------------------------------ |
+      | **① 전역 (unit+component)**                                       | **91.94%** | **86.68%** | **86.86%** | **92.53%** | Vitest(v8) · 8/20 실측                     |
+      | **② 민감 로직** (권한 게이팅·인증·stale-write·dataProvider)       | **94.66%** | **90.64%** | **95.00%** | **96.89%** | BE '보안 도메인' 대응 서브스코프           |
+      | **CI 게이트 floor** (전역)                                        | 85         | 85         | 82         | 86         | 미달 시 CI 차단                            |
+      | **CI 게이트 floor** (`src/providers/**`)                          | 90         | 88         | 88         | 90         | 민감 로직은 별도 상향 floor                |
 
 - 이월 논의 사항 (6/25·7/2·7/9 미결 — 계속)
 
