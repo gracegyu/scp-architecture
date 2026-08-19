@@ -1,7 +1,7 @@
 # VT API Gateway — 8/20 주간회의 Agenda
 
 - 이번 주 진행 _(프레임 · 8/20 회의 시 확정 · 상세·수치는 아래 논의 R#/공유 S# 한 곳에만)_
-  - **[GW 백엔드]** **AXS 파일 전송 개정 구현 완료 — 4 PR 머지**(spec-v1.0.20~24) — 커넥터 전략(connector_type 파생·DBML 무변경)·다운로드 전체경로 E2E·파일 webhook 라우팅 E2E·업로드 토큰 위임 사이드카 _(상세 = 공유 S3)_
+  - **[GW 백엔드]** **AXS 파일 전송 개정 구현 완료 — 4 PR 머지**(spec-v1.0.20~24) — 커넥터 전략(connector*type 파생·DBML 무변경)·다운로드 전체경로 E2E·파일 webhook 라우팅 E2E·업로드 토큰 위임 사이드카 *(상세 = 공유 S3)\_
     - 업로드=fss OAuth(presigned 아님) → GW 가 create-document 응답에 위임 토큰 사이드카 부착→EzServer 직접 업로드(바이트 GW 미경유) · 다운로드=Blob SAS 미경유 유지
     - AXS 아웃바운드 E2E(토큰·Org-ID·verbatim·happy 200·fail-closed) 완료 유지
     - 잔여는 전부 외부 선결(③-I 공개 ingress·실 IoT Core / Straumann prod 자격 / 부하환경)
@@ -25,6 +25,7 @@
     | 2 | GW Console dev 호스팅 (프리뷰 우선 배포 · `console.gw.dev.ezcld.net`) | ③-I | **✅ 배포 개통(8/19)** — S3·CloudFront·서비스커넥션·CD 파이프라인(#12743)·딥링크 rewrite Function 완료 · ⚠ **접근 제한(요청 항목 3) 미적용 — 아래 논의 R1** | ☐ 도메인 확정 후 (별도) |
     | 2-3 | ↳ **접근 제한 (사내 한정)** — 위 #2 의 미완 항목 | ③-I | ⛔ **미적용 · 현재 인터넷 공개**(8/19 LTE 실측) → 논의 **R1** | ☐ |
     | 3 | 운영자 로그인 Entra (GW Admin API app + Console SPA app · 2앱 · PKCE) | IT · ③-I | ☐ 마감 8/21 · **등록 절차·회신 양식 문서 제공 완료**(`Entra-설정-가이드.md` · `entra-values.md`) | ☐ 도메인 확정 후 |
+
   - **[GW 구현 선결 추적 · 외부 인프라·자격]** — GW 백엔드 E2E·배포가 **외부 선결**로 막힌 Task들(정본=IP 부록 B·gated Task). 회의에서 **소유별 상태·ETA 확인**(③-I / Straumann·영업).
 
     | # | 선결 항목 | 막는 Task | 소유 | dev | prod |
@@ -33,30 +34,32 @@
     | 2 | 실 IoT Core (MQTT 다운링크 · Thing/policy · IRSA · 리전 endpoint) | T-E2E-12-6 · T-DISP-9-5 | ③-I | ☐ | ☐ |
     | 3 | 자동배포 파이프라인 (Azure Flow 템플릿 → ECR/ArgoCD) | T-INFRA-0-5 | ③-I | ☐ main→DEV | ☐ tag→TEST/PROD |
     | 4 | Parameter Store write IAM + ESO + AWS 커넥션/Environment | compat publish (T-CFG-5-4) · config 서빙 · 배포 | ③-I | ☐ | ☐ |
-    | 5 | Multi-AZ HA | T-E2E-12-4 (HA/KEDA) | ③-I | — | ☐ |
-    | 6 | 부하 테스트 환경 (전용) | T-E2E-12-3 (부하) | ③-I | — | ☐ |
+    | 5 | Multi-AZ HA (**test 환경 #6 내 임시 추가**) | T-E2E-12-4 (HA/KEDA) | ③-I | — | ☐ |
+    | 6 | **test 환경 프로비저닝** (별도 인프라·GW=**infra 분류** · **상시 최소 baseline + 임시 확장**[부하 사이즈업·HA Multi-AZ 임시 추가] · 사용앱[Application 계층] 상시 통합·연동 게이트웨이 겸함 · Scott 확정) | T-E2E-12-3(부하)·T-E2E-12-4(HA)·Console e2e | ③-I | ☐ **요청 완료(8/19)·마감 8/26** | ☐ 도메인 확정 후 |
     | 7 | AXS 자격 | AXS 실연동 E2E | Straumann · 영업 | ✅ sandbox (8/11) | ☐ prod (NDA후) |
     | 8 | 파일 붙은 lab order 시드 (order 결과 파일 presign) | T-E2E-12-5 (다운로드 실물) | Straumann · ④ | ☐ (sandbox) | — |
+    | 9 | **dev 시드 파이프라인 grant** (변수그룹 `gw-dev-seed`[dev RDS `DATABASE_URL`]·AWS KMS[CreateKey 등]·Environment 승인게이트 · 변수그룹은 파이프라인 UI에서 링크·`- group:` 미사용) | dev-showcase 시드(Console dev 통합용 데이터) | ③-I | ☐ **요청 완료(8/19)** | — |
 
     _(`—`=해당 없음 · customerNumber/integratingEntityId=불필요 판명·선결 아님.)_
 
 - 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
   - **[GW 스펙 결정·2026-08-13] webhook 하행 MQTT = envelope 없는 payload verbatim · 128KB 초과 = v1.0 미지원(명시 제한)** — 스펙(§7.6.6 "얇은 envelope")이 실제 구현(무-envelope verbatim)과 달라 구현 기준으로 정정. 하행은 원 payload를 wrapper 없이 verbatim 발행(EzServer 맥락 = 토픽 clinicId + payload 필드 messageId·eventType 등). IoT Core 128KB 초과 payload는 **v1.0 미처리 · 절대 자르지 않음**(알림/PHI 무결성) → 발행 실패 시 **DLQ·알람으로 표면화**(무통보 유실 없음). 대용량 오프로드+포인터 폴백은 gw/1.1+ 백로그. (AXS 파일 전송 PR #12669에 흡수)
-  - **[GW 스펙 개정·2026-08-18] 감사 로그(audit) 계약 확장 — 리소스별 변경 이력 + 사유(reason) 조회 지원** — 파괴적·관리 액션의 감사 추적성을 높이려 `AuditLog`를 **additive로 확장**(비파괴·기존 영향 0). ① **리소스 축**(`resourceType`/`resourceId`) 추가 → "이 device/clinic/target의 최근 변경 이력"을 리소스별로 조회(그전엔 전역 목록만·`spec-v1.0.25`). ② **사유(`reason`) 응답 노출** → kill·enroll 거부·payload break-glass가 저장하던 사유를 감사에서 **되읽기 가능**(규제·PHI break-glass 대응 — 받아만 두던 것을 조회 가능하게·`spec-v1.0.26`). ③ device **kill 종단 재호출 = 409** 계약 정합(구현은 이미 그렇게 동작·문서만 일치·`spec-v1.0.27`). **GW 백엔드(T-DATA-1-9)·Console(T-FE-6-6 감사·상세 화면) 반영 완료.** *(발단 = Console 감사·kill 화면 구현 중 계약 갭 발견 → 스펙 세션 정합.)*
+  - **[GW 스펙 개정·2026-08-18] 감사 로그(audit) 계약 확장 — 리소스별 변경 이력 + 사유(reason) 조회 지원** — 파괴적·관리 액션의 감사 추적성을 높이려 `AuditLog`를 **additive로 확장**(비파괴·기존 영향 0). ① **리소스 축**(`resourceType`/`resourceId`) 추가 → "이 device/clinic/target의 최근 변경 이력"을 리소스별로 조회(그전엔 전역 목록만·`spec-v1.0.25`). ② **사유(`reason`) 응답 노출** → kill·enroll 거부·payload break-glass가 저장하던 사유를 감사에서 **되읽기 가능**(규제·PHI break-glass 대응 — 받아만 두던 것을 조회 가능하게·`spec-v1.0.26`). ③ device **kill 종단 재호출 = 409** 계약 정합(구현은 이미 그렇게 동작·문서만 일치·`spec-v1.0.27`). **GW 백엔드(T-DATA-1-9)·Console(T-FE-6-6 감사·상세 화면) 반영 완료.** _(발단 = Console 감사·kill 화면 구현 중 계약 갭 발견 → 스펙 세션 정합.)_
   - **S5. GW Console dev 배포 개통 — 이번 주는 목(mock), 차주에 실 연동** — `console.gw.dev.ezcld.net` 이 열렸다. **설치 없이 링크만으로 전 화면을 볼 수 있다**(로그인 불필요).
     - **개통까지 ③-I(Jack)가 완료한 것**: S3 + CloudFront + ACM · AWS 서비스커넥션 · **CD 파이프라인**(PR #12743 — main 머지 시 자동 배포) · **딥링크 rewrite Function**.
       - Function 은 **없으면 배포는 되는데 앱이 안 도는** 항목이었다 — 정적 export 는 라우트마다 개별 HTML(`devices.html`)을 내는데 CloudFront 가 URI 를 S3 키로 그대로 매핑해, fallback 만 있으면 `/devices`·`/auth/callback` 이 **홈으로 200 을 반환**한다(로그인 콜백이 홈이 되어 **로그인이 조용히 실패**). 구현 세션이 CloudFront 동작을 흉내 낸 서버로 사전 실측해 발견 → 요청서 정정 → Jack 반영 → **배포 후 재실측 통과**(8/19).
       - 재발 방지로 **배포 스크립트 자체에 딥링크 검증**을 넣었다(별도 파이프라인 스텝 아님 — 누가 어떤 파이프라인에서 배포하든 따라온다). 깨지면 배포가 **실패**한다.
     - **이번 주 = 목(mock) 빌드다.** 화면 검토·리뷰용이며, 아래 대조가 요점이다.
 
-      |            | `console.gw.dev.ezcld.net` (이번 주)   | 로컬 `localhost:3100`                          |
-      | ---------- | -------------------------------------- | ---------------------------------------------- |
-      | 인증       | 없음 (목 우회)                          | 없음 (목 우회)                                  |
-      | 데이터     | **MSW 픽스처** (브라우저 안에서 생성)    | **실 GW + 로컬 DB**                             |
-      | 토큰       | 안 씀                                   | `DEV_OPERATOR_TOKEN` (**8시간**)                |
-      | 만료되면   | 해당 없음                               | `invalid access token` → `pnpm dev:operator-token` |
+      |          | `console.gw.dev.ezcld.net` (이번 주)  | 로컬 `localhost:3100`                              |
+      | -------- | ------------------------------------- | -------------------------------------------------- |
+      | 인증     | 없음 (목 우회)                        | 없음 (목 우회)                                     |
+      | 데이터   | **MSW 픽스처** (브라우저 안에서 생성) | **실 GW + 로컬 DB**                                |
+      | 토큰     | 안 씀                                 | `DEV_OPERATOR_TOKEN` (**8시간**)                   |
+      | 만료되면 | 해당 없음                             | `invalid access token` → `pnpm dev:operator-token` |
 
       → **배포본 데이터는 seed 도 실데이터도 아니다.** 서버에 갔다 온 적이 없어 값이 항상 같고 만료도 없다. **실제 동작(GW 왕복·권한 판정·상태 전이) 확인은 로컬 경로**로 한다.
+
     - **차주 = dev GW + DB + Entra 접목** — 아래 셋이 준비되면 실 빌드로 전환한다(전부 ③-I·IT 소관 · Console 코드 작업 없음).
 
       | # | 선결 | 소유 | 어디서 추적하나 |
@@ -68,7 +71,9 @@
       > **CORS 는 별도 선결이 아니다.** `GW_CONSOLE_ORIGIN` 은 **GW admin 앱의 env** 이고(Console `.env` 아님) 값도 이미 `http://localhost:3100,https://console.gw.dev.ezcld.net` 으로 확정돼 있다(`env-reference.md`). **dev GW 백엔드가 배포될 때 함께 올라간다** — 위 #2 에 포함되며 따로 신청할 것이 없다. (prod 은 Helm override.)
 
       **Console 코드 작업은 0 이다.** 전환은 빌드 플래그(`AUTH_MODE=entra`)만 바꿔 같은 호스트에 재배포하는 것이라 **URL 이 유지된다** — 지금 공유한 링크를 그대로 쓴다.
+
     - ⚠ **접근 제한은 아직 안 걸려 있다** — 위 논의 **R1** 참조.
+
   - **S1. 프로젝트 일정(Gantt) — 8/20 스냅샷** — 스펙 생애주기(작성→PR→baseline) + GW 구현 타임라인.
     - **진행률(구현)**:
       - **GW ≈ 99%(코드 feature-complete)** — AXS 파일 전송 개정 4 PR + **이번주 9-5(a) IoT authz 어댑터(mock·#12747)·12-3 부하 하네스(k6·#12761) 코드 완료**로 GW **코드는 사실상 완결** · **잔여는 전부 ③-I 실 인프라 측정**(GW 코드 아님): 12-6 인바운드[③-I ingress+실 IoT]·12-3 실 §5 측정[③-I staging]·12-4 HA[③-I Multi-AZ]·9-5(b) 실 IoT 프로비저닝[③-I]·order 파일 presign[Straumann 시드]
@@ -88,10 +93,11 @@
         PR 리뷰·수정                  :done, srspr, 2026-07-13, 2026-07-20
         baseline v1.0 (7/20 확정·spec-v1.0.1 정합화 7/22) :milestone, done, srsbl, 2026-07-20, 0d
 
-        section GW 구현 → E2E → 출시 (구현 ~97% · ③ SRS 완료 직후 착수 · 2단계 병행 · Raymond 부분투입)
-        1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·완료) :done, implindep, 2026-07-21, 21d
-        2단계 AXS 연동 (P7~P12·P8/9/11 병행·P7 AXS 실연동·P12 부분) :active, implaxs, 2026-07-28, 21d
-        AXS E2E (sandbox·12-1·업무 happy 커버 #12655·webhook 인바운드=③-I 대기)  :e2e, after implaxs, 14d
+        section GW 구현 → E2E → 출시 (구현 feature-complete · 잔여=③-I 실인프라 게이트 · Raymond 부분투입)
+        1단계 GW 독립 코어 (③ 고정·④무관·P0~P6·P10·완료) :done, implindep, 2026-07-21, 31d
+        2단계 AXS 연동 (P7~P12·AXS 실연동·부하/HA 하네스·코드 완료) :done, implaxs, 2026-07-28, 2026-08-24
+        GW 구현 완료 (코드 feature-complete)        :milestone, impldone, 2026-08-24, 0d
+        AXS E2E·통합 (sandbox 커버·실 인바운드/IoT=③-I 대기)  :e2e, 2026-08-24, 2026-09-30
         개발환경 연동 완료(9월·R2)       :milestone, dev9, 2026-09-30, 0d
         v1.0 production 연동 완료(10월·R2·재검토) :milestone, rel, 2026-10-31, 0d
 
@@ -122,11 +128,12 @@
         프로파일 확정                  :milestone, axsbl, after axsw, 0d
         AXS prod 자격(NDA 후·Straumann·선결) :crit, credp, 2026-08-18, 21d
 
-        section ③-C GW Console — gw/1.0 대응 v1.0 (구현 ~92%·P0~P7 완료·P8=외부 선결 대기 · frontend·별도 repo·전규현/Raymond)
+        section ③-C GW Console — gw/1.0 대응 v1.0 (frontend·별도 repo·전규현/Raymond·P0~P7 완료·P8=외부 선결)
         SRS 작성 (8/5)                :done, consrsw, 2026-08-05, 6d
-        SRS baseline (#12602·8/11)     :milestone, done, consrspr, 2026-08-11, 0d
-        v1.0 구현 (별도 frontend 세션·mock-first) :active, conv1, 2026-08-12, 28d
-        v1.0 최소기능 완료             :milestone, conv1m, after conv1, 0d
+        v1.0 구현 (별도 frontend 세션·mock-first) :active, conv1, 2026-08-12, 2026-08-24
+        v1.0 구현 완료                 :milestone, conv1m, 2026-08-24, 0d
+        GW 통합테스트 (실 dev GW·Entra 연동·8월말까지) :contest, 2026-08-24, 2026-08-31
+        통합테스트 완료               :milestone, contestm, 2026-08-31, 0d
         section ③-C GW Console 후속 (gw/1.1·gw/1.2·GW-무관 부가 — 일정 미고정·상당 후행)
         후속 확장 (해당 GW 역량 활성 후·부가는 요청 시 그때그때) :conv2, after conv1m, 30d
         확장 진행(수시)             :milestone, conv2m, after conv2, 0d
@@ -242,7 +249,7 @@
     - **repo·스택**: `vt-api-gateway-console`(전용) · Next.js + Refine(headless) + shadcn/ui + TanStack Query · 부모 GW Admin API를 **코드젠으로 소비**(자체 백엔드 없음). **버전 확정(8/12·T-FE-0-1)** = Next 16.3.0(App Router·Turbopack)·React 19.2.8·Refine 5.0.12·TanStack Query 5.101.4·shadcn CLI 4.17.0(base=radix·Tailwind v4)·pnpm 9.15.9 · dev 포트 3100.
     - **폰트 = CleverSpace(호스트)와 통일(8/12)**: `'Noto Sans','Noto Sans KR','Segoe UI',sans-serif`. 단 로딩은 Google Fonts CDN 링크가 아니라 **`next/font` 자체 호스팅** — 런타임 외부 요청이 없어 CSP 허용 도메인을 늘리지 않는다(SRS §6.2·C-3). _(Next 템플릿 기본값 Geist는 한글 글리프가 없어 한글이 브라우저 기본 폰트로 떨어지던 문제도 함께 해소.)_
     - **SRS**: ✅ **baseline v1.0**(#12602 머지 8/11 · tag `spec-v1.0`). gw/1.0 대응 완전 규격 + gw/1.1·gw/1.2·후속은 방향. 리뷰(민진우·정우혁) 반영·스레드 resolve.
-    - **구현 착수(8/12)**: 별도 **frontend 세션** 오픈 완료 → **P0(10/10)·P1(9/9)·P2(5/5)·P3(4/4)·P4(4/4)·P5(3/3)·P6(5/5)·P7(7/7) 완료 → **P8만 잔여**. 8/13 저녁 **유인 → 무인 전환**(PR auto-complete·IP §7 v1.4) — 전환 근거 = 도입 조건이던 "1개 Phase 유인 완주" 충족. Task 단위 PR → 사람 머지(유인 모드·IP §7). **Entra/실 GW 없이 mock으로 대부분 진행 가능**(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
+    - **구현 착수(8/12)**: 별도 **frontend 세션** 오픈 완료 → **P0(10/10)·P1(9/9)·P2(5/5)·P3(4/4)·P4(4/4)·P5(3/3)·P6(5/5)·P7(7/7) 완료 → **P8만 잔여**. 8/13 저녁 **유인 → 무인 전환**(PR auto-complete·IP §7 v1.4) — 전환 근거 = 도입 조건이던 "1개 Phase 유인 완주" 충족. Task 단위 PR → 사람 머지(유인 모드·IP §7). **Entra/실 GW 없이 mock으로 대부분 진행 가능\*\*(실배포 선결만 = C-2 Entra·C-10 도메인·C-3 CORS = ③-I/IT).
     - **로컬 실데이터 확인 시점**: GW Admin이 Entra-gated라 **P1(인증·RBAC) 완료 후**부터 로컬 GW(Docker)+로컬 Postgres 실데이터를 브라우저로 상시 확인 가능(P8 대기 불필요). 그 전에는 MSW mock 화면.
     - **⚠ Entra 실환경 검증은 아직 0회(8/13)**: `T-FE-1-1`이 OIDC를 **코드로는 실배선**했으나 실 테넌트 로그인은 IT 앱 등록 회신 이후다. 그때 소진할 체크리스트(선행 5·확인 9·함정 5·배포 호스트 전용 1)를 **`_backlog-console.md` §"Entra 실환경 검증 대기"** 에 확정해 뒀고, IP `T-FE-8-1`이 이를 DoD로 참조한다.
     - **GW(백엔드)와의 경계**: Console = Admin API(§7.9) 소비 + well-known/Region Directory 읽기만. **구현 경계** — enroll cert 발급·operator authz 복제·compat-matrix 발행은 **GW/③-I 소관(Console 아님)**. Console→부모 계약 반영은 부모 spec PR로(예: 표시필드 PATCH 봉인=`spec-v1.0.17`).
