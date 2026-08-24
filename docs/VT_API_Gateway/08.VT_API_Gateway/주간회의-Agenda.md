@@ -24,6 +24,7 @@
   | 6 | **dev-seed grant**(`gw-dev-seed` 변수그룹·KMS·Environment 승인게이트) | ③-I | ☐ 요청 전달(8/20) | — |
   | 7 | **`pg_trgm` CREATE EXTENSION 권한**(clinic 검색 선결 · env-reference §2.1) | ③-I | ✅ 문제 없음(Jack 확인 8/20 — `gw_app`=`gw` DB OWNER·trusted extension) | ☐ prod 동일 확인 |
   | 8 | **KMS CMK provisioning**(webhook payload·target 자격 alias·리전별 · 8/4 키 토폴로지 · env-reference §2.4) | ③-I | ☐ (webhook/target 실사용 시) | ☐ 리전별 |
+  | 9 | **admin API dev ingress 노출**(`admin.apne2.gw.dev.ezcld.net`·Entra-gated 공개 ingress) — Console이 실 dev DB 데이터를 조회하려면 admin 부팅에 더해 이 ingress가 있어야 함(없으면 admin이 떠도 Console이 못 부름). **값 무관·미리 준비 가능**(admin 부팅[#3·Entra #4]과 병렬) | ③-I | ☐ **확인 요청**(계획 포함 여부·ETA) | ☐ 도메인 후 |
 
 - **[GW 구현 선결 추적 · 외부 인프라·자격]** — E2E·배포가 외부 선결로 막힌 Task(정본=IP 부록 B). 소유별 상태·ETA 확인.
 
@@ -31,11 +32,12 @@
   | --- | --- | --- | --- | --- | --- |
   | 1 | 공개 ingress(AXS→GW webhook 수신) | T-E2E-12-6 | ③-I | ☐ | ☐ |
   | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | T-E2E-12-6·T-DISP-9-5 | ③-I | ☐ | ☐ |
-  | 3 | 자동배포 파이프라인(main→DEV·tag→TEST/PROD) | T-INFRA-0-5 | ③-I | 🟠 dev 배포 됨(3앱) · 자동화·tag→TEST/PROD 잔여 | ☐ |
+  | 3 | 자동배포 파이프라인(main→DEV·tag→TEST/PROD) | T-INFRA-0-5·T-PLAT-0-5 | ③-I | 🟠 dev 배포 됨(3앱) · 자동화·tag→TEST/PROD 잔여(Jack Azure Flow 템플릿→ECR/ArgoCD) | ☐ |
   | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | compat publish·config 서빙·배포 | ③-I | ☐ | ☐ |
   | 5 | **test 환경 프로비저닝**(별도 인프라·GW=infra 분류·상시 최소 baseline+임시 확장·부하/HA 사이즈업 포함) | T-E2E-12-3(부하)·12-4(HA)·Console e2e | ③-I | ☐ **요청 완료·마감 8/26** | ☐ |
   | 6 | AXS 자격 | AXS 실연동 E2E | Straumann·영업 | ✅ sandbox(8/11) | ☐ prod(NDA후) |
   | 7 | 파일 붙은 lab order 시드 | T-E2E-12-5(다운로드 실물) | Straumann·④ | ☐ (sandbox) | — |
+  | 8 | **마이그레이션 배포 Job 배선**(K8s Job + ArgoCD PreSync hook · migrate 이미지 ECR push[앱과 같은 SHA] · 매 배포 前 1회 `migrate deploy`·성공 gating·fail-closed) | T-PLAT-0-7 | ③-I | 🟠 **GW 몫 완료**(#12926 · migrate 이미지 타겟·실행명령·env·local `make dev-up` 자동) · ③-I K8s Job+PreSync 배선 대기 | ☐ |
 
   _(`—`=해당 없음.)_
 
@@ -44,6 +46,13 @@
   - **S-신규①. 부하/HA 테스트 계획 수립** — `docs/qa/load-ha-test-plan.md` 초안 작성. **GW/PL 작성분 완료**(테스트 대상·k6 스크립트/실행법·시나리오·주입 방식·부하 발생 EC2 구성·HA 장애주입[AWS FIS] 절차). **인프라 관점 확정분**(test 환경 사이징·FIS 구성·RTO/RPO 목표치)=Jack — **test 인프라 구축 후** 채움. Jack에 초안 제공 예정.
   - **S-신규②. 환경 4-tier + admin OpenAPI 스위치** — `env-reference.md`를 **4열(dev·test·sandbox·prod)** 로 정리, Jack에 환경별 값 채움 요청 전달. dev 실측: core·receiver·dispatcher 정상 기동(공용 인스턴스 내 `gw` DB·단일 `DATABASE_URL`)·admin=Entra 등록 대기. 신규 변수 `GW_ADMIN_OPENAPI_ENABLED`(admin OpenAPI 문서 서빙 스위치)=dev/test `true`·sandbox/prod off.
   - **S-신규③. webhook 보존·아카이브 설계(gw/1.1)** — webhook payload(PHI·KMS) 무한 누적 관리 = **리전 로컬 S3 아카이브 후 삭제**(파티셔닝 미채택)·무인 K8s CronJob(시간 기준)·export→검증→배치삭제·잡 단위 감사·tombstone 없음. **SRS §7.6.9에 설계 골격+다이어그램** 반영(gw/1.1·v1.0=저볼륨 미구현·알람만). **법무 확정 값 = 리전별 ① DB 잔존 기간 ② S3 보관 기간**(+가동 임계값·Appendix B #5·#36) — 이 두 값만 정하면 상세화 착수.
+  - **S-신규④. fleet-config(디바이스 원격설정) 정리** — 디바이스가 자기 설정을 가져가는 조회 기능을 v1.0에 개방하되, **디바이스에는 "디바이스용으로 허용된 값만" 노출(기본 차단)** 하도록 규격 확정 — 게이트웨이 내부 운영값은 디바이스에 미노출(정보노출 방지). **Console 추가 작업 없음**(디바이스 대상 기능·화면 필요분은 gw/1.1). *(완료·공유)*
+
+  - **S-신규⑤. region-silo 잔재 정리** — 리전 완전 분리(각 배포=한 리전) 전환 때 미처 정리되지 못하고 스펙 곳곳에 남아 있던 "리전(region)" 흔적을 전수 검토해 걷어냄. 정당한 리전 사용처(배포 상수·호스트 라벨·데이터 주권·운영자 역할의 리전 담당 스코프[향후 멀티리전])는 그대로 유지.
+    - **중앙 설정(config) 스코프에서 "리전" 제거** — 각 배포가 한 리전뿐이라 "리전" 스코프가 "전역"과 대상이 완전히 같아 의미가 없었고(범위를 못 좁힘), 다른 리전을 지정하면 영영 적용되지 않는 죽은 설정만 생김. 접근 정책(policy)은 이미 리전 스코프가 없었는데 config만 뒤늦게 정리 → config도 전역/클리닉/디바이스로 통일.
+    - **감사 로그의 "리전 변경·개설·철수" 동작 정리** — 이미 삭제된 옛 리전 관리 기능의 잔재라 표준 목록·예시에서 제거.
+    - **운영자 관리 대상 목록에서 "리전" 제거** — 리전 목록은 별도 공개 디렉터리가 정본이라 운영자가 관리하는 대상이 아님.
+    - 코드 반영(스키마·마이그레이션·조회 로직·개발용 시드)은 구현세션 진행 중. *(스펙 정리 완료·코드 진행 중)*
 
   - **S1. 프로젝트 일정(Gantt) — 8/27 스냅샷**
     - **진행률(구현)**: **GW ≈ 90%**(v1.0 계획 기능 구현 완결·8/24 feature-complete · 잔여=③-I 실 인프라 게이트·개발 통합검증·계약 경화[OpenAPI 코드-first 일원화]) · **GW Console ≈ 85%**(P0~P7 완료·P8 외부 선결·실 GW 정합성 확인 진행 — 확인 끝나기 전까지 완료로 세지 않음)
