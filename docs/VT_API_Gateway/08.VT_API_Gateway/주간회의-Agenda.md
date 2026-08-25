@@ -37,7 +37,11 @@
       - 인프라 확정분(사이징·FIS·RTO/RPO)=Jack · test 인프라 구축 후
     - **[운영자 표시 개선]** 감사·"최근 변경 이력"·RBAC 화면에서 운영자를 **ID 대신 `이름 <이메일>`로 표시**
       - 운영자 참조 응답에 표시 요약 임베드(`AuditLog.actorSummary`·`RoleGrant.decidedByOperator`·읽기전용·operator id/subject 키는 불변) — clinic 요약 임베드 패턴(#47) 재사용
-      - device·clinic·target·operator 등 **모든 최근-변경 이력이 동일 AuditLog를 읽어 한 필드로 커버** · 스펙 PR GW #13009(spec-v1.0.62)·Console #13010(spec-v1.0.6) **둘 다 머지** · **GW(조인으로 값 채움)+Console(렌더) 양쪽 구현 착수**
+      - device·clinic·target·operator 등 **모든 최근-변경 이력이 동일 AuditLog를 읽어 한 필드로 커버** · 스펙 PR GW #13009(spec-v1.0.62)·Console #13010(spec-v1.0.6) **둘 다 머지**
+      - 확장(전수 점검): 홈 대시보드 "최근 감사"에도 행위자 추가(이름<이메일>·PL 결정·Console #13015) + 운영자 목록·상세·승인 큐·App Bar도 이메일 표시로 정리(범위 안·후속)
+      - 부수: 감사 `actor` 형식을 `user:{sub}`로 정규화(구현→스펙 정합·스펙 무변경) — **완료**(PR #13018·T-AUD-13-3): admin 쓰기 22곳 `user:{subject}` 통일·`decided_by`는 bare 유지·전체 e2e 608 green. 감사 필터는 `user:{sub}` 정확일치(Console 확인=operator 필터 조립 지점 없음·placeholder 예시만)
+      - **GW 구현 완료**(PR #13014·T-AUD-13-2) — `actorSummary`(audit 목록 페이지 배치조인·N+1 회피)·`decidedByOperator`(RBAC 목록 배치조인+grant/decide 단건) operator read-time 조인·Prisma 스키마 불변(read-time)·관통 회귀 unit/e2e·독립리뷰 🟢. Console(렌더 `이름 <이메일>`) 구현 진행.
+      - **후속 발견**: 실 admin write 는 audit `actor`를 접두 없는 bare subject로 기록(spec `user:{sub}`와 불일치) — 이번 조인은 두 형식 모두 수용으로 흡수, actor 정규화는 **T-AUD-13-3**(Raymond A안·`user:{sub}` 통일)로 분리.
 
     - **[작업 결과 알림(Toast)]** 저장·승인·삭제 결과가 화면에 뜨지 않던 문제 — **구현 진행 중**
       - **문제**: 운영자가 버튼을 눌러도 **됐는지 안 됐는지 알 수 없었다.** 실측하니 변경 동작 27곳 중 결과를 알리는 표시는 **7곳뿐**이고, 나머지는 목록이 새로 고쳐지는 것으로 **짐작해야** 했다. 실패는 더 나빴다 — 알림을 받는 배선이 아예 없어 **오류가 조용히 사라졌다.**
@@ -82,7 +86,7 @@
   | 5 | **test 환경 프로비저닝**(별도 인프라·GW=infra 분류·상시 최소 baseline+임시 확장·부하/HA 사이즈업 포함) | ③-I | ☐ **요청 완료·마감 8/26** | ☐ |
   | 6 | AXS 자격 | Straumann·영업 | ✅ sandbox(8/11) | ☐ prod(NDA후) |
   | 7 | 파일 붙은 lab order 시드 | Straumann·④ | ☐ (sandbox) | — |
-  | 8 | **마이그레이션 배포 Job 배선**(K8s Job + ArgoCD PreSync hook · migrate 이미지 ECR push[앱과 같은 SHA] · 매 배포 前 1회 `migrate deploy`·성공 gating·fail-closed) | ③-I | 🟠 **GW 몫 완료**(#12926 · migrate 이미지 타겟·실행명령·env·local `make dev-up` 자동) · ③-I K8s Job+PreSync 배선 대기 | ☐ |
+  | 8 | **마이그레이션 배포 Job 배선**(K8s Job + ArgoCD PreSync hook · migrate 이미지 ECR push[앱과 같은 SHA] · 매 배포 前 1회 `migrate deploy`·성공 gating·fail-closed) | ③-I | 🟠 **GW 몫 완료**(#12926 · migrate 이미지 타겟·실행명령·env·local `make dev-up` 자동) · **인계 명세 전달**(#13020·`docs/handoff/migration-deploy-infra.md` + 초안 `devsecops-migrate.yml`) · ③-I 회신 3건(org 템플릿 `--target` 지원·migrate 배포스테이지 처리·SHA 태그 경로) + K8s Job+PreSync 배선 대기 | ☐ |
 
   _(`—`=해당 없음.)_
 

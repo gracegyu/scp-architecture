@@ -66,6 +66,35 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 - **트리거.** CI 크기 게이트가 8KB(안전 임계) 임박/초과를 경고할 때. (그 전엔 착수 불요·YAGNI.)
 - **출처.** 2026-08-11 사용자(백로그화).
 
+### B-13. [gw/1.1] 정책(policy) 모델 재설계 + 집행 활성화
+- **배경.** v1.0 정책은 **coarse(target 사용 허용)만** 집행하고 `allowed_endpoints`·`scopes`는 **미집행 예약**(코드 실측 확정 — `pdp.service.ts`가 읽기만 하고 무시). AXS가 Org-ID(데이터 격리)+consent(작업 권한)를 이미 집행하므로 v1.0 GW endpoint/scope 인가는 중복이라 미룸.
+- **gw/1.1 설계 방향(업계 API GW 비교 결론·AWS/Istio/OPA).** endpoint 정책을 켠다면 **OPA(Rego) 기반 단일 default-deny + allow-grant + deny-override(deny 우선) + "둘 다 없음=deny"** 모델을 채택한다(spec이 이미 gw/1.1 OPA 예약). 이 모델이라야 **allow+deny 병존이 깔끔**(예: allow `/**` + deny `/x` = allow-all-except-x)하고, naive 병존(각 리스트가 반대 기본값)의 "둘 다 없음 모순"이 없다. `denied_endpoints`가 필요하면 이 규약으로 추가(둘 다 병존 금지 또는 deny-우선 명시)·또는 정책당 mode(allow XOR deny). **다만 실요구 나오기 전엔 endpoint 정책 자체가 과설계일 수 있음**(AXS 위임 유지 검토).
+- **정책 테이블 재설계 가능성.** 위 모델 채택 시 `policy` 스키마가 바뀔 수 있다(denied_endpoints·mode·OPA 번들 참조 등). **v1.0 policy 테이블은 비어 있어(all-pass) 데이터 마이그레이션 부담이 사실상 없음** → gw/1.1에서 빈 테이블에 additive 재구성(저위험).
+- **v1.0 처리(확정 2026-08-25·A안=유보).** 정책 테이블·PDP·CRUD **구조는 그대로**(DB 마이그레이션 0). core는 coarse 인가 기본값을 **뒤집어 "매칭 정책 없으면 allow(pass)"**(기존 "없으면 deny·target not authorized"를 flip)·**seed 정책 0개가 기본**·egress·PHI 리전·인증·AXS Org-ID는 그대로 집행. Console 정책 탭은 **보이되 클릭 시 "gw/1.1 지원 예정" 안내만**(CRUD·endpoint/scope 미노출). deny-by-default(WHO 인가)는 gw/1.1에서 복원. v1.0 policy 테이블은 비어 있어 gw/1.1 재구성은 빈 테이블 additive.
+
+- **추천 정책 스펙(상세·gw/1.1 착수 시 참고).**
+  1. **엔진**: OPA(Rego) PDP(현 앱 내부 모듈과 같은 PDP 포트 뒤로 전환·§3.1.2).
+  2. **2계층 기본값**(핵심):
+     - **target 차원(WHO) = deny-by-default 복원** — 정책 행 없으면 그 target 사용 불가. 멀티 target·클리닉 차등이 생기는 gw/1.1에서 의미. (v1.0은 이걸 유보=all-pass.)
+     - **endpoint/scope 차원(narrowing) = allow-by-default-within-target** — target이 coarse 허용되면 기본은 전체 endpoint 허용, whitelist/blocklist로 **좁히는** opt-in.
+  3. **endpoint 규칙**(`allowed_endpoints` + 선택 `denied_endpoints`·deny 우선):
+     - 둘 다 empty/null → **전체 허용**(narrowing 없음). ← v1.0 `[]≡null` 모호성 자동 해소(둘 다 "제한 없음"으로 통일).
+     - allow만 non-empty → **whitelist**(그것만).
+     - deny만 non-empty → **blocklist**(그것 빼고 전부).
+     - 둘 다 non-empty → **deny 우선**: 통과 = `E∈allow ∧ E∉deny`(allow에 없으면 deny). "둘 다 없음(∉allow,∉deny)" 모순 없음(allow 존재 시 whitelist 지배).
+     - `pathPattern` glob(`*`=세그먼트1·`**`=0+), `methods` 배열(`*`=전체).
+  4. **scope 규칙**: 토큰 scope ⊆ `policy.scopes`(non-empty 시)·empty=제한 없음. **단 AXS가 이미 scope/consent 집행 → 필요성 재검토(중복 가능).**
+  5. **스코프 계층**(device→clinic→global): global=기본, clinic=상한(authoritative·global 대체 가능·소속 device 천장), device=clinic 상한 내 narrowing(⊆·권한상승 불가). 병합=OPA로 교집합 기반 명시.
+  6. **별개 차원(그대로 유지)**: egress(`target.egress_allowlist`·fail-closed)·PHI 리전 경계는 정책과 독립 집행(v1.0에도 집행 중).
+  7. **필요성 재검토(중요)**: AXS가 operation 인가(Org-ID 격리+consent) 소유 + verbatim 프록시라 GW endpoint/scope 정책은 **여전히 과설계일 수 있음**. **blast-radius 축소·클리닉별 권한 차등 같은 구체 실요구가 확인될 때만** endpoint/scope를 켠다. 그 전엔 coarse(target)+egress+region으로 충분.
+  8. **마이그레이션**: v1.0 빈 테이블 → gw/1.1에서 `denied_endpoints`·`mode`(택1 방식 채택 시) 등 additive·저위험.
+  9. **전환(활성화) 안전 — v1.0(정책 없으면 allow) → gw/1.1 (★기본 posture 결정에 종속)**:
+     - **(a) deny-by-default 복원 시**: 활성화 순간 정책 0개면 **전 프록시 차단** → **정책 선-시드(기존 target/clinic 허용) 또는 dry-run(감사만) 모드로 실트래픽 확인 후 flip** 하는 무중단 롤아웃 필수(AWS/Istio 방식).
+     - **(b) allow-by-default 유지 시**(정책=opt-in 제한): 전환 **무중단**(없는 곳은 계속 통과·정책 추가는 특정 케이스만 좁힘). v1.0→v1.1 매끄러움.
+     - 스키마는 빈 테이블이라 무관. **gw/1.1 착수 시 기본 posture(a/b)를 의식적으로 결정**하고 그에 맞는 롤아웃을 잡는다. *(현재 v1.0=allow. (b) 유지가 가장 무중단·(a)는 보안↑이나 롤아웃 절차 비용.)*
+- **병합 규칙.** device→clinic→global 상속의 정확한 병합(대체/교집합/패턴 우선순위)은 위 5번 방향으로 gw/1.1 OPA/LLD에서 확정(현재 under-spec).
+- **출처.** 2026-08-25 사용자(정책 난해성 리뷰 → gw/1.1 재설계·v1.0 유보[A안] 확정 · 업계 API GW[AWS/Istio/OPA/Kong/Apigee] 비교 결론 반영).
+
 ---
 
 ## 참조 — 별도로 추적 중인 배치 (여기서 중복 기재하지 않음)
