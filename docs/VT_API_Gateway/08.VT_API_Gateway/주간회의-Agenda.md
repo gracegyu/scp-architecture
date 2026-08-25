@@ -1,12 +1,47 @@
 # VT API Gateway — 8/27 주간회의 Agenda
 
-- 이번 주 진행 _(프레임 · 8/27 회의 시 확정 · 상세는 아래 공유 S# 한 곳에만)_
-  - **[GW 백엔드]** 실 dev 배포·통합 착수 — core·receiver·dispatcher dev 기동 확인, admin=Entra 등록 후 · _(진행 채움)_
-  - **[GW Console]** 실 dev GW + Entra 접목 / GW 통합테스트 진행 — 완료 화면 포함 정합성 확인 마무리 · _(진행 채움)_
-  - **[데이터 규모] DB·API·UI 수정 착수** — 스펙·계약 확정(spec-v1.0.42~46) 후 GW·Console 구현세션이 구현 중: 인덱스 마이그레이션 · clinic 이름검색/webhook 기간(커서 window)/집계 EP 3종/수동 create(clinic·device) · 검색형 선택기·집계 카드·보존경계 골격. _(상세 이력=repo PR/IP)_
-  - **[부하/HA]** 테스트 계획 수립 — Jack(③-I)과 진행(초안 제공·test 인프라 구축 후 실측). 목표치(RPS·RTO/RPO)=이월 #8·#9.
-  - **[Entra]** dev admin Entra 앱 등록 → admin 부팅·실 접목 (③-I·IT · 추적 #3).
-  - **[제품 연동 스펙]** EzServer OnePager 수령 확인 (잔여)
+- **이번 주 진행 (~8/27 회의) — 이번 주 완료·진행한 실제 작업**
+
+  - **진행률(구현 스냅샷)**
+    - **GW 백엔드 ≈ 90%** — v1.0 계획 기능 feature-complete(8/24) · 잔여 = ③-I 실 인프라 게이트 · 개발 통합검증 · 계약 경화
+    - **GW Console ≈ 85%** — P0~P7 완료 · P8 외부 선결 · 실 dev GW 정합성 확인 진행(확인 끝나기 전까지 완료로 세지 않음)
+
+  - **완료 · 주요 작업**
+    - **[config 재정립]** 중앙 설정 = device/clinic-facing 전용 재정립
+      - 내부 운영값(로그레벨·프록시 타임아웃·heartbeat 기본주기·offline 배수)을 설정 테이블이 아니라 **환경변수로 분리**(SRS §6.8.1 신설)
+      - 예전 "허용 값만 노출(allowlist)·노출 배지" 개념 폐지 · v1.0 실사용 설정 키 = heartbeat 주기 하나 · 디바이스 pull(자기 실효 설정 조회) v1.0 개방
+      - 스펙 PR 2건 머지·태그(`spec-v1.0.61`·Console `spec-v1.0.5`) · 구현 반영(GW #13005·Console #13004)
+    - **[OpenAPI code-first]** API 명세 자동 생성·서빙 일원화
+      - 구현 코드가 명세 정본(문서-구현 drift 원천 차단) · **CI 드리프트 게이트**로 어긋나면 빌드 실패
+      - 문서 서빙 앱 3개(core·admin·receiver)가 각자 포트에서 `/api-docs`(UI)+raw(`/api-docs/yaml`·`/json`) 서빙 · dispatcher(:3003)는 HTTP API 없어 없음 · admin 문서 = Console codegen 소스
+      - **로컬 서빙 URL**:
+
+        | 앱 (계약) | 문서 UI | raw 파일 |
+        | --- | --- | --- |
+        | core (device·public) | `http://localhost:3000/api-docs` | `/api-docs/yaml` · `/json` |
+        | admin (운영자) | `http://localhost:3001/api-docs` | `/api-docs/yaml` · `/json` |
+        | receiver (webhook 수신) | `http://localhost:3002/api-docs` | `/api-docs/yaml` · `/json` |
+
+      - **dev 한정 서빙** — 로컬(개발) 3앱 자동 on · 배포는 `NODE_ENV=production`이라 앱별 스위치(`GW_{ADMIN,CORE,RECEIVER}_OPENAPI_ENABLED`)로만 켜지며 **현재 dev/test는 admin만 on · sandbox·prod는 off**(계약 구조 노출 방지). 배포 dev admin 문서 = `https://admin.apne2.gw.dev.ezcld.net/api-docs`(admin 부팅 후)
+      - core·receiver·admin·target 전반 code-first 전환(구현 대부분 완료)
+    - **[region-silo 잔재 정리]** 중앙 설정 스코프·감사 action·운영자 관리대상에서 "리전" 제거
+      - 정당한 리전 사용처(배포 상수·호스트 라벨·데이터 주권·운영자 역할)는 유지 · 스펙 정리 완료·코드 반영 진행
+    - **[환경 4-tier + OpenAPI 스위치]** `env-reference.md` 4열(dev·test·sandbox·prod) 정리·Jack에 값 채움 요청
+      - dev 실측: core·receiver·dispatcher 기동 · admin=Entra 대기
+    - **[데이터 규모 대응]** 스펙·계약 확정(spec-v1.0.42~46) 후 GW·Console 구현 중
+      - 인덱스 마이그레이션 · clinic 이름검색/webhook 기간(커서 window)/집계 EP 3종/수동 create · 검색형 선택기·집계 카드·보존경계 골격 _(상세=repo PR/IP)_
+    - **[부하/HA 테스트 계획]** `docs/qa/load-ha-test-plan.md` 초안 작성(테스트 대상·k6·시나리오·주입·부하 EC2·FIS 절차)
+      - 인프라 확정분(사이징·FIS·RTO/RPO)=Jack · test 인프라 구축 후
+    - **[운영자 표시 개선]** 감사·"최근 변경 이력"·RBAC 화면에서 운영자를 **ID 대신 `이름 <이메일>`로 표시**
+      - 운영자 참조 응답에 표시 요약 임베드(`AuditLog.actorSummary`·`RoleGrant.decidedByOperator`·읽기전용·operator id/subject 키는 불변) — clinic 요약 임베드 패턴(#47) 재사용
+      - device·clinic·target·operator 등 **모든 최근-변경 이력이 동일 AuditLog를 읽어 한 필드로 커버** · 스펙 PR GW #13009(spec-v1.0.62·머지)·Console #13010(spec-v1.0.6·검토중) · **GW(조인 채움·T-AUD-13-2)+Console(렌더·T-FE-9-9) 양쪽 구현**
+
+  - **진행 중 · 선결 대기**
+    - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
+    - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
+    - **[Entra 앱 등록]** dev admin+Console 2앱 — **[IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)**(Jack 입력·절차/회신 양식 제공 완료) · **admin 부팅 선결**(③-I #3·#4)
+    - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
+
   - _(이번 주 결정사항 = 회의 시 추가)_
 
 - 논의 사항 (이번 주 · 신규 · R#)
@@ -19,12 +54,12 @@
   | 1 | Region Directory 호스팅 | ③-I | ✅ publish(8/18·`regions.gw.dev.ezcld.net`) | ☐ 도메인 후 |
   | 2 | GW Console dev 호스팅(`console.gw.dev.ezcld.net`) | ③-I | ✅ 개통(8/19·CD 파이프라인·딥링크 rewrite) | ☐ 도메인 후 |
   | 3 | **dev GW 백엔드 배포·env 주입**(`DATABASE_URL`[공용 `common-dev-db`·`gw` DB·apne2]·`REDIS_URL`·`GW_REGION`=apne2·AWS **Pod Identity**·`NODE_ENV` 차트 주입) | ③-I | 🟠 core·receiver·dispatcher **✅ 기동** · admin=Entra 대기 | ☐ |
-  | 4 | **운영자 Entra 앱 등록**(GW Admin API + Console SPA·2앱·PKCE) | IT·③-I | ☐ **마감 8/21·admin 부팅 선결**(절차·회신 양식 제공 완료) | ☐ 도메인 후 |
+  | 4 | **운영자 Entra 앱 등록**(GW Admin API + Console SPA·2앱·PKCE) | IT·③-I | 🟠 **진행중 · [IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)**(Jack 입력·절차·회신 양식 제공 완료)·마감 8/21 경과·**admin 부팅 선결** | ☐ 도메인 후 |
   | 5 | **env-reference 환경별 값 채움**(test·sandbox·prod endpoint·호스트·리전) | ③-I | ✅ dev · ☐ test/sandbox/prod | ☐ |
   | 6 | **dev-seed grant**(`gw-dev-seed` 변수그룹·KMS·Environment 승인게이트) | ③-I | ☐ 요청 전달(8/20) | — |
   | 7 | **`pg_trgm` CREATE EXTENSION 권한**(clinic 검색 선결 · env-reference §2.1) | ③-I | ✅ 문제 없음(Jack 확인 8/20 — `gw_app`=`gw` DB OWNER·trusted extension) | ☐ prod 동일 확인 |
   | 8 | **KMS CMK provisioning**(webhook payload·target 자격 alias·리전별 · 8/4 키 토폴로지 · env-reference §2.4) | ③-I | ☐ (webhook/target 실사용 시) | ☐ 리전별 |
-  | 9 | **admin API dev ingress 노출**(`admin.apne2.gw.dev.ezcld.net`·Entra-gated 공개 ingress) — Console이 실 dev DB 데이터를 조회하려면 admin 부팅에 더해 이 ingress가 있어야 함(없으면 admin이 떠도 Console이 못 부름). **값 무관·미리 준비 가능**(admin 부팅[#3·Entra #4]과 병렬) | ③-I | ☐ **확인 요청**(계획 포함 여부·ETA) | ☐ 도메인 후 |
+  | 9 | **admin API dev ingress 노출**(`admin.apne2.gw.dev.ezcld.net`·Entra-gated 공개 ingress) — Console이 실 dev DB 데이터를 조회하려면 admin 부팅에 더해 이 ingress가 있어야 함(없으면 admin이 떠도 Console이 못 부름) | ③-I | ✅ **ingress 구축 확인**(8/25 curl: 443 OPEN·ALB 응답) — 단 전 경로 **503(ALB에 healthy target 0·즉시응답)** = **admin 미기동**이 원인(ingress 문제 아님)·**#4 Entra→admin 부팅 시 해소** | ☐ 도메인 후 |
 
 - **[GW 구현 선결 추적 · 외부 인프라·자격]** — E2E·배포가 외부 선결로 막힌 Task(정본=IP 부록 B). 소유별 상태·ETA 확인.
 
@@ -41,18 +76,9 @@
 
   _(`—`=해당 없음.)_
 
-- 공유 사항 (결정 아님 · 정보 공유 · 매주 상시)
+- 공유 사항 (결정 아님 · 논의사항인지 애매한 것을 임의 결정해 공유 · 매주 상시)
 
-  - **S-신규①. 부하/HA 테스트 계획 수립** — `docs/qa/load-ha-test-plan.md` 초안 작성. **GW/PL 작성분 완료**(테스트 대상·k6 스크립트/실행법·시나리오·주입 방식·부하 발생 EC2 구성·HA 장애주입[AWS FIS] 절차). **인프라 관점 확정분**(test 환경 사이징·FIS 구성·RTO/RPO 목표치)=Jack — **test 인프라 구축 후** 채움. Jack에 초안 제공 예정.
-  - **S-신규②. 환경 4-tier + admin OpenAPI 스위치** — `env-reference.md`를 **4열(dev·test·sandbox·prod)** 로 정리, Jack에 환경별 값 채움 요청 전달. dev 실측: core·receiver·dispatcher 정상 기동(공용 인스턴스 내 `gw` DB·단일 `DATABASE_URL`)·admin=Entra 등록 대기. 신규 변수 `GW_ADMIN_OPENAPI_ENABLED`(admin OpenAPI 문서 서빙 스위치)=dev/test `true`·sandbox/prod off.
-  - **S-신규③. webhook 보존·아카이브 설계(gw/1.1)** — webhook payload(PHI·KMS) 무한 누적 관리 = **리전 로컬 S3 아카이브 후 삭제**(파티셔닝 미채택)·무인 K8s CronJob(시간 기준)·export→검증→배치삭제·잡 단위 감사·tombstone 없음. **SRS §7.6.9에 설계 골격+다이어그램** 반영(gw/1.1·v1.0=저볼륨 미구현·알람만). **법무 확정 값 = 리전별 ① DB 잔존 기간 ② S3 보관 기간**(+가동 임계값·Appendix B #5·#36) — 이 두 값만 정하면 상세화 착수.
-  - **S-신규④. fleet-config(디바이스 원격설정) 정리** — 디바이스가 자기 설정을 가져가는 조회 기능을 v1.0에 개방하되, **디바이스에는 "디바이스용으로 허용된 값만" 노출(기본 차단)** 하도록 규격 확정 — 게이트웨이 내부 운영값은 디바이스에 미노출(정보노출 방지). **Console 추가 작업 없음**(디바이스 대상 기능·화면 필요분은 gw/1.1). *(완료·공유)*
-
-  - **S-신규⑤. region-silo 잔재 정리** — 리전 완전 분리(각 배포=한 리전) 전환 때 미처 정리되지 못하고 스펙 곳곳에 남아 있던 "리전(region)" 흔적을 전수 검토해 걷어냄. 정당한 리전 사용처(배포 상수·호스트 라벨·데이터 주권·운영자 역할의 리전 담당 스코프[향후 멀티리전])는 그대로 유지.
-    - **중앙 설정(config) 스코프에서 "리전" 제거** — 각 배포가 한 리전뿐이라 "리전" 스코프가 "전역"과 대상이 완전히 같아 의미가 없었고(범위를 못 좁힘), 다른 리전을 지정하면 영영 적용되지 않는 죽은 설정만 생김. 접근 정책(policy)은 이미 리전 스코프가 없었는데 config만 뒤늦게 정리 → config도 전역/클리닉/디바이스로 통일.
-    - **감사 로그의 "리전 변경·개설·철수" 동작 정리** — 이미 삭제된 옛 리전 관리 기능의 잔재라 표준 목록·예시에서 제거.
-    - **운영자 관리 대상 목록에서 "리전" 제거** — 리전 목록은 별도 공개 디렉터리가 정본이라 운영자가 관리하는 대상이 아님.
-    - 코드 반영(스키마·마이그레이션·조회 로직·개발용 시드)은 구현세션 진행 중. *(스펙 정리 완료·코드 진행 중)*
+  - **webhook payload 보존·아카이브 방식(gw/1.1)** — 무한 누적되는 webhook payload(PHI·KMS 암호문) 관리 방식을 임의로 결정해 공유: **리전 로컬 S3 아카이브 후 삭제**(파티셔닝 미채택)·무인 K8s CronJob(시간 기준)·export→검증→배치삭제·잡 단위 감사·tombstone 없음. SRS §7.6.9에 설계 골격+다이어그램 반영(gw/1.1·v1.0=저볼륨 미구현·알람만). 확정 필요 값(리전별 ① DB 잔존 기간 ② S3 보관 기간·+가동 임계값)은 법무 의존이라 **이월 논의 #15**에서 추적(Appendix B #5·#36).
 
   - **S1. 프로젝트 일정(Gantt) — 8/27 스냅샷**
     - **진행률(구현)**: **GW ≈ 90%**(v1.0 계획 기능 구현 완결·8/24 feature-complete · 잔여=③-I 실 인프라 게이트·개발 통합검증·계약 경화[OpenAPI 코드-first 일원화]) · **GW Console ≈ 85%**(P0~P7 완료·P8 외부 선결·실 GW 정합성 확인 진행 — 확인 끝나기 전까지 완료로 세지 않음)
@@ -87,17 +113,17 @@
 
         section ③-P-EZ EzServer 연동 스펙 (① 초안=Raymond → ② Teddy 상세 → ③ baseline)
         ① 초안+PR (Raymond)            :done, ezw, 2026-07-20, 5d
-        ② Teddy 상세·리뷰·수정         :active, ezpr, after ezw, 31d
+        ② Teddy 상세·리뷰·수정         :active, ezpr, after ezw, 63d
         ③ baseline                     :milestone, ezbl, after ezpr, 0d
 
         section ③-P-CS CleverSpace OnePager (① Raymond → ② Larry 상세 → ③ baseline)
         ① 초안+PR (Raymond·#12239)     :done, cssub, 2026-07-27, 5d
-        ② CleverSpace팀(Larry) 상세    :active, cspr, after cssub, 24d
+        ② CleverSpace팀(Larry) 상세    :active, cspr, after cssub, 56d
         ③ baseline                     :milestone, csbl, after cspr, 0d
 
         section ③-P-CO CleverOne OnePager (① Raymond → ② Nick 상세 → ③ baseline)
         ① 초안+인계 (Raymond·SharePoint) :done, cosub, 2026-07-27, 5d
-        ② CleverOne팀(Nick) 상세       :active, copr, after cosub, 24d
+        ② CleverOne팀(Nick) 상세       :active, copr, after cosub, 56d
         ③ baseline                     :milestone, cobl, after copr, 0d
 
         section ④ AXS 연동 프로파일 (경량 스펙·구현=GW 2단계 P7)
@@ -181,8 +207,9 @@
   | 4 | Webhook 클라우드 분배(CleverLab 갈래B) | [논의] | v1.0 제외 — Open 후 결정 |
   | 6 | AXS **prod** 자격(Straumann 정식계약) | [정보] | PPR sandbox=확보(8/11) · prod=NDA 후 |
   | 7 | 경로 B EOS 시점 | [논의] | EOS 시점만 PM·CS/CO OnePager 미정 |
-  | 8 | v1.0 목표 RPS·동시 세션 | [논의] | **부하 테스트 계획 수립(S-신규①)** — 목표치 확정 필요·인프라 후 실측 → 이번 주 진행 [부하/HA] |
-  | 9 | RTO/RPO·유지보수 윈도우 | [논의] | **HA 테스트 계획 수립(S-신규①)** — 목표치 확정 필요(HA 실측 선결)·R2 연계 → 이번 주 진행 [부하/HA] |
+  | 8 | v1.0 목표 RPS·동시 세션 | [논의] | **부하 테스트 계획 수립** — 목표치 확정 필요·인프라 후 실측 → 이번 주 진행 [부하/HA] |
+  | 9 | RTO/RPO·유지보수 윈도우 | [논의] | **HA 테스트 계획 수립** — 목표치 확정 필요(HA 실측 선결)·R2 연계 → 이번 주 진행 [부하/HA] |
   | 10 | 감사·consent 보존 기간 | [정보] | 법무 확인 대기 |
   | 11 | 호환성 매트릭스 확정본 | [정보] | CleverSpace/CleverOne OnePager 의존 — 담당팀 baseline 후 |
   | 14 | 관측성 앱↔인프라 계약(로그 필드 스키마·메트릭 export 배선) | [논의·설계] | 추후 확정 — 트리거=③-I 관측 스택 구축 · 앱 계약(stdout JSON+OTel·redaction) 이미 구현·무블로킹 |
+  | 15 | Webhook payload 보존·아카이브 기간(리전별) | [논의] | **법무 확정 대기** — 리전별 ① DB 잔존 기간 ② S3 보관 기간(+가동 임계값). 설계 골격=SRS §7.6.9(gw/1.1)·Appendix B #5·#36 → 이번 주 공유 [webhook 아카이브] |
