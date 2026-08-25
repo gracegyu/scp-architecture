@@ -83,10 +83,10 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
      - deny만 non-empty → **blocklist**(그것 빼고 전부).
      - 둘 다 non-empty → **deny 우선**: 통과 = `E∈allow ∧ E∉deny`(allow에 없으면 deny). "둘 다 없음(∉allow,∉deny)" 모순 없음(allow 존재 시 whitelist 지배).
      - `pathPattern` glob(`*`=세그먼트1·`**`=0+), `methods` 배열(`*`=전체).
-  4. **scope 규칙**: 토큰 scope ⊆ `policy.scopes`(non-empty 시)·empty=제한 없음. **단 AXS가 이미 scope/consent 집행 → 필요성 재검토(중복 가능).**
+  4. **scope 규칙 — ★GW 정책 모델에서 제외(2026-08-25 결정).** GW는 **auth/scope authority가 아니다** — device 토큰은 신원(`deviceId·region·aud`)이지 per-operation scope taxonomy를 발급하지 않으므로 `token.scope ⊆ policy.scopes`는 **GW가 스스로 만든 scope를 스스로 검사하는 순환**이라 무의미하고, scope/consent 권위는 **AXS**다. endpoint(프록시-레벨 blast-radius)와 달리 scope는 **GW-레이어 독립 가치가 없다**. → **gw/1.1 정책에 scope 차원 없음**·`policy.scopes` 필드는 dead reservation으로 **gw/1.1 재설계 때 제거**(GW 역할이 OAuth authorization server로 바뀌지 않는 한). scope 인가는 AXS 위임.
   5. **스코프 계층**(device→clinic→global): global=기본, clinic=상한(authoritative·global 대체 가능·소속 device 천장), device=clinic 상한 내 narrowing(⊆·권한상승 불가). 병합=OPA로 교집합 기반 명시.
   6. **별개 차원(그대로 유지)**: egress(`target.egress_allowlist`·fail-closed)·PHI 리전 경계는 정책과 독립 집행(v1.0에도 집행 중).
-  7. **필요성 재검토(중요)**: AXS가 operation 인가(Org-ID 격리+consent) 소유 + verbatim 프록시라 GW endpoint/scope 정책은 **여전히 과설계일 수 있음**. **blast-radius 축소·클리닉별 권한 차등 같은 구체 실요구가 확인될 때만** endpoint/scope를 켠다. 그 전엔 coarse(target)+egress+region으로 충분.
+  7. **필요성 재검토(중요·결론)**: AXS가 operation 인가(Org-ID 격리+consent) 소유 + verbatim 프록시. → **scope = 제외 확정**(위 4번·GW는 auth authority 아님). **endpoint = 조건부**(프록시-레벨 blast-radius 독립 가치는 있으나, **클리닉별 권한 차등·침해 device 격리 같은 구체 실요구가 확인될 때만** 켠다). 그 전엔 **coarse(target)+egress+region으로 충분**. 즉 gw/1.1 정책 최소형 = target(WHO·deny-by-default 복원) + (선택)endpoint.
   8. **마이그레이션**: v1.0 빈 테이블 → gw/1.1에서 `denied_endpoints`·`mode`(택1 방식 채택 시) 등 additive·저위험.
   9. **전환(활성화) 안전 — v1.0(정책 없으면 allow) → gw/1.1 (★기본 posture 결정에 종속)**:
      - **(a) deny-by-default 복원 시**: 활성화 순간 정책 0개면 **전 프록시 차단** → **정책 선-시드(기존 target/clinic 허용) 또는 dry-run(감사만) 모드로 실트래픽 확인 후 flip** 하는 무중단 롤아웃 필수(AWS/Istio 방식).
@@ -94,6 +94,22 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
      - 스키마는 빈 테이블이라 무관. **gw/1.1 착수 시 기본 posture(a/b)를 의식적으로 결정**하고 그에 맞는 롤아웃을 잡는다. *(현재 v1.0=allow. (b) 유지가 가장 무중단·(a)는 보안↑이나 롤아웃 절차 비용.)*
 - **병합 규칙.** device→clinic→global 상속의 정확한 병합(대체/교집합/패턴 우선순위)은 위 5번 방향으로 gw/1.1 OPA/LLD에서 확정(현재 under-spec).
 - **출처.** 2026-08-25 사용자(정책 난해성 리뷰 → gw/1.1 재설계·v1.0 유보[A안] 확정 · 업계 API GW[AWS/Istio/OPA/Kong/Apigee] 비교 결론 반영).
+
+- **부록: 주요 API Gateway 정책 모델 비교(참고·gw/1.1 설계 시).**
+
+  | Gateway | 인가 모델 | allow/deny 병존 | 기본값 posture | endpoint(path/method) | **scope 관리 위치** | 우선순위 규칙 |
+  |---|---|---|---|---|---|---|
+  | **AWS API Gateway** | Resource Policy(IAM JSON) + Authorizer(IAM/JWT/Lambda/Cognito) | 둘 다(Effect Allow/Deny) | **default-deny** | Resource ARN(method 단위) | **라우트의 JWT authorizer `authorizationScopes`** — 액세스 정책(IP/principal)과 **분리** | **explicit Deny > Allow**(항상) |
+  | **Istio AuthorizationPolicy** | CRD 규칙(ALLOW/DENY/CUSTOM) | 둘 다 | ALLOW 있으면 default-deny·없으면 allow | `to.operation.paths/methods`(glob) | **정책 안**(`when: request.auth.claims[scope]` 조건) | **CUSTOM > DENY > ALLOW**(deny-wins) |
+  | **OPA/Rego** | 정책-as-code | 둘 다(allow 규칙 + deny 규칙) | **default deny=false** | 규칙 내 임의 매칭 | **정책(Rego) 안**(claim 검사) | deny가 allow override(관례) |
+  | **Kong** | 플러그인(ACL·OAuth2·OIDC) | ACL은 allow 또는 deny **택1**(group) | 플러그인 유무 | route가 path 매칭(ACL=group) | **라우트의 OAuth2 플러그인 설정** — group ACL과 **분리** | deny 우선(같이 쓰면) |
+  | **Apigee** | proxy flow별 policy | conditional flow + OAuthV2 | flow 매칭 | conditional flow(pathsuffix+verb) | **OAuthV2 policy `<Scope>`** — flow에 부착 | flow 순서 |
+  | **우리 GW(설계·gw/1.1)** | 앱 내부 PDP → OPA(Rego) | (추천) 단일 default-deny + allow-grant + deny-override | **target=deny-by-default · endpoint=allow-within-target**(추천·조건부) | `allowed_endpoints`(glob·예약) | **제외 확정** — GW는 auth authority 아님·AXS가 scope/consent 소유(`policy.scopes` 필드 gw/1.1 제거) | (추천) deny 우선 |
+
+  - **공통 패턴**: ① default-deny가 보안형 표준 · ② allow+deny 병존은 **단일 고정 기본값(deny) + deny-우선**으로 "둘 다 없음" 모순 제거(예 allow `/**`+deny `/x`) · ③ 순서 리스트가 아니라 **우선순위 규칙**(deny>allow>default) · ④ path+method glob + JWT scope가 endpoint 인가 표준.
+  - **scope 관리 위치 = 혼재**: Istio·OPA·Apigee는 **정책/규칙 안**(claim 조건·OAuth policy) · AWS·Kong은 **라우트 authorizer/플러그인**(액세스 정책과 분리). **우리 모델은 정책 안(`policy.scopes`)** 이나, AXS가 이미 scope/consent를 집행하므로 gw/1.1에서 **scope를 GW가 관리할지(정책에 두고 켬) vs AXS 위임으로 뺄지** 결정한다(위 7번 재검토와 동일).
+
+- **출처(비교표).** 2026-08-25 업계 API Gateway[AWS/Istio/OPA/Kong/Apigee] 정책·scope 관리 방식 비교(사용자 요청·참고용).
 
 ---
 
