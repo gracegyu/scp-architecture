@@ -10,7 +10,7 @@
     - **[config 재정립]** 중앙 설정 = device/clinic-facing 전용 재정립
       - 내부 운영값(로그레벨·프록시 타임아웃·heartbeat 기본주기·offline 배수)을 설정 테이블이 아니라 **환경변수로 분리**(SRS §6.8.1 신설)
       - 예전 "허용 값만 노출(allowlist)·노출 배지" 개념 폐지 · v1.0 실사용 설정 키 = heartbeat 주기 하나 · 디바이스 pull(자기 실효 설정 조회) v1.0 개방
-      - 스펙 PR 2건 머지·태그(`spec-v1.0.61`·Console `spec-v1.0.5`) · 구현 반영(GW #13005·Console #13004)
+      - 스펙 PR 2건 머지·태그(`spec-v1.0.61`·Console `spec-v1.0.5`) · **구현 완료(GW #13005·Console #13004 머지)**
     - **[OpenAPI code-first]** API 명세 자동 생성·서빙 일원화
       - 구현 코드가 명세 정본(문서-구현 drift 원천 차단) · **CI 드리프트 게이트**로 어긋나면 빌드 실패
       - 문서 서빙 앱 3개(core·admin·receiver)가 각자 포트에서 `/api-docs`(UI)+raw(`/api-docs/yaml`·`/json`) 서빙 · dispatcher(:3003)는 HTTP API 없어 없음 · admin 문서 = Console codegen 소스
@@ -24,17 +24,20 @@
 
       - **dev 한정 서빙** — 로컬(개발) 3앱 자동 on · 배포는 `NODE_ENV=production`이라 앱별 스위치(`GW_{ADMIN,CORE,RECEIVER}_OPENAPI_ENABLED`)로만 켜지며 **현재 dev/test는 admin만 on · sandbox·prod는 off**(계약 구조 노출 방지). 배포 dev admin 문서 = `https://admin.apne2.gw.dev.ezcld.net/api-docs`(admin 부팅 후)
       - core·receiver·admin·target 전반 code-first 전환(구현 대부분 완료)
-    - **[region-silo 잔재 정리]** 중앙 설정 스코프·감사 action·운영자 관리대상에서 "리전" 제거
+    - **[region-silo 잔재 정리]** 리전 완전분리(각 배포=한 리전) 전환의 잔재 제거 — 중앙 설정 스코프·감사 action·운영자 관리대상에서 "리전" 제거
+      - **중앙 설정(config)**: 예전엔 리전별로 두고 동기화하려 했으나, 리전 스코프 제거로 **리전 간 config 동기화 자체가 불필요**해졌다(전역/클리닉/디바이스로 통일)
       - 정당한 리전 사용처(배포 상수·호스트 라벨·데이터 주권·운영자 역할)는 유지 · 스펙 정리 완료·코드 반영 진행
     - **[환경 4-tier + OpenAPI 스위치]** `env-reference.md` 4열(dev·test·sandbox·prod) 정리·Jack에 값 채움 요청
       - dev 실측: core·receiver·dispatcher 기동 · admin=Entra 대기
-    - **[데이터 규모 대응]** 스펙·계약 확정(spec-v1.0.42~46) 후 GW·Console 구현 중
-      - 인덱스 마이그레이션 · clinic 이름검색/webhook 기간(커서 window)/집계 EP 3종/수동 create · 검색형 선택기·집계 카드·보존경계 골격 _(상세=repo PR/IP)_
+    - **[데이터 규모 대응]** 대량 데이터를 감당하는 관리 UI로 보강 — **구현 완료**
+      - **문제**: clinic·device·webhook 등 데이터가 **최대 몇 개까지 늘지 스펙에 정의가 없어**, 목록 스크롤·전량 드롭다운 위주의 UI로는 대량(clinic 10만·device 10만·**webhook 1억**·audit 100만 규모)을 효과적으로 관리할 수 없었다.
+      - **대응**: 먼저 **최대 규모를 스펙·계약에 명시**(spec-v1.0.42~46)하고, 그 규모를 감당하도록 **검색형 선택기**(이름 부분검색·id 겸용)·**필터**(기간·상태·리소스 축)·**서버 집계 카드**(표본 카운트 대신 집계 EP)·**커서 페이지네이션 한계 표시**·**보존경계 안내**를 UI에 넣었다.
+      - GW(인덱스 마이그레이션·이름검색 `q`·webhook 기간 커서 window·집계 EP 3종·수동 create) + Console(검색형 선택기·집계 카드·목록 규모 표시) 양쪽 구현 완료.
     - **[부하/HA 테스트 계획]** `docs/qa/load-ha-test-plan.md` 초안 작성(테스트 대상·k6·시나리오·주입·부하 EC2·FIS 절차)
       - 인프라 확정분(사이징·FIS·RTO/RPO)=Jack · test 인프라 구축 후
     - **[운영자 표시 개선]** 감사·"최근 변경 이력"·RBAC 화면에서 운영자를 **ID 대신 `이름 <이메일>`로 표시**
       - 운영자 참조 응답에 표시 요약 임베드(`AuditLog.actorSummary`·`RoleGrant.decidedByOperator`·읽기전용·operator id/subject 키는 불변) — clinic 요약 임베드 패턴(#47) 재사용
-      - device·clinic·target·operator 등 **모든 최근-변경 이력이 동일 AuditLog를 읽어 한 필드로 커버** · 스펙 PR GW #13009(spec-v1.0.62·머지)·Console #13010(spec-v1.0.6·검토중) · **GW(조인 채움·T-AUD-13-2)+Console(렌더·T-FE-9-9) 양쪽 구현**
+      - device·clinic·target·operator 등 **모든 최근-변경 이력이 동일 AuditLog를 읽어 한 필드로 커버** · 스펙 PR GW #13009(spec-v1.0.62)·Console #13010(spec-v1.0.6) **둘 다 머지** · **GW(조인으로 값 채움)+Console(렌더) 양쪽 구현 착수**
 
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
@@ -61,18 +64,18 @@
   | 8 | **KMS CMK provisioning**(webhook payload·target 자격 alias·리전별 · 8/4 키 토폴로지 · env-reference §2.4) | ③-I | ☐ (webhook/target 실사용 시) | ☐ 리전별 |
   | 9 | **admin API dev ingress 노출**(`admin.apne2.gw.dev.ezcld.net`·Entra-gated 공개 ingress) — Console이 실 dev DB 데이터를 조회하려면 admin 부팅에 더해 이 ingress가 있어야 함(없으면 admin이 떠도 Console이 못 부름) | ③-I | ✅ **ingress 구축 확인**(8/25 curl: 443 OPEN·ALB 응답) — 단 전 경로 **503(ALB에 healthy target 0·즉시응답)** = **admin 미기동**이 원인(ingress 문제 아님)·**#4 Entra→admin 부팅 시 해소** | ☐ 도메인 후 |
 
-- **[GW 구현 선결 추적 · 외부 인프라·자격]** — E2E·배포가 외부 선결로 막힌 Task(정본=IP 부록 B). 소유별 상태·ETA 확인.
+- **[GW 구현 선결 추적 · 외부 인프라·자격]** — E2E·배포가 외부 선결로 막힌 항목. 소유별 상태·ETA 확인.
 
-  | # | 선결 항목 | 막는 Task | 소유 | dev | prod |
-  | --- | --- | --- | --- | --- | --- |
-  | 1 | 공개 ingress(AXS→GW webhook 수신) | T-E2E-12-6 | ③-I | ☐ | ☐ |
-  | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | T-E2E-12-6·T-DISP-9-5 | ③-I | ☐ | ☐ |
-  | 3 | 자동배포 파이프라인(main→DEV·tag→TEST/PROD) | T-INFRA-0-5·T-PLAT-0-5 | ③-I | 🟠 dev 배포 됨(3앱) · 자동화·tag→TEST/PROD 잔여(Jack Azure Flow 템플릿→ECR/ArgoCD) | ☐ |
-  | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | compat publish·config 서빙·배포 | ③-I | ☐ | ☐ |
-  | 5 | **test 환경 프로비저닝**(별도 인프라·GW=infra 분류·상시 최소 baseline+임시 확장·부하/HA 사이즈업 포함) | T-E2E-12-3(부하)·12-4(HA)·Console e2e | ③-I | ☐ **요청 완료·마감 8/26** | ☐ |
-  | 6 | AXS 자격 | AXS 실연동 E2E | Straumann·영업 | ✅ sandbox(8/11) | ☐ prod(NDA후) |
-  | 7 | 파일 붙은 lab order 시드 | T-E2E-12-5(다운로드 실물) | Straumann·④ | ☐ (sandbox) | — |
-  | 8 | **마이그레이션 배포 Job 배선**(K8s Job + ArgoCD PreSync hook · migrate 이미지 ECR push[앱과 같은 SHA] · 매 배포 前 1회 `migrate deploy`·성공 gating·fail-closed) | T-PLAT-0-7 | ③-I | 🟠 **GW 몫 완료**(#12926 · migrate 이미지 타겟·실행명령·env·local `make dev-up` 자동) · ③-I K8s Job+PreSync 배선 대기 | ☐ |
+  | # | 선결 항목 | 소유 | dev | prod |
+  | --- | --- | --- | --- | --- |
+  | 1 | 공개 ingress(AXS→GW webhook 수신) | ③-I | ☐ | ☐ |
+  | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | ③-I | ☐ | ☐ |
+  | 3 | 자동배포 파이프라인(main→DEV·tag→TEST/PROD) | ③-I | 🟠 dev 배포 됨(3앱) · 자동화·tag→TEST/PROD 잔여(Jack Azure Flow 템플릿→ECR/ArgoCD) | ☐ |
+  | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | ③-I | ☐ | ☐ |
+  | 5 | **test 환경 프로비저닝**(별도 인프라·GW=infra 분류·상시 최소 baseline+임시 확장·부하/HA 사이즈업 포함) | ③-I | ☐ **요청 완료·마감 8/26** | ☐ |
+  | 6 | AXS 자격 | Straumann·영업 | ✅ sandbox(8/11) | ☐ prod(NDA후) |
+  | 7 | 파일 붙은 lab order 시드 | Straumann·④ | ☐ (sandbox) | — |
+  | 8 | **마이그레이션 배포 Job 배선**(K8s Job + ArgoCD PreSync hook · migrate 이미지 ECR push[앱과 같은 SHA] · 매 배포 前 1회 `migrate deploy`·성공 gating·fail-closed) | ③-I | 🟠 **GW 몫 완료**(#12926 · migrate 이미지 타겟·실행명령·env·local `make dev-up` 자동) · ③-I K8s Job+PreSync 배선 대기 | ☐ |
 
   _(`—`=해당 없음.)_
 
