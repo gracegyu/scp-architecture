@@ -4,7 +4,7 @@
 
   - **진행률(구현 스냅샷)**
     - **GW 백엔드 ≈ 90%** — v1.0 계획 기능 feature-complete(8/24) · 잔여 = ③-I 실 인프라 게이트 · 개발 통합검증 · 계약 경화
-    - **GW Console ≈ 85%** — P0~P7 완료 · P8 외부 선결 · 실 dev GW 정합성 확인 진행(확인 끝나기 전까지 완료로 세지 않음)
+    - **GW Console ≈ 85%** — P0~P6 완료 · **P7 6/7**(배포 헤더 ③-I 대기) · P8 외부 선결 · 실 dev GW 정합성 확인 진행(확인 끝나기 전까지 완료로 세지 않음)
 
   - **완료 · 주요 작업**
     - **[config 재정립]** 중앙 설정 = device/clinic-facing 전용 재정립
@@ -160,7 +160,7 @@
         프로파일 확정                  :milestone, axsbl, after axsw, 0d
         AXS prod 자격(NDA 후·선결)     :crit, credp, 2026-08-18, 21d
 
-        section ③-C GW Console — v1.0 (frontend·별도 repo·P0~P7 완료·P8=외부 선결)
+        section ③-C GW Console — v1.0 (frontend·별도 repo·P0~P6 완료·P7 6/7·P8=외부 선결)
         SRS 작성 (8/5)                 :done, consrsw, 2026-08-05, 6d
         v1.0 구현 (mock-first)         :done, conv1, 2026-08-12, 2026-08-24
         v1.0 구현 완료                 :milestone, conv1m, 2026-08-24, 0d
@@ -236,7 +236,7 @@
     | **P4** 연동 대상 | 목록·폼(자격 마스킹)·정책·org-mapping | ✅ 완료(4/4) |
     | **P5** webhook·break-glass | 이벤트 메타·DLQ triage·payload 열람(PHI) | ✅ 완료(3/3) |
     | **P6** fleet·config·매트릭스·감사 | 대시보드·SW 인벤토리·중앙 config·매트릭스 뷰어·감사(리소스 축) | ✅ 완료 |
-    | **P7** 공통 UX·i18n·동시성·보안 | 세션만료·403·오류분류·stale-write·i18n·보안/a11y 게이트 | ✅ 완료(7/7) |
+    | **P7** 공통 UX·i18n·동시성·보안 | 세션만료·403·오류분류·stale-write·i18n·보안/a11y 게이트 | 🟡 **6/7**(T-FE-7-6 보안 리뷰 — **배포 헤더만 잔여**·③-I) |
     | **P8** 실 e2e·배포 | Entra dev 전환·staging 실연동·baseline 승인·prod 배포 | 🔴 외부 선결(Entra·staging GW·CORS·도메인) |
 
     - 커버리지(unit+component·8/26): 전역 **91.2 / 86.0 / 85.5 / 92.2** — **CI floor 통과**(85/85/82/86). 테스트 **unit·component 1,164 · e2e 172 · a11y 27 · 시각회귀 17**(전부 차단 게이트).
@@ -251,7 +251,6 @@
       | **T-FE-8-4** | prod 배포 | ✅ 프리뷰 배포 파이프라인(S3+CloudFront) | **prod 도메인**(C-10) · ⚠ **무인 대상 제외**(사람이 실행) | PL/③-I |
       | **T-FE-7-6** | 배포 헤더(CSP·nosniff·Referrer-Policy·HSTS) | ✅ **8/26 실측 — 전부 부재**(`curl` 로 판정·사람 불요) | **CloudFront response headers policy 미배선** | ③-I |
 
-      - ✅ **이번 주 해소**: `[manual]` **4건 종결(8/26 PL)** — kill 클릭 검증 · 시각 baseline 미관 승인(→ T-FE-8-3 완료) · **PHI 마스킹 비노출**(→ T-FE-5-3 완결) · **저장소/XSS 실검사**. 점검이 **문서 결함도 하나 잡았다** — 체크리스트의 저장 키 표가 코드에서 뒤처져 정상 키가 위반처럼 보였다(반대로 **새 키를 못 보고 넘길** 수도 있던 자리) → 표-코드 정합 **관통 테스트** 추가.
       - **최우선 블로커**: ① **Entra 앱 등록**(IT-9442·마감 8/21 경과) — GW admin 미기동과 **같은 뿌리**라 Console 도 dev 실검증이 통째로 정체 ② **dev 재배포·재시드** — 계약(운영자 요약·clinic 임베드·config device-facing)은 **양쪽 다 머지됐는데 dev 에 안 떠 있어** 실화면 확인이 불가.
 
 
