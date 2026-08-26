@@ -108,6 +108,13 @@
 
 - 논의 사항 (이번 주 · 신규 · R#)
   - _(회의 중 신규 논의/결정 안건 발생 시 **R1·R2…** 로 추가 · 선결·보류는 아래 「이월 논의 사항」 표.)_
+  - **[R1] dev 에뮬레이션 테스트 — 지금 투자할지 결정**
+    - **안건**: EzServer(엣지·MQTT 구독)가 빨라도 **~1개월 후**(ETA 확인 필요) 준비되는데, 그 전에 dev 실환경 **배포·통합 검증**을 앞당기려면 테스트 더블을 dev에 얹는 에뮬 테스트가 필요하다. **③-I 배선 투자**가 걸려 회의 결정 안건으로 올린다.
+    - **중복 투자 아님**: 에뮬 = **배포·통합** 검증(설정 주입·DNS/ingress·TLS·마이그레이션·pod 간) / 실 테스트 = **실 상대 고유 거동**(실 IoT mTLS·실 EzServer). 다른 층이라 **분업**이지 중복이 아니다. 배관은 한 번 검증하면 **더블→실물 교체만**(재작업 아님).
+    - **하는 이득**: GW feature-complete·**유휴 대기 ~1달을 de-risk로 전환** · 이미 dev에서 만난 **배포-class 결함**(admin 미기동·dev DB 테이블 미생성) 선차감 · EzServer 도착 시 **통합 며칠로 단축**.
+    - **비용·규모**: 방식 A(in-cluster)·**추천 2 파드**(mosquitto 상주 + 시나리오 runner Job). ③-I는 클러스터 apply + 임시 mosquitto. **runner 한 파드가 드라이브·구독·결과 확인·단일 JUnit 리포트를 다 함**(로컬 e2e 동형·결과 수집 단순). 상세=[`docs/qa/dev-emulation-test-plan.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/qa/dev-emulation-test-plan.md).
+    - **못 닫는 것**: 실 IoT Core per-device mTLS 보안 실증은 임시 mosquitto로 대체 불가 — **별개 게이트**(에뮬은 전체 대체 아님).
+    - **GW 권고 = Conditional GO** — 유휴 1달을 de-risk로 쓰는 이득이 크다. **결정 필요**: (a) EzServer ETA 확정 (b) ③-I 여력 (c) go/no-go.
 
 - **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인. (PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653)
 
