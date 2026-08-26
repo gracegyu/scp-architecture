@@ -33,11 +33,14 @@
       - **문제**: clinic·device·webhook 등 데이터가 **최대 몇 개까지 늘지 스펙에 정의가 없어**, 목록 스크롤·전량 드롭다운 위주의 UI로는 대량(clinic 10만·device 10만·**webhook 1억**·audit 100만 규모)을 효과적으로 관리할 수 없었다.
       - **대응**: 먼저 **최대 규모를 스펙·계약에 명시**(spec-v1.0.42~46)하고, 그 규모를 감당하도록 **검색형 선택기**(이름 부분검색·id 겸용)·**필터**(기간·상태·리소스 축)·**서버 집계 카드**(표본 카운트 대신 집계 EP)·**커서 페이지네이션 한계 표시**·**보존경계 안내**를 UI에 넣었다.
       - GW(인덱스 마이그레이션·이름검색 `q`·webhook 기간 커서 window·집계 EP 3종·수동 create) + Console(검색형 선택기·집계 카드·목록 규모 표시) 양쪽 구현 완료.
-    - **[부하/HA 테스트 — 계획 + 하네스 구현]** 계획서(`docs/qa/load-ha-test-plan.md`)뿐 아니라 **실행 하네스·스크립트·파이프라인 골격까지 GW 선제 구현** — 실측만 인프라 대기
+    - **[부하/HA 테스트 — 계획 + 하네스 구현]** 계획서([`docs/qa/load-ha-test-plan.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/qa/load-ha-test-plan.md))뿐 아니라 **실행 하네스·스크립트·파이프라인 골격까지 GW 선제 구현** — 실측만 인프라 대기
       - **부하 하네스**: k6 시나리오·seed·clean·프로파일·§5 threshold 인코딩(#12761 머지)
       - **HA 측정 스크립트**: RTO probe(`ha:rto-probe`·복구시간)·loss-verify(`ha:loss-verify`·무유실·멱등) — 순수 로직 유닛 회귀(#13022 머지)
       - **오케스트레이션 파이프라인 초안**(미등록·PR #13048): 부하(seed→k6→수집)·HA(probe→FIS 주입→RTO+무유실 검증)·프록시 부하용 더미 업스트림 배포(k8s) — ③-I 선결(self-hosted pool·변수그룹·FIS template·Multi-AZ) 후 등록·실행
       - **실측(최종 완성)만 대기**: ③-I test staging(실 SQS/EKS·Multi-AZ·FIS)·부하 EC2·**RTO/RPO 목표 확정(PL 선결·HA 합격기준)**. 인프라 서면 골격 그대로 돌려 리포트→릴리스 게이트(E2E-SYS-08)
+    - **[dev 에뮬레이션 테스트 계획]** [`docs/qa/dev-emulation-test-plan.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/qa/dev-emulation-test-plan.md) 작성(PR #13066) — **목적**: EzServer·실 IoT Core·공개 ingress가 늦어져도, 이미 있는 테스트 더블 8종을 dev에 얹어 통합 왕복을 **며칠 내 빠르게 검증**하는 fast-path를 미리 준비
+      - 로컬 e2e=로직 증명 완료(60스위트/606)·AXS sandbox=실 사용 / EzServer·실 IoT·ingress=에뮬(edge-mqtt-subscriber·webhook-sender·device 스크립트)
+      - **선결**: 배포 방식(에뮬 파드 vs endpoint)·dev MQTT 브로커(실 IoT Core or 임시 mosquitto)는 **③-I 협의** · 산출물 작성만 GW 지금 가능(실행=③-I 배선 후)
     - **[운영자 표시 개선]** 감사·"최근 변경 이력"·RBAC 화면에서 운영자를 **ID 대신 `이름 <이메일>`로 표시**
       - 운영자 참조 응답에 표시 요약 임베드(`AuditLog.actorSummary`·`RoleGrant.decidedByOperator`·읽기전용·operator id/subject 키는 불변) — clinic 요약 임베드 패턴(#47) 재사용
       - device·clinic·target·operator 등 **모든 최근-변경 이력이 동일 AuditLog를 읽어 한 필드로 커버** · 스펙 PR GW #13009(spec-v1.0.62)·Console #13010(spec-v1.0.6) **둘 다 머지**
@@ -63,6 +66,11 @@
       - **경계(중요)**: Toast 는 사라지므로 **모든 것을 옮기지 않는다** — ① 조치가 필요한 오류(권한 요청·재시도 안내)는 화면에 그대로 남기고(4초 뒤 사라지는 자리에 "권한을 요청하세요"를 둘 수 없다) ② **긴급 정지 같은 파괴적 동작의 실행 기록**(실행자·시각·감사 기록됨)도 화면에 남긴다. Toast 는 **더하는 쪽**이다.
       - **용어**: 코드·라이브러리가 모두 `toast` 라 문서도 **Toast 로 통일**한다(Snackbar 는 Material Design 용어).
       - **범위**: **Console 단독** — 계약·GW 영향 0건. SRS 미규정 항목이라 PL 제안으로 착수했고 IP 에 Task 등재.
+
+    - **[EzServer 온보딩 UX 개선]** EzServer 팀(Thomas·③-P-EZ) enrollment 흐름 정리 중 나온 두 요청 반영 — 계약 확정, GW 백엔드 구현 착수 예정
+      - **문제**: ① enroll 후 device가 **승인됐는지 알 수 있는 전용 API가 없어** 토큰 발급을 반복 시도(`/v1/auth/token`)해 떠보고 있었다 ② CS가 승인하러 가는 화면으로 **바로 가는 링크가 없어** "콘솔에서 승인하세요"로만 안내
+      - **대응**: ① **승인 상태 조회 API 신설**(`/v1/enroll/status` — 자기 것만·승인 전에도 조회·토큰 남용 제거) + 토큰 응답도 "대기 중"과 "거부/중단"을 코드로 구분 ② **승인 화면 딥링크** — EzServer가 device 식별자로 GW Console 승인 큐로 바로 가는 링크 생성(리전 안내 목록에 Console 주소 추가해 자동 획득). 승인 화면·링크는 Console이 이미 구현 완료
+      - 스펙 PR GW #13069(spec-v1.0.67) **머지** · GW 백엔드 구현 대기(EzServer의 실제 연동·Console 주소 발행은 각각 EzServer 팀·인프라 몫으로 별개 진행)
 
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
@@ -94,17 +102,17 @@
   | # | 선결 항목 | 소유 | dev | prod |
   | --- | --- | --- | --- | --- |
   | 1 | 공개 ingress(AXS→GW webhook 수신) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §1(handoff+Form 준비) | ☐ |
-  | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §2(handoff=[iot-authz-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/iot-authz-infra.md)·Form) | ☐ |
+  | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §2(handoff=[iot-authz-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/[`docs/handoff/iot-authz-infra.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/iot-authz-infra.md))·Form) | ☐ |
   | 3 | 자동배포 파이프라인(main→DEV·tag→TEST/PROD) | ③-I | 🟠 dev 배포 됨(3앱) · 자동화·tag→TEST/PROD 잔여(Jack Azure Flow 템플릿→ECR/ArgoCD) | ☐ |
-  | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §3(handoff=[compat-matrix-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/compat-matrix-infra.md)·Form) | ☐ |
+  | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §3(handoff=[compat-matrix-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/[`docs/handoff/compat-matrix-infra.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/compat-matrix-infra.md))·Form) | ☐ |
   | 5 | **test 환경 프로비저닝**(별도 인프라·GW=infra 분류·상시 최소 baseline+임시 확장·부하/HA 사이즈업 포함) | ③-I | ☐ **요청 완료·마감 8/26** | ☐ |
   | 6 | AXS 자격 | Straumann·영업 | ✅ sandbox(8/11) | ☐ prod(NDA후) |
   | 7 | 파일 붙은 lab order 시드 | Straumann·④ | ☐ (sandbox) | — |
-  | 8 | **마이그레이션 배포 Job 배선**(K8s Job + ArgoCD PreSync hook · migrate 이미지 ECR push[앱과 같은 SHA] · 매 배포 前 1회 `migrate deploy`·성공 gating·fail-closed) | ③-I | 🟠 **GW 몫 완료**(#12926 · migrate 이미지 타겟·실행명령·env·local `make dev-up` 자동) · **인계 명세 전달**(#13020·`docs/handoff/migration-deploy-infra.md` + 초안 `devsecops-migrate.yml`) · ③-I 회신 3건(org 템플릿 `--target` 지원·migrate 배포스테이지 처리·SHA 태그 경로) + K8s Job+PreSync 배선 대기 | ☐ |
+  | 8 | **마이그레이션 배포 Job 배선**(K8s Job + ArgoCD PreSync hook · migrate 이미지 ECR push[앱과 같은 SHA] · 매 배포 前 1회 `migrate deploy`·성공 gating·fail-closed) | ③-I | 🟠 **GW 몫 완료**(#12926 · migrate 이미지 타겟·실행명령·env·local `make dev-up` 자동) · **인계 명세 전달**(#13020·[`docs/handoff/migration-deploy-infra.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/migration-deploy-infra.md) + 초안 `devsecops-migrate.yml`) · ③-I 회신 3건(org 템플릿 `--target` 지원·migrate 배포스테이지 처리·SHA 태그 경로) + K8s Job+PreSync 배선 대기 | ☐ |
 
   _(`—`=해당 없음.)_
 
-  > **[③-I 요청 전달 감사 — 2026-08-26]** "문서에 선결로 적혀 있다 ≠ Jack에게 전달됨." 두 추적 표를 훑어 GW handoff 7종 전부 **결과 Form·전달 흔적 0** 확인(작성 ≠ 전달). 전달 흔적 없는 항목(③-I #8·GW선결 #1·#2·#4 + Console CloudFront 헤더 4-tier·사내 접근제한[8/19 회신서 누락 변종])을 **handoff + 결과 Form 단일 전달 패킷**([pending-infra-requests.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/pending-infra-requests.md)·GW repo·초안)으로 묶음. **전달 주체 = Raymond**(PL 지시). 이후 모든 ③-I 요청은 handoff+Form으로 전달하고 회신을 이 표에 일자·산출물로 기록(재발 방지). 모범 = 마이그레이션 인계(#13020).
+  > **[③-I 요청 전달 감사 — 2026-08-26]** "문서에 선결로 적혀 있다 ≠ Jack에게 전달됨." 두 추적 표를 훑어 GW handoff 7종 전부 **결과 Form·전달 흔적 0** 확인(작성 ≠ 전달). 전달 흔적 없는 항목(③-I #8·GW선결 #1·#2·#4 + Console CloudFront 헤더 4-tier·사내 접근제한[8/19 회신서 누락 변종])을 **handoff + 결과 Form 단일 전달 패킷**([pending-infra-requests.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/[`docs/handoff/pending-infra-requests.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/pending-infra-requests.md))·GW repo·초안)으로 묶음. **전달 주체 = Raymond**(PL 지시). 이후 모든 ③-I 요청은 handoff+Form으로 전달하고 회신을 이 표에 일자·산출물로 기록(재발 방지). 모범 = 마이그레이션 인계(#13020).
 
 - 공유 사항 (결정 아님 · 논의사항인지 애매한 것을 임의 결정해 공유 · 매주 상시)
 
@@ -192,7 +200,7 @@
       | 단위 | 스펙 문서 | Repo · 경로 | baseline tag |
       | --- | --- | --- | --- |
       | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `vt-api-gateway` · `docs/specs/` | **`spec-v1.0.41`**(현행 동결) |
-      | **③-C GW Console** | Sub-SRS | `vt-api-gateway-console` · `docs/specs/SRS.md` | ✅ `spec-v1.0`(8/11) |
+      | **③-C GW Console** | Sub-SRS | `vt-api-gateway-console` · [`docs/specs/SRS.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md) | ✅ `spec-v1.0`(8/11) |
       | **④ AXS** | 경량 연동 프로파일 | `vt-api-gateway` · `docs/specs/04-subsrs-straumann-axs/` | 경량(PPR 자격 확보·착수 가능) |
       | **③-I 인프라** | IaC 구축계획서 | `vt-api-gateway-infra` · `docs/IaC-구축계획서.md` | PR #11973(living doc) |
       | **③-P-EZ EzServer** | GW적응 OnePager | `ezserver_suite`(`v6.5.x`) · `doc/onepager/gw_adaptation/` | 미부여(팀 baseline 예정) |
