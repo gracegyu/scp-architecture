@@ -54,9 +54,14 @@
       - **HA 측정 스크립트**: RTO probe(`ha:rto-probe`·복구시간)·loss-verify(`ha:loss-verify`·무유실·멱등) — 순수 로직 유닛 회귀(#13022 머지)
       - **오케스트레이션 파이프라인 초안**(미등록·PR #13048): 부하(seed→k6→수집)·HA(probe→FIS 주입→RTO+무유실 검증)·프록시 부하용 더미 업스트림 배포(k8s) — ③-I 선결(self-hosted pool·변수그룹·FIS template·Multi-AZ) 후 등록·실행
       - **실측(최종 완성)만 대기**: ③-I test staging(실 SQS/EKS·Multi-AZ·FIS)·부하 EC2·**RTO/RPO 목표 확정(PL 선결·HA 합격기준)**. 인프라 서면 골격 그대로 돌려 리포트→릴리스 게이트(E2E-SYS-08)
-    - **[dev 에뮬레이션 테스트 계획]** [`docs/qa/dev-emulation-test-plan.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/qa/dev-emulation-test-plan.md) 작성(PR #13066) — **목적**: EzServer·실 IoT Core·공개 ingress가 늦어져도, 이미 있는 테스트 더블 8종을 dev에 얹어 통합 왕복을 **며칠 내 빠르게 검증**하는 fast-path를 미리 준비
-      - 로컬 e2e=로직 증명 완료(60스위트/606)·AXS sandbox=실 사용 / EzServer·실 IoT·ingress=에뮬(edge-mqtt-subscriber·webhook-sender·device 스크립트)
-      - **선결**: 배포 방식(에뮬 파드 vs endpoint)·dev MQTT 브로커(실 IoT Core or 임시 mosquitto)는 **③-I 협의** · 산출물 작성만 GW 지금 가능(실행=③-I 배선 후)
+    - **[dev 에뮬레이션 테스트 계획]** [`docs/qa/dev-emulation-test-plan.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/qa/dev-emulation-test-plan.md) 작성(PR #13066)
+      - **왜 필요한가** — 지금까지의 검증은 개발자 로컬에서 도는 자동 테스트로 **로직·계약을 증명**한다. 그러나 **실제로 배포된 시스템이 dev 환경에서 통합 동작하는지는 별개 문제**다(설정 주입·DNS/ingress·TLS·서비스 간 통신·DB 마이그레이션 등 배포 배관). 실 외부 상대(EzServer·실 IoT Core·AXS 공개 ingress)가 아직 준비 안 됐어도, **없는 상대는 테스트 더블로 대신**해 배포된 dev 시스템의 통합 왕복을 **며칠 내 빠르게** 확인하는 fast-path를 미리 준비한 것이다.
+      - **로컬 자동 테스트가 이미 커버(로직·계약)**: e2e **63 스위트/642** green — 온보딩(enroll→승인→토큰)·webhook 전구간(AXS→수신→분배→클리닉 MQTT)·catch-all·kill-switch·RBAC 등. 단 실 미들웨어 컨테이너 + 외부 상대 더블 8종으로 **한 머신 안(in-process)** 검증이라, **실 배포·실 네트워크·실 설정 주입은 확인하지 못한다**.
+      - **dev 에뮬이 추가로 커버(배포·통합)**: 실제 컨테이너 이미지를 dev 클러스터에 올려 배포 배관이 맞물리는지 확인 — 로컬에선 안 드러나는 **배포 문제**(실제로 dev에서 admin 미기동·DB 테이블 미생성 등이 관측됐다)를 잡는다. 없는 외부 상대(EzServer·실 IoT·공개 ingress)만 더블로 채운다.
+      - **이득**: 실 EzServer/IoT/ingress가 도착하면 배관은 이미 검증돼 있어 **더블→실물 교체만으로 통합이 빨라진다**(리스크 선차감).
+      - **배포 방식 = 택일(둘 다 아님)**: **A** 에뮬을 dev 클러스터에 **파드로 배포**(권장 — GW와 같은 네트워크·지속 검증 유리) / **B** 파드 밖 클라이언트에서 dev GW 호출(공개 ingress 노출이 추가 선결). 어느 쪽이든 **공통 관문 = dev MQTT 브로커**(실 IoT Core 앞당김 or 임시 mosquitto 파드).
+      - **상태·선결**: 계획서 작성 완료(GW). 실행은 ③-I가 방식 A/B 합의 + dev 클러스터 배선(에뮬 파드/브로커 apply) 후 시작 · 매니페스트·시나리오 산출물은 방식 확정 후 작성.
+      - **못 닫는 것**: 실 IoT Core의 per-device 인증서(mTLS) 보안 실증은 임시 mosquitto로 대체 불가 — 실 IoT Core 확보 후에만 성립(별개 게이트).
     - **[운영자 표시 개선]** 감사·"최근 변경 이력"·RBAC 화면에서 운영자를 **ID 대신 `이름 <이메일>`로 표시**
       - 운영자 참조 응답에 표시 요약 임베드(`AuditLog.actorSummary`·`RoleGrant.decidedByOperator`·읽기전용·operator id/subject 키는 불변) — clinic 요약 임베드 패턴(#47) 재사용
       - device·clinic·target·operator 등 **모든 최근-변경 이력이 동일 AuditLog를 읽어 한 필드로 커버** · 스펙 PR GW #13009(spec-v1.0.62)·Console #13010(spec-v1.0.6) **둘 다 머지**
