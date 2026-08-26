@@ -83,7 +83,7 @@
     - **[Webhook 수신 유연화(catch-all)]** 외부(AXS 등)가 보내는 webhook을 **경로에 상관없이 수신** — 발신자는 전용 호스트(서브도메인)로 식별하고 URL 경로는 라우팅에 쓰지 않는다
       - **문제**: receiver가 고정 경로(`/v1/webhooks/{target}`)만 받아, 타겟이 자기 콜백 경로를 강제하면 못 받는다(404). 스펙은 원래 "경로 유연·호스트로 식별"인데 **구현이 더 엄격**했다
       - **대응**: 그 타겟 전용 호스트로 오는 **모든 경로의 POST를 수신**(catch-all)하고 호스트로 타겟을 식별. 표준 경로 `/v1/webhooks/{target}`는 등록 시 권장 기본값으로 유지(강제 아님). 메서드는 POST(webhook 표준·AXS 확정)·비-POST는 405. device 결정에 필요한 정보(전용 호스트·payload 추출 경로·org↔clinic 매핑)는 **전부 DB/설정**이라 경로 무관 수신이 안전·간단
-      - 스펙 PR GW #13076(spec-v1.0.68) **머지** · GW 구현 대기(receiver 라우트+식별을 호스트 우선으로·**GW 단독·Console 무관**)
+      - 스펙 PR GW #13076(spec-v1.0.68) **머지** · **GW 구현 완료**(PR #13081·T-WH-13-7·[risk:auth]): 표준 컨트롤러(OpenAPI 정본) 불변 + 별도 루트 catch-all 컨트롤러(임의 경로 POST + 비-POST 405)·HmacGuard 식별을 **정확한 `inbound_host`(@unique) 조회**로 전환(서브도메인 라벨=target_id 가정 제거 → inbound_host≠target_id 타겟도 커버·레지스트리 드리프트 fail-closed·독립리뷰 지적 반영)·path 라벨 있으면 교차확인. Prisma 0·payload 로직 0(URL 경로 미사용)·OpenAPI drift 0. unit/e2e 관통(다양 경로·비-POST 405·미등록 호스트 404·**receiver→dispatcher 전체 파이프라인**: org 매핑→올바른 clinic 분배·멱등·다중 타겟 호스트 선택·미매핑 dead_letter)·독립리뷰 🟢·스펙 delta 🟢. **GW 단독·Console 무관**
 
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
