@@ -211,6 +211,19 @@
 
     - 커버리지(merged·8/20): 전역 96.7 / 91.9 / 93.9 / 96.5 · 보안 도메인 98.5 / 96.0 / 100 / 98.4 · 핵심 보안파일 16개 각 100% — **CI floor 게이트 통과**.
 
+    - **남은 작업 — 전부 외부 선결(GW 코드는 feature-complete·코드로 앞당길 잔여 = 0)**
+
+      | Task | 남은 작업 | GW 상태 | 막는 것(루트 블로커) | 소유 |
+      | --- | --- | --- | --- | --- |
+      | **T-PLAT-0-7** | 마이그레이션 배포 Job | ✅ 이미지·인계 명세(#13020) | K8s Job+ArgoCD PreSync 배선 + **회신 3건**(org 템플릿 `--target`·배포스테이지·SHA 태그) | Jack/③-I |
+      | **T-DISP-9-5** | 실 IoT Core 프로비저닝 실증 | ✅ 어댑터·최소권한 policy·cert·enroll | 실 AWS IoT Core(Thing/policy·IRSA·endpoint) | ③-I |
+      | **T-E2E-12-6** | E2E webhook→IoT 다운링크 | ✅ 수신·dispatcher drain·멱등·주권 | 공개 ingress **+** 실 IoT Core | ③-I |
+      | **T-E2E-12-3** | 부하 실측 | ✅ 하네스·스크립트·파이프라인 초안(#13048) | test staging(실 SQS/EKS)·부하 EC2 | ③-I |
+      | **T-E2E-12-4** | HA/카오스 실측 | ✅ drain·RTO probe·loss-verify·파이프라인(#13022·#13048) | test staging·Multi-AZ·FIS **+ RTO/RPO 목표** | ③-I **+ PL** |
+      | **T-E2E-12-5** | 환자문서 order-file presign | ✅ create/download 실측 | 파일 붙은 lab order 시드 | Straumann |
+
+      - **최우선 블로커(회의에서 밀 것)**: ① **Entra 앱 등록**(IT-9442·마감 8/21 경과) — admin 미기동 → **dev 통합검증 전체 정체** · ② **test 환경 프로비저닝**(선결#5·마감 8/26) — 부하·HA 2건 동시 해제. **PL 결정 대기 = RTO/RPO 목표**(HA 합격기준). GW 즉시 처리 가능 잔여 = Jack 회신 3건 오면 마이그레이션 파이프라인 확정뿐.
+
   - **S4. GW Console(③-C) 현황 — Phase 요약 (8/27)** _(frontend · `vt-api-gateway-console` · Next 16 + Refine 5 + shadcn · GW Admin API 코드젠 소비)_
 
     | Phase | 범위 | 상태 |
@@ -226,7 +239,21 @@
     | **P7** 공통 UX·i18n·동시성·보안 | 세션만료·403·오류분류·stale-write·i18n·보안/a11y 게이트 | ✅ 완료(7/7) |
     | **P8** 실 e2e·배포 | Entra dev 전환·staging 실연동·baseline 승인·prod 배포 | 🔴 외부 선결(Entra·staging GW·CORS·도메인) |
 
-    - **GW 정합성 확인 진행 중**(실 GW 접목 전 완료 화면 포함 대조) · **잔여 `[manual]` 검증**(kill·break-glass·보안 실검사 = PL 1회 클릭) · 커버리지(unit+component·8/20): 전역 91.9 / 86.7 / 86.9 / 92.5 · 민감 로직 94.7 / 90.6 / 95.0 / 96.9 — **CI floor 통과**.
+    - 커버리지(unit+component·8/26): 전역 **91.2 / 86.0 / 85.5 / 92.2** — **CI floor 통과**(85/85/82/86). 테스트 **unit·component 1,164 · e2e 172 · a11y 27 · 시각회귀 17**(전부 차단 게이트).
+
+    - **남은 작업 — 전부 외부 선결(Console 코드로 앞당길 잔여 = 0)**
+
+      | Task | 남은 작업 | Console 상태 | 막는 것(루트 블로커) | 소유 |
+      | --- | --- | --- | --- | --- |
+      | **T-FE-8-1** | dev Entra 실 OIDC 전환·claim→역할 검증 | ✅ MSAL 실배선·env 스위치·`verify:entra` | **Entra 앱 등록 회신**(IT-9442) **+** admin API dev 기동 | IT/③-I |
+      | **T-FE-8-2** | test 환경 실 GW 핵심 여정 e2e | ✅ MSW 대체 커버 + 대체 스펙 문서화 | **test 환경**(선결#5) · CORS(C-3) · T-FE-8-1 | ③-I |
+      | **T-FE-9-17** | 목↔**실 GW** 응답 대조(2단계) | ✅ 목↔**계약** 대조 회귀 검사·갭 2건 수정(#13057) | **dev 재배포·재시드**(admin dev = 503 실측) | ③-I |
+      | **T-FE-8-4** | prod 배포 | ✅ 프리뷰 배포 파이프라인(S3+CloudFront) | **prod 도메인**(C-10) · ⚠ **무인 대상 제외**(사람이 실행) | PL/③-I |
+      | **`[manual]` 2건** | PHI 마스킹 잔존·devtools 저장소/CSP **실검사** | ✅ 자동 검사·체크리스트 완비 | **PL 1회 확인**(규제·법적 책임이라 자동화 불가) | PL |
+
+      - ✅ **이번 주 해소**: `[manual]` kill 클릭 검증 · 시각 baseline 미관 승인 **둘 다 PL 승인(8/26)** → T-FE-8-3 완료.
+      - **최우선 블로커**: ① **Entra 앱 등록**(IT-9442·마감 8/21 경과) — GW admin 미기동과 **같은 뿌리**라 Console 도 dev 실검증이 통째로 정체 ② **dev 재배포·재시드** — 계약(운영자 요약·clinic 임베드·config device-facing)은 **양쪽 다 머지됐는데 dev 에 안 떠 있어** 실화면 확인이 불가.
+
 
 - 이월 논의 사항 (계속)
 
