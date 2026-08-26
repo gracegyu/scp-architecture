@@ -75,10 +75,15 @@
       - **용어**: 코드·라이브러리가 모두 `toast` 라 문서도 **Toast 로 통일**한다(Snackbar 는 Material Design 용어).
       - **범위**: **Console 단독** — 계약·GW 영향 0건. SRS 미규정 항목이라 PL 제안으로 착수했고 IP 에 Task 등재.
 
-    - **[EzServer 온보딩 UX 개선]** EzServer 팀(Thomas·③-P-EZ) enrollment 흐름 정리 중 나온 두 요청 반영 — 계약 확정, GW 백엔드 구현 착수 예정
+    - **[EzServer 온보딩 UX 개선]** EzServer 팀(Thomas·③-P-EZ) enrollment 흐름 정리 중 나온 두 요청 반영 — **GW 백엔드 구현 완료**
       - **문제**: ① enroll 후 device가 **승인됐는지 알 수 있는 전용 API가 없어** 토큰 발급을 반복 시도(`/v1/auth/token`)해 떠보고 있었다 ② CS가 승인하러 가는 화면으로 **바로 가는 링크가 없어** "콘솔에서 승인하세요"로만 안내
       - **대응**: ① **승인 상태 조회 API 신설**(`/v1/enroll/status` — 자기 것만·승인 전에도 조회·토큰 남용 제거) + 토큰 응답도 "대기 중"과 "거부/중단"을 코드로 구분 ② **승인 화면 딥링크** — EzServer가 device 식별자로 GW Console 승인 큐로 바로 가는 링크 생성(리전 안내 목록에 Console 주소 추가해 자동 획득). 승인 화면·링크는 Console이 이미 구현 완료
-      - 스펙 PR GW #13069(spec-v1.0.67) **머지** · GW 백엔드 구현 대기(EzServer의 실제 연동·Console 주소 발행은 각각 EzServer 팀·인프라 몫으로 별개 진행)
+      - 스펙 PR GW #13069(spec-v1.0.67) **머지** · **GW 구현 완료**(PR #13074·T-ENR-13-6): `POST /v1/enroll/status`(self-only private_key_jwt·pending 동작·타 device 미반환·jti 1회 소비·미등록 404·감사 안 함) + `/v1/auth/token` 상태 코드화(pending→403 `authorization_pending`·rejected/revoked/suspended+denylist→403 `access_denied`·active만 발급). private_key_jwt 검증 SSOT 추출(토큰·상태조회 보안상수 공유)·denylist 검사를 서명 검증 뒤로 이동해 **pre-auth 상태 probing 누출 봉인**(부수 개선). Prisma 0·OpenAPI drift 0·unit/e2e 관통 회귀·독립리뷰 🟢·스펙 delta 🟢. EzServer 실제 연동·Console 주소(consoleHost) 발행은 각각 EzServer 팀·③-I 몫으로 별개 진행
+
+    - **[Webhook 수신 유연화(catch-all)]** 외부(AXS 등)가 보내는 webhook을 **경로에 상관없이 수신** — 발신자는 전용 호스트(서브도메인)로 식별하고 URL 경로는 라우팅에 쓰지 않는다
+      - **문제**: receiver가 고정 경로(`/v1/webhooks/{target}`)만 받아, 타겟이 자기 콜백 경로를 강제하면 못 받는다(404). 스펙은 원래 "경로 유연·호스트로 식별"인데 **구현이 더 엄격**했다
+      - **대응**: 그 타겟 전용 호스트로 오는 **모든 경로의 POST를 수신**(catch-all)하고 호스트로 타겟을 식별. 표준 경로 `/v1/webhooks/{target}`는 등록 시 권장 기본값으로 유지(강제 아님). 메서드는 POST(webhook 표준·AXS 확정)·비-POST는 405. device 결정에 필요한 정보(전용 호스트·payload 추출 경로·org↔clinic 매핑)는 **전부 DB/설정**이라 경로 무관 수신이 안전·간단
+      - 스펙 PR GW #13076(spec-v1.0.68) **머지** · GW 구현 대기(receiver 라우트+식별을 호스트 우선으로·**GW 단독·Console 무관**)
 
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
