@@ -33,8 +33,11 @@
       - **문제**: clinic·device·webhook 등 데이터가 **최대 몇 개까지 늘지 스펙에 정의가 없어**, 목록 스크롤·전량 드롭다운 위주의 UI로는 대량(clinic 10만·device 10만·**webhook 1억**·audit 100만 규모)을 효과적으로 관리할 수 없었다.
       - **대응**: 먼저 **최대 규모를 스펙·계약에 명시**(spec-v1.0.42~46)하고, 그 규모를 감당하도록 **검색형 선택기**(이름 부분검색·id 겸용)·**필터**(기간·상태·리소스 축)·**서버 집계 카드**(표본 카운트 대신 집계 EP)·**커서 페이지네이션 한계 표시**·**보존경계 안내**를 UI에 넣었다.
       - GW(인덱스 마이그레이션·이름검색 `q`·webhook 기간 커서 window·집계 EP 3종·수동 create) + Console(검색형 선택기·집계 카드·목록 규모 표시) 양쪽 구현 완료.
-    - **[부하/HA 테스트 계획]** `docs/qa/load-ha-test-plan.md` 초안 작성(테스트 대상·k6·시나리오·주입·부하 EC2·FIS 절차)
-      - 인프라 확정분(사이징·FIS·RTO/RPO)=Jack · test 인프라 구축 후
+    - **[부하/HA 테스트 — 계획 + 하네스 구현]** 계획서(`docs/qa/load-ha-test-plan.md`)뿐 아니라 **실행 하네스·스크립트·파이프라인 골격까지 GW 선제 구현** — 실측만 인프라 대기
+      - **부하 하네스**: k6 시나리오·seed·clean·프로파일·§5 threshold 인코딩(#12761 머지)
+      - **HA 측정 스크립트**: RTO probe(`ha:rto-probe`·복구시간)·loss-verify(`ha:loss-verify`·무유실·멱등) — 순수 로직 유닛 회귀(#13022 머지)
+      - **오케스트레이션 파이프라인 초안**(미등록·PR #13048): 부하(seed→k6→수집)·HA(probe→FIS 주입→RTO+무유실 검증)·프록시 부하용 더미 업스트림 배포(k8s) — ③-I 선결(self-hosted pool·변수그룹·FIS template·Multi-AZ) 후 등록·실행
+      - **실측(최종 완성)만 대기**: ③-I test staging(실 SQS/EKS·Multi-AZ·FIS)·부하 EC2·**RTO/RPO 목표 확정(PL 선결·HA 합격기준)**. 인프라 서면 골격 그대로 돌려 리포트→릴리스 게이트(E2E-SYS-08)
     - **[운영자 표시 개선]** 감사·"최근 변경 이력"·RBAC 화면에서 운영자를 **ID 대신 `이름 <이메일>`로 표시**
       - 운영자 참조 응답에 표시 요약 임베드(`AuditLog.actorSummary`·`RoleGrant.decidedByOperator`·읽기전용·operator id/subject 키는 불변) — clinic 요약 임베드 패턴(#47) 재사용
       - device·clinic·target·operator 등 **모든 최근-변경 이력이 동일 AuditLog를 읽어 한 필드로 커버** · 스펙 PR GW #13009(spec-v1.0.62)·Console #13010(spec-v1.0.6) **둘 다 머지**
@@ -43,10 +46,16 @@
       - **GW 구현 완료**(PR #13014·T-AUD-13-2) — `actorSummary`(audit 목록 페이지 배치조인·N+1 회피)·`decidedByOperator`(RBAC 목록 배치조인+grant/decide 단건) operator read-time 조인·Prisma 스키마 불변(read-time)·관통 회귀 unit/e2e·독립리뷰 🟢. Console(렌더 `이름 <이메일>`) 구현 진행.
       - **후속 발견**: 실 admin write 는 audit `actor`를 접두 없는 bare subject로 기록(spec `user:{sub}`와 불일치) — 이번 조인은 두 형식 모두 수용으로 흡수, actor 정규화는 **T-AUD-13-3**(Raymond A안·`user:{sub}` 통일)로 분리.
 
+    - **[화면 식별성 개선]** org-mapping 교정 화면·fleet(디바이스 현황) 목록에서 클리닉이 **32자 내부 ID로만** 보여 어느 클리닉인지 확인할 수 없던 문제 — 응답에 **클리닉 이름 요약을 임베드**해 화면이 이름으로 바로 식별(운영자 표시 개선과 같은 계열)
+      - 디바이스·설정·정책 화면에 이미 쓰던 **동일 임베드 방식** 재사용(신규 설계 아님·행별 2차 조회 N+1 방지) · org-mapping은 참조가 끊긴 경우 "클리닉을 찾을 수 없음"으로 안전 표기 · fleet은 대량(10만) 대응 위해 일괄 조인
+      - 스펙 PR GW #13032(spec-v1.0.65)·정정 #13039(v1.0.66·OrgMapping 하드 FK 서술) **머지** · Console 쪽(PL 지시)에서 발의
+      - **GW 구현 완료**(PR #13038·T-EMB-13-5) — OrgMapping.clinic·FleetState.clinic 요약 임베드(read-time 조인·페이지당 1회 배치=N+1 회피·FleetState 2홉/clinic-less null). Prisma 스키마/마이그레이션 0·관통 회귀 unit/e2e·독립리뷰 🟢. Console(clinic 이름 표시) 진행
+
     - **[정책(policy) v1.0 유보]** 연동 대상 정책의 **endpoint/scope 세분화 인가를 v1.0에서 집행하지 않기로** 정리 — **정책이 하나도 없으면 모든 프록시 통과(all-pass)**(이전 "허용 정책 ≥1개라야 통과"를 의도적으로 뒤집음)
       - **왜**: endpoint/scope는 코드에서도 미집행(예약)이었고, AXS가 Org-ID(데이터 격리)+consent(작업 권한)로 이미 인가하므로 GW 재구현은 중복·과설계. v1.0 보호선=**egress·PHI 리전·인증·AXS Org-ID는 그대로 집행**.
       - **Console 정책 편집은 "gw/1.1 지원 예정" 안내로**(편집 미노출·"설정했는데 안 걸리는" 침묵 오작동 방지). 정책 테이블·구조는 유지(DB 미변경)·gw/1.1에서 OPA 기반 재설계.
-      - 스펙 PR GW #13025(spec-v1.0.63)·Console #13026(spec-v1.0.8) **둘 다 머지** · GW(정책 없으면 통과로 flip)+Console(안내) 양쪽 구현 착수
+      - 스펙 PR GW #13025(spec-v1.0.63)·#13027(v1.0.64 scope 제외)·Console #13026(spec-v1.0.8) **머지**
+      - **GW 구현 완료**(PR #13029·T-PLCY-13-4·[risk:security]) — pdp coarse WHO 게이트 제거(early-return 아님·②리전→③egress 계속)·정책 0개여도 **egress·PHI 리전·인증 fail-closed 유지**·시드 정책 0개. 관통 회귀(정책 0개+egress 미충족→여전히 deny)·policy 테이블/CRUD/스키마 무변경·마이그레이션 0·전체 e2e 60/60 green·독립리뷰 🟢. Console(gw/1.1 안내·T-FE-9-11) 진행
 
     - **[작업 결과 알림(Toast)]** 저장·승인·삭제 결과가 화면에 뜨지 않던 문제 — **구현 진행 중**
       - **문제**: 운영자가 버튼을 눌러도 **됐는지 안 됐는지 알 수 없었다.** 실측하니 변경 동작 27곳 중 결과를 알리는 표시는 **7곳뿐**이고, 나머지는 목록이 새로 고쳐지는 것으로 **짐작해야** 했다. 실패는 더 나빴다 — 알림을 받는 배선이 아예 없어 **오류가 조용히 사라졌다.**
