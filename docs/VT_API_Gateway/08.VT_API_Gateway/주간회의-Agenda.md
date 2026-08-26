@@ -22,7 +22,15 @@
         | admin (운영자) | `http://localhost:3001/api-docs` | `/api-docs/yaml` · `/json` |
         | receiver (webhook 수신) | `http://localhost:3002/api-docs` | `/api-docs/yaml` · `/json` |
 
-      - **dev 한정 서빙** — 로컬(개발) 3앱 자동 on · 배포는 `NODE_ENV=production`이라 앱별 스위치(`GW_{ADMIN,CORE,RECEIVER}_OPENAPI_ENABLED`)로만 켜지며 **현재 dev/test는 admin만 on · sandbox·prod는 off**(계약 구조 노출 방지). 배포 dev admin 문서 = `https://admin.apne2.gw.dev.ezcld.net/api-docs`(admin 부팅 후)
+      - **dev 배포(실 dev) 서빙 URL** — 앱별 호스트·문서 on/off·현 상태:
+
+        | 앱 (계약) | dev 호스트 | `/api-docs` | 현 상태 |
+        | --- | --- | --- | --- |
+        | core (device·public) | `https://api.apne2.gw.dev.ezcld.net/api-docs` | **on 예정**(`GW_CORE_OPENAPI_ENABLED=true`) | ③-I가 dev/test env `true` 세팅 후 열림(현재 off) |
+        | admin (운영자·Console codegen 소스) | `https://admin.apne2.gw.dev.ezcld.net/api-docs` | **on**(`GW_ADMIN_OPENAPI_ENABLED=true`) | **admin 부팅 후 열림** · 현재 `no healthy upstream`=admin 미기동(Entra·[IT-9442] 대기·③-I #4) |
+        | receiver (webhook 수신) | `https://axs.webhook.apne2.gw.dev.ezcld.net/api-docs` | **on 예정**(`GW_RECEIVER_OPENAPI_ENABLED=true`) | ③-I가 dev/test env `true` 세팅 후 열림(현재 off) |
+
+      - **문서 서빙 정책(정정)** — 로컬(개발) 3앱 자동 on · 배포는 `NODE_ENV=production`이라 앱별 스위치(`GW_{ADMIN,CORE,RECEIVER}_OPENAPI_ENABLED`)로만 켜진다. **dev/test = 3앱 전부 on**(통합 편의·계약은 이미 파트너 공유·PHI 없음)·**sandbox·prod = off**(공개 무인증 엣지 노출 방지). 플래그·서빙 로직은 GW 코드에 **이미 존재**(impl 변경 없음) — dev/test에 core·receiver env `true` 주입만 ③-I 몫(전달 패킷 §8·admin은 이미 세팅). admin은 추가로 Entra 부팅(③-I #4)이 선결. core 호스트는 `api.apne2…`(≠`gw.apne2…`)·경로 `/api-docs`(오타 주의).
       - core·receiver·admin·target 전반 code-first 전환(구현 대부분 완료)
     - **[region-silo 잔재 정리]** 리전 완전분리(각 배포=한 리전) 전환의 잔재 제거 — 중앙 설정 스코프·감사 action·운영자 관리대상에서 "리전" 제거
       - **중앙 설정(config)**: 예전엔 리전별로 두고 동기화하려 했으나, 리전 스코프 제거로 **리전 간 config 동기화 자체가 불필요**해졌다(전역/클리닉/디바이스로 통일)
