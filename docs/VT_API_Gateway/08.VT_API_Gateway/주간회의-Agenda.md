@@ -1,6 +1,34 @@
 # VT API Gateway — 8/27 주간회의 Agenda
 
 - **이번 주 진행 (~8/27 회의) — 이번 주 완료·진행한 실제 작업**
+  - (결정) Straumann과 IO-Scanner 연동은 협상이 불투명하다.
+    - Straumann과 계약도 늦어질 것 같다.
+    - 그럼 IO-Scanner 촬영 데이터를 AXS에서 webhook으로 받는 것보다는 CleverOne에서 촬영한 데이터를 EzServer → GW → AXS로 연동하는 것이 먼저 되어야할 가능성이 높다.
+    - AXS연동보다 CleverSpace 등과 연동이 먼저 진행될 가능성도 크다.
+  - (결정) **8/31 월요일 데모**
+    - Straumann 에 연동하는 것을 보여준다.
+        - 연동 sequence diagram 을 보여준다.
+        - E2E test를 visual 하게 보여줄 방법을 검토한다. 전규현/ Raymond
+        - dev console 을 최신화한다.
+        - 데모 시나리오
+            - VT clinic 과 AXS clinic 이 연동한다.
+            - VT의 이미지가 AXS에 올라간다.
+            - 환자 정보, 2D 이미지를 사용한다.
+        - Raymond의 아이디어
+            - Entra는 아직 연동이 안되었지만, localhost처럼 dev도 Entra연동 없이 일단 실(DB) 데이터를 띄우도록 하자.
+            - Jack은 Migration pod를 지금 만들어 준다고 한다.
+            - 그럼 CleverOne에서 촬영하면 → EzServer → dev GW → AXS Sandbox로 전송하는 것을 Straumann 관련자에게 보여주면 되는데
+                - 이것을 가상으로 진행하면 된다.
+                - Trigger는 어디서 할 것인가? Raymond이 아니라 누구라도 클릭으로 시뮬레이션을 할려면 GW console이 좋다.
+                    - vs. pipeline or local script?
+                    - Trigger를 통해서, GW로 촬영이미지(파노라마 2D)가 유입되도록 하면 된다.
+                    - 이때 AXS sandbox에서 적당한 환자 정보도 파악해야 한다. 미리 파악해서 하드코딩
+                - 그리고 AXS에 저장된 것을 가져와서 보여준다.
+                    - 이것도 Console에 UI로 보여준다.
+                - 그럼 Console에 Demo 메뉴를 하나 만들어서.
+                    - “촬영 및 전송” 버튼을 누르면 dev GW → AXS sandbox로 전송하고, 전송완료 하면 그아래에 전송한 데이트 가져와서 보여주게 하는 것이 좋겠어.
+                    - 이때 local에 image하나 선택해서 전송하도록 하면 좋을 것 같아.
+            - 그럼 이를 위한 Demo OnePager를 만들어서 진행하면 좋겠어.
 
   - **진행률(구현 스냅샷)**
     - **GW 백엔드 ≈ 93%**(8/26 재평가 · Task **90/96 완료**) — v1.0 계획 기능 **구현 완결** · 마무리 = 개발 통합·검증
@@ -98,6 +126,11 @@
       - **대응**: 그 타겟 전용 호스트로 오는 **모든 경로의 POST를 수신**(catch-all)하고 호스트로 타겟을 식별. 표준 경로 `/v1/webhooks/{target}`는 등록 시 권장 기본값으로 유지(강제 아님). 메서드는 POST(webhook 표준·AXS 확정)·비-POST는 405. device 결정에 필요한 정보(전용 호스트·payload 추출 경로·org↔clinic 매핑)는 **전부 DB/설정**이라 경로 무관 수신이 안전·간단
       - 스펙 PR GW #13076(spec-v1.0.68) **머지** · **GW 구현 완료**(PR #13081·T-WH-13-7·[risk:auth]): 표준 컨트롤러(OpenAPI 정본) 불변 + 별도 루트 catch-all 컨트롤러(임의 경로 POST + 비-POST 405)·HmacGuard 식별을 **정확한 `inbound_host`(@unique) 조회**로 전환(서브도메인 라벨=target_id 가정 제거 → inbound_host≠target_id 타겟도 커버·레지스트리 드리프트 fail-closed·독립리뷰 지적 반영)·path 라벨 있으면 교차확인. Prisma 0·payload 로직 0(URL 경로 미사용)·OpenAPI drift 0. unit/e2e 관통(다양 경로·비-POST 405·미등록 호스트 404·**receiver→dispatcher 전체 파이프라인**: org 매핑→올바른 clinic 분배·멱등·다중 타겟 호스트 선택·미매핑 dead_letter)·독립리뷰 🟢·스펙 delta 🟢. **GW 단독·Console 무관**
 
+    - **[④ Straumann AXS 연동 스펙(Sub-SRS) 집필]** AXS 연동의 요구사항 문서를 채움 — **새 개발이 아니라 문서 catch-up**
+      - **배경**: AXS 실연동(주문·환자·파일 전송)은 이미 구현·sandbox 검증 완료(8월). 그런데 연동의 "요구사항 문서"(④ Sub-SRS)는 자리표시자만 있고 비어 있었다 — 의료 제품 추적성(controlled 문서)상 채워야 할 공백.
+      - **핵심 판단**: GW는 AXS를 **연동 대상으로 등록만 하면** 범용 연동 레일(인증 토큰 관리·프록시·webhook 수신)이 그대로 처리하도록 이미 설계돼 있어(코드에 AXS 전용 로직 0), **추가 개발이 없다.** 문서는 그 등록 값과 AXS 고유 절차(로그인 방식·조직↔클리닉 연결·동의 대기·webhook 이벤트 종류·파일 업/다운로드 차이·리전)만 **얇게** 담았다(상위 GW 스펙과 중복 없이 참조).
+      - 스펙 PR GW #13163(spec-v1.0.69) **머지** · **GW 구현 작업 없음**(연동은 이미 동작). 잔여 실 연동값(운영 자격 등)은 계약(NDA) 후 인프라가 주입.
+
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
@@ -109,6 +142,7 @@
 - 논의 사항 (이번 주 · 신규 · R#)
   - _(회의 중 신규 논의/결정 안건 발생 시 **R1·R2…** 로 추가 · 선결·보류는 아래 「이월 논의 사항」 표.)_
   - **[R1] dev 에뮬레이션 테스트 — 지금 투자할지 결정**
+    - (결정) 진행한다. 9월에 Jack과 협력하여 진행한다.
     - **안건**: EzServer(엣지·MQTT 구독)가 빨라도 **~1개월 후**(ETA 확인 필요) 준비되는데, 그 전에 dev 실환경 **배포·통합 검증**을 앞당기려면 테스트 더블을 dev에 얹는 에뮬 테스트가 필요하다. **③-I 배선 투자**가 걸려 회의 결정 안건으로 올린다.
     - **중복 투자 아님**: 에뮬 = **배포·통합** 검증(설정 주입·DNS/ingress·TLS·마이그레이션·pod 간) / 실 테스트 = **실 상대 고유 거동**(실 IoT mTLS·실 EzServer). 다른 층이라 **분업**이지 중복이 아니다. 배관은 한 번 검증하면 **더블→실물 교체만**(재작업 아님).
     - **하는 이득**: GW feature-complete·**유휴 대기 ~1달을 de-risk로 전환** · 이미 dev에서 만난 **배포-class 결함**(admin 미기동·dev DB 테이블 미생성) 선차감 · EzServer 도착 시 **통합 며칠로 단축**.
@@ -207,10 +241,11 @@
         ② CleverOne팀(Nick) 상세       :active, copr, after cosub, 56d
         ③ baseline                     :milestone, cobl, after copr, 0d
 
-        section ④ AXS 연동 프로파일 (경량 스펙·구현=GW 2단계 P7)
+        section ④ AXS 연동 (실연동=GW P7 완료 · ④ Sub-SRS=경량 후속 문서)
         AXS PPR sandbox 자격 확보(8/11) :done, cred, 2026-08-11, 1d
-        연동 프로파일 정리             :axsw, after cred, 14d
-        프로파일 확정                  :milestone, axsbl, after axsw, 0d
+        AXS 실연동 구현·sandbox e2e green(P7) :done, axsimpl, 2026-08-11, 2026-08-24
+        실연동 완료(sandbox 커버)      :milestone, done, axsdone, 2026-08-24, 0d
+        ④ Sub-SRS 경량 문서(완료 8/27·spec-v1.0.69) :done, axssub, 2026-08-27, 1d
         AXS prod 자격(NDA 후·선결)     :crit, credp, 2026-08-18, 21d
 
         section ③-C GW Console — v1.0 (frontend·별도 repo·P0~P6 완료·P7 6/7·P8=외부 선결)
