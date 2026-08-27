@@ -1,4 +1,4 @@
-# VT API Gateway — 8/27 주간회의 Agenda
+# VT API Gateway — 9/3 주간회의 Agenda
 
 - **이번 주 진행 (~8/27 회의) — 이번 주 완료·진행한 실제 작업**
   - (결정) Straumann과 IO-Scanner 연동은 협상이 불투명하다.
@@ -7,28 +7,28 @@
     - AXS연동보다 CleverSpace 등과 연동이 먼저 진행될 가능성도 크다.
   - (결정) **8/31 월요일 데모**
     - Straumann 에 연동하는 것을 보여준다.
-        - 연동 sequence diagram 을 보여준다.
-        - E2E test를 visual 하게 보여줄 방법을 검토한다. 전규현/ Raymond
-        - dev console 을 최신화한다.
-        - 데모 시나리오
-            - VT clinic 과 AXS clinic 이 연동한다.
-            - VT의 이미지가 AXS에 올라간다.
-            - 환자 정보, 2D 이미지를 사용한다.
-        - Raymond의 아이디어
-            - Entra는 아직 연동이 안되었지만, localhost처럼 dev도 Entra연동 없이 일단 실(DB) 데이터를 띄우도록 하자.
-            - Jack은 Migration pod를 지금 만들어 준다고 한다.
-            - 그럼 CleverOne에서 촬영하면 → EzServer → dev GW → AXS Sandbox로 전송하는 것을 Straumann 관련자에게 보여주면 되는데
-                - 이것을 가상으로 진행하면 된다.
-                - Trigger는 어디서 할 것인가? Raymond이 아니라 누구라도 클릭으로 시뮬레이션을 할려면 GW console이 좋다.
-                    - vs. pipeline or local script?
-                    - Trigger를 통해서, GW로 촬영이미지(파노라마 2D)가 유입되도록 하면 된다.
-                    - 이때 AXS sandbox에서 적당한 환자 정보도 파악해야 한다. 미리 파악해서 하드코딩
-                - 그리고 AXS에 저장된 것을 가져와서 보여준다.
-                    - 이것도 Console에 UI로 보여준다.
-                - 그럼 Console에 Demo 메뉴를 하나 만들어서.
-                    - “촬영 및 전송” 버튼을 누르면 dev GW → AXS sandbox로 전송하고, 전송완료 하면 그아래에 전송한 데이트 가져와서 보여주게 하는 것이 좋겠어.
-                    - 이때 local에 image하나 선택해서 전송하도록 하면 좋을 것 같아.
-            - 그럼 이를 위한 Demo OnePager를 만들어서 진행하면 좋겠어.
+      - 연동 sequence diagram 을 보여준다.
+      - E2E test를 visual 하게 보여줄 방법을 검토한다. 전규현/ Raymond
+      - dev console 을 최신화한다.
+      - 데모 시나리오
+        - VT clinic 과 AXS clinic 이 연동한다.
+        - VT의 이미지가 AXS에 올라간다.
+        - 환자 정보, 2D 이미지를 사용한다.
+      - Raymond의 아이디어
+        - Entra는 아직 연동이 안되었지만, localhost처럼 dev도 Entra연동 없이 일단 실(DB) 데이터를 띄우도록 하자.
+        - Jack은 Migration pod를 지금 만들어 준다고 한다.
+        - 그럼 CleverOne에서 촬영하면 → EzServer → dev GW → AXS Sandbox로 전송하는 것을 Straumann 관련자에게 보여주면 되는데
+          - 이것을 가상으로 진행하면 된다.
+          - Trigger는 어디서 할 것인가? Raymond이 아니라 누구라도 클릭으로 시뮬레이션을 할려면 GW console이 좋다.
+            - vs. pipeline or local script?
+            - Trigger를 통해서, GW로 촬영이미지(파노라마 2D)가 유입되도록 하면 된다.
+            - 이때 AXS sandbox에서 적당한 환자 정보도 파악해야 한다. 미리 파악해서 하드코딩
+          - 그리고 AXS에 저장된 것을 가져와서 보여준다.
+            - 이것도 Console에 UI로 보여준다.
+          - 그럼 Console에 Demo 메뉴를 하나 만들어서.
+            - “촬영 및 전송” 버튼을 누르면 dev GW → AXS sandbox로 전송하고, 전송완료 하면 그아래에 전송한 데이트 가져와서 보여주게 하는 것이 좋겠어.
+            - 이때 local에 image하나 선택해서 전송하도록 하면 좋을 것 같아.
+        - 그럼 이를 위한 Demo OnePager를 만들어서 진행하면 좋겠어.
 
   - **진행률(구현 스냅샷)**
     - **GW 백엔드 ≈ 93%**(8/26 재평가 · Task **90/96 완료**) — v1.0 계획 기능 **구현 완결** · 마무리 = 개발 통합·검증
@@ -52,10 +52,10 @@
       - 문서 서빙 앱 3개(core·admin·receiver)가 각자 포트에서 `/api-docs`(UI)+raw(`/api-docs/yaml`·`/json`) 서빙 · dispatcher(:3003)는 HTTP API 없어 없음 · admin 문서 = Console codegen 소스
       - **로컬 서빙 URL**:
 
-        | 앱 (계약) | 문서 UI | raw 파일 |
-        | --- | --- | --- |
-        | core (device·public) | `http://localhost:3000/api-docs` | `/api-docs/yaml` · `/json` |
-        | admin (운영자) | `http://localhost:3001/api-docs` | `/api-docs/yaml` · `/json` |
+        | 앱 (계약)               | 문서 UI                          | raw 파일                   |
+        | ----------------------- | -------------------------------- | -------------------------- |
+        | core (device·public)    | `http://localhost:3000/api-docs` | `/api-docs/yaml` · `/json` |
+        | admin (운영자)          | `http://localhost:3001/api-docs` | `/api-docs/yaml` · `/json` |
         | receiver (webhook 수신) | `http://localhost:3002/api-docs` | `/api-docs/yaml` · `/json` |
 
       - **dev 배포(실 dev) 서빙 URL** — 앱별 호스트·문서 on/off·현 상태:
@@ -68,6 +68,7 @@
 
       - **문서 서빙 정책(정정)** — 로컬(개발) 3앱 자동 on · 배포는 `NODE_ENV=production`이라 앱별 스위치(`GW_{ADMIN,CORE,RECEIVER}_OPENAPI_ENABLED`)로만 켜진다. **dev/test = 3앱 전부 on**(통합 편의·계약은 이미 파트너 공유·PHI 없음)·**sandbox·prod = off**(공개 무인증 엣지 노출 방지). 플래그·서빙 로직은 GW 코드에 **이미 존재**(impl 변경 없음) — dev/test에 core·receiver env `true` 주입만 ③-I 몫(전달 패킷 §8·admin은 이미 세팅). admin은 추가로 Entra 부팅(③-I #4)이 선결. core 호스트는 `api.apne2…`(≠`gw.apne2…`)·경로 `/api-docs`(오타 주의).
       - core·receiver·admin·target 전반 code-first 전환(구현 대부분 완료)
+
     - **[region-silo 잔재 정리]** 리전 완전분리(각 배포=한 리전) 전환의 잔재 제거 — 중앙 설정 스코프·감사 action·운영자 관리대상에서 "리전" 제거
       - **중앙 설정(config)**: 예전엔 리전별로 두고 동기화하려 했으나, 리전 스코프 제거로 **리전 간 config 동기화 자체가 불필요**해졌다(전역/클리닉/디바이스로 통일)
       - 정당한 리전 사용처(배포 상수·호스트 라벨·데이터 주권·운영자 역할)는 유지 · 스펙 정리 완료·코드 반영 진행
@@ -182,7 +183,6 @@
   > **[③-I 요청 전달 감사 — 2026-08-26]** "문서에 선결로 적혀 있다 ≠ Jack에게 전달됨." 두 추적 표를 훑어 GW handoff 7종 전부 **결과 Form·전달 흔적 0** 확인(작성 ≠ 전달). 전달 흔적 없는 항목(③-I #8·GW선결 #1·#2·#4 + Console CloudFront 헤더 4-tier·사내 접근제한[8/19 회신서 누락 변종])을 **handoff + 결과 Form 단일 전달 패킷**([pending-infra-requests.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/pending-infra-requests.md&version=GBmain)·GW repo·초안)으로 묶음. **전달 주체 = Raymond**(PL 지시). 이후 모든 ③-I 요청은 handoff+Form으로 전달하고 회신을 이 표에 일자·산출물로 기록(재발 방지). 모범 = 마이그레이션 인계(#13020).
 
 - 공유 사항 (결정 아님 · 논의사항인지 애매한 것을 임의 결정해 공유 · 매주 상시)
-
   - **webhook payload 보존·아카이브 방식(gw/1.1)** — 무한 누적되는 webhook payload(PHI·KMS 암호문) 관리 방식을 임의로 결정해 공유: **리전 로컬 S3 아카이브 후 삭제**(파티셔닝 미채택)·무인 K8s CronJob(시간 기준)·export→검증→배치삭제·잡 단위 감사·tombstone 없음. SRS §7.6.9에 설계 골격+다이어그램 반영(gw/1.1·v1.0=저볼륨 미구현·알람만). 확정 필요 값(리전별 ① DB 잔존 기간 ② S3 보관 기간·+가동 임계값)은 법무 의존이라 **이월 논의 #15**에서 추적(Appendix B #5·#36).
 
   - **S1. 프로젝트 일정(Gantt) — 8/27 스냅샷**
@@ -265,7 +265,7 @@
       | 제품 | 1단계(호환성) | 2단계(presigned) | 3단계(GW 일원화) | 4단계(멀티리전) | 5단계(Straumann) | 스펙 산출물 |
       | --- | --- | --- | --- | --- | --- | --- |
       | **CleverSpace** | 🟡 버전체크·well-known·오류코드 | 🟡 presigned 발급 API | 🟡 GW 경유 수신 | ⬜ 멀티 Region | — | 🟢 ③-P-CS OnePager 인계(#12239·Larry 검토) |
-      | **CleverOne** | 🟡 Vatech-* 헤더·fallback | 🟡 presigned 이용 | 🟡 Direct→GW 경유 | ⬜ Region 선택·ClinicID | — | 🟢 ③-P-CO OnePager 인계(SharePoint·Nick 검토) |
+      | **CleverOne** | 🟡 Vatech-\* 헤더·fallback | 🟡 presigned 이용 | 🟡 Direct→GW 경유 | ⬜ Region 선택·ClinicID | — | 🟢 ③-P-CO OnePager 인계(SharePoint·Nick 검토) |
       | **EzServer(EZ)** | 🟡 헤더 대리 전달 | 🟡 전송 로직(presigned) | 🟡 GW 경유 전환 | 🟡 ClinicID·Region·등록 | 🟡 AXS(갈래A)·presigned 직접 | 🟡 ③-P-EZ OnePager 초안(Raymond→Teddy) |
       | **CleverLab** | — | — | — | — | ⬜ AXS 오더·확정(갈래B) | ④ Sub-SRS(갈래B·보류) |
       | **VatechAPIGateway** | 🟢 호환 게이트(§7.7) | 🟢 presigned 중계(§4.1.4) | 🟢 본체·라우팅·인증·호환 | 🟢 리전 라벨·Region Directory·HA | ⬜ AXS OAuth·Org-ID·온보딩·고정IP | ③ SRS ✅ baseline · **현행 `spec-v1.0.41`** |
@@ -296,7 +296,6 @@
     | **P12** 잔여 | 12-6 인바운드+MQTT(③-I ingress+실 IoT) · 12-3 부하 실측(하네스 완료·③-I test) · 12-4 HA(③-I Multi-AZ) | 🔴 외부 선결 |
     | **P9-5** 실 IoT 프로비저닝 | (a) 코드 완료(어댑터·mock) · (b) 실 IoT Core mTLS 실증 | ◑ (a)완료·(b)③-I |
     | **P0-5** 자동배포(CD) | ECR/ArgoCD·main→DEV·tag→TEST/PROD | 🔴 ③-I |
-
     - 커버리지(merged·8/20): 전역 96.7 / 91.9 / 93.9 / 96.5 · 보안 도메인 98.5 / 96.0 / 100 / 98.4 · 핵심 보안파일 16개 각 100% — **CI floor 게이트 통과**.
 
     - **남은 작업 — 전부 외부 선결(GW 코드는 feature-complete·코드로 앞당길 잔여 = 0)**
@@ -309,7 +308,6 @@
       | **T-E2E-12-3** | 부하 실측 | ✅ 하네스·스크립트·파이프라인 초안(#13048) | test staging(실 SQS/EKS)·부하 EC2 | ③-I |
       | **T-E2E-12-4** | HA/카오스 실측 | ✅ drain·RTO probe·loss-verify·파이프라인(#13022·#13048) | test staging·Multi-AZ·FIS **+ RTO/RPO 목표** | ③-I **+ PL** |
       | **T-E2E-12-5** | 환자문서 order-file presign | ✅ create/download 실측 | 파일 붙은 lab order 시드 | Straumann |
-
       - **최우선 블로커(회의에서 밀 것)**: ① **Entra 앱 등록**(IT-9442·마감 8/21 경과) — admin 미기동 → **dev 통합검증 전체 정체** · ② **test 환경 프로비저닝**(선결#5·마감 8/26) — 부하·HA 2건 동시 해제. **PL 결정 대기 = RTO/RPO 목표**(HA 합격기준). GW 즉시 처리 가능 잔여 = Jack 회신 3건 오면 마이그레이션 파이프라인 확정뿐.
 
   - **S4. GW Console(③-C) 현황 — Phase 요약 (8/27)** _(frontend · `vt-api-gateway-console` · Next 16 + Refine 5 + shadcn · GW Admin API 코드젠 소비)_
@@ -326,7 +324,6 @@
     | **P6** fleet·config·매트릭스·감사 | 대시보드·SW 인벤토리·중앙 config·매트릭스 뷰어·감사(리소스 축) | ✅ 완료 |
     | **P7** 공통 UX·i18n·동시성·보안 | 세션만료·403·오류분류·stale-write·i18n·보안/a11y 게이트 | 🟡 **6/7**(T-FE-7-6 보안 리뷰 — **배포 헤더만 잔여**·③-I) |
     | **P8** 실 e2e·배포 | Entra dev 전환·staging 실연동·baseline 승인·prod 배포 | 🔴 외부 선결(Entra·staging GW·CORS·도메인) |
-
     - 커버리지(unit+component·8/26): 전역 **91.2 / 86.0 / 85.5 / 92.2** — **CI floor 통과**(85/85/82/86). 테스트 **unit·component 1,164 · e2e 172 · a11y 27 · 시각회귀 17**(전부 차단 게이트).
 
     - **남은 작업 — 전부 외부 선결(Console 코드로 앞당길 잔여 = 0)**
@@ -338,9 +335,7 @@
       | **T-FE-9-17** | 목↔**실 GW** 응답 대조(2단계) | ✅ 목↔**계약** 대조 회귀 검사·갭 2건 수정(#13057) | **dev 재배포·재시드**(admin dev = 503 실측) | ③-I |
       | **T-FE-8-4** | prod 배포 | ✅ 프리뷰 배포 파이프라인(S3+CloudFront) | **prod 도메인**(C-10) · ⚠ **무인 대상 제외**(사람이 실행) | PL/③-I |
       | **T-FE-7-6** | 배포 헤더(CSP·nosniff·Referrer-Policy·HSTS) | ✅ **8/26 실측 — 전부 부재**(`curl` 로 판정·사람 불요) | **CloudFront response headers policy 미배선** | ③-I |
-
       - **최우선 블로커**: ① **Entra 앱 등록**(IT-9442·마감 8/21 경과) — GW admin 미기동과 **같은 뿌리**라 Console 도 dev 실검증이 통째로 정체 ② **dev 재배포·재시드** — 계약(운영자 요약·clinic 임베드·config device-facing)은 **양쪽 다 머지됐는데 dev 에 안 떠 있어** 실화면 확인이 불가.
-
 
 - 이월 논의 사항 (계속)
 
