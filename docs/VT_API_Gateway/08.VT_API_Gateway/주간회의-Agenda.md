@@ -36,7 +36,7 @@
       - **마무리 조건 = 개발 통합·검증** — ③-I 실 인프라 위 실측을 통과해야 완료로 셈
       - ⚠ **남은 6건이 전부 외부 선결** — 코드가 안 써진 게 아니라 실환경이 없어 확인을 못 함(③-I 인프라 5[마이그레이션 Job·IoT Core·공개 ingress·부하 staging·HA Multi-AZ] · Straumann lab order 시드 1 · PL RTO/RPO 목표 1)
       - **GW 코드로 앞당길 잔여 = 0**
-    - **GW Console ≈ 92%**(8/26 재평가 · Task **61/67 완료** · 부분 4 · 미착수 2)
+    - **[GW Console](https://console.gw.dev.ezcld.net) ≈ 92%**(8/26 재평가 · Task **61/67 완료** · 부분 4 · 미착수 2) · [dev console 열기](https://console.gw.dev.ezcld.net)
       - P0~P6 완료 · **P7 6/7** · **P9 13/15** · P8 1/4
       - ⚠ **남은 6건이 전부 외부 선결** — 코드가 안 써진 게 아니라 **실환경이 없어 확인을 못 한다**(Entra 앱 등록·dev 재배포·test 환경·prod 도메인·CloudFront 헤더). **Console 코드로 앞당길 잔여 = 0**
       - **성격 셋** — 통합 검증 3(`8-1`·`8-2`·`9-17`) · 남의 작업 2(`7-6` ③-I 배선 · `8-4` PL 배포) · 내부 조사 1(`9-13` 플레이크)
@@ -156,7 +156,7 @@
   | # | 요청 | 수신 | dev | prod |
   | --- | --- | --- | --- | --- |
   | 1 | Region Directory 호스팅 | ③-I | ✅ publish(8/18·`regions.gw.dev.ezcld.net`) | ☐ 도메인 후 |
-  | 2 | GW Console dev 호스팅(`console.gw.dev.ezcld.net`) | ③-I | ✅ 개통(8/19·CD 파이프라인·딥링크 rewrite) | ☐ 도메인 후 |
+  | 2 | GW Console dev 호스팅([console.gw.dev.ezcld.net](https://console.gw.dev.ezcld.net)) | ③-I | ✅ 개통(8/19·CD 파이프라인·딥링크 rewrite) | ☐ 도메인 후 |
   | 3 | **dev GW 백엔드 배포·env 주입**(`DATABASE_URL`[공용 `common-dev-db`·`gw` DB·apne2]·`REDIS_URL`·`GW_REGION`=apne2·AWS **Pod Identity**·`NODE_ENV` 차트 주입) | ③-I | 🟠 core·receiver·dispatcher **✅ 기동** · admin=Entra 대기 | ☐ |
   | 4 | **운영자 Entra 앱 등록**(GW Admin API + Console SPA·2앱·PKCE) | IT·③-I | 🟠 **진행중 · [IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)**(Jack 입력·절차·회신 양식 제공 완료)·마감 8/21 경과·**admin 부팅 선결** | ☐ 도메인 후 |
   | 5 | **env-reference 환경별 값 채움**(test·sandbox·prod endpoint·호스트·리전) | ③-I | ✅ dev · ☐ test/sandbox/prod | ☐ |
