@@ -49,12 +49,12 @@
       - **문제**: clinic·device·webhook 등 데이터가 **최대 몇 개까지 늘지 스펙에 정의가 없어**, 목록 스크롤·전량 드롭다운 위주의 UI로는 대량(clinic 10만·device 10만·**webhook 1억**·audit 100만 규모)을 효과적으로 관리할 수 없었다.
       - **대응**: 먼저 **최대 규모를 스펙·계약에 명시**(spec-v1.0.42~46)하고, 그 규모를 감당하도록 **검색형 선택기**(이름 부분검색·id 겸용)·**필터**(기간·상태·리소스 축)·**서버 집계 카드**(표본 카운트 대신 집계 EP)·**커서 페이지네이션 한계 표시**·**보존경계 안내**를 UI에 넣었다.
       - GW(인덱스 마이그레이션·이름검색 `q`·webhook 기간 커서 window·집계 EP 3종·수동 create) + Console(검색형 선택기·집계 카드·목록 규모 표시) 양쪽 구현 완료.
-    - **[부하/HA 테스트 — 계획 + 하네스 구현]** 계획서([`docs/qa/load-ha-test-plan.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/qa/load-ha-test-plan.md))뿐 아니라 **실행 하네스·스크립트·파이프라인 골격까지 GW 선제 구현** — 실측만 인프라 대기
+    - **[부하/HA 테스트 — 계획 + 하네스 구현]** 계획서([docs/qa/load-ha-test-plan.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/qa/load-ha-test-plan.md&version=GBmain))뿐 아니라 **실행 하네스·스크립트·파이프라인 골격까지 GW 선제 구현** — 실측만 인프라 대기
       - **부하 하네스**: k6 시나리오·seed·clean·프로파일·§5 threshold 인코딩(#12761 머지)
       - **HA 측정 스크립트**: RTO probe(`ha:rto-probe`·복구시간)·loss-verify(`ha:loss-verify`·무유실·멱등) — 순수 로직 유닛 회귀(#13022 머지)
       - **오케스트레이션 파이프라인 초안**(미등록·PR #13048): 부하(seed→k6→수집)·HA(probe→FIS 주입→RTO+무유실 검증)·프록시 부하용 더미 업스트림 배포(k8s) — ③-I 선결(self-hosted pool·변수그룹·FIS template·Multi-AZ) 후 등록·실행
       - **실측(최종 완성)만 대기**: ③-I test staging(실 SQS/EKS·Multi-AZ·FIS)·부하 EC2·**RTO/RPO 목표 확정(PL 선결·HA 합격기준)**. 인프라 서면 골격 그대로 돌려 리포트→릴리스 게이트(E2E-SYS-08)
-    - **[dev 에뮬레이션 테스트 계획]** [`docs/qa/dev-emulation-test-plan.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/qa/dev-emulation-test-plan.md) 작성(PR #13066)
+    - **[dev 에뮬레이션 테스트 계획]** [docs/qa/dev-emulation-test-plan.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/qa/dev-emulation-test-plan.md&version=GBmain) 작성(PR #13066)
       - **왜 필요한가** — 지금까지의 검증은 개발자 로컬에서 도는 자동 테스트로 **로직·계약을 증명**한다. 그러나 **실제로 배포된 시스템이 dev 환경에서 통합 동작하는지는 별개 문제**다(설정 주입·DNS/ingress·TLS·서비스 간 통신·DB 마이그레이션 등 배포 배관). 실 외부 상대(EzServer·실 IoT Core·AXS 공개 ingress)가 아직 준비 안 됐어도, **없는 상대는 테스트 더블로 대신**해 배포된 dev 시스템의 통합 왕복을 **며칠 내 빠르게** 확인하는 fast-path를 미리 준비한 것이다.
       - **로컬 자동 테스트가 이미 커버(로직·계약)**: e2e **63 스위트/642** green — 온보딩(enroll→승인→토큰)·webhook 전구간(AXS→수신→분배→클리닉 MQTT)·catch-all·kill-switch·RBAC 등. 단 실 미들웨어 컨테이너 + 외부 상대 더블 8종으로 **한 머신 안(in-process)** 검증이라, **실 배포·실 네트워크·실 설정 주입은 확인하지 못한다**.
       - **dev 에뮬이 추가로 커버(배포·통합)**: 실제 컨테이너 이미지를 dev 클러스터에 올려 배포 배관이 맞물리는지 확인 — 로컬에선 안 드러나는 **배포 문제**(실제로 dev에서 admin 미기동·DB 테이블 미생성 등이 관측됐다)를 잡는다. 없는 외부 상대(EzServer·실 IoT·공개 ingress)만 더블로 채운다.
@@ -112,7 +112,7 @@
     - **안건**: EzServer(엣지·MQTT 구독)가 빨라도 **~1개월 후**(ETA 확인 필요) 준비되는데, 그 전에 dev 실환경 **배포·통합 검증**을 앞당기려면 테스트 더블을 dev에 얹는 에뮬 테스트가 필요하다. **③-I 배선 투자**가 걸려 회의 결정 안건으로 올린다.
     - **중복 투자 아님**: 에뮬 = **배포·통합** 검증(설정 주입·DNS/ingress·TLS·마이그레이션·pod 간) / 실 테스트 = **실 상대 고유 거동**(실 IoT mTLS·실 EzServer). 다른 층이라 **분업**이지 중복이 아니다. 배관은 한 번 검증하면 **더블→실물 교체만**(재작업 아님).
     - **하는 이득**: GW feature-complete·**유휴 대기 ~1달을 de-risk로 전환** · 이미 dev에서 만난 **배포-class 결함**(admin 미기동·dev DB 테이블 미생성) 선차감 · EzServer 도착 시 **통합 며칠로 단축**.
-    - **비용·규모**: 방식 A(in-cluster)·**추천 2 파드**(mosquitto 상주 + 시나리오 runner Job). ③-I는 클러스터 apply + 임시 mosquitto. **runner 한 파드가 드라이브·구독·결과 확인·단일 JUnit 리포트를 다 함**(로컬 e2e 동형·결과 수집 단순). 상세=[`docs/qa/dev-emulation-test-plan.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/qa/dev-emulation-test-plan.md).
+    - **비용·규모**: 방식 A(in-cluster)·**추천 2 파드**(mosquitto 상주 + 시나리오 runner Job). ③-I는 클러스터 apply + 임시 mosquitto. **runner 한 파드가 드라이브·구독·결과 확인·단일 JUnit 리포트를 다 함**(로컬 e2e 동형·결과 수집 단순). 상세=[docs/qa/dev-emulation-test-plan.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/qa/dev-emulation-test-plan.md&version=GBmain).
     - **못 닫는 것**: 실 IoT Core per-device mTLS 보안 실증은 임시 mosquitto로 대체 불가 — **별개 게이트**(에뮬은 전체 대체 아님).
     - **GW 권고 = Conditional GO** — 유휴 1달을 de-risk로 쓰는 이득이 크다. **결정 필요**: (a) EzServer ETA 확정 (b) ③-I 여력 (c) go/no-go.
 
@@ -135,17 +135,17 @@
   | # | 선결 항목 | 소유 | dev | prod |
   | --- | --- | --- | --- | --- |
   | 1 | 공개 ingress(AXS→GW webhook 수신) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §1(handoff+Form 준비) | ☐ |
-  | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §2(handoff=[iot-authz-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/[`docs/handoff/iot-authz-infra.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/iot-authz-infra.md))·Form) | ☐ |
+  | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §2(handoff=[docs/handoff/iot-authz-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/iot-authz-infra.md&version=GBmain)·Form) | ☐ |
   | 3 | 자동배포 파이프라인(main→DEV·tag→TEST/PROD) | ③-I | 🟠 dev 배포 됨(3앱) · 자동화·tag→TEST/PROD 잔여(Jack Azure Flow 템플릿→ECR/ArgoCD) | ☐ |
-  | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §3(handoff=[compat-matrix-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/[`docs/handoff/compat-matrix-infra.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/compat-matrix-infra.md))·Form) | ☐ |
+  | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §3(handoff=[docs/handoff/compat-matrix-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/compat-matrix-infra.md&version=GBmain)·Form) | ☐ |
   | 5 | **test 환경 프로비저닝**(별도 인프라·GW=infra 분류·상시 최소 baseline+임시 확장·부하/HA 사이즈업 포함) | ③-I | ☐ **요청 완료·마감 8/26** | ☐ |
   | 6 | AXS 자격 | Straumann·영업 | ✅ sandbox(8/11) | ☐ prod(NDA후) |
   | 7 | 파일 붙은 lab order 시드 | Straumann·④ | ☐ (sandbox) | — |
-  | 8 | **마이그레이션 배포 Job 배선**(K8s Job + ArgoCD PreSync hook · migrate 이미지 ECR push[앱과 같은 SHA] · 매 배포 前 1회 `migrate deploy`·성공 gating·fail-closed) | ③-I | 🟠 **GW 몫 완료**(#12926 · migrate 이미지 타겟·실행명령·env·local `make dev-up` 자동) · **인계 명세 전달**(#13020·[`docs/handoff/migration-deploy-infra.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/migration-deploy-infra.md) + 초안 `devsecops-migrate.yml`) · ③-I 회신 3건(org 템플릿 `--target` 지원·migrate 배포스테이지 처리·SHA 태그 경로) + K8s Job+PreSync 배선 대기 | ☐ |
+  | 8 | **마이그레이션 배포 Job 배선**(K8s Job + ArgoCD PreSync hook · migrate 이미지 ECR push[앱과 같은 SHA] · 매 배포 前 1회 `migrate deploy`·성공 gating·fail-closed) | ③-I | 🟠 **GW 몫 완료**(#12926 · migrate 이미지 타겟·실행명령·env·local `make dev-up` 자동) · **인계 명세 전달**(#13020·[docs/handoff/migration-deploy-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/migration-deploy-infra.md&version=GBmain) + 초안 `devsecops-migrate.yml`) · ③-I 회신 3건(org 템플릿 `--target` 지원·migrate 배포스테이지 처리·SHA 태그 경로) + K8s Job+PreSync 배선 대기 | ☐ |
 
   _(`—`=해당 없음.)_
 
-  > **[③-I 요청 전달 감사 — 2026-08-26]** "문서에 선결로 적혀 있다 ≠ Jack에게 전달됨." 두 추적 표를 훑어 GW handoff 7종 전부 **결과 Form·전달 흔적 0** 확인(작성 ≠ 전달). 전달 흔적 없는 항목(③-I #8·GW선결 #1·#2·#4 + Console CloudFront 헤더 4-tier·사내 접근제한[8/19 회신서 누락 변종])을 **handoff + 결과 Form 단일 전달 패킷**([pending-infra-requests.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/pending-infra-requests.md)·GW repo·초안)으로 묶음. **전달 주체 = Raymond**(PL 지시). 이후 모든 ③-I 요청은 handoff+Form으로 전달하고 회신을 이 표에 일자·산출물로 기록(재발 방지). 모범 = 마이그레이션 인계(#13020).
+  > **[③-I 요청 전달 감사 — 2026-08-26]** "문서에 선결로 적혀 있다 ≠ Jack에게 전달됨." 두 추적 표를 훑어 GW handoff 7종 전부 **결과 Form·전달 흔적 0** 확인(작성 ≠ 전달). 전달 흔적 없는 항목(③-I #8·GW선결 #1·#2·#4 + Console CloudFront 헤더 4-tier·사내 접근제한[8/19 회신서 누락 변종])을 **handoff + 결과 Form 단일 전달 패킷**([pending-infra-requests.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/pending-infra-requests.md&version=GBmain)·GW repo·초안)으로 묶음. **전달 주체 = Raymond**(PL 지시). 이후 모든 ③-I 요청은 handoff+Form으로 전달하고 회신을 이 표에 일자·산출물로 기록(재발 방지). 모범 = 마이그레이션 인계(#13020).
 
 - 공유 사항 (결정 아님 · 논의사항인지 애매한 것을 임의 결정해 공유 · 매주 상시)
 
@@ -243,7 +243,7 @@
       | 단위 | 스펙 문서 | Repo · 경로 | baseline tag |
       | --- | --- | --- | --- |
       | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `vt-api-gateway` · `docs/specs/` | **`spec-v1.0.41`**(현행 동결) |
-      | **③-C GW Console** | Sub-SRS | `vt-api-gateway-console` · [`docs/specs/SRS.md`](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md) | ✅ `spec-v1.0`(8/11) |
+      | **③-C GW Console** | Sub-SRS | `vt-api-gateway-console` · [docs/specs/SRS.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md&version=GBmain) | ✅ `spec-v1.0`(8/11) |
       | **④ AXS** | 경량 연동 프로파일 | `vt-api-gateway` · `docs/specs/04-subsrs-straumann-axs/` | 경량(PPR 자격 확보·착수 가능) |
       | **③-I 인프라** | IaC 구축계획서 | `vt-api-gateway-infra` · `docs/IaC-구축계획서.md` | PR #11973(living doc) |
       | **③-P-EZ EzServer** | GW적응 OnePager | `ezserver_suite`(`v6.5.x`) · `doc/onepager/gw_adaptation/` | 미부여(팀 baseline 예정) |
