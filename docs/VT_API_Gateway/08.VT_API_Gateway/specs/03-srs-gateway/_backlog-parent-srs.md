@@ -29,6 +29,7 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 - **B-14** — ✅ 해소(#12725·`spec-v1.0.25`·2026-08-18): AuditLog 리소스 축 `resourceType`/`resourceId` additive(SRS §7.9.3 + OpenAPI `AuditLog` 2필드/`GET /v1/admin/audit` 2필터 + DBML `audit_log` 2컬럼·복합 인덱스 + db-jsonb). 명명=resourceType(잠정 targetType 이탈·GW 프록시 대상 target 과 이름충돌 회피). 구현=IP `T-DATA-1-9`. Console 소비=`T-FE-6-6`.
 - **B-15** — ✅ 해소(#12735·`spec-v1.0.26`·2026-08-18): AuditLog 응답에 `reason` 노출(정합화·OpenAPI+SRS §7.9.3+db-jsonb·**DBML 무변경**[컬럼 기존]·필터 없음). kill·거부·break-glass 사유를 감사 조회에서 되읽기 가능. 구현=`T-DATA-1-9`에 흡수. Console CB-4.
 - **B-16** — ✅ 해소(#12740·`spec-v1.0.27`·2026-08-18): kill 엔드포인트에 `409` 선언(종단 재-kill=`assertTransition` 위반·PATCH와 정합·정합화). OpenAPI + SRS §7.2.3. **구현 무변경**(impl 이미 409 반환·계약만 정합). 연계 Console FR-CON-12 문구 정정=`spec-v1.0.2`(#12741).
+- **B-18(v1.0 부분)** — ✅ **connector_type 어댑터 프로파일 v1.0 도입(데모 후 머지 대기)**(2026-08-31): 3면 감사(GW·Console·스펙)로 아웃바운드 커넥터가 AXS 관례(`Organization-ID`·`storageUrl`·org 1:1)를 코드 상수로 하드코딩해 **제2 external target이 record만으로 조용히 오동작**하는 사각지대 발견 → `connector_type` 명시 컬럼 + 선언적 프로파일(파생 폐기·**범용 불변식 NORMATIVE**: 런타임 `if targetId==='axs'` 금지·동작차는 프로파일 레지스트리로만)·descriptor `GET /v1/admin/connector-types`(스키마-구동 폼)·loud-fail·하위호환(AXS=`oauth2_org_scoped` byte-identical). v1.0 종류 2개(`internal_bypass`·`oauth2_org_scoped`). 스펙 **#13349**(spec-v1.0.73·§7.5.1 재작성·Q2/Q3·targetId 전 소비자 정합)·부수 **#13338**(KMS-envelope 설명) · 구현 **#13357**(레지스트리 dispatch·`oauth2_cc`→`oauth2_org_scoped`·profile↔type 400·변경 409·unit 1994)·**#13363**(target_id RFC 1123 전 소비자) · Console=**CB-6**(#13351·#13359). **잔여(2nd target 트리거·버전 무관)**: override·org-less·추가 프로파일·2nd target 검증 → 별도 open 항목 **B-19**(진행 중 백로그).
 - **현행 baseline = `spec-v1.0.27`(`927fc71`).** v1.0.13~1.0.27 누적. 상세 진행 이력 정본 = IP `projects/vt-api-gateway/ImplementationPlan.md` §2 노트.
 
 ---
@@ -110,6 +111,26 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
   - **scope 관리 위치 = 혼재**: Istio·OPA·Apigee는 **정책/규칙 안**(claim 조건·OAuth policy) · AWS·Kong은 **라우트 authorizer/플러그인**(액세스 정책과 분리). **우리 모델은 정책 안(`policy.scopes`)** 이나, AXS가 이미 scope/consent를 집행하므로 gw/1.1에서 **scope를 GW가 관리할지(정책에 두고 켬) vs AXS 위임으로 뺄지** 결정한다(위 7번 재검토와 동일).
 
 - **출처(비교표).** 2026-08-25 업계 API Gateway[AWS/Istio/OPA/Kong/Apigee] 정책·scope 관리 방식 비교(사용자 요청·참고용).
+
+### B-17. sandbox 있는 target = 환경별 2개 등록(prod + sandbox) — 컨벤션·seed(GW)
+- **컨벤션(확정).** sandbox가 있는 연동은 target을 환경마다 **별도 target**으로 등록한다 — host·자격·egress·**서브도메인 라벨(=target ID)이 환경마다 달라** 한 행으로 겸용 불가. 이름 = `<시스템>`(prod)·`<시스템>-sandbox`(sandbox). DNS 라벨 규칙 준수(`spec-v1.0.71` `^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`·언더스코어 불가).
+- **반영 대상.** ① 부모 SRS §7.5 컨벤션 노트(선택·소폭) · ② **GW seed**(`prisma/seed.ts`·demo-seed)에 `axs` + `axs-sandbox` 둘 다.
+- **트리거 = 데모(8/31) 후.** 데모는 seed=`axs`(sandbox 지시)로 진행 중이라 **데모 무영향**. 후속에서 `axs`=prod·`axs-sandbox`=sandbox로 정합. Console 측(mock·폼)=Console 백로그 **CB-5**.
+- **운영 매뉴얼 반영=완료**(`vt-api-gateway-console/docs/manual/target-management.md` §1 "sandbox·prod는 target 2개").
+
+### B-19. [contingent · AXS·CleverSpace 외 새 external target 추가 시 · 버전 무관] connector_type 범용성 확장 — override·org-less·추가 프로파일
+- **전제.** connector_type v1.0 골격 완료(완료 이력 **B-18**) — 2 프로파일(`internal_bypass`·`oauth2_org_scoped`)·descriptor·loud-fail·하위호환. **⚠ 버전 잠김 아님**: 아래 잔여는 **기술적으로 v1.0에서도 가능**(additive 컬럼·플래그·프로파일 추가)하나, **v1.0 대상(AXS·CleverSpace)이 필요로 하지 않아** 미룬 것(YAGNI). 2번째 target이 v1.0 중 나오면 v1.0에서 착수.
+- **잔여(실제 2번째 external target 계약 확보 시 착수).**
+  1. **override 컬럼**: `org_header_name`·`upload_detect_field`·`inbound_signature_header`/`encoding`·`inject_org_id`/`delegate_upload_token`(결합 분리) — 프로파일 기본값에서 target별 편차 수용.
+  2. **org-less 지원**: `org_scope_required=false`면 org_mapping 미존재를 403 아닌 통과(`org-id.resolver.ts:26` 주석이 자각한 한계).
+  3. **추가 프로파일**: `oauth2_generic`(아웃바운드 전용 OAuth2·org 없음)·`mtls_*`·`api_key_*`.
+  4. **2nd target e2e 검증**: 3Shape/DS Core 계약으로 "record(+프로파일)만으로 붙는지" 실증(v1.0 범용성 증명).
+- **트리거 = AXS·CleverSpace 외 새 external target 추가**(3Shape·DS Core 등). 판단:
+  - 새 target 관례가 **기존 2 프로파일과 같으면**(OAuth2+org=`oauth2_org_scoped`·내부망=`internal_bypass`) → **record 등록만**(GW·Console 코드 0). 이 케이스가 "신규 target=레지스트리 1행" 범용성의 **실증**(B-19 item 4).
+  - **다르면**(다른 org 헤더명·org 개념 없음·다른 인증/서명·다른 업로드 모델) → 그 편차에 해당하는 **override 컬럼 또는 새 프로파일**만 추가(B-19 item 1~3).
+  - **버전이 아니라 새 target 등장이 게이트** — v1.0 중 나오면 v1.0에서, 이후면 gw/1.1에서. 새 target이 없으면 speculative라 미착수(YAGNI).
+- **Console 연동.** override 필드 UI = Console 백로그 **CB-7**.
+- **출처.** 2026-08-31 connector_type v1.0 스코핑(YAGNI) — 완료 B-18에서 분리.
 
 ---
 

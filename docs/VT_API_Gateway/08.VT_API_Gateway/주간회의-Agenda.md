@@ -26,8 +26,15 @@
     - **[target_id 규칙 확정]** `target_id` 형식을 **DNS 라벨(RFC 1123)** 로 못 박고 스펙·코드를 함께 맞춤 — 부모 `spec-v1.0.71` · Console SRS FR-CON-18(`spec-v1.0.9`).
       - ⚠ **화면이 서버보다 느슨했다** — Console 검증이 `^[a-z0-9_]+$` 라 **밑줄을 통과시켰는데** 서버는 거절한다. 게다가 **안내 예시가 `clever_space`**(밑줄)여서 **예시를 그대로 따라 하면 저장 시 400** 이었다. 화면이 사용자를 틀린 길로 안내한 셈.
       - **수정**: 패턴을 DNS 라벨(+최대 63자)로 교체 · 예시를 하이픈으로 · **무엇이 걸렸는지 짚는 오류 문구**(대문자/밑줄/공백/시작·끝 하이픈/길이) · **치는 동안 인라인 검증**(저장까지 기다리지 않음) · 규칙과 이유(`axs.webhook.apne2.gw…` 서브도메인 첫 라벨이 됨)를 화면이 스스로 설명.
-      - **SRS + 구현을 한 PR 로**(#13309) — 요구와 그 구현을 나란히 리뷰. **데모 후 머지 예정**(데모 빌드 보호).
       - 부수 소득: **기존 테스트가 옛 규칙을 고정**하고 있어(밑줄 통과가 통과 조건) 느슨한 상태가 보호되고 있었음 — 함께 뒤집음. 시각 회귀 게이트가 **i18n 누락·문구 치환 오류 2건**을 추가로 잡아냄.
+      - **정리(8/31)**: 당초 SRS+구현을 #13309 한 PR로 냈으나 connector_type 작업과 겹쳐 → 스펙은 **#13351에 흡수**·코드는 **#13359로 이동**·**#13309 close**. 추가로 **admin DTO 패턴이 아직 옛 `^[a-z0-9_]+$`** 였음을 발견 → **GW #13363**: target·정책·org-mapping·컨트롤러 @ApiParam **전 소비자 RFC 1123 일괄** + seed 하이픈(커플링). 스펙 OpenAPI도 OrgMapping·Policy targetId 패턴 정합(#13349). 데모 후 머지.
+    - **[Target 범용화 — connector_type 도입]** ⭐ 아웃바운드 커넥터가 AXS 관례(Organization-ID·`storageUrl`·org 1:1)를 **코드 상수로 하드코딩**해 **제2 external target이 record만으로 조용히 오동작**하는 사각지대를 3면 감사(GW·Console·스펙)로 발견 → **`connector_type`(어댑터 프로파일)을 v1.0에 정식 도입**(파생 판별 폐기).
+      - **★범용 불변식(NORMATIVE)**: 런타임 소스에 `if targetId==='axs'` 류 특정 target 하드코딩 금지 — 동작차는 오직 `connector_type`→프로파일 레지스트리로만. 새 파트너=프로파일 추가(코드 1곳), 특정 target 하드코딩 X.
+      - **v1.0 종류 2개**: `internal_bypass`(사내·예 CleverSpace) · `oauth2_org_scoped`(OAuth2+org 스코프·예 AXS). (구 `oauth2_cc`의 AXS 관례를 이 프로파일로 명명.)
+      - **descriptor 스키마-구동**: GW `GET /v1/admin/connector-types`가 type별 필드 서술 반환 → Console이 폼을 **동적 렌더**(정적 per-type 분기 금지) → 새 프로파일 시 **Console 코드 0**(범용성이 프론트에도 관철).
+      - **스펙**: GW **#13349**(spec-v1.0.73·§7.5.1 재작성·카탈로그·descriptor·Q2/Q3·targetId 정합) · Console **#13351**(FR-CON-16 스키마-구동 폼·#13309 흡수) · 부수 **#13338**(KMS-envelope 설명 정정).
+      - **구현**(데모 후 머지·feature 브랜치): GW **#13357**(파생→레지스트리 dispatch·`oauth2_cc`→`oauth2_org_scoped`·profile↔type 400·변경 409·cross-field 400·unit 1994) · Console **#13359**(type-first·descriptor 동적 폼·profile 읽기전용·TARGET_ID_PATTERN) · GW **#13363**(target_id 전 소비자) · GW **#13358**(dev-seed AWS 서비스커넥션).
+      - **데모 무영향**: 전부 feature 브랜치·main 미머지·기존 AXS=`oauth2_org_scoped` byte-identical. 데모 후: 스펙→코드 순 머지 · IP 태그 핀(spec-v1.0.73).
     - **[Console 운영 매뉴얼 작성]** 운영자가 GW Console을 보고 **따라할 수 있는 운영 매뉴얼** 착수 — 가장 어렵고 중요한 **연동 대상(target) 등록·관리**부터
       - 한국어·task(작업)별 다중 문서 + 인덱스 구조 · 스크린샷도 한국어 화면(대표 데이터·PHI 없음)
       - target 문서 = **사례 주도**(AXS·CleverSpace로 따라하기)·필드 설명·연동 켜기(org 매핑)·트러블슈팅
@@ -46,26 +53,28 @@
 
 - **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인. (PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653)
 
+  > 범례: ✅ 완료(괄호=완료일·날짜만이면 **이전 주 완료**) · **🆕 = 이번 주 신규 구축·자가검증 완료(2026-08-31)** · 🟠 부분 · ☐ 미완 · ⚠ 전달 필요. *(2026-08-31 curl·AWS read-only 자가검증 반영.)*
+
   | # | 요청 | 수신 | dev | prod |
   | --- | --- | --- | --- | --- |
-  | 1 | Region Directory 호스팅 | ③-I | ✅ publish(8/18·`regions.gw.dev.ezcld.net`) | ☐ 도메인 후 |
+  | 1 | Region Directory 호스팅 + `consoleHost` 발행 | ③-I | ✅ publish(8/18·`regions.gw.dev.ezcld.net`) · **🆕 `consoleHost` 발행(8/31·PR #13355 Jack 머지→파이프라인·`curl regions.json` 자가검증: `console.gw.dev.ezcld.net` 노출 확인)** | ☐ 도메인 후(prod consoleHost) |
   | 2 | GW Console dev 호스팅([console.gw.dev.ezcld.net](https://console.gw.dev.ezcld.net)) | ③-I | ✅ 개통(8/19·CD 파이프라인·딥링크 rewrite) | ☐ 도메인 후 |
-  | 3 | **dev GW 백엔드 배포·env 주입**(`DATABASE_URL`[공용 `common-dev-db`·`gw` DB·apne2]·`REDIS_URL`·`GW_REGION`=apne2·AWS **Pod Identity**·`NODE_ENV` 차트 주입) | ③-I | 🟠 core·receiver·dispatcher **✅ 기동** · admin=Entra 대기 | ☐ |
+  | 3 | **dev GW 백엔드 배포·env 주입**(`DATABASE_URL`[공용 `common-dev-db`·`gw` DB·apne2]·`REDIS_URL`·`GW_REGION`=apne2·AWS **Pod Identity**·`NODE_ENV` 차트 주입) | ③-I | **core·receiver·dispatcher = ✅ 기동 완료**(8/31 자가검증: core·receiver 404=healthy backend·기동 확인 / dispatcher=HTTP 엔드포인트 없어 배포상 기동) · **admin = 🟠 Entra 구성만 대기**(앱은 배포/기동됨 · 현재 외부 503은 Entra 미구성으로 readiness/인증 미통과 · 구성되면 serving) | ☐ |
   | 4 | **운영자 Entra 앱 등록**(GW Admin API + Console SPA·2앱·PKCE) | IT·③-I | 🟠 **진행중 · [IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)**(Jack 입력·절차·회신 양식 제공 완료)·마감 8/21 경과·**admin 부팅 선결** | ☐ 도메인 후 |
   | 5 | **env-reference 환경별 값 채움**(test·sandbox·prod endpoint·호스트·리전) | ③-I | ✅ dev · ☐ test/sandbox/prod | ☐ |
-  | 6 | **dev-seed grant**(`gw-dev-seed` 변수그룹·KMS·Environment 승인게이트) | ③-I | ☐ 요청 전달(8/20) | — |
+  | 6 | **dev-seed grant**(`DATABASE_URL` 변수그룹·Environment 승인게이트) — 전용 수동 파이프라인 `gw-dev-seed.yml`(멱등·`dev:showcase`)용 | ③-I | 🟠 **8/31 자가검증**: 파이프라인(id 335)·Environment 승인게이트(id 9)·AWS 서비스커넥션 `gw-dev-seed` 등록됨 ✅ · `- group:` 로드실패는 PR 12806서 수정(8/19 에러=stale) · **남은 것=`DATABASE_URL`(dev RDS) 변수그룹 미생성** → **Jack: 변수그룹 `gw-dev-seed`+`DATABASE_URL`(시크릿)+파이프라인 링크**(+서비스커넥션 롤 KMS 권한 확인). AWS 5개 변수는 **GW가 YAML을 서비스커넥션(`AWSShellScript@1`)으로 전환**(VT-GW-구현·데모 후)→Jack 불요. 요청 8/20. *(seed 변경=스크립트 수정+재실행·멱등·재요청 불필요)* | — |
   | 7 | **`pg_trgm` CREATE EXTENSION 권한**(clinic 검색 선결 · env-reference §2.1) | ③-I | ✅ 문제 없음(Jack 확인 8/20 — `gw_app`=`gw` DB OWNER·trusted extension) | ☐ prod 동일 확인 |
-  | 8 | **KMS CMK provisioning**(webhook payload·target 자격 alias·리전별 · 8/4 키 토폴로지 · env-reference §2.4) | ③-I | ☐ (webhook/target 실사용 시) · ⚠**전달 흔적 없음**→전달패킷 §4(handoff+Form·트리거 명시) | ☐ 리전별 |
-  | 9 | **admin API dev ingress 노출**(`admin.apne2.gw.dev.ezcld.net`·Entra-gated 공개 ingress) — Console이 실 dev DB 데이터를 조회하려면 admin 부팅에 더해 이 ingress가 있어야 함(없으면 admin이 떠도 Console이 못 부름) | ③-I | ✅ **ingress 구축 확인**(8/25 curl: 443 OPEN·ALB 응답) — 단 전 경로 **503(ALB에 healthy target 0·즉시응답)** = **admin 미기동**이 원인(ingress 문제 아님)·**#4 Entra→admin 부팅 시 해소** | ☐ 도메인 후 |
+  | 8 | **KMS CMK provisioning**(webhook payload·target 자격 alias·리전별 · 8/4 키 토폴로지 · env-reference §2.4) | ③-I | ☐ (webhook/target 실사용 시) · **8/31 자가검증: `gw` KMS alias 없음=미프로비저닝 확인(트리거 前이라 정상)** · ⚠**전달 흔적 없음**→전달패킷 §4(handoff+Form·트리거 명시) | ☐ 리전별 |
+  | 9 | **admin API dev ingress 노출**(`admin.apne2.gw.dev.ezcld.net`·Entra-gated 공개 ingress) — Console이 실 dev DB 데이터를 조회하려면 admin 부팅에 더해 이 ingress가 있어야 함(없으면 admin이 떠도 Console이 못 부름) | ③-I | ✅ **ingress 구축 확인**(8/25 curl: 443 OPEN·ALB 응답) — 단 전 경로 **503(ALB에 healthy target 0·즉시응답)** = **admin 미기동**이 원인(ingress 문제 아님)·**#4 Entra 구성 시 serving**(8/31 재확인: `/`·`/v1/admin/me` 여전히 **503**·Entra 구성 전이라 미serving 지속·앱 배포는 됨) | ☐ 도메인 후 |
 
 - **[GW 구현 선결 추적 · 외부 인프라·자격]** — E2E·배포가 외부 선결로 막힌 항목. 소유별 상태·ETA 확인.
 
   | # | 선결 항목 | 소유 | dev | prod |
   | --- | --- | --- | --- | --- |
-  | 1 | 공개 ingress(AXS→GW webhook 수신) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §1(handoff+Form 준비) | ☐ |
-  | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §2(handoff=[docs/handoff/iot-authz-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/iot-authz-infra.md&version=GBmain)·Form) | ☐ |
+  | 1 | 공개 ingress(AXS→GW webhook 수신) | ③-I | **🆕 사실상 구축 확인(8/31 자가검증**: `axs.webhook.apne2.gw.dev.ezcld.net` → 404·연결성립·admin과 달리 503 아님=healthy backend 응답) — Jack에 "이미 됨" 1줄 확인 후 ✅ 확정. (기존 전달패킷 §1) | ☐ |
+  | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | ③-I | ☐ · **8/31 자가검증: endpoint 존재(`a2ig1yuqacb8gl-ats…`)이나 공유 policy 0개=미구성** · ⚠**전달 흔적 없음**→전달패킷 §2(handoff=[docs/handoff/iot-authz-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/iot-authz-infra.md&version=GBmain)·Form) | ☐ |
   | 3 | 자동배포 파이프라인(main→DEV·tag→TEST/PROD) | ③-I | 🟠 dev 배포 됨(3앱) · 자동화·tag→TEST/PROD 잔여(Jack Azure Flow 템플릿→ECR/ArgoCD) | ☐ |
-  | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | ③-I | ☐ · ⚠**전달 흔적 없음**→전달패킷 §3(handoff=[docs/handoff/compat-matrix-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/compat-matrix-infra.md&version=GBmain)·Form) | ☐ |
+  | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | ③-I | ☐ · **8/31 자가검증: `/dev` 하위 `server-configuration`/`.files` 경로 없음=미구성** · ⚠**전달 흔적 없음**→전달패킷 §3(handoff=[docs/handoff/compat-matrix-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/compat-matrix-infra.md&version=GBmain)·Form) | ☐ |
   | 5 | **test 환경 프로비저닝**(별도 인프라·GW=infra 분류·상시 최소 baseline+임시 확장·부하/HA 사이즈업 포함) | ③-I | ☐ **요청 완료·마감 8/26** | ☐ |
   | 6 | AXS 자격 | Straumann·영업 | ✅ sandbox(8/11) | ☐ prod(NDA후) |
   | 7 | 파일 붙은 lab order 시드 | Straumann·④ | ☐ (sandbox) | — |
