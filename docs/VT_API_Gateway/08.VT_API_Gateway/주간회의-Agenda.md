@@ -17,11 +17,11 @@
       - ⚠ **"검증이니 곧 끝난다" 가 아니다** — 검증은 어긋난 것을 **찾는** 일이고 찾으면 Console 작업이 된다(`9-17` 1단계만으로 갭 2건). 남은 8% 는 **폭을 아직 모르는 일**이다 → S1 상세
 
   - **완료 · 주요 작업**
-    - **[8/31 Straumann 데모]** dev console에서 **VT 이미지를 GW 연동을 통해 실 AXS sandbox로 전송·되가져와 표시**하는 것을 시연 — 누구나 dev console 링크에서 클릭
-      - **핵심은 이미 됨** — GW→AXS 전송은 구현·**실 AXS 왕복 검증 통과**(문서 생성→업로드→조회 관통). 이번 작업은 그걸 **클릭 UI로 감싸는 것**
-      - **GW core 데모 엔드포인트**(PR #13177) · **Console Demo 화면**(PR #13170) 구현 완료 · 실행계획·API 계약 = **데모 OnePager**(PR #13168·Jack·Scott 리뷰 중)
-      - **데모 당일 남은 것 = ③-I 실 인프라뿐**: DB 마이그레이션(테이블 생성)·dev→AXS egress·KMS·core `/v1/demo/*` ingress·`GW_DEMO_ENABLED=true` dev env·dev 재배포
-      - 브라우징 화면(clinic 목록 등)은 데모에서 제외(배포 링크는 브라우징 mock)·**전송+되가져오기 하나에 집중**
+    - **[8/31 Straumann 데모]** dev console에서 **VT 이미지가 GW를 거쳐 실 AXS sandbox에 저장되고 되가져와 표시**되는 것을 시연 — 누구나 dev console 링크에서 클릭
+      - **로컬 검증 성공** — 실제로 이미지를 선택→전송하니 **실 AXS sandbox로 올라갔다 되돌아온 것을 화면에서 확인**(왕복 관통). 흐름은 이미 되고, 남은 건 dev에 올리는 것뿐.
+      - **구현·머지 완료**: GW core 전송 엔드포인트 · Console Demo 화면 · 데모 OnePager(실행계획·API 계약). 추가로 **전송 단계 로그**(GW가 device 자격 대행·정책/egress 검사·조직 해석·AXS 토큰/생성/업로드/조회)를 화면에 표시해 "GW가 무엇을 했는지"까지 보이게 함 — **구현 완료·후속 PR 준비**(실 AXS e2e 8단계 green).
+      - **실제성(중요)**: **전송은 실 GW·실 AXS·실 데이터**(mock 아님). 화면의 부가 브라우징(clinic 목록 등)만 배포 console 특성상 mock이라 **데모에서 제외**하고 전송+되가져오기에 집중.
+      - **데모 당일 남은 것 = ③-I 실 인프라뿐**: DB 마이그레이션(테이블 생성·**최대 병목**)·dev→AXS egress·KMS·core 데모 경로 ingress·데모 활성 env·dev 재배포 → 이후 배포 링크 리허설.
 
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
