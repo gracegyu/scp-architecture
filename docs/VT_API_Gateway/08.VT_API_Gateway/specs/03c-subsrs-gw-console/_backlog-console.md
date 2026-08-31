@@ -102,7 +102,19 @@ PR #12744(머지 `5331365`)로 **CI가 실제 문지기가 됐다.** `T-FE-0-8` 
 
 ## 백로그 항목
 
-> **현재 열린 항목 없음** — CB-1~CB-4 전부 반영·해소(아래 완료 이력). 새 변경이 생기면 여기에 CB-5~ 로 추가한다.
+### CB-5. sandbox 있는 target = 2개(prod + sandbox) — mock·target 폼
+- sandbox 있는 연동은 target을 환경별 2개(`<t>`·`<t>-sandbox`)로 등록(부모 컨벤션=부모 백로그 **B-17**).
+- **Console 반영**: ① **mock(MSW)에 `axs` + `axs-sandbox` 둘 다** · ② target 폼 예시·안내가 sandbox/prod 두 target 패턴을 반영.
+- **트리거 = 데모(8/31) 후.** 데모는 mock `axs`로 진행·**무영향**. 운영 매뉴얼(`docs/manual/target-management.md`)엔 이미 반영됨.
+
+### CB-7. [contingent · AXS·CleverSpace 외 새 target 추가 시(부모 B-19) · 버전 무관] target 폼 override 필드 렌더
+- **전제.** Console 스키마-구동 폼 v1.0 완료(완료 이력 **CB-6**) — descriptor `fields[]` 동적 렌더·모르는 kind 폴백·profile 읽기전용.
+- **잔여.** 부모 **B-19**(override 컬럼·추가 프로파일)로 descriptor에 override 필드가 추가되면 폼이 **자동 렌더**(원칙상 Console 코드 0). 다만 override UX(프로파일 기본값 vs override 구분·그룹핑) 다듬기가 필요할 수 있음.
+- **트리거.** 부모 **B-19** 착수(실제 2nd target 계약).
+- **테스트 정본**(별도 UnitTCL 없음): SRS FR-CON 인수기준.
+- **출처.** 2026-08-31 완료 CB-6에서 분리.
+
+> (CB-1~CB-4는 전부 반영·해소 — 아래 완료 이력.)
 
 ---
 
@@ -111,6 +123,7 @@ PR #12744(머지 `5331365`)로 **CI가 실제 문지기가 됐다.** `T-FE-0-8` 
 - **CB-1**(멀티리전 운영자 authz·ZTNA 제거→Entra) · **CB-2**(v1.0 최소기능 선행·기술 스택 확정) — ✅ **SRS baseline 반영 완료**(상세=git 이력).
 - **CB-3**(감사 로그 대상 리소스 축 부재) — ✅ **해소(2026-08-18)**: 부모가 `AuditLog`에 **`resourceType`/`resourceId`** additive(부모 B-14·`spec-v1.0.25`·`3b6a834`). ⚠ 명명=`resourceType`(targetType 아님 — GW 프록시 대상 target·ADR-11과 이름충돌 회피·값에 `target`도 옴). Console 반영=**`T-FE-6-6`**(codegen 재생성·감사 화면 두 필터·device/clinic/target 상세 `ResourceHistory` 신설). `T-FE-2-5` kill 잠정 처리는 유지(방금-실행-사실 vs 서버 감사 이력=출처 다름). 발견=`T-FE-2-5`(2026-08-13).
 - **CB-4**(감사 응답에 `reason` 부재) — ✅ **해소(2026-08-18)**: 부모가 `AuditLog`에 **`reason`(read-only·nullable)** additive(부모 B-15·`spec-v1.0.26`·`7734c22`·#12735). DB 컬럼·write 기존, read 스키마만 빠졌던 **정합 갭**. GW 구현=`T-DATA-1-9` 흡수(같은 매퍼·별 PR 없음). Console 반영=**`T-FE-6-6`**(codegen·`ResourceHistory`·감사 화면에 사유 표시·**truncate 안 함**·`null`이면 빈 자리 안 만듦). 발견=`T-FE-6-6`(2026-08-18).
+- **CB-6** — ✅ **Console target UI 범용화 v1.0 완료(데모 후 머지 대기)**(2026-08-31): connector_type 기반 **descriptor 스키마-구동 폼**(type-first·profile 읽기전용·**정적 per-type 분기 금지**·모르는 kind 폴백)·누락필드(`sourceIpAllowlist`·egress 서브필드 `cidrs`/`ports`/`requireStaticEgressIp`)·서명 시크릿 placeholder 'KMS' 오해 제거·`TARGET_ID_PATTERN`(RFC 1123). 스펙 **#13351**(FR-CON-16·#13309 흡수) · 구현 **#13359**(686 테스트·존재않는 타입명으로 범용 불변식 강제). 부모=**B-18**. 범용성이 프론트에도 관철(새 프로파일 시 Console 코드 0). **잔여(2nd target 트리거·버전 무관)** = **CB-7**(부모 B-19 override 연동).
 
 ---
 
