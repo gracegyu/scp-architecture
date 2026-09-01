@@ -27,24 +27,31 @@
       - ⚠ **화면이 서버보다 느슨했다** — Console 검증이 `^[a-z0-9_]+$` 라 **밑줄을 통과시켰는데** 서버는 거절한다. 게다가 **안내 예시가 `clever_space`**(밑줄)여서 **예시를 그대로 따라 하면 저장 시 400** 이었다. 화면이 사용자를 틀린 길로 안내한 셈.
       - **수정**: 패턴을 DNS 라벨(+최대 63자)로 교체 · 예시를 하이픈으로 · **무엇이 걸렸는지 짚는 오류 문구**(대문자/밑줄/공백/시작·끝 하이픈/길이) · **치는 동안 인라인 검증**(저장까지 기다리지 않음) · 규칙과 이유(`axs.webhook.apne2.gw…` 서브도메인 첫 라벨이 됨)를 화면이 스스로 설명.
       - 부수 소득: **기존 테스트가 옛 규칙을 고정**하고 있어(밑줄 통과가 통과 조건) 느슨한 상태가 보호되고 있었음 — 함께 뒤집음. 시각 회귀 게이트가 **i18n 누락·문구 치환 오류 2건**을 추가로 잡아냄.
-      - **정리(8/31)**: 당초 SRS+구현을 #13309 한 PR로 냈으나 connector_type 작업과 겹쳐 → 스펙은 **#13351에 흡수**·코드는 **#13359로 이동**·**#13309 close**. 추가로 **admin DTO 패턴이 아직 옛 `^[a-z0-9_]+$`** 였음을 발견 → **GW #13363**: target·정책·org-mapping·컨트롤러 @ApiParam **전 소비자 RFC 1123 일괄** + seed 하이픈(커플링). 스펙 OpenAPI도 OrgMapping·Policy targetId 패턴 정합(#13349). 데모 후 머지.
+      - **정리(8/31)**: 당초 SRS+구현을 #13309 한 PR로 냈으나 connector_type 작업과 겹쳐 → 스펙은 **#13351에 흡수**·코드는 **#13359로 이동**·**#13309 close**. 추가로 **admin DTO 패턴이 아직 옛 `^[a-z0-9_]+$`** 였음을 발견 → **GW #13363**: target·정책·org-mapping·컨트롤러 @ApiParam **전 소비자 RFC 1123 일괄** + seed 하이픈(커플링). 스펙 OpenAPI도 OrgMapping·Policy targetId 패턴 정합(#13349). **✅ 데모 후 머지 완료**.
     - **[Target 범용화 — connector_type 도입]** ⭐ 아웃바운드 커넥터가 AXS 관례(Organization-ID·`storageUrl`·org 1:1)를 **코드 상수로 하드코딩**해 **제2 external target이 record만으로 조용히 오동작**하는 사각지대를 3면 감사(GW·Console·스펙)로 발견 → **`connector_type`(어댑터 프로파일)을 v1.0에 정식 도입**(파생 판별 폐기).
       - **★범용 불변식(NORMATIVE)**: 런타임 소스에 `if targetId==='axs'` 류 특정 target 하드코딩 금지 — 동작차는 오직 `connector_type`→프로파일 레지스트리로만. 새 파트너=프로파일 추가(코드 1곳), 특정 target 하드코딩 X.
-      - **v1.0 종류 2개**: `internal_bypass`(사내·예 CleverSpace) · `oauth2_org_scoped`(OAuth2+org 스코프·예 AXS). (구 `oauth2_cc`의 AXS 관례를 이 프로파일로 명명.)
+      - **⚠ 제약(현실)**: "신규 target = 코드 0(record만 추가)"은 **관례가 기존 프로파일과 일치할 때만** 성립한다. **target마다 인증 방법·clinic(org) 식별 방법이 달라**(헤더명/토큰 클레임/경로·서명 체계·업로드 위임 유무 등) **초기 몇 개 target은 새 프로파일/전략(코드) 추가가 불가피**하다. 범용 불변식(하드코딩 금지)은 항상 준수하되 "코드 0"은 **성숙기 목표**로 보고 **초기 확장기엔 target별 추가 개발을 전제로 일정·범위를 잡는다**(SRS §7.5.1 제약 명문화·백로그 B-19). 프레임워크 가치=추가가 **한 곳(프로파일/전략)에 국소화**·코어 무파급.
+      - **v1.0 종류 2개**: `internal_bypass`(내부 신뢰망·**v1.0 확정 사용처 없음**·CleverSpace는 ③b P0로 v1.1) · `oauth2_org_header`(OAuth2 client_credentials 인증[tenant 단일] + Organization-ID 헤더로 org 구분·예 AXS). (명명: 구 `oauth2_cc`→`oauth2_org_scoped`→**`oauth2_org_header`** — "org_scoped"가 "토큰이 org별 스코프"로 오독돼 개명·스펙 #13417.)
       - **descriptor 스키마-구동**: GW `GET /v1/admin/connector-types`가 type별 필드 서술 반환 → Console이 폼을 **동적 렌더**(정적 per-type 분기 금지) → 새 프로파일 시 **Console 코드 0**(범용성이 프론트에도 관철).
       - **스펙**: GW **#13349**(spec-v1.0.73·§7.5.1 재작성·카탈로그·descriptor·Q2/Q3·targetId 정합) · Console **#13351**(FR-CON-16 스키마-구동 폼·#13309 흡수) · 부수 **#13338**(KMS-envelope 설명 정정).
-      - **구현**(데모 후 머지·feature 브랜치): GW **#13357**(파생→레지스트리 dispatch·`oauth2_cc`→`oauth2_org_scoped`·profile↔type 400·변경 409·cross-field 400·unit 1994) · Console **#13359**(type-first·descriptor 동적 폼·profile 읽기전용·TARGET_ID_PATTERN) · GW **#13363**(target_id 전 소비자) · GW **#13358**(dev-seed AWS 서비스커넥션).
-      - **데모 무영향**: 전부 feature 브랜치·main 미머지·기존 AXS=`oauth2_org_scoped` byte-identical. 데모 후: 스펙→코드 순 머지 · IP 태그 핀(spec-v1.0.73).
+      - **구현**(✅ 머지 완료): GW **#13357**(파생→레지스트리 dispatch·`oauth2_cc`→`oauth2_org_scoped`·profile↔type 400·변경 409·cross-field 400·unit 1994) · Console **#13359**(type-first·descriptor 동적 폼·profile 읽기전용·TARGET_ID_PATTERN) · GW **#13363**(target_id 전 소비자) · GW **#13358**(dev-seed AWS 서비스커넥션).
+      - **데모 무영향**(당시): 전부 feature 브랜치·기존 AXS=`oauth2_org_scoped` byte-identical. **✅ 데모 후 전부 머지 완료**(스펙→코드 순·IP 태그 핀 spec-v1.0.73).
     - **[CleverSpace 연동 → v1.0에서 v1.1로 변경]** ⭐ connector_type 후속 — Console 화면 검증에서 카탈로그가 `internal_bypass` 예시를 'CleverSpace'로 **단정**한 것이 발단. 조사 결과 **CleverSpace ③b(GW→CleverSpace) 신원 전달이 미정(P0)**이고(review-log-12239 C-02 — CleverSpace는 JWT 필수라 '내부 신뢰'가 아님), **v1.0은 이미 종료됐고 CleverSpace는 실연동된 적이 없음** → **CleverSpace 실연동을 v1.0 → v1.1로 변경**(추후 CleverSpace 연동 요구가 있을 때).
       - **v1.0 = AXS만 실연동** · CleverSpace는 presigned 중계 capability(구조적 지원)만. **실연동(target 등록·connector·③b 신원 전달)=v1.1**. SRS 전수 조사로 v1.0으로 적힌 곳(§41·§887·§1160·§2376·§2.6·§2.7·③b 헤더 등)을 모두 v1.1로 정정.
       - **CleverSpace 커넥터 타입 = `oauth2_jwt_assertion`**(GW 서명 upstream JWT 어서션·RFC 7523 · CleverSpace GW Guard가 JWKS로 검증) — v1.0 카탈로그엔 `availability:planned`·`plannedIn:v1.1`로 **자리만** 둔다(구현은 v1.1).
       - **안전(fail-closed)**: planned 타입은 dispatch 레지스트리 밖 별도 목록 → 모르는 타입은 **거절(throw)**·인증 없이 통과 없음. GW 3계층 회귀 테스트로 잠금 확인(73/73 green).
       - **JWKS 엔드포인트만 v1.0 선공개 유지**(공개키 노출 무해·재도입 churn 회피·실제 소비자 CleverSpace GW Guard는 v1.1).
-      - **스펙**: **#13406**(spec-v1.0.74·CleverSpace 단정 제거) merged·태그 완료 · **#13413**(spec-v1.0.75·전수 v1.1 정합+planned 카탈로그+descriptor availability 필드) 머지 대기. 선행 GW **#13404**(description 정정)·Console **#13408**(폼 planned 안내). 백로그 B-20 결정 반영.
+      - **스펙**: **#13406**(spec-v1.0.74·CleverSpace 단정 제거) merged·태그 완료 · **#13413**(spec-v1.0.75·전수 v1.1 정합+planned 카탈로그+descriptor availability 필드) **✅ merged·태그 완료**. 선행 GW **#13404**(description 정정·merged)·Console **#13408**(폼 planned 안내). 백로그 B-20 결정 반영.
     - **[Console 운영 매뉴얼 작성]** 운영자가 GW Console을 보고 **따라할 수 있는 운영 매뉴얼** 착수 — 가장 어렵고 중요한 **연동 대상(target) 등록·관리**부터
       - 한국어·task(작업)별 다중 문서 + 인덱스 구조 · 스크린샷도 한국어 화면(대표 데이터·PHI 없음)
       - target 문서 = **사례 주도**(AXS·CleverSpace로 따라하기)·필드 설명·연동 켜기(org 매핑)·트러블슈팅
       - 진행: **target 등록·관리 초안 완료·리뷰 중**(스펙 세션 초안 → Raymond 리뷰 → Console 세션이 실제 화면 스텝·스크린샷 보완·나머지 메뉴 문서)
+    - **[프로세스 버전·빌드 정보 API — 배포 검증]** ⭐ 각 프로세스가 자기 버전/빌드정보를 서빙해 **새 이미지가 실제 붙었는지(배포 landed)를 화면에서 즉시 확인**. **계기**: dev 데모 500 진단 때 "무엇이 배포됐는지 화면서 알 수 없다"가 지연 원인이었음(개명 후 dev `axs` 행 미이관·배포본 확인난).
+      - **설계**: per-process `GET /version`(core·admin·receiver·dispatcher · version·gitCommit·buildTime·startedAt·region · `/health`와 분리·무인증 인프라) · **dispatcher도 이미 Nest HTTP 앱(HealthModule)이라 다른 3앱처럼 `/version` 컨트롤러만 추가**(별도 리스너 불요·as-built) · **admin 취합 `GET /v1/admin/system/versions`**(operatorAuth·4개 fan-out·status ok/unreachable·부분 결과) → **Console 1콜 표**.
+      - **배포 검증 UX**: gitCommit **불일치(롤아웃 미완)**·**unreachable**·재기동(startedAt)을 화면이 플래그.
+      - **빌드 주입**: version=package.json · gitCommit/buildTime=Docker build ARG→env(Jack Dockerfile 조율·미주입 시 unknown).
+      - **스펙**: GW **#13435**(spec-v1.0.79·§7.8.6 FR-SYS-01·OpenAPI `ServiceVersion`) merged·태그 · Console **#13436**(spec-v1.0.12·FR-CON-39 version 표) merged·태그.
+      - **구현 분담**: GW(4 `/version`+dispatcher HTTP+admin 취합) · Console(version 표·계약 확정이라 목 우선 착수) · Jack(Dockerfile build ARG·마이그레이션 Job 배선).
 
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
@@ -193,7 +200,7 @@
       | **③-P-CS CleverSpace** | GW적응 OnePager | `ezicloud/ezcloud` · `docs/onepager/gw_adaptation/` | PR #12239(팀 baseline 예정) |
       | **③-P-CO CleverOne** | GW적응 OnePager | SharePoint `gw_adaptation` | — (팀 baseline) |
 
-  - **S3. GW 백엔드(③) 현황 — Phase 요약 (8/27)** _(NestJS 코어·부모 SRS · Console은 S4)_
+  - **S3. GW 백엔드(③) 현황 — Phase 요약 (9/1)** _(NestJS 코어·부모 SRS · Console은 S4)_
 
     | Phase | 범위 | 상태 |
     | --- | --- | --- |
@@ -204,6 +211,7 @@
     | **P12** 잔여 | 12-6 인바운드+MQTT(③-I ingress+실 IoT) · 12-3 부하 실측(하네스 완료·③-I test) · 12-4 HA(③-I Multi-AZ) | 🔴 외부 선결 |
     | **P9-5** 실 IoT 프로비저닝 | (a) 코드 완료(어댑터·mock) · (b) 실 IoT Core mTLS 실증 | ◑ (a)완료·(b)③-I |
     | **P0-5** 자동배포(CD) | ECR/ArgoCD·main→DEV·tag→TEST/PROD | 🔴 ③-I |
+    | **v1.0 정합·하드닝**(이번 주) | connector_type 어댑터 프로파일 레지스트리(파생 폐기·특정 target 하드코딩 금지·#13357) · target_id DNS 라벨 전 소비자 일괄+seed 하이픈(#13363) · dev-seed AWS 서비스커넥션(#13358) · CleverSpace `internal_bypass` 단정 제거(#13404) · 데모 steps 정직성(#13314) · unknown connector_type fail-closed 3계층 회귀 확인 | ✅ 머지 완료 |
     - 커버리지(merged·8/20): 전역 96.7 / 91.9 / 93.9 / 96.5 · 보안 도메인 98.5 / 96.0 / 100 / 98.4 · 핵심 보안파일 16개 각 100% — **CI floor 게이트 통과**.
 
     - **남은 작업 — 전부 외부 선결(GW 코드는 feature-complete·코드로 앞당길 잔여 = 0)**

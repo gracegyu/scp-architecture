@@ -114,12 +114,23 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 
 ### B-17. sandbox 있는 target = 환경별 2개 등록(prod + sandbox) — 컨벤션·seed(GW)
 - **컨벤션(확정).** sandbox가 있는 연동은 target을 환경마다 **별도 target**으로 등록한다 — host·자격·egress·**서브도메인 라벨(=target ID)이 환경마다 달라** 한 행으로 겸용 불가. 이름 = `<시스템>`(prod)·`<시스템>-sandbox`(sandbox). DNS 라벨 규칙 준수(`spec-v1.0.71` `^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`·언더스코어 불가).
-- **반영 대상.** ① 부모 SRS §7.5 컨벤션 노트(선택·소폭) · ② **GW seed**(`prisma/seed.ts`·demo-seed)에 `axs` + `axs-sandbox` 둘 다.
-- **트리거 = 데모(8/31) 후.** 데모는 seed=`axs`(sandbox 지시)로 진행 중이라 **데모 무영향**. 후속에서 `axs`=prod·`axs-sandbox`=sandbox로 정합. Console 측(mock·폼)=Console 백로그 **CB-5**.
-- **운영 매뉴얼 반영=완료**(`vt-api-gateway-console/docs/manual/target-management.md` §1 "sandbox·prod는 target 2개").
+- **★ 신규 환경 seed 규칙(forward-going·actionable·확정 2026-09-01 PL).** **앞으로 test/staging/prod 환경을 세팅할 때는 아래 컨벤션대로** 한다(dev shortcut을 답습하지 말 것):
+  - **sandbox에 붙는 환경(test/staging) = `axs-sandbox`** target으로 seed(sandbox 자격/host/egress).
+  - **prod = `axs`** target으로 **운영자 수동 등록** — 실 자격/host/egress·**검증 선결**·**자동 seed 금지**·**실 시크릿을 seed 파일/코드에 넣지 말 것**(운영자가 write-only로 입력).
+  - **dev(`axs`→sandbox)는 예외(초기 shortcut)** — 신규 환경에서 **따라 하지 말 것**.
+  - 반영처: 이 항목(B-17)·운영 매뉴얼 prod 등록 절차·GW seed 작성자 주석(B-17 참조).
+- **환경별 현황(확정·2026-09-01·PL 최종).** 정식 컨벤션은 **B-17 그대로 유지**(환경마다 별도 target). 현재/향후:
+  - **dev = 예외(`axs`→sandbox·초기 shortcut).** 초기에 dev를 `axs`로 sandbox에 붙인 shortcut이다 — target_id=Host 라벨이라 개명 시 **Jack ingress churn·404 위험**이라 **유지**(정리 대상·아래). seed 주석으로 "dev `axs`=실 sandbox·prod 아님" 명기.
+  - **test/staging = `axs-sandbox`**(sandbox·**정식 B-17 준수**).
+  - **prod = `axs`**(prod·운영자 **수동 등록**·실 자격·**검증 선결**·**자동 seed 아님**).
+  - 근거: dev는 AXS **sandbox 전용**(dev 트래픽이 prod 파트너 데이터에 닿지 않는 표준 격리)·dev/prod **DB 분리**라 한 환경이 prod+sandbox를 동시에 물 일이 없다.
+- **데모·placeholder 유지.** 데모 seed(`DemoSeedService`) `axs`(→실 sandbox)·`dev-showcase.ts`의 `dev-axs-connector`(가짜 host placeholder·Console 브라우징용) 모두 **유지**(개명 시 Jack ingress churn/오해). connector_type 개명(#13421)엔 **target_id 무변경**·데모 seed엔 취지 주석만.
+- **정리(consolidation) 잔여.** 실 sandbox 통합 seed(`axs-sandbox`) 도입 + 데모 은퇴 시 **dev `axs` → `axs-sandbox`로 consolidate**(그때·지금 churn 안 함). 트리거=실 통합 seed 도입.
+- **반영 대상.** ① 부모 SRS §7.5 컨벤션 노트(선택·소폭·dev 예외 명기) · ② **GW seed**: test/staging=`axs-sandbox`·데모 seed 주석(#13421 머지 후).
+- **운영 매뉴얼 반영=완료**(`vt-api-gateway-console/docs/manual/target-management.md` §1 "sandbox·prod는 target 2개"). Console 측(mock·폼)=Console 백로그 **CB-5**.
 
 ### B-19. [contingent · AXS·CleverSpace 외 새 external target 추가 시 · 버전 무관] connector_type 범용성 확장 — override·org-less·추가 프로파일
-- **전제.** connector_type v1.0 골격 완료(완료 이력 **B-18**) — 2 프로파일(`internal_bypass`·`oauth2_org_scoped`)·descriptor·loud-fail·하위호환. **⚠ 버전 잠김 아님**: 아래 잔여는 **기술적으로 v1.0에서도 가능**(additive 컬럼·플래그·프로파일 추가)하나, **v1.0 대상(AXS·CleverSpace)이 필요로 하지 않아** 미룬 것(YAGNI). 2번째 target이 v1.0 중 나오면 v1.0에서 착수.
+- **전제.** connector_type v1.0 골격 완료(완료 이력 **B-18**) — 2 프로파일(`internal_bypass`·`oauth2_org_header`)·descriptor·loud-fail·하위호환. **⚠ 버전 잠김 아님**: 아래 잔여는 **기술적으로 v1.0에서도 가능**(additive 컬럼·플래그·프로파일 추가)하나, **v1.0 대상(AXS·CleverSpace)이 필요로 하지 않아** 미룬 것(YAGNI). 2번째 target이 v1.0 중 나오면 v1.0에서 착수.
 - **잔여(실제 2번째 external target 계약 확보 시 착수).**
   1. **override 컬럼**: `org_header_name`·`upload_detect_field`·`inbound_signature_header`/`encoding`·`inject_org_id`/`delegate_upload_token`(결합 분리) — 프로파일 기본값에서 target별 편차 수용.
   2. **org-less 지원**: `org_scope_required=false`면 org_mapping 미존재를 403 아닌 통과(`org-id.resolver.ts:26` 주석이 자각한 한계).
@@ -136,7 +147,7 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 - **결정(2026-09-01·PL).** CleverSpace **실연동**(target 등록·connector·③b(GW→CleverSpace) 신원 전달)을 **v1.1**로 정리한다 — v1.0은 이미 종료됐고 CleverSpace는 실연동된 적이 없어, v1.0으로 적힌 곳은 오류였다(전수 정정). CleverSpace 커넥터 타입 = **`oauth2_jwt_assertion`**(GW 서명 upstream JWT 어서션·RFC 7523·`aud=cleverspace`·claim `device_id`+`clinic_id` → CleverSpace GW Guard가 JWKS로 검증·§7.1.5). v1.0 카탈로그엔 **`availability:"planned"`·`plannedIn:"v1.1"`**로 자리만 둔다.
 - **배경(③b P0).** CleverSpace ③b 신원 전달이 미정(P0·`03p-cs-cleverspace/_review-log-12239.md` C-02) — CleverSpace는 JWT 필수(테넌트 스코프=토큰 클레임)라 '내부 신뢰'가 아님. 권장안=GW 서명 어서션(→`oauth2_jwt_assertion`)·차선=device 토큰 verbatim(→`internal_bypass`). ⚠ 차선으로 결정되면 `oauth2_jwt_assertion`은 불요(internal_bypass)이나, planned·등록 데이터 0이라 개명/철회 비용 0.
 - **v1.0 안전 설계(완료·GW as-built 확인).** planned 타입은 dispatch 레지스트리(`CONNECTOR_PROFILES`) **밖 별도 목록** — (a) 판별자 unknown→throw(fail-closed·bypass 강등 없음·3중 방어)·(b) Admin API enum 밖 자동 400·(c) descriptor만 availability/plannedIn/plannedNote 방출. 이름을 카탈로그에 올려도 **조용한 인증 우회 창이 열리지 않음**. JWKS 엔드포인트는 v1.0 선공개(소비자=v1.1).
-- **현 조치(완료).** SRS 전수 정합(CleverSpace 실연동=v1.1): §41·§887·§1160·§2376·§2.6·§2.7(gw/1.1 행)·③b 헤더/블록 v1.1 표기 · §7.5.1 planned 카탈로그+★안전규칙+descriptor availability 필드 · JWKS 근거 재작성(엔드포인트 v1.0 유지·소비자 v1.1·§1977/§1980/§1985·§7.1.5) · OpenAPI `ConnectorTypeDescriptor.availability/plannedIn/plannedNote` — **spec-v1.0.75(PR 예정)**. 선행: connector-profile.ts description 정정(GW #13404·SRS #13406/spec-v1.0.74)·Console 목 중립화·폼 planned 안내(#13408·default-safe).
+- **현 조치(완료).** SRS 전수 정합(CleverSpace 실연동=v1.1): §41·§887·§1160·§2376·§2.6·§2.7(gw/1.1 행)·③b 헤더/블록 v1.1 표기 · §7.5.1 planned 카탈로그+★안전규칙+descriptor availability 필드 · JWKS 근거 재작성(엔드포인트 v1.0 유지·소비자 v1.1·§1977/§1980/§1985·§7.1.5) · OpenAPI `ConnectorTypeDescriptor.availability/plannedIn/plannedNote` — **spec-v1.0.75(#13413·merged·태그 완료)**. 선행: connector-profile.ts description 정정(GW #13404·merged · SRS #13406/spec-v1.0.74)·Console 목 중립화·폼 planned 안내(#13408·default-safe).
 - **잔여(v1.1 착수 시).** `oauth2_jwt_assertion` strategy 구현(`CONNECTOR_PROFILES` 승격)·③b P0 확정 반영(권장/차선)·CleverSpace GW Guard 계약(§7.1.5)·CleverSpace target 등록·Console 폼 활성.
 - **트리거 = 추후 CleverSpace 연동 요구 + ③b 신원 전달 P0 결정**(CleverSpace OnePager §7 Open items).
 - **출처.** 2026-09-01 PL 결정(Console 화면 검증 발단·review-log-12239 C-02).
