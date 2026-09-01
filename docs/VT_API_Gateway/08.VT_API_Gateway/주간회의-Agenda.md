@@ -35,6 +35,12 @@
       - **스펙**: GW **#13349**(spec-v1.0.73·§7.5.1 재작성·카탈로그·descriptor·Q2/Q3·targetId 정합) · Console **#13351**(FR-CON-16 스키마-구동 폼·#13309 흡수) · 부수 **#13338**(KMS-envelope 설명 정정).
       - **구현**(데모 후 머지·feature 브랜치): GW **#13357**(파생→레지스트리 dispatch·`oauth2_cc`→`oauth2_org_scoped`·profile↔type 400·변경 409·cross-field 400·unit 1994) · Console **#13359**(type-first·descriptor 동적 폼·profile 읽기전용·TARGET_ID_PATTERN) · GW **#13363**(target_id 전 소비자) · GW **#13358**(dev-seed AWS 서비스커넥션).
       - **데모 무영향**: 전부 feature 브랜치·main 미머지·기존 AXS=`oauth2_org_scoped` byte-identical. 데모 후: 스펙→코드 순 머지 · IP 태그 핀(spec-v1.0.73).
+    - **[CleverSpace 연동 → v1.0에서 v1.1로 변경]** ⭐ connector_type 후속 — Console 화면 검증에서 카탈로그가 `internal_bypass` 예시를 'CleverSpace'로 **단정**한 것이 발단. 조사 결과 **CleverSpace ③b(GW→CleverSpace) 신원 전달이 미정(P0)**이고(review-log-12239 C-02 — CleverSpace는 JWT 필수라 '내부 신뢰'가 아님), **v1.0은 이미 종료됐고 CleverSpace는 실연동된 적이 없음** → **CleverSpace 실연동을 v1.0 → v1.1로 변경**(추후 CleverSpace 연동 요구가 있을 때).
+      - **v1.0 = AXS만 실연동** · CleverSpace는 presigned 중계 capability(구조적 지원)만. **실연동(target 등록·connector·③b 신원 전달)=v1.1**. SRS 전수 조사로 v1.0으로 적힌 곳(§41·§887·§1160·§2376·§2.6·§2.7·③b 헤더 등)을 모두 v1.1로 정정.
+      - **CleverSpace 커넥터 타입 = `oauth2_jwt_assertion`**(GW 서명 upstream JWT 어서션·RFC 7523 · CleverSpace GW Guard가 JWKS로 검증) — v1.0 카탈로그엔 `availability:planned`·`plannedIn:v1.1`로 **자리만** 둔다(구현은 v1.1).
+      - **안전(fail-closed)**: planned 타입은 dispatch 레지스트리 밖 별도 목록 → 모르는 타입은 **거절(throw)**·인증 없이 통과 없음. GW 3계층 회귀 테스트로 잠금 확인(73/73 green).
+      - **JWKS 엔드포인트만 v1.0 선공개 유지**(공개키 노출 무해·재도입 churn 회피·실제 소비자 CleverSpace GW Guard는 v1.1).
+      - **스펙**: **#13406**(spec-v1.0.74·CleverSpace 단정 제거) merged·태그 완료 · **#13413**(spec-v1.0.75·전수 v1.1 정합+planned 카탈로그+descriptor availability 필드) 머지 대기. 선행 GW **#13404**(description 정정)·Console **#13408**(폼 planned 안내). 백로그 B-20 결정 반영.
     - **[Console 운영 매뉴얼 작성]** 운영자가 GW Console을 보고 **따라할 수 있는 운영 매뉴얼** 착수 — 가장 어렵고 중요한 **연동 대상(target) 등록·관리**부터
       - 한국어·task(작업)별 다중 문서 + 인덱스 구조 · 스크린샷도 한국어 화면(대표 데이터·PHI 없음)
       - target 문서 = **사례 주도**(AXS·CleverSpace로 따라하기)·필드 설명·연동 켜기(org 매핑)·트러블슈팅

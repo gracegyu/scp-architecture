@@ -132,6 +132,15 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 - **Console 연동.** override 필드 UI = Console 백로그 **CB-7**.
 - **출처.** 2026-08-31 connector_type v1.0 스코핑(YAGNI) — 완료 B-18에서 분리.
 
+### B-20. [gw/1.1 · 추후 CleverSpace 연동 요구가 있을 때 · ③b 신원 전달 P0 결정 종속] CleverSpace connector_type = `oauth2_jwt_assertion` 구현
+- **결정(2026-09-01·PL).** CleverSpace **실연동**(target 등록·connector·③b(GW→CleverSpace) 신원 전달)을 **v1.1**로 정리한다 — v1.0은 이미 종료됐고 CleverSpace는 실연동된 적이 없어, v1.0으로 적힌 곳은 오류였다(전수 정정). CleverSpace 커넥터 타입 = **`oauth2_jwt_assertion`**(GW 서명 upstream JWT 어서션·RFC 7523·`aud=cleverspace`·claim `device_id`+`clinic_id` → CleverSpace GW Guard가 JWKS로 검증·§7.1.5). v1.0 카탈로그엔 **`availability:"planned"`·`plannedIn:"v1.1"`**로 자리만 둔다.
+- **배경(③b P0).** CleverSpace ③b 신원 전달이 미정(P0·`03p-cs-cleverspace/_review-log-12239.md` C-02) — CleverSpace는 JWT 필수(테넌트 스코프=토큰 클레임)라 '내부 신뢰'가 아님. 권장안=GW 서명 어서션(→`oauth2_jwt_assertion`)·차선=device 토큰 verbatim(→`internal_bypass`). ⚠ 차선으로 결정되면 `oauth2_jwt_assertion`은 불요(internal_bypass)이나, planned·등록 데이터 0이라 개명/철회 비용 0.
+- **v1.0 안전 설계(완료·GW as-built 확인).** planned 타입은 dispatch 레지스트리(`CONNECTOR_PROFILES`) **밖 별도 목록** — (a) 판별자 unknown→throw(fail-closed·bypass 강등 없음·3중 방어)·(b) Admin API enum 밖 자동 400·(c) descriptor만 availability/plannedIn/plannedNote 방출. 이름을 카탈로그에 올려도 **조용한 인증 우회 창이 열리지 않음**. JWKS 엔드포인트는 v1.0 선공개(소비자=v1.1).
+- **현 조치(완료).** SRS 전수 정합(CleverSpace 실연동=v1.1): §41·§887·§1160·§2376·§2.6·§2.7(gw/1.1 행)·③b 헤더/블록 v1.1 표기 · §7.5.1 planned 카탈로그+★안전규칙+descriptor availability 필드 · JWKS 근거 재작성(엔드포인트 v1.0 유지·소비자 v1.1·§1977/§1980/§1985·§7.1.5) · OpenAPI `ConnectorTypeDescriptor.availability/plannedIn/plannedNote` — **spec-v1.0.75(PR 예정)**. 선행: connector-profile.ts description 정정(GW #13404·SRS #13406/spec-v1.0.74)·Console 목 중립화·폼 planned 안내(#13408·default-safe).
+- **잔여(v1.1 착수 시).** `oauth2_jwt_assertion` strategy 구현(`CONNECTOR_PROFILES` 승격)·③b P0 확정 반영(권장/차선)·CleverSpace GW Guard 계약(§7.1.5)·CleverSpace target 등록·Console 폼 활성.
+- **트리거 = 추후 CleverSpace 연동 요구 + ③b 신원 전달 P0 결정**(CleverSpace OnePager §7 Open items).
+- **출처.** 2026-09-01 PL 결정(Console 화면 검증 발단·review-log-12239 C-02).
+
 ---
 
 ## 참조 — 별도로 추적 중인 배치 (여기서 중복 기재하지 않음)
@@ -149,3 +158,4 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 
 ## (검토) 추가 후보 — 결정 대기
 - **Dentbird 연동 (A 직접 vs B GW 경유) 결정 시 부모 반영** — B(GW 경유) 채택 시 부모 SRS/OpenAPI 델타 발생 가능(target discovery self-plane API·per-clinic 자격 custody·Connector 정적 자격 주입 등). **현재는 미결**(A/B 결정·PHI 여부·Dentbird API 미확인). 추적=`references/Dentbird연동/8-13-Thomas.md`. **결정+확인 후 정식 백로그 항목으로 승격**. *(아직 백로그 아님 — 조건부 후보.)*
+- **capability-off verbatim no-op 스펙 근거 대조** — GW `proxy.service.ts:208` 주석에 "`internal_bypass` **및 자격 없는 외부(capability off)** = verbatim no-op(passthrough)"가 있음. unknown 타입 경로와는 무관(앞에서 throw·fail-closed)이나, **"외부(C) target의 credential이 비면 verbatim으로 나간다"**는 성질의 스펙 근거를 대조해 둘 가치가 있음 — `oauth2_org_scoped`는 §7.5.1상 OAuth2 토큰 주입·egress fail-closed가 전제라, capability-off no-op이 의도인지/조건(예 credential 미설정 target은 등록 자체가 막히는지)이 무엇인지 확인 대상. *(2026-09-01 Console 관찰·비긴급 — 지금 파진 않음.)*
