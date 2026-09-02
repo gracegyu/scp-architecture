@@ -1,0 +1,75 @@
+# Self-hosted1 에이전트 능력 검증용 smoke test (진짜 파이프라인 전에 에이전트만 확인)
+#
+# 목적: 지난번 실패(에이전트 Docker 부재) 재현/해소 확인 + 양쪽 repo 요구(docker·aws·node·pnpm·
+#       playwright 시스템 라이브러리)를 에이전트가 실제로 만족하는지 한 번에 검증.
+# 특징:
+#   - pool: Self-hosted1  → **적체된 공유 풀 큐를 안 탄다**(self-hosted 에이전트에서 즉시 실행).
+#   - trigger: none       → 푸시로 자동 실행 안 됨(수동 Run 만). 기존 CI에 영향 없음.
+# 적용: 이 YAML 을 GW 레포(또는 아무 빌드 레포)의 scratch 브랜치에 두고,
+#       Azure DevOps 에서 "New pipeline → Existing YAML" 로 이 파일을 가리켜 만들고 **수동 Run**.
+#       통과하면 그때 진짜 devsecops-*/console 파이프라인의 pool 을 Self-hosted1 로 바꾼다.
+
+trigger: none
+pr: none
+
+pool:
+  name: 'Self-hosted1'
+  demands:
+    - agent.os -equals Linux
+
+steps:
+  - script: |
+      set -e
+      echo "== 1) 기본 도구 =="
+      git --version
+      jq --version
+      echo "== 2) Docker CLI + buildx (GW 이미지 빌드) =="
+      docker version
+      docker buildx version
+      echo "== 3) AWS CLI (GW push / Console s3 sync) =="
+      aws --version
+    displayName: '1~3) 도구 존재 확인(docker·buildx·aws·git·jq)'
+
+  - script: |
+      set -e
+      echo "== 4) Docker 데몬 접근(소켓 마운트) + 실제 빌드 =="
+      docker run --rm hello-world
+      workdir="$(mktemp -d)"
+      printf 'FROM alpine:3.20\nRUN echo "self-hosted docker build OK"\n' > "$workdir/Dockerfile"
+      docker buildx build --load -t selfhosted-smoke:test "$workdir"
+      docker image rm selfhosted-smoke:test || true
+      echo "docker 데몬 접근·buildx build 성공"
+    displayName: '4) Docker 데몬·buildx build 확인 (지난번 실패 지점)'
+
+  - task: UseNode@1
+    inputs:
+      version: '20.19.x'
+    displayName: '5) Node 20.19 (Console 요구·UseNode)'
+
+  - script: |
+      set -e
+      node --version
+      corepack enable
+      corepack prepare pnpm@9.15.9 --activate
+      pnpm --version
+    displayName: '6) pnpm 9.15.9 (corepack self-prepare)'
+
+  - script: |
+      set -e
+      echo "== 7) Playwright chromium 시스템 라이브러리(사전설치) 확인 =="
+      # 이미지에 deps 사전설치했으면 --with-deps 없이 chromium 설치·헤드리스 launch 가 통과해야 한다.
+      # (playwright 모듈을 임시 디렉토리에 설치한 뒤 require·launch — launch 성공 = 시스템 라이브러리 OK)
+      tmp="$(mktemp -d)"; cd "$tmp"
+      npm init -y >/dev/null 2>&1
+      npm i playwright@1.48.0 >/dev/null 2>&1
+      npx playwright install chromium
+      node -e "const {chromium}=require('playwright');(async()=>{const b=await chromium.launch();const p=await b.newPage();await p.goto('about:blank');console.log('playwright chromium launch OK');await b.close();})().catch(e=>{console.error(e);process.exit(1);});"
+    displayName: '7) Playwright chromium 실행 확인 (Console 진짜 관건·--with-deps 불요)'
+
+  - script: |
+      echo "== 8) 리소스(참고) =="
+      nproc
+      free -h || true
+      df -h / || true
+      echo "⚠ chromium 테스트는 2+ vCPU 전용 권장(경합=플레이크). 에이전트 수/코어 배분 확인."
+    displayName: '8) 리소스 확인(vCPU/메모리/디스크)'
