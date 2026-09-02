@@ -54,6 +54,14 @@
       - **스펙**: GW **#13435**(spec-v1.0.79·§7.8.6 FR-SYS-01·OpenAPI `ServiceVersion`) merged·태그 · Console **#13436**(spec-v1.0.12·FR-CON-39 version 표) merged·태그.
       - **구현 분담**: GW(4 `/version`+dispatcher HTTP+admin 취합) · Console(version 표·계약 확정이라 목 우선 착수) · Jack(Dockerfile build ARG·마이그레이션 Job 배선).
 
+    - **[CI 셀프호스티드(Self-hosted1) 전환 — 공유 풀 적체 해소]** ⭐ **계기**: 공유 Agent pool 대기열이 심하게 적체돼 GW·Console CI가 몇 시간씩 큐에 묶임 → 사내 자체 구축 풀 **Self-hosted1**(사내 서버·docker 컨테이너 에이전트)로 빌드를 되살림. **지난번 실패 원인 = 에이전트에 Docker 미설치**(이미지 buildx 불가)로 확인·해소.
+      - **1) 에이전트 재구축**(`references/Self-hosted1`): 에이전트 이미지(`azp-agent:linux`)에 **docker-ce-cli + buildx 플러그인**(이미지 빌드)·**AWS CLI v2**(ECR push·S3 sync)·**Playwright chromium 시스템 라이브러리**(Console e2e) 추가(기존 Node/pnpm/git/jq/Rust 유지). 재설치 스크립트에 **`-v /var/run/docker.sock` 소켓 마운트**를 넣어 buildx가 호스트 도커 데몬을 씀. Linux 에이전트 4대(`demands: agent.os -equals Linux`).
+      - **보안**: 재설치 스크립트에 실 PAT가 들어가 **git 추적 제거 + `.gitignore`**(리포 노출 방지). 신규 PAT는 **Agent Pools(Read & manage) 스코프만**으로 최소화.
+      - **2) 스모크 검증**(진짜 파이프라인 전 에이전트 능력만 확인): `trigger:none/pr:none` 스크래치 파이프라인으로 **적체 큐를 안 타고** 8단계(도구 존재·**docker 데몬+buildx build**[지난번 실패 지점]·Node 20.19·pnpm 9.15.9·**playwright chromium launch**·리소스) 검증 → **8/8 green**(소켓 미마운트·playwright 모듈 미설치 이슈 잡아 수정 후 통과). 지난번 실패(docker buildx)가 해소됐음을 실측 확인.
+      - **3) 중앙 템플릿 pool 파라미터화**(Jack 소유 `es-ci-templates`·**PR #13482 머지**): 공용 `devsecops.yml`에 **`pool` 파라미터(기본값 `{vmImage: ubuntu-latest}`)**를 추가하고 3개 job에 배선. **가법적·기본값 보존**이라 **GW만 오버라이드로 opt-in**하고 다른 Product는 무영향. **Cache@2는 미도입**(self-hosted에선 매 실행 ~1GB 캐시 tarball 업로드가 순손실 — 로컬 디스크 캐시가 지속되므로 불요).
+      - **4) 적용**: ▸ **GW root CI**(GW 세션 소관) — **#13480**(root `azure-pipelines.yml` 풀→Self-hosted1+demands Linux · pnpm Cache@2 제거). **머지 전 대기** · 블로커=`vt-api-gateway-ci` **풀 인가**(Raymond 조치)·인가+green 후 머지. ▸ **GW devsecops-\* 5종**(core/admin/receiver/dispatcher/migrate·스펙 pool-파라미터 PR 소관) — `extends.parameters`에 `pool: {name: Self-hosted1, demands: [agent.os -equals Linux]}` 오버라이드(스니펫 준비 완료). ▸ **Console** — CI 풀 Self-hosted1 전환 진행(Console 세션 watched PR).
+      - ⚠ **선결(콘솔 작업)**: 각 파이프라인을 `Agent pools → Self-hosted1 → Security → Pipeline permissions`에 **파이프라인별 등록**해야 실행됨(**Open access 금지** — chromium 경합 플레이크). 스모크 파이프라인은 등록 완료.
+
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
