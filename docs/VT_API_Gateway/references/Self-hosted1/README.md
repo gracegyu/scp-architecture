@@ -27,6 +27,54 @@
 - Playwright `--with-deps` 는 이미지에 deps 사전설치했으므로 파이프라인에서 **빼도 됨**(root라 그대로도 동작).
 - 라이브러리 이름은 Ubuntu 22.04 기준 — 빌드 중 특정 lib 이 없다고 나오면 그 이름만 조정(예 `libasound2`).
 
+### 적용 범위 (2026-09-02 확정 · Raymond)
+
+**기준**: **GW/Console PR·머지 회전에 직접 영향(=적체가 PR/배포를 막는)** 파이프라인만 우선 self-hosted 전환. 드물고 늦어도 되는 것은 **지금 제외**하고 아래 확대 backlog로 넘긴다.
+
+**즉시 적용 (now)**
+
+| 파이프라인 | Repo | 왜 지금 | 상태 |
+| --- | --- | --- | --- |
+| `azure-pipelines.yml` (GW root CI) | vt-api-gateway | **모든 PR에서 돎 = 최대 PR 블로커** | 🔄 #13480(머지 전·풀 인가 대기) |
+| `vt-api-gateway-console-ci` (Console CI) | vt-api-gateway-console | **Console 모든 PR** | 🔄 Console 세션 전환 중 |
+| `devsecops-core/admin/receiver/dispatcher/migrate` | vt-api-gateway | **매 머지 CD 경로 + docker buildx 필수**(self-hosted 재구축 본래 목적) | 🔄 extends.parameters.pool 오버라이드 적용 중 |
+
+**추후 확대 backlog (지금 제외 · 확대 트리거·전제조건 명시)**
+
+| 파이프라인 | 지금 제외 이유 | 확대 트리거 | 전제조건(조사) |
+| --- | --- | --- | --- |
+| `compat-matrix.yml` | `pr:` 있으나 **path 한정**(`config/compat-matrix/**`·`scripts/compat-matrix/**`·`.well-known/**`) → 일상 GW PR 무관·드묾 | compat 변경이 잦아지거나 공유 풀 대기 체감 | 특이 전제 없음(온프렘 도구로 충분). 중앙 템플릿 아님·**직접 `pool:` 한 줄**로 전환 가능 |
+| `compat-matrix-publish.yml` | 수동·PR 무관 | 발행 빈도↑ | ⚠ **온프렘→AWS Parameter Store write 도달성**(네트워크·IAM) 확인 |
+| `docs-wiki.yml` | 머지 시 wiki 발행·PR 무관·경량 | 공유 풀 대기 체감 | wiki push 자격이 온프렘에서 동작하는지 확인 |
+| `gw-dev-seed.yml` | 수동·PR 무관 | dev 시드가 자주 필요해질 때 | ⚠ **온프렘→AWS dev RDS 네트워크 도달성** + `DATABASE_URL` 변수그룹(③-I 요청 #6) |
+| `ha-test.yml` · `load-test.yml` | **Self-hosted1 대상 아님** — 프라이빗 endpoint(SQS/EKS) 접근 필요 | test 환경 프로비저닝(선결 #5) 후 | ⚠ **③-I test VPC self-hosted 풀** 필요(우리 온프렘 Self-hosted1 아님) — 파일에 이미 placeholder로 명시 |
+| `promote-qa.yml` · `promote-prod.yml` | 수동·PR 무관·prod 승격 | 승격 자동화·대기 체감 | ⚠ **별도 중앙 템플릿(`promote-qa.yml@templates`·`promote-prod.yml@templates`)에 pool 파라미터 추가(Jack PR 1건 추가)** + **prod를 사내 온프렘 에이전트에서 실행하는 보안 검토** |
+
+**모든 확대에 공통 선행**
+- 파이프라인별 **Self-hosted1 → Security → Pipeline permissions 등록**(Open access 금지 — chromium 경합 플레이크).
+- **에이전트 용량**(vCPU·동시성): chromium/e2e 경합 시 플레이크 → 확대 시 에이전트 수 `N`·코어 배분 재점검.
+- **온프렘→AWS 도달성**은 파이프라인마다 대상 리소스(ECR·RDS·Parameter Store·S3)가 달라 **건별 확인**(ECR push만 스모크로 검증됨).
+
+### OOM 먹통 사고·대책 (2026-09-02)
+
+전환 직후 GW·Console 잡이 동시에 돌자 호스트가 **메모리 고갈 → swap 스래싱 → GUI·SSH 먹통**이 됨(15분 load average 249, 32코어의 ~7.8배 초과). SSH 복구 후 진단·조치.
+
+**호스트 실물 = BuildMachine2 (wbs.ewoosoft.com)**: Intel i9-14900 **32 vCPU / RAM 62GB / swap 8GB**.
+- ★**CI 전용이 아니라 공용 서버**: dependency-track-apiserver 7.4GB · win10 KVM VM 7.7GB · sonarqube 2GB · jenkins 1.4GB · abc-wbs 앱(backend/ws/postgres) · LinuxNode×4 · nginx 상주 → **상주+OS ≈ 30GB → CI 실여유 ~30GB뿐**(62GB 아님).
+
+**근본 원인**: 테스트 러너가 코어 수로 워커 자동 증식(Jest/vitest = 코어−1 = **31/job**, playwright = 코어/2) × 에이전트 4대 동시 → 여유 30GB 순식간 초과. 구 클라우드 풀은 job당 격리 2 vCPU VM이라 워커 1개뿐이어서 안 터졌던 것.
+
+**조치(전부 리부팅 후 유지)**:
+1. **테스트 워커 공통 상한 = 2**(양 레포): GW Jest `--maxWorkers=2 --workerIdleMemoryLimit=1GB` · Console vitest 2 / playwright 2. (코드라 항구적.)
+2. **에이전트 컨테이너별 메모리 상한**: `docker update --memory=6g --memory-swap=6g` 4대 즉시 적용(재생성 불요). blast-radius 차단 — CI 폭주해도 호스트·상주서비스 못 죽임. **reinstall_agent.sh에도 `--memory=6g --memory-swap=6g` 추가**(재설치·PAT 교체 시 유지). Docker가 HostConfig 저장 + `restart=unless-stopped` + 데몬 부팅 enabled → 리부팅 후 자동 유지.
+3. **win10 KVM VM 종료**: `virsh -c qemu:///system destroy win10` + `autostart --disable` → 7.7GB 회수·리부팅해도 안 올라옴. 이 VM이 방치된 Windows 에이전트(2024-11 이후 미사용) 호스트였음 → Azure DevOps 풀의 죽은 Windows 에이전트 4개 엔트리는 웹 UI에서 제거.
+
+**서비스화(자동복구)는 이미 충족**: 에이전트 4대 `restart=unless-stopped` + docker 데몬 `enabled`(부팅 자동) → 세션/OOM 이후 자동 복구(systemd vsts.agent 서비스화 불필요 — 컨테이너 모델).
+
+**보류(관측 후 판단)**: 에이전트 수 4→2 축소 · 파이프라인 job 동시성 제한. 위 1·2로 4대여도 여유 내라 일단 유지.
+
+**접속(진단·운영)**: `ssh -i ~/.ssh/id_rsa raymond@wbs.ewoosoft.com`(Mac 공개키 등록됨·keyless). docker는 sudo 불요(docker 그룹)·virsh는 `-c qemu:///system`으로 sudo 불요(libvirt 그룹)·그 외 sudo는 암호 필요.
+
 ---
 
 - 사전 준비
