@@ -1,13 +1,14 @@
 # **Dockerfile & docker run 이용**
 
 - 사전 준비
-    - $ sudo docker network create webnet
+  - $ sudo docker network create webnet
 - 참조 : https://learn.microsoft.com/ko-kr/azure/devops/pipelines/agents/docker?view=azure-devops
 - Docker image 생성
-    - $ mkdir azp-agent-in-docker
-    - $ cd azp-agent-in-docker
-    - Dockerfile 생성 (root로 실행, Rust, Cargo 설치, 필요한 여러 모듈 미리 설치)
-    - azp-agent-linux.dockerfile
+  - $ mkdir azp-agent-in-docker
+  - $ cd azp-agent-in-docker
+  - Dockerfile 생성 (root로 실행, Rust, Cargo 설치, 필요한 여러 모듈 미리 설치)
+  - azp-agent-linux.dockerfile
+
 ```
 FROM ubuntu:22.04
 
@@ -43,11 +44,12 @@ ENV AGENT_ALLOW_RUNASROOT="true"
 # Add Cargo to PATH for all users
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-ENTRYPOINT [ "./start.sh" ]   
-```    
-        
+ENTRYPOINT [ "./start.sh" ]
+```
+
 - start.sh 만들기
   - start.sh
+
 ```
 #!/bin/bash
 set -e
@@ -140,14 +142,14 @@ chmod +x ./run.sh
 
 ./run.sh "$@" & wait $!
 ```
+
 - docker build
-    - $ sudo docker build --tag "azp-agent:linux" --file "./azp-agent-linux.dockerfile" .
+  - $ sudo docker build --tag "azp-agent:linux" --file "./azp-agent-linux.dockerfile" .
 - Azure Devops 사이트에서 PAT를 발급 받는다.
-    - https://dev.azure.com/ewoosoft/_usersSettings/tokens
+  - https://dev.azure.com/ewoosoft/_usersSettings/tokens
 - docker run으로 실행하기
-    - 필요한 agent 갯수만큼 실행해야 한다.
-        - ./reinstall_agent.sh을 실행하면 초기 실행도 된다.
-        
+  - 필요한 agent 갯수만큼 실행해야 한다.
+    - ./reinstall_agent.sh을 실행하면 초기 실행도 된다.
 - PAT가 만료되기 전에 agent를 재설치해줘야 함 
 - ~/azp-agent-in-docker/reinstall_agent.sh
 
@@ -195,22 +197,50 @@ done
 echo "Reinstallation of $NEW_N Azure Pipelines agents complete."
 ```
 
-    
     - PAT가 만료되기 전에 Azure Devops에서 PAT를 새로 발급 받아서 reinstall_agent.sh의 AZP_TOKEN 값을 업데이트 하고 실행한다.
     - Agent 갯수 default 값은 4
         - ./reinstall_agent.sh 처럼 실행하면 4개가 실행됨
         - 6개를 실행하려면?
             - ./reinstall_agent.sh 6
-        
+
+
 - Pipeline에서 Self-hosted Agent 적용하기
-    - Pipeline에서 Agent pool만 선택해서 빌드할 수도 있고, OS를 지정하여 빌드할 수도 있다.
-        - `pool: name: 'Self-hosted1' demands:  agent.os equals Linux
-        pool: name: 'Self-hosted1' demands:  agent.os equals Windows_NT
-        # MacOS pool: name: 'Self-hosted1' demands:  agent.os equals Darwin`
+  - Pipeline에서 Agent pool만 선택해서 빌드할 수도 있고, OS를 지정하여 빌드할 수도 있다.
+
+```
+pool:
+  name: 'Self-hosted1'
+  demands:
+    - agent.os -equals Linux
+
+
+pool:
+  name: 'Self-hosted1'
+  demands:
+    - agent.os -equals Windows_NT
+
+# MacOS
+pool:
+  name: 'Self-hosted1'
+  demands:
+    - agent.os -equals Darwin
+```
+
     - OS 버전을 지정할 수 있다.
-        - `pool: name: 'Self-hosted1' demands:  agent.os equals Linux
-          agent.os equals Windows_NT
-        pool: name: 'Self-hosted1' demands:  agent.os equals Windows_NT
-          Agent.OSVersion equals 10.0.17763`
+
+```
+pool:
+  name: 'Self-hosted1'
+  demands:
+    - agent.os -equals Linux
+    - agent.os -equals Windows_NT
+
+pool:
+  name: 'Self-hosted1'
+  demands:
+    - agent.os -equals Windows_NT
+    - Agent.OSVersion -equals 10.0.17763
+```
+
     - Agent pool 내의 특정 Agent를 지정하여 빌드할 수 없다.
         - 그러려면 독립된 Agent pool을 만들어야 한다.
