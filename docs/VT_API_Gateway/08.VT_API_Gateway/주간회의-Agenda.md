@@ -50,6 +50,7 @@
       - **설계**: per-process `GET /version`(core·admin·receiver·dispatcher · version·gitCommit·buildTime·startedAt·region · `/health`와 분리·무인증 인프라) · **dispatcher도 이미 Nest HTTP 앱(HealthModule)이라 다른 3앱처럼 `/version` 컨트롤러만 추가**(별도 리스너 불요·as-built) · **admin 취합 `GET /v1/admin/system/versions`**(operatorAuth·4개 fan-out·status ok/unreachable·부분 결과) → **Console 1콜 표**.
       - **배포 검증 UX**: gitCommit **불일치(롤아웃 미완)**·**unreachable**·재기동(startedAt)을 화면이 플래그.
       - **빌드 주입**: version=package.json · gitCommit/buildTime=Docker build ARG→env(Jack Dockerfile 조율·미주입 시 unknown).
+      - **버전 규약 = SemVer (BE·FE 모두)**: 버전 관리·서빙을 **[SemVer](https://semver.org) 규약**으로 통일 — 정식 `1.0.0` 출시 전까지 `1.0.0-alpha.N`(PR마다 N↑) → `beta.N`/`rc.N` → `1.0.0`. **SemVer 표준 준수라 프로젝트별로 규약을 구구절절 설명할 필요 없음.** version API가 이 값을 그대로 서빙(version이 곧 라벨·별도 releaseVersion 없음). *(FE self-version 화면=Console 백로그 CB-8 보류.)*
       - **스펙**: GW **#13435**(spec-v1.0.79·§7.8.6 FR-SYS-01·OpenAPI `ServiceVersion`) merged·태그 · Console **#13436**(spec-v1.0.12·FR-CON-39 version 표) merged·태그.
       - **구현 분담**: GW(4 `/version`+dispatcher HTTP+admin 취합) · Console(version 표·계약 확정이라 목 우선 착수) · Jack(Dockerfile build ARG·마이그레이션 Job 배선).
 
