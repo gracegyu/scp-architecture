@@ -30,8 +30,14 @@
       - **정리(8/31)**: 당초 SRS+구현을 #13309 한 PR로 냈으나 connector_type 작업과 겹쳐 → 스펙은 **#13351에 흡수**·코드는 **#13359로 이동**·**#13309 close**. 추가로 **admin DTO 패턴이 아직 옛 `^[a-z0-9_]+$`** 였음을 발견 → **GW #13363**: target·정책·org-mapping·컨트롤러 @ApiParam **전 소비자 RFC 1123 일괄** + seed 하이픈(커플링). 스펙 OpenAPI도 OrgMapping·Policy targetId 패턴 정합(#13349). **✅ 데모 후 머지 완료**.
     - **[Target 범용화 — connector_type 도입]** ⭐ 아웃바운드 커넥터가 AXS 관례(Organization-ID·`storageUrl`·org 1:1)를 **코드 상수로 하드코딩**해 **제2 external target이 record만으로 조용히 오동작**하는 사각지대를 3면 감사(GW·Console·스펙)로 발견 → **`connector_type`(어댑터 프로파일)을 v1.0에 정식 도입**(파생 판별 폐기).
       - **★범용 불변식(NORMATIVE)**: 런타임 소스에 `if targetId==='axs'` 류 특정 target 하드코딩 금지 — 동작차는 오직 `connector_type`→프로파일 레지스트리로만. 새 파트너=프로파일 추가(코드 1곳), 특정 target 하드코딩 X.
-      - **⚠ 제약(현실)**: "신규 target = 코드 0(record만 추가)"은 **관례가 기존 프로파일과 일치할 때만** 성립한다. **target마다 인증 방법·clinic(org) 식별 방법이 달라**(헤더명/토큰 클레임/경로·서명 체계·업로드 위임 유무 등) **초기 몇 개 target은 새 프로파일/전략(코드) 추가가 불가피**하다. 범용 불변식(하드코딩 금지)은 항상 준수하되 "코드 0"은 **성숙기 목표**로 보고 **초기 확장기엔 target별 추가 개발을 전제로 일정·범위를 잡는다**(SRS §7.5.1 제약 명문화·백로그 B-19). 프레임워크 가치=추가가 **한 곳(프로파일/전략)에 국소화**·코어 무파급.
-      - **v1.0 종류 2개**: `internal_bypass`(내부 신뢰망·**v1.0 확정 사용처 없음**·CleverSpace는 ③b P0로 v1.1) · `oauth2_org_header`(OAuth2 client_credentials 인증[tenant 단일] + Organization-ID 헤더로 org 구분·예 AXS). (명명: 구 `oauth2_cc`→`oauth2_org_scoped`→**`oauth2_org_header`** — "org_scoped"가 "토큰이 org별 스코프"로 오독돼 개명·스펙 #13417.)
+      - **⚠ 제약(현실)**: "신규 target = 코드 0(record만 추가)"은 **관례가 기존 프로파일과 일치할 때만** 성립
+        - **target마다 인증 방법·clinic(org) 식별 방법이 다름**(헤더명/토큰 클레임/경로·서명 체계·업로드 위임 유무 등) → **초기 몇 개 target은 새 프로파일/전략(코드) 추가가 불가피**.
+        - 범용 불변식(하드코딩 금지)은 항상 준수하되, "코드 0"은 **성숙기 목표** → **초기 확장기엔 target별 추가 개발을 전제로 일정·범위**를 잡음(SRS §7.5.1 명문화·백로그 B-19).
+        - 프레임워크 가치 = 추가가 **한 곳(프로파일/전략)에 국소화**·코어 무파급.
+      - **v1.0 커넥터 타입 2개**
+        - **`internal_bypass`**: 내부 신뢰망 · **v1.0 확정 사용처 없음**(CleverSpace는 ③b P0로 v1.1).
+        - **`oauth2_org_header`**: OAuth2 client_credentials 인증(tenant 단일) + Organization-ID 헤더로 org 구분(예 AXS).
+        - 명명 이력: 구 `oauth2_cc` → `oauth2_org_scoped` → **`oauth2_org_header`**("org_scoped"가 "토큰이 org별 스코프"로 오독돼 개명·스펙 #13417).
       - **descriptor 스키마-구동**: GW `GET /v1/admin/connector-types`가 type별 필드 서술 반환 → Console이 폼을 **동적 렌더**(정적 per-type 분기 금지) → 새 프로파일 시 **Console 코드 0**(범용성이 프론트에도 관철).
       - **스펙**: GW **#13349**(spec-v1.0.73·§7.5.1 재작성·카탈로그·descriptor·Q2/Q3·targetId 정합) · Console **#13351**(FR-CON-16 스키마-구동 폼·#13309 흡수) · 부수 **#13338**(KMS-envelope 설명 정정).
       - **구현**(✅ 머지 완료): GW **#13357**(파생→레지스트리 dispatch·`oauth2_cc`→`oauth2_org_scoped`·profile↔type 400·변경 409·cross-field 400·unit 1994) · Console **#13359**(type-first·descriptor 동적 폼·profile 읽기전용·TARGET_ID_PATTERN) · GW **#13363**(target_id 전 소비자) · GW **#13358**(dev-seed AWS 서비스커넥션).
@@ -47,20 +53,48 @@
       - target 문서 = **사례 주도**(AXS·CleverSpace로 따라하기)·필드 설명·연동 켜기(org 매핑)·트러블슈팅
       - 진행: **target 등록·관리 초안 완료·리뷰 중**(스펙 세션 초안 → Raymond 리뷰 → Console 세션이 실제 화면 스텝·스크린샷 보완·나머지 메뉴 문서)
     - **[프로세스 버전·빌드 정보 API — 배포 검증]** ⭐ 각 프로세스가 자기 버전/빌드정보를 서빙해 **새 이미지가 실제 붙었는지(배포 landed)를 화면에서 즉시 확인**. **계기**: dev 데모 500 진단 때 "무엇이 배포됐는지 화면서 알 수 없다"가 지연 원인이었음(개명 후 dev `axs` 행 미이관·배포본 확인난).
-      - **설계**: per-process `GET /version`(core·admin·receiver·dispatcher · version·gitCommit·buildTime·startedAt·region · `/health`와 분리·무인증 인프라) · **dispatcher도 이미 Nest HTTP 앱(HealthModule)이라 다른 3앱처럼 `/version` 컨트롤러만 추가**(별도 리스너 불요·as-built) · **admin 취합 `GET /v1/admin/system/versions`**(operatorAuth·4개 fan-out·status ok/unreachable·부분 결과) → **Console 1콜 표**.
+      - **설계**
+        - per-process **`GET /version`**(core·admin·receiver·dispatcher): version·gitCommit·buildTime·startedAt·region · `/health`와 분리·무인증 인프라.
+        - **dispatcher도 이미 Nest HTTP 앱(HealthModule)** → 다른 3앱처럼 `/version` 컨트롤러만 추가(별도 리스너 불요·as-built).
+        - **admin 취합 `GET /v1/admin/system/versions`**(operatorAuth·4개 fan-out·status ok/unreachable·부분 결과) → **Console 1콜 표**.
       - **배포 검증 UX**: gitCommit **불일치(롤아웃 미완)**·**unreachable**·재기동(startedAt)을 화면이 플래그.
       - **빌드 주입**: version=package.json · gitCommit/buildTime=Docker build ARG→env(Jack Dockerfile 조율·미주입 시 unknown).
-      - **버전 규약 = SemVer (BE·FE 모두)**: 버전 관리·서빙을 **[SemVer](https://semver.org) 규약**으로 통일 — 정식 `1.0.0` 출시 전까지 `1.0.0-alpha.N`(PR마다 N↑) → `beta.N`/`rc.N` → `1.0.0`. **SemVer 표준 준수라 프로젝트별로 규약을 구구절절 설명할 필요 없음.** version API가 이 값을 그대로 서빙(version이 곧 라벨·별도 releaseVersion 없음). *(FE self-version 화면=Console 백로그 CB-8 보류.)*
+      - **버전 규약 = SemVer (BE·FE 모두)**: 버전 관리·서빙을 **[SemVer](https://semver.org) 규약**으로 통일 — 정식 `1.0.0` 출시 전까지 `1.0.0-alpha.N`(PR마다 N↑) → `beta.N`/`rc.N` → `1.0.0`. **SemVer 표준 준수라 프로젝트별로 규약을 구구절절 설명할 필요 없음.** version API가 이 값을 그대로 서빙(version이 곧 라벨·별도 releaseVersion 없음). *(FE self-version 화면=Console 백로그 CB-8 → ✅ 완료·#13441.)*
       - **스펙**: GW **#13435**(spec-v1.0.79·§7.8.6 FR-SYS-01·OpenAPI `ServiceVersion`) merged·태그 · Console **#13436**(spec-v1.0.12·FR-CON-39 version 표) merged·태그.
       - **구현 분담**: GW(4 `/version`+dispatcher HTTP+admin 취합) · Console(version 표·계약 확정이라 목 우선 착수) · Jack(Dockerfile build ARG·마이그레이션 Job 배선).
 
-    - **[CI 셀프호스티드(Self-hosted1) 전환 — 공유 풀 적체 해소]** ⭐ **계기**: 공유 Agent pool 대기열이 심하게 적체돼 GW·Console CI가 몇 시간씩 큐에 묶임 → 사내 자체 구축 풀 **Self-hosted1**(사내 서버·docker 컨테이너 에이전트)로 빌드를 되살림. **지난번 실패 원인 = 에이전트에 Docker 미설치**(이미지 buildx 불가)로 확인·해소.
-      - **1) 에이전트 재구축**(`references/Self-hosted1`): 에이전트 이미지(`azp-agent:linux`)에 **docker-ce-cli + buildx 플러그인**(이미지 빌드)·**AWS CLI v2**(ECR push·S3 sync)·**Playwright chromium 시스템 라이브러리**(Console e2e) 추가(기존 Node/pnpm/git/jq/Rust 유지). 재설치 스크립트에 **`-v /var/run/docker.sock` 소켓 마운트**를 넣어 buildx가 호스트 도커 데몬을 씀. Linux 에이전트 4대(`demands: agent.os -equals Linux`).
-      - **보안**: 재설치 스크립트에 실 PAT가 들어가 **git 추적 제거 + `.gitignore`**(리포 노출 방지). 신규 PAT는 **Agent Pools(Read & manage) 스코프만**으로 최소화.
-      - **2) 스모크 검증**(진짜 파이프라인 전 에이전트 능력만 확인): `trigger:none/pr:none` 스크래치 파이프라인으로 **적체 큐를 안 타고** 8단계(도구 존재·**docker 데몬+buildx build**[지난번 실패 지점]·Node 20.19·pnpm 9.15.9·**playwright chromium launch**·리소스) 검증 → **8/8 green**(소켓 미마운트·playwright 모듈 미설치 이슈 잡아 수정 후 통과). 지난번 실패(docker buildx)가 해소됐음을 실측 확인.
-      - **3) 중앙 템플릿 pool 파라미터화**(Jack 소유 `es-ci-templates`·**PR #13482 머지**): 공용 `devsecops.yml`에 **`pool` 파라미터(기본값 `{vmImage: ubuntu-latest}`)**를 추가하고 3개 job에 배선. **가법적·기본값 보존**이라 **GW만 오버라이드로 opt-in**하고 다른 Product는 무영향. **Cache@2는 미도입**(self-hosted에선 매 실행 ~1GB 캐시 tarball 업로드가 순손실 — 로컬 디스크 캐시가 지속되므로 불요).
-      - **4) 적용**: ▸ **GW root CI**(GW 세션 소관) — **#13480**(root `azure-pipelines.yml` 풀→Self-hosted1+demands Linux · pnpm Cache@2 제거). **머지 전 대기** · 블로커=`vt-api-gateway-ci` **풀 인가**(Raymond 조치)·인가+green 후 머지. ▸ **GW devsecops-\* 5종**(core/admin/receiver/dispatcher/migrate·스펙 pool-파라미터 PR 소관) — `extends.parameters`에 `pool: {name: Self-hosted1, demands: [agent.os -equals Linux]}` 오버라이드(스니펫 준비 완료). ▸ **Console** — CI 풀 Self-hosted1 전환 진행(Console 세션 watched PR).
-      - ⚠ **선결(콘솔 작업)**: 각 파이프라인을 `Agent pools → Self-hosted1 → Security → Pipeline permissions`에 **파이프라인별 등록**해야 실행됨(**Open access 금지** — chromium 경합 플레이크). 스모크 파이프라인은 등록 완료.
+    - **[CI 셀프호스티드(Self-hosted1) 전환 — 공유 풀 적체 해소]** ⭐
+      - **계기**: 공유 Agent pool 대기열이 심하게 적체돼 GW·Console CI가 몇 시간씩 큐에 묶임 → 사내 자체 구축 풀 **Self-hosted1**(사내 서버·docker 컨테이너 에이전트)로 빌드를 되살림. **지난번 실패 원인 = 에이전트에 Docker 미설치**(이미지 buildx 불가)로 확인·해소.
+      - **1) 에이전트 재구축** (`references/Self-hosted1`)
+        - 에이전트 이미지(`azp-agent:linux`)에 추가: **docker-ce-cli + buildx**(이미지 빌드) · **AWS CLI v2**(ECR push·S3 sync) · **Playwright chromium 시스템 라이브러리**(Console e2e). 기존 Node/pnpm/git/jq/Rust 유지.
+        - 재설치 스크립트에 **`-v /var/run/docker.sock` 소켓 마운트** → buildx가 호스트 도커 데몬 사용.
+        - Linux 에이전트 **4대**(`demands: agent.os -equals Linux`).
+        - **보안**: 재설치 스크립트에 실 PAT 포함 → **git 추적 제거 + `.gitignore`**. 신규 PAT는 **Agent Pools(Read & manage) 스코프만**.
+      - **2) 스모크 검증** (진짜 파이프라인 전 에이전트 능력만 확인)
+        - `trigger:none/pr:none` 스크래치 파이프라인으로 **적체 큐를 안 타고** 검증.
+        - 8단계: 도구 존재 · **docker 데몬+buildx build**(지난번 실패 지점) · Node 20.19 · pnpm 9.15.9 · **playwright chromium launch** · 리소스.
+        - **8/8 green**(소켓 미마운트·playwright 모듈 미설치 이슈 잡아 수정 후 통과) → 지난번 실패(docker buildx) 해소를 실측 확인.
+      - **3) 중앙 템플릿 pool 파라미터화** (Jack 소유 `es-ci-templates` · **PR #13482 머지**)
+        - 공용 `devsecops.yml`에 **`pool` 파라미터(기본값 `{vmImage: ubuntu-latest}`)** 추가 + 3개 job 배선.
+        - **가법적·기본값 보존** → **GW만 오버라이드로 opt-in**, 다른 Product 무영향.
+        - **Cache@2 미도입**: self-hosted에선 매 실행 ~1GB 캐시 tarball 업로드가 순손실(로컬 디스크 캐시가 지속되므로 불요).
+      - **4) 적용**
+        - **범위 기준** = **GW/Console PR·머지 회전에 직접 영향(적체가 PR/배포를 막는)** 것만 우선. 드물고 늦어도 되는 compat·docs-wiki·seed·부하/HA·promote는 **확대 후보로 제외**(트리거/전제조건은 `references/Self-hosted1/README.md` backlog).
+        - **GW root CI**(GW 세션): **#13480** — root `azure-pipelines.yml` 풀→Self-hosted1+demands Linux · pnpm Cache@2 제거. 머지 전 대기 · 블로커=`vt-api-gateway-ci` **풀 인가**(Raymond).
+        - **GW devsecops-\* 5종**(core/admin/receiver/dispatcher/migrate·GW 세션): **#13498** — `extends.parameters`에 `pool: {name: Self-hosted1, demands: [agent.os -equals Linux]}` 오버라이드. #13482 선병합 확인 → 머지 가능.
+        - **Console**(Console 세션): CI 풀 Self-hosted1 전환(watched PR).
+        - ⚠ **선결(Raymond 포털)**: 각 파이프라인을 `Agent pools → Self-hosted1 → Security → Pipeline permissions`에 **파이프라인별 등록**해야 실행됨(**Open access 금지** — chromium 경합 플레이크). 스모크 파이프라인은 등록 완료.
+      - **5) OOM 먹통 사고·대책 (9/2)** — 상세=`references/Self-hosted1/README.md`
+        - **현상**: 전환 직후 GW·Console 잡 동시 실행 → 메모리 고갈 → swap 스래싱 → **GUI·SSH 먹통**(15분 load average **249**).
+        - **진단**: 빌드 호스트(BuildMachine2·**32 vCPU / 62GB**)가 **CI 전용이 아닌 공용 서버**였음 — dependency-track 7.4GB·sonarqube·jenkins·abc-wbs 앱·win10 VM 7.7GB 상주 → **CI 실여유 ~30GB뿐**. 근본 원인 = **테스트 러너가 코어 수로 워커 자동 증식**(Jest 기본 **31/job**) × **에이전트 4대** 중첩.
+        - **대책** (전부 리부팅 후 유지):
+          - ① **워커 공통 상한 2**: GW Jest `--maxWorkers=2 --workerIdleMemoryLimit=1GB`(#13480) · Console vitest2/playwright2(#13441).
+          - ② **에이전트 컨테이너별 `--memory=6g --memory-swap=6g`**: blast-radius 차단(폭주해도 호스트·상주서비스 못 죽임). `docker update` 즉시 적용 + `reinstall_agent.sh` 반영.
+          - ③ **win10 KVM 종료**(`virsh destroy`+autostart off): **7.7GB 회수**·리부팅해도 안 올라옴. 방치된 Windows 에이전트(2024-11 이후 미사용) 호스트였음.
+          - 서비스화(자동복구)는 **이미 충족**: 에이전트 `restart=unless-stopped` + docker 데몬 부팅 enabled.
+        - **✅ 해결 확인 (9/2·실부하 상태)**: 사용 **24GB / 여유 38GB**(62GB 중) · load **249→13** · 에이전트 실작업 중(playwright 도는데도 안정) · 상한 유지.
+          - **구조적 보장**: 최악 = 4대 × 6GB = **24GB** + 상주 ~22GB = **46GB < 62GB** → 호스트 OOM이 **수학적으로 불가**. (부하가 몰려도 상한 때문에 CI 총량이 24GB를 못 넘음.)
+        - **보류(관측 후 판단)**: 에이전트 4→2 축소(위 여유상 불필요할 듯)·job 동시성 제한.
 
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
