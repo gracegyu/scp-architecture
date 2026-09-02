@@ -114,7 +114,7 @@ PR #12744(머지 `5331365`)로 **CI가 실제 문지기가 됐다.** `T-FE-0-8` 
 - **테스트 정본**(별도 UnitTCL 없음): SRS FR-CON 인수기준.
 - **출처.** 2026-08-31 완료 CB-6에서 분리.
 
-> (CB-1~CB-4는 전부 반영·해소 — 아래 완료 이력.)
+> (CB-1~CB-4·CB-6·CB-8은 전부 반영·해소 — 아래 완료 이력.)
 
 ---
 
@@ -123,6 +123,7 @@ PR #12744(머지 `5331365`)로 **CI가 실제 문지기가 됐다.** `T-FE-0-8` 
 - **CB-1**(멀티리전 운영자 authz·ZTNA 제거→Entra) · **CB-2**(v1.0 최소기능 선행·기술 스택 확정) — ✅ **SRS baseline 반영 완료**(상세=git 이력).
 - **CB-3**(감사 로그 대상 리소스 축 부재) — ✅ **해소(2026-08-18)**: 부모가 `AuditLog`에 **`resourceType`/`resourceId`** additive(부모 B-14·`spec-v1.0.25`·`3b6a834`). ⚠ 명명=`resourceType`(targetType 아님 — GW 프록시 대상 target·ADR-11과 이름충돌 회피·값에 `target`도 옴). Console 반영=**`T-FE-6-6`**(codegen 재생성·감사 화면 두 필터·device/clinic/target 상세 `ResourceHistory` 신설). `T-FE-2-5` kill 잠정 처리는 유지(방금-실행-사실 vs 서버 감사 이력=출처 다름). 발견=`T-FE-2-5`(2026-08-13).
 - **CB-4**(감사 응답에 `reason` 부재) — ✅ **해소(2026-08-18)**: 부모가 `AuditLog`에 **`reason`(read-only·nullable)** additive(부모 B-15·`spec-v1.0.26`·`7734c22`·#12735). DB 컬럼·write 기존, read 스키마만 빠졌던 **정합 갭**. GW 구현=`T-DATA-1-9` 흡수(같은 매퍼·별 PR 없음). Console 반영=**`T-FE-6-6`**(codegen·`ResourceHistory`·감사 화면에 사유 표시·**truncate 안 함**·`null`이면 빈 자리 안 만듦). 발견=`T-FE-6-6`(2026-08-18).
+- **CB-8** — ✅ **Console(FE) self-version 표시 완료(2026-09-02)**: 배포 검증용 — **상시 푸터/About** + version 표에 **`Console (웹)` 행**(BE 4프로세스 취합 API + FE 1행을 한 화면에). **빌드 주입 배선**: `next.config.ts` = `NEXT_PUBLIC_APP_VERSION ?? pkg.version`(SemVer 정본)·`NEXT_PUBLIC_GIT_COMMIT`/`BUILD_TIME`(파이프라인 `azure-pipelines.yml`에서 `Build.SourceVersion`/`Build.QueueTime` 주입). ⚠ **gitCommit·buildTime은 일부러 자동생성 안 함**(`git rev-parse`/`new Date()`로 만들면 빌드·머신마다 값이 달라 **시각 회귀 18종이 매번 깨짐**) — 주입은 파이프라인이 하고 없으면 화면이 "미주입"으로 표시. 스펙 **#13442**(FR-CON-39 확장·spec-v1.0.13) · 구현 **#13441**(본체=상시 푸터+version 행+빌드 주입)·**#13458**(취합 원문 로컬 로그·`취합 API:` 문구). 후속 교정 **#13467**(프리뷰 버전 칸 공백 수정=`preview-build.mjs`가 버전 `""` 전달해 폴백 미작동)·**#13463**(dev 빌드도장 부재를 `—`로) — CB-8 범위 내. 버전 스킴=BE/FE 공통 SemVer(`X.Y.Z-alpha.N`·2026-09-01 PL 확정). ⚠ **main 머지→프리뷰 배포=곧 dev**(별도 dev 스테이지 없음)라 **Console 자기버전은 dev에서 이미 실값**(BE 4행과 달리 Entra 불요). 실측: 프리뷰에 커밋 `c22505a` 실제 표시 확인. 출처=2026-09-01 PL 검토(BE와 별개 FE 버전 필요성). 잔여 없음.
 - **CB-6** — ✅ **Console target UI 범용화 v1.0 완료(데모 후 머지 대기)**(2026-08-31): connector_type 기반 **descriptor 스키마-구동 폼**(type-first·profile 읽기전용·**정적 per-type 분기 금지**·모르는 kind 폴백)·누락필드(`sourceIpAllowlist`·egress 서브필드 `cidrs`/`ports`/`requireStaticEgressIp`)·서명 시크릿 placeholder 'KMS' 오해 제거·`TARGET_ID_PATTERN`(RFC 1123). 스펙 **#13351**(FR-CON-16·#13309 흡수) · 구현 **#13359**(686 테스트·존재않는 타입명으로 범용 불변식 강제). 부모=**B-18**. 범용성이 프론트에도 관철(새 프로파일 시 Console 코드 0). **잔여(2nd target 트리거·버전 무관)** = **CB-7**(부모 B-19 override 연동).
 
 ---
