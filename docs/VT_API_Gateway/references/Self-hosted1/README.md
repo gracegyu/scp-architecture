@@ -1,5 +1,34 @@
 # **Dockerfile & docker run 이용**
 
+---
+## 2026-09-02 재추진 (Agent pool 적체 → self-hosted 재사용)
+
+**지난번 실패 원인**: 에이전트 컨테이너에 **Docker 부재**(docker CLI 없음 + docker.sock 미마운트)인데 GW `devsecops-*` 파이프라인은 **docker buildx build/push 필수**(`azure-pipelines.yml`도 "self-hosted엔 docker 데몬 필수" 명기). Console은 docker 무관이나 **Playwright 시스템 라이브러리·AWS CLI·Node 20.19**가 필요.
+
+**이번 변경(이 폴더)**:
+- `azp-agent-linux.dockerfile`: **docker-ce-cli + buildx**·**AWS CLI v2**·**Playwright chromium 시스템 라이브러리** 추가(root 실행 유지).
+- `reinstall_agent.sh`: `docker run` 에 **`-v /var/run/docker.sock:/var/run/docker.sock`** 추가(컨테이너 docker CLI → 호스트 데몬).
+- `self-hosted-smoke-test.yml`(신규): 에이전트 능력(docker·buildx·aws·node·pnpm·playwright)만 검증하는 **trial 파이프라인**(pool=Self-hosted1·`trigger: none`).
+
+**적용 순서(trial-first)**:
+1. 새 PAT 발급 → `reinstall_agent.sh` 의 `AZP_TOKEN` 갱신.
+2. **호스트에 Docker 데몬 설치·기동** 확인(에이전트가 이 소켓을 씀).
+3. `sudo docker build --tag azp-agent:linux --file azp-agent-linux.dockerfile .`
+4. `./reinstall_agent.sh N` (N=에이전트 수 — ⚠ chromium 테스트 **2+ vCPU 전용** 권장·코어 대비 과도한 N 금지).
+5. Self-hosted1 풀에 에이전트 online 확인.
+6. `self-hosted-smoke-test.yml` 을 빌드 레포 **scratch 브랜치**에 두고 파이프라인 만들어 **수동 Run** → 8단계 전부 green이면 에이전트 준비 완료.
+7. 그 다음에 진짜 파이프라인 pool 전환(GW=중앙 `devsecops.yml@templates` pool 오버라이드 가능 여부 확인 필요·Console=`pool:` 한 줄).
+
+**적체 CI 무관**: smoke test·전환 후 빌드 모두 **Self-hosted1 풀**에서 돌아 공유 풀 큐를 안 탄다.
+
+**주의**:
+- **docker.sock 마운트** = 컨테이너가 호스트에 root급 접근(self-hosted 전용 박스라 수용).
+- **PAT 만료 전 재발급 + reinstall**(기존 절차).
+- Playwright `--with-deps` 는 이미지에 deps 사전설치했으므로 파이프라인에서 **빼도 됨**(root라 그대로도 동작).
+- 라이브러리 이름은 Ubuntu 22.04 기준 — 빌드 중 특정 lib 이 없다고 나오면 그 이름만 조정(예 `libasound2`).
+
+---
+
 - 사전 준비
   - $ sudo docker network create webnet
 - 참조 : https://learn.microsoft.com/ko-kr/azure/devops/pipelines/agents/docker?view=azure-devops
