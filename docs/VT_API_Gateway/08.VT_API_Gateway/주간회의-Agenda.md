@@ -51,7 +51,8 @@
     - **[Console 운영 매뉴얼 작성]** 운영자가 GW Console을 보고 **따라할 수 있는 운영 매뉴얼** 착수 — 가장 어렵고 중요한 **연동 대상(target) 등록·관리**부터
       - 한국어·task(작업)별 다중 문서 + 인덱스 구조 · 스크린샷도 한국어 화면(대표 데이터·PHI 없음)
       - target 문서 = **사례 주도**(AXS·CleverSpace로 따라하기)·필드 설명·연동 켜기(org 매핑)·트러블슈팅
-      - 진행: **target 등록·관리 초안 완료·리뷰 중**(스펙 세션 초안 → Raymond 리뷰 → Console 세션이 실제 화면 스텝·스크린샷 보완·나머지 메뉴 문서)
+      - 진행: **target 등록·관리 + 인덱스(README) 문서 ✅ 머지 완료**(#13507 · `docs/manual/`). 현행 결정(oauth2_org_header·CleverSpace v1.1 oauth2_jwt_assertion·target_id DNS 라벨·sandbox/prod 2 target·prod 수동 등록) 반영.
+      - 잔여: Console 세션이 **실제 화면 스텝·한국어 스크린샷 보완**(문서 내 `[Console 확인 필요]` 표시) · **나머지 메뉴 문서**(device-onboarding·org-mapping·webhook-events·operators-rbac·clinic·config·audit — README에 *(작성 예정)*).
     - **[프로세스 버전·빌드 정보 API — 배포 검증]** ⭐ 각 프로세스가 자기 버전/빌드정보를 서빙해 **새 이미지가 실제 붙었는지(배포 landed)를 화면에서 즉시 확인**. **계기**: dev 데모 500 진단 때 "무엇이 배포됐는지 화면서 알 수 없다"가 지연 원인이었음(개명 후 dev `axs` 행 미이관·배포본 확인난).
       - **설계**
         - per-process **`GET /version`**(core·admin·receiver·dispatcher): version·gitCommit·buildTime·startedAt·region · `/health`와 분리·무인증 인프라.
