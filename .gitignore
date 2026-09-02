@@ -5,3 +5,6 @@ docs/SCP Cloud Server 연구/캐시 서버 연구/PoC/poc2-benchmark/data/
 ezorthoweb
 docs/SCP Cloud Server 연구/리포트 연구/FMData
 docs/SCP Cloud Server 연구/뷰어 관련 연구/WebSectionView/Cloud Web Viewer v1.3.2/CleverOneSample
+
+# self-hosted 에이전트 재설치 스크립트 — 실 PAT 하드코딩되므로 git 추적 금지
+docs/VT_API_Gateway/references/Self-hosted1/reinstall_agent.sh
