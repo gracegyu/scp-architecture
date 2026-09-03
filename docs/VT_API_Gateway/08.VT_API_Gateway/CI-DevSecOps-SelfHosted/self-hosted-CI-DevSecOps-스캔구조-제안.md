@@ -128,7 +128,6 @@ CI 게이트에는 **trivy가 더 적합**하다(동기 exit code 한 방·**IaC
 
 ## 8. 대안 (백업)
 
-- **DB 소스 대안 — ECR 미러** — 로컬 캐시(cron+볼륨) 대신, trivy DB를 **우리 ECR에 미러**하고 CI가 `--db-repository <ecr>/trivy-db`로 ECR서 pull. cron/볼륨 juggling 대신 ECR pull-through가 갱신. 로컬 캐시와 **택일**(둘 다 gcr.io 제거).
 - **DT를 게이트로(무거운 대안)** — trivy 대신 DT 정책을 게이트로. deps는 되나 **IaC 안 됨** + `SBOM+업로드+폴링+정책` 배선 필요 → **권장 안 함**(DT는 6.2처럼 모니터링 보완으로만).
 - **최악 폴백** — devsecops 스캔을 **Microsoft-hosted 유지**(안정적). self-hosted 이득 일부 포기.
 
@@ -139,7 +138,7 @@ CI 게이트에는 **trivy가 더 적합**하다(동기 exit code 한 방·**IaC
 | **GW(구현 주체)** | ① **브랜치 정책에서 devsecops PR 게이트 정리** ② CI verify에 **gitleaks + `trivy fs`**(`--skip-db-update --cache-dir`) 추가 |
 | **Jack(리뷰)** | **거버넌스 승인**: 자체 CI verify 스캔 허용 여부(중앙 SBOM/리포팅 영향). 중앙 템플릿 변경 필요 시 **우리 PR 리뷰** |
 | **스펙/호스트** | self-hosted에 **trivy 설치 + DB 갱신 cron + 4-Agent 공유 캐시 볼륨** + 에이전트 메모리 여유 |
-| **회의 결정** | 로컬 캐시 **vs** ECR 미러 / DT 모니터링 병행 여부 |
+| **회의 결정** | **trivy 로컬 캐시(주 조치) 배선 승인** / DT 모니터링 병행 여부(선택) |
 
 ## 10. 현황 스냅샷
 
