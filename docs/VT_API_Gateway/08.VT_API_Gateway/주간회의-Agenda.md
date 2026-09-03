@@ -1,6 +1,6 @@
 # VT API Gateway — 9/10 주간회의 Agenda
 
-> **과거 주차(~8/27)는 [`주간회의-Agenda-Archive.md`](주간회의-Agenda-Archive.md)로 이관·보존**(조회용). 본 문서는 **9/3 현행 주차만** 유지한다. 틀(논의/공유/이월)·Gantt(S1)·스펙표(S2)는 매주 상시 포함.
+> **과거 주차(~8/27)는 [`주간회의-Agenda-Archive.md`](주간회의-Agenda-Archive.md)로 이관·보존**(조회용). 본 문서는 **9/10 현행 주차만** 유지한다. 틀(논의/공유/이월)·Gantt(S1)·스펙표(S2)는 매주 상시 포함.
 
 - **이번 주 진행 (~9/10 회의) — 이번 주 완료·진행한 실제 작업**
   - **진행률(구현 스냅샷)**
@@ -16,7 +16,15 @@
       - ⚠ **"검증이니 곧 끝난다" 가 아니다** — 검증은 어긋난 것을 **찾는** 일이고 찾으면 Console 작업이 된다(`9-17` 1단계만으로 갭 2건). 남은 8% 는 **폭을 아직 모르는 일**이다 → S1 상세
 
   - **완료 · 주요 작업**
-    - **[CI 셀프호스티드(Self-hosted1) 전환 — 공유 풀 적체 해소]** ⭐
+    - **[CI 셀프호스티드(Self-hosted1) 전환 — 공유 풀 적체 해소]** ⭐ 공유 CI 풀 대기 적체로 GW·Console CI가 정체 → **사내 self-hosted 빌드로 전환**.
+      - **전환·적용**: 에이전트 재구축(docker buildx·AWS CLI·Playwright·trivy·gitleaks 내장) · 스모크 검증 · 중앙 CI 템플릿에 pool 파라미터 추가(Jack repo·머지). GW root CI·Console CI·devsecops에 적용(범위 = PR·머지 회전에 직접 영향 있는 것 위주).
+      - **효과**: CI 회전 대폭 단축 — **GW CI 총 23.8분 → 3.3분**(큐 대기 소멸 + 실행시간 단축).
+      - **OOM 사고·대책**: 전환 직후 공용 빌드 서버가 메모리 고갈로 먹통 → 원인 = 테스트 러너 워커 자동 증식 × 에이전트 4대. 대책(테스트 워커 상한 · 컨테이너 메모리 상한 · 불용 VM 종료)으로 **해결·구조적 재발 방지**(리부팅 후 유지).
+      - **보안 스캔 구조 개선**: devsecops가 앱 4개에서 같은 스캔을 4번 중복 + 취약점 DB를 매번 외부(gcr.io)서 받다 실패하던 문제 →
+        - **소스·시크릿 스캔을 CI verify로 일원화**(trivy fs · gitleaks · PR당 1회) — CI verify에 추가·self-hosted 자기검증 중.
+        - **trivy DB를 사내 로컬 캐시로**(하루 1회 갱신·CI는 외부 미접속) — 구축 완료.
+        - **gitleaks도 에이전트 이미지 내장**(완전 오프라인). devsecops 중복 스캔은 검증 후 토글로 제거(공백 없이 순차).
+        - 중앙 CI 템플릿 스캔 토글 = Jack 머지 완료. 상세 = `CI-DevSecOps-SelfHosted/`.
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
@@ -27,10 +35,6 @@
 
 - 논의 사항 (이번 주 · 신규 · R#)
   - _(회의 중 신규 논의/결정 안건 발생 시 **R1·R2…** 로 추가 · 선결·보류는 아래 「이월 논의 사항」 표.)_
-  - **R1. self-hosted CI/DevSecOps 스캔 구조 개선** — [제안서(VKS)](https://vks.vatech.com/x/oIPCEw)
-    - **배경**: devsecops를 self-hosted로 옮기는 [#13498](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/13498)이 반복 실패 → 3문제: ① **trivy 4중복 스캔**(devsecops 게이트 4개가 공유 변경 시 전부 발동) ② **trivy DB(110MB) gcr.io 다운로드 실패**(self-hosted 네트워크 flaky) ③ **OOM**(6GB 컨테이너 초과).
-    - **제안**: ① 소스 스캔을 **CI verify로 일원화**(gitleaks + trivy fs) + **devsecops PR 게이트 정리**(우리 소관·중앙 템플릿 손 안 댐) ② **trivy DB를 self-hosted 로컬 공유캐시로**(cron 하루 1회 갱신·4-Agent 공유 볼륨·CI는 `--skip-db-update`로 gcr.io 미접속) ③ **trivy 유지**(DT는 IaC 불가·게이트론 무거움 → 지속 모니터링 보완만).
-    - **결정 필요**: **trivy 로컬 캐시(주 조치) 배선 승인** · **Jack 거버넌스 승인**(vt-api-gateway가 중앙 devsecops 대신 자체 CI verify 스캔 허용 여부) · **스펙/호스트**(trivy 설치·DB 갱신 cron·공유 볼륨·에이전트 메모리) · DT 모니터링 병행(선택). #13498은 그때까지 **보류**.
 
 - **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인. (PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653)
 
