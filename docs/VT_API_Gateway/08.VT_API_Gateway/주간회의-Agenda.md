@@ -20,11 +20,19 @@
       - **전환·적용**: 에이전트 재구축(docker buildx·AWS CLI·Playwright·trivy·gitleaks 내장) · 스모크 검증 · 중앙 CI 템플릿에 pool 파라미터 추가(Jack repo·머지). GW root CI·Console CI·devsecops에 적용(범위 = PR·머지 회전에 직접 영향 있는 것 위주).
       - **효과**: CI 회전 대폭 단축 — **GW CI 총 23.8분 → 3.3분**(큐 대기 소멸 + 실행시간 단축).
       - **OOM 사고·대책**: 전환 직후 공용 빌드 서버가 메모리 고갈로 먹통 → 원인 = 테스트 러너 워커 자동 증식 × 에이전트 4대. 대책(테스트 워커 상한 · 컨테이너 메모리 상한 · 불용 VM 종료)으로 **해결·구조적 재발 방지**(리부팅 후 유지).
-      - **보안 스캔 구조 개선**: devsecops가 앱 4개에서 같은 스캔을 4번 중복 + 취약점 DB를 매번 외부(gcr.io)서 받다 실패하던 문제 →
-        - **소스·시크릿 스캔을 CI verify로 일원화**(trivy fs · gitleaks · PR당 1회) — CI verify에 추가·self-hosted 자기검증 중.
-        - **trivy DB를 사내 로컬 캐시로**(하루 1회 갱신·CI는 외부 미접속) — 구축 완료.
-        - **gitleaks도 에이전트 이미지 내장**(완전 오프라인). devsecops 중복 스캔은 검증 후 토글로 제거(공백 없이 순차).
-        - 중앙 CI 템플릿 스캔 토글 = Jack 머지 완료. 상세 = `CI-DevSecOps-SelfHosted/`.
+      - **보안 스캔 구조 개선 ✅ 완료**: devsecops가 앱 4개에서 같은 스캔을 4번 중복 + 취약점 DB를 매번 외부(gcr.io)서 받다 실패하던 문제 →
+        - **소스·시크릿 스캔을 CI verify로 일원화**(trivy fs · gitleaks · SBOM · PR당 1회) → devsecops 5종은 스캔 OFF(빌드/배포만) = **4중복 제거**.
+        - **스캐너 자동 관리(핵심)**: trivy·gitleaks를 에이전트 이미지가 아니라 **사내 공유 볼륨(`/opt/trivy-cache/bin`)에 별도 설치** —
+          - **버전 자동 업데이트**: 새벽 cron이 **하루 1회 최신 버전으로 자동 갱신**(smoke-test·실패 시 옛 버전 유지) → 버전업에 이미지 재빌드·에이전트 재설치 불요.
+          - **취약점 DB도 하루 1회 갱신**(gcr.io 접속은 그때만) → CI는 `--skip-db-update`로 **완전 오프라인**(매 실행 gcr.io 다운로드 실패[flaky] 원천 제거).
+        - **SBOM 생성**(CycloneDX/SPDX·아티팩트) — DT 업로드는 후속(DT 사내망이라 CI서 직접 불가 · Jack의 pipeline→S3→BM2 폴링→DT 방안 확정 후 배선).
+        - 중앙 CI 템플릿 스캔 토글 = Jack 머지. 상세 = `CI-DevSecOps-SelfHosted/`.
+        - **후속/미결**: ① DT SBOM 업로드 배선(Jack S3 계획 후) · ② install 네트워크 flake(호스트 egress 불안정·prisma/cpu-features/gcr.io/git·재실행 우회·호스트 안정화는 별도) · ③ enforce(hard gate) 전환은 별도 결정.
+    - **[dispatcher dev 부팅 장애 해소 + IoT Core 발행 인증 확정]** ⭐ dev dispatcher가 부팅을 못 하고 5분마다 죽던 문제를 해소하고, IoT Core로의 이벤트 발행 인증 방식을 확정.
+      - **원인**: dev의 MQTT 엔드포인트가 IoT Core(WSS)인데 dispatcher가 무인증 로컬 MQTT로 붙어 IoT Core가 접속을 끊음 → 무한 재접속으로 부팅이 멈춤(KEDA 최소 replica를 0→1로 올리며 드러남).
+      - **해결**: dispatcher가 IoT Core에 **SigV4 서명 WSS·IAM(Pod Identity)** 로 접속·발행하는 어댑터 추가 + 최초 접속 타임아웃(fail-fast). Jack 제안 PR 머지로 dev 언블록.
+      - **인증 방식 정리**: **발행자(GW)=IAM/SigV4** vs **구독자(EzServer)=디바이스별 인증서** 로 역할 구분. 어댑터 선택은 env `MQTT_AUTH`(auto·sigv4·none·기본 auto)로 확정 — dev/prod는 자동 SigV4라 추가 설정 불요.
+      - **스펙 정합**: SRS §7.6.6·env-reference 반영(spec-v1.0.84 머지). 코드 후속 PR(명시 MQTT_AUTH 전환)은 리뷰 중.
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
