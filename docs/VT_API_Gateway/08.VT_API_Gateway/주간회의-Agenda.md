@@ -126,7 +126,7 @@
   - **R1. self-hosted CI/DevSecOps 스캔 구조 개선** — [제안서(VKS)](https://vks.vatech.com/x/oIPCEw)
     - **배경**: devsecops를 self-hosted로 옮기는 [#13498](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/13498)이 반복 실패 → 3문제: ① **trivy 4중복 스캔**(devsecops 게이트 4개가 공유 변경 시 전부 발동) ② **trivy DB(110MB) gcr.io 다운로드 실패**(self-hosted 네트워크 flaky) ③ **OOM**(6GB 컨테이너 초과).
     - **제안**: ① 소스 스캔을 **CI verify로 일원화**(gitleaks + trivy fs) + **devsecops PR 게이트 정리**(우리 소관·중앙 템플릿 손 안 댐) ② **trivy DB를 self-hosted 로컬 공유캐시로**(cron 하루 1회 갱신·4-Agent 공유 볼륨·CI는 `--skip-db-update`로 gcr.io 미접속) ③ **trivy 유지**(DT는 IaC 불가·게이트론 무거움 → 지속 모니터링 보완만).
-    - **결정 필요**: 로컬 캐시 **vs** ECR 미러 · **Jack 거버넌스 승인**(vt-api-gateway가 중앙 devsecops 대신 자체 CI verify 스캔 허용 여부) · **스펙/호스트**(trivy 설치·DB 갱신 cron·공유 볼륨·에이전트 메모리). #13498은 그때까지 **보류**.
+    - **결정 필요**: **trivy 로컬 캐시(주 조치) 배선 승인** · **Jack 거버넌스 승인**(vt-api-gateway가 중앙 devsecops 대신 자체 CI verify 스캔 허용 여부) · **스펙/호스트**(trivy 설치·DB 갱신 cron·공유 볼륨·에이전트 메모리) · DT 모니터링 병행(선택). #13498은 그때까지 **보류**.
 
 - **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인. (PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653)
 
