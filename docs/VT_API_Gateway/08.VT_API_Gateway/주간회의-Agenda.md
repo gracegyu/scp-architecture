@@ -1,9 +1,8 @@
-# VT API Gateway — 9/3 주간회의 Agenda
+# VT API Gateway — 9/10 주간회의 Agenda
 
 > **과거 주차(~8/27)는 [`주간회의-Agenda-Archive.md`](주간회의-Agenda-Archive.md)로 이관·보존**(조회용). 본 문서는 **9/3 현행 주차만** 유지한다. 틀(논의/공유/이월)·Gantt(S1)·스펙표(S2)는 매주 상시 포함.
 
-- **이번 주 진행 (~9/3 회의) — 이번 주 완료·진행한 실제 작업**
-
+- **이번 주 진행 (~9/10 회의) — 이번 주 완료·진행한 실제 작업**
   - **진행률(구현 스냅샷)**
     - **GW 백엔드 ≈ 93%**(8/26 재평가 · Task **90/96 완료**) — v1.0 계획 기능 **구현 완결** · 마무리 = 개발 통합·검증
       - 8/24 feature-complete 이후 **P13 정합 6건 추가 머지** · 잔여 6건은 전부 **GW 코드 완료**
@@ -17,102 +16,7 @@
       - ⚠ **"검증이니 곧 끝난다" 가 아니다** — 검증은 어긋난 것을 **찾는** 일이고 찾으면 Console 작업이 된다(`9-17` 1단계만으로 갭 2건). 남은 8% 는 **폭을 아직 모르는 일**이다 → S1 상세
 
   - **완료 · 주요 작업**
-    - **[8/31 Straumann 데모]** dev console에서 **VT 이미지가 GW를 거쳐 실 AXS sandbox에 저장되고 되가져와 표시**되는 것을 시연 — 누구나 dev console 링크에서 클릭
-      - **로컬 검증 성공** — 실제로 이미지를 선택→전송하니 **실 AXS sandbox로 올라갔다 되돌아온 것을 화면에서 확인**(왕복 관통). 흐름은 이미 되고, 남은 건 dev에 올리는 것뿐.
-      - **구현·머지 완료**: GW core 전송 엔드포인트 · Console Demo 화면 · 데모 OnePager(실행계획·API 계약). 추가로 **전송 단계 로그**(GW가 device 자격 대행·정책/egress 검사·조직 해석·AXS 토큰/생성/업로드/조회)를 화면에 표시해 "GW가 무엇을 했는지"까지 보이게 함 — **구현 완료·후속 PR 준비**(실 AXS e2e 8단계 green).
-      - **실제성(중요)**: **전송은 실 GW·실 AXS·실 데이터**(mock 아님). 화면의 부가 브라우징(clinic 목록 등)만 배포 console 특성상 mock이라 **데모에서 제외**하고 전송+되가져오기에 집중.
-      - **데모 당일 남은 것 = ③-I 실 인프라뿐**: DB 마이그레이션(테이블 생성·**최대 병목**)·dev→AXS egress·KMS·core 데모 경로 ingress·데모 활성 env·dev 재배포 → 이후 배포 링크 리허설.
-
-    - **[target_id 규칙 확정]** `target_id` 형식을 **DNS 라벨(RFC 1123)** 로 못 박고 스펙·코드를 함께 맞춤 — 부모 `spec-v1.0.71` · Console SRS FR-CON-18(`spec-v1.0.9`).
-      - ⚠ **화면이 서버보다 느슨했다** — Console 검증이 `^[a-z0-9_]+$` 라 **밑줄을 통과시켰는데** 서버는 거절한다. 게다가 **안내 예시가 `clever_space`**(밑줄)여서 **예시를 그대로 따라 하면 저장 시 400** 이었다. 화면이 사용자를 틀린 길로 안내한 셈.
-      - **수정**: 패턴을 DNS 라벨(+최대 63자)로 교체 · 예시를 하이픈으로 · **무엇이 걸렸는지 짚는 오류 문구**(대문자/밑줄/공백/시작·끝 하이픈/길이) · **치는 동안 인라인 검증**(저장까지 기다리지 않음) · 규칙과 이유(`axs.webhook.apne2.gw…` 서브도메인 첫 라벨이 됨)를 화면이 스스로 설명.
-      - 부수 소득: **기존 테스트가 옛 규칙을 고정**하고 있어(밑줄 통과가 통과 조건) 느슨한 상태가 보호되고 있었음 — 함께 뒤집음. 시각 회귀 게이트가 **i18n 누락·문구 치환 오류 2건**을 추가로 잡아냄.
-      - **정리(8/31)**: 당초 SRS+구현을 #13309 한 PR로 냈으나 connector_type 작업과 겹쳐 → 스펙은 **#13351에 흡수**·코드는 **#13359로 이동**·**#13309 close**. 추가로 **admin DTO 패턴이 아직 옛 `^[a-z0-9_]+$`** 였음을 발견 → **GW #13363**: target·정책·org-mapping·컨트롤러 @ApiParam **전 소비자 RFC 1123 일괄** + seed 하이픈(커플링). 스펙 OpenAPI도 OrgMapping·Policy targetId 패턴 정합(#13349). **✅ 데모 후 머지 완료**.
-    - **[Target 범용화 — connector_type 도입]** ⭐ 아웃바운드 커넥터가 AXS 관례(Organization-ID·`storageUrl`·org 1:1)를 **코드 상수로 하드코딩**해 **제2 external target이 record만으로 조용히 오동작**하는 사각지대를 3면 감사(GW·Console·스펙)로 발견 → **`connector_type`(어댑터 프로파일)을 v1.0에 정식 도입**(파생 판별 폐기).
-      - **★범용 불변식(NORMATIVE)**: 런타임 소스에 `if targetId==='axs'` 류 특정 target 하드코딩 금지 — 동작차는 오직 `connector_type`→프로파일 레지스트리로만. 새 파트너=프로파일 추가(코드 1곳), 특정 target 하드코딩 X.
-      - **⚠ 제약(현실)**: "신규 target = 코드 0(record만 추가)"은 **관례가 기존 프로파일과 일치할 때만** 성립
-        - **target마다 인증 방법·clinic(org) 식별 방법이 다름**(헤더명/토큰 클레임/경로·서명 체계·업로드 위임 유무 등) → **초기 몇 개 target은 새 프로파일/전략(코드) 추가가 불가피**.
-        - 범용 불변식(하드코딩 금지)은 항상 준수하되, "코드 0"은 **성숙기 목표** → **초기 확장기엔 target별 추가 개발을 전제로 일정·범위**를 잡음(SRS §7.5.1 명문화·백로그 B-19).
-        - 프레임워크 가치 = 추가가 **한 곳(프로파일/전략)에 국소화**·코어 무파급.
-      - **v1.0 커넥터 타입 2개**
-        - **`internal_bypass`**: 내부 신뢰망 · **v1.0 확정 사용처 없음**(CleverSpace는 ③b P0로 v1.1).
-        - **`oauth2_org_header`**: OAuth2 client_credentials 인증(tenant 단일) + Organization-ID 헤더로 org 구분(예 AXS).
-        - 명명 이력: 구 `oauth2_cc` → `oauth2_org_scoped` → **`oauth2_org_header`**("org_scoped"가 "토큰이 org별 스코프"로 오독돼 개명·스펙 #13417).
-      - **descriptor 스키마-구동**: GW `GET /v1/admin/connector-types`가 type별 필드 서술 반환 → Console이 폼을 **동적 렌더**(정적 per-type 분기 금지) → 새 프로파일 시 **Console 코드 0**(범용성이 프론트에도 관철).
-      - **스펙**: GW **#13349**(spec-v1.0.73·§7.5.1 재작성·카탈로그·descriptor·Q2/Q3·targetId 정합) · Console **#13351**(FR-CON-16 스키마-구동 폼·#13309 흡수) · 부수 **#13338**(KMS-envelope 설명 정정).
-      - **구현**(✅ 머지 완료): GW **#13357**(파생→레지스트리 dispatch·`oauth2_cc`→`oauth2_org_scoped`·profile↔type 400·변경 409·cross-field 400·unit 1994) · Console **#13359**(type-first·descriptor 동적 폼·profile 읽기전용·TARGET_ID_PATTERN) · GW **#13363**(target_id 전 소비자) · GW **#13358**(dev-seed AWS 서비스커넥션).
-      - **데모 무영향**(당시): 전부 feature 브랜치·기존 AXS=`oauth2_org_scoped` byte-identical. **✅ 데모 후 전부 머지 완료**(스펙→코드 순·IP 태그 핀 spec-v1.0.73).
-    - **[CleverSpace 연동 → v1.0에서 v1.1로 변경]** ⭐ connector_type 후속 — Console 화면 검증에서 카탈로그가 `internal_bypass` 예시를 'CleverSpace'로 **단정**한 것이 발단. 조사 결과 **CleverSpace ③b(GW→CleverSpace) 신원 전달이 미정(P0)**이고(review-log-12239 C-02 — CleverSpace는 JWT 필수라 '내부 신뢰'가 아님), **v1.0은 이미 종료됐고 CleverSpace는 실연동된 적이 없음** → **CleverSpace 실연동을 v1.0 → v1.1로 변경**(추후 CleverSpace 연동 요구가 있을 때).
-      - **v1.0 = AXS만 실연동** · CleverSpace는 presigned 중계 capability(구조적 지원)만. **실연동(target 등록·connector·③b 신원 전달)=v1.1**. SRS 전수 조사로 v1.0으로 적힌 곳(§41·§887·§1160·§2376·§2.6·§2.7·③b 헤더 등)을 모두 v1.1로 정정.
-      - **CleverSpace 커넥터 타입 = `oauth2_jwt_assertion`**(GW 서명 upstream JWT 어서션·RFC 7523 · CleverSpace GW Guard가 JWKS로 검증) — v1.0 카탈로그엔 `availability:planned`·`plannedIn:v1.1`로 **자리만** 둔다(구현은 v1.1).
-      - **안전(fail-closed)**: planned 타입은 dispatch 레지스트리 밖 별도 목록 → 모르는 타입은 **거절(throw)**·인증 없이 통과 없음. GW 3계층 회귀 테스트로 잠금 확인(73/73 green).
-      - **JWKS 엔드포인트만 v1.0 선공개 유지**(공개키 노출 무해·재도입 churn 회피·실제 소비자 CleverSpace GW Guard는 v1.1).
-      - **스펙**: **#13406**(spec-v1.0.74·CleverSpace 단정 제거) merged·태그 완료 · **#13413**(spec-v1.0.75·전수 v1.1 정합+planned 카탈로그+descriptor availability 필드) **✅ merged·태그 완료**. 선행 GW **#13404**(description 정정·merged)·Console **#13408**(폼 planned 안내). 백로그 B-20 결정 반영.
-    - **[Console 운영 매뉴얼 작성]** ✅ 운영자용 **운영 매뉴얼 8종 작성 완료** — 운영자가 GW Console을 보고 따라할 수 있는 한국어 매뉴얼(사례 주도·따라하기·트러블슈팅).
-      - 연동 대상(target) 등록·관리
-      - org 매핑 관리
-      - 디바이스 온보딩·관리
-      - webhook 이벤트 조회·장애 대응
-      - 운영자·권한(RBAC)
-      - 클리닉 조회·식별 메모
-      - 중앙 설정(config)
-      - 감사(audit)
-      - (+ 매뉴얼 인덱스)
-    - **[프로세스 버전·빌드 정보 API — 배포 검증]** ⭐ 각 프로세스가 자기 버전/빌드정보를 서빙해 **새 이미지가 실제 붙었는지(배포 landed)를 화면에서 즉시 확인**. **계기**: dev 데모 500 진단 때 "무엇이 배포됐는지 화면서 알 수 없다"가 지연 원인이었음(개명 후 dev `axs` 행 미이관·배포본 확인난).
-      - **설계**
-        - per-process **`GET /version`**(core·admin·receiver·dispatcher): version·gitCommit·buildTime·startedAt·region · `/health`와 분리·무인증 인프라.
-        - **dispatcher도 이미 Nest HTTP 앱(HealthModule)** → 다른 3앱처럼 `/version` 컨트롤러만 추가(별도 리스너 불요·as-built).
-        - **admin 취합 `GET /v1/admin/system/versions`**(operatorAuth·4개 fan-out·status ok/unreachable·부분 결과) → **Console 1콜 표**.
-      - **배포 검증 UX**: gitCommit **불일치(롤아웃 미완)**·**unreachable**·재기동(startedAt)을 화면이 플래그.
-      - **빌드 주입**: version=package.json · gitCommit/buildTime=Docker build ARG→env(Jack Dockerfile 조율·미주입 시 unknown).
-      - **버전 규약 = SemVer (BE·FE 모두)**: 버전 관리·서빙을 **[SemVer](https://semver.org) 규약**으로 통일 — 정식 `1.0.0` 출시 전까지 `1.0.0-alpha.N`(PR마다 N↑) → `beta.N`/`rc.N` → `1.0.0`. **SemVer 표준 준수라 프로젝트별로 규약을 구구절절 설명할 필요 없음.** version API가 이 값을 그대로 서빙(version이 곧 라벨·별도 releaseVersion 없음). *(FE self-version 화면=Console 백로그 CB-8 → ✅ 완료·#13441.)*
-      - **스펙**: GW **#13435**(spec-v1.0.79·§7.8.6 FR-SYS-01·OpenAPI `ServiceVersion`) merged·태그 · Console **#13436**(spec-v1.0.12·FR-CON-39 version 표) merged·태그.
-      - **구현 분담**: GW(4 `/version`+dispatcher HTTP+admin 취합) · Console(version 표·계약 확정이라 목 우선 착수) · Jack(Dockerfile build ARG·마이그레이션 Job 배선).
-
     - **[CI 셀프호스티드(Self-hosted1) 전환 — 공유 풀 적체 해소]** ⭐
-      - **계기**: 공유 Agent pool 대기열이 심하게 적체돼 GW·Console CI가 몇 시간씩 큐에 묶임 → 사내 자체 구축 풀 **Self-hosted1**(사내 서버·docker 컨테이너 에이전트)로 빌드를 되살림. **지난번 실패 원인 = 에이전트에 Docker 미설치**(이미지 buildx 불가)로 확인·해소.
-      - **1) 에이전트 재구축** (`references/Self-hosted1`)
-        - 에이전트 이미지(`azp-agent:linux`)에 추가: **docker-ce-cli + buildx**(이미지 빌드) · **AWS CLI v2**(ECR push·S3 sync) · **Playwright chromium 시스템 라이브러리**(Console e2e). 기존 Node/pnpm/git/jq/Rust 유지.
-        - 재설치 스크립트에 **`-v /var/run/docker.sock` 소켓 마운트** → buildx가 호스트 도커 데몬 사용.
-        - Linux 에이전트 **4대**(`demands: agent.os -equals Linux`).
-        - **보안**: 재설치 스크립트에 실 PAT 포함 → **git 추적 제거 + `.gitignore`**. 신규 PAT는 **Agent Pools(Read & manage) 스코프만**.
-      - **2) 스모크 검증** (진짜 파이프라인 전 에이전트 능력만 확인)
-        - `trigger:none/pr:none` 스크래치 파이프라인으로 **적체 큐를 안 타고** 검증.
-        - 8단계: 도구 존재 · **docker 데몬+buildx build**(지난번 실패 지점) · Node 20.19 · pnpm 9.15.9 · **playwright chromium launch** · 리소스.
-        - **8/8 green**(소켓 미마운트·playwright 모듈 미설치 이슈 잡아 수정 후 통과) → 지난번 실패(docker buildx) 해소를 실측 확인.
-      - **3) 중앙 템플릿 pool 파라미터화** (Jack 소유 `es-ci-templates` · **PR #13482 머지**)
-        - 공용 `devsecops.yml`에 **`pool` 파라미터(기본값 `{vmImage: ubuntu-latest}`)** 추가 + 3개 job 배선.
-        - **가법적·기본값 보존** → **GW만 오버라이드로 opt-in**, 다른 Product 무영향.
-        - **Cache@2 미도입**: self-hosted에선 매 실행 ~1GB 캐시 tarball 업로드가 순손실(로컬 디스크 캐시가 지속되므로 불요).
-      - **4) 적용**
-        - **범위 기준** = **GW/Console PR·머지 회전에 직접 영향(적체가 PR/배포를 막는)** 것만 우선. 드물고 늦어도 되는 compat·docs-wiki·seed·부하/HA·promote는 **확대 후보로 제외**(트리거/전제조건은 `references/Self-hosted1/README.md` backlog).
-        - **GW root CI**(GW 세션): **#13480** — root `azure-pipelines.yml` 풀→Self-hosted1+demands Linux · pnpm Cache@2 제거. 머지 전 대기 · 블로커=`vt-api-gateway-ci` **풀 인가**(Raymond).
-        - **GW devsecops-\* 5종**(core/admin/receiver/dispatcher/migrate·GW 세션): **#13498** — `extends.parameters`에 `pool: {name: Self-hosted1, demands: [agent.os -equals Linux]}` 오버라이드. #13482 선병합 확인 → 머지 가능.
-        - **Console**(Console 세션): CI 풀 Self-hosted1 전환(watched PR).
-        - ⚠ **선결(Raymond 포털)**: 각 파이프라인을 `Agent pools → Self-hosted1 → Security → Pipeline permissions`에 **파이프라인별 등록**해야 실행됨(**Open access 금지** — chromium 경합 플레이크). 스모크 파이프라인은 등록 완료.
-      - **5) OOM 먹통 사고·대책 (9/2)** — 상세=`references/Self-hosted1/README.md`
-        - **현상**: 전환 직후 GW·Console 잡 동시 실행 → 메모리 고갈 → swap 스래싱 → **GUI·SSH 먹통**(15분 load average **249**).
-        - **진단**: 빌드 호스트(BuildMachine2·**32 vCPU / 62GB**)가 **CI 전용이 아닌 공용 서버**였음 — dependency-track 7.4GB·sonarqube·jenkins·abc-wbs 앱·win10 VM 7.7GB 상주 → **CI 실여유 ~30GB뿐**. 근본 원인 = **테스트 러너가 코어 수로 워커 자동 증식**(Jest 기본 **31/job**) × **에이전트 4대** 중첩.
-        - **대책** (전부 리부팅 후 유지):
-          - ① **워커 공통 상한 2**: GW Jest `--maxWorkers=2 --workerIdleMemoryLimit=1GB`(#13480) · Console vitest2/playwright2(#13441).
-          - ② **에이전트 컨테이너별 `--memory=6g --memory-swap=6g`**: blast-radius 차단(폭주해도 호스트·상주서비스 못 죽임). `docker update` 즉시 적용 + `reinstall_agent.sh` 반영.
-          - ③ **win10 KVM 종료**(`virsh destroy`+autostart off): **7.7GB 회수**·리부팅해도 안 올라옴. 방치된 Windows 에이전트(2024-11 이후 미사용) 호스트였음.
-          - 서비스화(자동복구)는 **이미 충족**: 에이전트 `restart=unless-stopped` + docker 데몬 부팅 enabled.
-        - **✅ 해결 확인 (9/2·실부하 상태)**: 사용 **24GB / 여유 38GB**(62GB 중) · load **249→13** · 에이전트 실작업 중(playwright 도는데도 안정) · 상한 유지.
-          - **구조적 보장**: 최악 = 4대 × 6GB = **24GB** + 상주 ~22GB = **46GB < 62GB** → 호스트 OOM이 **수학적으로 불가**. (부하가 몰려도 상한 때문에 CI 총량이 24GB를 못 넘음.)
-        - **보류(관측 후 판단)**: 에이전트 4→2 축소(위 여유상 불필요할 듯)·job 동시성 제한.
-      - **6) 효과 실측 (9/2·전후 평균·성공 빌드 기준·타임라인 workerName으로 실행 풀 판별)**
-
-        | 파이프라인 | 구분 | 표본 | 실행 | 큐 대기 | 총 회전 |
-        | --- | --- | --- | --- | --- | --- |
-        | **GW CI** | Microsoft-hosted(전) | 13 | 6.9m | 16.9m | 23.8m |
-        | | **Self-hosted1(후)** | 8 | **3.2m** | **0.1m** | **3.3m (~86%↓)** |
-        | **Console CI** | Microsoft-hosted(전) | 2 | 36.8m | 30.9m | 67.7m |
-        | | **Self-hosted1(후)** | 11 | **6.4m** | **1.3m** | **7.8m** |
-
-        - **최대 효과 = 큐 대기 소멸**(공유 풀 적체 해소=원래 목적) · 실행시간도 단축(i9-14900 32코어 + **영속 pnpm/docker 캐시**·워커 상한으로 느려질 법한데도 상쇄).
-        - ⚠ **표본 신선**: 9/2 전환이라 after는 하루치 · **Console before n=2**(참고치) · Console self 실행 편차 큼(0.9~24.3m·path 필터 부분런 섞임). GW는 일관적(2.5~4.5m)이라 신뢰도 높음 → 며칠 후 재산출 시 정밀화.
-
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
@@ -130,7 +34,7 @@
 
 - **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인. (PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653)
 
-  > 범례: ✅ 완료(괄호=완료일·날짜만이면 **이전 주 완료**) · **🆕 = 이번 주 신규 구축·자가검증 완료(2026-08-31)** · 🟠 부분 · ☐ 미완 · ⚠ 전달 필요. *(2026-08-31 curl·AWS read-only 자가검증 반영.)*
+  > 범례: ✅ 완료(괄호=완료일·날짜만이면 **이전 주 완료**) · **🆕 = 이번 주 신규 구축·자가검증 완료(2026-08-31)** · 🟠 부분 · ☐ 미완 · ⚠ 전달 필요. _(2026-08-31 curl·AWS read-only 자가검증 반영.)_
 
   | # | 요청 | 수신 | dev | prod |
   | --- | --- | --- | --- | --- |
@@ -139,7 +43,7 @@
   | 3 | **dev GW 백엔드 배포·env 주입**(`DATABASE_URL`[공용 `common-dev-db`·`gw` DB·apne2]·`REDIS_URL`·`GW_REGION`=apne2·AWS **Pod Identity**·`NODE_ENV` 차트 주입) | ③-I | **core·receiver·dispatcher = ✅ 기동 완료**(8/31 자가검증: core·receiver 404=healthy backend·기동 확인 / dispatcher=HTTP 엔드포인트 없어 배포상 기동) · **admin = 🟠 Entra 구성만 대기**(앱은 배포/기동됨 · 현재 외부 503은 Entra 미구성으로 readiness/인증 미통과 · 구성되면 serving) | ☐ |
   | 4 | **운영자 Entra 앱 등록**(GW Admin API + Console SPA·2앱·PKCE) | IT·③-I | 🟠 **진행중 · [IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)**(Jack 입력·절차·회신 양식 제공 완료)·마감 8/21 경과·**admin 부팅 선결** | ☐ 도메인 후 |
   | 5 | **env-reference 환경별 값 채움**(test·sandbox·prod endpoint·호스트·리전) | ③-I | ✅ dev · ☐ test/sandbox/prod | ☐ |
-  | 6 | **dev-seed grant**(`DATABASE_URL` 변수그룹·Environment 승인게이트) — 전용 수동 파이프라인 `gw-dev-seed.yml`(멱등·`dev:showcase`)용 | ③-I | 🟠 **8/31 자가검증**: 파이프라인(id 335)·Environment 승인게이트(id 9)·AWS 서비스커넥션 `gw-dev-seed` 등록됨 ✅ · `- group:` 로드실패는 PR 12806서 수정(8/19 에러=stale) · **남은 것=`DATABASE_URL`(dev RDS) 변수그룹 미생성** → **Jack: 변수그룹 `gw-dev-seed`+`DATABASE_URL`(시크릿)+파이프라인 링크**(+서비스커넥션 롤 KMS 권한 확인). AWS 5개 변수는 **GW가 YAML을 서비스커넥션(`AWSShellScript@1`)으로 전환**(VT-GW-구현·데모 후)→Jack 불요. 요청 8/20. *(seed 변경=스크립트 수정+재실행·멱등·재요청 불필요)* | — |
+  | 6 | **dev-seed grant**(`DATABASE_URL` 변수그룹·Environment 승인게이트) — 전용 수동 파이프라인 `gw-dev-seed.yml`(멱등·`dev:showcase`)용 | ③-I | 🟠 **8/31 자가검증**: 파이프라인(id 335)·Environment 승인게이트(id 9)·AWS 서비스커넥션 `gw-dev-seed` 등록됨 ✅ · `- group:` 로드실패는 PR 12806서 수정(8/19 에러=stale) · **남은 것=`DATABASE_URL`(dev RDS) 변수그룹 미생성** → **Jack: 변수그룹 `gw-dev-seed`+`DATABASE_URL`(시크릿)+파이프라인 링크**(+서비스커넥션 롤 KMS 권한 확인). AWS 5개 변수는 **GW가 YAML을 서비스커넥션(`AWSShellScript@1`)으로 전환**(VT-GW-구현·데모 후)→Jack 불요. 요청 8/20. _(seed 변경=스크립트 수정+재실행·멱등·재요청 불필요)_ | — |
   | 7 | **`pg_trgm` CREATE EXTENSION 권한**(clinic 검색 선결 · env-reference §2.1) | ③-I | ✅ 문제 없음(Jack 확인 8/20 — `gw_app`=`gw` DB OWNER·trusted extension) | ☐ prod 동일 확인 |
   | 8 | **KMS CMK provisioning**(webhook payload·target 자격 alias·리전별 · 8/4 키 토폴로지 · env-reference §2.4) | ③-I | ☐ (webhook/target 실사용 시) · **8/31 자가검증: `gw` KMS alias 없음=미프로비저닝 확인(트리거 前이라 정상)** · ⚠**전달 흔적 없음**→전달패킷 §4(handoff+Form·트리거 명시) | ☐ 리전별 |
   | 9 | **admin API dev ingress 노출**(`admin.apne2.gw.dev.ezcld.net`·Entra-gated 공개 ingress) — Console이 실 dev DB 데이터를 조회하려면 admin 부팅에 더해 이 ingress가 있어야 함(없으면 admin이 떠도 Console이 못 부름) | ③-I | ✅ **ingress 구축 확인**(8/25 curl: 443 OPEN·ALB 응답) — 단 전 경로 **503(ALB에 healthy target 0·즉시응답)** = **admin 미기동**이 원인(ingress 문제 아님)·**#4 Entra 구성 시 serving**(8/31 재확인: `/`·`/v1/admin/me` 여전히 **503**·Entra 구성 전이라 미serving 지속·앱 배포는 됨) | ☐ 도메인 후 |
