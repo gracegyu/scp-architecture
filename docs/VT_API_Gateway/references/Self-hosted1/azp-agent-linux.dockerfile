@@ -37,16 +37,9 @@ RUN install -m 0755 -d /etc/apt/keyrings \
 RUN curl -sSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip \
     && unzip -q awscliv2.zip && ./aws/install && rm -rf awscliv2.zip aws
 
-# Trivy (소스 종속성 스캔) — CI verify가 `trivy fs --skip-db-update`로 로컬 DB 캐시(/opt/trivy-cache) 사용.
-# ⚠ trivy-db-update.sh 의 TRIVY_VERSION 과 반드시 동일(DB 스키마 호환).
-ARG TRIVY_VERSION=0.74.0
-RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-    | sh -s -- -b /usr/local/bin v${TRIVY_VERSION}
-
-# gitleaks (시크릿 스캔) — CI verify에서 오프라인 실행(이미지 내장·매 실행 network pull 회피)
-ARG GITLEAKS_VERSION=8.30.1
-RUN curl -sfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
-    | tar -xz -C /usr/local/bin gitleaks
+# 보안 스캐너(trivy·gitleaks)는 이미지에 넣지 않는다 — 공유 볼륨 /opt/trivy-cache/bin/ 에 두고
+# 새벽 cron(ci-scanners-update.sh)이 매일 자동 최신화(smoke-test). 에이전트는 그 볼륨을 :ro 마운트하고
+# CI 는 /opt/trivy-cache/bin/{trivy,gitleaks} 를 호출 → 버전업에 이미지 재빌드/에이전트 재설치 불요.
 
 # Playwright chromium 시스템 라이브러리 (Console e2e·a11y·시각) — 사전설치로 `--with-deps`(apt/sudo) 함정 회피
 RUN apt-get update && apt-get install -y \
