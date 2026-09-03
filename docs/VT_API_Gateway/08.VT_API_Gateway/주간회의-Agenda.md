@@ -48,11 +48,16 @@
       - **안전(fail-closed)**: planned 타입은 dispatch 레지스트리 밖 별도 목록 → 모르는 타입은 **거절(throw)**·인증 없이 통과 없음. GW 3계층 회귀 테스트로 잠금 확인(73/73 green).
       - **JWKS 엔드포인트만 v1.0 선공개 유지**(공개키 노출 무해·재도입 churn 회피·실제 소비자 CleverSpace GW Guard는 v1.1).
       - **스펙**: **#13406**(spec-v1.0.74·CleverSpace 단정 제거) merged·태그 완료 · **#13413**(spec-v1.0.75·전수 v1.1 정합+planned 카탈로그+descriptor availability 필드) **✅ merged·태그 완료**. 선행 GW **#13404**(description 정정·merged)·Console **#13408**(폼 planned 안내). 백로그 B-20 결정 반영.
-    - **[Console 운영 매뉴얼 작성]** 운영자가 GW Console을 보고 **따라할 수 있는 운영 매뉴얼** 착수 — 가장 어렵고 중요한 **연동 대상(target) 등록·관리**부터
-      - 한국어·task(작업)별 다중 문서 + 인덱스 구조 · 스크린샷도 한국어 화면(대표 데이터·PHI 없음)
-      - target 문서 = **사례 주도**(AXS·CleverSpace로 따라하기)·필드 설명·연동 켜기(org 매핑)·트러블슈팅
-      - 진행: **target 등록·관리 + 인덱스(README) 문서 ✅ 머지 완료**(#13507 · `docs/manual/`). 현행 결정(oauth2_org_header·CleverSpace v1.1 oauth2_jwt_assertion·target_id DNS 라벨·sandbox/prod 2 target·prod 수동 등록) 반영.
-      - 잔여: Console 세션이 **실제 화면 스텝·한국어 스크린샷 보완**(문서 내 `[Console 확인 필요]` 표시) · **나머지 메뉴 문서**(device-onboarding·org-mapping·webhook-events·operators-rbac·clinic·config·audit — README에 *(작성 예정)*).
+    - **[Console 운영 매뉴얼 작성]** ✅ 운영자용 **운영 매뉴얼 8종 작성 완료** — 운영자가 GW Console을 보고 따라할 수 있는 한국어 매뉴얼(사례 주도·따라하기·트러블슈팅).
+      - 연동 대상(target) 등록·관리
+      - org 매핑 관리
+      - 디바이스 온보딩·관리
+      - webhook 이벤트 조회·장애 대응
+      - 운영자·권한(RBAC)
+      - 클리닉 조회·식별 메모
+      - 중앙 설정(config)
+      - 감사(audit)
+      - (+ 매뉴얼 인덱스)
     - **[프로세스 버전·빌드 정보 API — 배포 검증]** ⭐ 각 프로세스가 자기 버전/빌드정보를 서빙해 **새 이미지가 실제 붙었는지(배포 landed)를 화면에서 즉시 확인**. **계기**: dev 데모 500 진단 때 "무엇이 배포됐는지 화면서 알 수 없다"가 지연 원인이었음(개명 후 dev `axs` 행 미이관·배포본 확인난).
       - **설계**
         - per-process **`GET /version`**(core·admin·receiver·dispatcher): version·gitCommit·buildTime·startedAt·region · `/health`와 분리·무인증 인프라.
@@ -118,6 +123,10 @@
 
 - 논의 사항 (이번 주 · 신규 · R#)
   - _(회의 중 신규 논의/결정 안건 발생 시 **R1·R2…** 로 추가 · 선결·보류는 아래 「이월 논의 사항」 표.)_
+  - **R1. self-hosted CI/DevSecOps 스캔 구조 개선** — [제안서(VKS)](https://vks.vatech.com/x/oIPCEw)
+    - **배경**: devsecops를 self-hosted로 옮기는 [#13498](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/13498)이 반복 실패 → 3문제: ① **trivy 4중복 스캔**(devsecops 게이트 4개가 공유 변경 시 전부 발동) ② **trivy DB(110MB) gcr.io 다운로드 실패**(self-hosted 네트워크 flaky) ③ **OOM**(6GB 컨테이너 초과).
+    - **제안**: ① 소스 스캔을 **CI verify로 일원화**(gitleaks + trivy fs) + **devsecops PR 게이트 정리**(우리 소관·중앙 템플릿 손 안 댐) ② **trivy DB를 self-hosted 로컬 공유캐시로**(cron 하루 1회 갱신·4-Agent 공유 볼륨·CI는 `--skip-db-update`로 gcr.io 미접속) ③ **trivy 유지**(DT는 IaC 불가·게이트론 무거움 → 지속 모니터링 보완만).
+    - **결정 필요**: 로컬 캐시 **vs** ECR 미러 · **Jack 거버넌스 승인**(vt-api-gateway가 중앙 devsecops 대신 자체 CI verify 스캔 허용 여부) · **스펙/호스트**(trivy 설치·DB 갱신 cron·공유 볼륨·에이전트 메모리). #13498은 그때까지 **보류**.
 
 - **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인. (PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653)
 
