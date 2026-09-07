@@ -20,6 +20,10 @@
       - **전환·적용**: 에이전트 재구축(docker buildx·AWS CLI·Playwright·trivy·gitleaks 내장) · 스모크 검증 · 중앙 CI 템플릿에 pool 파라미터 추가(Jack repo·머지). GW root CI·Console CI·devsecops에 적용(범위 = PR·머지 회전에 직접 영향 있는 것 위주).
       - **효과**: CI 회전 대폭 단축 — **GW CI 총 23.8분 → 3.3분**(큐 대기 소멸 + 실행시간 단축).
       - **OOM 사고·대책**: 전환 직후 공용 빌드 서버가 메모리 고갈로 먹통 → 원인 = 테스트 러너 워커 자동 증식 × 에이전트 4대. 대책(테스트 워커 상한 · 컨테이너 메모리 상한 · 불용 VM 종료)으로 **해결·구조적 재발 방지**(리부팅 후 유지).
+      - **공용 빌드 서버 Jenkins 복구 + 메모리 캡 정비**: OOM 대책 때 종료한 win10 VM이 **Jenkins Windows 노드(Windows 제품 SonarQube 스캔)** 도 겸하던 것을 확인해 VM을 재기동하는 과정에서, **Jenkins 마스터의 잠복 문제**(플러그인은 최신인데 마스터가 오래 재시작된 적 없어 옛 버전으로 구동 중이던 상태)가 드러나 재시작 시 부팅 실패 → 코어·플러그인 정합화로 복구.
+        - **원인·해결**: 최신 플러그인이 요구하는 코어로 올리면 에이전트(Java 17)가 못 붙고, 옛 코어로 두면 플러그인이 안 뜨는 딜레마 → **Java 17로 도는 마지막 LTS(2.541.3)** 로 코어를 맞추고, 그 코어에 맞는 **일관된 플러그인 세트로 재구성**해 해결.
+        - **메모리 캡 정비(재발 방지)**: 그간 캡이 CI 에이전트에만 걸려 있고 Jenkins·SonarQube·Dependency-Track은 무제한이던 것을 확인 → **전 서비스에 메모리 상한 적용**(한 서비스 폭주가 서버 전체를 죽이지 못하도록). 상세 = `references/Self-hosted1/`.
+        - **결과**: Jenkins 마스터 정상·**빌드 노드 6개(Linux 4 + Windows 2) 전부 online**·SonarQube/Dependency-Track 정상·메모리 안정.
       - **보안 스캔 구조 개선 ✅ 완료**: devsecops가 앱 4개에서 같은 스캔을 4번 중복 + 취약점 DB를 매번 외부(gcr.io)서 받다 실패하던 문제 →
         - **소스·시크릿 스캔을 CI verify로 일원화**(trivy fs · gitleaks · SBOM · PR당 1회) → devsecops 5종은 스캔 OFF(빌드/배포만) = **4중복 제거**.
         - **스캐너 자동 관리(핵심)**: trivy·gitleaks를 에이전트 이미지가 아니라 **사내 공유 볼륨(`/opt/trivy-cache/bin`)에 별도 설치** —
@@ -38,6 +42,11 @@
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
     - **[Entra 앱 등록]** dev admin+Console 2앱 — **[IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)**(Jack 입력·절차/회신 양식 제공 완료) · **admin 부팅 선결**(③-I #3·#4)
     - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
+    - **[Jenkins Java 21 이관 — ✅ 완료]** Java 17이 Jenkins 기준 **이미 EOL(2026-03-31)**·LTS도 Java 21 전용(2.555.1~)이라 밀린 유지보수를, GW 유휴 기간에 완료(GW와 무관).
+      - **1단계 — Linux 에이전트 4대 Java 21화**: `jenkins-node` 이미지에 Temurin 21 레이어를 얹어(기존 Dart/Flutter/node/docker 툴체인 전부 보존) 재생성 → 4대 모두 재접속. 롤백용 `jenkins-node:java17-bak` 보존. Windows 노드는 이미 JDK 23이라 불요.
+      - **2단계 — 마스터 Java 21화**: 코어를 **2.568.3(Java 21) 최신 LTS**로 교체 → **플러그인 0 실패**·nginx 라우팅 정상·6노드 재접속. 1단계로 에이전트를 미리 Java 21화해 둔 덕에 마스터·에이전트 양쪽 Java 21로 깔끔히 정렬. 롤백점=2.541.3-jdk17 이미지.
+      - **플러그인 최신화·정리**: 코어 상향 후 2.568.3용 최신 세트로 재해석·교체(0 실패) — **보안 패치 `pipeline-groovy-lib`(CSRF·SECURITY-3815) 포함** · deprecated된 **Blue Ocean 계열 19개 제거**(개발 중단·UI 레이어라 빌드 무관·137→118).
+      - **결과**: 마스터·에이전트 전부 **Java 21** = **EOL 스택 해소** · 6노드 online · 플러그인 최신·보안 갱신. 상세 = `references/Self-hosted1/99.2`.
 
   - _(이번 주 결정사항 = 회의 시 추가)_
 
@@ -78,7 +87,7 @@
   > **[③-I 요청 전달 감사 — 2026-08-26]** "문서에 선결로 적혀 있다 ≠ Jack에게 전달됨." 두 추적 표를 훑어 GW handoff 7종 전부 **결과 Form·전달 흔적 0** 확인(작성 ≠ 전달). 전달 흔적 없는 항목(③-I #8·GW선결 #1·#2·#4 + Console CloudFront 헤더 4-tier·사내 접근제한[8/19 회신서 누락 변종])을 **handoff + 결과 Form 단일 전달 패킷**([pending-infra-requests.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/pending-infra-requests.md&version=GBmain)·GW repo·초안)으로 묶음. **전달 주체 = Raymond**(PL 지시). 이후 모든 ③-I 요청은 handoff+Form으로 전달하고 회신을 이 표에 일자·산출물로 기록(재발 방지). 모범 = 마이그레이션 인계(#13020).
 
 - 공유 사항 (결정 아님 · 논의사항인지 애매한 것을 임의 결정해 공유 · 매주 상시)
-  - **webhook payload 보존·아카이브 방식(gw/1.1)** — 무한 누적되는 webhook payload(PHI·KMS 암호문) 관리 방식을 임의로 결정해 공유: **리전 로컬 S3 아카이브 후 삭제**(파티셔닝 미채택)·무인 K8s CronJob(시간 기준)·export→검증→배치삭제·잡 단위 감사·tombstone 없음. SRS §7.6.9에 설계 골격+다이어그램 반영(gw/1.1·v1.0=저볼륨 미구현·알람만). 확정 필요 값(리전별 ① DB 잔존 기간 ② S3 보관 기간·+가동 임계값)은 법무 의존이라 **이월 논의 #15**에서 추적(Appendix B #5·#36).
+  - **공용 빌드 서버 Jenkins Java 21 이관(밀린 유지보수 · 기한 이미 경과)** — 이번 복구로 Jenkins 코어를 **Java 17로 도는 마지막 LTS(2.541.3)** 에 맞췄으나, 이는 임시 고정점이다(GW 서비스와 무관 — GW CI는 Jenkins를 쓰지 않는다). **기한을 정하는 것은 Jenkins의 Java 17 지원 종료 일정**인데, 이는 **이미 지났다** — Java 17은 Jenkins 기준 **2026-03-31 EOL**, LTS는 **2026-05-13(2.555.1)부터 Java 21 전용**으로 전환돼 Java 17 지원을 제거했다. 즉 2.541.3은 직전 세대라 **보안 백포트가 이미 끊긴 상태**다(미패치 노출 누적). 리스크는 격리돼 있으나(사내 abc-wbs 제품 스캔용·외부 노출 아님) **미룰 수 없는 밀린 유지보수**다. **권장 = 향후 2~4주 내 한가한 창에 계획 이관**(당장 오늘은 에이전트 준비 선행 필요, 무기한 유지는 불가). 순서 = **에이전트 먼저(LinuxNode 4대 Java 21 재빌드 — Windows 노드는 이미 JDK 23이라 불요) → 마스터 최신 LTS 나중**(반대로 하면 에이전트가 못 붙어 전 노드 탈락). 상세 = `references/Self-hosted1/99.2. Jenkins 복구 기록`.
 
   - **S1. 프로젝트 일정(Gantt) — 8/27 스냅샷**
     - **진행률(구현)**
