@@ -16,14 +16,19 @@
       - ⚠ **"검증이니 곧 끝난다" 가 아니다** — 검증은 어긋난 것을 **찾는** 일이고 찾으면 Console 작업이 된다(`9-17` 1단계만으로 갭 2건). 남은 8% 는 **폭을 아직 모르는 일**이다 → S1 상세
 
   - **완료 · 주요 작업**
+    - **[Console 운영 매뉴얼 8종 작성 완료]** ⭐ _(지난 회의 종료 후 마무리)_ 운영자용 **한국어 운영 매뉴얼 8종 작성 완료** — 운영자가 GW Console을 보고 따라할 수 있는 사례 주도·따라하기·트러블슈팅 문서.
+      - 연동 대상(target) 등록·관리 · org 매핑 관리 · 디바이스 온보딩·관리 · webhook 이벤트 조회·장애 대응 · 운영자·권한(RBAC) · 클리닉 조회·식별 메모 · 중앙 설정(config) · 감사(audit) (+ 매뉴얼 인덱스)
     - **[CI 셀프호스티드(Self-hosted1) 전환 — 공유 풀 적체 해소]** ⭐ 공유 CI 풀 대기 적체로 GW·Console CI가 정체 → **사내 self-hosted 빌드로 전환**.
       - **전환·적용**: 에이전트 재구축(docker buildx·AWS CLI·Playwright·trivy·gitleaks 내장) · 스모크 검증 · 중앙 CI 템플릿에 pool 파라미터 추가(Jack repo·머지). GW root CI·Console CI·devsecops에 적용(범위 = PR·머지 회전에 직접 영향 있는 것 위주).
       - **효과**: CI 회전 대폭 단축 — **GW CI 총 23.8분 → 3.3분**(큐 대기 소멸 + 실행시간 단축).
       - **OOM 사고·대책**: 전환 직후 공용 빌드 서버가 메모리 고갈로 먹통 → 원인 = 테스트 러너 워커 자동 증식 × 에이전트 4대. 대책(테스트 워커 상한 · 컨테이너 메모리 상한 · 불용 VM 종료)으로 **해결·구조적 재발 방지**(리부팅 후 유지).
-      - **공용 빌드 서버 Jenkins 복구 + 메모리 캡 정비**: OOM 대책 때 종료한 win10 VM이 **Jenkins Windows 노드(Windows 제품 SonarQube 스캔)** 도 겸하던 것을 확인해 VM을 재기동하는 과정에서, **Jenkins 마스터의 잠복 문제**(플러그인은 최신인데 마스터가 오래 재시작된 적 없어 옛 버전으로 구동 중이던 상태)가 드러나 재시작 시 부팅 실패 → 코어·플러그인 정합화로 복구.
-        - **원인·해결**: 최신 플러그인이 요구하는 코어로 올리면 에이전트(Java 17)가 못 붙고, 옛 코어로 두면 플러그인이 안 뜨는 딜레마 → **Java 17로 도는 마지막 LTS(2.541.3)** 로 코어를 맞추고, 그 코어에 맞는 **일관된 플러그인 세트로 재구성**해 해결.
-        - **메모리 캡 정비(재발 방지)**: 그간 캡이 CI 에이전트에만 걸려 있고 Jenkins·SonarQube·Dependency-Track은 무제한이던 것을 확인 → **전 서비스에 메모리 상한 적용**(한 서비스 폭주가 서버 전체를 죽이지 못하도록). 상세 = `references/Self-hosted1/`.
-        - **결과**: Jenkins 마스터 정상·**빌드 노드 6개(Linux 4 + Windows 2) 전부 online**·SonarQube/Dependency-Track 정상·메모리 안정.
+      - **공용 빌드 서버 Jenkins 복구 · Java 21 이관 · 정리**: OOM 대책 때 종료한 win10 VM이 **Jenkins Windows 노드(Windows 제품 SonarQube 스캔)** 도 겸하던 것을 확인해 VM을 재기동하는 과정에서, **Jenkins 마스터의 잠복 문제**(플러그인은 최신인데 마스터가 오래 재시작된 적 없어 옛 버전으로 구동 중이던 상태)가 드러나 재시작 시 부팅 실패 → 복구 + 밀린 유지보수(Java 21)·정리까지 완결.
+        - **복구**: 최신 플러그인이 요구하는 코어로 올리면 에이전트(Java 17)가 못 붙고, 옛 코어로 두면 플러그인이 안 뜨는 딜레마 → 우선 **Java 17 마지막 LTS(2.541.3)** 로 코어를 맞추고 일관된 플러그인 세트로 재구성해 복구.
+        - **메모리 캡 정비(재발 방지)**: 그간 캡이 CI 에이전트에만 걸려 있고 Jenkins·SonarQube·Dependency-Track은 무제한이던 것을 확인 → **전 서비스에 메모리 상한 적용**(한 서비스 폭주가 서버 전체를 죽이지 못하도록).
+        - **Java 21 이관(EOL 스택 해소)**: Java 17이 Jenkins 기준 **이미 EOL(2026-03-31)**이라 임시 고정점(2.541.3)에 머물지 않고 이관 — **에이전트(Linux 4대 재빌드·Windows는 JDK 23) 먼저 → 마스터 최신 LTS 2.568.3(Java 21) 상향**(순서 지켜 무탈 정렬). 마스터·에이전트 전부 Java 21.
+        - **플러그인·보안 정리**: 2.568.3용 최신 세트 재해석(0 실패)·**보안 패치 `pipeline-groovy-lib`(CSRF·SECURITY-3815) 적용** · deprecated **Blue Ocean 계열 20개 제거**(개발 중단·UI 레이어라 빌드 무관·디자인 라이브러리 포함·137→117) · **위험 스크립트 승인 제거**(`GroovyObject.invokeMethod`=샌드박스 우회).
+        - **결과**: 마스터·에이전트 전부 **Java 21**·**빌드 노드 6개(Linux 4 + Windows 2) online**·플러그인 **0 실패·deprecated 0·보안 갱신**·SonarQube/Dependency-Track 정상·메모리 안정. 상세 = `references/Self-hosted1/99.2`.
+        - **후속(내년) — Java 25 이관 필요**: Jenkins "2+2+2" 정책상 Java 21도 최소 요구로 **약 18개월**(~**2027년 하반기** Java 25로 전환·Java 21 지원 종료 전망). **내년에 Java 25로 올려야 함** — 이번과 동일 절차(에이전트 먼저 → 마스터)라 수월, EOL 전 제때 계획(이번처럼 밀리지 않게).
       - **보안 스캔 구조 개선 ✅ 완료**: devsecops가 앱 4개에서 같은 스캔을 4번 중복 + 취약점 DB를 매번 외부(gcr.io)서 받다 실패하던 문제 →
         - **소스·시크릿 스캔을 CI verify로 일원화**(trivy fs · gitleaks · SBOM · PR당 1회) → devsecops 5종은 스캔 OFF(빌드/배포만) = **4중복 제거**.
         - **스캐너 자동 관리(핵심)**: trivy·gitleaks를 에이전트 이미지가 아니라 **사내 공유 볼륨(`/opt/trivy-cache/bin`)에 별도 설치** —
@@ -42,11 +47,6 @@
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
     - **[Entra 앱 등록]** dev admin+Console 2앱 — **[IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)**(Jack 입력·절차/회신 양식 제공 완료) · **admin 부팅 선결**(③-I #3·#4)
     - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
-    - **[Jenkins Java 21 이관 — ✅ 완료]** Java 17이 Jenkins 기준 **이미 EOL(2026-03-31)**·LTS도 Java 21 전용(2.555.1~)이라 밀린 유지보수를, GW 유휴 기간에 완료(GW와 무관).
-      - **1단계 — Linux 에이전트 4대 Java 21화**: `jenkins-node` 이미지에 Temurin 21 레이어를 얹어(기존 Dart/Flutter/node/docker 툴체인 전부 보존) 재생성 → 4대 모두 재접속. 롤백용 `jenkins-node:java17-bak` 보존. Windows 노드는 이미 JDK 23이라 불요.
-      - **2단계 — 마스터 Java 21화**: 코어를 **2.568.3(Java 21) 최신 LTS**로 교체 → **플러그인 0 실패**·nginx 라우팅 정상·6노드 재접속. 1단계로 에이전트를 미리 Java 21화해 둔 덕에 마스터·에이전트 양쪽 Java 21로 깔끔히 정렬. 롤백점=2.541.3-jdk17 이미지.
-      - **플러그인 최신화·정리**: 코어 상향 후 2.568.3용 최신 세트로 재해석·교체(0 실패) — **보안 패치 `pipeline-groovy-lib`(CSRF·SECURITY-3815) 포함** · deprecated된 **Blue Ocean 계열 19개 제거**(개발 중단·UI 레이어라 빌드 무관·137→118).
-      - **결과**: 마스터·에이전트 전부 **Java 21** = **EOL 스택 해소** · 6노드 online · 플러그인 최신·보안 갱신. 상세 = `references/Self-hosted1/99.2`.
 
   - _(이번 주 결정사항 = 회의 시 추가)_
 
