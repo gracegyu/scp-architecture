@@ -51,6 +51,24 @@
   - _(이번 주 결정사항 = 회의 시 추가)_
 
 - 논의 사항 (이번 주 · 신규 · R#)
+  - **R1. GW·GW Console을 Jenkins 보안 파이프라인에 온보딩할지 결정** — 다른 사내 제품(eslockserver·ezcloud·oneid 등)은 Jenkins에서 **① SBOM 생성→Dependency-Track 업로드**, **② SonarQube 정적분석**을 돌리는데 GW·GW Console은 미연동. Jenkins가 복구·최신화됐고 **DT와 같은 내부망**이라 지금 붙이기 좋음.
+    - **① SBOM→DT**: 기존 템플릿(`sharedPipelineSbomGitNodeLinux`) 재사용 — DT 프로젝트 생성 + jenkinsfile/잡 추가로 GW·Console 의존성 취약점을 DT에서 상시 추적. **Azure CI가 못 하던 내부 DT 업로드를 Jenkins가 직접 수행** → 기존 "Azure CI→S3→폴링→DT" 후속안을 대체·단순화.
+    - **② SonarQube 정적분석**: 기존 SonarQube 템플릿 재사용(코드 품질·SAST). GW는 현재 Azure CI에 SonarQube 미연동.
+    - **결정 (두 축 · ✅ = 추천)**:
+      - **(A) 제품 범위**
+        - ① 안 함
+        - ② GW만
+        - **③ GW + Console ✅**
+      - **(B) 도구**
+        - **DT / SBOM ✅ — 먼저(필수급)**
+        - SonarQube / 정적분석 — 후속·선택
+        - (지향점 = 둘 다)
+    - **추천 근거**:
+      - **SBOM은 사실상 필수** — FDA 시판전 사이버보안(cyber device·FD&C §524B) 제출 의무 + IEC 62304 SOUP(외부 구성요소) 관리 근거. GW는 이미 Azure CI가 CycloneDX SBOM 생성 中이라, Jenkins/DT 추가분은 **취약점 상시 추적·시판후 모니터링**.
+      - **GW+Console 둘 다** — 둘 다 IEC 62304/ISO 13485 통제 대상(Console은 PHI 취급)이라 규제 범위에 함께 들어갈 공산이 큼. **누락 리스크 > 추가 비용**이고 템플릿 재사용이라 저비용 → 안전하게 둘 다.
+      - **SonarQube는 후순위** — secure SDLC 근거로 유용하나 SBOM 같은 명시 의무 산출물은 아님 → DT 먼저, 여력 시 추가.
+      - **①·② 비추천** — 안 하면 인증 요구 시 급히 붙여야 하고, GW만 하면 Console이 제출 범위일 때 재작업.
+    - **⚠ 최종 확정은 규제 확인 후**: SRS §6.13이 "인증 준비물은 마케팅·품질팀이 확정"(Appendix B #11)이라 명시 → **품질/RA팀에 ①SBOM/정적분석 요구 여부 ②범위(GW/Console) 확인이 선행**. 확인되면 추천안대로, 요구 아니면 축소·보류. 기술 준비(pnpm 대응·jenkinsfile·잡)는 결정 후 착수(저비용).
   - _(회의 중 신규 논의/결정 안건 발생 시 **R1·R2…** 로 추가 · 선결·보류는 아래 「이월 논의 사항」 표.)_
 
 - **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인. (PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653)
