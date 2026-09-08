@@ -18,6 +18,10 @@
   - **완료 · 주요 작업**
     - **[Console 운영 매뉴얼 8종 작성 완료]** ⭐ _(지난 회의 종료 후 마무리)_ 운영자용 **한국어 운영 매뉴얼 8종 작성 완료** — 운영자가 GW Console을 보고 따라할 수 있는 사례 주도·따라하기·트러블슈팅 문서.
       - 연동 대상(target) 등록·관리 · org 매핑 관리 · 디바이스 온보딩·관리 · webhook 이벤트 조회·장애 대응 · 운영자·권한(RBAC) · 클리닉 조회·식별 메모 · 중앙 설정(config) · 감사(audit) (+ 매뉴얼 인덱스)
+    - **[운영 매뉴얼 Project wiki 발행 완료]** ✅ GW·Console 운영 매뉴얼(`docs/manual`)을 스펙(`docs/specs`)과 함께 es-platforms **project wiki로 자동 미러**하도록 발행 파이프라인(`docs-wiki.yml`) 확장(PR #14130·#14132 머지·발행 완료) — **Git 접근·라이선스 없는 기획·PM·품질팀도 위키에서 바로 열람** 가능.
+      - **위키 링크**: [Console 매뉴얼 폴더](https://dev.azure.com/ewoosoft/es-platforms/_wiki/wikis/es-platforms.wiki?pagePath=/vt%20api%20gateway/03c%20subsrs%20gw%20console/manual) · [GW 매뉴얼 폴더](https://dev.azure.com/ewoosoft/es-platforms/_wiki/wikis/es-platforms.wiki?pagePath=/vt%20api%20gateway/manual)
+      - GW 매뉴얼 → `vt api gateway/manual/`(최상위) · Console 매뉴얼 → `03c subsrs gw console/manual/`(Sub-SRS와 나란히·SSOT=console repo에서 pull). 매뉴얼은 스펙과 달리 **이미지도 함께 게시** · 정본 변경 시 **자동 재발행**(교차 트리거).
+      - **상호 크로스링크**: GW `target-onboarding`(API·인프라 크로스팀 runbook) ↔ Console `target-management`(UI 운영자 가이드). 검토 결과 **독자·계층이 달라 통합하지 않고 둘 다 발행**, 대신 서로 참조 링크를 걸어 계층 구분.
     - **[CI 셀프호스티드(Self-hosted1) 전환 — 공유 풀 적체 해소]** ⭐ 공유 CI 풀 대기 적체로 GW·Console CI가 정체 → **사내 self-hosted 빌드로 전환**.
       - **전환·적용**: 에이전트 재구축(docker buildx·AWS CLI·Playwright·trivy·gitleaks 내장) · 스모크 검증 · 중앙 CI 템플릿에 pool 파라미터 추가(Jack repo·머지). GW root CI·Console CI·devsecops에 적용(범위 = PR·머지 회전에 직접 영향 있는 것 위주).
       - **효과**: CI 회전 대폭 단축 — **GW CI 총 23.8분 → 3.3분**(큐 대기 소멸 + 실행시간 단축).
