@@ -49,7 +49,8 @@
       - **원인**: dev의 MQTT 엔드포인트가 IoT Core(WSS)인데 dispatcher가 무인증 로컬 MQTT로 붙어 IoT Core가 접속을 끊음 → 무한 재접속으로 부팅이 멈춤(KEDA 최소 replica를 0→1로 올리며 드러남).
       - **해결**: dispatcher가 IoT Core에 **SigV4 서명 WSS·IAM(Pod Identity)** 로 접속·발행하는 어댑터 추가 + 최초 접속 타임아웃(fail-fast). Jack 제안 PR 머지로 dev 언블록.
       - **인증 방식 정리**: **발행자(GW)=IAM/SigV4** vs **구독자(EzServer)=디바이스별 인증서** 로 역할 구분. 어댑터 선택은 env `MQTT_AUTH`(auto·sigv4·none·기본 auto)로 확정 — dev/prod는 자동 SigV4라 추가 설정 불요.
-      - **스펙 정합**: SRS §7.6.6·env-reference 반영(spec-v1.0.84 머지). 코드 후속 PR(명시 MQTT_AUTH 전환)은 리뷰 중.
+      - **스펙 정합**: SRS §7.6.6·env-reference 반영(spec-v1.0.84 머지). 명시 MQTT_AUTH 전환 PR **머지 완료(#13585·9/3)**.
+      - ⚠ **남은 dev 이슈(부팅과 별건)**: dispatcher 파드 **exit137 반복**(9/3 pending-infra 관찰·OOM/kill 추정) + **enroll된 Thing 0건** → **IoT 다운링크 E2E 미실행**(T-DISP-9-5·T-E2E-12-6). SigV4 부팅 수정과 별개 문제라 **9/10 재확인·안정화 필요**(IoT 인프라는 9/3 완료).
     - **[Entra dev 회신값 접목 착수 — IT-9442]** ⭐ IT팀이 dev 앱 2개(API 리소스·Console SPA)를 등록·회신(9/9). Jack이 값을 문서에 반영(PR #14162 머지)하고 **dev 실 로그인 배포 경로**를 파이프라인에 추가(#14167·기본은 목 유지·`devAuthMode=entra` 수동 실행). Console은 회신값으로 **로컬 실 로그인을 시도해 남은 항목을 실측 판정**했다.
       - **판정된 것** — 테넌트·issuer·JWKS가 discovery 문서와 **일치** · SPA client ID·`localhost:3100` redirect **등록됨** · scope `access_as_operator` **노출됨**(동의 화면 도달이 그 증거)
       - ⚠ **남은 잠금 = admin consent 1건** — 미승인이라 사용자마다 승인 요청 화면이 뜬다. **조직 단위 1회**면 되고 이후 사용자는 동의 화면을 보지 않는다(Console 역할 부여와는 **다른 계층**). IT팀(이희선)에 요청 전송
@@ -59,9 +60,9 @@
       - **#14167 리뷰** — 설계는 타당(실 빌드에도 `verify:bundle` 적용·`.env` 사전 정리·같은 버킷 상호배제). ⚠ **차단 1건**: 정적 export 플래그 누락으로 `out/` 이 안 만들어져 **빌드는 초록·배포에서 실패**한다(로컬 재현 완료). 리뷰 문서 `03c-subsrs-gw-console/_review-console-ci-14167.md` 로 남기고 PR 코멘트 게시
 
   - **진행 중 · 선결 대기**
-    - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
+    - **[GW dev 배포·통합]** core·receiver·dispatcher·**admin 전부 dev 기동 확인**(9/10: admin `/v1/admin/me` 401=healthy·8/31 503 해소) · 통합은 Entra admin consent 승인 후 실로그인부터(③-I #3)
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
-      - ⚠ **`T-FE-8-1`·`T-FE-9-17`·admin dev 503 이 한 뿌리** — dev admin 이 OIDC 설정 부재로 **부팅에서 fail-closed** 라 밖에서 503 이다(GW 코드 확인). consent 가 풀려 admin 이 뜨면 **셋이 함께** 풀린다
+      - ⚠ **`T-FE-8-1`·`T-FE-9-17`의 한 뿌리 = admin consent** — **admin API는 부팅됨**(9/10 `/v1/admin/me` **401**=healthy·OIDC 설정 주입으로 이전 503 해소) · 남은 건 **admin consent 미승인**이라 Console 실로그인(토큰 취득)이 막혀 두 검증이 정체 · consent 풀리면 **함께** 풀린다
     - **[Entra 앱 등록]** dev 2앱 **회신 완료**(9/9) — 남은 것은 **admin consent 1건**(IT팀 승인 대기). 승인 즉시 `T-FE-8-1` 로컬 검증 착수 · `aud` 형식도 그때 확정
     - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
 
@@ -88,34 +89,34 @@
     - **⚠ 최종 확정은 규제 확인 후**: SRS §6.13이 "인증 준비물은 마케팅·품질팀이 확정"(Appendix B #11)이라 명시 → **품질/RA팀에 ①SBOM/정적분석 요구 여부 ②범위(GW/Console) 확인이 선행**. 확인되면 추천안대로, 요구 아니면 축소·보류. 기술 준비(pnpm 대응·jenkinsfile·잡)는 결정 후 착수(저비용).
   - _(회의 중 신규 논의/결정 안건 발생 시 **R1·R2…** 로 추가 · 선결·보류는 아래 「이월 논의 사항」 표.)_
 
-- **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인. (PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653)
+- **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인. **🆕 9/3 대거 착지(Jack): 실 IoT Core·Parameter Store(compat well-known 200)·KMS CMK(payload+target)·공개 ingress = dev 완료** · admin 부팅(401)·Entra 앱 회신(9/9)까지 겹쳐 **dev 인프라 핵심이 대부분 해소**됨(남은 dev 블로커 = Entra admin consent·자동배포·마이그Job·dispatcher 안정화·test 환경). 상세=`docs/handoff/pending-infra-requests.md §9`. (PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653)
 
-  > 범례: ✅ 완료(괄호=완료일·날짜만이면 **이전 주 완료**) · **🆕 = 이번 주 신규 구축·자가검증 완료(2026-08-31)** · 🟠 부분 · ☐ 미완 · ⚠ 전달 필요. _(2026-08-31 curl·AWS read-only 자가검증 반영.)_
+  > 범례: ✅ 완료(괄호=완료일·날짜만이면 **이전 주 완료**) · **🆕 = 이번 주(8/31 이후) 신규 해결·검증(주로 2026-09-03 Jack ③-I 인프라 배치·9/9 Entra·admin 부팅)** · 🟠 부분 · ☐ 미완 · ⚠ 전달 필요. _(9/10 현실화: pending-infra §9 Jack 9/3 실측 + dev 엔드포인트 재확인 반영.)_
 
   | # | 요청 | 수신 | dev | prod |
   | --- | --- | --- | --- | --- |
-  | 1 | Region Directory 호스팅 + `consoleHost` 발행 | ③-I | ✅ publish(8/18·`regions.gw.dev.ezcld.net`) · **🆕 `consoleHost` 발행(8/31·PR #13355 Jack 머지→파이프라인·`curl regions.json` 자가검증: `console.gw.dev.ezcld.net` 노출 확인)** | ☐ 도메인 후(prod consoleHost) |
+  | 1 | Region Directory 호스팅 + `consoleHost` 발행 | ③-I | ✅ publish(8/18·`regions.gw.dev.ezcld.net`) · ✅ `consoleHost` 발행(8/31·PR #13355 Jack 머지·`curl regions.json` 확인) | ☐ 도메인 후(prod consoleHost) |
   | 2 | GW Console dev 호스팅([console.gw.dev.ezcld.net](https://console.gw.dev.ezcld.net)) | ③-I | ✅ 개통(8/19·CD 파이프라인·딥링크 rewrite) | ☐ 도메인 후 |
-  | 3 | **dev GW 백엔드 배포·env 주입**(`DATABASE_URL`[공용 `common-dev-db`·`gw` DB·apne2]·`REDIS_URL`·`GW_REGION`=apne2·AWS **Pod Identity**·`NODE_ENV` 차트 주입) | ③-I | **core·receiver·dispatcher = ✅ 기동 완료**(8/31 자가검증: core·receiver 404=healthy backend·기동 확인 / dispatcher=HTTP 엔드포인트 없어 배포상 기동) · **admin = 🟠 Entra admin consent 승인 대기**(앱 배포/기동됨 · 9/9 Entra 앱 회신 후 **consent 미승인**이라 readiness/인증 미통과 → 외부 503 지속 · consent 승인 시 serving) | ☐ |
-  | 4 | **운영자 Entra 앱 등록**(GW Admin API + Console SPA·2앱·PKCE) | IT·③-I | 🟠 **dev 2앱 등록·회신 완료(9/9)** · 남은 것 = **admin consent 승인 1건**([IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)·IT팀 승인 대기·조직 1회) → **승인 전까지 admin 부팅 불가(503)** | ☐ prod 등록 시 동일(도메인 후) |
+  | 3 | **dev GW 백엔드 배포·env 주입**(`DATABASE_URL`[공용 `common-dev-db`·`gw` DB·apne2]·`REDIS_URL`·`GW_REGION`=apne2·AWS **Pod Identity**·`NODE_ENV` 차트 주입) | ③-I | **core·receiver·dispatcher = ✅ 기동 완료**(8/31 자가검증: core·receiver 404=healthy backend·기동 확인 / dispatcher=HTTP 엔드포인트 없어 배포상 기동) · **admin = 🆕 부팅 확인(9/10: `/v1/admin/me` 401=healthy·8/31 503 해소)** · 단 **Console 실로그인은 admin consent 승인 대기**(consent 미승인→사용자 토큰 취득 불가) | ☐ |
+  | 4 | **운영자 Entra 앱 등록**(GW Admin API + Console SPA·2앱·PKCE) | IT·③-I | 🆕 **dev 2앱 등록·회신 완료(9/9)·GW 배선 완료** · 남은 것 = **admin consent 승인 1건**([IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)·IT팀 승인 대기·조직 1회) → **승인 전까지 Console 실로그인 불가**(admin API 자체는 9/10 부팅 확인·401) | ☐ prod 등록 시 동일(도메인 후) |
   | 5 | **env-reference 환경별 값 채움**(test·sandbox·prod endpoint·호스트·리전) | ③-I | ✅ dev · ☐ test/sandbox/prod | ☐ |
   | 6 | **dev-seed grant**(`DATABASE_URL` 변수그룹·Environment 승인게이트) — 전용 수동 파이프라인 `gw-dev-seed.yml`(멱등·`dev:showcase`)용 | ③-I | 🟠 **8/31 자가검증**: 파이프라인(id 335)·Environment 승인게이트(id 9)·AWS 서비스커넥션 `gw-dev-seed` 등록됨 ✅ · `- group:` 로드실패는 PR 12806서 수정(8/19 에러=stale) · **남은 것=`DATABASE_URL`(dev RDS) 변수그룹 미생성** → **Jack: 변수그룹 `gw-dev-seed`+`DATABASE_URL`(시크릿)+파이프라인 링크**(+서비스커넥션 롤 KMS 권한 확인). AWS 5개 변수는 **GW가 YAML을 서비스커넥션(`AWSShellScript@1`)으로 전환**(VT-GW-구현·데모 후)→Jack 불요. 요청 8/20. _(seed 변경=스크립트 수정+재실행·멱등·재요청 불필요)_ | — |
   | 7 | **`pg_trgm` CREATE EXTENSION 권한**(clinic 검색 선결 · env-reference §2.1) | ③-I | ✅ 문제 없음(Jack 확인 8/20 — `gw_app`=`gw` DB OWNER·trusted extension) | ☐ prod 동일 확인 |
-  | 8 | **KMS CMK provisioning**(webhook payload·target 자격 alias·리전별 · 8/4 키 토폴로지 · env-reference §2.4) | ③-I | ☐ (webhook/target 실사용 시) · **8/31 자가검증: `gw` KMS alias 없음=미프로비저닝 확인(트리거 前이라 정상)** · ⚠**전달 흔적 없음**→전달패킷 §4(handoff+Form·트리거 명시) | ☐ 리전별 |
-  | 9 | **admin API dev ingress 노출**(`admin.apne2.gw.dev.ezcld.net`·Entra-gated 공개 ingress) — Console이 실 dev DB 데이터를 조회하려면 admin 부팅에 더해 이 ingress가 있어야 함(없으면 admin이 떠도 Console이 못 부름) | ③-I | ✅ **ingress 구축 확인**(8/25 curl: 443 OPEN·ALB 응답) — 단 전 경로 **503(ALB에 healthy target 0·즉시응답)** = **admin 미기동**이 원인(ingress 문제 아님)·**#4 Entra admin consent 승인 시 serving**(8/31 재확인: `/`·`/v1/admin/me` 여전히 **503**·consent 미승인이라 미serving 지속·앱 배포는 됨) | ☐ 도메인 후 |
+  | 8 | **KMS CMK provisioning**(webhook payload·target 자격 alias·리전별 · 8/4 키 토폴로지 · env-reference §2.4) | ③-I | 🆕 **완료(9/3 Jack·AB#5650)**: ① `alias/gw-payload-apne2`(PR 12413) · ② `alias/gw-target-cred-apne2`(PR 13573 apply·SSM alias 4앱 주입) · 기능검증=admin 파드 복구 후 | ☐ 리전별(prod) |
+  | 9 | **admin API dev ingress 노출**(`admin.apne2.gw.dev.ezcld.net`·Entra-gated 공개 ingress) — Console이 실 dev DB 데이터를 조회하려면 admin 부팅에 더해 이 ingress가 있어야 함(없으면 admin이 떠도 Console이 못 부름) | ③-I | ✅ **ingress 구축 확인**(8/25 curl: 443 OPEN·ALB 응답) — 단 전 경로 **503(ALB에 healthy target 0·즉시응답)** = **admin 미기동**이 원인(ingress 문제 아님)·**9/10 재확인: `/v1/admin/me` = 401**(admin 부팅·healthy·8/31 503 해소·ingress serving 확인) · 남은 건 Console 로그인용 **admin consent** | ☐ 도메인 후 |
 
 - **[GW 구현 선결 추적 · 외부 인프라·자격]** — E2E·배포가 외부 선결로 막힌 항목. 소유별 상태·ETA 확인.
 
   | # | 선결 항목 | 소유 | dev | prod |
   | --- | --- | --- | --- | --- |
-  | 1 | 공개 ingress(AXS→GW webhook 수신) | ③-I | **🆕 사실상 구축 확인(8/31 자가검증**: `axs.webhook.apne2.gw.dev.ezcld.net` → 404·연결성립·admin과 달리 503 아님=healthy backend 응답) — Jack에 "이미 됨" 1줄 확인 후 ✅ 확정. (기존 전달패킷 §1) | ☐ |
-  | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | ③-I | ☐ · **8/31 자가검증: endpoint 존재(`a2ig1yuqacb8gl-ats…`)이나 공유 policy 0개=미구성** · ⚠**전달 흔적 없음**→전달패킷 §2(handoff=[docs/handoff/iot-authz-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/iot-authz-infra.md&version=GBmain)·Form) | ☐ |
+  | 1 | 공개 ingress(AXS→GW webhook 수신) | ③-I | ✅ **완료**(9/3 Jack 확정·es-infra PR 12931·8/20 · `curl axs.webhook.apne2.gw.dev.ezcld.net`→404 healthy) | ☐ prod |
+  | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | ③-I | 🆕 **완료(dev·9/3 Jack)**(es-infra PR 12190 · 공유 policy `dev-ezserver-edge` · `MQTT_URL`=Secrets Manager `dev/…dispatcher` · dispatcher `iot:Publish gw/clinic/*`) · ⚠ **E2E 미실행**(dispatcher exit137 반복·enroll Thing 0=별건) | ☐ |
   | 3 | 자동배포 파이프라인(main→DEV·tag→TEST/PROD) | ③-I | 🟠 dev 배포 됨(3앱) · 자동화·tag→TEST/PROD 잔여(Jack Azure Flow 템플릿→ECR/ArgoCD) | ☐ |
-  | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | ③-I | ☐ · **8/31 자가검증: `/dev` 하위 `server-configuration`/`.files` 경로 없음=미구성** · ⚠**전달 흔적 없음**→전달패킷 §3(handoff=[docs/handoff/compat-matrix-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/compat-matrix-infra.md&version=GBmain)·Form) | ☐ |
+  | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | ③-I | 🆕 **완료(dev·9/3 Jack·AB#5650)**: write IAM·SC(PR 12694) · 발행 파이프라인(354 run 53818) · ESO 마운트(es-gitops PR 13571) · `GW_COMPAT_MATRIX_DIR` 주입 · `/.well-known/production/server-configuration.json` **200** | ☐ test/prod |
   | 5 | **test 환경 프로비저닝**(별도 인프라·GW=infra 분류·상시 최소 baseline+임시 확장·부하/HA 사이즈업 포함) | ③-I | ☐ **요청 완료·마감 8/26** | ☐ |
   | 6 | AXS 자격 | Straumann·영업 | ✅ sandbox(8/11) | ☐ prod(NDA후) |
   | 7 | 파일 붙은 lab order 시드 | Straumann·④ | ☐ (sandbox) | — |
-  | 8 | **마이그레이션 배포 Job 배선**(K8s Job + ArgoCD PreSync hook · migrate 이미지 ECR push[앱과 같은 SHA] · 매 배포 前 1회 `migrate deploy`·성공 gating·fail-closed) | ③-I | 🟠 **GW 몫 완료**(#12926 · migrate 이미지 타겟·실행명령·env·local `make dev-up` 자동) · **인계 명세 전달**(#13020·[docs/handoff/migration-deploy-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/migration-deploy-infra.md&version=GBmain) + 초안 `devsecops-migrate.yml`) · ③-I 회신 3건(org 템플릿 `--target` 지원·migrate 배포스테이지 처리·SHA 태그 경로) + K8s Job+PreSync 배선 대기 | ☐ |
+  | 8 | **마이그레이션 배포 Job 배선**(migrate 이미지 ECR push[앱과 같은 SHA] · 매 배포 前 1회 `migrate deploy`·성공 gating·fail-closed) | ③-I | ✅ **완료(dev)**: ③-I 회신 3건 해소(§확정)·**PreSync→sync-wave Job 확정**(AB#5206·wave0 SA/ESO→wave1 migrate→wave2 Deploy)·ECR `vt-api-gateway-migrate`(es-infra PR 13034)·`devsecops-migrate.yml` 완성·**ADO 파이프라인 등록(id 340)** · GW 몫(#12926·#13173·#13184) | ☐ test/prod OWNER 확인 |
 
   _(`—`=해당 없음.)_
 
@@ -154,15 +155,15 @@
         2단계 AXS 연동 (P7~P12·코드 완료) :done, implaxs, 2026-07-28, 2026-08-24
         GW 코드 feature-complete       :milestone, done, impldone, 2026-08-24, 0d
         운영자 Entra dev consent (IT-9442·승인 대기·블로커) :crit, active, entra, 2026-09-09, 2026-09-19
-        Entra dev 준비 완료 (admin 부팅 게이트) :milestone, crit, entram, after entra, 0d
-        dev 통합·E2E (실 인바운드·IoT·Entra 후·미완) :crit, active, e2e, 2026-08-24, 2026-09-30
+        Entra dev 준비 완료 (admin consent·Console 로그인 게이트) :milestone, crit, entram, after entra, 0d
+        dev 통합·E2E (인프라 완료 9/3·Entra consent·E2E 실행 대기) :crit, active, e2e, 2026-09-03, 2026-09-30
         개발환경 연동 완료(목표·9월)   :milestone, crit, dev9, 2026-09-30, 0d
         v1.0 production 연동 완료(목표·10월·재검토) :milestone, rel, 2026-10-31, 0d
 
-        section ③-I 인프라 IaC (계획서 병합=완료 · dev 부분 가동 · test/prod 미착수)
+        section ③-I 인프라 IaC (dev 핵심 완료 9/3 · 자동배포·마이그Job 잔여 · test/prod 미착수)
         계획서 ①초안→②Jack 상세→③병합 (완료 7/27·PR #11973) :done, infplan, 2026-07-20, 2026-07-27
-        dev 백엔드 배포 (core·receiver·dispatcher 기동) :done, infdev, 2026-08-19, 2026-08-31
-        잔여 dev 인프라 (IoT Core·Param Store·자동배포·마이그Job·미완) :crit, active, infrem, 2026-08-25, 2026-09-30
+        dev 배포·인프라 핵심 (앱 3기동·ingress·IoT·Param Store·KMS 완료 9/3) :done, infcore, 2026-08-19, 2026-09-03
+        잔여 dev (자동배포 tag→TEST/PROD·마이그Job 배선·dispatcher 안정화) :active, infrem, 2026-09-03, 2026-09-30
         test 환경 프로비저닝 (요청 8/26·미착수)  :crit, inftest, 2026-09-01, 2026-10-15
 
         section ③-P-EZ EzServer 연동 스펙 (① 초안=Raymond → ② Teddy 상세 → ③ baseline)
@@ -185,7 +186,7 @@
         AXS 연동 구현·sandbox e2e green(P7·하네스) :done, axsimpl, 2026-08-11, 2026-08-24
         AXS 코드·sandbox e2e green     :milestone, done, axsdone, 2026-08-24, 0d
         ④ Sub-SRS 경량 문서(완료 8/27·spec-v1.0.69) :done, axssub, 2026-08-27, 1d
-        AXS 실 dev 통합 (실 인바운드·IoT Core=③-I 대기·미완) :crit, active, axsint, 2026-08-24, 2026-09-30
+        AXS 실 dev 통합 (IoT Core 완료·E2E 실행 대기·dispatcher) :crit, active, axsint, 2026-09-03, 2026-09-30
         AXS prod 자격(NDA 후·선결·미확보) :crit, active, credp, 2026-08-18, 2026-10-15
 
         section ③-C GW Console — v1.0 (별도 repo · 코드=완료 · dev 통합=Entra 대기)
@@ -233,8 +234,8 @@
     | **P7** External Connector·AXS | 아웃바운드 OAuth2·egress fail-closed·AXS 실연동·커넥터 전략·presigned 중계 | ✅ 완료 |
     | **P8~P11** 2단계 | webhook 수신·Dispatcher/분배·Admin CRUD(RBAC·break-glass·audit) | ✅ 완료 |
     | **P12** E2E·하드닝 | 12-1 아웃바운드·12-2 compat·12-5 presign·12-7 업로드위임·12-8 다운로드·12-9 webhook라우팅 | ✅ 완료분 · ◑ 진행 |
-    | **P12** 잔여 | 12-6 인바운드+MQTT(③-I ingress+실 IoT) · 12-3 부하 실측(하네스 완료·③-I test) · 12-4 HA(③-I Multi-AZ) | 🔴 외부 선결 |
-    | **P9-5** 실 IoT 프로비저닝 | (a) 코드 완료(어댑터·mock) · (b) 실 IoT Core mTLS 실증 | ◑ (a)완료·(b)③-I |
+    | **P12** 잔여 | 12-6 인바운드+MQTT(ingress·IoT Core=완료 9/3·**E2E 실행 대기**) · 12-3 부하 실측(하네스 완료·③-I test) · 12-4 HA(③-I Multi-AZ) | 🟠 IoT/ingress 해소 · 부하/HA=test 대기 |
+    | **P9-5** 실 IoT 프로비저닝 | (a) 코드 완료(어댑터·mock) · (b) 실 IoT Core mTLS 실증 | 🟠 (a)완료·(b) **IoT Core 완료(9/3)**·실증 대기(dispatcher·enroll) |
     | **P0-5** 자동배포(CD) | ECR/ArgoCD·main→DEV·tag→TEST/PROD | 🔴 ③-I |
     | **v1.0 정합·하드닝**(이번 주) | connector_type 어댑터 프로파일 레지스트리(파생 폐기·특정 target 하드코딩 금지·#13357) · target_id DNS 라벨 전 소비자 일괄+seed 하이픈(#13363) · dev-seed AWS 서비스커넥션(#13358) · CleverSpace `internal_bypass` 단정 제거(#13404) · 데모 steps 정직성(#13314) · unknown connector_type fail-closed 3계층 회귀 확인 | ✅ 머지 완료 |
     - 커버리지(merged·8/20): 전역 96.7 / 91.9 / 93.9 / 96.5 · 보안 도메인 98.5 / 96.0 / 100 / 98.4 · 핵심 보안파일 16개 각 100% — **CI floor 게이트 통과**.
@@ -243,13 +244,13 @@
 
       | Task | 남은 작업 | GW 상태 | 막는 것(루트 블로커) | 소유 |
       | --- | --- | --- | --- | --- |
-      | **T-PLAT-0-7** | 마이그레이션 배포 Job | ✅ 이미지·인계 명세(#13020) | K8s Job+ArgoCD PreSync 배선 + **회신 3건**(org 템플릿 `--target`·배포스테이지·SHA 태그) | Jack/③-I |
-      | **T-DISP-9-5** | 실 IoT Core 프로비저닝 실증 | ✅ 어댑터·최소권한 policy·cert·enroll | 실 AWS IoT Core(Thing/policy·IRSA·endpoint) | ③-I |
-      | **T-E2E-12-6** | E2E webhook→IoT 다운링크 | ✅ 수신·dispatcher drain·멱등·주권 | 공개 ingress **+** 실 IoT Core | ③-I |
+      | **T-PLAT-0-7** | 마이그레이션 배포 Job | ✅ 이미지·인계 명세·GW몫 | ✅ **배선 완료**(sync-wave Job·ECR PR 13034·pipeline id 340·회신 3건 해소) — dev 완료·test/prod=OWNER 확인만 | ③-I |
+      | **T-DISP-9-5** | 실 IoT Core 프로비저닝 실증 | ✅ 어댑터·최소권한 policy·cert·enroll | **IoT Core infra=완료(dev·9/3)** · 남은=E2E 실증(dispatcher exit137 안정화·Thing enroll) | ③-I(infra)·GW(실증) |
+      | **T-E2E-12-6** | E2E webhook→IoT 다운링크 | ✅ 수신·dispatcher drain·멱등·주권 | **공개 ingress·실 IoT Core 둘 다 완료(9/3)** · 남은=E2E 실행(dispatcher 안정화·enroll) | ③-I·GW |
       | **T-E2E-12-3** | 부하 실측 | ✅ 하네스·스크립트·파이프라인 초안(#13048) | test staging(실 SQS/EKS)·부하 EC2 | ③-I |
       | **T-E2E-12-4** | HA/카오스 실측 | ✅ drain·RTO probe·loss-verify·파이프라인(#13022·#13048) | test staging·Multi-AZ·FIS **+ RTO/RPO 목표** | ③-I **+ PL** |
       | **T-E2E-12-5** | 환자문서 order-file presign | ✅ create/download 실측 | 파일 붙은 lab order 시드 | Straumann |
-      - **최우선 블로커(회의에서 밀 것)**: ① **Entra admin consent 승인**(dev 2앱 회신 완료 9/9·IT-9442·**consent 미승인**이라 admin 미기동) → **dev 통합검증 전체 정체** · ② **test 환경 프로비저닝**(선결#5·마감 8/26) — 부하·HA 2건 동시 해제. **PL 결정 대기 = RTO/RPO 목표**(HA 합격기준). GW 즉시 처리 가능 잔여 = Jack 회신 3건 오면 마이그레이션 파이프라인 확정뿐.
+      - **최우선 블로커(회의에서 밀 것)**: ① **Entra admin consent 승인**(dev 2앱 회신 9/9·IT-9442·**admin API는 부팅됨**[9/10 401]·**consent 미승인**이라 Console 실로그인 불가) → **dev 통합검증 정체** · ② **test 환경 프로비저닝**(선결#5·마감 8/26) — 부하·HA 2건 동시 해제. **PL 결정 대기 = RTO/RPO 목표**(HA 합격기준). **GW 즉시 처리 가능 잔여 = 0**(마이그레이션 배선·ECR·파이프라인 등록까지 완료) · 남은 dev 실행 블로커 = **dispatcher exit137 안정화**(IoT E2E) + admin consent.
 
   - **S4. GW Console(③-C) 현황 — Phase 요약 (8/27)** _(frontend · `vt-api-gateway-console` · Next 16 + Refine 5 + shadcn · GW Admin API 코드젠 소비)_
 
@@ -271,12 +272,12 @@
 
       | Task | 남은 작업 | Console 상태 | 막는 것(루트 블로커) | 소유 |
       | --- | --- | --- | --- | --- |
-      | **T-FE-8-1** | dev Entra 실 OIDC 전환·claim→역할 검증 | ✅ MSAL 실배선·env 스위치·`verify:entra` · 9/9 회신값으로 로컬 실로그인 실측(scope 노출 확인) | **Entra admin consent 승인**(앱 회신 완료 9/9·IT-9442) **+** admin API dev 기동 | IT/③-I |
+      | **T-FE-8-1** | dev Entra 실 OIDC 전환·claim→역할 검증 | ✅ MSAL 실배선·env 스위치·`verify:entra` · 9/9 회신값으로 로컬 실로그인 실측(scope 노출 확인) | **Entra admin consent 승인**(앱 회신 9/9·IT-9442) · admin API dev 기동 = ✅ 9/10 확인(401) | IT/③-I |
       | **T-FE-8-2** | test 환경 실 GW 핵심 여정 e2e | ✅ MSW 대체 커버 + 대체 스펙 문서화 | **test 환경**(선결#5) · CORS(C-3) · T-FE-8-1 | ③-I |
-      | **T-FE-9-17** | 목↔**실 GW** 응답 대조(2단계) | ✅ 목↔**계약** 대조 회귀 검사·갭 2건 수정(#13057) | **dev 재배포·재시드**(admin dev = 503 실측) | ③-I |
+      | **T-FE-9-17** | 목↔**실 GW** 응답 대조(2단계) | ✅ 목↔**계약** 대조 회귀 검사·갭 2건 수정(#13057) | **dev 재배포·재시드 + admin consent**(admin dev 9/10 = 401 부팅·8/31 503 해소) | ③-I |
       | **T-FE-8-4** | prod 배포 | ✅ 프리뷰 배포 파이프라인(S3+CloudFront) | **prod 도메인**(C-10) · ⚠ **무인 대상 제외**(사람이 실행) | PL/③-I |
       | **T-FE-7-6** | 배포 헤더(CSP·nosniff·Referrer-Policy·HSTS) | ✅ **8/26 실측 — 전부 부재**(`curl` 로 판정·사람 불요) | **CloudFront response headers policy 미배선** | ③-I |
-      - **최우선 블로커**: ① **Entra admin consent 승인**(9/9 앱 회신·IT-9442·consent 미승인) — GW admin 미기동과 **같은 뿌리**라 Console 도 dev 실검증이 통째로 정체 ② **dev 재배포·재시드** — 계약(운영자 요약·clinic 임베드·config device-facing)은 **양쪽 다 머지됐는데 dev 에 안 떠 있어** 실화면 확인이 불가.
+      - **최우선 블로커**: ① **Entra admin consent 승인**(9/9 앱 회신·IT-9442·consent 미승인·admin API는 9/10 부팅 확인 401) — Console 실로그인이 막혀 dev 실검증이 통째로 정체 ② **dev 재배포·재시드** — 계약(운영자 요약·clinic 임베드·config device-facing)은 **양쪽 다 머지됐는데 dev 에 안 떠 있어** 실화면 확인이 불가.
 
 - 이월 논의 사항 (계속)
 
