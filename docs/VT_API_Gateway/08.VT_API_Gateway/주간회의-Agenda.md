@@ -124,9 +124,9 @@
 - 공유 사항 (결정 아님 · 논의사항인지 애매한 것을 임의 결정해 공유 · 매주 상시)
   - **공용 빌드 서버 Jenkins Java 21 이관(밀린 유지보수 · 기한 이미 경과)** — 이번 복구로 Jenkins 코어를 **Java 17로 도는 마지막 LTS(2.541.3)** 에 맞췄으나, 이는 임시 고정점이다(GW 서비스와 무관 — GW CI는 Jenkins를 쓰지 않는다). **기한을 정하는 것은 Jenkins의 Java 17 지원 종료 일정**인데, 이는 **이미 지났다** — Java 17은 Jenkins 기준 **2026-03-31 EOL**, LTS는 **2026-05-13(2.555.1)부터 Java 21 전용**으로 전환돼 Java 17 지원을 제거했다. 즉 2.541.3은 직전 세대라 **보안 백포트가 이미 끊긴 상태**다(미패치 노출 누적). 리스크는 격리돼 있으나(사내 abc-wbs 제품 스캔용·외부 노출 아님) **미룰 수 없는 밀린 유지보수**다. **권장 = 향후 2~4주 내 한가한 창에 계획 이관**(당장 오늘은 에이전트 준비 선행 필요, 무기한 유지는 불가). 순서 = **에이전트 먼저(LinuxNode 4대 Java 21 재빌드 — Windows 노드는 이미 JDK 23이라 불요) → 마스터 최신 LTS 나중**(반대로 하면 에이전트가 못 붙어 전 노드 탈락). 상세 = `references/Self-hosted1/99.2. Jenkins 복구 기록`.
 
-  - **S1. 프로젝트 일정(Gantt) — 8/27 스냅샷**
+  - **S1. 프로젝트 일정(Gantt) — 9/10 스냅샷(현실화)**
     - **진행률(구현)**
-      - **GW ≈ 90%** — v1.0 계획 기능 구현 완결(8/24 feature-complete)
+      - **GW ≈ 93%** — v1.0 계획 기능 코드 완결(8/24 feature-complete) · 잔여=dev 통합(Entra·③-I 인프라)
         - 잔여 = ③-I 실 인프라 게이트 · 개발 통합검증 · 계약 경화(OpenAPI 코드-first 일원화)
       - **GW Console ≈ 92%** (8/26 재평가) — Task **61/67 완료** · 부분 4 · 미착수 2
         - 잔여 **6건이 전부 외부 선결** — Console 코드로 앞당길 잔여 **0**
@@ -141,29 +141,29 @@
 
     ```mermaid
     gantt
-        title v1.0 = Straumann(AXS) 첫 외부연동 — 10월 출시 목표(역산·잠정)
+        title v1.0 = Straumann(AXS) 첫 외부연동 · 10월 출시 목표 (9/10 현재)
         dateFormat YYYY-MM-DD
         axisFormat %m/%d
         todayMarker stroke-width:3px,stroke:#d33,opacity:0.6
 
         section ③ GW SRS + API/DBML (계약 SSOT · baseline v1.0 동결)
-        작성 (본문+OpenAPI·DBML)       :done, srsw, 2026-06-15, 28d
-        PR 리뷰·수정                  :done, srspr, 2026-07-13, 2026-07-20
-        baseline v1.0 (7/20 확정)      :milestone, done, srsbl, 2026-07-20, 0d
+        작성·PR·baseline v1.0 (완료 7/20) :done, srs, 2026-06-15, 2026-07-20
 
-        section GW 구현 → E2E → 출시 (구현 feature-complete · 잔여=③-I 실인프라 게이트)
+        section GW 구현 → dev 통합 → 출시 (코드 feature-complete · dev 통합=Entra·③-I 게이트)
         1단계 GW 독립 코어 (P0~P6·P10·완료) :done, implindep, 2026-07-21, 31d
-        2단계 AXS 연동 (P7~P12·AXS 실연동·부하/HA 하네스·코드 완료) :done, implaxs, 2026-07-28, 2026-08-24
-        GW 구현 완료 (코드 feature-complete) :milestone, impldone, 2026-08-24, 0d
-        AXS E2E·통합 (sandbox 커버·실 인바운드/IoT=③-I 대기) :e2e, 2026-08-24, 2026-09-30
-        개발환경 연동 완료(9월·R2)      :milestone, dev9, 2026-09-30, 0d
-        v1.0 production 연동 완료(10월·R2·재검토) :milestone, rel, 2026-10-31, 0d
+        2단계 AXS 연동 (P7~P12·코드 완료) :done, implaxs, 2026-07-28, 2026-08-24
+        GW 코드 feature-complete       :milestone, done, impldone, 2026-08-24, 0d
+        운영자 Entra dev consent (IT-9442·승인 대기·블로커) :crit, active, entra, 2026-09-09, 2026-09-19
+        Entra dev 준비 완료 (admin 부팅 게이트) :milestone, crit, entram, after entra, 0d
+        dev 통합·E2E (실 인바운드·IoT·Entra 후·미완) :crit, active, e2e, 2026-08-24, 2026-09-30
+        개발환경 연동 완료(목표·9월)   :milestone, crit, dev9, 2026-09-30, 0d
+        v1.0 production 연동 완료(목표·10월·재검토) :milestone, rel, 2026-10-31, 0d
 
-        section ③-I 인프라 IaC (계획서 병합=완료·living doc · AWS 4종 dev·test·sandbox·prod)
-        ① 초안+PR (Raymond)            :done, infw, 2026-07-20, 2d
-        ② Jack 상세·리뷰·수정 (PR #11973 병합 7/27) :done, infpr, 2026-07-21, 6d
-        ③ 계획서 PR 병합 완료          :milestone, infbl, 2026-07-27, 0d
-        Infra 구축·자동배포 완료(8월·R2) :milestone, infra8, 2026-08-31, 0d
+        section ③-I 인프라 IaC (계획서 병합=완료 · dev 부분 가동 · test/prod 미착수)
+        계획서 ①초안→②Jack 상세→③병합 (완료 7/27·PR #11973) :done, infplan, 2026-07-20, 2026-07-27
+        dev 백엔드 배포 (core·receiver·dispatcher 기동) :done, infdev, 2026-08-19, 2026-08-31
+        잔여 dev 인프라 (IoT Core·Param Store·자동배포·마이그Job·미완) :crit, active, infrem, 2026-08-25, 2026-09-30
+        test 환경 프로비저닝 (요청 8/26·미착수)  :crit, inftest, 2026-09-01, 2026-10-15
 
         section ③-P-EZ EzServer 연동 스펙 (① 초안=Raymond → ② Teddy 상세 → ③ baseline)
         ① 초안+PR (Raymond)            :done, ezw, 2026-07-20, 5d
@@ -180,19 +180,20 @@
         ② CleverOne팀(Nick) 상세       :active, copr, after cosub, 56d
         ③ baseline                     :milestone, cobl, after copr, 0d
 
-        section ④ AXS 연동 (실연동=GW P7 완료 · ④ Sub-SRS=경량 후속 문서)
+        section ④ AXS 연동 (코드·sandbox e2e=완료 · 실 dev 통합=③-I 대기 · prod=NDA 후)
         AXS PPR sandbox 자격 확보(8/11) :done, cred, 2026-08-11, 1d
-        AXS 실연동 구현·sandbox e2e green(P7) :done, axsimpl, 2026-08-11, 2026-08-24
-        실연동 완료(sandbox 커버)      :milestone, done, axsdone, 2026-08-24, 0d
+        AXS 연동 구현·sandbox e2e green(P7·하네스) :done, axsimpl, 2026-08-11, 2026-08-24
+        AXS 코드·sandbox e2e green     :milestone, done, axsdone, 2026-08-24, 0d
         ④ Sub-SRS 경량 문서(완료 8/27·spec-v1.0.69) :done, axssub, 2026-08-27, 1d
-        AXS prod 자격(NDA 후·선결)     :crit, credp, 2026-08-18, 21d
+        AXS 실 dev 통합 (실 인바운드·IoT Core=③-I 대기·미완) :crit, active, axsint, 2026-08-24, 2026-09-30
+        AXS prod 자격(NDA 후·선결·미확보) :crit, active, credp, 2026-08-18, 2026-10-15
 
-        section ③-C GW Console — v1.0 (frontend·별도 repo·P0~P6 완료·P7 6/7·P8=외부 선결)
+        section ③-C GW Console — v1.0 (별도 repo · 코드=완료 · dev 통합=Entra 대기)
         SRS 작성 (8/5)                 :done, consrsw, 2026-08-05, 6d
         v1.0 구현 (mock-first)         :done, conv1, 2026-08-12, 2026-08-24
-        v1.0 구현 완료                 :milestone, conv1m, 2026-08-24, 0d
-        GW 통합테스트 (실 dev GW·Entra·8월말까지) :active, contest, 2026-08-24, 2026-08-31
-        통합테스트 완료                :milestone, contestm, 2026-08-31, 0d
+        v1.0 코드 구현 완료            :milestone, done, conv1m, 2026-08-24, 0d
+        GW·Entra 통합테스트 (Entra 승인 대기·미완) :crit, active, contest, 2026-08-24, 2026-09-30
+        통합테스트 완료(목표)          :milestone, crit, contestm, 2026-09-30, 0d
 
         section v1.0 이후 (deferred · post-v1.0)
         CleverOne 연동 구현 (스펙은 지금·구현 post-v1.0) :codef, after rel, 14d
