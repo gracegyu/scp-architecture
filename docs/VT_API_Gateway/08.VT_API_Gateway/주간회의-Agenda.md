@@ -41,6 +41,10 @@
         - **SBOM 생성**(CycloneDX/SPDX·아티팩트) — DT 업로드는 후속(DT 사내망이라 CI서 직접 불가 · Jack의 pipeline→S3→BM2 폴링→DT 방안 확정 후 배선).
         - 중앙 CI 템플릿 스캔 토글 = Jack 머지. 상세 = `CI-DevSecOps-SelfHosted/`.
         - **후속/미결**: ① DT SBOM 업로드 배선(Jack S3 계획 후) · ② install 네트워크 flake(호스트 egress 불안정·prisma/cpu-features/gcr.io/git·재실행 우회·호스트 안정화는 별도) · ③ enforce(hard gate) 전환은 별도 결정.
+    - **[Jenkins 파이프라인 무한 hang 진단·차단(timeout 전면 도입)]** ⭐ `dart-Linux-SonarQube` 빌드 2건이 "Setup Flutter"에서 **30시간·6시간째 안 끝나고** executor를 점유(빌드 노드 4대 중 2대)하던 것을 발견·분석.
+      - **원인 2겹**: ① **Jenkins 기본 빌드 타임아웃이 없음** + 이 파이프라인들에 `timeout`이 전무 → 멈춰도 무한 대기. ② `flutter pub get`이 **비공개 Azure DevOps git 의존성**(`common-dart/ezwebserver-client`)을 clone하는데 **자격(PAT) 미주입**으로 auth 실패 → dart pub이 이를 일시장애로 오인해 **무한 재시도**(retry 1611회·64초 간격 ≈ 28h, 경과와 일치).
+      - **조치**: **공유 파이프라인 라이브러리(`vars/` 9종)에 스테이지 timeout 일괄 도입**(기본 60분·`STAGE_TIMEOUT`로 오버라이드) → samples 6 + jenkinsfiles 11(oneid·ezcloud·eslockserver·EzServer 등) + 미래 잡까지 **한 곳 수정으로 전부 hang 방지**. Dart Linux `setupFlutter`에 **`azure-devops-pat`를 GIT_ASKPASS로 주입**(근본 수정·전역 git에 시크릿 미잔류). hung 빌드 2건은 콘솔에서 abort.
+      - **비고**: PAT는 유효(메인 체크아웃엔 이미 사용)라 **재발급 불요** — pub get에 안 실리던 것만 수정. 남은 것 = Dart 잡 1회 실행 green 검증 · DartWin(Windows·bat) 동형 수정. jenkins repo(`sbom/jenkins`) 소유=Raymond.
     - **[dispatcher dev 부팅 장애 해소 + IoT Core 발행 인증 확정]** ⭐ dev dispatcher가 부팅을 못 하고 5분마다 죽던 문제를 해소하고, IoT Core로의 이벤트 발행 인증 방식을 확정.
       - **원인**: dev의 MQTT 엔드포인트가 IoT Core(WSS)인데 dispatcher가 무인증 로컬 MQTT로 붙어 IoT Core가 접속을 끊음 → 무한 재접속으로 부팅이 멈춤(KEDA 최소 replica를 0→1로 올리며 드러남).
       - **해결**: dispatcher가 IoT Core에 **SigV4 서명 WSS·IAM(Pod Identity)** 로 접속·발행하는 어댑터 추가 + 최초 접속 타임아웃(fail-fast). Jack 제안 PR 머지로 dev 언블록.
