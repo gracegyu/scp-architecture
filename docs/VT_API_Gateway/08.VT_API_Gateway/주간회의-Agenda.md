@@ -46,10 +46,19 @@
       - **해결**: dispatcher가 IoT Core에 **SigV4 서명 WSS·IAM(Pod Identity)** 로 접속·발행하는 어댑터 추가 + 최초 접속 타임아웃(fail-fast). Jack 제안 PR 머지로 dev 언블록.
       - **인증 방식 정리**: **발행자(GW)=IAM/SigV4** vs **구독자(EzServer)=디바이스별 인증서** 로 역할 구분. 어댑터 선택은 env `MQTT_AUTH`(auto·sigv4·none·기본 auto)로 확정 — dev/prod는 자동 SigV4라 추가 설정 불요.
       - **스펙 정합**: SRS §7.6.6·env-reference 반영(spec-v1.0.84 머지). 코드 후속 PR(명시 MQTT_AUTH 전환)은 리뷰 중.
+    - **[Entra dev 회신값 접목 착수 — IT-9442]** ⭐ IT팀이 dev 앱 2개(API 리소스·Console SPA)를 등록·회신(9/9). Jack이 값을 문서에 반영(PR #14162 머지)하고 **dev 실 로그인 배포 경로**를 파이프라인에 추가(#14167·기본은 목 유지·`devAuthMode=entra` 수동 실행). Console은 회신값으로 **로컬 실 로그인을 시도해 남은 항목을 실측 판정**했다.
+      - **판정된 것** — 테넌트·issuer·JWKS가 discovery 문서와 **일치** · SPA client ID·`localhost:3100` redirect **등록됨** · scope `access_as_operator` **노출됨**(동의 화면 도달이 그 증거)
+      - ⚠ **남은 잠금 = admin consent 1건** — 미승인이라 사용자마다 승인 요청 화면이 뜬다. **조직 단위 1회**면 되고 이후 사용자는 동의 화면을 보지 않는다(Console 역할 부여와는 **다른 계층**). IT팀(이희선)에 요청 전송
+      - ⚠ **환경별 등록마다 consent 1회 필요** — prod 등록 시 같은 작업이 반복된다(사전 공유)
+      - **`aud` 형식 미확정** — v2 토큰이면 GUID 단독, v1이면 `api://<GUID>`. 검사기는 `api://` 만, GW dev 주입값은 GUID로 **서로 반대를 가정**하고 있었다 → 검사기가 **둘 다 통과**시키되 *두 등록 혼동*은 계속 잡도록 수정(#14168 머지). **실토큰 한 장으로 확정**할 판독 도구도 함께 넣었다
+      - **Console 버그 1건 발견·수정(#14169 머지)** — 로그인 리다이렉트가 한 번 끊기면 `interaction_in_progress` 로 **이후 로그인이 영영 막혔다**(탭을 닫기 전엔 회복 불가). `handleRedirectPromise()` 를 콜백 화면에서만 불러 생긴 문제로, 초기화 시 한 번 정리하도록 고침. **실 로그인을 시도하지 않았으면 안 드러났을 결함**
+      - **#14167 리뷰** — 설계는 타당(실 빌드에도 `verify:bundle` 적용·`.env` 사전 정리·같은 버킷 상호배제). ⚠ **차단 1건**: 정적 export 플래그 누락으로 `out/` 이 안 만들어져 **빌드는 초록·배포에서 실패**한다(로컬 재현 완료). 리뷰 문서 `03c-subsrs-gw-console/_review-console-ci-14167.md` 로 남기고 PR 코멘트 게시
+
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher dev 기동 확인 · admin=Entra 등록 후 통합 착수(③-I #3)
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
-    - **[Entra 앱 등록]** dev admin+Console 2앱 — **[IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)**(Jack 입력·절차/회신 양식 제공 완료) · **admin 부팅 선결**(③-I #3·#4)
+      - ⚠ **`T-FE-8-1`·`T-FE-9-17`·admin dev 503 이 한 뿌리** — dev admin 이 OIDC 설정 부재로 **부팅에서 fail-closed** 라 밖에서 503 이다(GW 코드 확인). consent 가 풀려 admin 이 뜨면 **셋이 함께** 풀린다
+    - **[Entra 앱 등록]** dev 2앱 **회신 완료**(9/9) — 남은 것은 **admin consent 1건**(IT팀 승인 대기). 승인 즉시 `T-FE-8-1` 로컬 검증 착수 · `aud` 형식도 그때 확정
     - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
 
   - _(이번 주 결정사항 = 회의 시 추가)_
