@@ -1,6 +1,4 @@
-# VT API Gateway — 9/10 주간회의 Agenda
-
-> **과거 주차(~8/27)는 [`주간회의-Agenda-Archive.md`](주간회의-Agenda-Archive.md)로 이관·보존**(조회용). 본 문서는 **9/10 현행 주차만** 유지한다. 틀(논의/공유/이월)·Gantt(S1)·스펙표(S2)는 매주 상시 포함.
+# VT API Gateway — 9/17 주간회의 Agenda
 
 - **이번 주 진행 (~9/10 회의) — 이번 주 완료·진행한 실제 작업**
   - **진행률(구현 스냅샷)**
@@ -41,6 +39,7 @@
         - **SBOM 생성**(CycloneDX/SPDX·아티팩트) — DT 업로드는 후속(DT 사내망이라 CI서 직접 불가 · Jack의 pipeline→S3→BM2 폴링→DT 방안 확정 후 배선).
         - 중앙 CI 템플릿 스캔 토글 = Jack 머지. 상세 = `CI-DevSecOps-SelfHosted/`.
         - **후속/미결**: ① DT SBOM 업로드 배선(Jack S3 계획 후) · ② install 네트워크 flake(호스트 egress 불안정·prisma/cpu-features/gcr.io/git·재실행 우회·호스트 안정화는 별도) · ③ enforce(hard gate) 전환은 별도 결정.
+        - (결정) DT와 Sonarqube를 cloud로 이전하는 것(비용,방안)을 추가로 검토한다. (급하진 않다.) 임건혁 / Jack 
     - **[Jenkins 파이프라인 무한 hang 진단·차단(timeout 전면 도입)]** ⭐ `dart-Linux-SonarQube` 빌드 2건이 "Setup Flutter"에서 **30시간·6시간째 안 끝나고** executor를 점유(빌드 노드 4대 중 2대)하던 것을 발견·분석.
       - **원인 2겹**: ① **Jenkins 기본 빌드 타임아웃이 없음** + 이 파이프라인들에 `timeout`이 전무 → 멈춰도 무한 대기. ② `flutter pub get`이 **비공개 Azure DevOps git 의존성**(`common-dart/ezwebserver-client`)을 clone하는데 **자격(PAT) 미주입**으로 auth 실패 → dart pub이 이를 일시장애로 오인해 **무한 재시도**(retry 1611회·64초 간격 ≈ 28h, 경과와 일치).
       - **조치**: **공유 파이프라인 라이브러리(`vars/` 9종)에 스테이지 timeout 일괄 도입**(기본 60분·`STAGE_TIMEOUT`로 오버라이드) → samples 6 + jenkinsfiles 11(oneid·ezcloud·eslockserver·EzServer 등) + 미래 잡까지 **한 곳 수정으로 전부 hang 방지**. Dart Linux `setupFlutter`에 **`azure-devops-pat`를 GIT_ASKPASS로 주입**(근본 수정·전역 git에 시크릿 미잔류). hung 빌드 2건은 콘솔에서 abort.
@@ -58,6 +57,8 @@
       - **`aud` 형식 미확정** — v2 토큰이면 GUID 단독, v1이면 `api://<GUID>`. 검사기는 `api://` 만, GW dev 주입값은 GUID로 **서로 반대를 가정**하고 있었다 → 검사기가 **둘 다 통과**시키되 *두 등록 혼동*은 계속 잡도록 수정(#14168 머지). **실토큰 한 장으로 확정**할 판독 도구도 함께 넣었다
       - **Console 버그 1건 발견·수정(#14169 머지)** — 로그인 리다이렉트가 한 번 끊기면 `interaction_in_progress` 로 **이후 로그인이 영영 막혔다**(탭을 닫기 전엔 회복 불가). `handleRedirectPromise()` 를 콜백 화면에서만 불러 생긴 문제로, 초기화 시 한 번 정리하도록 고침. **실 로그인을 시도하지 않았으면 안 드러났을 결함**
       - **#14167 리뷰** — 설계는 타당(실 빌드에도 `verify:bundle` 적용·`.env` 사전 정리·같은 버킷 상호배제). ⚠ **차단 1건**: 정적 export 플래그 누락으로 `out/` 이 안 만들어져 **빌드는 초록·배포에서 실패**한다(로컬 재현 완료). 리뷰 문서 `03c-subsrs-gw-console/_review-console-ci-14167.md` 로 남기고 PR 코멘트 게시
+      - (결정) prod 등 모든 환경에 대한 Entra도 열어달라고 미리 요청한다. 임건혁 / Jack 
+        - domain이 먼저 정해져야 한다. 김성훈 / Scott 
 
   - **진행 중 · 선결 대기**
     - **[GW dev 배포·통합]** core·receiver·dispatcher·**admin 전부 dev 기동 확인**(9/10: admin `/v1/admin/me` 401=healthy·8/31 503 해소) · 통합은 Entra admin consent 승인 후 실로그인부터(③-I #3)
@@ -76,11 +77,12 @@
       - **(A) 제품 범위**
         - ① 안 함
         - ② GW만
-        - **③ GW + Console ✅**
+        - (결정) **③ GW + Console ✅**
       - **(B) 도구**
         - **DT / SBOM ✅ — 먼저(필수급)**
         - SonarQube / 정적분석 — 후속·선택
-        - (지향점 = 둘 다)
+        - (결정) (지향점 = 둘 다)
+      - (결정) 매번 돌리지 않고, QA 를 위한 tagging 을 한 것으로 돌린다.
     - **추천 근거**:
       - **SBOM은 사실상 필수** — FDA 시판전 사이버보안(cyber device·FD&C §524B) 제출 의무 + IEC 62304 SOUP(외부 구성요소) 관리 근거. GW는 이미 Azure CI가 CycloneDX SBOM 생성 中이라, Jenkins/DT 추가분은 **취약점 상시 추적·시판후 모니터링**.
       - **GW+Console 둘 다** — 둘 다 IEC 62304/ISO 13485 통제 대상(Console은 PHI 취급)이라 규제 범위에 함께 들어갈 공산이 큼. **누락 리스크 > 추가 비용**이고 템플릿 재사용이라 저비용 → 안전하게 둘 다.
@@ -251,7 +253,10 @@
       | **T-E2E-12-4** | HA/카오스 실측 | ✅ drain·RTO probe·loss-verify·파이프라인(#13022·#13048) | test staging·Multi-AZ·FIS **+ RTO/RPO 목표** | ③-I **+ PL** |
       | **T-E2E-12-5** | 환자문서 order-file presign | ✅ create/download 실측 | 파일 붙은 lab order 시드 | Straumann |
       - **최우선 블로커(회의에서 밀 것)**: ① **Entra admin consent 승인**(dev 2앱 회신 9/9·IT-9442·**admin API는 부팅됨**[9/10 401]·**consent 미승인**이라 Console 실로그인 불가) → **dev 통합검증 정체** · ② **test 환경 프로비저닝**(선결#5·마감 8/26) — 부하·HA 2건 동시 해제. **PL 결정 대기 = RTO/RPO 목표**(HA 합격기준). **GW 코드/설정 잔여 = 0**(마이그레이션·ECR·파이프라인까지 완료).
-      - 🟢 **지금 착수 가능(9/3 ③-I 인프라 풀림) — IoT 다운링크 E2E**(T-DISP-9-5·T-E2E-12-6): **③-I 대기 아님·GW 몫**. ① **dispatcher exit137 원인규명·해소**(OOM=리소스→③-I / 코드→GW·dev EKS `kubectl` 필요) → ② **device Thing enroll 1건** → ③ **webhook→IoT Core→EzServer 다운링크 E2E 1회**. 실행 주체=**구현 세션**. · 그 외(부하·HA=test 환경 · presign=Straumann 시드)는 여전히 막힘.
+      - 🟢 **지금 착수 가능(9/3 ③-I 인프라 풀림) — IoT 다운링크 E2E**(T-DISP-9-5·T-E2E-12-6): **③-I 대기 아님·GW 몫**. 경로는 스펙 정의(토픽 `gw/clinic/{clinicId}/#`·`MQTT_URL`/`IOT_ENDPOINT`·ShareName `ezserver`). 순서 = ① **dispatcher exit137 원인규명·해소** → ② **device Thing enroll 1건** → ③ **webhook→IoT Core→EzServer 다운링크 E2E 1회**. 실행 주체=**구현 세션**.
+        - **9/10 직접 실측(스펙 세션·read-only)**: `aws iot list-things`=**0**(enroll된 Thing 없음 실증) · dev IoT 엔드포인트 `a2ig1yuqacb8gl` 일치.
+        - ⚠ **접근 경계**: dispatcher 파드(exit137) 진단은 **dev EKS 접근** 필요인데, 내 자격 계정(IoT는 보이나 **EKS 클러스터 0**)에 안 보임 → **Jack에 dev EKS 접근 개방 요청** 또는 **dev 접근 보유 구현 세션**이 `kubectl describe/logs`로 원인(OOM=리소스→③-I / 코드→GW) 특정.
+        - 그 외(부하·HA=test 환경 · presign=Straumann 시드)는 여전히 막힘.
 
   - **S4. GW Console(③-C) 현황 — Phase 요약 (8/27)** _(frontend · `vt-api-gateway-console` · Next 16 + Refine 5 + shadcn · GW Admin API 코드젠 소비)_
 

@@ -147,9 +147,28 @@ env:
 
 ---
 
-## 처리 상태
+## 처리 상태 — **종결**(2026-09-10)
 
 | 항목 | 상태 |
 | --- | --- |
-| F1 `CONSOLE_STATIC_EXPORT` | **게시 대기** (Raymond) |
-| 선결 조건 2건 | 전체 코멘트로 전달 예정 |
+| F1 `CONSOLE_STATIC_EXPORT` | ✅ **반영·머지됨**(main `8112e0d`) — Jack 이 근거 주석까지 붙여 수정 |
+| 선결 조건 ① admin consent | ✅ **완료**(IT팀 승인·2026-09-10) |
+| 선결 조건 ② `console.gw.dev.ezcld.net/auth/callback` redirect URI | ⏳ **미확인** — 실 배포본으로 로그인해 봐야 판정된다 |
+
+### 머지본 실검증
+
+```
+CONSOLE_STATIC_EXPORT=true pnpm build   →  exit 0
+out/                                     →  ✅ 60 항목 생성
+pnpm verify:bundle                       →  ✅ 개발 전용 표지 0건
+```
+
+**F1 이 실제로 해소됐고, 실 빌드에 목·로그인 우회가 섞이지 않는 것까지 확인**했다.
+
+### 남은 것 — 이 PR 밖
+
+- **redirect URI(dev 호스트)** — `devAuthMode=entra` 로 첫 배포·로그인을 해 봐야 안다.
+  미등록이면 `AADSTS50011` 로 드러난다.
+- ⚠ **로컬 로그인은 별도 회귀로 막혀 있었다**(#14195) — MSAL 리다이렉트 응답을 초기화가
+  소비해 **로그인이 무한 반복**됐다. 그 수정이 머지돼야 로컬·배포 양쪽에서 로그인이
+  끝까지 간다.
