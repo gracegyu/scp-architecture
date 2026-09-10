@@ -13,16 +13,13 @@
       - **성격 셋** — 통합 검증 3(`8-1`·`8-2`·`9-17`) · 남의 작업 2(`7-6` ③-I 배선 · `8-4` PL 배포) · 내부 조사 1(`9-13` 플레이크)
       - ⚠ **"검증이니 곧 끝난다" 가 아니다** — 검증은 어긋난 것을 **찾는** 일이고 찾으면 Console 작업이 된다(`9-17` 1단계만으로 갭 2건). 남은 8% 는 **폭을 아직 모르는 일**이다 → S1 상세
 
-  - **지난 주(9/10) 완료 — 요약** _(상세=PR·커밋·references)_
-    - **Console 운영 매뉴얼 8종 작성** — 운영자용 한국어 사례주도 매뉴얼(target·org매핑·device·webhook·RBAC·clinic·config·audit).
-    - **운영 매뉴얼 Project wiki 발행** — GW·Console 매뉴얼을 `docs-wiki.yml`로 자동 미러(PR #14130·#14132)·상호 크로스링크. Git 접근 없는 기획/PM/품질팀 열람 가능.
-    - **CI 셀프호스티드 전환 + Jenkins 복구·Java 21 이관·보안스캔 개선** — GW CI 23.8→3.3분. Jenkins 마스터 복구·Java 21 이관·플러그인/보안 정리(6노드 online). 소스·시크릿 스캔 CI verify 일원화(trivy·gitleaks·SBOM). 상세=`references/Self-hosted1/99.2`·`CI-DevSecOps-SelfHosted/`.
-    - **Jenkins 파이프라인 timeout 전면 도입 + Dart PAT** — `vars/` 9종 스테이지 timeout(무한 hang 차단) · Dart `pub get`에 `azure-devops-pat` GIT_ASKPASS 주입(repo=`sbom/jenkins`·머지·푸시 완료).
-    - **dispatcher dev 부팅 장애 해소 + IoT Core 발행 인증 확정** — SigV4 서명 WSS·IAM(Pod Identity) 어댑터 · `MQTT_AUTH`(기본 auto) · SRS §7.6.6(#13585·spec-v1.0.84). ⚠ 별건 **exit137**·enroll 0은 진행중(아래).
-    - **Entra dev 회신값 접목(9/9)** — dev 2앱 등록·회신·GW 배선(#14162·#14167) · Console 로컬 실로그인 실측 · 로그인 버그 2건 수정(#14168·#14169). ⚠ 남은 잠금 = admin consent(아래).
 
   - **이번 주(9/17) 착수·진행 · 선결 대기**
-    - **[R1 실행 — GW·Console × DT·SonarQube 온보딩]** ⭐ _(9/10 회의 결정 · Raymond 착수 지시)_ GW·GW Console을 Jenkins 보안 파이프라인에 온보딩 — **DT(SBOM)·SonarQube 둘 다**(SQ를 후속·선택에서 **병행으로 상향**). **만들 것**: DT 프로젝트 2(GW·Console) + SonarQube 프로젝트 2(GW·Console) + **Jenkins 잡 4개**({GW,Console}×{SBOM→DT, SonarQube}). **트리거 = QA용 tagging 시 실행**. 기술=`sharedPipelineSbomGitNodeLinux`·SQ 템플릿 **pnpm 대응**·DT는 사내망이라 Jenkins 직접 POST(R1 이점). **실행 = Jenkins 세션에 위임**(자동화분 직접·수동분은 Raymond 요청). 선행(병행·비블로킹)=품질/RA SBOM 요구·범위 확인(SRS §6.13).
+    - **[R1 실행 — GW·Console × DT·SonarQube 온보딩] ✅ 완료(9/10)** ⭐ _(회의 결정 직후 당일 완료·Jenkins 세션)_ — **4 커버리지(GW·Console × DT·SonarQube) 전부 실데이터 확인·Quality Gate 둘 다 Pass**.
+      - **결과**: DT SBOM components GW **424**·Console **260**(CycloneDX 1.6) · SonarQube GW **17.5k LoC·버그5·취약점0·hotspot21**·Console **24.2k·버그5·취약점0·hotspot15**. ⚠ **커버리지 0%**(파이프라인이 테스트 미실행) → 잡에 test+coverage 추가할지 **별도 논의**.
+      - **부수 성과(전 제품 해당)**: `python/sbom_extractor.py`의 **잠복 버그 5건 발견·수정**(DT/ABS 업로드·trivy 실패의 **종료코드 삼킴**→빌드 SUCCESS인데 DT 비어 있던 것·불완전 SBOM 업로드·POSIX rmtree) — Windows 에이전트에선 안 드러나다 Linux 이관서 노출. **종료코드 불신·DT 직접 조회 Verify Upload 스테이지 추가**. + trivy 0.71+가 CycloneDX 1.7 산출→DT 4.13.3(1.6까지)이 400 거절 → **trivy 0.70.0 고정**(DT 업그레이드 불요). 상세=`sbom/jenkins` repo.
+      - **만든 것**(`sbom/jenkins`·main): `vars/sharedPipelineSbomPyLinux.groovy`(신규·Node/pnpm Linux) · jenkinsfile 4종 · config 2종 · Node 샘플 템플릿 2종. (pnpm은 기존 `-py`(python) 계열이 이미 지원 — Groovy Node 템플릿 신설 불요로 판명. `-py`가 Windows였던 건 EzServer가 Windows 대상 SW라서·VT는 Linux 대상.)
+      - **남은 것 = QA 태그 트리거 배선**(현재 4잡 수동 실행만). **Raymond 결정 2건**: ① QA 태그 컨벤션 ② 호출 방식(Jenkins 사내망→ADO 클라우드 직접 호출 불가·**ADO 파이프라인 태그 스테이지가 self-hosted 에이전트에서 Jenkins `buildWithParameters` 호출** 권장·Jenkins API 토큰 1개) + `sbom_extractor.py` 태그 오버라이드 인자.
     - **[최초 admin 부트스트랩 allowlist 스펙화]** Console 실 로그인(9/10) 후 PL이 부딪힌 **"최초 admin 데드락"**(승인할 admin이 없음) 해소 — env `GW_BOOTSTRAP_ADMIN_EMAILS`(첫 로그인 시 admin 자동 부여·요청→승인 생략·매칭=이메일·저장=oid·멱등·비회수·≥2명) 계약을 SRS §7.1.4·§7.9.2·env-reference §2.3에 pin(**spec PR #14204 머지·`spec-v1.0.85` 태그**·Jack 승인). 다운스트림 = ③-I(Jack) Parameter Store 설정 + 구현 세션 JIT allowlist 코드(email allowlist=Option 1로 확정 지시). 즉시 언블록은 `dev:operator --sub <oid> --role admin`.
     - **[GW dev 배포·통합]** core·receiver·dispatcher·**admin 전부 dev 기동 확인**(9/10: admin `/v1/admin/me` 401=healthy·8/31 503 해소) · 통합은 Entra admin consent 승인 후 실로그인부터(③-I #3)
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
