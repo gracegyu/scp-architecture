@@ -1,6 +1,6 @@
 # VT API Gateway — 9/17 주간회의 Agenda
 
-- **이번 주 진행 (~9/10 회의) — 이번 주 완료·진행한 실제 작업**
+- **이번 주 진행 (~9/17 회의) — 지난 주(9/10) 완료 요약 + 이번 주 착수**
   - **진행률(구현 스냅샷)**
     - **GW 백엔드 ≈ 93%**(8/26 재평가 · Task **90/96 완료**) — v1.0 계획 기능 **구현 완결** · 마무리 = 개발 통합·검증
       - 8/24 feature-complete 이후 **P13 정합 6건 추가 머지** · 잔여 6건은 전부 **GW 코드 완료**
@@ -13,98 +13,44 @@
       - **성격 셋** — 통합 검증 3(`8-1`·`8-2`·`9-17`) · 남의 작업 2(`7-6` ③-I 배선 · `8-4` PL 배포) · 내부 조사 1(`9-13` 플레이크)
       - ⚠ **"검증이니 곧 끝난다" 가 아니다** — 검증은 어긋난 것을 **찾는** 일이고 찾으면 Console 작업이 된다(`9-17` 1단계만으로 갭 2건). 남은 8% 는 **폭을 아직 모르는 일**이다 → S1 상세
 
-  - **완료 · 주요 작업**
-    - **[Console 운영 매뉴얼 8종 작성 완료]** ⭐ _(지난 회의 종료 후 마무리)_ 운영자용 **한국어 운영 매뉴얼 8종 작성 완료** — 운영자가 GW Console을 보고 따라할 수 있는 사례 주도·따라하기·트러블슈팅 문서.
-      - 연동 대상(target) 등록·관리 · org 매핑 관리 · 디바이스 온보딩·관리 · webhook 이벤트 조회·장애 대응 · 운영자·권한(RBAC) · 클리닉 조회·식별 메모 · 중앙 설정(config) · 감사(audit) (+ 매뉴얼 인덱스)
-    - **[운영 매뉴얼 Project wiki 발행 완료]** ✅ GW·Console 운영 매뉴얼(`docs/manual`)을 스펙(`docs/specs`)과 함께 es-platforms **project wiki로 자동 미러**하도록 발행 파이프라인(`docs-wiki.yml`) 확장(PR #14130·#14132 머지·발행 완료) — **Git 접근·라이선스 없는 기획·PM·품질팀도 위키에서 바로 열람** 가능.
-      - **위키 링크**: [Console 매뉴얼 폴더](https://dev.azure.com/ewoosoft/es-platforms/_wiki/wikis/es-platforms.wiki?pagePath=/vt%20api%20gateway/03c%20subsrs%20gw%20console/manual) · [GW 매뉴얼 폴더](https://dev.azure.com/ewoosoft/es-platforms/_wiki/wikis/es-platforms.wiki?pagePath=/vt%20api%20gateway/manual)
-      - GW 매뉴얼 → `vt api gateway/manual/`(최상위) · Console 매뉴얼 → `03c subsrs gw console/manual/`(Sub-SRS와 나란히·SSOT=console repo에서 pull). 매뉴얼은 스펙과 달리 **이미지도 함께 게시** · 정본 변경 시 **자동 재발행**(교차 트리거).
-      - **상호 크로스링크**: GW `target-onboarding`(API·인프라 크로스팀 runbook) ↔ Console `target-management`(UI 운영자 가이드). 검토 결과 **독자·계층이 달라 통합하지 않고 둘 다 발행**, 대신 서로 참조 링크를 걸어 계층 구분.
-    - **[CI 셀프호스티드(Self-hosted1) 전환 — 공유 풀 적체 해소]** ⭐ 공유 CI 풀 대기 적체로 GW·Console CI가 정체 → **사내 self-hosted 빌드로 전환**.
-      - **전환·적용**: 에이전트 재구축(docker buildx·AWS CLI·Playwright·trivy·gitleaks 내장) · 스모크 검증 · 중앙 CI 템플릿에 pool 파라미터 추가(Jack repo·머지). GW root CI·Console CI·devsecops에 적용(범위 = PR·머지 회전에 직접 영향 있는 것 위주).
-      - **효과**: CI 회전 대폭 단축 — **GW CI 총 23.8분 → 3.3분**(큐 대기 소멸 + 실행시간 단축).
-      - **OOM 사고·대책**: 전환 직후 공용 빌드 서버가 메모리 고갈로 먹통 → 원인 = 테스트 러너 워커 자동 증식 × 에이전트 4대. 대책(테스트 워커 상한 · 컨테이너 메모리 상한 · 불용 VM 종료)으로 **해결·구조적 재발 방지**(리부팅 후 유지).
-      - **공용 빌드 서버 Jenkins 복구 · Java 21 이관 · 정리**: OOM 대책 때 종료한 win10 VM이 **Jenkins Windows 노드(Windows 제품 SonarQube 스캔)** 도 겸하던 것을 확인해 VM을 재기동하는 과정에서, **Jenkins 마스터의 잠복 문제**(플러그인은 최신인데 마스터가 오래 재시작된 적 없어 옛 버전으로 구동 중이던 상태)가 드러나 재시작 시 부팅 실패 → 복구 + 밀린 유지보수(Java 21)·정리까지 완결.
-        - **복구**: 최신 플러그인이 요구하는 코어로 올리면 에이전트(Java 17)가 못 붙고, 옛 코어로 두면 플러그인이 안 뜨는 딜레마 → 우선 **Java 17 마지막 LTS(2.541.3)** 로 코어를 맞추고 일관된 플러그인 세트로 재구성해 복구.
-        - **메모리 캡 정비(재발 방지)**: 그간 캡이 CI 에이전트에만 걸려 있고 Jenkins·SonarQube·Dependency-Track은 무제한이던 것을 확인 → **전 서비스에 메모리 상한 적용**(한 서비스 폭주가 서버 전체를 죽이지 못하도록).
-        - **Java 21 이관(EOL 스택 해소)**: Java 17이 Jenkins 기준 **이미 EOL(2026-03-31)**이라 임시 고정점(2.541.3)에 머물지 않고 이관 — **에이전트(Linux 4대 재빌드·Windows는 JDK 23) 먼저 → 마스터 최신 LTS 2.568.3(Java 21) 상향**(순서 지켜 무탈 정렬). 마스터·에이전트 전부 Java 21.
-        - **플러그인·보안 정리**: 2.568.3용 최신 세트 재해석(0 실패)·**보안 패치 `pipeline-groovy-lib`(CSRF·SECURITY-3815) 적용** · deprecated **Blue Ocean 계열 20개 제거**(개발 중단·UI 레이어라 빌드 무관·디자인 라이브러리 포함·137→117) · **위험 스크립트 승인 제거**(`GroovyObject.invokeMethod`=샌드박스 우회).
-        - **결과**: 마스터·에이전트 전부 **Java 21**·**빌드 노드 6개(Linux 4 + Windows 2) online**·플러그인 **0 실패·deprecated 0·보안 갱신**·SonarQube/Dependency-Track 정상·메모리 안정. 상세 = `references/Self-hosted1/99.2`.
-        - **후속(내년) — Java 25 이관 필요**: Jenkins "2+2+2" 정책상 Java 21도 최소 요구로 **약 18개월**(~**2027년 하반기** Java 25로 전환·Java 21 지원 종료 전망). **내년에 Java 25로 올려야 함** — 이번과 동일 절차(에이전트 먼저 → 마스터)라 수월, EOL 전 제때 계획(이번처럼 밀리지 않게).
-      - **보안 스캔 구조 개선 ✅ 완료**: devsecops가 앱 4개에서 같은 스캔을 4번 중복 + 취약점 DB를 매번 외부(gcr.io)서 받다 실패하던 문제 →
-        - **소스·시크릿 스캔을 CI verify로 일원화**(trivy fs · gitleaks · SBOM · PR당 1회) → devsecops 5종은 스캔 OFF(빌드/배포만) = **4중복 제거**.
-        - **스캐너 자동 관리(핵심)**: trivy·gitleaks를 에이전트 이미지가 아니라 **사내 공유 볼륨(`/opt/trivy-cache/bin`)에 별도 설치** —
-          - **버전 자동 업데이트**: 새벽 cron이 **하루 1회 최신 버전으로 자동 갱신**(smoke-test·실패 시 옛 버전 유지) → 버전업에 이미지 재빌드·에이전트 재설치 불요.
-          - **취약점 DB도 하루 1회 갱신**(gcr.io 접속은 그때만) → CI는 `--skip-db-update`로 **완전 오프라인**(매 실행 gcr.io 다운로드 실패[flaky] 원천 제거).
-        - **SBOM 생성**(CycloneDX/SPDX·아티팩트) — DT 업로드는 후속(DT 사내망이라 CI서 직접 불가 · Jack의 pipeline→S3→BM2 폴링→DT 방안 확정 후 배선).
-        - 중앙 CI 템플릿 스캔 토글 = Jack 머지. 상세 = `CI-DevSecOps-SelfHosted/`.
-        - **후속/미결**: ① DT SBOM 업로드 배선(Jack S3 계획 후) · ② install 네트워크 flake(호스트 egress 불안정·prisma/cpu-features/gcr.io/git·재실행 우회·호스트 안정화는 별도) · ③ enforce(hard gate) 전환은 별도 결정.
-        - (결정) DT와 Sonarqube를 cloud로 이전하는 것(비용,방안)을 추가로 검토한다. (급하진 않다.) 임건혁 / Jack 
-    - **[Jenkins 파이프라인 무한 hang 진단·차단(timeout 전면 도입)]** ⭐ `dart-Linux-SonarQube` 빌드 2건이 "Setup Flutter"에서 **30시간·6시간째 안 끝나고** executor를 점유(빌드 노드 4대 중 2대)하던 것을 발견·분석.
-      - **원인 2겹**: ① **Jenkins 기본 빌드 타임아웃이 없음** + 이 파이프라인들에 `timeout`이 전무 → 멈춰도 무한 대기. ② `flutter pub get`이 **비공개 Azure DevOps git 의존성**(`common-dart/ezwebserver-client`)을 clone하는데 **자격(PAT) 미주입**으로 auth 실패 → dart pub이 이를 일시장애로 오인해 **무한 재시도**(retry 1611회·64초 간격 ≈ 28h, 경과와 일치).
-      - **조치**: **공유 파이프라인 라이브러리(`vars/` 9종)에 스테이지 timeout 일괄 도입**(기본 60분·`STAGE_TIMEOUT`로 오버라이드) → samples 6 + jenkinsfiles 11(oneid·ezcloud·eslockserver·EzServer 등) + 미래 잡까지 **한 곳 수정으로 전부 hang 방지**. Dart Linux `setupFlutter`에 **`azure-devops-pat`를 GIT_ASKPASS로 주입**(근본 수정·전역 git에 시크릿 미잔류). hung 빌드 2건은 콘솔에서 abort.
-      - **비고**: PAT는 유효(메인 체크아웃엔 이미 사용)라 **재발급 불요** — pub get에 안 실리던 것만 수정. 남은 것 = Dart 잡 1회 실행 green 검증 · DartWin(Windows·bat) 동형 수정. jenkins repo(`sbom/jenkins`) 소유=Raymond.
-    - **[dispatcher dev 부팅 장애 해소 + IoT Core 발행 인증 확정]** ⭐ dev dispatcher가 부팅을 못 하고 5분마다 죽던 문제를 해소하고, IoT Core로의 이벤트 발행 인증 방식을 확정.
-      - **원인**: dev의 MQTT 엔드포인트가 IoT Core(WSS)인데 dispatcher가 무인증 로컬 MQTT로 붙어 IoT Core가 접속을 끊음 → 무한 재접속으로 부팅이 멈춤(KEDA 최소 replica를 0→1로 올리며 드러남).
-      - **해결**: dispatcher가 IoT Core에 **SigV4 서명 WSS·IAM(Pod Identity)** 로 접속·발행하는 어댑터 추가 + 최초 접속 타임아웃(fail-fast). Jack 제안 PR 머지로 dev 언블록.
-      - **인증 방식 정리**: **발행자(GW)=IAM/SigV4** vs **구독자(EzServer)=디바이스별 인증서** 로 역할 구분. 어댑터 선택은 env `MQTT_AUTH`(auto·sigv4·none·기본 auto)로 확정 — dev/prod는 자동 SigV4라 추가 설정 불요.
-      - **스펙 정합**: SRS §7.6.6·env-reference 반영(spec-v1.0.84 머지). 명시 MQTT_AUTH 전환 PR **머지 완료(#13585·9/3)**.
-      - ⚠ **남은 dev 이슈(부팅과 별건)**: dispatcher 파드 **exit137 반복**(9/3 pending-infra 관찰·OOM/kill 추정) + **enroll된 Thing 0건** → **IoT 다운링크 E2E 미실행**(T-DISP-9-5·T-E2E-12-6). SigV4 부팅 수정과 별개 문제라 **9/10 재확인·안정화 필요**(IoT 인프라는 9/3 완료).
-    - **[Entra dev 회신값 접목 착수 — IT-9442]** ⭐ IT팀이 dev 앱 2개(API 리소스·Console SPA)를 등록·회신(9/9). Jack이 값을 문서에 반영(PR #14162 머지)하고 **dev 실 로그인 배포 경로**를 파이프라인에 추가(#14167·기본은 목 유지·`devAuthMode=entra` 수동 실행). Console은 회신값으로 **로컬 실 로그인을 시도해 남은 항목을 실측 판정**했다.
-      - **판정된 것** — 테넌트·issuer·JWKS가 discovery 문서와 **일치** · SPA client ID·`localhost:3100` redirect **등록됨** · scope `access_as_operator` **노출됨**(동의 화면 도달이 그 증거)
-      - ⚠ **남은 잠금 = admin consent 1건** — 미승인이라 사용자마다 승인 요청 화면이 뜬다. **조직 단위 1회**면 되고 이후 사용자는 동의 화면을 보지 않는다(Console 역할 부여와는 **다른 계층**). IT팀(이희선)에 요청 전송
-      - ⚠ **환경별 등록마다 consent 1회 필요** — prod 등록 시 같은 작업이 반복된다(사전 공유)
-      - **`aud` 형식 미확정** — v2 토큰이면 GUID 단독, v1이면 `api://<GUID>`. 검사기는 `api://` 만, GW dev 주입값은 GUID로 **서로 반대를 가정**하고 있었다 → 검사기가 **둘 다 통과**시키되 *두 등록 혼동*은 계속 잡도록 수정(#14168 머지). **실토큰 한 장으로 확정**할 판독 도구도 함께 넣었다
-      - **Console 버그 1건 발견·수정(#14169 머지)** — 로그인 리다이렉트가 한 번 끊기면 `interaction_in_progress` 로 **이후 로그인이 영영 막혔다**(탭을 닫기 전엔 회복 불가). `handleRedirectPromise()` 를 콜백 화면에서만 불러 생긴 문제로, 초기화 시 한 번 정리하도록 고침. **실 로그인을 시도하지 않았으면 안 드러났을 결함**
-      - **#14167 리뷰** — 설계는 타당(실 빌드에도 `verify:bundle` 적용·`.env` 사전 정리·같은 버킷 상호배제). ⚠ **차단 1건**: 정적 export 플래그 누락으로 `out/` 이 안 만들어져 **빌드는 초록·배포에서 실패**한다(로컬 재현 완료). 리뷰 문서 `03c-subsrs-gw-console/_review-console-ci-14167.md` 로 남기고 PR 코멘트 게시
-      - (결정) prod 등 모든 환경에 대한 Entra도 열어달라고 미리 요청한다. 임건혁 / Jack 
-        - domain이 먼저 정해져야 한다. 김성훈 / Scott 
+  - **지난 주(9/10) 완료 — 요약** _(상세=PR·커밋·references)_
+    - **Console 운영 매뉴얼 8종 작성** — 운영자용 한국어 사례주도 매뉴얼(target·org매핑·device·webhook·RBAC·clinic·config·audit).
+    - **운영 매뉴얼 Project wiki 발행** — GW·Console 매뉴얼을 `docs-wiki.yml`로 자동 미러(PR #14130·#14132)·상호 크로스링크. Git 접근 없는 기획/PM/품질팀 열람 가능.
+    - **CI 셀프호스티드 전환 + Jenkins 복구·Java 21 이관·보안스캔 개선** — GW CI 23.8→3.3분. Jenkins 마스터 복구·Java 21 이관·플러그인/보안 정리(6노드 online). 소스·시크릿 스캔 CI verify 일원화(trivy·gitleaks·SBOM). 상세=`references/Self-hosted1/99.2`·`CI-DevSecOps-SelfHosted/`.
+    - **Jenkins 파이프라인 timeout 전면 도입 + Dart PAT** — `vars/` 9종 스테이지 timeout(무한 hang 차단) · Dart `pub get`에 `azure-devops-pat` GIT_ASKPASS 주입(repo=`sbom/jenkins`·머지·푸시 완료).
+    - **dispatcher dev 부팅 장애 해소 + IoT Core 발행 인증 확정** — SigV4 서명 WSS·IAM(Pod Identity) 어댑터 · `MQTT_AUTH`(기본 auto) · SRS §7.6.6(#13585·spec-v1.0.84). ⚠ 별건 **exit137**·enroll 0은 진행중(아래).
+    - **Entra dev 회신값 접목(9/9)** — dev 2앱 등록·회신·GW 배선(#14162·#14167) · Console 로컬 실로그인 실측 · 로그인 버그 2건 수정(#14168·#14169). ⚠ 남은 잠금 = admin consent(아래).
 
-  - **진행 중 · 선결 대기**
+  - **이번 주(9/17) 착수·진행 · 선결 대기**
+    - **[R1 실행 — GW·Console Jenkins SBOM→DT 온보딩]** ⭐ _(9/10 회의 결정)_ GW·GW Console을 Jenkins에서 **SBOM 생성→Dependency-Track 업로드** 배선. **트리거 = 매번 아닌 QA용 tagging 시 실행**(회의 결정). 선행 = **품질/RA에 SBOM 요구·범위 확인**(SRS §6.13). 기술 = DT 프로젝트 생성 + jenkinsfile/잡(`sharedPipelineSbomGitNodeLinux`·pnpm 대응). SonarQube는 후속·선택.
     - **[GW dev 배포·통합]** core·receiver·dispatcher·**admin 전부 dev 기동 확인**(9/10: admin `/v1/admin/me` 401=healthy·8/31 503 해소) · 통합은 Entra admin consent 승인 후 실로그인부터(③-I #3)
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
       - ⚠ **`T-FE-8-1`·`T-FE-9-17`의 한 뿌리 = admin consent** — **admin API는 부팅됨**(9/10 `/v1/admin/me` **401**=healthy·OIDC 설정 주입으로 이전 503 해소) · 남은 건 **admin consent 미승인**이라 Console 실로그인(토큰 취득)이 막혀 두 검증이 정체 · consent 풀리면 **함께** 풀린다
     - **[Entra 앱 등록]** dev 2앱 **회신 완료**(9/9) — 남은 것은 **admin consent 1건**(IT팀 승인 대기). 승인 즉시 `T-FE-8-1` 로컬 검증 착수 · `aud` 형식도 그때 확정
     - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
 
-  - _(이번 주 결정사항 = 회의 시 추가)_
+  - **이번 주 결정사항 (9/10 회의)**
+    - **R1 (SBOM/보안 파이프라인)**: ③ **GW+Console 둘 다** 온보딩 · **DT/SBOM 먼저**(지향점=둘 다·SonarQube 후속) · **매번 아닌 QA tagging 시 실행**. 실행=Raymond(품질/RA 요구 확인 선행).
+    - **Entra**: prod 등 **전 환경 앱을 미리 요청**(임건혁/Jack) — 단 **domain 확정 선행**(김성훈/Scott).
+    - **DT·SonarQube의 cloud 이전**(비용·방안) 추가 검토 — 급하지 않음(임건혁/Jack).
 
 - 논의 사항 (이번 주 · 신규 · R#)
-  - **R1. GW·GW Console을 Jenkins 보안 파이프라인에 온보딩할지 결정** — 다른 사내 제품(eslockserver·ezcloud·oneid 등)은 Jenkins에서 **① SBOM 생성→Dependency-Track 업로드**, **② SonarQube 정적분석**을 돌리는데 GW·GW Console은 미연동. Jenkins가 복구·최신화됐고 **DT와 같은 내부망**이라 지금 붙이기 좋음.
-    - **① SBOM→DT**: 기존 템플릿(`sharedPipelineSbomGitNodeLinux`) 재사용 — DT 프로젝트 생성 + jenkinsfile/잡 추가로 GW·Console 의존성 취약점을 DT에서 상시 추적. **Azure CI가 못 하던 내부 DT 업로드를 Jenkins가 직접 수행** → 기존 "Azure CI→S3→폴링→DT" 후속안을 대체·단순화.
-    - **② SonarQube 정적분석**: 기존 SonarQube 템플릿 재사용(코드 품질·SAST). GW는 현재 Azure CI에 SonarQube 미연동.
-    - **결정 (두 축 · ✅ = 추천)**:
-      - **(A) 제품 범위**
-        - ① 안 함
-        - ② GW만
-        - (결정) **③ GW + Console ✅**
-      - **(B) 도구**
-        - **DT / SBOM ✅ — 먼저(필수급)**
-        - SonarQube / 정적분석 — 후속·선택
-        - (결정) (지향점 = 둘 다)
-      - (결정) 매번 돌리지 않고, QA 를 위한 tagging 을 한 것으로 돌린다.
-    - **추천 근거**:
-      - **SBOM은 사실상 필수** — FDA 시판전 사이버보안(cyber device·FD&C §524B) 제출 의무 + IEC 62304 SOUP(외부 구성요소) 관리 근거. GW는 이미 Azure CI가 CycloneDX SBOM 생성 中이라, Jenkins/DT 추가분은 **취약점 상시 추적·시판후 모니터링**.
-      - **GW+Console 둘 다** — 둘 다 IEC 62304/ISO 13485 통제 대상(Console은 PHI 취급)이라 규제 범위에 함께 들어갈 공산이 큼. **누락 리스크 > 추가 비용**이고 템플릿 재사용이라 저비용 → 안전하게 둘 다.
-      - **SonarQube는 후순위** — secure SDLC 근거로 유용하나 SBOM 같은 명시 의무 산출물은 아님 → DT 먼저, 여력 시 추가.
-      - **①·② 비추천** — 안 하면 인증 요구 시 급히 붙여야 하고, GW만 하면 Console이 제출 범위일 때 재작업.
-    - **⚠ 최종 확정은 규제 확인 후**: SRS §6.13이 "인증 준비물은 마케팅·품질팀이 확정"(Appendix B #11)이라 명시 → **품질/RA팀에 ①SBOM/정적분석 요구 여부 ②범위(GW/Console) 확인이 선행**. 확인되면 추천안대로, 요구 아니면 축소·보류. 기술 준비(pnpm 대응·jenkinsfile·잡)는 결정 후 착수(저비용).
-  - _(회의 중 신규 논의/결정 안건 발생 시 **R1·R2…** 로 추가 · 선결·보류는 아래 「이월 논의 사항」 표.)_
+  - _(9/10 신규 안건 없음 — R1 결정 완료→「이번 주 진행」으로 이동. 신규 발생 시 R2·R3…)_
 
-- **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인. **🆕 9/3 대거 착지(Jack): 실 IoT Core·Parameter Store(compat well-known 200)·KMS CMK(payload+target)·공개 ingress = dev 완료** · admin 부팅(401)·Entra 앱 회신(9/9)까지 겹쳐 **dev 인프라 핵심이 대부분 해소**됨(남은 dev 블로커 = Entra admin consent·자동배포·마이그Job·dispatcher 안정화·test 환경). 상세=`docs/handoff/pending-infra-requests.md §9`. (PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653)
+- **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인. **✅ 9/3 대거 착지(Jack): 실 IoT Core·Parameter Store(compat well-known 200)·KMS CMK(payload+target)·공개 ingress = dev 완료** · admin 부팅(401)·Entra 앱 회신(9/9)까지 겹쳐 **dev 인프라 핵심이 대부분 해소**됨(남은 dev 블로커 = Entra admin consent·자동배포·마이그Job·dispatcher 안정화·test 환경). 상세=`docs/handoff/pending-infra-requests.md §9`. (PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653)
 
-  > 범례: ✅ 완료(괄호=완료일·날짜만이면 **이전 주 완료**) · **🆕 = 이번 주(8/31 이후) 신규 해결·검증(주로 2026-09-03 Jack ③-I 인프라 배치·9/9 Entra·admin 부팅)** · 🟠 부분 · ☐ 미완 · ⚠ 전달 필요. _(9/10 현실화: pending-infra §9 Jack 9/3 실측 + dev 엔드포인트 재확인 반영.)_
+  > 범례: ✅ 완료(괄호=완료일·날짜만이면 **이전 주 완료**) · **🆕 = 이번 주(9/11 이후) 신규 해결·검증 — (아직 없음)** · 🟠 부분 · ☐ 미완 · ⚠ 전달 필요. _(9/10 주 현실화분 반영: pending-infra §9 Jack 9/3 실측 + dev 엔드포인트 재확인.)_
 
   | # | 요청 | 수신 | dev | prod |
   | --- | --- | --- | --- | --- |
   | 1 | Region Directory 호스팅 + `consoleHost` 발행 | ③-I | ✅ publish(8/18·`regions.gw.dev.ezcld.net`) · ✅ `consoleHost` 발행(8/31·PR #13355 Jack 머지·`curl regions.json` 확인) | ☐ 도메인 후(prod consoleHost) |
   | 2 | GW Console dev 호스팅([console.gw.dev.ezcld.net](https://console.gw.dev.ezcld.net)) | ③-I | ✅ 개통(8/19·CD 파이프라인·딥링크 rewrite) | ☐ 도메인 후 |
-  | 3 | **dev GW 백엔드 배포·env 주입**(`DATABASE_URL`[공용 `common-dev-db`·`gw` DB·apne2]·`REDIS_URL`·`GW_REGION`=apne2·AWS **Pod Identity**·`NODE_ENV` 차트 주입) | ③-I | **core·receiver·dispatcher = ✅ 기동 완료**(8/31 자가검증: core·receiver 404=healthy backend·기동 확인 / dispatcher=HTTP 엔드포인트 없어 배포상 기동) · **admin = 🆕 부팅 확인(9/10: `/v1/admin/me` 401=healthy·8/31 503 해소)** · 단 **Console 실로그인은 admin consent 승인 대기**(consent 미승인→사용자 토큰 취득 불가) | ☐ |
-  | 4 | **운영자 Entra 앱 등록**(GW Admin API + Console SPA·2앱·PKCE) | IT·③-I | 🆕 **dev 2앱 등록·회신 완료(9/9)·GW 배선 완료** · 남은 것 = **admin consent 승인 1건**([IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)·IT팀 승인 대기·조직 1회) → **승인 전까지 Console 실로그인 불가**(admin API 자체는 9/10 부팅 확인·401) | ☐ prod 등록 시 동일(도메인 후) |
+  | 3 | **dev GW 백엔드 배포·env 주입**(`DATABASE_URL`[공용 `common-dev-db`·`gw` DB·apne2]·`REDIS_URL`·`GW_REGION`=apne2·AWS **Pod Identity**·`NODE_ENV` 차트 주입) | ③-I | **core·receiver·dispatcher = ✅ 기동 완료**(8/31 자가검증: core·receiver 404=healthy backend·기동 확인 / dispatcher=HTTP 엔드포인트 없어 배포상 기동) · **admin = ✅ 부팅 확인(9/10: `/v1/admin/me` 401=healthy·8/31 503 해소)** · 단 **Console 실로그인은 admin consent 승인 대기**(consent 미승인→사용자 토큰 취득 불가) | ☐ |
+  | 4 | **운영자 Entra 앱 등록**(GW Admin API + Console SPA·2앱·PKCE) | IT·③-I | ✅ **dev 2앱 등록·회신 완료(9/9)·GW 배선 완료** · 남은 것 = **admin consent 승인 1건**([IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)·IT팀 승인 대기·조직 1회) → **승인 전까지 Console 실로그인 불가**(admin API 자체는 9/10 부팅 확인·401) | ☐ prod 등록 시 동일(도메인 후) |
   | 5 | **env-reference 환경별 값 채움**(test·sandbox·prod endpoint·호스트·리전) | ③-I | ✅ dev · ☐ test/sandbox/prod | ☐ |
   | 6 | **dev-seed grant**(`DATABASE_URL` 변수그룹·Environment 승인게이트) — 전용 수동 파이프라인 `gw-dev-seed.yml`(멱등·`dev:showcase`)용 | ③-I | 🟠 **미완 확정(9/10 ADO 실측: `gw-dev-seed`/`DATABASE_URL` 변수그룹 부재)** · 파이프라인(id 335)·Environment 승인게이트(id 9)·AWS 서비스커넥션 `gw-dev-seed` 등록됨 ✅ · **남은 것 = `DATABASE_URL`(dev RDS) 변수그룹 미생성** → **Jack: 변수그룹 `gw-dev-seed`+`DATABASE_URL`(시크릿)+파이프라인 링크** + **SC 롤 KMS grant**(Encrypt/GenerateDataKey). AWS 5변수는 **GW가 서비스커넥션 전환**(PR 13358)→Jack 불요. ⚠ **혼동 주의**: Jack이 9/3 한 것은 **KMS CMK(#8)**(별개 항목)이며 dev-seed 변수그룹/grant는 미완. + alias명 정합(#8 실물 `alias/gw-payload-apne2` ↔ 시드 기대 `alias/gw-webhook-payload`) 확인 필요. 요청 8/20. | — |
   | 7 | **`pg_trgm` CREATE EXTENSION 권한**(clinic 검색 선결 · env-reference §2.1) | ③-I | ✅ 문제 없음(Jack 확인 8/20 — `gw_app`=`gw` DB OWNER·trusted extension) | ☐ prod 동일 확인 |
-  | 8 | **KMS CMK provisioning**(webhook payload·target 자격 alias·리전별 · 8/4 키 토폴로지 · env-reference §2.4) | ③-I | 🆕 **완료(9/3 Jack·AB#5650)**: ① `alias/gw-payload-apne2`(PR 12413) · ② `alias/gw-target-cred-apne2`(PR 13573 apply·SSM alias 4앱 주입) · 기능검증=admin 파드 복구 후 | ☐ 리전별(prod) |
+  | 8 | **KMS CMK provisioning**(webhook payload·target 자격 alias·리전별 · 8/4 키 토폴로지 · env-reference §2.4) | ③-I | ✅ **완료(9/3 Jack·AB#5650)**: ① `alias/gw-payload-apne2`(PR 12413) · ② `alias/gw-target-cred-apne2`(PR 13573 apply·SSM alias 4앱 주입) · 기능검증=admin 파드 복구 후 | ☐ 리전별(prod) |
   | 9 | **admin API dev ingress 노출**(`admin.apne2.gw.dev.ezcld.net`·Entra-gated 공개 ingress) — Console이 실 dev DB 데이터를 조회하려면 admin 부팅에 더해 이 ingress가 있어야 함(없으면 admin이 떠도 Console이 못 부름) | ③-I | ✅ **ingress 구축 확인**(8/25 curl: 443 OPEN·ALB 응답) — 단 전 경로 **503(ALB에 healthy target 0·즉시응답)** = **admin 미기동**이 원인(ingress 문제 아님)·**9/10 재확인: `/v1/admin/me` = 401**(admin 부팅·healthy·8/31 503 해소·ingress serving 확인) · 남은 건 Console 로그인용 **admin consent** | ☐ 도메인 후 |
 
 - **[GW 구현 선결 추적 · 외부 인프라·자격]** — E2E·배포가 외부 선결로 막힌 항목. 소유별 상태·ETA 확인.
@@ -112,9 +58,9 @@
   | # | 선결 항목 | 소유 | dev | prod |
   | --- | --- | --- | --- | --- |
   | 1 | 공개 ingress(AXS→GW webhook 수신) | ③-I | ✅ **완료**(9/3 Jack 확정·es-infra PR 12931·8/20 · `curl axs.webhook.apne2.gw.dev.ezcld.net`→404 healthy) | ☐ prod |
-  | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | ③-I | 🆕 **완료(dev·9/3 Jack)**(es-infra PR 12190 · 공유 policy `dev-ezserver-edge` · `MQTT_URL`=Secrets Manager `dev/…dispatcher` · dispatcher `iot:Publish gw/clinic/*`) · ⚠ **E2E 미실행**(dispatcher exit137 반복·enroll Thing 0=별건) | ☐ |
+  | 2 | 실 IoT Core(MQTT 다운링크·Thing/policy·IRSA·`MQTT_URL`) | ③-I | ✅ **완료(dev·9/3 Jack)**(es-infra PR 12190 · 공유 policy `dev-ezserver-edge` · `MQTT_URL`=Secrets Manager `dev/…dispatcher` · dispatcher `iot:Publish gw/clinic/*`) · ⚠ **E2E 미실행**(dispatcher exit137 반복·enroll Thing 0=별건) | ☐ |
   | 3 | 자동배포 파이프라인(main→DEV·tag→TEST/PROD) | ③-I | 🟠 **① main→DEV = 됨**: `devsecops-{core·receiver·dispatcher·admin·migrate}.yml` **main 트리거** → ECR push → es-gitops `imageTag` 스탬프 → ArgoCD sync(dev 4앱 배포·migrate id 340). **9/10 ADO 실측: 5개 파이프라인 등록·최근 실행 `main`/`individualCI`/`succeeded`(9/3)** → **main 머지 시 dev 자동 배포 실동작 확인**. · **② tag→TEST/PROD = 안 됨**: 릴리스 태그 기반 상위환경 승격 경로 **미구축** — 원인은 파이프라인이 아니라 **test 환경 미프로비저닝(선결 #5)·prod 미설정**. 환경 생기면 같은 템플릿에 태그 트리거만 추가 | ☐ prod |
-  | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | ③-I | 🆕 **완료(dev·9/3 Jack·AB#5650)**: write IAM·SC(PR 12694) · 발행 파이프라인(354 run 53818) · ESO 마운트(es-gitops PR 13571) · `GW_COMPAT_MATRIX_DIR` 주입 · `/.well-known/production/server-configuration.json` **200** | ☐ test/prod |
+  | 4 | Parameter Store write IAM + ESO + AWS 커넥션(compat publish 포함) | ③-I | ✅ **완료(dev·9/3 Jack·AB#5650)**: write IAM·SC(PR 12694) · 발행 파이프라인(354 run 53818) · ESO 마운트(es-gitops PR 13571) · `GW_COMPAT_MATRIX_DIR` 주입 · `/.well-known/production/server-configuration.json` **200** | ☐ test/prod |
   | 5 | **test 환경 프로비저닝**(별도 인프라·GW=infra 분류·상시 최소 baseline+임시 확장·부하/HA 사이즈업 포함) | ③-I | ☐ **요청 완료·마감 8/26** | ☐ |
   | 6 | AXS 자격 | Straumann·영업 | ✅ sandbox(8/11) | ☐ prod(NDA후) |
   | 7 | 파일 붙은 lab order 시드 | Straumann·④ | ☐ (sandbox) | — |
@@ -125,8 +71,6 @@
   > **[③-I 요청 전달 감사 — 2026-08-26]** "문서에 선결로 적혀 있다 ≠ Jack에게 전달됨." 두 추적 표를 훑어 GW handoff 7종 전부 **결과 Form·전달 흔적 0** 확인(작성 ≠ 전달). 전달 흔적 없는 항목(③-I #8·GW선결 #1·#2·#4 + Console CloudFront 헤더 4-tier·사내 접근제한[8/19 회신서 누락 변종])을 **handoff + 결과 Form 단일 전달 패킷**([pending-infra-requests.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/pending-infra-requests.md&version=GBmain)·GW repo·초안)으로 묶음. **전달 주체 = Raymond**(PL 지시). 이후 모든 ③-I 요청은 handoff+Form으로 전달하고 회신을 이 표에 일자·산출물로 기록(재발 방지). 모범 = 마이그레이션 인계(#13020).
 
 - 공유 사항 (결정 아님 · 논의사항인지 애매한 것을 임의 결정해 공유 · 매주 상시)
-  - **공용 빌드 서버 Jenkins Java 21 이관(밀린 유지보수 · 기한 이미 경과)** — 이번 복구로 Jenkins 코어를 **Java 17로 도는 마지막 LTS(2.541.3)** 에 맞췄으나, 이는 임시 고정점이다(GW 서비스와 무관 — GW CI는 Jenkins를 쓰지 않는다). **기한을 정하는 것은 Jenkins의 Java 17 지원 종료 일정**인데, 이는 **이미 지났다** — Java 17은 Jenkins 기준 **2026-03-31 EOL**, LTS는 **2026-05-13(2.555.1)부터 Java 21 전용**으로 전환돼 Java 17 지원을 제거했다. 즉 2.541.3은 직전 세대라 **보안 백포트가 이미 끊긴 상태**다(미패치 노출 누적). 리스크는 격리돼 있으나(사내 abc-wbs 제품 스캔용·외부 노출 아님) **미룰 수 없는 밀린 유지보수**다. **권장 = 향후 2~4주 내 한가한 창에 계획 이관**(당장 오늘은 에이전트 준비 선행 필요, 무기한 유지는 불가). 순서 = **에이전트 먼저(LinuxNode 4대 Java 21 재빌드 — Windows 노드는 이미 JDK 23이라 불요) → 마스터 최신 LTS 나중**(반대로 하면 에이전트가 못 붙어 전 노드 탈락). 상세 = `references/Self-hosted1/99.2. Jenkins 복구 기록`.
-
   - **S1. 프로젝트 일정(Gantt) — 9/10 스냅샷(현실화)**
     - **진행률(구현)**
       - **GW ≈ 93%** — v1.0 계획 기능 코드 완결(8/24 feature-complete) · 잔여=dev 통합(Entra·③-I 인프라)
@@ -239,7 +183,7 @@
     | **P12** 잔여 | 12-6 인바운드+MQTT(ingress·IoT Core=완료 9/3·**E2E 실행 대기**) · 12-3 부하 실측(하네스 완료·③-I test) · 12-4 HA(③-I Multi-AZ) | 🟠 IoT/ingress 해소 · 부하/HA=test 대기 |
     | **P9-5** 실 IoT 프로비저닝 | (a) 코드 완료(어댑터·mock) · (b) 실 IoT Core mTLS 실증 | 🟠 (a)완료·(b) **IoT Core 완료(9/3)**·실증 대기(dispatcher·enroll) |
     | **P0-5** 자동배포(CD) | ECR/ArgoCD·main→DEV·tag→TEST/PROD | 🟠 **main→DEV 자동=됨**(파이프라인 main 트리거·ArgoCD) · tag→TEST/PROD=상위환경(선결#5·prod) 대기 |
-    | **v1.0 정합·하드닝**(이번 주) | connector_type 어댑터 프로파일 레지스트리(파생 폐기·특정 target 하드코딩 금지·#13357) · target_id DNS 라벨 전 소비자 일괄+seed 하이픈(#13363) · dev-seed AWS 서비스커넥션(#13358) · CleverSpace `internal_bypass` 단정 제거(#13404) · 데모 steps 정직성(#13314) · unknown connector_type fail-closed 3계층 회귀 확인 | ✅ 머지 완료 |
+    | **v1.0 정합·하드닝**(지난 주·9/10) | connector_type 어댑터 프로파일 레지스트리(파생 폐기·특정 target 하드코딩 금지·#13357) · target_id DNS 라벨 전 소비자 일괄+seed 하이픈(#13363) · dev-seed AWS 서비스커넥션(#13358) · CleverSpace `internal_bypass` 단정 제거(#13404) · 데모 steps 정직성(#13314) · unknown connector_type fail-closed 3계층 회귀 확인 | ✅ 머지 완료 |
     - 커버리지(merged·8/20): 전역 96.7 / 91.9 / 93.9 / 96.5 · 보안 도메인 98.5 / 96.0 / 100 / 98.4 · 핵심 보안파일 16개 각 100% — **CI floor 게이트 통과**.
 
     - **남은 작업 — 전부 외부 선결(GW 코드는 feature-complete·코드로 앞당길 잔여 = 0)**
