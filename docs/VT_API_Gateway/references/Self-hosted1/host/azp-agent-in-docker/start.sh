@@ -1,4 +1,11 @@
 #!/bin/bash
+# Azure Pipelines 에이전트 컨테이너 엔트리포인트.
+#
+#   관리 정본 : scp-architecture repo · docs/VT_API_Gateway/references/Self-hosted1/host/azp-agent-in-docker/start.sh   <- 이 파일
+#   배치 위치 : 빌드 호스트 ~/azp-agent-in-docker/start.sh
+#
+# sbom/jenkins 저장소 docker/ 에도 낡은 사본이 있다. 그쪽은 참고용이다.
+#
 set -e
 
 if [ -z "${AZP_URL}" ]; then

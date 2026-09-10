@@ -1,0 +1,38 @@
+
+# SonarQube 전용.
+#
+# Dependency-Track 은 이 파일이 아니라 아래에서 돈다.
+#   ~/Documents/dtrack/docker-compose-dependency-track.yml   (compose project = dtrack)
+#
+# 예전에는 이 파일에도 DT 서비스가 정의돼 있었다. container_name 이 같아서 이 파일로
+# up -d 를 하면 돌고 있는 DT 컨테이너를 docker 프로젝트로 빼앗아 가며 잘못된 이미지
+# (dependencytrack/apiserver:latest - 사내 CA 패치 없음)로 재생성하고 8GB 메모리 캡도
+# 잃는다. 그래서 DT 정의를 걷어냈다. DT 는 저쪽 파일로만 관리한다.
+
+services:
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    mem_limit: 4g
+    ports:
+      - '9000:9000'
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://abc-wbs-postgres:5432/sonarqube
+      - SONAR_JDBC_USERNAME=postgres
+      - SONAR_JDBC_PASSWORD=postgres
+    volumes:
+      - sonarqube_conf:/opt/sonarqube/conf
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    networks:
+      - webnet
+    restart: unless-stopped
+
+networks:
+  webnet:
+    external: true
+
+volumes:
+  sonarqube_conf:
+  sonarqube_logs:
+  sonarqube_extensions:

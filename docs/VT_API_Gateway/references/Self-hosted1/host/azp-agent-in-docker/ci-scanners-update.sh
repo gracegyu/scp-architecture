@@ -10,7 +10,7 @@
 #  - gitleaks 는 DB 없음(정적 바이너리)·완전 오프라인.
 #  - 긴급 고정: 환경변수 TRIVY_PIN / GITLEAKS_PIN 설정 시 그 버전으로 고정(latest 무시).
 #
-# 관리 정본: scp .../VT_API_Gateway/references/Self-hosted1/ci-scanners-update.sh
+# 관리 정본: scp .../VT_API_Gateway/references/Self-hosted1/host/azp-agent-in-docker/ci-scanners-update.sh
 # 배치/cron: 호스트 /home/raymond/azp-agent-in-docker/ci-scanners-update.sh · `0 18 * * *`(KST 03:00)
 # 로그:      /opt/trivy-cache/update.log
 

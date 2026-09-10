@@ -1,3 +1,10 @@
+# Azure Pipelines self-hosted 에이전트(Self-hosted1 풀) 이미지.
+#
+#   관리 정본 : scp-architecture repo · docs/VT_API_Gateway/references/Self-hosted1/host/azp-agent-in-docker/azp-agent-linux.dockerfile   <- 이 파일
+#   배치 위치 : 빌드 호스트 ~/azp-agent-in-docker/azp-agent-linux.dockerfile
+#
+# sbom/jenkins 저장소 docker/ 에도 낡은 사본이 있다. 그쪽은 참고용이다.
+#
 # Azure Pipelines self-hosted agent (Self-hosted1 pool) — GW 백엔드 + Console 빌드용
 #
 # 변경(2026-09-02): 지난번 실패(에이전트에 Docker 부재) 대응 + 양쪽 repo 요구 superset:
