@@ -1,0 +1,21 @@
+# 이 파일은 더 이상 쓰지 않는다. 2026-09-10 에 두 개로 쪼갰다.
+#
+#   SonarQube          -> ~/Docker/docker-compose.sonarqube.yml
+#   Dependency-Track   -> ~/Documents/dtrack/docker-compose-dependency-track.yml
+#
+# 왜 쪼갰나
+#   DT 는 원래부터 ~/Documents/dtrack 쪽 파일로 돌고 있었다(compose project = dtrack).
+#   그런데 이 파일에도 같은 container_name 으로 DT 서비스가 정의돼 있었고, 그 정의가
+#   실물과 달랐다.
+#
+#     이 파일     : dependencytrack/apiserver      (사내 CA 패치 없음) · 메모리 캡 없음
+#     실제 실행중 : dependencytrack/apiserver-fixed (CA 패치 있음)     · mem_limit 8g
+#
+#   그래서 이 파일로 up -d 를 하면 돌고 있는 DT 컨테이너를 docker 프로젝트로 빼앗아 가며
+#   잘못된 이미지로 재생성하고 메모리 캡도 잃는다. 정상 절차대로 실행했는데 사고가 나는
+#   구조라 정의를 분리했다.
+#
+# 이전 내용은 아래 백업에 있다.
+#   docker-compose.sonarqube-dtrack.yml.bak-before-dt-split
+#
+# 서비스 정의가 없으므로 이 파일로 실행하면 즉시 실패한다. 의도된 것이다.
