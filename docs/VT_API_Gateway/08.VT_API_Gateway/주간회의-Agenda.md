@@ -22,7 +22,8 @@
     - **Entra dev 회신값 접목(9/9)** — dev 2앱 등록·회신·GW 배선(#14162·#14167) · Console 로컬 실로그인 실측 · 로그인 버그 2건 수정(#14168·#14169). ⚠ 남은 잠금 = admin consent(아래).
 
   - **이번 주(9/17) 착수·진행 · 선결 대기**
-    - **[R1 실행 — GW·Console Jenkins SBOM→DT 온보딩]** ⭐ _(9/10 회의 결정)_ GW·GW Console을 Jenkins에서 **SBOM 생성→Dependency-Track 업로드** 배선. **트리거 = 매번 아닌 QA용 tagging 시 실행**(회의 결정). 선행 = **품질/RA에 SBOM 요구·범위 확인**(SRS §6.13). 기술 = DT 프로젝트 생성 + jenkinsfile/잡(`sharedPipelineSbomGitNodeLinux`·pnpm 대응). SonarQube는 후속·선택.
+    - **[R1 실행 — GW·Console × DT·SonarQube 온보딩]** ⭐ _(9/10 회의 결정 · Raymond 착수 지시)_ GW·GW Console을 Jenkins 보안 파이프라인에 온보딩 — **DT(SBOM)·SonarQube 둘 다**(SQ를 후속·선택에서 **병행으로 상향**). **만들 것**: DT 프로젝트 2(GW·Console) + SonarQube 프로젝트 2(GW·Console) + **Jenkins 잡 4개**({GW,Console}×{SBOM→DT, SonarQube}). **트리거 = QA용 tagging 시 실행**. 기술=`sharedPipelineSbomGitNodeLinux`·SQ 템플릿 **pnpm 대응**·DT는 사내망이라 Jenkins 직접 POST(R1 이점). **실행 = Jenkins 세션에 위임**(자동화분 직접·수동분은 Raymond 요청). 선행(병행·비블로킹)=품질/RA SBOM 요구·범위 확인(SRS §6.13).
+    - **[최초 admin 부트스트랩 allowlist 스펙화]** Console 실 로그인(9/10) 후 PL이 부딪힌 **"최초 admin 데드락"**(승인할 admin이 없음) 해소 — env `GW_BOOTSTRAP_ADMIN_EMAILS`(첫 로그인 시 admin 자동 부여·요청→승인 생략·매칭=이메일·저장=oid·멱등·비회수·≥2명) 계약을 SRS §7.1.4·§7.9.2·env-reference §2.3에 pin(**spec PR #14204 머지·`spec-v1.0.85` 태그**·Jack 승인). 다운스트림 = ③-I(Jack) Parameter Store 설정 + 구현 세션 JIT allowlist 코드(email allowlist=Option 1로 확정 지시). 즉시 언블록은 `dev:operator --sub <oid> --role admin`.
     - **[GW dev 배포·통합]** core·receiver·dispatcher·**admin 전부 dev 기동 확인**(9/10: admin `/v1/admin/me` 401=healthy·8/31 503 해소) · 통합은 Entra admin consent 승인 후 실로그인부터(③-I #3)
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
       - ⚠ **`T-FE-8-1`·`T-FE-9-17`의 한 뿌리 = admin consent** — **admin API는 부팅됨**(9/10 `/v1/admin/me` **401**=healthy·OIDC 설정 주입으로 이전 503 해소) · 남은 건 **admin consent 미승인**이라 Console 실로그인(토큰 취득)이 막혀 두 검증이 정체 · consent 풀리면 **함께** 풀린다
