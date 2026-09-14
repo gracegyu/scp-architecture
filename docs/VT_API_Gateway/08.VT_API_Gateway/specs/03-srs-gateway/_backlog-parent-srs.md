@@ -154,6 +154,17 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 
 ---
 
+### B-21. [gw/1.1+ · §7.10 알림 1차 범위 밖 · 확장 요구 발생 시] 운영자·이벤트 알림 — 유예 이벤트·채널·이력 UI
+- **결정(2026-09-14).** §7.10 운영자 알림 **1차 범위 = 역할요청 라이프사이클 2건만**(`access.requested`→admin 그룹 Teams+Email · `access.decided`→요청자 Email·gw/1.1·spec-v1.0.87). 그 외 이벤트·채널·이력 화면은 **모두 이 백로그로 유예**(범위 팽창 방지). 각 항목은 실제 운영 요구가 생길 때 개별 승격.
+- **유예 이벤트(후보).** device enrollment `pending`(승인 대기 알림) · break-glass/긴급 접근 사용 · 운영자 오프보딩(`operator.status=suspended`) · 자격/인증서 만료 임박(target credential·KMS·서명키) · 알림 파이프라인 자체 실패(DLQ 적재 시 2차 통지·§7.6.7). 각 이벤트는 수신 대상·채널·언어·비-PHI 불변식(§7.10)을 재검토 후 승격.
+- **유예 채널.** Teams **per-user DM**(Graph API 필요·1차는 채널만) · SMS · 웹푸시 · 계열사 **별도 발신 도메인** 검증(@vatech.com 등 — 1차는 발신 1도메인·수신 임의 도메인으로 충분). 
+- **유예 UI.** 알림 이력/조회 화면(Console) · 수신자별 이벤트-채널 매트릭스 세분 설정(1차는 locale 선택 + on/off 수준).
+- **비-목표 유지.** GW 알림은 **out-of-band 보조**이며 인가/승인 게이트의 대체가 아님(§7.10). 이력·재전송 SLA·전달 보장 상향은 요구 확정 시 별도 검토.
+- **트리거 = 운영 중 위 이벤트/채널/이력에 대한 실제 요구 발생**(§7.10 1차 릴리스 후 피드백).
+- **출처.** 2026-09-14 v1.1 알림 스펙화 결정(사용자: 이벤트 1·2만 포함·나머지 backlog·Teams 채널만).
+
+---
+
 ## 참조 — 별도로 추적 중인 배치 (여기서 중복 기재하지 않음)
 - **클라이언트 식별 헤더 제약(Thomas 헤더 배치)** — User-Agent 변경 불가·Vatech-OS 획득 불가·Vatech-Clinic-Id 자체 설정 불가(2026-08-06 주간회의 Thomas 안건). **방향 확정**: Clinic-Id=EzServer nginx 주입(결정 2) / **UA·OS=best-effort — 설정·획득 불가 시 omit(2026-08-12 확정)**. 주 범위는 **B-4(#12638) 머지 완료** · 잔여 §2.3.0 웹 originator 세트 표 세부는 웹의 GW 직접 originate 여부에 따라 달라지나 비차단(degrade·B-4 잔여).
 - **Console SRS 자체 변경** — Console 백로그 `03c-subsrs-gw-console/_backlog-console.md`(CB-1 ZTNA 제거·운영자 멀티리전 authz UX / CB-2 v1·v2 분리·기술 스택 shadcn). **#12487 확정 후 CB-1 착수.**
