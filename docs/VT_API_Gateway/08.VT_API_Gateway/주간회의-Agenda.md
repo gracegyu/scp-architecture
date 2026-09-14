@@ -68,7 +68,11 @@
             - 🔴 **2026-12-31 — 레거시 엔드포인트 완전 종료.**
           - **우리 상태** — 계정(`gracegyu@gmail.com`)과 토큰이 설정돼 있는데도 402 다. 크레딧 소진인지 이관 누락인지는 Sonatype 계정에서 확인해야 구분된다. 어느 쪽이든 결과는 같다.
           - ⚠ **유료로 전환해도 지금은 못 쓴다** — 엔드포인트 URL 변경 기능이 **DT 4.14.0 부터**인데 우리는 **4.13.3** 이다. 쓰려면 DT 업그레이드가 선행된다.
-          - **비용도 맞지 않는다** — 크레딧은 컴포넌트 단위로 소모되는데 우리 DT 에만 **약 26,000 컴포넌트**(npm 20,366 · cargo 4,929 · 그 외)가 있다. 무료 500 크레딧은 **1회 스캔에도 못 미치고**, 매일 도는 잡을 감당하려면 상당한 유료 플랜이 필요하다.
+          - **비용도 맞지 않는다**
+            - 크레딧은 **컴포넌트 단위**로 소모되는데, 우리 DT 에만 **약 26,000 컴포넌트**가 있다
+              - npm 20,366 · cargo 4,929 · 그 외
+            - ⚠ 무료 500 크레딧은 **1회 스캔에도 못 미친다**
+            - 매일 도는 잡을 감당하려면 **상당한 유료 플랜**이 필요하다
           - ✅ **결론 = 유료 전환 불필요. 대체가 이미 검증됐다.**
             - `AuthProvider` 가 OSS Index 시절(v6.3.1) **141건** → OSV·GHSA 로 바꾼 v6.5.0-fda **153건**. 같은 제품에서 **동등하거나 더 나은 탐지**다.
             - npm 권고의 원천은 GHSA 이고 OSV 가 그것을 집계하므로 **공급원이 애초에 겹친다**.
@@ -396,7 +400,13 @@
   - ⚠ **남은 dev 블로커** — Entra admin consent · 자동배포 · 마이그 Job · dispatcher 안정화 · test 환경.
   - 상세 = `docs/handoff/pending-infra-requests.md §9` · [PR 12653](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653).
 
-  > 범례: ✅ 완료(괄호=완료일·날짜만이면 **이전 주 완료**) · **🆕 = 이번 주(9/11 이후) 신규 해결·검증 — (아직 없음)** · 🟠 부분 · ☐ 미완 · ⚠ 전달 필요. _(9/10 주 현실화분 반영: pending-infra §9 Jack 9/3 실측 + dev 엔드포인트 재확인.)_
+  > **범례**
+  >
+  > - ✅ 완료 — 괄호는 완료일 · 날짜만 있으면 **이전 주 완료**
+  > - 🆕 = **이번 주(9/11 이후) 신규 해결·검증** — *(아직 없음)*
+  > - 🟠 부분 · ☐ 미완 · ⚠ 전달 필요
+  >
+  > *(9/10 주 현실화분 반영: pending-infra §9 Jack 9/3 실측 + dev 엔드포인트 재확인.)*
 
   | # | 요청 | 수신 | dev | prod |
   | --- | --- | --- | --- | --- |
@@ -425,7 +435,19 @@
 
   _(`—`=해당 없음.)_
 
-  > **[③-I 요청 전달 감사 — 2026-08-26]** "문서에 선결로 적혀 있다 ≠ Jack에게 전달됨." 두 추적 표를 훑어 GW handoff 7종 전부 **결과 Form·전달 흔적 0** 확인(작성 ≠ 전달). 전달 흔적 없는 항목(③-I #8·GW선결 #1·#2·#4 + Console CloudFront 헤더 4-tier·사내 접근제한[8/19 회신서 누락 변종])을 **handoff + 결과 Form 단일 전달 패킷**([pending-infra-requests.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/pending-infra-requests.md&version=GBmain)·GW repo·초안)으로 묶음. **전달 주체 = Raymond**(PL 지시). 이후 모든 ③-I 요청은 handoff+Form으로 전달하고 회신을 이 표에 일자·산출물로 기록(재발 방지). 모범 = 마이그레이션 인계(#13020).
+  > **[③-I 요청 전달 감사 — 2026-08-26]**
+  >
+  > ⭐ **"문서에 선결로 적혀 있다 ≠ Jack 에게 전달됨."**
+  >
+  > - 두 추적 표를 훑어 GW handoff **7종 전부 결과 Form·전달 흔적 0** 확인 — **작성 ≠ 전달**
+  > - 전달 흔적이 없던 항목
+  >   - ③-I #8 · GW 선결 #1 · #2 · #4
+  >   - Console CloudFront 헤더 4-tier · 사내 접근제한(8/19 회신서 누락 변종)
+  > - **조치** — handoff + 결과 Form 을 **단일 전달 패킷**으로 묶음
+  >   - [pending-infra-requests.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/pending-infra-requests.md&version=GBmain)(GW repo · 초안)
+  >   - **전달 주체 = Raymond**(PL 지시)
+  > - ⚠ **재발 방지** — 이후 모든 ③-I 요청은 handoff + Form 으로 전달하고, 회신을 이 표에 **일자·산출물로 기록**
+  > - 모범 사례 = 마이그레이션 인계(#13020)
 
 - 공유 사항 (결정 아님 · 논의사항인지 애매한 것을 임의 결정해 공유 · 매주 상시)
   - **S1. 프로젝트 일정(Gantt) — 9/10 스냅샷(현실화)**
