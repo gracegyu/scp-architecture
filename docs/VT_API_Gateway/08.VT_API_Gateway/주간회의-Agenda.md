@@ -29,7 +29,7 @@
         - 48시간에 402 에러가 **458건** 쌓여 있었다.
       - **조치**
         - **① Google OSV 활성화** — 생태계 `npm` · `crates.io` · `Pub` · `Packagist`. DT 컴포넌트 purl 을 전수조사해 선정했다(npm 20,366 · cargo 4,929 · pub 398 · composer 66).
-        - **② GitHub Advisories 활성화** — classic PAT 필요. fine-grained 는 GraphQL 에서 401 이라 쓸 수 없다.
+        - **② GitHub Advisories 활성화** — classic PAT 로 설정 완료. (fine-grained 는 GraphQL 에서 401 이라 쓸 수 없다.)
         - **③ OSS Index 비활성화** — 402 로 0건만 반환하던 것.
         - **④ 취약점 0 이던 프로젝트 일괄 재분석** — `POST /api/v1/finding/project/{uuid}/analyze`. BOM 재업로드가 필요 없다.
       - **결과**
@@ -55,7 +55,7 @@
         | **vt-api-gateway** | 0 | **2** | |
       - ⚠ **결정 필요(공유가 아니라 안건)**: **드러난 취약점 1,000건 이상의 심사·조치 주체와 정책이 없다.** DT 에 수치만 쌓이고 누가 언제 무엇을 고치는지 정해져 있지 않으면 R1 온보딩의 실효가 없다. 상세 = 아래 논의 사항.
       - ⚠ **부수 발견(별건)**
-        - **① GHSA 미러가 호스트 egress 불안정으로 실패** — `Connection reset`, 15분에 400/35,538건. 인증 문제는 아니다(PAT 정상). **incremental 체크포인트가 저장**되어 매일 자동으로 이어받는다(그대로 두기로 결정). 같은 뿌리로 **Jenkins install flake** 도 의심된다.
+        - **① GHSA 전량 미러링이 오래 걸린다** — 첫 실행이 `Connection reset` 으로 중단됐다(15분에 400건). 인증 문제는 아니다. 재시작 후 정상 속도(5~6초에 200건)로 진행 중이고 **9/14 기준 15,265건 수집·체크포인트 2023-01-24**. **incremental 이라 매일 자동으로 이어받는다**(그대로 두기로 결정). 첫 중단의 원인인 egress 불안정은 **Jenkins install flake** 와 같은 뿌리로 의심된다.
         - **② 빌드 호스트 `/etc/hosts` 오타** — `126.0.0.1 localhost`(127 이어야 함). `localhost` 가 공인 대역을 가리켜 python 등 일부 도구만 간헐 실패했다. **수정 완료(9/14)**.
     - **[최초 admin 부트스트랩 allowlist]** ✅ **구현 완료(9/10·PR #14212 머지)** — Console 실 로그인(9/10) 후 PL이 부딪힌 **"최초 admin 데드락"**(승인할 admin이 없음) 해소. env `GW_BOOTSTRAP_ADMIN_EMAILS`(첫 로그인 JIT admin 자동 부여·요청→승인 생략·매칭=이메일·저장=oid·멱등·비회수·≥2명) 계약을 SRS §7.1.4·§7.9.2·env-reference §2.3에 pin(**spec PR #14204·`spec-v1.0.85`**·Jack 승인·main) + **tenant 제약 보강**(`spec-v1.0.86`: allowlist 설정 시 `GW_OPERATOR_OIDC_TENANT` 필수·타 테넌트 권한상승 차단 — 코드 fail-closed는 #14212로 main·**문서 spec-v1.0.86 머지·태그 완료**(PR #14236·Jack 리뷰어)). **코드**(`OperatorBootstrapService`·admin JIT 경로·PR #14212): unit·e2e(데드락 해소·멱등·대소문자·비-allowlist 403) green·독립리뷰 🟢·보안 M1(테넌트 fail-closed)/M2(감사 loud) 반영. **부수**: 신규 org-wide `multer` HIGH CVE로 dep-scan 게이트가 전 PR 차단 → surgical override PR #14220(`multer ^2.3.0`) 먼저 머지해 언블록. 다운스트림 = **③-I(Jack) Parameter Store 에 `GW_BOOTSTRAP_ADMIN_EMAILS`+`GW_OPERATOR_OIDC_TENANT` 주입**. 즉시 언블록은 `dev:operator --sub <oid> --role admin`(로컬).
     - **[GW dev 배포·통합]** core·receiver·dispatcher·**admin 전부 dev 기동 확인**(9/10: admin `/v1/admin/me` 401=healthy·8/31 503 해소) · 통합은 Entra admin consent 승인 후 실로그인부터(③-I #3)
