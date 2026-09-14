@@ -165,20 +165,79 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 
 ---
 
-### B-22. [✅ 클로즈(2026-09-14) · OpenAPI 통제문서 ↔ gen 잔여 델타 15→0 정합] as-built 기준 통제문서 정밀화
-- **발견(2026-09-14).** self-GET 계약 클로즈 중 구현 세션 `pnpm openapi:compare`가 **기존 잔여 델타 15건** 보고(self-GET 신규 델타는 0). compare 앱별 스코핑은 정상(`scripts/openapi/compare.ts` `APPS` 경로 프리픽스로 앱별 대조: admin=`/v1/admin`·core=`/v1/auth·/enroll·/fleet·/clinics/me·/.well-known`·receiver=`/v1/webhooks`). 15건은 스코핑 아티팩트가 아니라 **실 shape 차이**이며 **대부분 gen(as-built)이 정답 → 통제문서 정밀화** 방향.
-- **분류(5군).**
-  1. **allOf 합성 vs 평탄화(compare 한계·실필드 동일·의미 차이 아님)** — GET/PATCH `/v1/admin/clinics`·`/clinics/{id}`·`/clinics/{id}/memo` · GET `/v1/clinics/me`. 통제문서 `allOf[base&확장]` ↔ gen 평탄 object. **해소=compare에 allOf 평탄화 옵션 추가(구현 소관·구현 세션이 제안)** — 통제문서의 DRY한 allOf를 유지(권장) / 대안=통제문서 평탄화.
-  2. **nullable 정밀도(as-built 정답·통제문서 nullable 조이기)** — `connector-types`(doc이 description/help/placeholder/plannedIn/plannedNote/default nullable) · `GET /v1/admin/me`(doc displayName/email nullable) · `POST /v1/admin/devices`(reqBody clinicId: doc required·gen nullable).
-  3. **⚠ 통제문서 raw credential/secret 잔존(as-built 정답·통제문서 제거 권장·우선)** — GET/POST `/v1/admin/targets`·`/targets/{id}`. 통제문서에 `credential`·`secret` 원본 필드가 남아있고 gen은 `credentialRef`/`secretRef`만 노출(민감정보 미노출). **통제문서에서 raw 필드 제거**해 as-built(참조만 노출)와 일치시킬 것.
-  4. **통제문서 under-spec(opaque→구체화)** — `/.well-known/{env}/server-configuration.json`(doc=`object{}+addl<any>`) · `POST /v1/auth/token`(claims `+addl<any>`) · `PATCH /v1/admin/clinics/{id}` 200(doc=none). gen 실제 shape로 구체화.
-  5. **알려진 후속(누락 필드)** — `POST /v1/fleet/heartbeat` 200 `configVersion`(gw/1.1 예정·기존 기록·그대로 둠) · `GET /v1/admin/me` 403 **제거 확정**(구현 세션 코드 확인 2026-09-14: me.controller는 `OperatorAuthGuard` 단독·RbacGuard 없음·suspended도 가드서 401 → 403 도달 경로 없음·`@ApiStandardErrors(401,429)`. 통제문서 getAdminMe 403 응답 삭제).
-- **소유·분업.** 통제문서(`docs/specs/design/openapi/vt-api-gateway.openapi.yaml`)=스펙 세션 편집(2·3·4·5) / compare allOf 평탄화(1)=구현 세션. 대부분 as-built 반영이라 계약 실변경이 아니나 **3(credential/secret)·2(nullable 방향)·5(403)는 계약 명확화**라 spec PR로.
-- **트리거·비블로커.** self-GET·현 릴리스와 무관. 별도 spec PR 1건으로 묶어 정리(우선순위=3>2>4>5>1).
-- **진행(2026-09-14).** (1) compare allOf 평탄화=구현 PR **#14323 머지**(델타 15→11). (2)(3)(4)(5) 통제문서 정합=spec PR **#14325**(spec-v1.0.92·오픈·리뷰어 Jack): (3) targets를 **Target(응답)+TargetUpsert(요청) 분리**·(2) nullable 조이기·(4) server-configuration/auth-token claims/PATCH clinics 200 구체화·(5) getAdminMe 403 제거. **잔여 residual(의도)**: 요청 timeout number↔응답 integer는 gen 반영, format(int64·uuid)은 통제문서 유지 — compare가 format을 델타로 잡으면 gen codegen 정밀화(.int()/.uuid())로 0을 맞추기로(통제문서 다운그레이드 회피). #14325 머지 후 구현 세션 compare로 소거 확인.
-- **잔여 처리(2026-09-14·#14325 사전확인 11→3).** format(int64·uuid)=compare 미비교라 통제문서 유지(무처리). 잔여 3건: (a) audit `beforeState`/`afterState`=통제문서 free-form nullable로 완화(gen z.unknown 정합·**#14325 반영**), (b) heartbeat `configVersion`=v1.0 미구현이라 FleetHeartbeatAck에서 제거(contract-first·gw/1.1 재도입·**#14325 반영**) → **통제문서 측 델타 0**. (c) TargetUpsert `egressAllowlist.ports`(number→int)·`sourceIpAllowlist`(unknown→string)=통제문서가 정본이고 gen 코드 정밀화가 정답 → **구현 세션 impl PR**(Raymond go 후). **#14325 머지 완료(main `5468ea9`)·spec-v1.0.92 태그 커팅 완료(2026-09-14)** → 통제문서 측 델타 0. 구현 세션 최종 `openapi:compare`=**델타 0(57 op 전부 정합)·openapi:check EXIT 0** 확정. 남은 (c)=구현 세션 gen 3건 정밀화 impl PR(targets ports int 1–65535·sourceIpAllowlist string[]·audit beforeState/afterState `.nullable()`[통제문서 nullable이 정본·contract-first]) — pre-PR 리뷰 통과 중. 그 impl PR 머지 시 **B-22 완전 클로즈**(스펙 소유분은 이미 마감).
-- **✅ 클로즈(2026-09-14).** 구현 impl PR **#14330 머지**(main `21e1d7f`·Raymond). main 권위 `pnpm openapi:compare`=**델타 0(57 op 전부 정합)·openapi:check EXIT 0**. 통제문서(spec-v1.0.92) ↔ gen 완전 정합. B-22 전체 마감: (1) allOf 평탄화 #14323 · (2)~(5) 통제문서 정합 #14325(spec-v1.0.92) · code-side gen 정밀화 #14330.
-- **출처.** 2026-09-14 구현 세션 compare 정정 회신(스코핑 정상·15델타 실 shape 차이 분류).
+### B-22. [✅ 클로즈(2026-09-14)] OpenAPI 통제문서 ↔ gen 잔여 델타 15→0
+
+**한 줄 요약** — `openapi:compare` 델타 **15 → 0**(57 op 전부 정합). 대부분 **gen(as-built)이 정답**이라 통제문서를 정밀화하는 방향으로 풀었다.
+
+#### 발견 (2026-09-14)
+
+- self-GET 계약 클로즈 중 구현 세션 `pnpm openapi:compare` 가 **기존 잔여 델타 15건** 보고
+  - self-GET 이 만든 신규 델타는 **0**
+- ⚠ **스코핑 아티팩트가 아니었다** — compare 의 앱별 스코핑은 정상이다
+  - `scripts/openapi/compare.ts` 의 `APPS` 경로 프리픽스로 앱별 대조
+  - admin=`/v1/admin` · core=`/v1/auth`·`/enroll`·`/fleet`·`/clinics/me`·`/.well-known` · receiver=`/v1/webhooks`
+- 15건은 **실제 shape 차이**였다
+
+#### 분류 (5군)
+
+1. **allOf 합성 vs 평탄화** — compare 한계이지 의미 차이가 아니다(실 필드 동일)
+   - 대상: GET/PATCH `/v1/admin/clinics` · `/clinics/{id}` · `/clinics/{id}/memo` · GET `/v1/clinics/me`
+   - 통제문서 `allOf[base & 확장]` ↔ gen 평탄 object
+   - ⭐ **해소 = compare 에 평탄화 옵션 추가**(구현 소관) — 통제문서의 DRY 한 `allOf` 는 **유지**
+2. **nullable 정밀도** — as-built 가 정답이라 통제문서를 조인다
+   - `connector-types`(doc 이 description/help/placeholder/plannedIn/plannedNote/default 를 nullable 로)
+   - `GET /v1/admin/me`(doc displayName/email nullable)
+   - `POST /v1/admin/devices`(reqBody clinicId: doc required · gen nullable)
+3. ⚠ **통제문서에 raw credential/secret 잔존** — 우선 처리
+   - 대상: GET/POST `/v1/admin/targets` · `/targets/{id}`
+   - 통제문서에 `credential`·`secret` **원본 필드**가 남아 있고, gen 은 `credentialRef`/`secretRef` 만 노출(민감정보 미노출)
+   - **통제문서에서 raw 필드 제거**해 as-built 와 맞춘다
+4. **통제문서 under-spec** — opaque 를 구체화
+   - `/.well-known/{env}/server-configuration.json`(doc=`object{} + addl<any>`)
+   - `POST /v1/auth/token`(claims `+addl<any>`)
+   - `PATCH /v1/admin/clinics/{id}` 200(doc=none)
+5. **알려진 후속**
+   - `POST /v1/fleet/heartbeat` 200 `configVersion` — gw/1.1 예정이라 그대로 둠
+   - `GET /v1/admin/me` 403 — **제거 확정**
+     - 구현 세션 코드 확인(2026-09-14): `me.controller` 는 `OperatorAuthGuard` 단독 · `RbacGuard` 없음
+     - suspended 도 가드에서 401 이라 **403 도달 경로가 없다** · `@ApiStandardErrors(401,429)`
+
+#### 소유·분업
+
+- **통제문서**(`docs/specs/design/openapi/vt-api-gateway.openapi.yaml`) = 스펙 세션 — (2)(3)(4)(5)
+- **compare allOf 평탄화** = 구현 세션 — (1)
+- 대부분 as-built 반영이라 계약 실변경은 아니다
+  - 다만 **(3) credential/secret · (2) nullable 방향 · (5) 403** 은 **계약 명확화**라 spec PR 로 올린다
+- 트리거: self-GET·현 릴리스와 **무관**(비블로커) · 우선순위 **3 > 2 > 4 > 5 > 1**
+
+#### 진행
+
+- ✅ **(1) compare allOf 평탄화** — 구현 PR #14323
+  - 델타 **15 → 11**
+- ✅ **(2)~(5) 통제문서 편집** — spec PR #14325 · `spec-v1.0.92` 태그(main `5468ea9`)
+  - (3) targets 를 **Target(응답) / TargetUpsert(요청)** 로 분리
+  - (2) nullable 조이기 · (4) server-configuration·auth/token claims·PATCH clinics 200 구체화 · (5) getAdminMe 403 제거
+  - 사전확인에서 **11 → 3 → 통제문서 측 0**
+    - (a) audit `beforeState`/`afterState` = free-form nullable 로 완화(gen `z.unknown` 정합)
+    - (b) heartbeat `configVersion` = v1.0 미구현이라 `FleetHeartbeatAck` 에서 제거(contract-first · gw/1.1 재도입)
+  - ⚠ **`format`(int64·uuid)은 손대지 않는다** — compare 가 비교하지 않는다
+    - ⭐ 맞추려고 **통제문서를 낮추지 않는다** — 필요하면 gen 쪽을 정밀화한다
+- ✅ **code-side gen 정밀화** — 구현 PR #14330(main `21e1d7f`)
+  - `TargetUpsert.ports` = 정수 **실범위 1–65535**
+    - ⚠ `.int()` 만으로는 JS 안전정수(±9e15)까지 통과해 **포트로서 의미가 없었다**(Raymond 지적 · `MIN_PORT`/`MAX_PORT` 상수)
+  - `sourceIpAllowlist` = `string[]`
+  - audit `beforeState`/`afterState` = `.nullable()` — **통제문서 nullable 이 정본**(contract-first)
+  - 회귀 unit(포트 경계·거부·gen shape·audit nullable) + 독립 리뷰 🟢(High 0 · Med 0)
+
+#### ✅ 클로즈 (2026-09-14)
+
+- main 권위 `pnpm openapi:compare` **델타 0**(57 op 전부 정합) · `openapi:check` EXIT 0
+- 통제문서(`spec-v1.0.92`) ↔ gen(admin·core·receiver) **완전 정합**
+- ⭐ compare 가 이제 **실제 드리프트만** 잡는다
+- 마감 내역: (1) #14323 · (2)~(5) #14325(`spec-v1.0.92`) · code-side #14330
+
+**출처.** 2026-09-14 구현 세션 compare 정정 회신(스코핑 정상 · 15델타는 실 shape 차이).
+
 
 ---
 

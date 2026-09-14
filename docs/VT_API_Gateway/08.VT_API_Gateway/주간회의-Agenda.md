@@ -188,19 +188,86 @@
       - **케이스 E 신설** — 승인 없이 부여 · TOFU 아님 · 멱등 · 비회수 · 재로그인 복원 · **2명 이상 권장** · 감사 기록은 `system`.
       - **트러블슈팅 3줄** — 승인할 관리자 없음 / **재시작 누락** / **테넌트 값 누락 시 admin 부팅 거부**(spec-v1.0.86).
       - 배포 주입 절차는 ③-I 소관이라 **일부러 넣지 않았다.**
-    - **[스펙 · v1.1 알림/self-service + self-GET 갭 pin]** 이번 주 신규 — **spec PR 3건 전부 머지 완료**(+ 구현 PR #14319·리뷰어 Jack)
-      - ✅ **v1.0 갭 pin 머지**([PR 14316](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14316) · **`spec-v1.0.88` 태그 완료**) — 운영자 본인 요청 이력 조회 `GET /v1/admin/me/access-requests`(§7.9.2). Console FR-CON-04/07 데이터 소스 부재 해소 · status=non-active(active는 `/me` SSOT) · note 겸용·rejected/revoked semantic 명문화. 코드=GW 구현 세션([PR #14319](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14319) · **✅ 머지 9/14** `afff3ce`).
-      - ✅ **self-GET OpenAPI 통제문서 머지**([PR 14320](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14320) · **`spec-v1.0.91` 태그 완료**·1.0.90 v1.1 선머지로 번호 밀림) — 같은 계약을 OpenAPI 계약 정본(`vt-api-gateway.openapi.yaml`)에 `get` 추가. **프로세스 정정(PL)**: 통제문서=계약 SSOT(스펙 선작성)→구현 gen(admin.gen.yaml) compare 정합. #14316 머지 시점엔 통제문서에 get이 없어 후속 반영.
-      - ✅ **GW 구현 완료·머지(9/14 · PR #14319 `afff3ce`)** — `GET /v1/admin/me/access-requests`(getAdminMeAccessRequests). RBAC 없이 본인 것만(위조 차단: 토큰 operatorId·본문/쿼리 미수용) · status=requested·rejected·revoked(**active 제외**=`/me` SSOT) · requestedAt desc · 결정행 decidedByOperator read-time 조인(N+1 회피). unit 16 + operators 135 · e2e 4 · admin.gen.yaml 재생성 · 독립 pre-pr-review 🟢(orderBy id 타이브레이크 반영). CI green(vt-api-gateway-ci·devsecops-admin). Console FR-CON-04/07 데이터 소스 실연결. **✅ main 공식 compare 델타 0 최종 확정(9/14 · #14320 머지본 `d1e9fc4` · admin `OK GET/POST /v1/admin/me/access-requests`)** — self-GET 계약 3-PR(SRS 1.0.88·구현·OpenAPI 1.0.91) 클로즈.
-      - 📌 **프로세스 못박음(PL 지시)** — OpenAPI **계약 우선(contract-first)·역행 금지**를 abc-dev-assistant에 명문화: `projects/vt-api-gateway/README.md §2.1` 신설 + `dev-chain-backend` 체크포인트 + `dev-chain-design` Step 3-3. 통제문서=계약 정본(스펙 선작성)→구현은 generate+compare만, gen을 계약처럼 커밋하는 역행 금지·통제문서에 없는 오퍼레이션은 멈추고 스펙 선요청.
-      - **v1.1 예약**([PR 14312](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14312) · **`spec-v1.0.90` 태그 완료·머지(9/14)**) — §7.10 **운영자·이벤트 알림** 신설: 이벤트 2건(역할 요청 `access.requested` · 결정 `access.decided`) · **채널 Email(Amazon SES) 단일** · 언어 기본 ko/en 선택 · 비-PHI 불변식 · 비동기·멱등·DLQ. + §7.9.2 self-service 2건(승인권자 가시성 `GET /me/approvers` · 역할 self-제거 `DELETE /me/roles/{id}`). **Jack 리뷰 반영(9/14)** — SES=중앙 단일 리전 확정(prod us-east-1·비-prod 서울·§2.1.1 전역 의존 등재) · Teams는 타 법인 멘션 불가로 backlog B-21 유예. 유예 이벤트·채널=B-21.
-      - ⚠ **③-I 준비(알림 착수 전)** — Amazon SES 발신 도메인 검증 + production access · 중앙 단일 SES(prod us-east-1·비-prod 서울)(PR 14312 본문에 가이드).
-      - 📌 버전 — 머지·태그 순서(**전부 완료**): `1.0.88`(self-GET SRS) → `1.0.90`(v1.1 알림) → `1.0.91`(self-GET OpenAPI). 1.0.87·1.0.89는 머지 순서 밀림으로 결번. **✅ self-GET 계약 3-PR 클로즈(구현 세션 main 공식 compare 델타 0 확정·9/14).**
-      - ✅ **backlog B-22 완전 클로즈(9/14) — compare 델타 15→0(57 op 전부 정합)**. compare는 이미 앱별 프리픽스 스코핑(스코핑 문제 아님) → ⚠는 실 shape 델타였고 아래 분업으로 전부 소거:
-        - ✅ **(1) compare allOf 평탄화 — 구현 완료·머지(9/14 · PR #14323 `7ede092`)**: 통제문서 `allOf[base & 확장]`(DRY) ↔ gen 평탄 object 허위 델타 소거(clinics·clinics/{id}·memo·clinics/me 4건). **델타 15→11.** 안전장치=충돌 key `conflict[…]` 표면화·미해석 $ref 보수적 폴백(독립 리뷰 M1/M2 반영·unit 15). 통제문서 allOf는 유지.
-        - ✅ **(2)~(5) 통제문서 편집 — spec PR #14325 머지·`spec-v1.0.92` 태그 완료**(main `5468ea9`): (3) targets를 **Target(응답)/TargetUpsert(요청) 분리**(원문 자격은 요청에만·응답은 ref만·gen 4응답 byte-identical 반영), (2) nullable 조이기(connector descriptor·me displayName/email·devices clinicId=clinic-less 의도), (4) server-configuration·auth/token claims 구체화 + PATCH clinics/{id} 200 Clinic body, (5) getAdminMe 403 제거. **사전확인 델타 11→3→통제문서 측 0**: audit state free-form화·heartbeat configVersion 제거(gw/1.1 재도입)까지 #14325에 반영. format은 compare 미비교로 유지. 남은 잔여=gen 코드 정밀화(구현 impl PR·통제문서가 정본).
-        - ✅ **code-side gen 정밀화 — 구현 완료·머지(9/14 · PR #14330 `21e1d7f`)**: 통제문서 정합 후 남은 gen측 3건 마감 — TargetUpsert `ports`=정수 **실범위 1–65535**(`.int()`가 뱉던 JS 안전정수 ±9e15 무의미 → Raymond 지적 반영·`MIN_PORT/MAX_PORT` 상수)·`sourceIpAllowlist`=string[]·audit `before/afterState`=nullable(any)(#14325 free-form화 뒤 잔여). 회귀 unit(포트 경계·거부·gen shape·audit nullable) + 독립 리뷰 🟢(High 0·Med 0·구/신 동작 실측 대조).
-        - 🏁 **B-22 완전 클로즈(9/14)**: `pnpm openapi:compare` **델타 0 (57 op 전부 정합)** · openapi:check EXIT 0. 통제문서(spec-v1.0.92) ↔ gen(admin·core·receiver) 완전 정합. compare가 이제 실 드리프트만 잡는 상태.
+    - **[스펙 · v1.1 알림/self-service + self-GET 갭 pin]** 이번 주 신규 — **spec PR 3건 전부 머지**(+ 구현 PR #14319 · 리뷰어 Jack)
+
+      - ✅ **v1.0 갭 pin** — [PR 14316](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14316) · `spec-v1.0.88` 태그
+        - 운영자 본인 요청 이력 조회 `GET /v1/admin/me/access-requests`(§7.9.2) 신설
+        - ⭐ **Console FR-CON-04/07 의 데이터 소스 부재를 해소** — 요청을 보내도 흔적이 남지 않던 것
+        - `status` = non-active(active 는 `/me` 가 SSOT)
+        - `note` 겸용 · `rejected`/`revoked` semantic 명문화
+
+      - ✅ **self-GET OpenAPI 통제문서** — [PR 14320](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14320) · `spec-v1.0.91` 태그
+        - 같은 계약을 계약 정본(`vt-api-gateway.openapi.yaml`)에 `get` 으로 추가
+        - ⚠ **#14316 머지 시점엔 통제문서에 `get` 이 없어** 후속 반영이 됐다
+          - **프로세스 정정(PL)**: 통제문서 = 계약 SSOT(스펙 선작성) → 구현 gen(`admin.gen.yaml`) 은 compare 로 정합만
+        - 태그 번호는 1.0.90(v1.1)이 먼저 머지되며 밀렸다
+
+      - ✅ **GW 구현** — [PR 14319](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14319) · `afff3ce` (9/14 머지)
+        - `getAdminMeAccessRequests` — **RBAC 없이 본인 것만**
+          - 위조 차단: 대상은 **토큰의 operatorId** · 본문·쿼리로 받지 않는다
+        - `status` = requested · rejected · revoked (**active 제외** = `/me` 가 SSOT)
+        - `requestedAt` 내림차순 · 결정행은 `decidedByOperator` 를 read-time 조인(N+1 회피)
+        - 검증: unit 16 + operators 135 · e2e 4 · `admin.gen.yaml` 재생성
+          - 독립 pre-PR 리뷰 🟢(orderBy id 타이브레이크 반영) · CI green(`vt-api-gateway-ci`·`devsecops-admin`)
+        - ⭐ **Console FR-CON-04/07 데이터 소스 실연결**
+
+      - ✅ **self-GET 계약 3-PR 클로즈** — main 공식 compare **델타 0** 확정(9/14 · #14320 머지본 `d1e9fc4`)
+        - admin `OK GET/POST /v1/admin/me/access-requests`
+        - 구성: SRS `1.0.88` · 구현 #14319 · OpenAPI `1.0.91`
+
+      - 📌 **프로세스 못박음(PL 지시)** — OpenAPI **계약 우선(contract-first)·역행 금지**
+        - `abc-dev-assistant` 에 명문화: `projects/vt-api-gateway/README.md §2.1` 신설 + `dev-chain-backend` 체크포인트 + `dev-chain-design` Step 3-3
+        - 통제문서 = 계약 정본(스펙 선작성) → 구현은 **generate + compare 만**
+        - ⚠ **gen 을 계약처럼 커밋하는 역행 금지** · 통제문서에 없는 오퍼레이션은 **멈추고 스펙 선요청**
+
+      - **v1.1 예약** — [PR 14312](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14312) · `spec-v1.0.90` 태그(9/14 머지)
+        - **§7.10 운영자·이벤트 알림** 신설
+          - 이벤트 2건: 역할 요청 `access.requested` · 결정 `access.decided`
+          - **채널 = Email(Amazon SES) 단일**
+          - 언어 기본 ko/en 선택 · **비-PHI 불변식** · 비동기·멱등·DLQ
+        - **§7.9.2 self-service 2건**
+          - 승인권자 가시성 `GET /me/approvers`
+          - 역할 self-제거 `DELETE /me/roles/{id}`
+        - **Jack 리뷰 반영(9/14)**
+          - SES = **중앙 단일 리전** 확정(prod us-east-1 · 비-prod 서울 · §2.1.1 전역 의존 등재)
+          - ⚠ **Teams 는 타 법인 멘션 불가**로 backlog **B-21** 로 유예 — 유예된 이벤트·채널도 B-21
+
+      - ⚠ **③-I 준비(알림 착수 전)**
+        - Amazon SES 발신 도메인 검증 + production access
+        - 중앙 단일 SES(prod us-east-1 · 비-prod 서울) — 가이드는 PR 14312 본문
+
+      - 📌 **버전 — 머지·태그 순서**(전부 완료)
+        - `1.0.88`(self-GET SRS) → `1.0.90`(v1.1 알림) → `1.0.91`(self-GET OpenAPI)
+        - `1.0.87`·`1.0.89` 는 머지 순서가 밀리며 **결번**
+      - ✅ **backlog B-22 완전 클로즈(9/14)** — `openapi:compare` 델타 **15 → 0**(57 op 전부 정합)
+        - 스코핑 문제가 아니라 **실제 shape 델타**였다(compare 는 이미 앱별 프리픽스로 스코핑돼 있었다)
+        - 세 갈래로 나눠 소거했다 — 아래 (1)·(2)~(5)·code-side
+
+        - ✅ **(1) compare allOf 평탄화** — 구현 PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14323 (`7ede092`)
+          - 통제문서는 `allOf[base & 확장]`(DRY), gen 은 평탄 object 라 **허위 델타**가 났다(clinics·clinics/{id}·memo·clinics/me 4건)
+          - **델타 15 → 11**
+          - 안전장치: 충돌 key 를 `conflict[…]` 로 표면화 · 미해석 `$ref` 는 보수적 폴백(독립 리뷰 M1/M2 반영·unit 15)
+          - ⭐ **통제문서의 `allOf` 는 그대로 둔다** — DRY 를 포기하는 대신 비교기를 고쳤다
+
+        - ✅ **(2)~(5) 통제문서 편집** — spec PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14325 · `spec-v1.0.92` 태그(main `5468ea9`)
+          - **(3) targets 분리** — `Target`(응답) / `TargetUpsert`(요청) · 원문 자격은 **요청에만**, 응답은 ref 만(gen 4응답 byte-identical)
+          - **(2) nullable 조이기** — connector descriptor · me displayName/email · devices clinicId(clinic-less 의도)
+          - **(4) 응답 구체화** — server-configuration · auth/token claims · PATCH clinics/{id} 200 에 Clinic body
+          - **(5) getAdminMe 403 제거**
+          - 사전확인에서 **델타 11 → 3 → 통제문서 측 0** — audit state free-form 화, heartbeat `configVersion` 제거(gw/1.1 재도입)까지 함께 반영
+          - ⚠ `format`(int64·uuid)은 **compare 가 비교하지 않아** 통제문서 그대로 둔다 — 맞추려고 통제문서를 낮추지 않는다
+
+        - ✅ **code-side gen 정밀화** — 구현 PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14330 (`21e1d7f`)
+          - `TargetUpsert.ports` = 정수 **실범위 1–65535**
+            - ⚠ `.int()` 만으로는 JS 안전정수(±9e15)까지 통과해 **포트로서 의미가 없었다**(Raymond 지적 · `MIN_PORT`/`MAX_PORT` 상수)
+          - `sourceIpAllowlist` = `string[]`
+          - audit `before/afterState` = nullable(any) — #14325 free-form 화 뒤의 잔여
+          - 회귀 unit(포트 경계·거부·gen shape·audit nullable) + 독립 리뷰 🟢(High 0·Med 0)
+
+        - 🏁 **최종 상태** — `pnpm openapi:compare` **델타 0**(57 op) · `openapi:check` EXIT 0
+          - 통제문서(`spec-v1.0.92`) ↔ gen(admin·core·receiver) **완전 정합**
+          - ⭐ compare 가 이제 **실제 드리프트만** 잡는다
+
     - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
 
 - 논의 사항 (이번 주 · 신규 · R#)
