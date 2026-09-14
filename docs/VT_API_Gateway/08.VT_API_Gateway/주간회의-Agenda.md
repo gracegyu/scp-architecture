@@ -74,28 +74,30 @@
   - **[R1] 보안·품질 지표 심사·조치 정책 — 소유자와 게이트를 정해야 한다** _(9/14 신규 · 판단 필요=PL·품질/RA)_ · **대상 = Dependency-Track + SonarQube 양쪽**
     - **배경**: 9/14 DT 취약점 탐지를 복구하자 **1,000건 이상이 한꺼번에 드러났다**(EzUpdater 174 · AuthProvider 153 · EzUpdater Frontend 109 · WebConsole 77 · EzLauncher 73 · LicenseManager Frontend 70 · LicenseManager 46 · Messenger 32 · vt-api-gateway 2 · console 6). 같은 제품 v6.3.1 이 141, v6.5.0-fda 가 153 인 데서 보듯 **새로 생긴 것이 아니라 그동안 안 보였던 것**이다. 방치하면 다음 릴리스도 같은 상태로 나간다.
     - **문제**: 수치는 생겼는데 **누가·언제·무엇을 고치는지가 없다.** DT 의 조치 장치가 전부 비어 있다 — Policy Management(심각도 임계) **정책 0건**(Policy Violations 전 제품 0) · Vulnerability Audit(심사 워크플로) 미사용 · Notifications 미설정. 이대로면 DT 는 숫자만 쌓이는 대시보드가 되고, R1 온보딩이 "가시성 확보"에서 멈춘다.
-    - **SonarQube 도 같은 상태다(9/14 실측)**: 전체 25개 중 **Quality Gate 실패 14 · 통과 10**. 그리고 **`new_security_hotspots_reviewed` 가 전 제품 0%** — security hotspot 을 아무도 검토하지 않았다는 뜻이다. 실패 원인은 **두 갈래로 나뉘며 성격이 다르다**.
-      - **(가) 커버리지 조건만 걸린 것** — **코드 문제가 아니다.** 커버리지 리포트를 안 넘겨 0% 로 계산된 결과이고, 커버리지는 **ADO CI 가 이미 측정**한다(GW = unit+e2e 합산 + floor 게이트). SonarQube 에서 다시 재는 것은 중복이다 → **조건을 뺄지, Jenkins 잡에 테스트 실행을 붙일지** 결정 필요.
-      - **(나) 실제 품질 부채** — **새 코드에서 위반이 나온다.** 조건을 조정해도 사라지지 않으므로 **상환 계획**이 필요하다.
+    - **SonarQube 도 같은 상태다(9/14 실측)**: 전체 25개 중 **Quality Gate 실패 14 · 통과 10**. 그리고 **`new_security_hotspots_reviewed` 가 전 제품 0%** — security hotspot 을 아무도 검토하지 않았다는 뜻이다. 실패 원인을 **두 갈래로 나눌 수 있다**(둘 다 조치가 필요하고, 시급성만 다르다).
+      - **(가) 게이트 실패 조건이 커버리지뿐인 것** — `vt-api-gateway` · `vt-api-gateway-console`. 커버리지 리포트를 안 넘겨 0% 로 계산된 결과이고, 커버리지는 **ADO CI 가 이미 측정**한다(GW = unit+e2e 합산 + floor 게이트). SonarQube 에서 다시 재는 것은 중복이다 → **조건을 뺄지, Jenkins 잡에 테스트 실행을 붙일지** 결정 필요.
+        - ⚠ **단, "코드가 깨끗하다"는 뜻이 아니다.** 신규 위반이 0 인 것은 **신규 라인이 210줄·117줄뿐**이기 때문이다(기준선 `PREVIOUS_VERSION` · 분석 2회). 전체로 보면 **VT 도 위반 35건·149건**이 있고 hotspot 검토율은 다른 제품과 같은 **0%** 다. 신규 코드가 쌓이면 (나) 와 같은 상태가 된다.
+      - **(나) 신규 코드에서 위반이 나오는 것** — 조건을 조정해도 사라지지 않으므로 **상환 계획**이 필요하다.
+      - **아래 14건은 전부 Quality Gate 실패다**(통과 = `eslockserver` 등 10건). `common-rust_es_config` 를 뺀 13건에 **커버리지 0% 조건이 공통**으로 걸려 있어 열에서 생략했다. `—` = 해당 조건 기준 내.
 
-        | 프로젝트 | 신규 위반 | 신규 중복 | hotspot 미검토 | 갈래 |
-        | --- | ---: | ---: | :---: | :---: |
-        | ezcloud | **184** | 5.7% | O | 나 |
-        | cloudwebviewer | **183** | — | O | 나 |
-        | ezwebserver | **126** | **11.4%** | O | 나 |
-        | oneid | **68** | 3.2% | O | 나 |
-        | ezserver-license-manager-frontend | 59 | — | — | 나 |
-        | ezserver-license-manager | 24 | 9.4% | O | 나 |
-        | frontend | 19 | — | — | 나 |
-        | ezserver-updater | 16 | — | — | 나 |
-        | common-rust_es_config | 12 | — | — | 나 |
-        | ezserver-auth-provider | 11 | — | O | 나 |
-        | ezserver-messenger | 1 | — | — | 나 |
-        | ezserver-updater-frontend | 0 | — | O | 나(hotspot 만) |
-        | **vt-api-gateway** | **0** | 통과 | — | **가** |
-        | **vt-api-gateway-console** | **0** | 통과 | — | **가** |
+        | 프로젝트 | 게이트 | 신규 위반 | 신규 중복 | hotspot 미검토 | 전체 위반 | 갈래 |
+        | --- | :---: | ---: | ---: | :---: | ---: | :---: |
+        | ezcloud | 실패 | **184** | 5.7% | O | — | 나 |
+        | cloudwebviewer | 실패 | **183** | — | O | — | 나 |
+        | ezwebserver | 실패 | **126** | **11.4%** | O | — | 나 |
+        | oneid | 실패 | **68** | 3.2% | O | — | 나 |
+        | ezserver-license-manager-frontend | 실패 | 59 | — | — | — | 나 |
+        | ezserver-license-manager | 실패 | 24 | 9.4% | O | — | 나 |
+        | frontend | 실패 | 19 | — | — | — | 나 |
+        | ezserver-updater | 실패 | 16 | — | — | — | 나 |
+        | common-rust_es_config | 실패 | 12 | — | — | — | 나 |
+        | ezserver-auth-provider | 실패 | 11 | — | O | — | 나 |
+        | ezserver-messenger | 실패 | 1 | — | — | — | 나 |
+        | ezserver-updater-frontend | 실패 | 0 | — | O | — | 나(hotspot) |
+        | **vt-api-gateway** | **실패** | 0 | — | O | **35** | **가** |
+        | **vt-api-gateway-console** | **실패** | 0 | — | O | **149** | **가** |
 
-        _(통과 = `eslockserver` 등 10건. 위 14건이 실패. 커버리지 0% 조건은 `common-rust_es_config` 를 뺀 13건 전부에 공통으로 걸려 있어 열에서 생략했다.)_
+        _(전체 위반은 VT 만 채웠다 — (가)/(나) 대비를 보기 위한 것이고, 기존 제품은 미집계.)_
 
     - **왜 DT 와 묶어서 정하나**: 둘 다 **"측정은 되는데 조치 경로가 없다"** 로 구조가 같다. 따로 정하면 소유자·주기·게이트 기준을 두 번 정하게 되고 서로 어긋난다. 아래 5가지는 양쪽에 그대로 적용된다.
     - **정할 것 5가지**
