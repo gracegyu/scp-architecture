@@ -13,7 +13,6 @@
       - **성격 셋** — 통합 검증 3(`8-1`·`8-2`·`9-17`) · 남의 작업 2(`7-6` ③-I 배선 · `8-4` PL 배포) · 내부 조사 1(`9-13` 플레이크)
       - ⚠ **"검증이니 곧 끝난다" 가 아니다** — 검증은 어긋난 것을 **찾는** 일이고 찾으면 Console 작업이 된다(`9-17` 1단계만으로 갭 2건). 남은 8% 는 **폭을 아직 모르는 일**이다 → S1 상세
 
-
   - **이번 주(9/17) 착수·진행 · 선결 대기**
     - **[GW·Console × DT·SonarQube 온보딩] ✅ 완료(9/10)** ⭐ _(회의 결정 직후 당일 완료)_ — **4 커버리지(GW·Console × DT·SonarQube) 전부 실데이터 확인·Quality Gate 둘 다 Pass**.
       - **결과**
@@ -48,7 +47,6 @@
       <br/>
 
       **▼ 상세**
-
       - **원인 — npm 취약점 공급원이 통째로 끊겼다**
         - **Sonatype OSS Index 가 2026-04-29 부터 402 Payment Required** 반환. 무료 티어 종료 · Sonatype Guide 로 이관 · **레거시 엔드포인트 2026-12-31 완전 종료** 예정.
         - npm 패키지는 **NVD 에 CPE 가 없어** 내장 분석기로 안 잡힌다. OSS Index 가 유일한 공급원이었고, 그것이 끊긴 순간 npm 은 통째로 0 이 된다.
@@ -86,21 +84,22 @@
         - 2차로 `crates.io`·`Packagist` 를 추가해 **Rust·PHP 제품까지 커버**했다.
         - VT 수치가 낮은 것은 의존성이 최신이라서다. **0 이 아니라는 점이 핵심**이고, 앞으로 신규 CVE 가 잡힌다.
 
-        | 프로젝트 | 이전 | 이후 | 비고 |
-        | --- | ---: | ---: | --- |
-        | EzUpdater | 0 | **174** | |
-        | EzServer AuthProvider | 0 | **153** | 같은 제품 v6.3.1 = 141 → 정합 |
-        | EzUpdater Frontend | 0 | **109** | |
-        | EzServer REST API v2 | 0 | **85** | `cargo`(Rust) — 2차 미러로 해소 |
-        | EzServer WebConsole | 0 | **77** | |
-        | EzLauncher | 0 | **73** | v6.3.1 = 64 |
-        | EzServer LicenseManager Frontend | 0 | **70** | v6.3.1 = 44 |
-        | EzServer PMS Integration | 0 | **63** | 2차 미러로 해소 |
-        | EzServer LicenseManager | 0 | **46** | v6.3.1 = 43 |
-        | EzWebServer | 0 | **35** | `composer`(PHP) — 2차 미러로 해소 |
-        | EzServer Messenger | 0 | **32** | v6.3.1 = 33 |
-        | **vt-api-gateway-console** | 0 | **6** | |
-        | **vt-api-gateway** | 0 | **2** | |
+        | 프로젝트                         | 이전 |    이후 | 비고                              |
+        | -------------------------------- | ---: | ------: | --------------------------------- |
+        | EzUpdater                        |    0 | **174** |                                   |
+        | EzServer AuthProvider            |    0 | **153** | 같은 제품 v6.3.1 = 141 → 정합     |
+        | EzUpdater Frontend               |    0 | **109** |                                   |
+        | EzServer REST API v2             |    0 |  **85** | `cargo`(Rust) — 2차 미러로 해소   |
+        | EzServer WebConsole              |    0 |  **77** |                                   |
+        | EzLauncher                       |    0 |  **73** | v6.3.1 = 64                       |
+        | EzServer LicenseManager Frontend |    0 |  **70** | v6.3.1 = 44                       |
+        | EzServer PMS Integration         |    0 |  **63** | 2차 미러로 해소                   |
+        | EzServer LicenseManager          |    0 |  **46** | v6.3.1 = 43                       |
+        | EzWebServer                      |    0 |  **35** | `composer`(PHP) — 2차 미러로 해소 |
+        | EzServer Messenger               |    0 |  **32** | v6.3.1 = 33                       |
+        | **vt-api-gateway-console**       |    0 |   **6** |                                   |
+        | **vt-api-gateway**               |    0 |   **2** |                                   |
+
       - ⚠ **결정 필요(공유가 아니라 안건)**: **드러난 취약점 1,000건 이상의 심사·조치 주체와 정책이 없다.** DT 에 수치만 쌓이고 누가 언제 무엇을 고치는지 정해져 있지 않으면 R1 온보딩의 실효가 없다. 상세 = 아래 논의 사항.
       - ⚠ **부수 발견(별건)**
         - **① GHSA 전량 미러링이 오래 걸린다** — 첫 실행이 `Connection reset` 으로 중단됐다(15분에 400건). **인증 문제는 아니다.**
@@ -108,6 +107,7 @@
           - **incremental 이라 매일 자동으로 이어받는다**(그대로 두기로 결정).
           - 첫 중단의 원인인 egress 불안정은 **Jenkins install flake** 와 같은 뿌리로 의심된다.
         - **② 빌드 호스트 `/etc/hosts` 오타** — `126.0.0.1 localhost`(127 이어야 함). `localhost` 가 공인 대역을 가리켜 python 등 일부 도구만 간헐 실패했다. **수정 완료(9/14)**.
+
     - **[최초 admin 부트스트랩 allowlist]** ✅ **구현 완료(9/10 · PR #14212 머지)**
       - 🔴 **해결한 것 — "최초 admin 데드락"**: Console 실 로그인 후 **승인해 줄 admin 이 아무도 없어** 아무도 들어갈 수 없던 상태.
       - **계약** — env `GW_BOOTSTRAP_ADMIN_EMAILS`. 첫 로그인 시 JIT 로 admin 자동 부여(요청→승인 생략) · 매칭=이메일 · 저장=oid · 멱등 · 비회수 · 최소 2명.
@@ -120,6 +120,10 @@
       - ⚠ **부수 — 전 PR 이 막혔던 사건**: 신규 org-wide `multer` HIGH CVE 로 dep-scan 게이트가 **모든 PR 을 차단**. surgical override PR #14220(`multer ^2.3.0`)을 먼저 머지해 언블록했다.
       - **다운스트림** — ③-I(Jack) 이 Parameter Store 에 `GW_BOOTSTRAP_ADMIN_EMAILS` + `GW_OPERATOR_OIDC_TENANT` 주입. 즉시 언블록은 `dev:operator --sub <oid> --role admin`(로컬).
     - **[GW dev 배포·통합]** core·receiver·dispatcher·**admin 전부 dev 기동 확인**(9/10: admin `/v1/admin/me` 401=healthy·8/31 503 해소) · 통합은 Entra admin consent 승인 후 실로그인부터(③-I #3)
+    - **[Entra 앱 등록]** ✅ dev 2앱 회신 완료(9/9) · **admin consent 승인 완료(IT · 9/10)**
+      - 로컬 실로그인으로 검증됨.
+      - **`aud` 형식 확정** — dev SSM 은 `api://<GUID>`, GW admin 은 bare `<GUID>`. **표기가 다르나 둘 다 Entra 표준**(스코프는 `<audience>/.default`).
+      - 배포 후 로그인 실패 시 **첫 용의자**로 둔다.
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
       - ⭐ **`T-FE-8-1` 로컬 검증 통과(9/10)** — admin consent 승인(IT · 9/10) 후 **실 Entra 로그인 → 토큰 → GW admin 응답**까지 성공.
         - `issuer`·`aud`·`scp` 가 전부 맞다는 것이 **통과 자체로 증명**됐다(이전 401 은 GW `.env` 가 로컬 OIDC 스텁을 보던 것).
@@ -150,10 +154,6 @@
           - `Build.QueueTime` 은 빈 값이 조용히 박혔다.
           - 목 배포는 초록으로 끝나고 덮었다.
           - 💡 **실패가 보이게 만드는 것**이 다음 구간의 개선 항목이다 — ⭐ `es-ci-templates` 는 **이미 반영 완료**(9/14 확인).
-    - **[Entra 앱 등록]** ✅ dev 2앱 회신 완료(9/9) · **admin consent 승인 완료(IT · 9/10)**
-      - 로컬 실로그인으로 검증됨.
-      - **`aud` 형식 확정** — dev SSM 은 `api://<GUID>`, GW admin 은 bare `<GUID>`. **표기가 다르나 둘 다 Entra 표준**(스코프는 `<audience>/.default`).
-      - 배포 후 로그인 실패 시 **첫 용의자**로 둔다.
     - **[Console dev 실배포 · SSM 3중 결함]** ✅ **9/10 진단·조치 완료**(①③ 해소 · ②는 템플릿 개선으로 이관)
       - 🔴 **증상** — 실 Entra 빌드가 `Load env from SSM` 에서 **에러 한 줄 없이 0.5초 만에** 죽어 두 번 실패.
         - [빌드 55466](https://dev.azure.com/ewoosoft/es-platforms/_build/results?buildId=55466) · [빌드 55475](https://dev.azure.com/ewoosoft/es-platforms/_build/results?buildId=55475).
@@ -173,19 +173,11 @@
         - **`/dev/vt-api-gateway-admin/config` 로 이동 + admin 파드 재시작** 필요(env 는 부팅 시 1회 로드 · SRS §7.8.4).
         - 미조치 시 **로그인은 되는데 `no_access` 로 떨어진다.**
     - **[운영자 매뉴얼 · 최초 관리자]** ✅ **작성 완료 · 스펙 검토 통과**([PR 14234](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14234))
-      - 🔴 **메운 구멍** — *"첫 admin 은 누가 승인하나"* 에 매뉴얼이 답을 갖고 있지 않았다.
+      - 🔴 **메운 구멍** — _"첫 admin 은 누가 승인하나"_ 에 매뉴얼이 답을 갖고 있지 않았다.
       - **케이스 E 신설** — 승인 없이 부여 · TOFU 아님 · 멱등 · 비회수 · 재로그인 복원 · **2명 이상 권장** · 감사 기록은 `system`.
       - **트러블슈팅 3줄** — 승인할 관리자 없음 / **재시작 누락** / **테넌트 값 누락 시 admin 부팅 거부**(spec-v1.0.86).
       - 배포 주입 절차는 ③-I 소관이라 **일부러 넣지 않았다.**
     - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
-
-  - **이번 주 결정사항 (9/10 회의)**
-    - **SBOM/보안 파이프라인**
-      - ③ **GW+Console 둘 다** 온보딩 · **DT/SBOM + SonarQube 둘 다**(SQ 를 후속 → **병행으로 상향**).
-      - 트리거 = **일 1회 새벽 스케줄**(pollSCM). 초기 'QA tagging' 안은 ADO 연동·토큰 비용이 커 **철회**.
-      - ✅ **당일 완료(9/10)** → 위 「이번 주 진행」 참조.
-    - **Entra**: prod 등 **전 환경 앱을 미리 요청**(임건혁/Jack) — 단 **domain 확정 선행**(김성훈/Scott).
-    - **DT·SonarQube의 cloud 이전**(비용·방안) 추가 검토 — 급하지 않음(임건혁/Jack).
 
 - 논의 사항 (이번 주 · 신규 · R#)
   - **[R1] 보안·품질 지표를 누가 심사·조치할 것인가** _(9/14 신규 · 판단 = PL · 품질/RA)_
@@ -197,7 +189,6 @@
     <br/>
 
     **▼ 근거·상세**
-
     - **배경 — 안 보이던 것이 한꺼번에 드러났다**
       - 9/14 DT 취약점 탐지를 복구하자 **1,000건 이상**이 나타났다(위 「이번 주 진행」 표 참조).
       - 같은 제품 v6.3.1 이 141, v6.5.0-fda 가 153 인 데서 보듯 **새로 생긴 것이 아니라 그동안 안 보였던 것**이다.
@@ -224,22 +215,22 @@
       - **(나) 신규 코드에서 위반이 나오는 것** — 조건을 조정해도 사라지지 않으므로 **상환 계획**이 필요하다.
       - **아래 14건은 전부 Quality Gate 실패다**(통과 = `eslockserver` 등 10건). `common-rust_es_config` 를 뺀 13건에 **커버리지 0% 조건이 공통**으로 걸려 있어 열에서 생략했다. `—` = 해당 조건 기준 내.
 
-        | 프로젝트 | 게이트 | 신규 위반 | 신규 중복 | hotspot 미검토 | 전체 위반 | 갈래 |
-        | --- | :---: | ---: | ---: | :---: | ---: | :---: |
-        | ezcloud | 실패 | **184** | 5.7% | O | — | 나 |
-        | cloudwebviewer | 실패 | **183** | — | O | — | 나 |
-        | ezwebserver | 실패 | **126** | **11.4%** | O | — | 나 |
-        | oneid | 실패 | **68** | 3.2% | O | — | 나 |
-        | ezserver-license-manager-frontend | 실패 | 59 | — | — | — | 나 |
-        | ezserver-license-manager | 실패 | 24 | 9.4% | O | — | 나 |
-        | frontend | 실패 | 19 | — | — | — | 나 |
-        | ezserver-updater | 실패 | 16 | — | — | — | 나 |
-        | common-rust_es_config | 실패 | 12 | — | — | — | 나 |
-        | ezserver-auth-provider | 실패 | 11 | — | O | — | 나 |
-        | ezserver-messenger | 실패 | 1 | — | — | — | 나 |
-        | ezserver-updater-frontend | 실패 | 0 | — | O | — | 나(hotspot) |
-        | **vt-api-gateway** | **실패** | 0 | — | O | **35** | **가** |
-        | **vt-api-gateway-console** | **실패** | 0 | — | O | **149** | **가** |
+        | 프로젝트                          |  게이트  | 신규 위반 | 신규 중복 | hotspot 미검토 | 전체 위반 |    갈래     |
+        | --------------------------------- | :------: | --------: | --------: | :------------: | --------: | :---------: |
+        | ezcloud                           |   실패   |   **184** |      5.7% |       O        |         — |     나      |
+        | cloudwebviewer                    |   실패   |   **183** |         — |       O        |         — |     나      |
+        | ezwebserver                       |   실패   |   **126** | **11.4%** |       O        |         — |     나      |
+        | oneid                             |   실패   |    **68** |      3.2% |       O        |         — |     나      |
+        | ezserver-license-manager-frontend |   실패   |        59 |         — |       —        |         — |     나      |
+        | ezserver-license-manager          |   실패   |        24 |      9.4% |       O        |         — |     나      |
+        | frontend                          |   실패   |        19 |         — |       —        |         — |     나      |
+        | ezserver-updater                  |   실패   |        16 |         — |       —        |         — |     나      |
+        | common-rust_es_config             |   실패   |        12 |         — |       —        |         — |     나      |
+        | ezserver-auth-provider            |   실패   |        11 |         — |       O        |         — |     나      |
+        | ezserver-messenger                |   실패   |         1 |         — |       —        |         — |     나      |
+        | ezserver-updater-frontend         |   실패   |         0 |         — |       O        |         — | 나(hotspot) |
+        | **vt-api-gateway**                | **실패** |         0 |         — |       O        |    **35** |   **가**    |
+        | **vt-api-gateway-console**        | **실패** |         0 |         — |       O        |   **149** |   **가**    |
 
         _(전체 위반은 VT 만 채웠다 — (가)/(나) 대비를 보기 위한 것이고, 기존 제품은 미집계.)_
 
