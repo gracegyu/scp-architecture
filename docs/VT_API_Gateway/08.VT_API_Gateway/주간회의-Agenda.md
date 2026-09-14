@@ -15,18 +15,34 @@
 
 
   - **이번 주(9/17) 착수·진행 · 선결 대기**
-    - **[R1 실행 — GW·Console × DT·SonarQube 온보딩] ✅ 완료(9/10)** ⭐ _(회의 결정 직후 당일 완료·Jenkins 세션)_ — **4 커버리지(GW·Console × DT·SonarQube) 전부 실데이터 확인·Quality Gate 둘 다 Pass**.
+    - **[GW·Console × DT·SonarQube 온보딩] ✅ 완료(9/10)** ⭐ _(회의 결정 직후 당일 완료)_ — **4 커버리지(GW·Console × DT·SonarQube) 전부 실데이터 확인·Quality Gate 둘 다 Pass**.
       - **결과**: DT SBOM components GW **424**·Console **260**(CycloneDX 1.6) · SonarQube GW **17.5k LoC·버그5·취약점0·hotspot21**·Console **24.2k·버그5·취약점0·hotspot15**. ⚠ **커버리지 0%**(파이프라인이 테스트 미실행) → 잡에 test+coverage 추가할지 **별도 논의**.
       - **부수 성과(전 제품 해당)**: `python/sbom_extractor.py`의 **잠복 버그 5건 발견·수정**(DT/ABS 업로드·trivy 실패의 **종료코드 삼킴**→빌드 SUCCESS인데 DT 비어 있던 것·불완전 SBOM 업로드·POSIX rmtree) — Windows 에이전트에선 안 드러나다 Linux 이관서 노출. **종료코드 불신·DT 직접 조회 Verify Upload 스테이지 추가**. + trivy 0.71+가 CycloneDX 1.7 산출→DT 4.13.3(1.6까지)이 400 거절 → **trivy 0.70.0 고정**(DT 업그레이드 불요). 상세=`sbom/jenkins` repo.
       - **만든 것**(`sbom/jenkins`·main): `vars/sharedPipelineSbomPyLinux.groovy`(신규·Node/pnpm Linux) · jenkinsfile 4종 · config 2종 · Node 샘플 템플릿 2종. (pnpm은 기존 `-py`(python) 계열이 이미 지원 — Groovy Node 템플릿 신설 불요로 판명. `-py`가 Windows였던 건 EzServer가 Windows 대상 SW라서·VT는 Linux 대상.)
       - **남은 것 = 없음(완결).** 트리거는 **초기 'QA 태그' 안 철회 → 일 1회 새벽 스케줄로 확정**(Raymond·9/10) — 기존 잡들과 동일 **pollSCM**이라 ADO 연동·API 토큰·변수그룹 불요. 4잡 KST 새벽 2~5시 분산(commit `40986aa`·Verify Upload 통과). **별도 논의 = 커버리지 0%**(잡에 test+coverage 붙일지·Raymond "필요성 추가 논의").
-      - ⚠ **부수 발견(별건·Jenkins 세션 처리)**: `jenkins-server` 컨테이너 **TZ 미설정(UTC)** → 기존 잡 13개 크론이 의도와 달리 **업무시간에 돔**(예 SBOM `H 3`=KST 정오·CI와 에이전트 경합·eslockserver #18이 12:19 KST 실행이 증거). 급하지 않아 별건(TZ=Asia/Seoul은 전체 9h 시프트라 신중)·회의 안건 아님. VT 4잡은 UTC 환산해 실제 새벽 실행.
-    - **[DT 취약점 탐지 복구 — 전 제품 해당]** ✅ **완료(9/14)** ⭐ _(Raymond 발견·Jenkins 세션 조치)_ — **Dependency-Track 이 npm 기반 전 제품에서 취약점을 0 으로 보고하던 것**을 정상화. R1 온보딩 검증 중 Raymond 가 "GW 취약점 0 은 그럴 수 없다"고 짚어 드러났다. **VT 만의 문제가 아니라 EzServer 전 계열이 같은 상태**였다.
+      - ⚠ **부수 발견(별건)**: `jenkins-server` 컨테이너 **TZ 미설정(UTC)** → 기존 잡 13개 크론이 의도와 달리 **업무시간에 돔**(예 SBOM `H 3`=KST 정오·CI와 에이전트 경합·eslockserver #18이 12:19 KST 실행이 증거). 급하지 않아 별건(TZ=Asia/Seoul은 전체 9h 시프트라 신중)·회의 안건 아님. VT 4잡은 UTC 환산해 실제 새벽 실행.
+    - **[DT 취약점 탐지 복구 — 전 제품 해당]** ✅ **완료(9/14)** ⭐ **Dependency-Track 이 npm 기반 전 제품에서 취약점을 0 으로 보고하던 것**을 정상화. **VT 만의 문제가 아니라 EzServer 전 계열이 같은 상태**였다.
       - **원인**: 유일한 npm 취약점 공급원이던 **Sonatype OSS Index 가 2026-04-29 부터 402 Payment Required**(무료 티어 종료·Sonatype Guide 로 이관·**레거시 엔드포인트 2026-12-31 완전 종료**). npm 패키지는 NVD 에 CPE 가 없어 내장 분석기로 안 잡히므로, 공급원이 끊긴 순간 npm 은 통째로 0 이 된다. **비-npm 제품(Ez3D-i = `generic`·`debian`·`boost` purl)은 NVD 로 계속 잡히고 있어 문제가 가려져 있었다**(Ez3D-i 190건 정상). 48시간에 402 가 **458건** 쌓여 있었다.
       - **조치**: ① **Google OSV 활성화**(`npm;crates.io;Pub;Packagist` — DT 컴포넌트 purl 전수조사로 선정: npm 20,366 · cargo 4,929 · pub 398 · composer 66) ② **GitHub Advisories 활성화**(classic PAT·fine-grained 는 GraphQL 401 로 불가) ③ **OSS Index 비활성화** ④ 취약점 0 이던 **19개 프로젝트 일괄 재분석**(`POST /api/v1/finding/project/{uuid}/analyze` — BOM 재업로드 불요).
-      - **결과**: 취약점 DB **390,692 → 629,114**. 탐지 복구 = EzServer 8개 + VT 2개. `EzUpdater` **0→174** · `AuthProvider` **0→153**(같은 제품 v6.3.1 이 141 이라 정합) · `EzUpdater Frontend` **0→109** · `WebConsole` **0→77** · `EzLauncher` **0→73** · `LicenseManager Frontend` **0→70** · `LicenseManager` **0→46** · `Messenger` **0→32** · **`vt-api-gateway` 0→2** · **`vt-api-gateway-console` 0→6**. VT 수치가 낮은 것은 의존성이 최신이라서이고 **0 이 아니라는 점이 핵심**이다(앞으로 신규 CVE 가 잡힌다). 진행중 = crates.io·Pub·Packagist 2차 미러 + 재분석(Rust 4,929 컴포넌트 대상 — `EzServer REST API v2` 등 아직 0 인 9건).
+      - **결과**: 취약점 DB **390,692 → 629,114**. **13개 프로젝트에서 탐지 복구**(EzServer 계열 11 + VT 2). 2차로 `crates.io`·`Packagist` 를 추가해 **Rust·PHP 제품까지 커버**했다. VT 수치가 낮은 것은 의존성이 최신이라서이고 **0 이 아니라는 점이 핵심**이다 — 앞으로 신규 CVE 가 잡힌다.
+
+        | 프로젝트 | 이전 | 이후 | 비고 |
+        | --- | ---: | ---: | --- |
+        | EzUpdater | 0 | **174** | |
+        | EzServer AuthProvider | 0 | **153** | 같은 제품 v6.3.1 = 141 → 정합 |
+        | EzUpdater Frontend | 0 | **109** | |
+        | EzServer REST API v2 | 0 | **85** | `cargo`(Rust) — 2차 미러로 해소 |
+        | EzServer WebConsole | 0 | **77** | |
+        | EzLauncher | 0 | **73** | v6.3.1 = 64 |
+        | EzServer LicenseManager Frontend | 0 | **70** | v6.3.1 = 44 |
+        | EzServer PMS Integration | 0 | **63** | 2차 미러로 해소 |
+        | EzServer LicenseManager | 0 | **46** | v6.3.1 = 43 |
+        | EzWebServer | 0 | **35** | `composer`(PHP) — 2차 미러로 해소 |
+        | EzServer Messenger | 0 | **32** | v6.3.1 = 33 |
+        | **vt-api-gateway-console** | 0 | **6** | |
+        | **vt-api-gateway** | 0 | **2** | |
       - ⚠ **결정 필요(공유가 아니라 안건)**: **드러난 취약점 1,000건 이상의 심사·조치 주체와 정책이 없다.** DT 에 수치만 쌓이고 누가 언제 무엇을 고치는지 정해져 있지 않으면 R1 온보딩의 실효가 없다. 상세 = 아래 논의 사항.
-      - ⚠ **부수 발견(별건·Jenkins 세션 처리)**: ① **GHSA 미러가 호스트 egress 불안정으로 실패** — `Connection reset`, 15분에 400/35,538건. 인증 문제 아님(PAT 정상). **incremental 체크포인트가 저장**되어 매일 자동 이어받기(Raymond: 그대로 둔다). 같은 뿌리로 Jenkins install flake 도 의심된다. ② 빌드 호스트 `/etc/hosts` 의 **`126.0.0.1 localhost` 오타**(127 이어야 함) — `localhost` 가 공인 대역을 가리켜 python 등 일부 도구만 간헐 실패. **수정 완료(9/14)**.
+      - ⚠ **부수 발견(별건)**: ① **GHSA 미러가 호스트 egress 불안정으로 실패** — `Connection reset`, 15분에 400/35,538건. 인증 문제 아님(PAT 정상). **incremental 체크포인트가 저장**되어 매일 자동 이어받기(Raymond: 그대로 둔다). 같은 뿌리로 Jenkins install flake 도 의심된다. ② 빌드 호스트 `/etc/hosts` 의 **`126.0.0.1 localhost` 오타**(127 이어야 함) — `localhost` 가 공인 대역을 가리켜 python 등 일부 도구만 간헐 실패. **수정 완료(9/14)**.
     - **[최초 admin 부트스트랩 allowlist]** ✅ **구현 완료(9/10·PR #14212 머지)** — Console 실 로그인(9/10) 후 PL이 부딪힌 **"최초 admin 데드락"**(승인할 admin이 없음) 해소. env `GW_BOOTSTRAP_ADMIN_EMAILS`(첫 로그인 JIT admin 자동 부여·요청→승인 생략·매칭=이메일·저장=oid·멱등·비회수·≥2명) 계약을 SRS §7.1.4·§7.9.2·env-reference §2.3에 pin(**spec PR #14204·`spec-v1.0.85`**·Jack 승인·main) + **tenant 제약 보강**(`spec-v1.0.86`: allowlist 설정 시 `GW_OPERATOR_OIDC_TENANT` 필수·타 테넌트 권한상승 차단 — 코드 fail-closed는 #14212로 main·**문서 spec-v1.0.86 머지·태그 완료**(PR #14236·Jack 리뷰어)). **코드**(`OperatorBootstrapService`·admin JIT 경로·PR #14212): unit·e2e(데드락 해소·멱등·대소문자·비-allowlist 403) green·독립리뷰 🟢·보안 M1(테넌트 fail-closed)/M2(감사 loud) 반영. **부수**: 신규 org-wide `multer` HIGH CVE로 dep-scan 게이트가 전 PR 차단 → surgical override PR #14220(`multer ^2.3.0`) 먼저 머지해 언블록. 다운스트림 = **③-I(Jack) Parameter Store 에 `GW_BOOTSTRAP_ADMIN_EMAILS`+`GW_OPERATOR_OIDC_TENANT` 주입**. 즉시 언블록은 `dev:operator --sub <oid> --role admin`(로컬).
     - **[GW dev 배포·통합]** core·receiver·dispatcher·**admin 전부 dev 기동 확인**(9/10: admin `/v1/admin/me` 401=healthy·8/31 503 해소) · 통합은 Entra admin consent 승인 후 실로그인부터(③-I #3)
     - **[GW Console 통합]** 실 dev GW + Entra 접목 · 완료 화면 포함 정합성 확인 마무리
@@ -50,12 +66,46 @@
     - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
 
   - **이번 주 결정사항 (9/10 회의)**
-    - **R1 (SBOM/보안 파이프라인)**: ③ **GW+Console 둘 다** 온보딩 · **DT/SBOM + SonarQube 둘 다**(SQ를 후속→**병행 상향**) · 트리거 = **일 1회 새벽 스케줄**(초기 'QA tagging' 안은 ADO/토큰 비용 커 **철회**·pollSCM). **당일 완료(9/10·Jenkins 세션)** → 위 「이번 주 진행」 참조. 실행=Raymond 지시.
+    - **SBOM/보안 파이프라인**: ③ **GW+Console 둘 다** 온보딩 · **DT/SBOM + SonarQube 둘 다**(SQ를 후속→**병행 상향**) · 트리거 = **일 1회 새벽 스케줄**(초기 'QA tagging' 안은 ADO/토큰 비용 커 **철회**·pollSCM). **당일 완료(9/10)** → 위 「이번 주 진행」 참조. 실행=Raymond 지시.
     - **Entra**: prod 등 **전 환경 앱을 미리 요청**(임건혁/Jack) — 단 **domain 확정 선행**(김성훈/Scott).
     - **DT·SonarQube의 cloud 이전**(비용·방안) 추가 검토 — 급하지 않음(임건혁/Jack).
 
 - 논의 사항 (이번 주 · 신규 · R#)
-  - _(9/10 신규 안건 없음 — R1 결정 완료→「이번 주 진행」으로 이동. 신규 발생 시 R2·R3…)_
+  - **[R1] 보안·품질 지표 심사·조치 정책 — 소유자와 게이트를 정해야 한다** _(9/14 신규 · 판단 필요=PL·품질/RA)_ · **대상 = Dependency-Track + SonarQube 양쪽**
+    - **배경**: 9/14 DT 취약점 탐지를 복구하자 **1,000건 이상이 한꺼번에 드러났다**(EzUpdater 174 · AuthProvider 153 · EzUpdater Frontend 109 · WebConsole 77 · EzLauncher 73 · LicenseManager Frontend 70 · LicenseManager 46 · Messenger 32 · vt-api-gateway 2 · console 6). 같은 제품 v6.3.1 이 141, v6.5.0-fda 가 153 인 데서 보듯 **새로 생긴 것이 아니라 그동안 안 보였던 것**이다. 방치하면 다음 릴리스도 같은 상태로 나간다.
+    - **문제**: 수치는 생겼는데 **누가·언제·무엇을 고치는지가 없다.** DT 의 조치 장치가 전부 비어 있다 — Policy Management(심각도 임계) **정책 0건**(Policy Violations 전 제품 0) · Vulnerability Audit(심사 워크플로) 미사용 · Notifications 미설정. 이대로면 DT 는 숫자만 쌓이는 대시보드가 되고, R1 온보딩이 "가시성 확보"에서 멈춘다.
+    - **SonarQube 도 같은 상태다(9/14 실측)**: 전체 25개 중 **Quality Gate 실패 14 · 통과 10**. 그리고 **`new_security_hotspots_reviewed` 가 전 제품 0%** — security hotspot 을 아무도 검토하지 않았다는 뜻이다. 실패 원인은 **두 갈래로 나뉘며 성격이 다르다**.
+      - **(가) 커버리지 조건만 걸린 것** — **코드 문제가 아니다.** 커버리지 리포트를 안 넘겨 0% 로 계산된 결과이고, 커버리지는 **ADO CI 가 이미 측정**한다(GW = unit+e2e 합산 + floor 게이트). SonarQube 에서 다시 재는 것은 중복이다 → **조건을 뺄지, Jenkins 잡에 테스트 실행을 붙일지** 결정 필요.
+      - **(나) 실제 품질 부채** — **새 코드에서 위반이 나온다.** 조건을 조정해도 사라지지 않으므로 **상환 계획**이 필요하다.
+
+        | 프로젝트 | 신규 위반 | 신규 중복 | hotspot 미검토 | 갈래 |
+        | --- | ---: | ---: | :---: | :---: |
+        | ezcloud | **184** | 5.7% | O | 나 |
+        | cloudwebviewer | **183** | — | O | 나 |
+        | ezwebserver | **126** | **11.4%** | O | 나 |
+        | oneid | **68** | 3.2% | O | 나 |
+        | ezserver-license-manager-frontend | 59 | — | — | 나 |
+        | ezserver-license-manager | 24 | 9.4% | O | 나 |
+        | frontend | 19 | — | — | 나 |
+        | ezserver-updater | 16 | — | — | 나 |
+        | common-rust_es_config | 12 | — | — | 나 |
+        | ezserver-auth-provider | 11 | — | O | 나 |
+        | ezserver-messenger | 1 | — | — | 나 |
+        | ezserver-updater-frontend | 0 | — | O | 나(hotspot 만) |
+        | **vt-api-gateway** | **0** | 통과 | — | **가** |
+        | **vt-api-gateway-console** | **0** | 통과 | — | **가** |
+
+        _(통과 = `eslockserver` 등 10건. 위 14건이 실패. 커버리지 0% 조건은 `common-rust_es_config` 를 뺀 13건 전부에 공통으로 걸려 있어 열에서 생략했다.)_
+
+    - **왜 DT 와 묶어서 정하나**: 둘 다 **"측정은 되는데 조치 경로가 없다"** 로 구조가 같다. 따로 정하면 소유자·주기·게이트 기준을 두 번 정하게 되고 서로 어긋난다. 아래 5가지는 양쪽에 그대로 적용된다.
+    - **정할 것 5가지**
+      - **① 소유자** — 제품별 개발팀 / 품질·RA / 보안 담당 중 누구인가
+      - **② 주기** — 상시 / 릴리스 전 / 월 1회
+      - **③ 범위** — DT = critical·high 만인가 전부인가(DT Policy 로 임계). SQ = 신규 위반 0 을 유지할 것인가, hotspot 검토를 의무화할 것인가
+      - **④ 미조치 처리** — 억제(suppress)·예외 승인 절차가 필요한가(누가 승인하나)
+      - **⑤ 게이트** — 특정 심각도가 남으면 릴리스를 막을 것인가. **SQ 커버리지 조건 처리(위 (가))도 여기서 함께 정한다** — 빼거나, 잡에 테스트를 붙이거나
+    - **규제 연동(선행 확인 필요)**: 온보딩 착수 때 남긴 **"품질/RA 에 SBOM 요구·범위 확인(SRS §6.13)"** 이 아직 미해결이다. **SBOM 제출만인지, 취약점 조치 이력까지 요구하는지**에 따라 ①~⑤ 의 답과 작업량이 크게 달라진다. 이 확인이 사실상 선행 조건이다.
+    - **참고(비-블로킹)**: 기술 배선은 이미 끝나 있다. DT Policy·Notification, SonarQube Quality Gate 조건 모두 관리자 화면에서 조정 가능하고, 정해지면 바로 반영 가능하다. **지금 필요한 것은 설정이 아니라 정책 결정이다.** 별건으로 **SonarQube 에 분석 이력이 한 번도 없는 껍데기 프로젝트 8건**(`common-rust_*` 3 · `ezserver_installer` · `ezserver_pms_integration` · `ezserver_rest_api_v2` · `ezserver_suite` 등)이 있어 정리 대상 여부 확인이 필요하다.
 
 - **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인. **✅ 9/3 대거 착지(Jack): 실 IoT Core·Parameter Store(compat well-known 200)·KMS CMK(payload+target)·공개 ingress = dev 완료** · admin 부팅(401)·Entra 앱 회신(9/9)까지 겹쳐 **dev 인프라 핵심이 대부분 해소**됨(남은 dev 블로커 = Entra admin consent·자동배포·마이그Job·dispatcher 안정화·test 환경). 상세=`docs/handoff/pending-infra-requests.md §9`. (PR: https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/12653)
 
@@ -218,8 +268,8 @@
       | **T-E2E-12-5** | 환자문서 order-file presign | ✅ create/download 실측 | 파일 붙은 lab order 시드 | Straumann |
       - **최우선 블로커(회의에서 밀 것)**: ① **Entra admin consent 승인**(dev 2앱 회신 9/9·IT-9442·**admin API는 부팅됨**[9/10 401]·**consent 미승인**이라 Console 실로그인 불가) → **dev 통합검증 정체** · ② **test 환경 프로비저닝**(선결#5·마감 8/26) — 부하·HA 2건 동시 해제. **PL 결정 대기 = RTO/RPO 목표**(HA 합격기준). **GW 코드/설정 잔여 = 0**(마이그레이션·ECR·파이프라인까지 완료).
       - 🟢 **지금 착수 가능(9/3 ③-I 인프라 풀림) — IoT 다운링크 E2E**(T-DISP-9-5·T-E2E-12-6): **③-I 대기 아님·GW 몫**. 경로는 스펙 정의(토픽 `gw/clinic/{clinicId}/#`·`MQTT_URL`/`IOT_ENDPOINT`·ShareName `ezserver`). 순서 = ① **dispatcher exit137 원인규명·해소** → ② **device Thing enroll 1건** → ③ **webhook→IoT Core→EzServer 다운링크 E2E 1회**. 실행 주체=**구현 세션**.
-        - **9/10 직접 실측(스펙 세션·read-only)**: `aws iot list-things`=**0**(enroll된 Thing 없음 실증) · dev IoT 엔드포인트 `a2ig1yuqacb8gl` 일치.
-        - ⚠ **접근 경계**: dispatcher 파드(exit137) 진단은 **dev EKS 접근** 필요인데, 내 자격 계정(IoT는 보이나 **EKS 클러스터 0**)에 안 보임 → **Jack에 dev EKS 접근 개방 요청** 또는 **dev 접근 보유 구현 세션**이 `kubectl describe/logs`로 원인(OOM=리소스→③-I / 코드→GW) 특정.
+        - **9/10 직접 실측(read-only)**: `aws iot list-things`=**0**(enroll된 Thing 없음 실증) · dev IoT 엔드포인트 `a2ig1yuqacb8gl` 일치.
+        - ⚠ **접근 경계**: dispatcher 파드(exit137) 진단은 **dev EKS 접근** 필요인데, 현재 자격 계정(IoT는 보이나 **EKS 클러스터 0**)에 안 보임 → **Jack에 dev EKS 접근 개방 요청** 또는 **dev 접근 보유 구현 세션**이 `kubectl describe/logs`로 원인(OOM=리소스→③-I / 코드→GW) 특정.
         - 그 외(부하·HA=test 환경 · presign=Straumann 시드)는 여전히 막힘.
 
   - **S4. GW Console(③-C) 현황 — Phase 요약 (8/27)** _(frontend · `vt-api-gateway-console` · Next 16 + Refine 5 + shadcn · GW Admin API 코드젠 소비)_
