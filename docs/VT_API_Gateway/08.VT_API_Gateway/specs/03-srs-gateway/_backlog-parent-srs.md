@@ -97,17 +97,30 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 
 ### B-4(잔여·web-originator). 웹 originator 헤더 세트·UA 기반 인벤토리 정식화 — gated·비차단
 - **주 범위는 완료·이동.** Roadmap 死링크 제거 + §7.7.1 식별 헤더 2계층 + §7.7.4 + §7.8.5는 **#12638(`spec-v1.0.20`) 머지**로 완료(위 완료 이력). 여기 남는 건 web-originator 스코프뿐.
-- **잔여(gated·비차단).** §2.3.0 웹 originator 헤더 세트 표 *세부* + **UA 기반 웹 클라 인벤토리 정식화**(product/version NOT NULL 완화·UA 파싱으로 식별키 소싱). **웹이 GW로 직접 originate 하는지(§2.3.0) 확정 후.** UA 원문은 이미 `client_inventory.user_agent`에 저장돼 원자료 손실 없음(파싱만 지연).
+- **잔여(gated · 비차단)**
+  - §2.3.0 웹 originator 헤더 세트 표 **세부**
+  - **UA 기반 웹 클라 인벤토리 정식화** — product/version NOT NULL 완화 · UA 파싱으로 식별키 소싱
+  - ⚠ **웹이 GW 로 직접 originate 하는지(§2.3.0) 확정이 먼저**다
+  - ⭐ **원자료 손실은 없다** — UA 원문은 이미 `client_inventory.user_agent` 에 저장된다(파싱만 지연)
 - **출처.** 헤더 정책=2026-08-12 사용자 · web-originator 스코프 gated.
 
 ### B-10-2. 저위험 문안 버킷 (2차·재사용) — 모아서 1 PR
 - **방침**(B-10 1차 완료 후 승계·사용자 2026-08-10): 자잘한 주석·문안 정합은 건건 올리지 말고 여기 모아 **한꺼번에 1개 spec PR**로 처리한다(PR 노이즈·리뷰 부담 감소). 계약/스키마 무변경·저위험만(실질 변경은 별도).
 - **항목:**
-  - **OnePager 잔여 정정** — B-10 1차(PR #12632)가 compat-matrix 범위만 처리(§7.7·§7.7.5·Appendix B #8·compat 파일). **범위 밖 잔여**: SRS §1.2·§1.5·§4.1.4·§5 등의 `One Pager`(두 단어) 철자 통일 + **② Presigned OnePager** 참조(② 흡수 여부=제품 OnePager 반영 정리). 대상=SRS(§1.2·§1.5·§4.1.4·§5 등). [[onepager-terminology]].
+  - **OnePager 잔여 정정**
+    - B-10 1차(PR #12632)가 **compat-matrix 범위만** 처리했다(§7.7 · §7.7.5 · Appendix B #8 · compat 파일)
+    - **범위 밖 잔여**
+      - SRS §1.2 · §1.5 · §4.1.4 · §5 등의 `One Pager`(두 단어) 철자 통일
+      - **② Presigned OnePager** 참조 — ② 흡수 여부는 제품 OnePager 반영 정리에 달렸다
+    - 대상 = SRS(§1.2 · §1.5 · §4.1.4 · §5 등) · [[onepager-terminology]]
 - **트리거.** 항목이 몇 개 쌓이거나 다른 저위험 문안 PR을 올릴 때 함께. 대상 repo=vt-api-gateway(SRS).
 
 ### B-11. [gw/1.2] 멀티리전 확대 시 스펙 상세화 — roll-up 색인 (중복 기재 금지)
-- **방침(사용자·2026-08-10).** gw/1.2(멀티리전 N리전 활성화) 착수 시 상세화·수정할 스펙을 **한 곳에 색인**한다. 대부분 **이미 개별 추적처가 있으므로 여기선 포인터만** 두고 내용은 정본에서 관리한다(중복 시 어긋남 방지). **트리거 = gw/1.2 설계 착수.**
+- **방침(사용자 · 2026-08-10)**
+  - gw/1.2(멀티리전 N리전 활성화) 착수 시 상세화·수정할 스펙을 **한 곳에 색인**한다
+  - ⭐ **여기선 포인터만 두고 내용은 정본에서 관리**한다 — 대부분 이미 개별 추적처가 있다
+    - 중복해서 적으면 **어긋난다**
+  - **트리거 = gw/1.2 설계 착수**
 - **부모 GW SRS(추적처 존재 — 포인터):**
   - 멀티리전 authz **복제 계층 구현**(DynamoDB Global Table + Streams·쓰기 권위 이관) → §7.9.2·**Appendix B #52**(모델·방식 확정·spec-v1.0.14). infra 예고=`03i-infra/_status.md` seed.
   - **(b) 리전 전환 운영자 토큰 audience** → Appendix B #52 (b)·§4.5.1 ⓒ (유일 잔여 미결).
@@ -214,13 +227,27 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
   | **Apigee** | proxy flow별 policy | conditional flow + OAuthV2 | flow 매칭 | conditional flow(pathsuffix+verb) | **OAuthV2 policy `<Scope>`** — flow에 부착 | flow 순서 |
   | **우리 GW(설계·gw/1.1)** | 앱 내부 PDP → OPA(Rego) | (추천) 단일 default-deny + allow-grant + deny-override | **target=deny-by-default · endpoint=allow-within-target**(추천·조건부) | `allowed_endpoints`(glob·예약) | **제외 확정** — GW는 auth authority 아님·AXS가 scope/consent 소유(`policy.scopes` 필드 gw/1.1 제거) | (추천) deny 우선 |
 
-  - **공통 패턴**: ① default-deny가 보안형 표준 · ② allow+deny 병존은 **단일 고정 기본값(deny) + deny-우선**으로 "둘 다 없음" 모순 제거(예 allow `/**`+deny `/x`) · ③ 순서 리스트가 아니라 **우선순위 규칙**(deny>allow>default) · ④ path+method glob + JWT scope가 endpoint 인가 표준.
-  - **scope 관리 위치 = 혼재**: Istio·OPA·Apigee는 **정책/규칙 안**(claim 조건·OAuth policy) · AWS·Kong은 **라우트 authorizer/플러그인**(액세스 정책과 분리). **우리 모델은 정책 안(`policy.scopes`)** 이나, AXS가 이미 scope/consent를 집행하므로 gw/1.1에서 **scope를 GW가 관리할지(정책에 두고 켬) vs AXS 위임으로 뺄지** 결정한다(위 7번 재검토와 동일).
+  - **공통 패턴**
+    - ① **default-deny 가 보안형 표준**
+    - ② allow + deny 병존은 **단일 고정 기본값(deny) + deny 우선**으로 "둘 다 없음" 모순을 없앤다
+      - 예: allow `/**` + deny `/x`
+    - ③ 순서 리스트가 아니라 **우선순위 규칙**(deny > allow > default)
+    - ④ **path + method glob + JWT scope** 가 endpoint 인가 표준
+  - **scope 관리 위치 = 혼재**
+    - 정책·규칙 **안**에 두는 쪽: Istio · OPA · Apigee(claim 조건 · OAuth policy)
+    - **라우트 authorizer·플러그인**으로 빼는 쪽: AWS · Kong(액세스 정책과 분리)
+    - 우리 모델은 **정책 안**(`policy.scopes`)
+    - ⚠ 그런데 **AXS 가 이미 scope/consent 를 집행**한다
+      - → gw/1.1 에서 **GW 가 관리할지(정책에 두고 켬) vs AXS 위임으로 뺄지** 결정한다(위 7번 재검토와 같은 갈래)
 
 - **출처(비교표).** 2026-08-25 업계 API Gateway[AWS/Istio/OPA/Kong/Apigee] 정책·scope 관리 방식 비교(사용자 요청·참고용).
 
 ### B-17. sandbox 있는 target = 환경별 2개 등록(prod + sandbox) — 컨벤션·seed(GW)
-- **컨벤션(확정).** sandbox가 있는 연동은 target을 환경마다 **별도 target**으로 등록한다 — host·자격·egress·**서브도메인 라벨(=target ID)이 환경마다 달라** 한 행으로 겸용 불가. 이름 = `<시스템>`(prod)·`<시스템>-sandbox`(sandbox). DNS 라벨 규칙 준수(`spec-v1.0.71` `^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`·언더스코어 불가).
+- **컨벤션(확정)**
+  - sandbox 가 있는 연동은 target 을 환경마다 **별도 target** 으로 등록한다
+  - ⚠ **한 행으로 겸용할 수 없다** — host · 자격 · egress · **서브도메인 라벨(= target ID)이 환경마다 다르다**
+  - 이름 = `<시스템>`(prod) · `<시스템>-sandbox`(sandbox)
+  - DNS 라벨 규칙 준수(`spec-v1.0.71` · `^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$` · 언더스코어 불가)
 - **★ 신규 환경 seed 규칙(forward-going·actionable·확정 2026-09-01 PL).** **앞으로 test/staging/prod 환경을 세팅할 때는 아래 컨벤션대로** 한다(dev shortcut을 답습하지 말 것):
   - **sandbox에 붙는 환경(test/staging) = `axs-sandbox`** target으로 seed(sandbox 자격/host/egress).
   - **prod = `axs`** target으로 **운영자 수동 등록** — 실 자격/host/egress·**검증 선결**·**자동 seed 금지**·**실 시크릿을 seed 파일/코드에 넣지 말 것**(운영자가 write-only로 입력).
@@ -231,13 +258,22 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
   - **test/staging = `axs-sandbox`**(sandbox·**정식 B-17 준수**).
   - **prod = `axs`**(prod·운영자 **수동 등록**·실 자격·**검증 선결**·**자동 seed 아님**).
   - 근거: dev는 AXS **sandbox 전용**(dev 트래픽이 prod 파트너 데이터에 닿지 않는 표준 격리)·dev/prod **DB 분리**라 한 환경이 prod+sandbox를 동시에 물 일이 없다.
-- **데모·placeholder 유지.** 데모 seed(`DemoSeedService`) `axs`(→실 sandbox)·`dev-showcase.ts`의 `dev-axs-connector`(가짜 host placeholder·Console 브라우징용) 모두 **유지**(개명 시 Jack ingress churn/오해). connector_type 개명(#13421)엔 **target_id 무변경**·데모 seed엔 취지 주석만.
+- **데모·placeholder 유지**
+  - 데모 seed(`DemoSeedService`) 의 `axs`(→ 실 sandbox)
+  - `dev-showcase.ts` 의 `dev-axs-connector`(가짜 host placeholder · Console 브라우징용)
+  - ⚠ **둘 다 유지한다** — 개명하면 Jack ingress churn 과 오해를 부른다
+  - connector_type 개명(#13421)에는 **target_id 무변경** · 데모 seed 에는 취지 주석만 단다
 - **정리(consolidation) 잔여.** 실 sandbox 통합 seed(`axs-sandbox`) 도입 + 데모 은퇴 시 **dev `axs` → `axs-sandbox`로 consolidate**(그때·지금 churn 안 함). 트리거=실 통합 seed 도입.
 - **반영 대상.** ① 부모 SRS §7.5 컨벤션 노트(선택·소폭·dev 예외 명기) · ② **GW seed**: test/staging=`axs-sandbox`·데모 seed 주석(#13421 머지 후).
 - **운영 매뉴얼 반영=완료**(`vt-api-gateway-console/docs/manual/target-management.md` §1 "sandbox·prod는 target 2개"). Console 측(mock·폼)=Console 백로그 **CB-5**.
 
 ### B-19. [contingent · AXS·CleverSpace 외 새 external target 추가 시 · 버전 무관] connector_type 범용성 확장 — override·org-less·추가 프로파일
-- **전제.** connector_type v1.0 골격 완료(완료 이력 **B-18**) — 2 프로파일(`internal_bypass`·`oauth2_org_header`)·descriptor·loud-fail·하위호환. **⚠ 버전 잠김 아님**: 아래 잔여는 **기술적으로 v1.0에서도 가능**(additive 컬럼·플래그·프로파일 추가)하나, **v1.0 대상(AXS·CleverSpace)이 필요로 하지 않아** 미룬 것(YAGNI). 2번째 target이 v1.0 중 나오면 v1.0에서 착수.
+- **전제** — connector_type v1.0 골격 완료(완료 이력 **B-18**)
+  - 2 프로파일(`internal_bypass` · `oauth2_org_header`) · descriptor · loud-fail · 하위호환
+  - ⚠ **버전에 잠긴 것이 아니다**
+    - 아래 잔여는 **기술적으로 v1.0 에서도 가능**하다(additive 컬럼 · 플래그 · 프로파일 추가)
+    - 다만 **v1.0 대상(AXS · CleverSpace)이 필요로 하지 않아** 미뤘다(YAGNI)
+  - ⭐ **2번째 target 이 v1.0 중에 나오면 v1.0 에서 착수**한다
 - **잔여(실제 2번째 external target 계약 확보 시 착수).**
   1. **override 컬럼**: `org_header_name`·`upload_detect_field`·`inbound_signature_header`/`encoding`·`inject_org_id`/`delegate_upload_token`(결합 분리) — 프로파일 기본값에서 target별 편차 수용.
   2. **org-less 지원**: `org_scope_required=false`면 org_mapping 미존재를 403 아닌 통과(`org-id.resolver.ts:26` 주석이 자각한 한계).
@@ -251,22 +287,80 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 - **출처.** 2026-08-31 connector_type v1.0 스코핑(YAGNI) — 완료 B-18에서 분리.
 
 ### B-20. [gw/1.1 · 추후 CleverSpace 연동 요구가 있을 때 · ③b 신원 전달 P0 결정 종속] CleverSpace connector_type = `oauth2_jwt_assertion` 구현
-- **결정(2026-09-01·PL).** CleverSpace **실연동**(target 등록·connector·③b(GW→CleverSpace) 신원 전달)을 **v1.1**로 정리한다 — v1.0은 이미 종료됐고 CleverSpace는 실연동된 적이 없어, v1.0으로 적힌 곳은 오류였다(전수 정정). CleverSpace 커넥터 타입 = **`oauth2_jwt_assertion`**(GW 서명 upstream JWT 어서션·RFC 7523·`aud=cleverspace`·claim `device_id`+`clinic_id` → CleverSpace GW Guard가 JWKS로 검증·§7.1.5). v1.0 카탈로그엔 **`availability:"planned"`·`plannedIn:"v1.1"`**로 자리만 둔다.
-- **배경(③b P0).** CleverSpace ③b 신원 전달이 미정(P0·`03p-cs-cleverspace/_review-log-12239.md` C-02) — CleverSpace는 JWT 필수(테넌트 스코프=토큰 클레임)라 '내부 신뢰'가 아님. 권장안=GW 서명 어서션(→`oauth2_jwt_assertion`)·차선=device 토큰 verbatim(→`internal_bypass`). ⚠ 차선으로 결정되면 `oauth2_jwt_assertion`은 불요(internal_bypass)이나, planned·등록 데이터 0이라 개명/철회 비용 0.
-- **v1.0 안전 설계(완료·GW as-built 확인).** planned 타입은 dispatch 레지스트리(`CONNECTOR_PROFILES`) **밖 별도 목록** — (a) 판별자 unknown→throw(fail-closed·bypass 강등 없음·3중 방어)·(b) Admin API enum 밖 자동 400·(c) descriptor만 availability/plannedIn/plannedNote 방출. 이름을 카탈로그에 올려도 **조용한 인증 우회 창이 열리지 않음**. JWKS 엔드포인트는 v1.0 선공개(소비자=v1.1).
-- **현 조치(완료).** SRS 전수 정합(CleverSpace 실연동=v1.1): §41·§887·§1160·§2376·§2.6·§2.7(gw/1.1 행)·③b 헤더/블록 v1.1 표기 · §7.5.1 planned 카탈로그+★안전규칙+descriptor availability 필드 · JWKS 근거 재작성(엔드포인트 v1.0 유지·소비자 v1.1·§1977/§1980/§1985·§7.1.5) · OpenAPI `ConnectorTypeDescriptor.availability/plannedIn/plannedNote` — **spec-v1.0.75(#13413·merged·태그 완료)**. 선행: connector-profile.ts description 정정(GW #13404·merged · SRS #13406/spec-v1.0.74)·Console 목 중립화·폼 planned 안내(#13408·default-safe).
-- **잔여(v1.1 착수 시).** `oauth2_jwt_assertion` strategy 구현(`CONNECTOR_PROFILES` 승격)·③b P0 확정 반영(권장/차선)·CleverSpace GW Guard 계약(§7.1.5)·CleverSpace target 등록·Console 폼 활성.
+- **결정(2026-09-01 · PL)**
+  - CleverSpace **실연동**(target 등록 · connector · ③b GW→CleverSpace 신원 전달)을 **v1.1** 로 정리한다
+    - ⚠ v1.0 은 이미 종료됐고 CleverSpace 는 **실연동된 적이 없다** — v1.0 으로 적힌 곳은 오류였다(전수 정정)
+  - 커넥터 타입 = **`oauth2_jwt_assertion`**
+    - GW 서명 upstream JWT 어서션(RFC 7523) · `aud=cleverspace` · claim `device_id` + `clinic_id`
+    - CleverSpace GW Guard 가 JWKS 로 검증(§7.1.5)
+  - v1.0 카탈로그에는 **`availability:"planned"` · `plannedIn:"v1.1"`** 로 자리만 둔다
+
+- **배경(③b P0)**
+  - ⚠ CleverSpace ③b 신원 전달이 **미정**(P0 · `03p-cs-cleverspace/_review-log-12239.md` C-02)
+    - CleverSpace 는 **JWT 필수**(테넌트 스코프 = 토큰 클레임)라 '내부 신뢰'가 아니다
+  - 권장안 = GW 서명 어서션 → `oauth2_jwt_assertion`
+  - 차선 = device 토큰 verbatim → `internal_bypass`
+  - ⭐ **차선으로 결정돼도 손실이 없다** — planned 이고 등록 데이터가 0 이라 개명·철회 비용이 0
+
+- **v1.0 안전 설계** — 완료 · GW as-built 확인
+  - planned 타입은 dispatch 레지스트리(`CONNECTOR_PROFILES`) **밖 별도 목록**에 둔다
+  - 3중 방어
+    - (a) 판별자 unknown → throw(fail-closed · **bypass 로 강등되지 않는다**)
+    - (b) Admin API enum 밖이라 자동 400
+    - (c) descriptor 만 availability/plannedIn/plannedNote 를 방출
+  - ⭐ **이름을 카탈로그에 올려도 조용한 인증 우회 창이 열리지 않는다**
+  - JWKS 엔드포인트는 v1.0 선공개(소비자는 v1.1)
+
+- **현 조치(완료)** — SRS 전수 정합(CleverSpace 실연동 = v1.1)
+  - 정합 범위: §41 · §887 · §1160 · §2376 · §2.6 · §2.7(gw/1.1 행) · ③b 헤더/블록 v1.1 표기
+  - §7.5.1 planned 카탈로그 + ★안전규칙 + descriptor availability 필드
+  - JWKS 근거 재작성 — 엔드포인트 v1.0 유지 · 소비자 v1.1(§1977 · §1980 · §1985 · §7.1.5)
+  - OpenAPI `ConnectorTypeDescriptor.availability`/`plannedIn`/`plannedNote`
+  - → **`spec-v1.0.75`**(#13413 · merged · 태그 완료)
+  - 선행 작업
+    - `connector-profile.ts` description 정정(GW #13404 · merged · SRS #13406 / `spec-v1.0.74`)
+    - Console 목 중립화 · 폼 planned 안내(#13408 · default-safe)
 - **트리거 = 추후 CleverSpace 연동 요구 + ③b 신원 전달 P0 결정**(CleverSpace OnePager §7 Open items).
 - **출처.** 2026-09-01 PL 결정(Console 화면 검증 발단·review-log-12239 C-02).
 
 ---
 
 ### B-21. [gw/1.1+ · §7.10 알림 1차 범위 밖 · 확장 요구 발생 시] 운영자·이벤트 알림 — 유예 이벤트·채널·이력 UI
-- **결정(2026-09-14).** §7.10 운영자 알림 **1차 범위 = 역할요청 라이프사이클 2건만**(`access.requested`→admin 그룹 Email · `access.decided`→요청자 Email·gw/1.1·spec-v1.0.87). **채널=Email(Amazon SES) 단일**. 그 외 이벤트·채널·이력 화면은 **모두 이 백로그로 유예**(범위 팽창 방지). 각 항목은 실제 운영 요구가 생길 때 개별 승격.
-- **유예 이벤트(후보).** device enrollment `pending`(승인 대기 알림) · break-glass/긴급 접근 사용 · 운영자 오프보딩(`operator.status=suspended`) · 자격/인증서 만료 임박(target credential·KMS·서명키) · 알림 파이프라인 자체 실패(DLQ 적재 시 2차 통지·§7.6.7). 각 이벤트는 수신 대상·채널·언어·비-PHI 불변식(§7.10)을 재검토 후 승격.
-- **유예 채널.** **Teams(채널 broadcast + per-user DM/Graph)** · SMS · 웹푸시 · 계열사 **별도 발신 도메인** 검증(@vatech.com 등 — 1차는 발신 1도메인·수신 임의 도메인으로 충분). **Teams 유예 사유(2026-09-14 Jack 확인)**: Teams **채널은 타 법인 인원을 추가·멘션 못 함**(법인 걸친 admin 그룹 도달 미보장)이고, 대안인 채팅(DM)은 Power Automate 앱을 그룹 채팅에 추가해야 해 설정 부담이 크다. Email(SES)이 도메인 무관 전원 도달이라 v1.1 신뢰 채널로 충분. 이벤트 카탈로그가 채널 확장형이라 후속 추가 시 스펙 변경 최소.
-- **유예 UI.** 알림 이력/조회 화면(Console) · 수신자별 이벤트-채널 매트릭스 세분 설정(1차는 locale 선택 + on/off 수준).
-- **비-목표 유지.** GW 알림은 **out-of-band 보조**이며 인가/승인 게이트의 대체가 아님(§7.10). 이력·재전송 SLA·전달 보장 상향은 요구 확정 시 별도 검토.
+- **결정(2026-09-14)**
+  - §7.10 운영자 알림 **1차 범위 = 역할 요청 라이프사이클 2건만**(gw/1.1 · `spec-v1.0.87`)
+    - `access.requested` → admin 그룹 Email
+    - `access.decided` → 요청자 Email
+  - **채널 = Email(Amazon SES) 단일**
+  - ⭐ **그 외 이벤트·채널·이력 화면은 모두 이 백로그로 유예**한다 — 범위 팽창을 막기 위해서다
+    - 각 항목은 **실제 운영 요구가 생길 때** 개별 승격
+- **결정(2026-09-14)**
+  - §7.10 운영자 알림 **1차 범위 = 역할 요청 라이프사이클 2건만**(gw/1.1 · `spec-v1.0.87`)
+    - `access.requested` → admin 그룹 Email
+    - `access.decided` → 요청자 Email
+  - **채널 = Email(Amazon SES) 단일**
+  - ⭐ **그 외 이벤트·채널·이력 화면은 모두 이 백로그로 유예**한다 — 범위 팽창을 막기 위해서다
+    - 각 항목은 **실제 운영 요구가 생길 때** 개별 승격
+
+- **유예 이벤트(후보)**
+  - device enrollment `pending` — 승인 대기 알림
+  - break-glass / 긴급 접근 사용
+  - 운영자 오프보딩(`operator.status=suspended`)
+  - 자격·인증서 만료 임박 — target credential · KMS · 서명키
+  - 알림 파이프라인 자체 실패 — DLQ 적재 시 2차 통지(§7.6.7)
+  - ⚠ 승격 전에 **수신 대상·채널·언어·비-PHI 불변식(§7.10)을 재검토**한다
+
+- **유예 채널**
+  - Teams(채널 broadcast + per-user DM/Graph) · SMS · 웹푸시
+  - 계열사 **별도 발신 도메인** 검증(@vatech.com 등) — 1차는 발신 1도메인 · 수신 임의 도메인으로 충분
+  - ⚠ **Teams 유예 사유**(2026-09-14 Jack 확인)
+    - Teams **채널은 타 법인 인원을 추가·멘션할 수 없다** → 법인 걸친 admin 그룹 도달이 보장되지 않는다
+    - 대안인 채팅(DM)은 Power Automate 앱을 그룹 채팅에 추가해야 해 **설정 부담이 크다**
+  - ⭐ **Email(SES)이 도메인 무관 전원 도달**이라 v1.1 신뢰 채널로 충분하다
+  - 이벤트 카탈로그가 채널 확장형이라 **후속 추가 시 스펙 변경이 최소**다
+
+- **유예 UI**
+  - 알림 이력·조회 화면(Console)
+  - 수신자별 이벤트-채널 매트릭스 세분 설정 — 1차는 locale 선택 + on/off 수준
 - **트리거 = 운영 중 위 이벤트/채널/이력에 대한 실제 요구 발생**(§7.10 1차 릴리스 후 피드백).
 - **출처.** 2026-09-14 v1.1 알림 스펙화 결정(사용자: 이벤트 1·2만·나머지 backlog) + PR #14312 Jack 리뷰(SES 중앙 단일 리전 확정·Teams 유예).
 
@@ -349,12 +443,26 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 ---
 
 ## 참조 — 별도로 추적 중인 배치 (여기서 중복 기재하지 않음)
-- **클라이언트 식별 헤더 제약(Thomas 헤더 배치)** — User-Agent 변경 불가·Vatech-OS 획득 불가·Vatech-Clinic-Id 자체 설정 불가(2026-08-06 주간회의 Thomas 안건). **방향 확정**: Clinic-Id=EzServer nginx 주입(결정 2) / **UA·OS=best-effort — 설정·획득 불가 시 omit(2026-08-12 확정)**. 주 범위는 **B-4(#12638) 머지 완료** · 잔여 §2.3.0 웹 originator 세트 표 세부는 웹의 GW 직접 originate 여부에 따라 달라지나 비차단(degrade·B-4 잔여).
+- **클라이언트 식별 헤더 제약(Thomas 헤더 배치)**
+  - 제약 셋(2026-08-06 주간회의 Thomas 안건)
+    - User-Agent 변경 불가
+    - Vatech-OS 획득 불가
+    - Vatech-Clinic-Id 자체 설정 불가
+  - **방향 확정**
+    - Clinic-Id = EzServer nginx 주입(결정 2)
+    - ⭐ **UA·OS = best-effort** — 설정·획득이 안 되면 **omit**(2026-08-12 확정)
+  - 주 범위는 **B-4(#12638) 머지 완료**
+  - 잔여: §2.3.0 웹 originator 세트 표 세부
+    - 웹이 GW 로 직접 originate 하느냐에 따라 달라지지만 **비차단**(degrade · B-4 잔여)
 - **Console SRS 자체 변경** — Console 백로그 `03c-subsrs-gw-console/_backlog-console.md`(CB-1 ZTNA 제거·운영자 멀티리전 authz UX / CB-2 v1·v2 분리·기술 스택 shadcn). **#12487 확정 후 CB-1 착수.**
 - **Console → 부모 계약 변경** — 정본 추적 = Console SRS Appendix B "부모 SRS 반영 대상". **상태 점검(2026-08-12):**
   - ✅ **반영 완료(3)**: C-14(전역 bootstrap seed·§7.9.2·`spec-v1.0.12`·#12487) · C-15(사유 reason 저장·`audit_log.reason`+API·`spec-v1.0.15`·#12571) · C-16(enrollment Reject·`device_status=rejected`·`spec-v1.0.15`·#12571).
   - ⬜ **잔여(전부 비차단 · 계약 변경이라 저위험 문안과 분리·별도 부모 spec PR):**
-    - **C-17**(실질적·구 목록 누락) — 역할×액션 권한 매트릭스 → 부모 §7.9.2 **명문화 + GW 코드/OPA 강제**. admin·cs 확정, **operator/developer 셀 = 보안/GW 확정 선결**. 신규 API 계약 아님(operatorAuth+OPA 기존). 트리거=Console baseline(met) + 보안/GW 결정.
+    - **C-17**(실질적 · 구 목록 누락) — 역할×액션 권한 매트릭스
+      - 부모 §7.9.2 **명문화 + GW 코드/OPA 강제**
+      - admin · cs 는 확정 · ⚠ **operator/developer 셀은 보안·GW 확정이 선결**
+      - 신규 API 계약은 아니다(operatorAuth + OPA 기반)
+      - 트리거 = Console baseline(met) + 보안·GW 결정
     - **C-11**(선택·권고) — 서버 강제 낙관적 잠금(`expectedVersion`/If-Match+409) → 부모 OpenAPI. v1.0=클라측 stale-write(FR-CON-36) 우회.
     - **C-12**(확인·소규모) — 목록 기본/안정 정렬 계약 → 부모 OpenAPI. *(spec-v1.0.19 §7.9.1 커서 rationale로 페이지네이션 방식은 명문화됨 — 정렬 파라미터 계약만 잔여.)*
     - **C-8**(선택·성능 요구 시) — Admin API 전용 성능 SLA 절 → 부모 §5(현 §5=device control-plane 전용). v1.0 저 RPS·사내라 불요.
@@ -362,5 +470,18 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 ---
 
 ## (검토) 추가 후보 — 결정 대기
-- **Dentbird 연동 (A 직접 vs B GW 경유) 결정 시 부모 반영** — B(GW 경유) 채택 시 부모 SRS/OpenAPI 델타 발생 가능(target discovery self-plane API·per-clinic 자격 custody·Connector 정적 자격 주입 등). **현재는 미결**(A/B 결정·PHI 여부·Dentbird API 미확인). 추적=`references/Dentbird연동/8-13-Thomas.md`. **결정+확인 후 정식 백로그 항목으로 승격**. *(아직 백로그 아님 — 조건부 후보.)*
-- **capability-off verbatim no-op 스펙 근거 대조** — GW `proxy.service.ts:208` 주석에 "`internal_bypass` **및 자격 없는 외부(capability off)** = verbatim no-op(passthrough)"가 있음. unknown 타입 경로와는 무관(앞에서 throw·fail-closed)이나, **"외부(C) target의 credential이 비면 verbatim으로 나간다"**는 성질의 스펙 근거를 대조해 둘 가치가 있음 — `oauth2_org_scoped`는 §7.5.1상 OAuth2 토큰 주입·egress fail-closed가 전제라, capability-off no-op이 의도인지/조건(예 credential 미설정 target은 등록 자체가 막히는지)이 무엇인지 확인 대상. *(2026-09-01 Console 관찰·비긴급 — 지금 파진 않음.)*
+- **Dentbird 연동(A 직접 vs B GW 경유) 결정 시 부모 반영**
+  - B(GW 경유)를 채택하면 부모 SRS/OpenAPI 델타가 생길 수 있다
+    - target discovery self-plane API · per-clinic 자격 custody · Connector 정적 자격 주입 등
+  - ⚠ **현재는 미결** — A/B 결정 · PHI 여부 · Dentbird API 모두 미확인
+  - 추적 = `references/Dentbird연동/8-13-Thomas.md`
+  - **결정 + 확인 후 정식 백로그 항목으로 승격**한다 — *아직 백로그가 아니라 조건부 후보다*
+- **capability-off verbatim no-op 스펙 근거 대조**
+  - GW `proxy.service.ts:208` 주석에 이런 말이 있다
+    - "`internal_bypass` **및 자격 없는 외부(capability off)** = verbatim no-op(passthrough)"
+  - unknown 타입 경로와는 무관하다(앞에서 throw · fail-closed)
+  - ⚠ 그런데 **"외부(C) target 의 credential 이 비면 verbatim 으로 나간다"** 는 성질은 근거를 대조해 둘 값어치가 있다
+    - `oauth2_org_scoped` 는 §7.5.1 상 **OAuth2 토큰 주입 · egress fail-closed 가 전제**다
+    - 확인할 것: capability-off no-op 이 **의도인지**, 그리고 **조건이 무엇인지**
+      - 예: credential 미설정 target 은 **등록 자체가 막히는지**
+  - 2026-09-01 Console 관찰 · 비긴급 — 지금 파지는 않는다
