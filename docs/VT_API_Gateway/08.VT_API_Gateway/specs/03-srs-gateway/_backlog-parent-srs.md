@@ -21,16 +21,75 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 
 - URL: `https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/{12483|12484|12487|12491}`. Nemesis 리뷰 8개 스레드 회신+resolve 완료.
 - **B-5(apse4 멜버른→apse2 시드니 스윕)** — ✅ 완료(#12453·`spec-v1.0.11`). §4.5.1 내부 Admin API 도달 경로는 **#12487에서 Admin API Entra-gated 공개로 확정**(잔여=리전 전환 audience·Appendix B #52).
-- **후속(스펙 세션 완료·spec-v1.0.12).** `spec-v1.0.12` 태그 · 구현세션 알림(v1.0.12 확정본) · IP 핀 갱신 + **T-ENR-3-6 신설**(enroll CSR→cert·게이팅·폐기) + Admin API CORS(P11 📌). → **구현세션 인계 준비 완료.**
-- **잔여(gw/1.2·Appendix B #52).** 멀티리전 복제 계층(전역 seed·DynamoDB Global Table/Streams)·리전 전환 audience(§4.5.1 ⓒ). Console 반영 = Console 백로그 CB-1(부모 B-7 확정으로 트리거 met).
-- **B-10 1차 batch** — ✅ 머지(PR #12632·`e865d77`·2026-08-12): DBML `org_mapping` 카디널리티 주석 + compat-matrix 범위(SRS §7.7/§7.7.5·Appendix B #8·DBML·well-known README·compat-matrix sample/yaml·config README/yaml·handoff)의 OnePager 철자·폐지된 ① 호환성 OnePager→제품 OnePager 정정. **계약/스키마 무변경**. *(범위 밖 잔여 = §1.2/§1.5·② Presigned OnePager 문안 → 아래 **B-10-2**로 이월.)*
-- **B-4(주 범위)** — ✅ 머지(#12638·`spec-v1.0.20`·2026-08-12): '개발 Roadmap 결정' 문서 참조 **전체 제거**(§7.7.1/§2.3.0·일반명사 Roadmap 유지) + §7.7.1 식별 헤더 필수성 **2계층**(하드=Product·Version·Clinic-Id / best-effort=OS·UA·omit·누락 비오류) + §7.7.4 에러 정합 + §7.8.5 OS 부분 튜플·UA 원문 저장. 구현=T-CFG-5-1 헤더 미들웨어 조정(#12646). *(잔여=web-originator 헤더 세트·gated·비차단 → 진행 중 **B-4(잔여·web-originator)** 유지.)*
-- **B-13** — ✅ 완료(#12714 `890c921`·후속 #12716·#12719·2026-08-18): 로컬 개발 DB / e2e DB 분리(`gw_test`·`make db-test-setup`·`make test-e2e-local`) + 멱등 `dev:operator` 시드. 구현=IP `T-DATA-1-8`. **SRS 무변경**(§3.5.2 위임·GW README).
-- **B-14** — ✅ 해소(#12725·`spec-v1.0.25`·2026-08-18): AuditLog 리소스 축 `resourceType`/`resourceId` additive(SRS §7.9.3 + OpenAPI `AuditLog` 2필드/`GET /v1/admin/audit` 2필터 + DBML `audit_log` 2컬럼·복합 인덱스 + db-jsonb). 명명=resourceType(잠정 targetType 이탈·GW 프록시 대상 target 과 이름충돌 회피). 구현=IP `T-DATA-1-9`. Console 소비=`T-FE-6-6`.
-- **B-15** — ✅ 해소(#12735·`spec-v1.0.26`·2026-08-18): AuditLog 응답에 `reason` 노출(정합화·OpenAPI+SRS §7.9.3+db-jsonb·**DBML 무변경**[컬럼 기존]·필터 없음). kill·거부·break-glass 사유를 감사 조회에서 되읽기 가능. 구현=`T-DATA-1-9`에 흡수. Console CB-4.
-- **B-16** — ✅ 해소(#12740·`spec-v1.0.27`·2026-08-18): kill 엔드포인트에 `409` 선언(종단 재-kill=`assertTransition` 위반·PATCH와 정합·정합화). OpenAPI + SRS §7.2.3. **구현 무변경**(impl 이미 409 반환·계약만 정합). 연계 Console FR-CON-12 문구 정정=`spec-v1.0.2`(#12741).
-- **B-18(v1.0 부분)** — ✅ **connector_type 어댑터 프로파일 v1.0 도입(데모 후 머지 대기)**(2026-08-31): 3면 감사(GW·Console·스펙)로 아웃바운드 커넥터가 AXS 관례(`Organization-ID`·`storageUrl`·org 1:1)를 코드 상수로 하드코딩해 **제2 external target이 record만으로 조용히 오동작**하는 사각지대 발견 → `connector_type` 명시 컬럼 + 선언적 프로파일(파생 폐기·**범용 불변식 NORMATIVE**: 런타임 `if targetId==='axs'` 금지·동작차는 프로파일 레지스트리로만)·descriptor `GET /v1/admin/connector-types`(스키마-구동 폼)·loud-fail·하위호환(AXS=`oauth2_org_scoped` byte-identical). v1.0 종류 2개(`internal_bypass`·`oauth2_org_scoped`). 스펙 **#13349**(spec-v1.0.73·§7.5.1 재작성·Q2/Q3·targetId 전 소비자 정합)·부수 **#13338**(KMS-envelope 설명) · 구현 **#13357**(레지스트리 dispatch·`oauth2_cc`→`oauth2_org_scoped`·profile↔type 400·변경 409·unit 1994)·**#13363**(target_id RFC 1123 전 소비자) · Console=**CB-6**(#13351·#13359). **잔여(2nd target 트리거·버전 무관)**: override·org-less·추가 프로파일·2nd target 검증 → 별도 open 항목 **B-19**(진행 중 백로그).
-- **현행 baseline = `spec-v1.0.27`(`927fc71`).** v1.0.13~1.0.27 누적. 상세 진행 이력 정본 = IP `projects/vt-api-gateway/ImplementationPlan.md` §2 노트.
+- **후속(스펙 세션 완료 · `spec-v1.0.12`)**
+  - `spec-v1.0.12` 태그 · 구현 세션 알림(v1.0.12 확정본) · IP 핀 갱신
+  - **T-ENR-3-6 신설**(enroll CSR→cert · 게이팅 · 폐기) + Admin API CORS(P11 📌)
+  - → **구현 세션 인계 준비 완료**
+- **잔여(gw/1.2 · Appendix B #52)**
+  - 멀티리전 복제 계층(전역 seed · DynamoDB Global Table/Streams) · 리전 전환 audience(§4.5.1 ⓒ)
+  - Console 반영 = Console 백로그 **CB-1**(부모 B-7 확정으로 트리거 met)
+
+- **B-10 1차 batch** — ✅ 머지(PR #12632 · `e865d77` · 2026-08-12)
+  - DBML `org_mapping` 카디널리티 주석
+  - compat-matrix 범위의 OnePager 철자 정정 — 폐지된 ① 호환성 OnePager → **제품 OnePager**
+    - 범위: SRS §7.7/§7.7.5 · Appendix B #8 · DBML · well-known README · compat-matrix sample/yaml · config README/yaml · handoff
+  - ⭐ **계약/스키마 무변경**
+  - 범위 밖 잔여(§1.2/§1.5 · ② Presigned OnePager 문안) → **B-10-2** 로 이월
+
+- **B-4(주 범위)** — ✅ 머지(#12638 · `spec-v1.0.20` · 2026-08-12)
+  - '개발 Roadmap 결정' 문서 참조 **전체 제거**(§7.7.1/§2.3.0 · 일반명사 Roadmap 은 유지)
+  - §7.7.1 식별 헤더 필수성을 **2계층**으로
+    - 하드 = Product · Version · Clinic-Id
+    - best-effort = OS · UA · omit · **누락은 비오류**
+  - §7.7.4 에러 정합 + §7.8.5 OS 부분 튜플 · UA 원문 저장
+  - 구현 = T-CFG-5-1 헤더 미들웨어 조정(#12646)
+  - 잔여 = web-originator 헤더 세트(gated · 비차단) → **B-4(잔여 · web-originator)** 로 유지
+
+- **B-13** — ✅ 완료(#12714 `890c921` · 후속 #12716 · #12719 · 2026-08-18)
+  - 로컬 개발 DB / e2e DB 분리(`gw_test` · `make db-test-setup` · `make test-e2e-local`)
+  - 멱등 `dev:operator` 시드
+  - 구현 = IP `T-DATA-1-8` · ⭐ **SRS 무변경**(§3.5.2 위임 · GW README)
+
+- **B-14** — ✅ 해소(#12725 · `spec-v1.0.25` · 2026-08-18)
+  - AuditLog 리소스 축 `resourceType`/`resourceId` **additive**
+    - SRS §7.9.3 + OpenAPI `AuditLog` 2필드 / `GET /v1/admin/audit` 2필터 + DBML `audit_log` 2컬럼·복합 인덱스 + db-jsonb
+  - ⚠ 명명은 `resourceType` — 잠정 `targetType` 에서 이탈
+    - **GW 프록시 대상 `target` 과 이름이 충돌**하기 때문
+  - 구현 = IP `T-DATA-1-9` · Console 소비 = `T-FE-6-6`
+
+- **B-15** — ✅ 해소(#12735 · `spec-v1.0.26` · 2026-08-18)
+  - AuditLog 응답에 `reason` 노출(정합화 · OpenAPI + SRS §7.9.3 + db-jsonb)
+    - **DBML 무변경**(컬럼은 기존) · 필터 없음
+  - ⭐ kill · 거부 · break-glass 사유를 **감사 조회에서 되읽을 수 있게** 됐다
+  - 구현 = `T-DATA-1-9` 에 흡수 · Console **CB-4**
+
+- **B-16** — ✅ 해소(#12740 · `spec-v1.0.27` · 2026-08-18)
+  - kill 엔드포인트에 `409` 선언 — 종단 재-kill 은 `assertTransition` 위반이라 PATCH 와 정합
+  - OpenAPI + SRS §7.2.3 · ⭐ **구현 무변경**(impl 은 이미 409 를 반환하고 있었다 · 계약만 정합)
+  - 연계: Console FR-CON-12 문구 정정 = `spec-v1.0.2`(#12741)
+
+- **B-18(v1.0 부분)** — ✅ connector_type 어댑터 프로파일 v1.0 도입(2026-08-31 · 데모 후 머지 대기)
+  - **무엇을 발견했나** — 3면 감사(GW · Console · 스펙)에서
+    - 아웃바운드 커넥터가 AXS 관례(`Organization-ID` · `storageUrl` · org 1:1)를 **코드 상수로 하드코딩**
+    - ⚠ 그래서 **제2 external target 이 record 만으로 조용히 오동작**하는 사각지대가 있었다
+  - **무엇을 했나**
+    - `connector_type` 명시 컬럼 + **선언적 프로파일**(파생 폐기)
+    - ⭐ **범용 불변식 NORMATIVE** — 런타임 `if targetId === 'axs'` 금지 · 동작 차이는 **프로파일 레지스트리로만**
+    - descriptor `GET /v1/admin/connector-types`(스키마-구동 폼) · loud-fail
+    - 하위호환: AXS = `oauth2_org_scoped` **byte-identical**
+    - v1.0 종류 2개: `internal_bypass` · `oauth2_org_scoped`
+  - **PR**
+    - 스펙 #13349(`spec-v1.0.73` · §7.5.1 재작성 · Q2/Q3 · targetId 전 소비자 정합)
+    - 부수 #13338(KMS-envelope 설명)
+    - 구현 #13357(레지스트리 dispatch · `oauth2_cc`→`oauth2_org_scoped` · profile↔type 400 · 변경 409 · unit 1994)
+    - 구현 #13363(target_id RFC 1123 전 소비자)
+    - Console **CB-6**(#13351 · #13359)
+  - **잔여(2nd target 트리거 · 버전 무관)** — override · org-less · 추가 프로파일 · 2nd target 검증
+    - → 별도 open 항목 **B-19**(진행 중 백로그)
+
+- **현행 baseline = `spec-v1.0.27`(`927fc71`)**
+  - v1.0.13 ~ 1.0.27 누적
+  - 상세 진행 이력 정본 = IP `projects/vt-api-gateway/ImplementationPlan.md` §2 노트
 
 ---
 
@@ -68,10 +127,34 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 - **출처.** 2026-08-11 사용자(백로그화).
 
 ### B-13. [gw/1.1] 정책(policy) 모델 재설계 + 집행 활성화
-- **배경.** v1.0 정책은 **coarse(target 사용 허용)만** 집행하고 `allowed_endpoints`·`scopes`는 **미집행 예약**(코드 실측 확정 — `pdp.service.ts`가 읽기만 하고 무시). AXS가 Org-ID(데이터 격리)+consent(작업 권한)를 이미 집행하므로 v1.0 GW endpoint/scope 인가는 중복이라 미룸.
-- **gw/1.1 설계 방향(업계 API GW 비교 결론·AWS/Istio/OPA).** endpoint 정책을 켠다면 **OPA(Rego) 기반 단일 default-deny + allow-grant + deny-override(deny 우선) + "둘 다 없음=deny"** 모델을 채택한다(spec이 이미 gw/1.1 OPA 예약). 이 모델이라야 **allow+deny 병존이 깔끔**(예: allow `/**` + deny `/x` = allow-all-except-x)하고, naive 병존(각 리스트가 반대 기본값)의 "둘 다 없음 모순"이 없다. `denied_endpoints`가 필요하면 이 규약으로 추가(둘 다 병존 금지 또는 deny-우선 명시)·또는 정책당 mode(allow XOR deny). **다만 실요구 나오기 전엔 endpoint 정책 자체가 과설계일 수 있음**(AXS 위임 유지 검토).
-- **정책 테이블 재설계 가능성.** 위 모델 채택 시 `policy` 스키마가 바뀔 수 있다(denied_endpoints·mode·OPA 번들 참조 등). **v1.0 policy 테이블은 비어 있어(all-pass) 데이터 마이그레이션 부담이 사실상 없음** → gw/1.1에서 빈 테이블에 additive 재구성(저위험).
-- **v1.0 처리(확정 2026-08-25·A안=유보).** 정책 테이블·PDP·CRUD **구조는 그대로**(DB 마이그레이션 0). core는 coarse 인가 기본값을 **뒤집어 "매칭 정책 없으면 allow(pass)"**(기존 "없으면 deny·target not authorized"를 flip)·**seed 정책 0개가 기본**·egress·PHI 리전·인증·AXS Org-ID는 그대로 집행. Console 정책 탭은 **보이되 클릭 시 "gw/1.1 지원 예정" 안내만**(CRUD·endpoint/scope 미노출). deny-by-default(WHO 인가)는 gw/1.1에서 복원. v1.0 policy 테이블은 비어 있어 gw/1.1 재구성은 빈 테이블 additive.
+- **배경**
+  - v1.0 정책은 **coarse(target 사용 허용)만** 집행한다
+    - `allowed_endpoints`·`scopes` 는 **미집행 예약** — `pdp.service.ts` 가 읽기만 하고 무시한다(코드 실측 확정)
+  - ⭐ **AXS 가 이미 집행하고 있어서 미뤘다** — Org-ID(데이터 격리) + consent(작업 권한)
+    - v1.0 GW 의 endpoint/scope 인가는 그 위에 겹치는 중복이다
+
+- **gw/1.1 설계 방향** — 업계 API GW 비교 결론(AWS · Istio · OPA)
+  - endpoint 정책을 켠다면 **OPA(Rego) 기반 단일 모델**을 채택한다(spec 이 이미 gw/1.1 OPA 예약)
+    - default-deny + allow-grant + deny-override(deny 우선) + **"둘 다 없음 = deny"**
+  - ⭐ **이 모델이라야 allow + deny 병존이 깔끔하다**
+    - 예: allow `/**` + deny `/x` = allow-all-except-x
+    - naive 병존(각 리스트가 반대 기본값)은 **"둘 다 없음"에서 모순**이 난다
+  - `denied_endpoints` 가 필요하면 이 규약으로 추가한다 — 병존 금지 또는 deny 우선 명시, 혹은 정책당 mode(allow XOR deny)
+  - ⚠ **실요구가 나오기 전엔 endpoint 정책 자체가 과설계일 수 있다** — AXS 위임 유지도 검토
+
+- **정책 테이블 재설계 가능성**
+  - 위 모델을 채택하면 `policy` 스키마가 바뀔 수 있다(`denied_endpoints` · mode · OPA 번들 참조 등)
+  - ⭐ **v1.0 policy 테이블은 비어 있다(all-pass)** — 데이터 마이그레이션 부담이 사실상 없다
+    - gw/1.1 에서 **빈 테이블에 additive 재구성**(저위험)
+
+- **v1.0 처리** — 확정 2026-08-25 · **A안 = 유보**
+  - 정책 테이블 · PDP · CRUD **구조는 그대로**(DB 마이그레이션 0)
+  - core 의 coarse 인가 기본값을 **뒤집는다**
+    - 기존 "매칭 정책 없으면 deny(target not authorized)" → **"없으면 allow(pass)"**
+    - **seed 정책 0개가 기본**
+  - 그대로 집행하는 것: egress · PHI 리전 · 인증 · AXS Org-ID
+  - Console 정책 탭은 **두되 클릭 시 "gw/1.1 지원 예정" 안내만**(CRUD · endpoint/scope 미노출)
+  - ⚠ **deny-by-default(WHO 인가)는 gw/1.1 에서 복원**한다
 
 - **추천 정책 스펙(상세·gw/1.1 착수 시 참고).**
   1. **엔진**: OPA(Rego) PDP(현 앱 내부 모듈과 같은 PDP 포트 뒤로 전환·§3.1.2).
@@ -84,11 +167,35 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
      - deny만 non-empty → **blocklist**(그것 빼고 전부).
      - 둘 다 non-empty → **deny 우선**: 통과 = `E∈allow ∧ E∉deny`(allow에 없으면 deny). "둘 다 없음(∉allow,∉deny)" 모순 없음(allow 존재 시 whitelist 지배).
      - `pathPattern` glob(`*`=세그먼트1·`**`=0+), `methods` 배열(`*`=전체).
-  4. **scope 규칙 — ★GW 정책 모델에서 제외(2026-08-25 결정).** GW는 **auth/scope authority가 아니다** — device 토큰은 신원(`deviceId·region·aud`)이지 per-operation scope taxonomy를 발급하지 않으므로 `token.scope ⊆ policy.scopes`는 **GW가 스스로 만든 scope를 스스로 검사하는 순환**이라 무의미하고, scope/consent 권위는 **AXS**다. endpoint(프록시-레벨 blast-radius)와 달리 scope는 **GW-레이어 독립 가치가 없다**. → **gw/1.1 정책에 scope 차원 없음**·`policy.scopes` 필드는 dead reservation으로 **gw/1.1 재설계 때 제거**(GW 역할이 OAuth authorization server로 바뀌지 않는 한). scope 인가는 AXS 위임.
-  5. **스코프 계층**(device→clinic→global): global=기본, clinic=상한(authoritative·global 대체 가능·소속 device 천장), device=clinic 상한 내 narrowing(⊆·권한상승 불가). 병합=OPA로 교집합 기반 명시.
-  6. **별개 차원(그대로 유지)**: egress(`target.egress_allowlist`·fail-closed)·PHI 리전 경계는 정책과 독립 집행(v1.0에도 집행 중).
-  7. **필요성 재검토(중요·결론)**: AXS가 operation 인가(Org-ID 격리+consent) 소유 + verbatim 프록시. → **scope = 제외 확정**(위 4번·GW는 auth authority 아님). **endpoint = 조건부**(프록시-레벨 blast-radius 독립 가치는 있으나, **클리닉별 권한 차등·침해 device 격리 같은 구체 실요구가 확인될 때만** 켠다). 그 전엔 **coarse(target)+egress+region으로 충분**. 즉 gw/1.1 정책 최소형 = target(WHO·deny-by-default 복원) + (선택)endpoint.
-  8. **마이그레이션**: v1.0 빈 테이블 → gw/1.1에서 `denied_endpoints`·`mode`(택1 방식 채택 시) 등 additive·저위험.
+  4. **scope 규칙 — ★GW 정책 모델에서 제외**(2026-08-25 결정)
+     - ⭐ **GW 는 auth/scope authority 가 아니다**
+       - device 토큰은 **신원**(`deviceId`·`region`·`aud`)이지 per-operation scope taxonomy 를 발급하지 않는다
+       - 그래서 `token.scope ⊆ policy.scopes` 는 **GW 가 스스로 만든 scope 를 스스로 검사하는 순환**이라 무의미하다
+       - scope/consent 권위는 **AXS** 다
+     - endpoint(프록시-레벨 blast-radius)와 달리 scope 는 **GW-레이어 독립 가치가 없다**
+     - → **gw/1.1 정책에 scope 차원 없음**
+       - `policy.scopes` 필드는 dead reservation — **gw/1.1 재설계 때 제거**
+       - 단, GW 역할이 OAuth authorization server 로 바뀌면 다시 본다
+     - scope 인가는 **AXS 위임**
+
+  5. **스코프 계층**(device → clinic → global)
+     - global = 기본
+     - clinic = 상한(authoritative · global 대체 가능 · 소속 device 천장)
+     - device = clinic 상한 내 narrowing(⊆ · **권한 상승 불가**)
+     - 병합 = OPA 로 교집합 기반 명시
+
+  6. **별개 차원(그대로 유지)** — 정책과 독립 집행이고 v1.0 에도 이미 돈다
+     - egress(`target.egress_allowlist` · fail-closed)
+     - PHI 리전 경계
+
+  7. **필요성 재검토** — 중요·결론
+     - 전제: AXS 가 operation 인가(Org-ID 격리 + consent)를 소유하고, GW 는 verbatim 프록시다
+     - ⭐ **scope = 제외 확정**(위 4번 · GW 는 auth authority 가 아니다)
+     - **endpoint = 조건부**
+       - 프록시-레벨 blast-radius 라는 **독립 가치는 있다**
+       - ⚠ 다만 **구체 실요구가 확인될 때만** 켠다 — 클리닉별 권한 차등 · 침해 device 격리 같은 것
+       - 그 전까지는 **coarse(target) + egress + region 으로 충분**하다
+     - 즉 **gw/1.1 정책 최소형 = target(WHO · deny-by-default 복원) + (선택) endpoint**
   9. **전환(활성화) 안전 — v1.0(정책 없으면 allow) → gw/1.1 (★기본 posture 결정에 종속)**:
      - **(a) deny-by-default 복원 시**: 활성화 순간 정책 0개면 **전 프록시 차단** → **정책 선-시드(기존 target/clinic 허용) 또는 dry-run(감사만) 모드로 실트래픽 확인 후 flip** 하는 무중단 롤아웃 필수(AWS/Istio 방식).
      - **(b) allow-by-default 유지 시**(정책=opt-in 제한): 전환 **무중단**(없는 곳은 계속 통과·정책 추가는 특정 케이스만 좁힘). v1.0→v1.1 매끄러움.
