@@ -155,13 +155,30 @@ baseline `spec-v1.0.11`(#12440·#12453). 이후 **4개 spec PR를 모두 병합*
 ---
 
 ### B-21. [gw/1.1+ · §7.10 알림 1차 범위 밖 · 확장 요구 발생 시] 운영자·이벤트 알림 — 유예 이벤트·채널·이력 UI
-- **결정(2026-09-14).** §7.10 운영자 알림 **1차 범위 = 역할요청 라이프사이클 2건만**(`access.requested`→admin 그룹 Teams+Email · `access.decided`→요청자 Email·gw/1.1·spec-v1.0.87). 그 외 이벤트·채널·이력 화면은 **모두 이 백로그로 유예**(범위 팽창 방지). 각 항목은 실제 운영 요구가 생길 때 개별 승격.
+- **결정(2026-09-14).** §7.10 운영자 알림 **1차 범위 = 역할요청 라이프사이클 2건만**(`access.requested`→admin 그룹 Email · `access.decided`→요청자 Email·gw/1.1·spec-v1.0.87). **채널=Email(Amazon SES) 단일**. 그 외 이벤트·채널·이력 화면은 **모두 이 백로그로 유예**(범위 팽창 방지). 각 항목은 실제 운영 요구가 생길 때 개별 승격.
 - **유예 이벤트(후보).** device enrollment `pending`(승인 대기 알림) · break-glass/긴급 접근 사용 · 운영자 오프보딩(`operator.status=suspended`) · 자격/인증서 만료 임박(target credential·KMS·서명키) · 알림 파이프라인 자체 실패(DLQ 적재 시 2차 통지·§7.6.7). 각 이벤트는 수신 대상·채널·언어·비-PHI 불변식(§7.10)을 재검토 후 승격.
-- **유예 채널.** Teams **per-user DM**(Graph API 필요·1차는 채널만) · SMS · 웹푸시 · 계열사 **별도 발신 도메인** 검증(@vatech.com 등 — 1차는 발신 1도메인·수신 임의 도메인으로 충분). 
+- **유예 채널.** **Teams(채널 broadcast + per-user DM/Graph)** · SMS · 웹푸시 · 계열사 **별도 발신 도메인** 검증(@vatech.com 등 — 1차는 발신 1도메인·수신 임의 도메인으로 충분). **Teams 유예 사유(2026-09-14 Jack 확인)**: Teams **채널은 타 법인 인원을 추가·멘션 못 함**(법인 걸친 admin 그룹 도달 미보장)이고, 대안인 채팅(DM)은 Power Automate 앱을 그룹 채팅에 추가해야 해 설정 부담이 크다. Email(SES)이 도메인 무관 전원 도달이라 v1.1 신뢰 채널로 충분. 이벤트 카탈로그가 채널 확장형이라 후속 추가 시 스펙 변경 최소.
 - **유예 UI.** 알림 이력/조회 화면(Console) · 수신자별 이벤트-채널 매트릭스 세분 설정(1차는 locale 선택 + on/off 수준).
 - **비-목표 유지.** GW 알림은 **out-of-band 보조**이며 인가/승인 게이트의 대체가 아님(§7.10). 이력·재전송 SLA·전달 보장 상향은 요구 확정 시 별도 검토.
 - **트리거 = 운영 중 위 이벤트/채널/이력에 대한 실제 요구 발생**(§7.10 1차 릴리스 후 피드백).
-- **출처.** 2026-09-14 v1.1 알림 스펙화 결정(사용자: 이벤트 1·2만 포함·나머지 backlog·Teams 채널만).
+- **출처.** 2026-09-14 v1.1 알림 스펙화 결정(사용자: 이벤트 1·2만·나머지 backlog) + PR #14312 Jack 리뷰(SES 중앙 단일 리전 확정·Teams 유예).
+
+---
+
+### B-22. [✅ 클로즈(2026-09-14) · OpenAPI 통제문서 ↔ gen 잔여 델타 15→0 정합] as-built 기준 통제문서 정밀화
+- **발견(2026-09-14).** self-GET 계약 클로즈 중 구현 세션 `pnpm openapi:compare`가 **기존 잔여 델타 15건** 보고(self-GET 신규 델타는 0). compare 앱별 스코핑은 정상(`scripts/openapi/compare.ts` `APPS` 경로 프리픽스로 앱별 대조: admin=`/v1/admin`·core=`/v1/auth·/enroll·/fleet·/clinics/me·/.well-known`·receiver=`/v1/webhooks`). 15건은 스코핑 아티팩트가 아니라 **실 shape 차이**이며 **대부분 gen(as-built)이 정답 → 통제문서 정밀화** 방향.
+- **분류(5군).**
+  1. **allOf 합성 vs 평탄화(compare 한계·실필드 동일·의미 차이 아님)** — GET/PATCH `/v1/admin/clinics`·`/clinics/{id}`·`/clinics/{id}/memo` · GET `/v1/clinics/me`. 통제문서 `allOf[base&확장]` ↔ gen 평탄 object. **해소=compare에 allOf 평탄화 옵션 추가(구현 소관·구현 세션이 제안)** — 통제문서의 DRY한 allOf를 유지(권장) / 대안=통제문서 평탄화.
+  2. **nullable 정밀도(as-built 정답·통제문서 nullable 조이기)** — `connector-types`(doc이 description/help/placeholder/plannedIn/plannedNote/default nullable) · `GET /v1/admin/me`(doc displayName/email nullable) · `POST /v1/admin/devices`(reqBody clinicId: doc required·gen nullable).
+  3. **⚠ 통제문서 raw credential/secret 잔존(as-built 정답·통제문서 제거 권장·우선)** — GET/POST `/v1/admin/targets`·`/targets/{id}`. 통제문서에 `credential`·`secret` 원본 필드가 남아있고 gen은 `credentialRef`/`secretRef`만 노출(민감정보 미노출). **통제문서에서 raw 필드 제거**해 as-built(참조만 노출)와 일치시킬 것.
+  4. **통제문서 under-spec(opaque→구체화)** — `/.well-known/{env}/server-configuration.json`(doc=`object{}+addl<any>`) · `POST /v1/auth/token`(claims `+addl<any>`) · `PATCH /v1/admin/clinics/{id}` 200(doc=none). gen 실제 shape로 구체화.
+  5. **알려진 후속(누락 필드)** — `POST /v1/fleet/heartbeat` 200 `configVersion`(gw/1.1 예정·기존 기록·그대로 둠) · `GET /v1/admin/me` 403 **제거 확정**(구현 세션 코드 확인 2026-09-14: me.controller는 `OperatorAuthGuard` 단독·RbacGuard 없음·suspended도 가드서 401 → 403 도달 경로 없음·`@ApiStandardErrors(401,429)`. 통제문서 getAdminMe 403 응답 삭제).
+- **소유·분업.** 통제문서(`docs/specs/design/openapi/vt-api-gateway.openapi.yaml`)=스펙 세션 편집(2·3·4·5) / compare allOf 평탄화(1)=구현 세션. 대부분 as-built 반영이라 계약 실변경이 아니나 **3(credential/secret)·2(nullable 방향)·5(403)는 계약 명확화**라 spec PR로.
+- **트리거·비블로커.** self-GET·현 릴리스와 무관. 별도 spec PR 1건으로 묶어 정리(우선순위=3>2>4>5>1).
+- **진행(2026-09-14).** (1) compare allOf 평탄화=구현 PR **#14323 머지**(델타 15→11). (2)(3)(4)(5) 통제문서 정합=spec PR **#14325**(spec-v1.0.92·오픈·리뷰어 Jack): (3) targets를 **Target(응답)+TargetUpsert(요청) 분리**·(2) nullable 조이기·(4) server-configuration/auth-token claims/PATCH clinics 200 구체화·(5) getAdminMe 403 제거. **잔여 residual(의도)**: 요청 timeout number↔응답 integer는 gen 반영, format(int64·uuid)은 통제문서 유지 — compare가 format을 델타로 잡으면 gen codegen 정밀화(.int()/.uuid())로 0을 맞추기로(통제문서 다운그레이드 회피). #14325 머지 후 구현 세션 compare로 소거 확인.
+- **잔여 처리(2026-09-14·#14325 사전확인 11→3).** format(int64·uuid)=compare 미비교라 통제문서 유지(무처리). 잔여 3건: (a) audit `beforeState`/`afterState`=통제문서 free-form nullable로 완화(gen z.unknown 정합·**#14325 반영**), (b) heartbeat `configVersion`=v1.0 미구현이라 FleetHeartbeatAck에서 제거(contract-first·gw/1.1 재도입·**#14325 반영**) → **통제문서 측 델타 0**. (c) TargetUpsert `egressAllowlist.ports`(number→int)·`sourceIpAllowlist`(unknown→string)=통제문서가 정본이고 gen 코드 정밀화가 정답 → **구현 세션 impl PR**(Raymond go 후). **#14325 머지 완료(main `5468ea9`)·spec-v1.0.92 태그 커팅 완료(2026-09-14)** → 통제문서 측 델타 0. 구현 세션 최종 `openapi:compare`=**델타 0(57 op 전부 정합)·openapi:check EXIT 0** 확정. 남은 (c)=구현 세션 gen 3건 정밀화 impl PR(targets ports int 1–65535·sourceIpAllowlist string[]·audit beforeState/afterState `.nullable()`[통제문서 nullable이 정본·contract-first]) — pre-PR 리뷰 통과 중. 그 impl PR 머지 시 **B-22 완전 클로즈**(스펙 소유분은 이미 마감).
+- **✅ 클로즈(2026-09-14).** 구현 impl PR **#14330 머지**(main `21e1d7f`·Raymond). main 권위 `pnpm openapi:compare`=**델타 0(57 op 전부 정합)·openapi:check EXIT 0**. 통제문서(spec-v1.0.92) ↔ gen 완전 정합. B-22 전체 마감: (1) allOf 평탄화 #14323 · (2)~(5) 통제문서 정합 #14325(spec-v1.0.92) · code-side gen 정밀화 #14330.
+- **출처.** 2026-09-14 구현 세션 compare 정정 회신(스코핑 정상·15델타 실 shape 차이 분류).
 
 ---
 
