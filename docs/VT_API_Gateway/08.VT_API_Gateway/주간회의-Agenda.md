@@ -113,6 +113,20 @@
           - 첫 중단의 원인인 egress 불안정은 **Jenkins install flake** 와 같은 뿌리로 의심된다.
         - **② 빌드 호스트 `/etc/hosts` 오타** — `126.0.0.1 localhost`(127 이어야 함). `localhost` 가 공인 대역을 가리켜 python 등 일부 도구만 간헐 실패했다. **수정 완료(9/14)**.
 
+    - **[Windows 빌드 노드 접속 경로 복구·문서화]** ✅ **완료(9/16)**
+      - 🔴 **Windows VM 에 아무도 못 들어가고 있었다** — VNC 가 `Authentication failure: No password configured for VNC Auth` 로 막혀 있었다. 접속 방법을 아는 사람도, 적어둔 문서도 없었다.
+      - **원인** — TigerVNC 가 기동 시 `~/.vnc/passwd` 를 `/tmp/tigervnc.XXXXXX/` 로 복사해 쓰는데, 서버가 **135일** 떠 있는 동안 **`/tmp` 정리 작업이 그 사본을 지웠다**. 포트도 데스크톱도 멀쩡한데 인증만 깨진 상태였다.
+      - **조치** — 서비스 재시작으로 해소. 인증 협상(`보안 타입 [19, 2]`)까지 실측 확인.
+      - **문서화** — 접속 경로가 어디에도 없어 문서를 뒤져도 안 나왔다. 두 문서에 정리해 넣었다.
+        - `1.1 GUI 접속 방법` — 실제 접속 정보(**포트는 5904** · 본문의 5901/5902 는 오류) · 문제 해결 절차 · 무인증 상태 확인 스크립트 · 재발 방지(서비스 파일에 `-PasswordFile` 고정 · 미적용).
+        - `8.5 Windows Node 구축` — VM 접속 경로(VNC → virt-manager → win10) · VM 현황(IP · RDP 닫힘) · **작업 시 금지 항목**.
+      - ⚠ **이 VM 하나에 파이프라인이 몰려 있다** — Jenkins `WindowsNode1·2`(SBOM `-py` 잡 **8종** + `dart-Win-SonarQube`) + Azure self-hosted Windows 에이전트. 누가 들어가 작업하든 에이전트 서비스·PATH·기설치 도구(trivy·python·az·svn)를 건드리면 **여러 제품이 동시에 멈춘다.** 문서에 금지 항목으로 명시했다.
+      - 💡 **Rust 버전 상향 요청 건(Thomas)** — 검토 결과 **깨질 제품 잡이 없다.** Windows 에서 Rust 를 쓰는 Jenkins 잡은 샘플 `rust-Windows-SonarQube` 하나뿐이고, `EzServer-SonarQube` 는 Linux 라벨에 Rust 스테이지가 주석 처리(`// FIXME need to setup for rust project on windows`)돼 있다. `rustup update stable` 로만 올리고 위 금지 항목을 지키면 된다.
+      - ⚠ **부수 발견 — 잡 3개가 빨간불**
+        - `rust-Windows-SonarQube` · `bm2-backup-s3` — **DNS 실패**(`Could not resolve host: dev.azure.com`). GHSA 미러 `Connection reset` 과 **같은 뿌리(호스트 egress 불안정)** 로 보인다. Rust 와 무관.
+        - `eslockserver-SBOM-py` — 잡 설정의 Script Path 오타(`eslockserve-...`). 한 글자. **Jenkins 쓰기 권한이 없어 조치 요청 필요.**
+        - `EzServer-SonarQube` — 원인 미확인.
+
     - **[최초 admin 부트스트랩 allowlist]** ✅ **구현 완료(9/10 · PR #14212 머지)**
       - 🔴 **해결한 것 — "최초 admin 데드락"**: Console 실 로그인 후 **승인해 줄 admin 이 아무도 없어** 아무도 들어갈 수 없던 상태.
       - **계약** — env `GW_BOOTSTRAP_ADMIN_EMAILS`. 첫 로그인 시 JIT 로 admin 자동 부여(요청→승인 생략) · 매칭=이메일 · 저장=oid · 멱등 · 비회수 · 최소 2명.
