@@ -2,6 +2,7 @@
 
 - **이번 주 진행 (~9/17 회의) — 지난 주(9/10) 완료 요약 + 이번 주 착수**
   - **진행률(구현 스냅샷)**
+    - ⚠ **8/26 스냅샷** — 이후 스펙 머지(`spec-v1.0.85`~`1.0.92` · self-GET · v1.1 알림 · B-22 · backlog 정리)는 재집계 전이라 **실제 진척은 이 수치 이상**
     - **GW 백엔드 ≈ 93%**(8/26 재평가 · Task **90/96 완료**) — v1.0 계획 기능 **구현 완결** · 마무리 = 개발 통합·검증
       - 8/24 feature-complete 이후 **P13 정합 6건 추가 머지** · 잔여 6건은 전부 **GW 코드 완료**
       - **마무리 조건 = 개발 통합·검증** — ③-I 실 인프라 위 실측을 통과해야 완료로 셈
@@ -298,7 +299,7 @@
         - 구성: SRS `1.0.88` · 구현 #14319 · OpenAPI `1.0.91`
 
       - 📌 **프로세스 못박음(PL 지시)** — OpenAPI **계약 우선(contract-first)·역행 금지**
-        - `abc-dev-assistant` 에 명문화: `projects/vt-api-gateway/README.md §2.1` 신설 + `dev-chain-backend` 체크포인트 + `dev-chain-design` Step 3-3
+        - 내부 개발 가이드에 규칙으로 못박음(스펙·구현 세션 공통)
         - 통제문서 = 계약 정본(스펙 선작성) → 구현은 **generate + compare 만**
         - ⚠ **gen 을 계약처럼 커밋하는 역행 금지** · 통제문서에 없는 오퍼레이션은 **멈추고 스펙 선요청**
 
@@ -350,6 +351,11 @@
           - 통제문서(`spec-v1.0.92`) ↔ gen(admin·core·receiver) **완전 정합**
           - ⭐ compare 가 이제 **실제 드리프트만** 잡는다
 
+    - **[스펙 · backlog 정리]** 이번 주 신규 — 우리 repo `docs/backlog` 로 모음
+      - ✅ **backlog 를 우리 repo `docs/backlog/backlog.md` 밑에 정리** — 부모·Console 각 repo
+        - 부모 [PR 14352](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14352) · Console [PR 14354](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14354)
+        - 비통제 tier(`docs/handoff/` 와 동일·baseline 태그 아님) · 항목 접두 B-N/CB-N 유지
+      - 📌 이유 — backlog 가 정본 SRS 와 같은 repo 라 spec PR 이 항목 닫을 때 **원자적 처리**·리뷰 diff 통합
     - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
 
 - 논의 사항 (이번 주 · 신규 · R#)
@@ -447,7 +453,7 @@
   | 3 | **dev GW 백엔드 배포·env 주입**(`DATABASE_URL`[공용 `common-dev-db`·`gw` DB·apne2]·`REDIS_URL`·`GW_REGION`=apne2·AWS **Pod Identity**·`NODE_ENV` 차트 주입) | ③-I | **core·receiver·dispatcher = ✅ 기동 완료**(8/31 자가검증: core·receiver 404=healthy backend·기동 확인 / dispatcher=HTTP 엔드포인트 없어 배포상 기동) · **admin = ✅ 부팅 확인(9/10: `/v1/admin/me` 401=healthy·8/31 503 해소)** · 단 **Console 실로그인은 admin consent 승인 대기**(consent 미승인→사용자 토큰 취득 불가) | ☐ |
   | 4 | **운영자 Entra 앱 등록**(GW Admin API + Console SPA·2앱·PKCE) | IT·③-I | ✅ **dev 2앱 등록·회신 완료(9/9)·GW 배선 완료** · 남은 것 = **admin consent 승인 1건**([IT-9442](https://vts.vatech.com/projects/IT/issues/IT-9442)·IT팀 승인 대기·조직 1회) → **승인 전까지 Console 실로그인 불가**(admin API 자체는 9/10 부팅 확인·401) | ☐ prod 등록 시 동일(도메인 후) |
   | 5 | **env-reference 환경별 값 채움**(test·sandbox·prod endpoint·호스트·리전) | ③-I | ✅ dev · ☐ test/sandbox/prod | ☐ |
-  | 6 | **dev-seed grant**(`DATABASE_URL` 변수그룹·Environment 승인게이트) — 전용 수동 파이프라인 `gw-dev-seed.yml`(멱등·`dev:showcase`)용 | ③-I | 🟠 **미완 확정(9/10 ADO 실측: `gw-dev-seed`/`DATABASE_URL` 변수그룹 부재)** · 파이프라인(id 335)·Environment 승인게이트(id 9)·AWS 서비스커넥션 `gw-dev-seed` 등록됨 ✅ · **남은 것 = `DATABASE_URL`(dev RDS) 변수그룹 미생성** → **Jack: 변수그룹 `gw-dev-seed`+`DATABASE_URL`(시크릿)+파이프라인 링크** + **SC 롤 KMS grant**(Encrypt/GenerateDataKey). AWS 5변수는 **GW가 서비스커넥션 전환**(PR 13358)→Jack 불요. ⚠ **혼동 주의**: Jack이 9/3 한 것은 **KMS CMK(#8)**(별개 항목)이며 dev-seed 변수그룹/grant는 미완. + alias명 정합(#8 실물 `alias/gw-payload-apne2` ↔ 시드 기대 `alias/gw-webhook-payload`) 확인 필요. 요청 8/20. | — |
+  | 6 | **dev-seed grant** — 전용 수동 파이프라인 `gw-dev-seed.yml`(멱등·`dev:showcase`) | ③-I | 🟠 **요청 개정(PR #14269·active·9/11)** — 초안(변수그룹 `gw-dev-seed`+`DATABASE_URL` 시크릿+KMS grant)은 폐기. dev RDS가 프라이빗 서브넷이라 MS-hosted agent 로 못 닿아 **pool 을 mgmt-eks self-hosted 로 전환**하고 `DATABASE_URL` 은 **Secrets Manager `dev/vt-api-gateway-core` 에서 실행 시 조회**(변수그룹 없음). **남은 Jack 몫 = ① SC 롤에 `secretsmanager:GetSecretValue`/`DescribeSecret`(+기존 KMS) ② dev RDS SG 가 mgmt-eks 노드 대역 인바운드 허용**. 파이프라인 id 335·Environment id 9·SC `gw-dev-seed` 등록됨 ✅. ⚠ 시드가 앱 롤 `DATABASE_URL` 사용(showcase 전용 분리 롤 아님) = dev 수용 여부 PL 판단. 요청 8/20·개정 9/11. | — |
   | 7 | **`pg_trgm` CREATE EXTENSION 권한**(clinic 검색 선결 · env-reference §2.1) | ③-I | ✅ 문제 없음(Jack 확인 8/20 — `gw_app`=`gw` DB OWNER·trusted extension) | ☐ prod 동일 확인 |
   | 8 | **KMS CMK provisioning**(webhook payload·target 자격 alias·리전별 · 8/4 키 토폴로지 · env-reference §2.4) | ③-I | ✅ **완료(9/3 Jack·AB#5650)**: ① `alias/gw-payload-apne2`(PR 12413) · ② `alias/gw-target-cred-apne2`(PR 13573 apply·SSM alias 4앱 주입) · 기능검증=admin 파드 복구 후 | ☐ 리전별(prod) |
   | 9 | **admin API dev ingress 노출**(`admin.apne2.gw.dev.ezcld.net`·Entra-gated 공개 ingress) — Console이 실 dev DB 데이터를 조회하려면 admin 부팅에 더해 이 ingress가 있어야 함(없으면 admin이 떠도 Console이 못 부름) | ③-I | ✅ **ingress 구축 확인**(8/25 curl: 443 OPEN·ALB 응답) — 단 전 경로 **503(ALB에 healthy target 0·즉시응답)** = **admin 미기동**이 원인(ingress 문제 아님)·**9/10 재확인: `/v1/admin/me` = 401**(admin 부팅·healthy·8/31 503 해소·ingress serving 확인) · 남은 건 Console 로그인용 **admin consent** | ☐ 도메인 후 |
@@ -573,7 +579,7 @@
       | **CleverOne** | 🟡 Vatech-\* 헤더·fallback | 🟡 presigned 이용 | 🟡 Direct→GW 경유 | ⬜ Region 선택·ClinicID | — | 🟢 ③-P-CO OnePager 인계(SharePoint·Nick 검토) |
       | **EzServer(EZ)** | 🟡 헤더 대리 전달 | 🟡 전송 로직(presigned) | 🟡 GW 경유 전환 | 🟡 ClinicID·Region·등록 | 🟡 AXS(갈래A)·presigned 직접 | 🟡 ③-P-EZ OnePager 초안(Raymond→Teddy) |
       | **CleverLab** | — | — | — | — | ⬜ AXS 오더·확정(갈래B) | ④ Sub-SRS(갈래B·보류) |
-      | **VatechAPIGateway** | 🟢 호환 게이트(§7.7) | 🟢 presigned 중계(§4.1.4) | 🟢 본체·라우팅·인증·호환 | 🟢 리전 라벨·Region Directory·HA | ⬜ AXS OAuth·Org-ID·온보딩·고정IP | ③ SRS ✅ baseline · **현행 `spec-v1.0.84`** |
+      | **VatechAPIGateway** | 🟢 호환 게이트(§7.7) | 🟢 presigned 중계(§4.1.4) | 🟢 본체·라우팅·인증·호환 | 🟢 리전 라벨·Region Directory·HA | ⬜ AXS OAuth·Org-ID·온보딩·고정IP | ③ SRS ✅ baseline · **현행 `spec-v1.0.92`** |
       | **GW Console**(③-C) | — | — | — | 🟢 Admin Web Console(Entra 앱계층) | ⬜ 온보딩·Org-ID 후속(gw/1.1·1.2) | ✅ ③-C Sub-SRS baseline(`spec-v1.0`) → S4 |
       | **인프라** | — | — | 🟢 **dev·test·sandbox·prod(4종)** | 🟢 Route53·K8s | 🟢 AXS 고정IP·샌드박스 | 🟢 ③-I IaC 계획서(PR #11973·living doc) + KMS 키 토폴로지 |
       | **외부(Straumann AXS)** | — | — | — | — | 🟡 PPR sandbox=확보(8/11) · ⬜ prod=NDA 후 | ④ 입력(외부 제공) |
@@ -582,8 +588,8 @@
 
       | 단위 | 스펙 문서 | Repo · 경로 | baseline tag |
       | --- | --- | --- | --- |
-      | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `vt-api-gateway` · `docs/specs/` | **`spec-v1.0.84`**(현행 · v1.0 baseline 동결) |
-      | **③-C GW Console** | Sub-SRS | `vt-api-gateway-console` · [docs/specs/SRS.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md&version=GBmain) | ✅ `spec-v1.0`(8/11) |
+      | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `vt-api-gateway` · `docs/specs/` | **`spec-v1.0.92`**(현행 · baseline v1.0 동결 후 누적) |
+      | **③-C GW Console** | Sub-SRS | `vt-api-gateway-console` · [docs/specs/SRS.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/specs/SRS.md&version=GBmain) | ✅ baseline `spec-v1.0`(8/11) · 현행 `spec-v1.0.13` |
       | **④ AXS** | 경량 연동 프로파일 | `vt-api-gateway` · `docs/specs/04-subsrs-straumann-axs/` | 경량(PPR 자격 확보·착수 가능) |
       | **③-I 인프라** | IaC 구축계획서 | `vt-api-gateway-infra` · `docs/IaC-구축계획서.md` | PR #11973(living doc) |
       | **③-P-EZ EzServer** | GW적응 OnePager | `ezserver_suite`(`v6.5.x`) · `doc/onepager/gw_adaptation/` | 미부여(팀 baseline 예정) |
