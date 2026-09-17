@@ -331,7 +331,7 @@ Dependency-Track 취약점과 SonarQube 이슈를 **SSH 없이 REST API 로 직�
 **정본은 Azure DevOps 저장소에 있다.** 여기에 사본을 두지 않는다.
 
 ```
-https://dev.azure.com/ewoosoft/platforms/_git/sec-tools
+https://dev.azure.com/ewoosoft/platforms/_git/es-sec-tools
 ```
 
 설치·설정·사용법은 그 저장소의 `README.md` 를 볼 것.
