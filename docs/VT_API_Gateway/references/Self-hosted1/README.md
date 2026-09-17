@@ -321,3 +321,17 @@ pool:
 
     - Agent pool 내의 특정 Agent를 지정하여 빌드할 수 없다.
         - 그러려면 독립된 Agent pool을 만들어야 한다.
+
+---
+
+# sec-tools — 취약점·코드품질 조회 도구 (개발자용)
+
+Dependency-Track 취약점과 SonarQube 이슈를 **SSH 없이 REST API 로 직접** 조회하는 명령줄 도구다. Claude Code 등 AI 코딩 도구에 `--json` 출력을 넘겨 수정까지 이어갈 수 있다.
+
+**정본은 Azure DevOps 저장소에 있다.** 여기에 사본을 두지 않는다.
+
+```
+https://dev.azure.com/ewoosoft/sbom/_git/jenkins  →  sec-tools/
+```
+
+설치·설정·사용법은 그 폴더의 `README.md` 를 볼 것.
