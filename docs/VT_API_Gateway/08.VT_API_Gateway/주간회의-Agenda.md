@@ -44,10 +44,27 @@
             - `False Positive` 로 적으면 "DT 가 오탐했다"는 기록이 남아 **사실과 다르다**
           - 근거를 코멘트로 남겼다 — 빌드 타임 설정 로더 · 배포 번들에 없음(실측) · **입력을 우리가 통제**하므로 공격면 없음
           - ⭐ **"왜 안 고치는가"를 남기는 것이 요점**이다 — 다음 사람이 HIGH 를 보고 다시 파지 않는다
-        - ⚠ **프로젝트 목록 숫자는 아직 1로 보인다** — 목록은 **별도 집계 스냅샷**이라 메트릭 재계산 후에 바뀐다
-          - 재계산 API 는 권한(`PORTFOLIO_MANAGEMENT`)이 필요해 조회용 키로는 안 된다
-          - 자동 주기 또는 **다음 SBOM 업로드** 때 따라온다
-  - **[audit 계약 정정]** — OpenAPI `audit.beforeState/afterState` 가 `type` 누락으로 codegen `Record<string, never>`(빈 객체) 오생성 → `type: object` 로 정정(spec PR) · 구현 gen(`z.record`) 동조. B-22 후속·부모 backlog 등재
+        - ✅ **목록 숫자까지 0 으로 반영 확인** — 메트릭은 **별도 집계 스냅샷**이라 재계산이 있어야 따라온다
+          - `11:15 high=2 score=36` → `12:18 high=1 score=5`(조치 후 SBOM 재업로드) → `12:25 high=0 sup=1 score=0`(suppress 반영)
+          - ⭐ 12:18→12:25 **7분 간격**이라 자동 주기(통상 1시간)가 아니라 **DT 화면의 재계산 버튼**이 일으킨 것
+          - ⚠ 재계산 API 는 `PORTFOLIO_MANAGEMENT` 권한이 필요해 **조회용 키로는 403** — 심사는 쓸 수 있는데 반영은 못 하는 조합이다
+    - ⏳ **Console SonarQube — Quality Gate 실패 조사·1차 조치(9/21)**
+      - **Gate 실패 조건 둘** — `new_coverage 0.0`(기준 ≥80) · `new_violations 3`(기준 0) · duplications 1.05 는 통과
+      - ⭐ **커버리지 0% 는 코드 문제가 아니다** — 실제 **91.6%**(테스트 1349개)
+        - 스캐너가 lcov 경로를 **스스로 찾지 못해** 6337줄 전부를 미커버로 셌다
+        - 레포에 `sonar-project.properties` 를 두어 경로·범위를 명시(PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14577 · 오토머지)
+      - ⚠ **파일만으로는 안 된다 — 스캔 잡이 커버리지를 먼저 돌려야 한다**(Jenkins 확인)
+        - 공용 파이프라인이 `checkout → sonar-scanner` 뿐이라 `pnpm install`·테스트 실행이 **없다**
+        - ⭐ **Console 만의 문제가 아니다** — 같은 파이프라인을 쓰는 **9개 잡 전부 커버리지 0**(GW 백엔드 포함)
+        - ⚠ **걸림돌 = 에이전트 Node 18** — Next 16 은 20.9+, GW 는 `>=24 <25` 라 **이미지를 24 로 재빌드**해야 한다
+        - 조치안 = 잡별 옵트인(`SQUBE_PRE_SCAN`)으로 기본 동작 불변 · **PL 승인 대기**(공용 이미지 + 9개 잡 영향)
+        - exclusions 는 **레포 파일을 정본**으로 일원화하기로(명령행 `SQUBE_EXCLUSIONS` 제거) — 제외 기준이 vitest 쪽과 짝이어야 한다
+      - **이슈 151건 분류** — BUG 5 · CODE_SMELL 146
+        - **BUG** — `sort()` 비교 함수 누락(CRITICAL·실제로 볼 것) · 정규식 우선순위 2건 · ⚠ CSS 2건은 **Tailwind v4 문법 오탐**(`@theme`·`@custom-variant`)
+        - ⚠ **CODE_SMELL 77건이 우리 관례와 충돌** — `void` 연산자 57(floating promise 명시) · `role="status"` 20(접근성 표현 선택)
+          - ⭐ **고칠 대상이 아니라 규칙을 조정할 대상**이다
+        - 나머지 = 중첩 삼항 25 · 중첩 템플릿 9 · 인지 복잡도 7(볼 만함) 등
+  - **[audit 계약 정정]** — codegen `Record<string, never>`(빈 객체) 오생성 → 통제문서 `type: object` 정정 · ✅ **spec PR #14575 머지(spec-v1.0.94)** · ⏳ 구현 gen(`z.record`) 동조 대기 → compare 델타 0 시 backlog B-23 클로즈 (B-22 후속)
   - **[GW·Console dev 통합 마무리]** — 남은 건 전부 외부 선결
     - ③-I: test 환경 프로비저닝(마감 8/26·미착수) · 자동배포 tag→TEST/PROD · dispatcher 안정화(exit137)
     - GW 몫(③-I 대기 아님): IoT 다운링크 E2E(dispatcher 진단→Thing enroll→webhook→IoT 1회)
