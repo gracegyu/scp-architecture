@@ -24,8 +24,8 @@
 
       | 대상 | Before | 심각도 | After | 처리 방식 | 상태 |
       |---|---|---|---|---|---|
-      | **Console · DT** | | | | | |
-      | **Console · SQ** | | | | | |
+      | **Console · DT** | 6건 | CRITICAL 2 · HIGH 2 · MEDIUM 2 | **0건** | `next` 16.3.5 패치 · `qs` override `^6.16.0` · `js-yaml` 1건은 `Not Affected`+`Code Not Reachable` 로 심사 억제 | ✅ **완료** — PR [#14569](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14569) 머지 · 9/21 재스캔 0 확인 |
+      | **Console · SQ** | Gate **ERROR** — `new_coverage` 0.0 · `new_violations` 3 | CRITICAL 1(`sort()` 비교 함수 누락) · MAJOR 2(정규식 우선순위) | `new_coverage` **91.2** · `new_violations` **5 → 0 예정** | 커버리지 연결(잡이 스캔 전 테스트 실행 + `sonar-project.properties` 정본화) · 위반 3건 수정 · 그때 **새로 드러난 5건**은 shadcn CLI 산출물 분석 제외 4 + `kill-dialog` 코드 수정 1 | ⏳ PR [#14577](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14577)·[#14580](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14580)·[#14581](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14581) 머지 · [#14590](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14590) 리뷰 대기 · 핫스팟 8건 심사 대기 |
       | **GW · DT** | | | | | |
       | **GW · SQ** | | | | | |
 
@@ -77,7 +77,7 @@
         - ⚠ **Jenkins 스캔 에이전트에 Docker 소켓 없음** → GW e2e(Testcontainers) 재실행 불가
         - ⭐ **ADO CI(Self-hosted1)는 이미 매 빌드 merged(unit+e2e) 커버리지 산출** — #14585로 lcov도 생성
         - 📌 **PL 결정 필요** — (3a) ADO 잡에 sonar-scanner 스텝 추가(스캔 소유 ADO 이동) vs (3b) ADO가 merged lcov를 artifact 발행→Jenkins 스캔이 소비. 소켓 마운트·unit-only는 비권장
-    - ⏳ **Console SonarQube — Quality Gate 조사·조치(9/21)** — **Console 몫은 끝** · 커버리지만 Jenkins 대기
+    - ⏳ **Console SonarQube — Quality Gate 조사·조치(9/21)** — 커버리지 **연결 완료**(0.0 → 91.2) · 그때 드러난 위반 5건 리뷰 대기
       - **Gate 실패 조건 둘** — `new_coverage 0.0`(기준 ≥80) · `new_violations 3`(기준 0) · duplications 1.05 는 통과
 
       - ✅ **`new_violations` 3 → 0** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14580
@@ -88,10 +88,30 @@
           - 일부러 안 기다린다는 표시라 빼면 **"실수로 `await` 을 놓친 것"과 구분이 안 된다**
           - ⚠ 참고 — ESLint `no-floating-promises` 는 **꺼져 있다**. 전체 `void` 57건이 도구 강제가 아니라 **우리 관례**다(규칙 도입은 별도 판단)
 
-      - ⏳ **`new_coverage` 0.0** — 레포 설정은 넣었고 **잡 준비 대기**
+      - ✅ **`new_coverage` 0.0 → 91.2** — 잡이 스캔 전 테스트를 돌리기 시작했다(로컬 실측 91.66 과 일치)
         - ⭐ **코드 문제가 아니다** — 실제 **91.6%**(테스트 1349개). 스캐너가 lcov 경로를 못 찾아 6337줄 전부를 미커버로 셌다
         - `sonar-project.properties` 신설(PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14577) · exclusions 정본 일원화(PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14581)
           - ⚠ 옮기며 **테스트 파일 제외를 뺐다** — 통째로 빼면 `sonar.tests` 분류가 무의미해진다. **테스트에도 규칙은 돌아야 한다**
+
+      - ⚠ **커버리지를 붙이자 `new_violations` 가 0 → 5 로 늘었다** — PR [#14590](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14590)
+        - ⭐ **새로 생긴 문제가 아니라 안 보이던 것이 보이게 된 것이다** — 지적된 파일은 8월 이후 바뀌지 않았고, 5건이 모두 **오늘 스캔에 한꺼번에** 생겼다
+        - 명령행 exclusions 가 걷히면서 그동안 분석에서 빠져 있던 파일에 **규칙이 처음 돌았다**
+        - **shadcn CLI 산출물 4건(`S6759`) = 분석에서 제외** — `src/generated` 를 빼는 이유와 같다. 우리가 쓴 코드가 아니다
+          - 파일 머리말이 *"CLI가 생성한 컴포넌트(수정 시 재생성 주의)"* 라고 적고 있고 CLI 버전을 정확히 핀으로 박아 둔다
+          - ⚠ 손으로 고치면 **다음 `shadcn add` 마다 같은 일이 되풀이된다** — 새 컴포넌트마다 규칙이 다시 걸린다
+          - ⚠ **대가를 적어 두었다** — 그 파일들에 우리가 얹은 손질(예: 툴팁 기본 지연 200ms)은 분석에서 빠진다
+        - **`kill-dialog` 1건(`S2301`) = 코드 수정** — 우리 코드이고 지적이 타당하다
+          - 같은 불리언으로 서로 다른 동작을 고르던 것을, **열림 상태는 그대로 흘리고 닫힐 때만 정리**하도록 바꿨다
+          - ⭐ 정리 동작에 이름을 주었다(`discardDraft`) — 남겨 두면 다음에 열 때 **이전 사유와 확인 체크가 그대로 있고**, 파괴적 액션에서 그 상태는 곧 오조작이다
+        - ⏳ **핫스팟 8건 미검토** — Gate 조건에는 없으나(GW 는 있다) 심사 대상. 7건은 ReDoS 정규식, 1건은 **버전 문자열 `6.3.1.3` 을 IP 로 읽은 오탐**
+
+      - ⭐ **덤으로 CI 결함을 하나 잡았다 — 가드가 있는데 걸린 적이 없었다** — PR [#14587](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14587)
+        - Jenkins 가 *"에이전트에 `CI` 가 없다"* 고 알려 주어 **우리 ADO 파이프라인도 확인했더니 거기도 없었다**
+        - ⚠ `vitest.config.mts` 의 `maxWorkers: process.env.CI ? 2 : undefined` 가 **CI 에서 한 번도 걸리지 않았다** — Azure 는 `CI` 가 아니라 **`TF_BUILD`** 를 세팅한다
+        - ⭐ **그 가드는 2026-09-02 메모리 고갈 사고(98~99% · 에이전트 offline)를 막으려고 넣은 것이다** — 막으려던 사고를 다시 부를 수 있는 상태로 있었다
+        - ⚠ **같은 함정에 두 번 빠졌다** — `playwright.config.ts` 가 먼저 당해 고쳐 두었는데(PR 12744), **그 뒤에** 들어온 vitest 가드가 그걸 몰랐다(PR 13489)
+        - ⭐ **그래서 교훈을 주석이 아니라 테스트로 옮겼다** — 설정 본문을 읽어 `TF_BUILD` 를 함께 보는지 검사한다. 되돌리면 그 파일만 빨개진다
+          - 주석에만 적어 두면 **다음 사람은 그 파일을 안 본다** — 실제로 그렇게 됐다
 
       - ✅ **Jenkins 빌드 인프라 정비 — 5단계 전부 완료(9/21)** · PL 승인 후 적용
         - ⭐ **근본 원인** — 공용 파이프라인이 `checkout → sonar-scanner` 뿐이라 **테스트를 돌리지 않는다.** 스캐너는 커버리지를 **읽을 뿐 만들지 않으므로**, lcov 가 없으면 "측정 안 함"이 아니라 **"한 줄도 커버 안 됨"**으로 기록된다
