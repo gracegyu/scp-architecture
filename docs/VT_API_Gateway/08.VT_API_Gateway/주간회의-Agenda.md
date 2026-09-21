@@ -27,7 +27,7 @@
       | **Console · DT** | 6건 | CRITICAL 2 · HIGH 2 · MEDIUM 2 | **0건** | `next` 16.3.5 패치 · `qs` override `^6.16.0` · `js-yaml` 1건은 `Not Affected`+`Code Not Reachable` 로 심사 억제 | ✅ **완료** — PR [#14569](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14569) 머지 · 9/21 재스캔 0 확인 |
       | **Console · SQ** | Gate **ERROR** — `new_coverage` 0.0(기준 ≥80) · `new_violations` 3(기준 0) · duplications 1.05 는 통과 | 이슈 151(신규 3 = CRITICAL 1 중첩 삼항 · MAJOR 2 `void`) · 핫스팟 8 미검토(검토율 0%) · Reliability **C**(MEDIUM 6) · Maintainability A(82) |  |  | ⏳ **진행 중** — 완료 후 채운다 |
       | **GW · DT** | 2건 | MEDIUM 2(GHSA-4mjr CVSS 5.3 DoS · GHSA-x5fp 3.7 array-limit) | **0건** | `qs` override `^6.16.0` — `express` 전이 의존(쿼리 파서)이라 surgical(우리 코드 아님·patched `>=6.16.0`) | ✅ **완료** — PR [#14568](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14568) 머지 · 9/21 DT 재스캔 0 확인 |
-      | **GW · SQ** | Gate **ERROR** — `new_coverage` 0.0 · `new_security_hotspots_reviewed` 0% · `new_violations` 0 | 핫스팟 21(HIGH 10·MED 5·LOW 6) · 이슈 35(BUG 5·CODE_SMELL 30·CRITICAL 12) | 핫스팟 검토율 **100%** · BUG **5→0** · CODE_SMELL **20 정리** · `new_coverage`=스캔 배선 후 실값 | **고침**: BUG 5(sort 비교함수·정규식)·CODE_SMELL 20 · **판정 유지**: 핫스팟 21 `SAFE`+근거(es-base nonroot·in-cluster 평문·anchored 정규식·redaction·docker bridge IP)·`void` `Won't Fix` · **open**: S3776 복잡도 7(판단성 리팩터·게이트 무관) | ⏳ PR [#14585](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585)·[#14588](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14588) 머지 · 커버리지 ADO sonar-scanner 배선(3a) Jenkins 조율 중 |
+      | **GW · SQ** | Gate **ERROR** — `new_coverage` 0.0 · `new_security_hotspots_reviewed` 0% · `new_violations` 0 | 핫스팟 21(HIGH 10·MED 5·LOW 6) · 이슈 35(BUG 5·CODE_SMELL 30·CRITICAL 12) | ⏳ **다 성공 후 기입** — Gate PASS·`new_coverage` 실값은 ADO sonar 스캔(3a) 성공·재스캔 확인 후 | **고침**: BUG 5(sort 비교함수·정규식)·CODE_SMELL 20 · **판정 유지**: 핫스팟 21 `SAFE`+근거(es-base nonroot·in-cluster 평문·anchored 정규식·redaction·docker bridge IP)·`void` `Won't Fix` · **open**: S3776 복잡도 7(판단성 리팩터·게이트 무관) | ⏳ PR [#14585](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585)·[#14588](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14588) 머지 · ADO sonar-scanner(3a·PR [#14592](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14592)) — java 이미지 반영 완료·Community 브랜치 파라미터 픽스 후 CI 재검증 중 |
 
       - ⭐ **"고친 것"과 "안 고치기로 한 것"이 표에 같이 있다** — 억제도 조치다. 근거를 남겨 다음 사람이 같은 것을 다시 파지 않게 하는 것이 목적이다.
       - ⚠ **억제는 오탐 처리가 아니다** — 취약점은 실재하고 스캐너가 옳다. 우리가 그 코드 경로를 타지 않을 뿐이다. `False Positive` 로 적으면 기록이 사실과 달라진다.
@@ -135,16 +135,29 @@
           - **재생성 스크립트가 `sudo docker`** — TTY 없으면 전부 실패한다. stop 과 rm 이 따로라 **노드가 반쯤 지워질 수 있었다.** 첫 시도가 그렇게 막혔고(피해 없음) sudo 를 걷어낸 뒤 진행
         - ⚠ **워크스페이스는 보존되지 않았다** — 스크립트 주석이 "named volume 이라 보존된다"고 했으나 **사실이 아니었다**(`-v` 미지정 → 매번 익명 볼륨). **재생성 후 첫 빌드는 전부 다시 받는다.** 주석을 정정했고, 호스트에 dangling 볼륨 510개(64GB)가 쌓인 것도 확인
 
-        - ✅ **Console 커버리지 연결 확인 — `new_coverage` 0.0 → 91.2**(기준 80). 로컬 실측 91.66 과 일치한다. **Jenkins 쪽 작업은 여기서 끝났다**
-          - ⚠ 부수 효과 — Console `new_violations` 가 0 → 5 로 늘었다. **새로 생긴 문제가 아니라 안 보이던 것이 보이게 된 것**이다. 기존에 명령행으로 넘기던 exclusions 에 `**/*.test.ts` 가 있어 테스트 파일이 통째로 분석에서 빠져 있었고, 그것을 걷어내자 `sonar.tests` 분류가 살아나며 규칙이 처음 돌기 시작했다
+        - ✅ **커버리지 연결 완료 — 두 프로젝트 모두(9/21)**
 
-        - ⚠ **GW 는 Jenkins 에서 커버리지를 못 돌린다 — ADO 파이프라인에서 발행하기로 결정**
+          | | Before | After |
+          |---|---|---|
+          | **vt-api-gateway** | coverage 0.0 · 미커버 **4380줄** | **96.3** · 미커버 128줄 |
+          | **vt-api-gateway-console** | coverage 0.0 · 미커버 **6337줄** | **91.6** · Gate **Passed** |
+
+          - ⭐ **미커버 줄 수가 답이다** — 4380/6337 이 "전부 미커버" 로 잡히던 것이 128/실측치로 바뀌었다. 이전 0.0 은 "측정 안 함" 이 아니라 **"한 줄도 커버되지 않음"** 으로 기록되고 있었다
+          - ⚠ 부수 효과 — `new_violations` 가 양쪽에서 늘었다(Console 0→5 · GW →4). **새로 생긴 문제가 아니라 안 보이던 것이 보이게 된 것**이다. 명령행으로 넘기던 exclusions 에 `**/*.test.ts` 가 있어 테스트 파일이 통째로 분석에서 빠져 있었고, 레포 정본으로 옮기며 `sonar.tests` 분류가 살아나 규칙이 처음 돌기 시작했다. 각 팀이 처리 중
+
+        - ⚠ **GW 는 Jenkins 에서 커버리지를 못 돌린다 — ADO 파이프라인에서 발행**
           - GW 의 merged 커버리지는 **Testcontainers 로 postgres·valkey 를 띄우는데, 에이전트 컨테이너에 docker 소켓이 없다**(이미지에 docker CLI 는 있다 — 바이너리가 있는 것과 데몬에 붙는 것은 다르다)
           - ⚠ 소켓을 붙이면 **잡이 호스트 Docker 를 제어**하게 된다. 같은 호스트에 dependency-track·sonarqube·jenkins·abc-wbs 가 함께 떠 있고, Testcontainers 가 띄우는 DB 는 에이전트의 3g 상한 **밖에서** 호스트 메모리를 먹는다 → **2026-09 사고 후 세운 blast-radius 차단이 그 경로로 뚫린다**
           - ⭐ ADO 에서는 **이미 같은 테스트가 돌고 있어 중복 실행이 없고** Docker 도 그쪽 에이전트가 제공한다
-          - ⚠ **순서를 지켜야 한다** — 같은 projectKey 에 두 스캐너가 쓰면 **나중 것이 이긴다**. ADO 가 스캔을 시작하면 밤에 도는 Jenkins 잡이 커버리지 없이 덮어써 0 으로 되돌린다
-            - ① ADO 에 `sonar-scanner` 추가 → ② SonarQube 에서 `new_coverage` 확인 → ③ 그때 Jenkins 잡 비활성화
-            - ⚠ **미리 끄면 안 된다** — 그 사이 GW 가 아예 스캔되지 않는 공백이 생긴다
+          - ✅ **전환 완료** — ADO 에 `SonarQubePrepare/Analyze/Publish@8` 추가 · Jenkins `vt-api-gateway-SonarQube` 정기 실행 중지(`f48341a`)
+            - ⚠ 같은 projectKey 에 두 스캐너가 쓰면 **나중 것이 이긴다.** Community 에디션이라 브랜치 구분이 없어, 둘 다 두면 밤마다 수치가 뒤집힌다
+            - ⭐ **순서가 중간에 뒤집혔다** — 처음엔 "미리 끄면 공백" 이었는데, ADO 에 daily schedule 이 생긴 순간 **"둘 다 두는 게 위험" 으로 바뀌었다.** 같은 사실이 시점에 따라 반대 결론을 낸다
+            - 잡은 지우지 않고 트리거만 제거했다. 되돌리려면 **ADO 쪽 sonar task 를 먼저 꺼야 한다**(주석에 기록)
+
+          - ⚠ **Community 에디션 제약이 여기서 다 나왔다** — 브랜치 분석 없음 · PR decoration 없음
+            - 그래서 GW 는 **`main` 빌드에서만 스캔**한다(PR 빌드에서 스캔하면 그 PR 수치가 곧 프로젝트 수치가 되고 다음 PR 이 또 덮는다)
+            - ADO 에 daily schedule(main) 추가 · sonar task 에 `Build.SourceBranch == refs/heads/main` 조건
+            - ⭐ **PR 단계에서 품질 피드백을 받으려면 Developer Edition 이 필요하다.** 당장은 불필요하나 별건으로 남겨 둔다
 
       - **이슈 151건 분류** — BUG 5 · CODE_SMELL 146
         - **BUG** — `sort()` 비교 함수 누락(CRITICAL) · 정규식 우선순위 2건 · ⚠ CSS 2건은 **Tailwind v4 문법 오탐**(`@theme`·`@custom-variant`)
