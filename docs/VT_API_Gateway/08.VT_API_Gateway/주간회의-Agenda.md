@@ -25,7 +25,7 @@
       | 대상 | Before | 심각도 | After | 처리 방식 | 상태 |
       |---|---|---|---|---|---|
       | **Console · DT** | 6건 | CRITICAL 2 · HIGH 2 · MEDIUM 2 | **0건** | CRITICAL 2 = `next` 16.3.0→16.3.5 **버전 올림**<br>HIGH `sharp` = next 패치에 **peer 동반 해소**<br>HIGH `js-yaml` = **심사 억제**(Not Affected · Code Not Reachable)<br>MEDIUM 2 = `qs` override `^6.16.0` **전이 의존만** | ✅ **완료**(9/21 실측) |
-      | **Console · SQ** | Gate **ERROR** | `new_violations` 3<br>`new_coverage` 0.0 | violations **0**<br>coverage 대기 | 중첩 삼항 1 = **코드 수정**<br>`void` 2 = **심사 억제**(Won't Fix · 의도된 미대기)<br>커버리지 = 코드 문제 아님, **실측 91.6%** | ⏳ **커버리지만 잔여**<br>(Jenkins 잡 선결) |
+      | **Console · SQ** | Gate **ERROR** | `new_violations` 3<br>`new_coverage` 0.0 | violations **0**<br>coverage 대기 | 중첩 삼항 1 = **코드 수정**<br>`void` 2 = **심사 억제**(Won't Fix · 의도된 미대기)<br>커버리지 = 코드 문제 아님, **실측 91.6%** | ⏳ **Jenkins 잡 적용 완료**<br>첫 실행 대기 |
       | **GW · DT** | | | | | |
       | **GW · SQ** | | | | | |
 
@@ -80,15 +80,30 @@
         - `sonar-project.properties` 신설(PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14577) · exclusions 정본 일원화(PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14581)
           - ⚠ 옮기며 **테스트 파일 제외를 뺐다** — 통째로 빼면 `sonar.tests` 분류가 무의미해진다. **테스트에도 규칙은 돌아야 한다**
 
-      - ⚠ **Jenkins 쪽이 선결 — PL 승인 사안**(공용 이미지 + 9개 잡 영향)
-        - 공용 파이프라인이 `checkout → sonar-scanner` 뿐이라 `pnpm install`·테스트 실행이 **없다**
-        - ⭐ **Console 만의 문제가 아니다** — 같은 파이프라인 **9개 잡 전부 커버리지 0**(GW 백엔드 포함)
-        - ⚠ **이미지만 올려선 안 된다**
-          - `sharedPipelineSbomGitNodeLinux` 가 **빌드마다 Node 18 을 다시 깐다** — `env.NODE_INSTALLED` 가 빌드 스코프라 늘 비어 있다
-          - linux 잡 13개가 **같은 풀을 공유**해, 이미지를 24 로 올려도 SBOM 잡이 한 번 돌면 되돌아간다 → **비결정적 실패**
-          - ⭐ 그것 없이 진행했으면 **"가끔 실패하는데 원인을 모르는"** 상태가 됐다
-        - **순서** — ① Node 18 강제설치 제거 → ② 이미지 **Node 24** → ③ 에이전트 재생성 → ④ `SQUBE_PRE_SCAN` 옵트인 → ⑤ `SQUBE_EXCLUSIONS` 제거
-          - Node 24 인 이유 = GW 가 `>=24 <25` 상한 · Console 은 `>=20.19.0` 이라 둘을 다 태우는 **유일한 값**
+      - ✅ **Jenkins 빌드 인프라 정비 — 5단계 전부 완료(9/21)** · PL 승인 후 적용
+        - ⭐ **근본 원인** — 공용 파이프라인이 `checkout → sonar-scanner` 뿐이라 **테스트를 돌리지 않는다.** 스캐너는 커버리지를 **읽을 뿐 만들지 않으므로**, lcov 가 없으면 "측정 안 함"이 아니라 **"한 줄도 커버 안 됨"**으로 기록된다
+        - ⭐ **Console 만의 문제가 아니었다** — 같은 파이프라인 **9개 잡 전부 커버리지 0**(GW 백엔드 포함)
+
+        | | 단계 | 결과 |
+        |---|---|---|
+        | ① | SBOM 파이프라인의 **Node 18 강제 설치 제거** | ✅ `c60a92a` |
+        | ② | 에이전트 이미지 **Node 18 → 24** + corepack | ✅ `7a3e114` |
+        | ③ | **에이전트 4대 재생성** | ✅ 전부 `Connected` |
+        | ④ | Console 잡에 **커버리지 단계** | ✅ `0301f11` |
+        | ⑤ | `SQUBE_EXCLUSIONS` → **레포 정본 이관** | ✅ 양쪽 |
+
+        - ⚠ **이미지만 올렸으면 실패했다** — `sharedPipelineSbomGitNodeLinux` 가 **빌드마다 Node 18 을 다시 깔고 있었다**(`env.NODE_INSTALLED` 가 빌드 스코프라 늘 비어 있음). linux 잡 13개가 **같은 에이전트 풀을 공유**해, 이미지를 24 로 올려도 SBOM 잡이 한 번 돌면 되돌아간다
+          - ⭐ 그대로 갔으면 **"어느 노드에 걸리느냐에 따라 되기도 안 되기도 하는"** 상태가 됐다. 원인 추적이 가장 어려운 종류다
+        - **Node 24 인 이유** — GW 가 `>=24 <25` 상한, Console 은 `>=20.19.0`. 둘을 다 태우는 **유일한 값**
+
+        - ⭐ **작업 중 추가로 드러난 것 3건** — 전부 "켜는 순간 터졌을" 함정이다
+          - **pnpm 버전 불일치** — 두 레포가 `pnpm@9.15.9`(lockfile 9.0)를 선언하는데 에이전트엔 **10.8.0** 이 깔려 있었다. 잡이 pnpm 을 안 써서 안 드러났을 뿐. `--frozen-lockfile` 이 깨지거나, 더 나쁘게는 **lockfile 을 조용히 다시 써서 스캔 결과가 배포본과 달라진다** → 전역 설치를 걷어내고 **corepack** 이 레포 선언을 따르게 했다
+          - **`CI` 환경변수 미설정** — 레포의 `vitest.config.mts` 가 `CI` 가 있을 때만 워커를 2로 제한하는데 **Jenkins 는 `CI` 를 넣지 않는다.** 없으면 vitest 가 **코어 수(32)만큼** 워커를 띄워 3GB 컨테이너를 넘긴다. **2026-09 에 이 호스트가 같은 이유로 멈춘 적이 있다**(load average 249) → 잡에 `export CI=1` 명시
+          - **재생성 스크립트가 `sudo docker`** — TTY 없으면 전부 실패한다. stop 과 rm 이 따로라 **노드가 반쯤 지워질 수 있었다.** 첫 시도가 그렇게 막혔고(피해 없음) sudo 를 걷어낸 뒤 진행
+        - ⚠ **워크스페이스는 보존되지 않았다** — 스크립트 주석이 "named volume 이라 보존된다"고 했으나 **사실이 아니었다**(`-v` 미지정 → 매번 익명 볼륨). **재생성 후 첫 빌드는 전부 다시 받는다.** 주석을 정정했고, 호스트에 dangling 볼륨 510개(64GB)가 쌓인 것도 확인
+
+        - ⏳ **남은 것** — Console 잡 **첫 실행 확인**(매일 20:05 · 수동 실행 가능)
+          - ⚠ **GW 백엔드는 아직 못 켠다** — 레포 `sonar-project.properties` 가 `coverage/merged/lcov.info` 를 가리키는데 **그 파일을 만드는 스크립트가 없다**(`test:cov:unit`·`test:cov:e2e` 가 각각 json 으로 떨어질 뿐 merge 단계 부재). GW 쪽 merge 명령이 준비되면 한 줄 추가로 끝난다
 
       - **이슈 151건 분류** — BUG 5 · CODE_SMELL 146
         - **BUG** — `sort()` 비교 함수 누락(CRITICAL) · 정규식 우선순위 2건 · ⚠ CSS 2건은 **Tailwind v4 문법 오탐**(`@theme`·`@custom-variant`)
