@@ -20,7 +20,7 @@
       - ⚠ **②를 없애지 않는다** — 억제는 되돌리기 어렵고 서버에 기록이 남는다. 승인 없이 AI 가 "안 고쳐도 된다"고 결정하게 두지 않는다. 모든 쓰기에 `--confirm` 이 걸려 있는 이유다.
       - ⭐ **아래 GW·Console 조치가 이 흐름을 그대로 탄 첫 사례다** — DT 8건(GW 2 + Console 6) → **0건**. 사람이 개입한 지점은 계획 승인과 PR 리뷰뿐이다.
 
-    - ⭐ **적용 결과 — Before / After** (GW·Console 각 담당이 채웁니다)
+    - ⭐ **적용 결과 — Before / After** — **각 구현 담당이 작업 완료 후 직접 채운다**
 
       | 대상 | Before | 심각도 | After | 처리 방식 | 상태 |
       |---|---|---|---|---|---|
@@ -64,6 +64,19 @@
           - `11:15 high=2 score=36` → `12:18 high=1 score=5`(조치 후 SBOM 재업로드) → `12:25 high=0 sup=1 score=0`(suppress 반영)
           - ⭐ 12:18→12:25 **7분 간격**이라 자동 주기(통상 1시간)가 아니라 **DT 화면의 재계산 버튼**이 일으킨 것
           - ⚠ 재계산 API 는 `PORTFOLIO_MANAGEMENT` 권한이 필요해 **조회용 키로는 403** — 심사는 쓸 수 있는데 반영은 못 하는 조합이다
+    - ⏳ **GW 백엔드 SonarQube — Quality Gate 조사·조치(9/21)** — **코드 몫은 끝** · 커버리지 스캔 배선만 PL 결정 대기
+      - **Gate 실패 조건 둘** — `new_coverage 0.0`(기준 ≥80) · `new_security_hotspots_reviewed 0%`(기준 100) · `new_violations`는 이미 0(Console 3과 대비)
+      - ✅ **핫스팟 21건 검토(SAFE+근거) → 검토율 100%** — 실코드 수정 0(오탐/의도된 안전: es-base nonroot·in-cluster 평문·anchored 정규식·redaction·docker bridge IP)
+      - ✅ **BUG 5건 수정** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585 (`dafadf0`)
+        - sort() 비교함수 4·정규식 우선순위 1 · 전부 동작 보존 · configVersion 해시는 code-unit 순서 유지(localeCompare 금지=드리프트)
+      - ✅ **CODE_SMELL 20건 위생 정리** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14588 (`13285f8`) · 독립 리뷰 결함 0
+      - ✅ **`void`(S3735) Won't Fix** — 의도된 미사용 파라미터 표식(근거 코멘트)
+      - 📌 **S3776 복잡도 7건은 open 유지** — 판단성 리팩터·게이트 무관 · 후속(wontfix 안 함=실제 복잡)
+      - ⏳ **`new_coverage` 0.0 = 파이프라인(코드 아님)** — 실 커버리지는 CI GATE5 merged floor 통과 중
+        - `sonar-project.properties` 신설(merged lcov·`sonar.tests` 분류) + merge 스크립트에 lcov 리포터 추가(#14585)
+        - ⚠ **Jenkins 스캔 에이전트에 Docker 소켓 없음** → GW e2e(Testcontainers) 재실행 불가
+        - ⭐ **ADO CI(Self-hosted1)는 이미 매 빌드 merged(unit+e2e) 커버리지 산출** — #14585로 lcov도 생성
+        - 📌 **PL 결정 필요** — (3a) ADO 잡에 sonar-scanner 스텝 추가(스캔 소유 ADO 이동) vs (3b) ADO가 merged lcov를 artifact 발행→Jenkins 스캔이 소비. 소켓 마운트·unit-only는 비권장
     - ⏳ **Console SonarQube — Quality Gate 조사·조치(9/21)** — **Console 몫은 끝** · 커버리지만 Jenkins 대기
       - **Gate 실패 조건 둘** — `new_coverage 0.0`(기준 ≥80) · `new_violations 3`(기준 0) · duplications 1.05 는 통과
 
@@ -102,8 +115,16 @@
           - **재생성 스크립트가 `sudo docker`** — TTY 없으면 전부 실패한다. stop 과 rm 이 따로라 **노드가 반쯤 지워질 수 있었다.** 첫 시도가 그렇게 막혔고(피해 없음) sudo 를 걷어낸 뒤 진행
         - ⚠ **워크스페이스는 보존되지 않았다** — 스크립트 주석이 "named volume 이라 보존된다"고 했으나 **사실이 아니었다**(`-v` 미지정 → 매번 익명 볼륨). **재생성 후 첫 빌드는 전부 다시 받는다.** 주석을 정정했고, 호스트에 dangling 볼륨 510개(64GB)가 쌓인 것도 확인
 
-        - ⏳ **남은 것** — Console 잡 **첫 실행 확인**(매일 20:05 · 수동 실행 가능)
-          - ⚠ **GW 백엔드는 아직 못 켠다** — 레포 `sonar-project.properties` 가 `coverage/merged/lcov.info` 를 가리키는데 **그 파일을 만드는 스크립트가 없다**(`test:cov:unit`·`test:cov:e2e` 가 각각 json 으로 떨어질 뿐 merge 단계 부재). GW 쪽 merge 명령이 준비되면 한 줄 추가로 끝난다
+        - ✅ **Console 커버리지 연결 확인 — `new_coverage` 0.0 → 91.2**(기준 80). 로컬 실측 91.66 과 일치한다. **Jenkins 쪽 작업은 여기서 끝났다**
+          - ⚠ 부수 효과 — Console `new_violations` 가 0 → 5 로 늘었다. **새로 생긴 문제가 아니라 안 보이던 것이 보이게 된 것**이다. 기존에 명령행으로 넘기던 exclusions 에 `**/*.test.ts` 가 있어 테스트 파일이 통째로 분석에서 빠져 있었고, 그것을 걷어내자 `sonar.tests` 분류가 살아나며 규칙이 처음 돌기 시작했다
+
+        - ⚠ **GW 는 Jenkins 에서 커버리지를 못 돌린다 — ADO 파이프라인에서 발행하기로 결정**
+          - GW 의 merged 커버리지는 **Testcontainers 로 postgres·valkey 를 띄우는데, 에이전트 컨테이너에 docker 소켓이 없다**(이미지에 docker CLI 는 있다 — 바이너리가 있는 것과 데몬에 붙는 것은 다르다)
+          - ⚠ 소켓을 붙이면 **잡이 호스트 Docker 를 제어**하게 된다. 같은 호스트에 dependency-track·sonarqube·jenkins·abc-wbs 가 함께 떠 있고, Testcontainers 가 띄우는 DB 는 에이전트의 3g 상한 **밖에서** 호스트 메모리를 먹는다 → **2026-09 사고 후 세운 blast-radius 차단이 그 경로로 뚫린다**
+          - ⭐ ADO 에서는 **이미 같은 테스트가 돌고 있어 중복 실행이 없고** Docker 도 그쪽 에이전트가 제공한다
+          - ⚠ **순서를 지켜야 한다** — 같은 projectKey 에 두 스캐너가 쓰면 **나중 것이 이긴다**. ADO 가 스캔을 시작하면 밤에 도는 Jenkins 잡이 커버리지 없이 덮어써 0 으로 되돌린다
+            - ① ADO 에 `sonar-scanner` 추가 → ② SonarQube 에서 `new_coverage` 확인 → ③ 그때 Jenkins 잡 비활성화
+            - ⚠ **미리 끄면 안 된다** — 그 사이 GW 가 아예 스캔되지 않는 공백이 생긴다
 
       - **이슈 151건 분류** — BUG 5 · CODE_SMELL 146
         - **BUG** — `sort()` 비교 함수 누락(CRITICAL) · 정규식 우선순위 2건 · ⚠ CSS 2건은 **Tailwind v4 문법 오탐**(`@theme`·`@custom-variant`)
