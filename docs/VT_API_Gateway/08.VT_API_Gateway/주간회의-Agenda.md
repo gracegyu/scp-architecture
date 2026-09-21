@@ -27,7 +27,7 @@
       | **Console · DT** | 6건 | CRITICAL 2 · HIGH 2 · MEDIUM 2 | **0건** | `next` 16.3.5 패치 · `qs` override `^6.16.0` · `js-yaml` 1건은 `Not Affected`+`Code Not Reachable` 로 심사 억제 | ✅ **완료** — PR [#14569](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14569) 머지 · 9/21 재스캔 0 확인 |
       | **Console · SQ** | Gate **ERROR** — `new_coverage` 0.0(기준 ≥80) · `new_violations` 3(기준 0) · duplications 1.05 는 통과 | 이슈 151(신규 3 = CRITICAL 1 중첩 삼항 · MAJOR 2 `void`) · 핫스팟 8 미검토(검토율 0%) · Reliability **C**(MEDIUM 6) · Maintainability A(82) |  |  | ⏳ **진행 중** — 완료 후 채운다 |
       | **GW · DT** | 2건 | MEDIUM 2(GHSA-4mjr CVSS 5.3 DoS · GHSA-x5fp 3.7 array-limit) | **0건** | `qs` override `^6.16.0` — `express` 전이 의존(쿼리 파서)이라 surgical(우리 코드 아님·patched `>=6.16.0`) | ✅ **완료** — PR [#14568](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14568) 머지 · 9/21 DT 재스캔 0 확인 |
-      | **GW · SQ** | Gate **ERROR** — `new_coverage` 0.0 · `new_security_hotspots_reviewed` 0% · `new_violations` 0 | 핫스팟 21(HIGH 10·MED 5·LOW 6) · 이슈 35(BUG 5·CODE_SMELL 30·CRITICAL 12) | ⏳ **다 성공 후 기입** — Gate PASS·`new_coverage` 실값은 ADO sonar 스캔(3a) 성공·재스캔 확인 후 | **고침**: BUG 5(sort 비교함수·정규식)·CODE_SMELL 20 · **판정 유지**: 핫스팟 21 `SAFE`+근거(es-base nonroot·in-cluster 평문·anchored 정규식·redaction·docker bridge IP)·`void` `Won't Fix` · **open**: S3776 복잡도 7(판단성 리팩터·게이트 무관) | ⏳ PR [#14585](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585)·[#14588](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14588) 머지 · ADO sonar-scanner(3a·PR [#14592](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14592)) — java 이미지 반영 완료·Community 브랜치 파라미터 픽스 후 CI 재검증 중 |
+      | **GW · SQ** | Gate **ERROR** — `new_coverage` 0.0 · `new_security_hotspots_reviewed` 0% · `new_violations` 0 | 핫스팟 21(HIGH 10·MED 5·LOW 6) · 이슈 35(BUG 5·CODE_SMELL 30·CRITICAL 12) | **Gate PASS** ✅ — `new_coverage` **96.5**(0.0→) · `new_security_hotspots_reviewed` **100%** · `new_violations` **0** · 중복 0 | **고침**: BUG 5(sort 비교함수·정규식)·CODE_SMELL 20·new_violations 4(optional chain 3·테스트 단언 1) · **판정 유지**: 핫스팟 21 `SAFE`+근거(es-base nonroot·in-cluster 평문·anchored 정규식·redaction·docker bridge IP)·`void` `Won't Fix` · **open**: S3776 복잡도 7(판단성 리팩터·게이트 무관) | ✅ **완료** — PR [#14585](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585)·[#14588](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14588)·[#14592](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14592)(ADO 스캔 배선 3a)·[#14598](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14598) 머지 · main 스캔 Gate PASS 확인 · daily schedule 로 갱신 |
 
       - ⭐ **"고친 것"과 "안 고치기로 한 것"이 표에 같이 있다** — 억제도 조치다. 근거를 남겨 다음 사람이 같은 것을 다시 파지 않게 하는 것이 목적이다.
       - ⚠ **억제는 오탐 처리가 아니다** — 취약점은 실재하고 스캐너가 옳다. 우리가 그 코드 경로를 타지 않을 뿐이다. `False Positive` 로 적으면 기록이 사실과 달라진다.
@@ -64,19 +64,21 @@
           - `11:15 high=2 score=36` → `12:18 high=1 score=5`(조치 후 SBOM 재업로드) → `12:25 high=0 sup=1 score=0`(suppress 반영)
           - ⭐ 12:18→12:25 **7분 간격**이라 자동 주기(통상 1시간)가 아니라 **DT 화면의 재계산 버튼**이 일으킨 것
           - ⚠ 재계산 API 는 `PORTFOLIO_MANAGEMENT` 권한이 필요해 **조회용 키로는 403** — 심사는 쓸 수 있는데 반영은 못 하는 조합이다
-    - ⏳ **GW 백엔드 SonarQube — Quality Gate 조사·조치(9/21)** — **코드 몫은 끝** · 커버리지 스캔 배선만 PL 결정 대기
-      - **Gate 실패 조건 둘** — `new_coverage 0.0`(기준 ≥80) · `new_security_hotspots_reviewed 0%`(기준 100) · `new_violations`는 이미 0(Console 3과 대비)
+    - ✅ **GW 백엔드 SonarQube — Quality Gate PASS(9/21)** — new_coverage 96.5·new_violations 0·hotspots 100%·중복 0
+      - **Gate 실패 조건 둘이었음** — `new_coverage 0.0`(기준 ≥80) · `new_security_hotspots_reviewed 0%`(기준 100) · `new_violations`는 애초 0(Console 3과 대비)
       - ✅ **핫스팟 21건 검토(SAFE+근거) → 검토율 100%** — 실코드 수정 0(오탐/의도된 안전: es-base nonroot·in-cluster 평문·anchored 정규식·redaction·docker bridge IP)
       - ✅ **BUG 5건 수정** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585 (`dafadf0`)
         - sort() 비교함수 4·정규식 우선순위 1 · 전부 동작 보존 · configVersion 해시는 code-unit 순서 유지(localeCompare 금지=드리프트)
       - ✅ **CODE_SMELL 20건 위생 정리** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14588 (`13285f8`) · 독립 리뷰 결함 0
       - ✅ **`void`(S3735) Won't Fix** — 의도된 미사용 파라미터 표식(근거 코멘트)
       - 📌 **S3776 복잡도 7건은 open 유지** — 판단성 리팩터·게이트 무관 · 후속(wontfix 안 함=실제 복잡)
-      - ⏳ **`new_coverage` 0.0 = 파이프라인(코드 아님)** — 실 커버리지는 CI GATE5 merged floor 통과 중
-        - `sonar-project.properties` 신설(merged lcov·`sonar.tests` 분류) + merge 스크립트에 lcov 리포터 추가(#14585)
-        - ⚠ **Jenkins 스캔 에이전트에 Docker 소켓 없음** → GW e2e(Testcontainers) 재실행 불가
-        - ⭐ **ADO CI(Self-hosted1)는 이미 매 빌드 merged(unit+e2e) 커버리지 산출** — #14585로 lcov도 생성
-        - 📌 **PL 결정 필요** — (3a) ADO 잡에 sonar-scanner 스텝 추가(스캔 소유 ADO 이동) vs (3b) ADO가 merged lcov를 artifact 발행→Jenkins 스캔이 소비. 소켓 마운트·unit-only는 비권장
+      - ✅ **`new_coverage` 0.0 → 96.5 (파이프라인 배선·PL 결정 3a·PR #14592)**
+        - Jenkins 스캔 에이전트엔 Docker 소켓 없어 e2e 불가 → **커버리지가 이미 도는 ADO(Self-hosted1)에서 스캔**
+        - `sonar-project.properties`(merged lcov·`sonar.tests`) + merge 스크립트 lcov 리포터(#14585) + java 이미지(Jenkins)
+        - ⚠ **Community Build = 브랜치/PR 분석 불가** → sonar 를 **main-only(daily schedule·always)** 로 한정(PR 스캔은 단일 main 프로젝트 오염). PR 빌드는 sonar skip
+        - **new_violations 4**(스캔 넓어져 드러남·optional chain 3·무단언 e2e 1) → 소거(#14598)
+      - ✅ **Jenkins 기존 `vt-api-gateway-SonarQube` 잡 트리거 제거(f48341a)** — ADO 가 authoritative(잡/이력 보존·revert 순서 주석)
+      - 📌 **S3776 복잡도 7·Developer Edition(브랜치/PR 정식 분석)은 별건 후속**(전자=판단성 리팩터·게이트 무관·후자=PL 트랙)
     - ⏳ **Console SonarQube — Quality Gate 조사·조치(9/21)** — 커버리지 **연결 완료**(0.0 → 91.2) · 그때 드러난 위반 5건 리뷰 대기
       - **Gate 실패 조건 둘** — `new_coverage 0.0`(기준 ≥80) · `new_violations 3`(기준 0) · duplications 1.05 는 통과
 
