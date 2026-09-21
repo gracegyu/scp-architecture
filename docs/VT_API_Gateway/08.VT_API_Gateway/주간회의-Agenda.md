@@ -3,7 +3,23 @@
 - **이번 주(10/1) 착수·진행 · 선결 대기**
   - **[R1 실행] 보안·품질 지표 심사·조치 = 개발자가 AI로 직접** (9/17 회의 결정)
     - DT·SonarQube를 사내 표준 CLI(`es sec`)에 통합 → Claude Code(`/es-sec` 스킬)가 취약점·이슈를 직접 조회·수정, 안 고칠 건은 근거 남겨 심사(triage)
-    - Jenkins 세션 — 구현·실서버 검증 완료(119 통과·심사 쓰기 왕복·데이터 원상복구) · **PR [#14475](https://dev.azure.com/ewoosoft/platforms/_git/es-toolkit/pullrequest/14475) 올림**(es-toolkit · 리뷰어 Scott Kim)
+
+    - ⭐ **핵심은 도구가 아니라 흐름이다 — 취약점 조치가 프로젝트 폴더 안에서 끝난다**
+      - 지금까지는 DT·SonarQube 화면을 열고, 무엇이 왜 걸렸는지 따로 파악하고, 코드로 돌아와 고치고, 다시 화면에서 확인했다. **도구와 사람 사이를 네 번 오간다.**
+      - 이제 개발자가 **자기 프로젝트 폴더에서 `/es-sec` 한 번**으로 끝낸다.
+
+      | | 단계 | 누가 |
+      |---|---|---|
+      | ① | 현재 DT·SonarQube 문제를 조회해 **원인과 조치 계획**을 낸다 | AI |
+      | ② | **계획을 사람이 검토하고 승인한다** | **사람** |
+      | ③ | 고칠 것은 고치고, 안 고칠 것은 **근거를 남겨 심사(suppress)** 한다 | AI |
+      | ④ | 재검사 — 다음 새벽 자동 스캔, 급하면 Jenkins 에서 즉시 실행 | 자동 |
+      | ⑤ | DT·SonarQube 콘솔에서 결과 확인 | 자동 반영 |
+
+      - ⭐ **사람이 판단하는 자리는 ② 하나다.** 조회·수정·심사 기록·재검사는 전부 자동이다.
+      - ⚠ **②를 없애지 않는다** — 억제는 되돌리기 어렵고 서버에 기록이 남는다. 승인 없이 AI 가 "안 고쳐도 된다"고 결정하게 두지 않는다. 모든 쓰기에 `--confirm` 이 걸려 있는 이유다.
+      - ⭐ **아래 GW·Console 조치가 이 흐름을 그대로 탄 첫 사례다** — DT 8건(GW 2 + Console 6) → **0건**. 사람이 개입한 지점은 계획 승인과 PR 리뷰뿐이다.
+    - 구현·실서버 검증 완료(119 통과·심사 쓰기 왕복·데이터 원상복구) · **PR [#14475](https://dev.azure.com/ewoosoft/platforms/_git/es-toolkit/pullrequest/14475) 올림**(es-toolkit · 리뷰어 Scott Kim)
     - ✅ **서버 설정 = DT·SonarQube 양쪽 완료** · SonarQube 개발자 온보딩 부트스트랩(`sbom/jenkins` `admin/sq_bootstrap.py`) main 머지
     - ⏳ **잔여** — PR 리뷰(Scott Kim) + Windows 실기 검증 1건 → 머지되면 완료로 갱신
     - ✅ **첫 적용(9/17) — GW 백엔드 DT 취약점 2건 조치** (`es sec` 조회 → AI 직접 수정)
@@ -12,7 +28,6 @@
       - surgical override `qs ^6.16.0` 로 소거(patched `>=6.16.0`·express `^6.14.0` 호환·broad 범프 아님)
       - PR [#14568](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14568) **머지**(main `e84aaf9`) · `pnpm audit --prod` = 0 확인 · build 4앱 0
       - ✅ **Dependency-Track 재스캔 0건 확인(9/21)** — 새 SBOM(CycloneDX 1.6) 업로드 후 서버 측 취약점 **0**(로컬 audit 넘어 DT 보안대장 반영)
-      - Console(별도 DT 6건)은 Console 세션 처리
     - ✅ **Console DT 6건 조치(9/17)** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14569
       - ⭐ **배포 형태로 갈렸다** — Console 은 **정적 export**(`images.unoptimized`)라 **Next.js 서버가 배포에 없다**
         - CRITICAL 2건(next Image Optimization RCE · Windows 서버 RCE 9.0) = **배포본에 닿지 않음**
@@ -55,7 +70,7 @@
       - ⚠ **Jenkins 쪽이 선결 — PL 승인 사안**(공용 이미지 + 9개 잡 영향)
         - 공용 파이프라인이 `checkout → sonar-scanner` 뿐이라 `pnpm install`·테스트 실행이 **없다**
         - ⭐ **Console 만의 문제가 아니다** — 같은 파이프라인 **9개 잡 전부 커버리지 0**(GW 백엔드 포함)
-        - ⚠ **이미지만 올려선 안 된다**(Jenkins 세션 발견)
+        - ⚠ **이미지만 올려선 안 된다**
           - `sharedPipelineSbomGitNodeLinux` 가 **빌드마다 Node 18 을 다시 깐다** — `env.NODE_INSTALLED` 가 빌드 스코프라 늘 비어 있다
           - linux 잡 13개가 **같은 풀을 공유**해, 이미지를 24 로 올려도 SBOM 잡이 한 번 돌면 되돌아간다 → **비결정적 실패**
           - ⭐ 그것 없이 진행했으면 **"가끔 실패하는데 원인을 모르는"** 상태가 됐다
