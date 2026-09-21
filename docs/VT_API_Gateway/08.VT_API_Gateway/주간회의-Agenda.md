@@ -20,12 +20,12 @@
       - ⚠ **②를 없애지 않는다** — 억제는 되돌리기 어렵고 서버에 기록이 남는다. 승인 없이 AI 가 "안 고쳐도 된다"고 결정하게 두지 않는다. 모든 쓰기에 `--confirm` 이 걸려 있는 이유다.
       - ⭐ **아래 GW·Console 조치가 이 흐름을 그대로 탄 첫 사례다** — DT 8건(GW 2 + Console 6) → **0건**. 사람이 개입한 지점은 계획 승인과 PR 리뷰뿐이다.
 
-    - ⭐ **적용 결과 — Before / After** (GW 행은 GW 에서 채웁니다)
+    - ⭐ **적용 결과 — Before / After** (GW·Console 각 담당이 채웁니다)
 
       | 대상 | Before | 심각도 | After | 처리 방식 | 상태 |
       |---|---|---|---|---|---|
-      | **Console · DT** | 6건 | CRITICAL 2 · HIGH 2 · MEDIUM 2 | **0건** | CRITICAL 2 = `next` 16.3.0→16.3.5 **버전 올림**<br>HIGH `sharp` = next 패치에 **peer 동반 해소**<br>HIGH `js-yaml` = **심사 억제**(Not Affected · Code Not Reachable)<br>MEDIUM 2 = `qs` override `^6.16.0` **전이 의존만** | ✅ **완료**(9/21 실측) |
-      | **Console · SQ** | Gate **ERROR** | `new_violations` 3<br>`new_coverage` 0.0 | violations **0**<br>coverage 대기 | 중첩 삼항 1 = **코드 수정**<br>`void` 2 = **심사 억제**(Won't Fix · 의도된 미대기)<br>커버리지 = 코드 문제 아님, **실측 91.6%** | ⏳ **Jenkins 잡 적용 완료**<br>첫 실행 대기 |
+      | **Console · DT** | | | | | |
+      | **Console · SQ** | | | | | |
       | **GW · DT** | | | | | |
       | **GW · SQ** | | | | | |
 
