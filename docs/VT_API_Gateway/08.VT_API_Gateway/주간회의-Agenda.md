@@ -1,450 +1,50 @@
-# VT API Gateway — 9/17 주간회의 Agenda
+# VT API Gateway — 10/1 주간회의 Agenda
 
-- **이번 주 진행 (~9/17 회의) — 지난 주(9/10) 완료 요약 + 이번 주 착수**
-  - **진행률(구현 스냅샷)**
-    - ⚠ **8/26 스냅샷** — 이후 스펙 머지(`spec-v1.0.85`~`1.0.92` · self-GET · v1.1 알림 · B-22 · backlog 정리)는 재집계 전이라 **실제 진척은 이 수치 이상**
-    - **GW 백엔드 ≈ 93%**(8/26 재평가 · Task **90/96 완료**) — v1.0 계획 기능 **구현 완결** · 마무리 = 개발 통합·검증
-      - 8/24 feature-complete 이후 **P13 정합 6건 추가 머지** · 잔여 6건은 전부 **GW 코드 완료**
-      - **마무리 조건 = 개발 통합·검증** — ③-I 실 인프라 위 실측을 통과해야 완료로 셈
-      - ⚠ **남은 6건이 전부 외부 선결** — 코드가 안 써진 게 아니라 실환경이 없어 확인을 못 함(③-I 인프라 5[마이그레이션 Job·IoT Core·공개 ingress·부하 staging·HA Multi-AZ] · Straumann lab order 시드 1 · PL RTO/RPO 목표 1)
-      - **GW 코드로 앞당길 잔여 = 0**
-    - **[GW Console](https://console.gw.dev.ezcld.net) ≈ 92%**(8/26 재평가 · Task **61/67 완료** · 부분 4 · 미착수 2) · [dev console 열기](https://console.gw.dev.ezcld.net)
-      - P0~P6 완료 · **P7 6/7** · **P9 13/15** · P8 1/4
-      - ⚠ **남은 6건이 전부 외부 선결** — 코드가 안 써진 게 아니라 **실환경이 없어 확인을 못 한다**(Entra 앱 등록·dev 재배포·test 환경·prod 도메인·CloudFront 헤더). **Console 코드로 앞당길 잔여 = 0**
-      - **성격 셋** — 통합 검증 3(`8-1`·`8-2`·`9-17`) · 남의 작업 2(`7-6` ③-I 배선 · `8-4` PL 배포) · 내부 조사 1(`9-13` 플레이크)
-      - ⚠ **"검증이니 곧 끝난다" 가 아니다** — 검증은 어긋난 것을 **찾는** 일이고 찾으면 Console 작업이 된다(`9-17` 1단계만으로 갭 2건). 남은 8% 는 **폭을 아직 모르는 일**이다 → S1 상세
+- **지난 주(~9/17) 완료 요약**
+  - **진행률(스냅샷)** — GW 백엔드 ≈ 93% · GW Console ≈ 92%(8/26 재평가) · 코드로 앞당길 잔여 = 0
+    - ⚠ 이후 스펙 머지(`spec-v1.0.85`~`1.0.92`)는 재집계 전 — 실제 진척은 이 수치 이상
+    - 남은 건 전부 외부 선결(③-I 인프라 · Straumann 시드 · PL RTO/RPO)
+  - ✅ **GW Console 실 Entra + 제3자 전 경로 검증 통과(9/15)** — 권한 요청→승인→회수→재신청 실환경 왕복 정상(PL 확인)
+  - ✅ **T-FE-9-17 2단계 완료(9/15)** — 목↔실 dev GW 16개 엔드포인트 대조 · audit 필드 결함 수정(#14375) · targets/operators 대조는 후속
+  - ✅ **스펙** — v1.1 알림(§7.10 · Email 단일) · 운영자 self-service · self-GET 갭 보완 · OpenAPI 통제문서↔코드 완전 정합(compare 델타 0 · 계약 우선 원칙)
+  - ✅ **최초 admin 부트스트랩 allowlist**(`spec-v1.0.85/86`) — 최초 admin 데드락 해소
+  - ✅ **DT·SonarQube 온보딩 + DT 취약점 탐지 복구** — npm 공급원 교체로 1,000+건 드러남 → 조치 방식 = R1(결정·아래)
+  - ✅ **backlog 를 우리 repo `docs/backlog` 로 정리** · 운영자 매뉴얼(최초 관리자) 작성
+  - ✅ Entra dev 2앱 등록·admin consent 승인(9/10) · GW 4앱 dev 기동
 
-  - **이번 주(9/17) 착수·진행 · 선결 대기**
-    - **[GW·Console × DT·SonarQube 온보딩] ✅ 완료(9/10)** ⭐ _(회의 결정 직후 당일 완료)_ — **4 커버리지(GW·Console × DT·SonarQube) 전부 실데이터 확인·Quality Gate 둘 다 Pass**.
-      - **결과**
-        - DT SBOM components — GW **424** · Console **260**(CycloneDX 1.6).
-        - SonarQube — GW **17.5k LoC**(버그 5 · 취약점 0 · hotspot 21) · Console **24.2k**(버그 5 · 취약점 0 · hotspot 15).
-        - ⚠ **커버리지 0%** — 파이프라인이 테스트를 돌리지 않는다. 잡에 test+coverage 를 붙일지 **별도 논의**.
-      - **부수 성과 — 전 제품에 있던 잠복 버그 5건을 찾아 고쳤다**(`python/sbom_extractor.py`)
-        - **핵심은 "종료코드 삼킴"** — DT·ABS 업로드와 trivy 가 실패해도 빌드는 SUCCESS 로 끝났다. **DT 가 비어 있는데 초록불**이던 것이 이 때문이다.
-        - 그 외 — 불완전 SBOM 업로드 · POSIX `rmtree` 실패.
-        - **Windows 에이전트에선 드러나지 않다가 Linux 이관에서 노출**됐다.
-        - **Verify Upload 스테이지 추가** — 종료코드를 믿지 않고 DT 를 직접 조회해 확인한다.
-        - **trivy 0.70.0 고정** — 0.71+ 는 CycloneDX 1.7 을 산출하는데 DT 4.13.3 은 1.6 까지만 받아 400 으로 거절한다. DT 업그레이드 없이 해소.
-        - 상세 = `sbom/jenkins` repo.
-      - **만든 것**(`sbom/jenkins` · main)
-        - `vars/sharedPipelineSbomPyLinux.groovy`(신규 · Node/pnpm Linux) · jenkinsfile 4종 · config 2종 · Node 샘플 템플릿 2종.
-        - 💡 **착수 전 가정 2건이 틀렸다** — ① pnpm 은 기존 `-py`(python) 계열이 **이미 지원**하고 있었다(Groovy Node 템플릿 신설 불요). ② `-py` 가 Windows 였던 건 **EzServer 가 Windows 대상 SW** 라서이고, VT 는 Linux 대상이다.
-      - **남은 것 = 없음(완결)**
-        - 트리거는 **초기 'QA 태그' 안을 철회하고 일 1회 새벽 스케줄로 확정**(9/10). 기존 잡들과 같은 **pollSCM** 이라 ADO 연동·API 토큰·변수그룹이 필요 없다.
-        - 4개 잡을 **KST 새벽 2~5시로 분산**(commit `40986aa` · Verify Upload 통과).
-        - **별도 논의 = 커버리지 0%** — 잡에 test+coverage 를 붙일지.
-      - ⚠ **부수 발견(별건) — 기존 잡 13개가 업무시간에 돌고 있다**
-        - `jenkins-server` 컨테이너에 **TZ 가 설정돼 있지 않아 UTC** 로 동작한다. 크론이 의도와 다르게 해석된다.
-        - 예 — SBOM 잡의 `H 3` 이 **KST 정오**다. CI 와 에이전트를 놓고 경합한다(`eslockserver` #18 이 12:19 KST 실행된 것이 증거).
-        - **급하지 않아 별건**(`TZ=Asia/Seoul` 은 전체가 9시간 시프트되므로 신중해야 한다) · 회의 안건 아님.
-        - VT 4개 잡은 UTC 로 환산해 넣어 실제로 새벽에 돈다.
-    - **[DT 취약점 탐지 복구]** ✅ **완료(9/14)**
-      - 🔴 **그동안 npm 제품 전체가 취약점 "0" 으로 보고되고 있었다** — VT 만이 아니라 **EzServer 전 계열**이 같은 상태였다.
-      - ✅ **13개 프로젝트 탐지 복구** — `EzUpdater` 174 · `AuthProvider` 153 · `REST API v2` 85 · … · `vt-api-gateway` 2 · `console` 6. 취약점 DB **39만 → 63만**.
-      - 📌 **한 줄 원인** — npm 취약점 공급원(Sonatype OSS Index)이 **유료화로 끊겨 있었다**. 무료 대체(Google OSV · GitHub Advisories)로 갈아타고 재분석해 정상화했다.
-      - ⚠ **이건 끝이 아니다** — 드러난 **1,000건 이상을 누가 심사·조치할지 정해져 있지 않다**. → **논의 [R1]**
-
-      <br/>
-
-      **▼ 상세**
-      - **원인 — npm 취약점 공급원이 통째로 끊겼다**
-        - **Sonatype OSS Index 가 2026-04-29 부터 402 Payment Required** 반환. 무료 티어 종료 · Sonatype Guide 로 이관 · **레거시 엔드포인트 2026-12-31 완전 종료** 예정.
-        - npm 패키지는 **NVD 에 CPE 가 없어** 내장 분석기로 안 잡힌다. OSS Index 가 유일한 공급원이었고, 그것이 끊긴 순간 npm 은 통째로 0 이 된다.
-        - **비-npm 제품은 NVD 로 계속 잡히고 있어 문제가 가려져 있었다** — `Ez3D-i`(purl = `generic`·`debian`·`boost`)는 190건 정상.
-        - 48시간에 402 에러가 **458건** 쌓여 있었다.
-      - **조치**
-        - **① Google OSV 활성화** — 생태계 `npm` · `crates.io` · `Pub` · `Packagist`. DT 컴포넌트 purl 을 전수조사해 선정했다(npm 20,366 · cargo 4,929 · pub 398 · composer 66).
-        - **② GitHub Advisories 활성화** — **classic PAT(스코프 없음)로 설정 완료 · 정상 동작 중**(9/14 기준 15,265건 수집).
-          - **왜 classic 인가** — DT 는 GitHub **GraphQL** 로 전역 보안 권고를 조회한다.
-            - 저장소·조직 단위로 권한을 좁히는 신형 **fine-grained PAT 는 이 쿼리에서 401** 이 난다(DT 저장소에 보고된 알려진 제약).
-            - 토큰 종류를 고를 때 주의할 점이고 **문제는 아니다**.
-          - **보안상 부담도 낮다** — 권고 조회는 공개 데이터라 **스코프를 하나도 주지 않았다**. 유출돼도 공개 데이터 조회 외에는 할 수 있는 게 없다.
-          - ⚠ **잔여 리스크** — 조직이 향후 **fine-grained 전용 정책**을 강제하면 이 연동이 끊긴다. 다만 npm 은 OSV 가 이미 커버하므로 그때도 탐지 공백은 생기지 않는다.
-        - **③ OSS Index 비활성화** — 402 로 0건만 반환하던 것. **유료화 전환 때문이고, 되살릴 경로가 없다.**
-          - **로드맵**
-            - 2026-03-31 — 기존 토큰이 Sonatype Guide 로 이관.
-            - 2026-04-28 — API 사용이 Guide 요금제·크레딧 체계로 전환(무료 계정 **월 500 크레딧**).
-            - 2026-04-29 — `ossindex.sonatype.org` 가 **402 반환 시작**.
-            - 🔴 **2026-12-31 — 레거시 엔드포인트 완전 종료.**
-          - **우리 상태** — 계정(`gracegyu@gmail.com`)과 토큰이 설정돼 있는데도 402 다. 크레딧 소진인지 이관 누락인지는 Sonatype 계정에서 확인해야 구분된다. 어느 쪽이든 결과는 같다.
-          - ⚠ **유료로 전환해도 지금은 못 쓴다** — 엔드포인트 URL 변경 기능이 **DT 4.14.0 부터**인데 우리는 **4.13.3** 이다. 쓰려면 DT 업그레이드가 선행된다.
-          - **비용도 맞지 않는다**
-            - 크레딧은 **컴포넌트 단위**로 소모되는데, 우리 DT 에만 **약 26,000 컴포넌트**가 있다
-              - npm 20,366 · cargo 4,929 · 그 외
-            - ⚠ 무료 500 크레딧은 **1회 스캔에도 못 미친다**
-            - 매일 도는 잡을 감당하려면 **상당한 유료 플랜**이 필요하다
-          - ✅ **결론 = 유료 전환 불필요. 대체가 이미 검증됐다.**
-            - `AuthProvider` 가 OSS Index 시절(v6.3.1) **141건** → OSV·GHSA 로 바꾼 v6.5.0-fda **153건**. 같은 제품에서 **동등하거나 더 나은 탐지**다.
-            - npm 권고의 원천은 GHSA 이고 OSV 가 그것을 집계하므로 **공급원이 애초에 겹친다**.
-            - **DT 가 Sonatype Guide 를 정식 지원하면 그때 재검토**하면 된다.
-        - **④ 이미 올라가 있던 프로젝트를 강제로 다시 분석** — 취약점 0 이던 것 전부.
-          - **DT 는 BOM 이 올라오는 시점에만 분석한다.** 취약점 소스를 새로 켜도 **기존 프로젝트를 소급해서 다시 보지 않는다.**
-          - 그래서 원래대로면 **잡이 다음 새벽에 BOM 을 다시 올릴 때까지 기다리거나**, 사람이 BOM 을 수동으로 재업로드해야 한다.
-          - 하루를 기다리지 않으려고 **DT 에 재분석을 직접 지시**했다(`POST /api/v1/finding/project/{uuid}/analyze`). 이미 등록된 컴포넌트를 **새 취약점 DB 와 다시 대조**하는 것이라 SBOM 을 새로 만들 필요가 없고, 몇 분이면 끝난다.
-          - **앞으로는 자동이다** — 잡이 매일 새벽 BOM 을 올리고, 그 시점의 최신 DB 로 분석된다.
-      - **결과**
-        - 취약점 DB **390,692 → 629,114**.
-        - **13개 프로젝트에서 탐지 복구**(EzServer 계열 11 + VT 2).
-        - 2차로 `crates.io`·`Packagist` 를 추가해 **Rust·PHP 제품까지 커버**했다.
-        - VT 수치가 낮은 것은 의존성이 최신이라서다. **0 이 아니라는 점이 핵심**이고, 앞으로 신규 CVE 가 잡힌다.
-
-        | 프로젝트                         | 이전 |    이후 | 비고                              |
-        | -------------------------------- | ---: | ------: | --------------------------------- |
-        | EzUpdater                        |    0 | **174** |                                   |
-        | EzServer AuthProvider            |    0 | **153** | 같은 제품 v6.3.1 = 141 → 정합     |
-        | EzUpdater Frontend               |    0 | **109** |                                   |
-        | EzServer REST API v2             |    0 |  **85** | `cargo`(Rust) — 2차 미러로 해소   |
-        | EzServer WebConsole              |    0 |  **77** |                                   |
-        | EzLauncher                       |    0 |  **73** | v6.3.1 = 64                       |
-        | EzServer LicenseManager Frontend |    0 |  **70** | v6.3.1 = 44                       |
-        | EzServer PMS Integration         |    0 |  **63** | 2차 미러로 해소                   |
-        | EzServer LicenseManager          |    0 |  **46** | v6.3.1 = 43                       |
-        | EzWebServer                      |    0 |  **35** | `composer`(PHP) — 2차 미러로 해소 |
-        | EzServer Messenger               |    0 |  **32** | v6.3.1 = 33                       |
-        | **vt-api-gateway-console**       |    0 |   **6** |                                   |
-        | **vt-api-gateway**               |    0 |   **2** |                                   |
-
-      - ⚠ **결정 필요(공유가 아니라 안건)**: **드러난 취약점 1,000건 이상의 심사·조치 주체와 정책이 없다.** DT 에 수치만 쌓이고 누가 언제 무엇을 고치는지 정해져 있지 않으면 R1 온보딩의 실효가 없다. 상세 = 아래 논의 사항.
-      - ⚠ **부수 발견(별건)**
-        - **① GHSA 전량 미러링이 오래 걸린다** — 첫 실행이 `Connection reset` 으로 중단됐다(15분에 400건). **인증 문제는 아니다.**
-          - 재시작 후 정상 속도(5~6초에 200건)로 진행 중 — **9/14 기준 15,265건 수집 · 체크포인트 2023-01-24**.
-          - **incremental 이라 매일 자동으로 이어받는다**(그대로 두기로 결정).
-          - 첫 중단의 원인인 egress 불안정은 **Jenkins install flake** 와 같은 뿌리로 의심된다.
-        - **② 빌드 호스트 `/etc/hosts` 오타** — `126.0.0.1 localhost`(127 이어야 함). `localhost` 가 공인 대역을 가리켜 python 등 일부 도구만 간헐 실패했다. **수정 완료(9/14)**.
-
-    - **[Windows 빌드 노드 접속 경로 복구·문서화]** ✅ **완료(9/16)**
-      - 🔴 **Windows VM 에 아무도 못 들어가고 있었다** — VNC 가 `Authentication failure: No password configured for VNC Auth` 로 막혀 있었다. 접속 방법을 아는 사람도, 적어둔 문서도 없었다.
-      - **원인** — TigerVNC 가 기동 시 `~/.vnc/passwd` 를 `/tmp/tigervnc.XXXXXX/` 로 복사해 쓰는데, 서버가 **135일** 떠 있는 동안 **`/tmp` 정리 작업이 그 사본을 지웠다**. 포트도 데스크톱도 멀쩡한데 인증만 깨진 상태였다.
-      - **조치** — 서비스 재시작으로 해소. 인증 협상(`보안 타입 [19, 2]`)까지 실측 확인.
-      - **문서화** — 접속 경로가 어디에도 없어 문서를 뒤져도 안 나왔다. 두 문서에 정리해 넣었다.
-        - `1.1 GUI 접속 방법` — 실제 접속 정보(**포트는 5904** · 본문의 5901/5902 는 오류) · 문제 해결 절차 · 무인증 상태 확인 스크립트 · 재발 방지(서비스 파일에 `-PasswordFile` 고정 · 미적용).
-        - `8.5 Windows Node 구축` — VM 접속 경로(VNC → virt-manager → win10) · VM 현황(IP · RDP 닫힘) · **작업 시 금지 항목**.
-      - ⚠ **이 VM 하나에 파이프라인이 몰려 있다** — Jenkins `WindowsNode1·2`(SBOM `-py` 잡 **8종** + `dart-Win-SonarQube`) + Azure self-hosted Windows 에이전트. 누가 들어가 작업하든 에이전트 서비스·PATH·기설치 도구(trivy·python·az·svn)를 건드리면 **여러 제품이 동시에 멈춘다.** 문서에 금지 항목으로 명시했다.
-      - 💡 **Rust 버전 상향 요청 건(Thomas)** — 검토 결과 **깨질 제품 잡이 없다.** Windows 에서 Rust 를 쓰는 Jenkins 잡은 샘플 `rust-Windows-SonarQube` 하나뿐이고, `EzServer-SonarQube` 는 Linux 라벨에 Rust 스테이지가 주석 처리(`// FIXME need to setup for rust project on windows`)돼 있다. `rustup update stable` 로만 올리고 위 금지 항목을 지키면 된다.
-      - ⚠ **부수 발견 — 잡 3개가 빨간불**
-        - `rust-Windows-SonarQube` · `bm2-backup-s3` — **DNS 실패**(`Could not resolve host: dev.azure.com`). GHSA 미러 `Connection reset` 과 **같은 뿌리(호스트 egress 불안정)** 로 보인다. Rust 와 무관.
-        - `eslockserver-SBOM-py` — 잡 설정의 Script Path 오타(`eslockserve-...`). 한 글자. **Jenkins 쓰기 권한이 없어 조치 요청 필요.**
-        - `EzServer-SonarQube` — 원인 미확인.
-
-    - **[최초 admin 부트스트랩 allowlist]** ✅ **구현 완료(9/10 · PR #14212 머지)**
-      - 🔴 **해결한 것 — "최초 admin 데드락"**: Console 실 로그인 후 **승인해 줄 admin 이 아무도 없어** 아무도 들어갈 수 없던 상태.
-      - **계약** — env `GW_BOOTSTRAP_ADMIN_EMAILS`. 첫 로그인 시 JIT 로 admin 자동 부여(요청→승인 생략) · 매칭=이메일 · 저장=oid · 멱등 · 비회수 · 최소 2명.
-        - SRS §7.1.4 · §7.9.2 · env-reference §2.3 에 pin(**spec PR #14204 · `spec-v1.0.85`** · Jack 승인 · main).
-      - **tenant 제약 보강**(`spec-v1.0.86`) — allowlist 설정 시 `GW_OPERATOR_OIDC_TENANT` **필수**. 타 테넌트 권한상승을 막는다.
-        - 코드 fail-closed = #14212(main) · 문서 머지·태그 완료 = PR #14236(Jack 리뷰어).
-      - **코드**(`OperatorBootstrapService` · admin JIT 경로 · PR #14212)
-        - unit·e2e green(데드락 해소 · 멱등 · 대소문자 · 비-allowlist 403) · 독립리뷰 🟢.
-        - 보안 지적 반영 — M1(테넌트 fail-closed) · M2(감사 loud).
-      - ⚠ **부수 — 전 PR 이 막혔던 사건**: 신규 org-wide `multer` HIGH CVE 로 dep-scan 게이트가 **모든 PR 을 차단**. surgical override PR #14220(`multer ^2.3.0`)을 먼저 머지해 언블록했다.
-      - **다운스트림** — ③-I(Jack) 이 Parameter Store 에 `GW_BOOTSTRAP_ADMIN_EMAILS` + `GW_OPERATOR_OIDC_TENANT` 주입. 즉시 언블록은 `dev:operator --sub <oid> --role admin`(로컬).
-    - **[GW dev 배포·통합]** core·receiver·dispatcher·**admin 전부 dev 기동 확인**(9/10: admin `/v1/admin/me` 401=healthy·8/31 503 해소) · 통합은 Entra admin consent 승인 후 실로그인부터(③-I #3)
-    - **[Entra 앱 등록]** ✅ dev 2앱 회신 완료(9/9) · **admin consent 승인 완료(IT · 9/10)**
-      - 로컬 실로그인으로 검증됨.
-      - **`aud` 형식 확정** — dev SSM 은 `api://<GUID>`, GW admin 은 bare `<GUID>`. **표기가 다르나 둘 다 Entra 표준**(스코프는 `<audience>/.default`).
-      - 배포 후 로그인 실패 시 **첫 용의자**로 둔다.
-    - **[GW Console 통합]** ⭐ **실 Entra + 제3자 전 경로 검증 통과(9/15)** — 권한 생명주기가 실 환경에서 한 바퀴 돌았다
-      - ⭐ **`T-FE-8-1` 로컬 검증 통과(9/10)** — admin consent 승인(IT · 9/10) 후 **실 Entra 로그인 → 토큰 → GW admin 응답**까지 성공.
-        - `issuer`·`aud`·`scp` 가 전부 맞다는 것이 **통과 자체로 증명**됐다(이전 401 은 GW `.env` 가 로컬 OIDC 스텁을 보던 것).
-        - **최초 admin 도 allowlist 로 자동 부여**되는 것을 확인.
-      - ✅ **`ⓒ dev redirect URI` 실측 완료(9/14)** — 배포 후 로그인이 **AADSTS50011 없이 성공**. 등록돼 있었음이 확인됐고 **Entra 미확인 항목은 남아 있지 않다**.
-        - `aud` 는 dev SSM `api://<GUID>` · GW admin bare `<GUID>` 로 표기가 다르나 **둘 다 표준**(스코프는 `<audience>/.default`).
-      - ✅ **로그인 무한 반복 해소**([PR 14229](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14229) 머지)
-        - 고리 = **401 → logout → `/login` → SSO 세션으로 조용한 재로그인 → 같은 토큰 401**.
-        - 자동 시도를 **60초 3회에서 끊고 사유를 보여 준다**(수동 재시도는 유지) · 카나리 검증.
-      - ⭐ **dev 실 배포 완료(9/14)** — 목 제거 · **실 Entra 로그인 정상** · 프로세스 버전 **4줄 전부 채워짐**(admin·core·receiver·dispatcher = `2deaf14`). `T-FE-8-1` 은 **로컬(9/10)·dev(9/14) 양쪽 통과**
-        - ⚠ **9/10~9/14 사이 결함 4건은 전부 "실 환경에서만 드러나는" 종류였다** — 목·로컬·단위테스트 어디에서도 보이지 않는다. dev 실배포를 세우기 전까지 **알 수 없었던 것들**이라는 점이 이번 구간의 교훈이다
-        - **① 목 배포 회귀** — `entra` 수동 배포 **12분 뒤** main 머지가 부른 자동 빌드가 기본값 `mock` 으로 돌아 **같은 버킷을 덮었다**.
-          - 파라미터는 **수동 실행에만** 실린다. 즉 **기본값이 곧 평상시 dev 의 모습**이다.
-          - 기본값을 `entra` 로 바꾸고 실 빌드에 main 조건을 걸어 해소([PR 14299](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14299)).
-        - **② `timed_out` 로그인 막힘** — 며칠 만에 들어가면 **로그인이 아예 안 됐다**(브라우저 저장소를 비워야 풀림).
-          - `acquireTokenSilent` 의 숨은 iframe 이 Entra 세션 만료로 끊기는데, 그 오류가 `InteractionRequiredAuthError` 가 **아니라서** 그대로 던져졌다.
-          - **재로그인하면 그만인데 길이 막힌** 상태다. ⚠ **운영자가 며칠 만에 올 때마다 밟는다**([PR 14303](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14303)).
-        - **③ fan-out 포트** — `core`·`receiver`·`dispatcher` 가 `응답 없음`. 프로세스도 version API 도 정상이었다.
-          - 원인 = **admin 코드 기본값이 컨테이너 포트(`:3000`)를 k8s Service 주소에 갖다 썼다**(Service 는 `80`).
-          - Console 이 `es-gitops` 4앱 values 를 독립 검증했다(`service.port: 80` · ClusterIP · 단일 네임스페이스 · 내부 TLS 없음).
-          - → GW 코드 기본값에서 포트 제거([PR 14307](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14307)).
-        - **④ 빌드 시각 공백** — 화면의 빌드 시각이 `시각 미상`.
-          - **`Build.QueueTime` 이 잡 환경에 실리지 않아** 빈 문자열이 번들에 박혔다(로그 실측 — `command not found` · 값 `[]`).
-          - 같은 블록의 `Build.SourceVersion` 은 정상이라 **그 변수 하나만** 없는 것이다.
-          - 빌드 직전 직접 스탬프로 교체([PR 14309](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14309)).
-      - ⭐ **권한 요청 흐름 완결(9/14)**
-        - **제3자 로그인 테스트 1회**에서 결함 4건이 한꺼번에 드러났고 v1.0 범위를 모두 닫았다
-        - ⭐ **실사용자를 태워 보기 전에는 어느 테스트도 잡지 못하던 것들**이라는 점이 이번 구간의 수확이다
-
-        - ⚠ **근본은 API 부재였다**
-          - 화면이 `/me` 의 `roles` 에서 `requested` 를 찾고 있었다
-          - 그런데 계약상 거기 실리는 것은 **실효 역할(active)뿐**이라 그 필터가 **영원히 빈 배열**이었다
-          - → 요청을 보내도 흔적이 남지 않았고 **Console 로는 고칠 수 없었다**
-          - FR-CON-04[v1.0] "승인 대기" · FR-CON-07[v1.0] "이력 노출" 을 만들 **조각이 빠져 있던 것**
-          - → GW 가 **`GET /v1/admin/me/access-requests` 신설**(PL 승인 · `spec-v1.0.88`/`.91` · PR #14320)
-
-        - **결함 4건**
-          - **① 승인받고도 콘솔에 못 들어감** — PR #14311
-            - 게이트가 `no_access` 를 요청 화면으로 보내는데 **역할이 생겨도 내보내는 쪽이 없었다**
-            - ⚠ **주소창을 고칠 줄 아는 사람만** 들어갔다
-            - 게이트가 보낸 사람만 표시해 두고 승인 즉시 착지점으로 보낸다
-          - **② 요청을 보내도 화면이 그대로** — 보낸 사람이 **보내지지 않은 줄 알고 또 보냈다**
-          - **③ 이미 가진 역할이 "요청 중"으로 표시** — 승인을 기다려야 하는 줄 알고 대기 — PR #14315
-          - **④ 승인 후 새로고침해야 반영** — PR #14315 → #14318
-            - ⚠ **한 번 고쳤다가 실패했다**
-              - Refine 의 `invalidate` 는 **resource 기준**이라 `useCustom` 으로 부르는 `/me` 를 **잡지 못한다**
-              - 불러도 조용히 아무 일도 안 일어나 **"고친 줄 알았는데 그대로"** 가 됐다
-              - 재조회 여부를 **직접 세는 테스트**를 붙여 다시 잡았다
-
-        - ⭐ **목이 서버와 달랐던 것이 뿌리였다**
-          - 목은 `/me` 에 `requested` 를 실어 두어 **"목에선 뜨는데 실제론 안 뜨는 화면"** 을 만들어 냈다
-          - 계약대로 경계를 갈라 바로잡았다 — `/me` = 실효 역할 · `/me/access-requests` = 요청·이력
-          - 시각 회귀용 `pending` 시나리오도 **같은 규칙으로 다시** 만들었다
-
-        - **UI 재구성(PL 결정)**
-          - 거부를 상시 경고 카드로 띄우던 것을 **행 인라인 + 접이식 이력**으로 바꿨다
-          - ⚠ 거부는 막다른 길이 아니라 **다시 요청할 수 있는 상태**인데 그렇게 보이지 않았다
-          - 정작 할 일(역할 고르기)이 카드에 묻혔다
-          - `rejected`(승인 전 거부)와 `revoked`(관리자 회수)를 **구분해** 말한다
-
-        - ⚠ **v1.0 interim 안내 유지**
-          - 승인 알림이 v1.1(§7.10)이라, 그때까지 *"자동 알림이 없으니 관리자에게 직접 알려 달라"* 를 화면에 남긴다
-          - ⚠ **승인권자를 이름으로 열거하지는 않는다**
-            - 그 목록을 주는 API(`/me/approvers`)도 v1.1 이다
-            - 모르는 것을 아는 척하면 **요청자가 엉뚱한 사람을 찾아간다**
-
-        - **자기 요청 자기 승인 = 허용**(PL 결정)
-          - 승인 경로가 admin 전용이고 admin 은 이미 직접 부여가 가능하므로 **새 권한 상승이 아니다**
-          - 유일한 제약인 **"admin 최소 1명"** 은 GW 가 409 로 집행하고 Console 도 버튼을 잠근다
-          - ⭐ **추가 코드 없음**
-
-        - **시각 회귀로 고정** — PR #14327
-          - 이 화면은 **콘솔을 처음 만나는 사람이 보는 유일한 화면**인데 덮여 있지 않았다
-            - ⚠ 무너져도 **이미 쓰는 사람은 모른다**
-          - 처음 요청 / 대기 중 **두 상태를 따로** 찍는다 — 달라 보여야 하는 것이 요점이라 하나만 찍으면 차이가 사라져도 안 드러난다
-          - ⭐ 찍어 보다가 **문구 결함 하나를 더 잡았다** — 역할이 0인 사람에게 "역할 **추가** 요청"
-
-      - ⭐ **제3자 실사용 전 경로 검증 통과(9/15)** — PL 직접 수행
-        - **실 Entra + 제3자 계정**으로 권한 생명주기를 **끝에서 끝까지** 돌렸다
-          - 제3자 로그인 → 권한 요청
-          - admin 승인 → 화면 진입
-          - **역할 회수**(revoked)
-          - **재신청** → 다시 승인
-        - ⭐ **전부 정상 동작**(PL 확인 — *"잘 돼"*)
-        - ⭐ **이것이 닫은 것** — v1.0 권한 체계가 **실 환경에서 한 바퀴 돌았다**
-          - 그동안은 목·로컬·단위 테스트까지였고, 실 Entra + 타인 계정 조합은 검증된 적이 없었다
-          - 9/14 결함 4건이 전부 **이 경로에서만 드러나던 것**이라, 같은 경로로 되짚어 확인한 셈이다
-        - ⭐ **회수 후 재신청이 막히지 않는다**는 것도 함께 확인됐다
-          - 화면: `revoked` 는 체크박스를 잠그지 않고 *"이전에 회수됨 · 다시 요청할 수 있습니다"* 로 안내
-          - 서버: `historical`(rejected·revoked)만 있으면 **재요청 허용**(중복·이미보유만 409)
-          - ⚠ 회수는 **막다른 길이 아니다** — 그 말이 화면에 없으면 당사자는 끝난 줄 알고 포기한다
-
-
-      - ✅ **운영자 매뉴얼 반영(9/15)** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14373
-        - ⚠ **화면이 바뀌었는데 매뉴얼이 옛 화면을 설명**하고 있었다
-          - `(이미 요청함)` 한 문구 → **`(이미 보유)`** / **`요청됨 · 승인 대기`** 로 갈렸다
-          - 별도로 뜨던 "승인 대기" 화면은 없어지고 **행에 붙는다**
-        - ⭐ **빠져 있던 경로 둘을 넣었다**
-          - **케이스 F 신설** — 이미 쓰는 사람이 역할을 더 받는 길
-            - ⚠ `내 역할` 진입점이 생겼는데 **매뉴얼 어디에도 없었다**
-            - 사이드바가 아닌 이유도 적었다 — **역할이 모자라 요청하려는 사람에게는 사이드바 항목이 안 보인다**
-          - **케이스 C 보강** — 회수 후 **재요청이 가능**하다
-            - ⚠ 이 말이 없으면 회수당한 사람은 **끝난 줄 알고 포기**한다
-            - 완전히 막으려면 **계정 정지(케이스 D)** 라는 것도 짚었다
-        - 권한 요청 화면 **스크린샷 추가** — 가장 많이 바뀐 화면인데 그림이 없었다
-        - ⭐ **매뉴얼은 화면이 바뀌면 같이 바뀌어야 한다** — 이번엔 PL 이 물어서 발견됐다
-
-
-      - ⚠ **v1.1 로 넘긴 것 3건**
-        - **승인 알림**(§7.10) — **Email(Amazon SES) 단일**로 확정·머지(spec-v1.0.90)
-          - Teams는 채널이 타 법인 인원 멘션 불가라 v1.1 제외 → backlog B-21
-        - **승인권자 조회**(`/me/approvers`) — 알림이 생기면 대체로 불요
-        - **본인 역할 제거** — 제거는 **승인 없이 즉시**(권한이 내려가는 방향이라 위험이 낮다)
-          - "마지막 admin" 보호는 그대로
-        - ⚠ **공통 관찰 — "조용한 실패"가 진단 비용의 대부분이었다**
-          - SSM 로더는 에러를 stdout 으로 내보내 `$( )` 에 삼켜졌다(어떤 실패든 침묵).
-          - `Build.QueueTime` 은 빈 값이 조용히 박혔다.
-          - 목 배포는 초록으로 끝나고 덮었다.
-          - 💡 **실패가 보이게 만드는 것**이 다음 구간의 개선 항목이다 — ⭐ `es-ci-templates` 는 **이미 반영 완료**(9/14 확인).
-    - **[Console dev 실배포 · SSM 3중 결함]** ✅ **9/10 진단·조치 완료**(①③ 해소 · ②는 템플릿 개선으로 이관)
-      - 🔴 **증상** — 실 Entra 빌드가 `Load env from SSM` 에서 **에러 한 줄 없이 0.5초 만에** 죽어 두 번 실패.
-        - [빌드 55466](https://dev.azure.com/ewoosoft/es-platforms/_build/results?buildId=55466) · [빌드 55475](https://dev.azure.com/ewoosoft/es-platforms/_build/results?buildId=55475).
-      - **IAM·KMS·jq 는 전부 무관이었다** — 같은 잡·같은 `dev-ci` 역할에서 `--with-decryption` 조회가 `rc=0`. 파이프라인에 진단 스텝을 넣어 갈라냈다.
-      - **① SSM 값이 여러 줄(pretty-print) JSON** — 로더가 `이름<탭>값` **한 줄**을 가정한다. `read` 가 첫 줄에서 끊기고 `jq` 가 `{` 하나를 받아 실패.
-        - **③-I 조치** — 한 줄 JSON 으로 재기록 + **넣는 도구가 `jq -c` 를 쓰는지** 확인. 값만 고치면 재발한다.
-      - **② 에러가 구조적으로 침묵했다** — 진단이 오래 걸린 진짜 이유.
-        - `emit_env` 가 에러를 **stdout** 으로 내보내는데 호출부가 `body="$(emit_env …)"` 라 `$( )` 가 삼킨다. **어떤 실패든 무조건 침묵**하는 구조였다.
-        - 최소 수정은 `>&2` 한 줄. 근본은 `--output text` 대신 `--output json`+`jq`(값에 개행이 하나라도 있으면 같은 방식으로 또 깨진다).
-        - ⭐ **해소 확인(9/14 · `es-ci-templates`)** — 템플릿이 **모든 실패를 최상위에서 보고**하도록 바뀌었고(명령 치환 안에서 보고하지 않음) 파싱도 `--output json`+`jq` 로 전환됐다.
-        - **우리가 제안한 것보다 넓다** — 개행이 든 값은 **키 이름과 함께 미리 실패**시켜, `.env` 한 줄에 담기지 않는 값이 조용히 망가지는 것까지 막는다. 코드 주석에 9/10 사례가 근거로 인용돼 있다.
-      - **③ `.env` 출력 경로가 한 겹 중복** — `Build.SourcesDirectory` 가 이미 레포 폴더를 포함하는데 접두를 또 붙였다.
-        - ①② 를 고쳐도 다음 게이트(`test -s .env`)에서 막힌다.
-        - **Console 조치** — [PR 14233](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14233).
-      - ⚠ **별건 · ③-I 조치 대기 — admin 이 영영 못 읽는 값이 있다**
-        - `GW_BOOTSTRAP_ADMIN_EMAILS` 가 **`/dev/vt-api-gateway-console/config`(프론트 빌드용)** 에 들어가 있다.
-        - **`/dev/vt-api-gateway-admin/config` 로 이동 + admin 파드 재시작** 필요(env 는 부팅 시 1회 로드 · SRS §7.8.4).
-        - 미조치 시 **로그인은 되는데 `no_access` 로 떨어진다.**
-    - **[운영자 매뉴얼 · 최초 관리자]** ✅ **작성 완료 · 스펙 검토 통과**([PR 14234](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14234))
-      - 🔴 **메운 구멍** — _"첫 admin 은 누가 승인하나"_ 에 매뉴얼이 답을 갖고 있지 않았다.
-      - **케이스 E 신설** — 승인 없이 부여 · TOFU 아님 · 멱등 · 비회수 · 재로그인 복원 · **2명 이상 권장** · 감사 기록은 `system`.
-      - **트러블슈팅 3줄** — 승인할 관리자 없음 / **재시작 누락** / **테넌트 값 누락 시 admin 부팅 거부**(spec-v1.0.86).
-      - 배포 주입 절차는 ③-I 소관이라 **일부러 넣지 않았다.**
-    - **[스펙 · v1.1 알림/self-service + self-GET 갭 pin]** 이번 주 신규 — **spec PR 3건 전부 머지**(+ 구현 PR #14319 · 리뷰어 Jack)
-
-      - ✅ **v1.0 갭 pin** — [PR 14316](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14316) · `spec-v1.0.88` 태그
-        - 운영자 본인 요청 이력 조회 `GET /v1/admin/me/access-requests`(§7.9.2) 신설
-        - ⭐ **Console FR-CON-04/07 의 데이터 소스 부재를 해소** — 요청을 보내도 흔적이 남지 않던 것
-        - `status` = non-active(active 는 `/me` 가 SSOT)
-        - `note` 겸용 · `rejected`/`revoked` semantic 명문화
-
-      - ✅ **self-GET OpenAPI 통제문서** — [PR 14320](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14320) · `spec-v1.0.91` 태그
-        - 같은 계약을 계약 정본(`vt-api-gateway.openapi.yaml`)에 `get` 으로 추가
-        - ⚠ **#14316 머지 시점엔 통제문서에 `get` 이 없어** 후속 반영이 됐다
-          - **프로세스 정정(PL)**: 통제문서 = 계약 SSOT(스펙 선작성) → 구현 gen(`admin.gen.yaml`) 은 compare 로 정합만
-        - 태그 번호는 1.0.90(v1.1)이 먼저 머지되며 밀렸다
-
-      - ✅ **GW 구현** — [PR 14319](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14319) · `afff3ce` (9/14 머지)
-        - `getAdminMeAccessRequests` — **RBAC 없이 본인 것만**
-          - 위조 차단: 대상은 **토큰의 operatorId** · 본문·쿼리로 받지 않는다
-        - `status` = requested · rejected · revoked (**active 제외** = `/me` 가 SSOT)
-        - `requestedAt` 내림차순 · 결정행은 `decidedByOperator` 를 read-time 조인(N+1 회피)
-        - 검증: unit 16 + operators 135 · e2e 4 · `admin.gen.yaml` 재생성
-          - 독립 pre-PR 리뷰 🟢(orderBy id 타이브레이크 반영) · CI green(`vt-api-gateway-ci`·`devsecops-admin`)
-        - ⭐ **Console FR-CON-04/07 데이터 소스 실연결**
-
-      - ✅ **self-GET 계약 3-PR 클로즈** — main 공식 compare **델타 0** 확정(9/14 · #14320 머지본 `d1e9fc4`)
-        - admin `OK GET/POST /v1/admin/me/access-requests`
-        - 구성: SRS `1.0.88` · 구현 #14319 · OpenAPI `1.0.91`
-
-      - 📌 **프로세스 못박음(PL 지시)** — OpenAPI **계약 우선(contract-first)·역행 금지**
-        - 내부 개발 가이드에 규칙으로 못박음(스펙·구현 세션 공통)
-        - 통제문서 = 계약 정본(스펙 선작성) → 구현은 **generate + compare 만**
-        - ⚠ **gen 을 계약처럼 커밋하는 역행 금지** · 통제문서에 없는 오퍼레이션은 **멈추고 스펙 선요청**
-
-      - **v1.1 예약** — [PR 14312](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14312) · `spec-v1.0.90` 태그(9/14 머지)
-        - **§7.10 운영자·이벤트 알림** 신설
-          - 이벤트 2건: 역할 요청 `access.requested` · 결정 `access.decided`
-          - **채널 = Email(Amazon SES) 단일**
-          - 언어 기본 ko/en 선택 · **비-PHI 불변식** · 비동기·멱등·DLQ
-        - **§7.9.2 self-service 2건**
-          - 승인권자 가시성 `GET /me/approvers`
-          - 역할 self-제거 `DELETE /me/roles/{id}`
-        - **Jack 리뷰 반영(9/14)**
-          - SES = **중앙 단일 리전** 확정(prod us-east-1 · 비-prod 서울 · §2.1.1 전역 의존 등재)
-          - ⚠ **Teams 는 타 법인 멘션 불가**로 backlog **B-21** 로 유예 — 유예된 이벤트·채널도 B-21
-
-      - ⚠ **③-I 준비(알림 착수 전)**
-        - Amazon SES 발신 도메인 검증 + production access
-        - 중앙 단일 SES(prod us-east-1 · 비-prod 서울) — 가이드는 PR 14312 본문
-
-      - 📌 **버전 — 머지·태그 순서**(전부 완료)
-        - `1.0.88`(self-GET SRS) → `1.0.90`(v1.1 알림) → `1.0.91`(self-GET OpenAPI)
-        - `1.0.87`·`1.0.89` 는 머지 순서가 밀리며 **결번**
-      - ✅ **backlog B-22 완전 클로즈(9/14)** — `openapi:compare` 델타 **15 → 0**(57 op 전부 정합)
-        - 스코핑 문제가 아니라 **실제 shape 델타**였다(compare 는 이미 앱별 프리픽스로 스코핑돼 있었다)
-        - 세 갈래로 나눠 소거했다 — 아래 (1)·(2)~(5)·code-side
-
-        - ✅ **(1) compare allOf 평탄화** — 구현 PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14323 (`7ede092`)
-          - 통제문서는 `allOf[base & 확장]`(DRY), gen 은 평탄 object 라 **허위 델타**가 났다(clinics·clinics/{id}·memo·clinics/me 4건)
-          - **델타 15 → 11**
-          - 안전장치: 충돌 key 를 `conflict[…]` 로 표면화 · 미해석 `$ref` 는 보수적 폴백(독립 리뷰 M1/M2 반영·unit 15)
-          - ⭐ **통제문서의 `allOf` 는 그대로 둔다** — DRY 를 포기하는 대신 비교기를 고쳤다
-
-        - ✅ **(2)~(5) 통제문서 편집** — spec PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14325 · `spec-v1.0.92` 태그(main `5468ea9`)
-          - **(3) targets 분리** — `Target`(응답) / `TargetUpsert`(요청) · 원문 자격은 **요청에만**, 응답은 ref 만(gen 4응답 byte-identical)
-          - **(2) nullable 조이기** — connector descriptor · me displayName/email · devices clinicId(clinic-less 의도)
-          - **(4) 응답 구체화** — server-configuration · auth/token claims · PATCH clinics/{id} 200 에 Clinic body
-          - **(5) getAdminMe 403 제거**
-          - 사전확인에서 **델타 11 → 3 → 통제문서 측 0** — audit state free-form 화, heartbeat `configVersion` 제거(gw/1.1 재도입)까지 함께 반영
-          - ⚠ `format`(int64·uuid)은 **compare 가 비교하지 않아** 통제문서 그대로 둔다 — 맞추려고 통제문서를 낮추지 않는다
-
-        - ✅ **code-side gen 정밀화** — 구현 PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14330 (`21e1d7f`)
-          - `TargetUpsert.ports` = 정수 **실범위 1–65535**
-            - ⚠ `.int()` 만으로는 JS 안전정수(±9e15)까지 통과해 **포트로서 의미가 없었다**(Raymond 지적 · `MIN_PORT`/`MAX_PORT` 상수)
-          - `sourceIpAllowlist` = `string[]`
-          - audit `before/afterState` = nullable(any) — #14325 free-form 화 뒤의 잔여
-          - 회귀 unit(포트 경계·거부·gen shape·audit nullable) + 독립 리뷰 🟢(High 0·Med 0)
-
-        - 🏁 **최종 상태** — `pnpm openapi:compare` **델타 0**(57 op) · `openapi:check` EXIT 0
-          - 통제문서(`spec-v1.0.92`) ↔ gen(admin·core·receiver) **완전 정합**
-          - ⭐ compare 가 이제 **실제 드리프트만** 잡는다
-
-    - **[스펙 · backlog 정리]** 이번 주 신규 — 우리 repo `docs/backlog` 로 모음
-      - ✅ **backlog 를 우리 repo `docs/backlog/backlog.md` 밑에 정리** — 부모·Console 각 repo
-        - 부모 [PR 14352](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14352) · Console [PR 14354](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14354)
-        - 비통제 tier(`docs/handoff/` 와 동일·baseline 태그 아님) · 항목 접두 B-N/CB-N 유지
-      - 📌 이유 — backlog 가 정본 SRS 와 같은 repo 라 spec PR 이 항목 닫을 때 **원자적 처리**·리뷰 diff 통합
-    - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
+- **이번 주(9/24) 착수·진행 · 선결 대기**
+  - **[R1 실행] 보안·품질 지표 심사·조치 = 개발자가 AI로 직접** (9/17 회의 결정)
+    - DT·SonarQube를 사내 표준 CLI(`es sec`)에 통합 → Claude Code(`/es-sec` 스킬)가 취약점·이슈를 직접 조회·수정, 안 고칠 건은 근거 남겨 심사(triage)
+    - Jenkins 세션 — 구현·실서버 검증 완료(119 통과·심사 쓰기 왕복·데이터 원상복구) · **PR [#14475](https://dev.azure.com/ewoosoft/platforms/_git/es-toolkit/pullrequest/14475) 올림**(es-toolkit · 리뷰어 Scott Kim)
+    - ✅ **서버 설정 = DT·SonarQube 양쪽 완료** · SonarQube 개발자 온보딩 부트스트랩(`sbom/jenkins` `admin/sq_bootstrap.py`) main 머지
+    - ⏳ **잔여** — PR 리뷰(Scott Kim) + Windows 실기 검증 1건 → 머지되면 완료로 갱신
+    - ✅ **첫 적용(9/17) — GW 백엔드 DT 취약점 2건 조치** (`es sec` 조회 → AI 직접 수정)
+      - `qs@6.15.3` MEDIUM 2건 — GHSA-4mjr-xmp4-gh2g(CVSS 5.3·DoS via isBuffer) · GHSA-x5fp-wj9c-mxmx(3.7·array-limit 우회)
+      - `qs` 는 우리 코드 아님 — `express@5.2.1` 전이 의존(쿼리스트링 파서·8 경로)이라 외부 요청에서 도달 가능
+      - surgical override `qs ^6.16.0` 로 소거(patched `>=6.16.0`·express `^6.14.0` 호환·broad 범프 아님)
+      - PR [#14568](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14568) · `pnpm audit --prod` = 0 확인 · build 4앱 0
+      - Console(별도 DT 6건)은 Console 세션 처리
+    - ✅ **Console DT 6건 조치(9/17)** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14569
+      - ⭐ **배포 형태로 갈렸다** — Console 은 **정적 export**(`images.unoptimized`)라 **Next.js 서버가 배포에 없다**
+        - CRITICAL 2건(next Image Optimization RCE · Windows 서버 RCE 9.0) = **배포본에 닿지 않음**
+        - HIGH 2건 — `js-yaml` 은 lingui 설정 로더가 **빌드 타임**에만 · `sharp` 는 next 의 **서버 전용 peer**
+        - ⚠ **MEDIUM 2건(`qs`)만 실제 위험** — `@refinedev/core` 경유로 **브라우저 번들에 들어간다**
+      - ⭐ **번들에서 실측했다** — 배포본 청크에 `qs` 고유 옵션명(`arrayLimit`)이 있고 나머지 넷은 없다
+      - **조치** — `next` 16.3.0→16.3.5(패치·직접 의존) · `qs` override `^6.16.0`(Refine 요구 `^6.10.1` 범위 안)
+        - ⭐ GW 백엔드와 **같은 방식**이다(#14568) — surgical override 로 전이 의존만 올린다
+        - 빌드 산출물에 **6.16 계열 옵션**(`throwOnLimitExceeded`)이 들어간 것으로 override 실효 확인
+      - ⚠ **next 는 배포본에 안 닿아도 올렸다** — 개발 서버(`next dev`)는 영향받고, **DT 에 CRITICAL 이 남으면 판단이 흐려진다**
+      - `js-yaml`·`sharp` 는 손대지 않는다 — 배포본 무관 + 전이 의존이라 **상위 패키지가 따라올 때 해소**된다
+  - **[audit 계약 정정]** — OpenAPI `audit.beforeState/afterState` 가 `type` 누락으로 codegen `Record<string, never>`(빈 객체) 오생성 → `type: object` 로 정정(spec PR) · 구현 gen(`z.record`) 동조. B-22 후속·부모 backlog 등재
+  - **[GW·Console dev 통합 마무리]** — 남은 건 전부 외부 선결
+    - ③-I: test 환경 프로비저닝(마감 8/26·미착수) · 자동배포 tag→TEST/PROD · dispatcher 안정화(exit137)
+    - GW 몫(③-I 대기 아님): IoT 다운링크 E2E(dispatcher 진단→Thing enroll→webhook→IoT 1회)
+    - PL 결정 대기: RTO/RPO 목표(HA 합격기준)
+    - Straumann: 파일 붙은 lab order 시드(presign E2E)
+  - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
 
 - 논의 사항 (이번 주 · 신규 · R#)
-  - **[R1] 보안·품질 지표를 누가 심사·조치할 것인가** _(9/14 신규 · 판단 = PL · 품질/RA)_
-    - 🔴 **측정은 되는데 조치 경로가 없다** — DT 취약점 **1,000건 이상** · SonarQube Quality Gate **25개 중 14개 실패** · security hotspot 검토율 **전 제품 0%**.
-    - ❓ **정할 것 5가지** — ① **소유자**(개발팀 / 품질·RA / 보안) ② **주기**(상시 / 릴리스 전 / 월 1회) ③ **범위**(critical·high 만 / 전부) ④ **미조치 처리**(억제·예외 승인 절차) ⑤ **게이트**(릴리스를 막을 것인가)
-    - ⚠ **선행 확인** — **품질/RA 가 SBOM 만 요구하는지, 취약점 조치 이력까지 요구하는지**(SRS §6.13). 이 답에 따라 위 5가지의 답과 작업량이 크게 달라진다.
-    - 💡 **기술 배선은 이미 끝나 있다.** DT Policy·Notification, SonarQube Gate 조건 모두 관리자 화면에서 조정 가능하다. **지금 필요한 것은 설정이 아니라 정책 결정이다.**
-
-    <br/>
-
-    **▼ 근거·상세**
-    - **배경 — 안 보이던 것이 한꺼번에 드러났다**
-      - 9/14 DT 취약점 탐지를 복구하자 **1,000건 이상**이 나타났다(위 「이번 주 진행」 표 참조).
-      - 같은 제품 v6.3.1 이 141, v6.5.0-fda 가 153 인 데서 보듯 **새로 생긴 것이 아니라 그동안 안 보였던 것**이다.
-      - 방치하면 다음 릴리스도 같은 상태로 나간다.
-    - **문제 — 수치는 생겼는데 조치 경로가 없다**
-      - **누가·언제·무엇을 고치는지가 정해져 있지 않다.**
-      - DT 의 조치 장치가 전부 비어 있다.
-        - Policy Management(심각도 임계) — **정책 0건**(Policy Violations 전 제품 0)
-        - Vulnerability Audit(심사 워크플로) — 미사용
-        - Notifications — 미설정
-      - 이대로면 DT 는 숫자만 쌓이는 대시보드가 되고, 온보딩이 "가시성 확보"에서 멈춘다.
-    - **SonarQube 도 같은 상태다(9/14 실측)**
-      - 전체 25개 중 **Quality Gate 실패 14 · 통과 10**.
-      - **`new_security_hotspots_reviewed` 가 전 제품 0%** — security hotspot 을 아무도 검토하지 않았다.
-      - 실패 원인은 두 갈래로 나뉜다. **둘 다 조치가 필요하고 시급성만 다르다.**
-      - **(가) 게이트 실패 조건이 커버리지뿐인 것** — `vt-api-gateway` · `vt-api-gateway-console`
-        - 커버리지 리포트를 안 넘겨 0% 로 계산된 결과다.
-        - 커버리지는 **ADO CI 가 이미 측정**한다(GW = unit+e2e 합산 + floor 게이트). SonarQube 에서 다시 재는 것은 중복이다.
-        - → **조건을 뺄지, Jenkins 잡에 테스트 실행을 붙일지** 결정 필요.
-        - ⚠ **단, "코드가 깨끗하다"는 뜻이 아니다**
-          - 신규 위반이 0 인 것은 **신규 라인이 210줄·117줄뿐**이기 때문이다(기준선 `PREVIOUS_VERSION` · 분석 2회).
-          - 전체로 보면 **VT 도 위반 35건·149건**이 있고 hotspot 검토율은 다른 제품과 같은 **0%** 다.
-          - 신규 코드가 쌓이면 (나) 와 같은 상태가 된다.
-      - **(나) 신규 코드에서 위반이 나오는 것** — 조건을 조정해도 사라지지 않으므로 **상환 계획**이 필요하다.
-      - **아래 14건은 전부 Quality Gate 실패다**(통과 = `eslockserver` 등 10건). `common-rust_es_config` 를 뺀 13건에 **커버리지 0% 조건이 공통**으로 걸려 있어 열에서 생략했다. `—` = 해당 조건 기준 내.
-
-        | 프로젝트                          |  게이트  | 신규 위반 | 신규 중복 | hotspot 미검토 | 전체 위반 |    갈래     |
-        | --------------------------------- | :------: | --------: | --------: | :------------: | --------: | :---------: |
-        | ezcloud                           |   실패   |   **184** |      5.7% |       O        |         — |     나      |
-        | cloudwebviewer                    |   실패   |   **183** |         — |       O        |         — |     나      |
-        | ezwebserver                       |   실패   |   **126** | **11.4%** |       O        |         — |     나      |
-        | oneid                             |   실패   |    **68** |      3.2% |       O        |         — |     나      |
-        | ezserver-license-manager-frontend |   실패   |        59 |         — |       —        |         — |     나      |
-        | ezserver-license-manager          |   실패   |        24 |      9.4% |       O        |         — |     나      |
-        | frontend                          |   실패   |        19 |         — |       —        |         — |     나      |
-        | ezserver-updater                  |   실패   |        16 |         — |       —        |         — |     나      |
-        | common-rust_es_config             |   실패   |        12 |         — |       —        |         — |     나      |
-        | ezserver-auth-provider            |   실패   |        11 |         — |       O        |         — |     나      |
-        | ezserver-messenger                |   실패   |         1 |         — |       —        |         — |     나      |
-        | ezserver-updater-frontend         |   실패   |         0 |         — |       O        |         — | 나(hotspot) |
-        | **vt-api-gateway**                | **실패** |         0 |         — |       O        |    **35** |   **가**    |
-        | **vt-api-gateway-console**        | **실패** |         0 |         — |       O        |   **149** |   **가**    |
-
-        _(전체 위반은 VT 만 채웠다 — (가)/(나) 대비를 보기 위한 것이고, 기존 제품은 미집계.)_
-
-    - **왜 DT 와 묶어서 정하나**
-      - 둘 다 **"측정은 되는데 조치 경로가 없다"** 로 구조가 같다.
-      - 따로 정하면 소유자·주기·게이트 기준을 두 번 정하게 되고 서로 어긋난다.
-      - 아래 5가지는 양쪽에 그대로 적용된다.
-    - **정할 것 5가지**
-      - **① 소유자** — 제품별 개발팀 / 품질·RA / 보안 담당 중 누구인가
-      - **② 주기** — 상시 / 릴리스 전 / 월 1회
-      - **③ 범위** — DT = critical·high 만인가 전부인가(DT Policy 로 임계). SQ = 신규 위반 0 을 유지할 것인가, hotspot 검토를 의무화할 것인가
-      - **④ 미조치 처리** — 억제(suppress)·예외 승인 절차가 필요한가(누가 승인하나)
-      - **⑤ 게이트** — 특정 심각도가 남으면 릴리스를 막을 것인가. **SQ 커버리지 조건 처리(위 (가))도 여기서 함께 정한다** — 빼거나, 잡에 테스트를 붙이거나
-    - **규제 연동 — 사실상 선행 조건**
-      - 온보딩 착수 때 남긴 **"품질/RA 에 SBOM 요구·범위 확인(SRS §6.13)"** 이 아직 미해결이다.
-      - **SBOM 제출만인지, 취약점 조치 이력까지 요구하는지**에 따라 위 5가지의 답과 작업량이 크게 달라진다.
-    - **참고(비-블로킹)**
-      - 기술 배선은 이미 끝나 있다. DT Policy·Notification, SonarQube Quality Gate 조건 모두 관리자 화면에서 조정 가능하고 정해지면 바로 반영된다.
-      - **지금 필요한 것은 설정이 아니라 정책 결정이다.**
-      - 별건 — SonarQube 에 **분석 이력이 한 번도 없는 껍데기 프로젝트 8건**이 있다. 정리 대상 여부 확인 필요.
-        - `common-rust_*` 3 · `ezserver_installer` · `ezserver_pms_integration` · `ezserver_rest_api_v2` · `ezserver_suite` 등.
+  - (이번 주 신규 안건 없음 — 지난주 R1은 결정되어 위 '이번 주 진행'에 반영)
 
 - **[③-I Jack 인프라 요청 추적]** — 회의에서 상태·ETA 확인
   - ✅ **9/3 대거 착지(Jack)** — 실 IoT Core · Parameter Store(compat well-known 200) · KMS CMK(payload+target) · 공개 ingress 가 **dev 완료**.
@@ -514,13 +114,10 @@
             - ⏳ `T-FE-8-2`(실 GW 여정 e2e) · `T-FE-9-17`(목↔실 GW 응답 대조)
           - **남의 작업 2** — `T-FE-7-6` CloudFront 헤더 **배선**(③-I) · `T-FE-8-4` prod **배포**(PL 실행)
           - **내부 조사 1** — `T-FE-9-13` 플레이크(가설 확보·**다음 발생 대기**)
-        - ⚠ **"검증이니 곧 끝난다" 로 읽으면 안 된다**
-          - 검증의 목적은 어긋난 것을 찾는 것이고, **찾으면 그게 Console 작업이 된다.**
-          - `T-FE-9-17` 은 **1단계(목↔계약)만으로 갭 2건**이 나왔다(`FleetState.clinicId` 누락 · `Device.createdAt/updatedAt` 부재).
-          - 2단계는 **실 GW 응답**과 맞추는 것이라 더 나올 수 있다.
-          - 🔴 **화면은 목만 보고 개발됐고 목은 실물보다 관대했다** — 지금까지 난 결함의 절반이 그 구멍에서 나왔다.
-          - Entra 도 claim→역할 매핑 · 딥링크 왕복(`?to=` 쿼리 보존)을 **소스로만 확인했고 한 번도 밟아 본 적이 없다.**
-        - 즉 **남은 8% 는 "8% 만큼의 일" 이 아니라 "폭을 아직 모르는 일"** 이다 — 아무것도 안 나오면 며칠, 목↔실 GW 가 여러 곳 어긋나 있으면 그보다 늘어난다.
+        - ✅ **실환경 검증으로 갭을 걷어냈다(9/15)** — 검증의 목적은 어긋난 것을 찾는 것이고, 찾은 만큼 Console 작업이 됐다
+          - 🔴 **교훈** — 화면이 목만 보고 개발됐고 목이 실물보다 관대해, 지금까지 결함의 절반이 그 구멍에서 나왔다
+          - `T-FE-9-17` — 1단계(목↔계약) 갭 2건 수정 → **2단계(목↔실 dev GW 16 EP) 완료(9/15)** · audit 필드 결함 수정(#14375) · targets/operators 대조는 후속
+          - Entra claim→역할 매핑 · 딥링크 왕복(`?to=` 보존)도 **실 Entra + 제3자 전 경로로 검증(9/15)** — 더는 미검증 아님
     - **목표 = 10월 출시**(역산·잠정 — 잔여 변수 = prod 자격[NDA후]·부하/HA 환경)
     - **범례** — 막대: 작성=기본·PR=강조·◆=baseline/마일스톤·**빨강=외부/미정 선결** / 선결(빨강): AXS **prod** 자격(NDA 후·Straumann)
 
@@ -688,6 +285,4 @@
   | 10 | 감사·consent 보존 기간 | [정보] | 법무 확인 대기 |
   | 11 | 호환성 매트릭스 확정본 | [정보] | CleverSpace/CleverOne OnePager 의존 — 담당팀 baseline 후 |
   | 14 | 관측성 앱↔인프라 계약(로그 필드 스키마·메트릭 export 배선) | [논의·설계] | 추후 확정 — 트리거=③-I 관측 스택 구축 · 앱 계약(stdout JSON+OTel·redaction) 이미 구현·무블로킹 |
-  | 15 | Webhook payload 보존·아카이브 기간(리전별) | [논의] | **법무 확정 대기** — 리전별 ① DB 잔존 기간 ② S3 보관 기간(+가동 임계값). 설계 골격=SRS §7.6.9(gw/1.1)·Appendix B #5·#36 → 이번 주 공유 [webhook 아카이브] |
-  | 16 | **`GW_BOOTSTRAP_ADMIN_EMAILS` 경로 정정 + admin 재시작** — 값이 `/dev/vt-api-gateway-console/config`(프론트 빌드용)에 들어가 **admin 이 못 읽는 상태**(9/10 실측). `/dev/vt-api-gateway-admin/config` 로 이동 후 **파드 재시작** 필요(env=부팅 시 1회 로드·SRS §7.8.4) · 미조치 시 로그인 후 `no_access` | ③-I | ✅ **완료(9/10·Jack)** | ☐ |
-  | 17 | **SSM `config` 값을 한 줄 JSON 으로 재기록** — 여러 줄(pretty-print)이라 CI 로더가 첫 줄에서 끊겨 **에러 없이 exit 1**(9/10 진단). 값만 고치면 재발하므로 **넣는 도구가 `jq -c` 를 쓰는지** 확인 필요 · 겸하여 `es-ci-templates/load-envs-step.yml` 의 **에러 출력 `>&2`**(현재 `$( )` 가 삼켜 **어떤 실패든 침묵**) 및 `--output json`+`jq` 파싱 전환 | ③-I | ✅ **완료(9/10·Jack)** · **템플릿 보강도 반영 확인(9/14)** | ☐ |
+  | 15 | Webhook payload 보존·아카이브 기간(리전별) | [논의] | **법무 확정 대기** — 리전별 ① DB 잔존 기간 ② S3 보관 기간(+가동 임계값). 설계 골격=SRS §7.6.9(gw/1.1)·Appendix B #5·#36 [webhook 아카이브] |
