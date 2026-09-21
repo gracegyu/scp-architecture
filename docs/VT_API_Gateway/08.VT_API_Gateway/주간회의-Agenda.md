@@ -19,6 +19,19 @@
       - ⭐ **사람이 판단하는 자리는 ② 하나다.** 조회·수정·심사 기록·재검사는 전부 자동이다.
       - ⚠ **②를 없애지 않는다** — 억제는 되돌리기 어렵고 서버에 기록이 남는다. 승인 없이 AI 가 "안 고쳐도 된다"고 결정하게 두지 않는다. 모든 쓰기에 `--confirm` 이 걸려 있는 이유다.
       - ⭐ **아래 GW·Console 조치가 이 흐름을 그대로 탄 첫 사례다** — DT 8건(GW 2 + Console 6) → **0건**. 사람이 개입한 지점은 계획 승인과 PR 리뷰뿐이다.
+
+    - ⭐ **적용 결과 — Before / After** (GW 행은 GW 에서 채웁니다)
+
+      | 대상 | Before | 심각도 | After | 처리 방식 | 상태 |
+      |---|---|---|---|---|---|
+      | **Console · DT** | 6건 | CRITICAL 2 · HIGH 2 · MEDIUM 2 | **0건** | CRITICAL 2 = `next` 16.3.0→16.3.5 **버전 올림**<br>HIGH `sharp` = next 패치에 **peer 동반 해소**<br>HIGH `js-yaml` = **심사 억제**(Not Affected · Code Not Reachable)<br>MEDIUM 2 = `qs` override `^6.16.0` **전이 의존만** | ✅ **완료**(9/21 실측) |
+      | **Console · SQ** | Gate **ERROR** | `new_violations` 3<br>`new_coverage` 0.0 | violations **0**<br>coverage 대기 | 중첩 삼항 1 = **코드 수정**<br>`void` 2 = **심사 억제**(Won't Fix · 의도된 미대기)<br>커버리지 = 코드 문제 아님, **실측 91.6%** | ⏳ **커버리지만 잔여**<br>(Jenkins 잡 선결) |
+      | **GW · DT** | | | | | |
+      | **GW · SQ** | | | | | |
+
+      - ⭐ **"고친 것"과 "안 고치기로 한 것"이 표에 같이 있다** — 억제도 조치다. 근거를 남겨 다음 사람이 같은 것을 다시 파지 않게 하는 것이 목적이다.
+      - ⚠ **억제는 오탐 처리가 아니다** — 취약점은 실재하고 스캐너가 옳다. 우리가 그 코드 경로를 타지 않을 뿐이다. `False Positive` 로 적으면 기록이 사실과 달라진다.
+      - ⚠ **SonarQube 는 두 프로젝트 모두 Gate ERROR 다** — 커버리지가 0 으로 잡히는 것이 원인이고, 이는 **잡이 테스트를 돌리지 않아서**다. 코드 품질 문제가 아니다.
     - 구현·실서버 검증 완료(119 통과·심사 쓰기 왕복·데이터 원상복구) · **PR [#14475](https://dev.azure.com/ewoosoft/platforms/_git/es-toolkit/pullrequest/14475) 올림**(es-toolkit · 리뷰어 Scott Kim)
     - ✅ **서버 설정 = DT·SonarQube 양쪽 완료** · SonarQube 개발자 온보딩 부트스트랩(`sbom/jenkins` `admin/sq_bootstrap.py`) main 머지
     - ⏳ **잔여** — PR 리뷰(Scott Kim) + Windows 실기 검증 1건 → 머지되면 완료로 갱신
