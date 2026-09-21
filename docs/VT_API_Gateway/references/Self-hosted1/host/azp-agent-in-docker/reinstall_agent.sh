@@ -55,16 +55,21 @@ NEW_N=${1:-4}
 
 echo "이미지=$IMAGE  풀=$AZP_POOL  개수=$NEW_N"
 
-# PAT 가 유효한지 먼저 확인한다. 등록 단계에서 실패하면 컨테이너는 지워진
-# 뒤라 풀이 빈 채로 남는다.
+# PAT 가 쓸 수 있는지 먼저 확인한다. 등록 단계에서 실패하면 컨테이너는 이미
+# 지워진 뒤라 풀이 빈 채로 남는다.
+#
+# ⚠ 확인은 반드시 **에이전트 풀** 엔드포인트로 한다. 이 PAT 에 필요한 스코프는
+#   Agent Pools 뿐이고, 제대로 좁혀 발급하면 /_apis/projects 는 401 이 난다.
+#   거기로 확인하면 올바른 PAT 를 잘못된 것으로 판정해 막아 버린다.
 code=$(curl -s -o /dev/null -w "%{http_code}" -u ":$AZP_TOKEN" \
-  "$AZP_URL/_apis/projects?api-version=7.1" || echo 000)
+  "$AZP_URL/_apis/distributedtask/pools?api-version=7.1" || echo 000)
 if [ "$code" != "200" ]; then
-  echo "PAT 가 유효하지 않다 (HTTP $code). 재생성을 중단한다." >&2
-  echo "  새 PAT 를 발급해 $SECRETS_FILE 에 넣을 것 (스코프: Agent Pools · Read & manage)." >&2
+  echo "PAT 로 에이전트 풀을 조회할 수 없다 (HTTP $code). 재생성을 중단한다." >&2
+  echo "  스코프에 Agent Pools (Read & manage) 가 있는지 확인할 것." >&2
+  echo "  파일: $SECRETS_FILE" >&2
   exit 1
 fi
-echo "PAT 확인 완료 (HTTP 200)"
+echo "PAT 확인 완료 — 에이전트 풀 접근 가능"
 
 # 1. 기존 에이전트 중지·삭제
 echo "기존 컨테이너 정리: ${BASE_CONTAINER_NAME}*"
