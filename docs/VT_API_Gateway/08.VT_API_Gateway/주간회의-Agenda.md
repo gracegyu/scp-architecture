@@ -25,7 +25,7 @@
       | 대상 | Before | 심각도 | After | 처리 방식 | 상태 |
       |---|---|---|---|---|---|
       | **Console · DT** | 6건 | CRITICAL 2 · HIGH 2 · MEDIUM 2 | **0건** | `next` 16.3.5 패치 · `qs` override `^6.16.0` · `js-yaml` 1건은 `Not Affected`+`Code Not Reachable` 로 심사 억제 | ✅ **완료** — PR [#14569](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14569) 머지 · 9/21 재스캔 0 확인 |
-      | **Console · SQ** | Gate **ERROR** — `new_coverage` 0.0(기준 ≥80) · `new_violations` 3(기준 0) · duplications 1.05 는 통과 | 이슈 151(신규 3 = CRITICAL 1 중첩 삼항 · MAJOR 2 `void`) · 핫스팟 8 미검토(검토율 0%) · Reliability **C**(MEDIUM 6) · Maintainability A(82) |  |  | ⏳ **진행 중** — 완료 후 채운다 |
+      | **Console · SQ** | Gate **ERROR** — `new_coverage` 0.0(기준 ≥80) · `new_violations` 3(기준 0) · duplications 1.05 는 통과 | 이슈 151(신규 3 = CRITICAL 1 중첩 삼항 · MAJOR 2 `void`) · 핫스팟 8 미검토(검토율 0%) · Reliability **C**(MEDIUM 6) · Maintainability A(82) | Gate **OK** — `new_coverage` **91.6** · `new_violations` **0** · duplications 2.64 · 핫스팟 검토율 **100%** · Security A · Maintainability A · Reliability 는 이슈 4건 제거 머지 완료(다음 스캔 반영) | **고침**: 커버리지 배선(잡이 스캔 전 테스트 실행 + `sonar-project.properties` 정본화) · 중첩 삼항 1 · 정규식 2(IPv6 대괄호는 **동작 결함도 함께** — `[::1` 를 조용히 정상처럼 만들던 것) · `alt` 문구 2(한국어 번역 포함) · `kill-dialog` 불리언 분기 1 · **판정 유지**: `void` 2 `Won't Fix`(일부러 안 기다린다는 표시) · 핫스팟 8 `SAFE`+근거(입력 길이를 공격자가 못 정함 · 정적 export 라 서버 없음) · CSS 2 `False Positive`(**Tailwind v4 문법을 분석기가 모름 — 스캐너가 틀린 경우**) · shadcn CLI 산출물 4 = 분석 제외(`src/generated` 와 같은 이유) | ✅ PR [#14577](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14577)·[#14580](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14580)·[#14581](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14581)·[#14590](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14590)·[#14594](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14594) 머지 · 9/21 스캔에서 Gate **Passed** 확인 |
       | **GW · DT** | 2건 | MEDIUM 2(GHSA-4mjr CVSS 5.3 DoS · GHSA-x5fp 3.7 array-limit) | **0건** | `qs` override `^6.16.0` — `express` 전이 의존(쿼리 파서)이라 surgical(우리 코드 아님·patched `>=6.16.0`) | ✅ **완료** — PR [#14568](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14568) 머지 · 9/21 DT 재스캔 0 확인 |
       | **GW · SQ** | Gate **ERROR** — `new_coverage` 0.0 · `new_security_hotspots_reviewed` 0% · `new_violations` 0 | 핫스팟 21(HIGH 10·MED 5·LOW 6) · 이슈 35(BUG 5·CODE_SMELL 30·CRITICAL 12) | **Gate PASS** ✅ — `new_coverage` **96.5**(0.0→) · `new_security_hotspots_reviewed` **100%** · `new_violations` **0** · 중복 0 | **고침**: BUG 5(sort 비교함수·정규식)·CODE_SMELL 20·new_violations 4(optional chain 3·테스트 단언 1) · **판정 유지**: 핫스팟 21 `SAFE`+근거(es-base nonroot·in-cluster 평문·anchored 정규식·redaction·docker bridge IP)·`void` `Won't Fix` · **open**: S3776 복잡도 7(판단성 리팩터·게이트 무관) | ✅ **완료** — PR [#14585](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585)·[#14588](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14588)·[#14592](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14592)(ADO 스캔 배선 3a)·[#14598](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14598) 머지 · main 스캔 Gate PASS 확인 · daily schedule 로 갱신 |
 
@@ -79,7 +79,7 @@
         - **new_violations 4**(스캔 넓어져 드러남·optional chain 3·무단언 e2e 1) → 소거(#14598)
       - ✅ **Jenkins 기존 `vt-api-gateway-SonarQube` 잡 트리거 제거(f48341a)** — ADO 가 authoritative(잡/이력 보존·revert 순서 주석)
       - 📌 **S3776 복잡도 7·Developer Edition(브랜치/PR 정식 분석)은 별건 후속**(전자=판단성 리팩터·게이트 무관·후자=PL 트랙)
-    - ⏳ **Console SonarQube — Quality Gate 조사·조치(9/21)** — 커버리지 **연결 완료**(0.0 → 91.2) · 그때 드러난 위반 5건 리뷰 대기
+    - ✅ **Console SonarQube — Quality Gate 조사·조치(9/21) 완료** — Gate **Passed** · 커버리지 0.0 → **91.6** · 핫스팟 검토율 0% → **100%**
       - **Gate 실패 조건 둘** — `new_coverage 0.0`(기준 ≥80) · `new_violations 3`(기준 0) · duplications 1.05 는 통과
 
       - ✅ **`new_violations` 3 → 0** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14580
@@ -105,7 +105,19 @@
         - **`kill-dialog` 1건(`S2301`) = 코드 수정** — 우리 코드이고 지적이 타당하다
           - 같은 불리언으로 서로 다른 동작을 고르던 것을, **열림 상태는 그대로 흘리고 닫힐 때만 정리**하도록 바꿨다
           - ⭐ 정리 동작에 이름을 주었다(`discardDraft`) — 남겨 두면 다음에 열 때 **이전 사유와 확인 체크가 그대로 있고**, 파괴적 액션에서 그 상태는 곧 오조작이다
-        - ⏳ **핫스팟 8건 미검토** — Gate 조건에는 없으나(GW 는 있다) 심사 대상. 7건은 ReDoS 정규식, 1건은 **버전 문자열 `6.3.1.3` 을 IP 로 읽은 오탐**
+        - ✅ **핫스팟 8건 심사 완료 — 검토율 0% → 100%** · Gate 조건에는 없으나(GW 는 있다) 등급이 E 로 보였다
+          - **ReDoS 정규식 7건 = `SAFE`** — 꼬리 슬래시 정리(`/\/+$/`) 류이고 **입력 길이를 공격자가 정하지 못한다**(빌드 타임 환경변수·우리가 배포하는 리전 디렉터리·계약에서 생성한 경로 템플릿)
+            - ⭐ **결정적 근거는 배포 형태다** — Console 은 정적 export 라 **서버가 없다.** 브라우저에서 사용자 자신의 세션에만 영향을 주므로 ReDoS 의 목적인 **서버 자원 고갈이 성립하지 않는다**
+          - ⭐ **1건은 오탐이었다** — `6.3.1.3` 을 IP 로 읽었는데 실제로는 목 픽스처의 **앱 버전 문자열**(`appVersion`)이다. 네 자리 점 표기가 같아 생긴 일이다
+
+      - ✅ **Reliability C → A — 여섯 건 중 둘은 애초에 우리 잘못이 아니었다** — PR [#14594](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14594)
+        - ⚠ **등급은 개수가 아니라 가장 나쁜 항목으로 정해진다** — MEDIUM 6건이 C 를 붙들고 있었다
+        - **CSS 2건 = `False Positive`** — `@theme`·`@custom-variant` 는 **Tailwind v4 의 정식 at-rule** 이다. *"알 수 없는 at-rule"* 이라는 진술 자체가 사실이 아니다
+          - ⚠ **DT 의 `js-yaml` 과 정반대 경우다** — 거기선 취약점이 **실재하고 스캐너가 옳아** `Not Affected` 로 적었다. 여기선 스캐너가 틀렸다. **섞어 적으면 기록이 사실과 달라진다**
+        - **정규식 2건 = 코드 수정** — 동작은 의도대로였지만 `^` 와 `$` 가 어느 갈래에 걸리는지 읽는 사람이 멈칫했다. 정규식을 걷어내고 `startsWith`/`endsWith` 로 바꿨다
+          - ⭐ **IPv6 쪽은 동작 결함도 함께 고쳤다** — 예전 `/^\[|\]$/g` 는 한쪽만 있어도 떼어 내서 `[::1` 같은 **망가진 호스트를 조용히 정상처럼** 만들었다
+        - **`alt` 문구 2건 = 코드 수정** — 스크린리더는 `img` 를 만나면 **이미 "이미지" 라고 읽어 준다.** 문구에 또 넣으면 두 번 들린다
+          - ⚠ **한국어 번역도 같이 고쳤다** — 영어만 고치면 정작 **우리 화면에서** 두 번 들린다
 
       - ⭐ **덤으로 CI 결함을 하나 잡았다 — 가드가 있는데 걸린 적이 없었다** — PR [#14587](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14587)
         - Jenkins 가 *"에이전트에 `CI` 가 없다"* 고 알려 주어 **우리 ADO 파이프라인도 확인했더니 거기도 없었다**
