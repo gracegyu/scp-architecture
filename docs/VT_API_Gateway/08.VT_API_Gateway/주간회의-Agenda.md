@@ -1,17 +1,5 @@
 # VT API Gateway — 10/1 주간회의 Agenda
 
-- **지난 주(~9/17) 완료 요약**
-  - **진행률(스냅샷)** — GW 백엔드 ≈ 93% · GW Console ≈ 92%(8/26 재평가) · 코드로 앞당길 잔여 = 0
-    - ⚠ 이후 스펙 머지(`spec-v1.0.85`~`1.0.92`)는 재집계 전 — 실제 진척은 이 수치 이상
-    - 남은 건 전부 외부 선결(③-I 인프라 · Straumann 시드 · PL RTO/RPO)
-  - ✅ **GW Console 실 Entra + 제3자 전 경로 검증 통과(9/15)** — 권한 요청→승인→회수→재신청 실환경 왕복 정상(PL 확인)
-  - ✅ **T-FE-9-17 2단계 완료(9/15)** — 목↔실 dev GW 16개 엔드포인트 대조 · audit 필드 결함 수정(#14375) · targets/operators 대조는 후속
-  - ✅ **스펙** — v1.1 알림(§7.10 · Email 단일) · 운영자 self-service · self-GET 갭 보완 · OpenAPI 통제문서↔코드 완전 정합(compare 델타 0 · 계약 우선 원칙)
-  - ✅ **최초 admin 부트스트랩 allowlist**(`spec-v1.0.85/86`) — 최초 admin 데드락 해소
-  - ✅ **DT·SonarQube 온보딩 + DT 취약점 탐지 복구** — npm 공급원 교체로 1,000+건 드러남 → 조치 방식 = R1(결정·아래)
-  - ✅ **backlog 를 우리 repo `docs/backlog` 로 정리** · 운영자 매뉴얼(최초 관리자) 작성
-  - ✅ Entra dev 2앱 등록·admin consent 승인(9/10) · GW 4앱 dev 기동
-
 - **이번 주(10/1) 착수·진행 · 선결 대기**
   - **[R1 실행] 보안·품질 지표 심사·조치 = 개발자가 AI로 직접** (9/17 회의 결정)
     - DT·SonarQube를 사내 표준 CLI(`es sec`)에 통합 → Claude Code(`/es-sec` 스킬)가 취약점·이슈를 직접 조회·수정, 안 고칠 건은 근거 남겨 심사(triage)
@@ -78,7 +66,11 @@
         - **BUG** — `sort()` 비교 함수 누락(CRITICAL) · 정규식 우선순위 2건 · ⚠ CSS 2건은 **Tailwind v4 문법 오탐**(`@theme`·`@custom-variant`)
         - ⚠ **CODE_SMELL 77건이 우리 관례와 충돌** — `void` 57 · `role="status"` 20
           - ⭐ **고칠 대상이 아니라 규칙을 조정할 대상**이다
-  - **[audit 계약 정정]** — codegen `Record<string, never>`(빈 객체) 오생성 → 통제문서 `type: object` 정정 · ✅ **spec PR #14575 머지(spec-v1.0.94)** · ⏳ 구현 gen(`z.record`) 동조 대기 → compare 델타 0 시 backlog B-23 클로즈 (B-22 후속)
+
+  - ✅ **[audit 계약 정정] B-23 클로즈(9/21)** — codegen `Record<string, never>`(빈 객체) 오생성 → `Record<string, unknown>` 정정
+    - 통제문서 `type: object`+`additionalProperties:true`+`nullable` (spec PR #14575·`spec-v1.0.94`)
+    - 구현 gen 동조 `z.record(z.string(), z.unknown()).nullable()` ([PR #14578](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14578)·main `4190f53`)
+    - 결과: `openapi:compare` **델타 0**(57 op) · Console 목 단언 우회 제거 예정 (B-22 후속)
   - **[GW·Console dev 통합 마무리]** — 남은 건 전부 외부 선결
     - ③-I: test 환경 프로비저닝(마감 8/26·미착수) · 자동배포 tag→TEST/PROD · dispatcher 안정화(exit137)
     - GW 몫(③-I 대기 아님): IoT 다운링크 E2E(dispatcher 진단→Thing enroll→webhook→IoT 1회)
@@ -98,10 +90,10 @@
   > **범례**
   >
   > - ✅ 완료 — 괄호는 완료일 · 날짜만 있으면 **이전 주 완료**
-  > - 🆕 = **이번 주(9/11 이후) 신규 해결·검증** — *(아직 없음)*
+  > - 🆕 = **이번 주(9/11 이후) 신규 해결·검증** — _(아직 없음)_
   > - 🟠 부분 · ☐ 미완 · ⚠ 전달 필요
   >
-  > *(9/10 주 현실화분 반영: pending-infra §9 Jack 9/3 실측 + dev 엔드포인트 재확인.)*
+  > _(9/10 주 현실화분 반영: pending-infra §9 Jack 9/3 실측 + dev 엔드포인트 재확인.)_
 
   | # | 요청 | 수신 | dev | prod |
   | --- | --- | --- | --- | --- |
