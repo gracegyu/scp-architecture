@@ -12,7 +12,7 @@
   - ✅ **backlog 를 우리 repo `docs/backlog` 로 정리** · 운영자 매뉴얼(최초 관리자) 작성
   - ✅ Entra dev 2앱 등록·admin consent 승인(9/10) · GW 4앱 dev 기동
 
-- **이번 주(9/24) 착수·진행 · 선결 대기**
+- **이번 주(10/1) 착수·진행 · 선결 대기**
   - **[R1 실행] 보안·품질 지표 심사·조치 = 개발자가 AI로 직접** (9/17 회의 결정)
     - DT·SonarQube를 사내 표준 CLI(`es sec`)에 통합 → Claude Code(`/es-sec` 스킬)가 취약점·이슈를 직접 조회·수정, 안 고칠 건은 근거 남겨 심사(triage)
     - Jenkins 세션 — 구현·실서버 검증 완료(119 통과·심사 쓰기 왕복·데이터 원상복구) · **PR [#14475](https://dev.azure.com/ewoosoft/platforms/_git/es-toolkit/pullrequest/14475) 올림**(es-toolkit · 리뷰어 Scott Kim)
@@ -22,7 +22,8 @@
       - `qs@6.15.3` MEDIUM 2건 — GHSA-4mjr-xmp4-gh2g(CVSS 5.3·DoS via isBuffer) · GHSA-x5fp-wj9c-mxmx(3.7·array-limit 우회)
       - `qs` 는 우리 코드 아님 — `express@5.2.1` 전이 의존(쿼리스트링 파서·8 경로)이라 외부 요청에서 도달 가능
       - surgical override `qs ^6.16.0` 로 소거(patched `>=6.16.0`·express `^6.14.0` 호환·broad 범프 아님)
-      - PR [#14568](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14568) · `pnpm audit --prod` = 0 확인 · build 4앱 0
+      - PR [#14568](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14568) **머지**(main `e84aaf9`) · `pnpm audit --prod` = 0 확인 · build 4앱 0
+      - ✅ **Dependency-Track 재스캔 0건 확인(9/21)** — 새 SBOM(CycloneDX 1.6) 업로드 후 서버 측 취약점 **0**(로컬 audit 넘어 DT 보안대장 반영)
       - Console(별도 DT 6건)은 Console 세션 처리
     - ✅ **Console DT 6건 조치(9/17)** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14569
       - ⭐ **배포 형태로 갈렸다** — Console 은 **정적 export**(`images.unoptimized`)라 **Next.js 서버가 배포에 없다**
@@ -35,6 +36,17 @@
         - 빌드 산출물에 **6.16 계열 옵션**(`throwOnLimitExceeded`)이 들어간 것으로 override 실효 확인
       - ⚠ **next 는 배포본에 안 닿아도 올렸다** — 개발 서버(`next dev`)는 영향받고, **DT 에 CRITICAL 이 남으면 판단이 흐려진다**
       - `js-yaml`·`sharp` 는 손대지 않는다 — 배포본 무관 + 전이 의존이라 **상위 패키지가 따라올 때 해소**된다
+      - ✅ **결과 실측(9/21 · SBOM 재업로드 후) — 6건 → 0건**
+        - CRITICAL 2(next) · MEDIUM 2(qs) 소거 · ⭐ **HIGH `sharp` 도 함께 빠졌다**(next 패치에 peer 가 따라 올라감)
+        - 남은 **HIGH `js-yaml` 1건은 DT 에 심사 기록으로 억제**했다 — 조회 결과 **0건**
+          - `Not Affected` + `Code Not Reachable` + `Will Not Fix`
+          - ⚠ **`False Positive` 가 아니다** — 취약점은 **실재하고** DT 가 옳다. 우리가 **그 코드 경로를 타지 않을** 뿐이다
+            - `False Positive` 로 적으면 "DT 가 오탐했다"는 기록이 남아 **사실과 다르다**
+          - 근거를 코멘트로 남겼다 — 빌드 타임 설정 로더 · 배포 번들에 없음(실측) · **입력을 우리가 통제**하므로 공격면 없음
+          - ⭐ **"왜 안 고치는가"를 남기는 것이 요점**이다 — 다음 사람이 HIGH 를 보고 다시 파지 않는다
+        - ⚠ **프로젝트 목록 숫자는 아직 1로 보인다** — 목록은 **별도 집계 스냅샷**이라 메트릭 재계산 후에 바뀐다
+          - 재계산 API 는 권한(`PORTFOLIO_MANAGEMENT`)이 필요해 조회용 키로는 안 된다
+          - 자동 주기 또는 **다음 SBOM 업로드** 때 따라온다
   - **[audit 계약 정정]** — OpenAPI `audit.beforeState/afterState` 가 `type` 누락으로 codegen `Record<string, never>`(빈 객체) 오생성 → `type: object` 로 정정(spec PR) · 구현 gen(`z.record`) 동조. B-22 후속·부모 backlog 등재
   - **[GW·Console dev 통합 마무리]** — 남은 건 전부 외부 선결
     - ③-I: test 환경 프로비저닝(마감 8/26·미착수) · 자동배포 tag→TEST/PROD · dispatcher 안정화(exit137)
