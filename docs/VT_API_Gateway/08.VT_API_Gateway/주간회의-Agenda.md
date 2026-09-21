@@ -48,22 +48,36 @@
           - `11:15 high=2 score=36` → `12:18 high=1 score=5`(조치 후 SBOM 재업로드) → `12:25 high=0 sup=1 score=0`(suppress 반영)
           - ⭐ 12:18→12:25 **7분 간격**이라 자동 주기(통상 1시간)가 아니라 **DT 화면의 재계산 버튼**이 일으킨 것
           - ⚠ 재계산 API 는 `PORTFOLIO_MANAGEMENT` 권한이 필요해 **조회용 키로는 403** — 심사는 쓸 수 있는데 반영은 못 하는 조합이다
-    - ⏳ **Console SonarQube — Quality Gate 실패 조사·1차 조치(9/21)**
+    - ⏳ **Console SonarQube — Quality Gate 조사·조치(9/21)** — **Console 몫은 끝** · 커버리지만 Jenkins 대기
       - **Gate 실패 조건 둘** — `new_coverage 0.0`(기준 ≥80) · `new_violations 3`(기준 0) · duplications 1.05 는 통과
-      - ⭐ **커버리지 0% 는 코드 문제가 아니다** — 실제 **91.6%**(테스트 1349개)
-        - 스캐너가 lcov 경로를 **스스로 찾지 못해** 6337줄 전부를 미커버로 셌다
-        - 레포에 `sonar-project.properties` 를 두어 경로·범위를 명시(PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14577 · 오토머지)
-      - ⚠ **파일만으로는 안 된다 — 스캔 잡이 커버리지를 먼저 돌려야 한다**(Jenkins 확인)
+
+      - ✅ **`new_violations` 3 → 0** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14580
+        - **중첩 삼항 1건 = 코드 수정** — `grant.status` 를 행 표시용으로 옮기는 분기가 화면 안에 삼항 두 겹이었다
+          - ⭐ **고치다 테스트 구멍을 찾았다** — `revoked` 를 `rejected` 로 잘못 매핑해도 **아무것도 빨개지지 않았다**
+          - ⚠ 둘은 **경위가 다르다** — 거부는 승인 전에 막힌 것, 회수는 **가졌다가 뺏긴** 것. 뭉뚱그리면 당사자가 무슨 일인지 모른다
+        - **`void` 2건 = 코드 그대로** · SonarQube 에 근거 달아 `Won't Fix`(DT `js-yaml` 과 같은 방식)
+          - 일부러 안 기다린다는 표시라 빼면 **"실수로 `await` 을 놓친 것"과 구분이 안 된다**
+          - ⚠ 참고 — ESLint `no-floating-promises` 는 **꺼져 있다**. 전체 `void` 57건이 도구 강제가 아니라 **우리 관례**다(규칙 도입은 별도 판단)
+
+      - ⏳ **`new_coverage` 0.0** — 레포 설정은 넣었고 **잡 준비 대기**
+        - ⭐ **코드 문제가 아니다** — 실제 **91.6%**(테스트 1349개). 스캐너가 lcov 경로를 못 찾아 6337줄 전부를 미커버로 셌다
+        - `sonar-project.properties` 신설(PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14577) · exclusions 정본 일원화(PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14581)
+          - ⚠ 옮기며 **테스트 파일 제외를 뺐다** — 통째로 빼면 `sonar.tests` 분류가 무의미해진다. **테스트에도 규칙은 돌아야 한다**
+
+      - ⚠ **Jenkins 쪽이 선결 — PL 승인 사안**(공용 이미지 + 9개 잡 영향)
         - 공용 파이프라인이 `checkout → sonar-scanner` 뿐이라 `pnpm install`·테스트 실행이 **없다**
-        - ⭐ **Console 만의 문제가 아니다** — 같은 파이프라인을 쓰는 **9개 잡 전부 커버리지 0**(GW 백엔드 포함)
-        - ⚠ **걸림돌 = 에이전트 Node 18** — Next 16 은 20.9+, GW 는 `>=24 <25` 라 **이미지를 24 로 재빌드**해야 한다
-        - 조치안 = 잡별 옵트인(`SQUBE_PRE_SCAN`)으로 기본 동작 불변 · **PL 승인 대기**(공용 이미지 + 9개 잡 영향)
-        - exclusions 는 **레포 파일을 정본**으로 일원화하기로(명령행 `SQUBE_EXCLUSIONS` 제거) — 제외 기준이 vitest 쪽과 짝이어야 한다
+        - ⭐ **Console 만의 문제가 아니다** — 같은 파이프라인 **9개 잡 전부 커버리지 0**(GW 백엔드 포함)
+        - ⚠ **이미지만 올려선 안 된다**(Jenkins 세션 발견)
+          - `sharedPipelineSbomGitNodeLinux` 가 **빌드마다 Node 18 을 다시 깐다** — `env.NODE_INSTALLED` 가 빌드 스코프라 늘 비어 있다
+          - linux 잡 13개가 **같은 풀을 공유**해, 이미지를 24 로 올려도 SBOM 잡이 한 번 돌면 되돌아간다 → **비결정적 실패**
+          - ⭐ 그것 없이 진행했으면 **"가끔 실패하는데 원인을 모르는"** 상태가 됐다
+        - **순서** — ① Node 18 강제설치 제거 → ② 이미지 **Node 24** → ③ 에이전트 재생성 → ④ `SQUBE_PRE_SCAN` 옵트인 → ⑤ `SQUBE_EXCLUSIONS` 제거
+          - Node 24 인 이유 = GW 가 `>=24 <25` 상한 · Console 은 `>=20.19.0` 이라 둘을 다 태우는 **유일한 값**
+
       - **이슈 151건 분류** — BUG 5 · CODE_SMELL 146
-        - **BUG** — `sort()` 비교 함수 누락(CRITICAL·실제로 볼 것) · 정규식 우선순위 2건 · ⚠ CSS 2건은 **Tailwind v4 문법 오탐**(`@theme`·`@custom-variant`)
-        - ⚠ **CODE_SMELL 77건이 우리 관례와 충돌** — `void` 연산자 57(floating promise 명시) · `role="status"` 20(접근성 표현 선택)
+        - **BUG** — `sort()` 비교 함수 누락(CRITICAL) · 정규식 우선순위 2건 · ⚠ CSS 2건은 **Tailwind v4 문법 오탐**(`@theme`·`@custom-variant`)
+        - ⚠ **CODE_SMELL 77건이 우리 관례와 충돌** — `void` 57 · `role="status"` 20
           - ⭐ **고칠 대상이 아니라 규칙을 조정할 대상**이다
-        - 나머지 = 중첩 삼항 25 · 중첩 템플릿 9 · 인지 복잡도 7(볼 만함) 등
   - **[audit 계약 정정]** — codegen `Record<string, never>`(빈 객체) 오생성 → 통제문서 `type: object` 정정 · ✅ **spec PR #14575 머지(spec-v1.0.94)** · ⏳ 구현 gen(`z.record`) 동조 대기 → compare 델타 0 시 backlog B-23 클로즈 (B-22 후속)
   - **[GW·Console dev 통합 마무리]** — 남은 건 전부 외부 선결
     - ③-I: test 환경 프로비저닝(마감 8/26·미착수) · 자동배포 tag→TEST/PROD · dispatcher 안정화(exit137)
