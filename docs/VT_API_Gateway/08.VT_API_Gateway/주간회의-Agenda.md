@@ -31,10 +31,10 @@
       | **Console · SQ — Maintainability** | **A 146** | 중첩 삼항 · `role=` 대신 태그 · 중첩 템플릿 리터럴 · 인지 복잡도 등 | **A 78** (−47%) | **고침** — 중첩 삼항 1(신규 코드) · `kill-dialog` 불리언 분기 1 · **판정** — `void` 2 `Won't Fix`(일부러 안 기다린다는 표시라 빼면 실수와 구분이 안 된다) · shadcn CLI 산출물 4 = **분석 제외**(`src/generated` 와 같은 이유 — 우리가 쓴 코드가 아니다) · ⏳ **남은 78건** — 중첩 삼항 24 · `role="status"` → `<output>` 20 · 중첩 템플릿 리터럴 9 · 인지 복잡도 7 · 불필요한 타입 단언 7 · 기타 11. ⚠ **등급은 A 라 급하지 않다** — 손댈 순서는 별도 판단 | ✅ PR [#14580](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14580)·[#14590](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14590) 머지 · 등급은 계속 A |
       | **Console · SQ — Coverage** | **0.0%** — 미커버 **6337줄**(전 줄) | Gate `new_coverage ≥ 80` 실패의 유일한 원인 | **91.6%** | ⭐ **코드 문제가 아니었다** — 실제로는 처음부터 91%대였는데 **잡이 테스트를 안 돌려** lcov 가 없었고, 스캐너는 그것을 *"측정 안 함"* 이 아니라 ***"한 줄도 커버 안 됨"*** 으로 기록했다. `sonar-project.properties` 신설(lcov 경로·`sonar.tests` 분류)+Jenkins 잡에 커버리지 단계 추가로 해결 | ✅ PR [#14577](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14577)·[#14581](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14581) 머지 · Jenkins 잡 `0301f11` · ⚠ **같은 파이프라인 9개 잡 전부 0 이던 문제**였다 |
       | **GW · DT** | 2건 | MEDIUM 2(GHSA-4mjr CVSS 5.3 DoS · GHSA-x5fp 3.7 array-limit) | **0건** | `qs` override `^6.16.0` — `express` 전이 의존(쿼리 파서)이라 surgical(우리 코드 아님·patched `>=6.16.0`) | ✅ **완료** — PR [#14568](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14568) 머지 · 9/21 DT 재스캔 0 확인 |
-      | **GW · SQ · Coverage** | `new_coverage` **0.0** (미커버 4380줄·Gate 실패) | 배선 문제(코드 아님) | **96.5** (전체 coverage 96.3) | ADO 스캔 배선(3a) — merged lcov(unit+e2e)·main-only daily schedule·java 이미지·`sonar-project.properties` | ✅ PR [#14585](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585)·[#14592](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14592) · Gate PASS |
-      | **GW · SQ · Reliability** | **D** · bugs 5 | CRITICAL 4(sort 비교함수 누락)·MAJOR 1(정규식 우선순위) | **A** · 0 | BUG 5 수정(동작 보존·configVersion 해시 code-unit 순서 유지) | ✅ PR [#14585](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585) |
       | **GW · SQ · Security** | A · vuln 0 · 핫스팟 검토율 **0%** | 핫스팟 21(HIGH 10·MED 5·LOW 6) TO_REVIEW | A · vuln 0 · 검토율 **100%** | 핫스팟 21 `SAFE`+근거(es-base nonroot·in-cluster 평문·anchored 정규식·redaction·docker bridge IP) — 실코드 수정 0 | ✅ SonarQube 심사 |
-      | **GW · SQ · Maintainability** | A · code smells **30** | CRITICAL 12 포함(당시 노출분) | A · code smells **171** (전체 스캔 노출·등급 A 유지) | CODE_SMELL 20 정리 · new_violations 4 소거(optional chain 3·무단언 e2e 1) · `void` Won't Fix · **open**: S3776 복잡도 7(게이트 무관·backlog) | ✅ PR [#14588](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14588)·[#14598](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14598) · Gate PASS(new_violations 0) |
+      | **GW · SQ · Reliability** | **D** · bugs 5 | CRITICAL 4(sort 비교함수 누락)·MAJOR 1(정규식 우선순위) | **A** · 0 | BUG 5 수정(동작 보존·configVersion 해시 code-unit 순서 유지) | ✅ PR [#14585](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585) |
+      | **GW · SQ · Maintainability** | A · code smells **≈195 추정**(전체 스캔 pre-fix·미측정) — 부분스캔 30은 오설정 아티팩트(테스트 blanket 제외·전체 미분석) | CRITICAL 다수 포함 | A · code smells **171** (전체 스캔 첫 측정·이미 아래 소거 반영·등급 A) | CODE_SMELL 20 정리 · new_violations 4 소거(optional chain 3·무단언 e2e 1) · `void` Won't Fix · **open**: S3776 복잡도 7(게이트 무관·backlog) | ✅ PR [#14588](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14588)·[#14598](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14598) · Gate PASS(new_violations 0) |
+      | **GW · SQ · Coverage** | `new_coverage` **0.0** (미커버 4380줄·Gate 실패) | 배선 문제(코드 아님) | **96.5** (전체 coverage 96.3) | ADO 스캔 배선(3a) — merged lcov(unit+e2e)·main-only daily schedule·java 이미지·`sonar-project.properties` | ✅ PR [#14585](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585)·[#14592](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14592) · Gate PASS |
 
       - ⭐ **"고친 것"과 "안 고치기로 한 것"이 표에 같이 있다** — 억제도 조치다. 근거를 남겨 다음 사람이 같은 것을 다시 파지 않게 하는 것이 목적이다.
       - ⚠ **억제는 오탐 처리가 아니다** — 취약점은 실재하고 스캐너가 옳다. 우리가 그 코드 경로를 타지 않을 뿐이다. `False Positive` 로 적으면 기록이 사실과 달라진다.
@@ -197,6 +197,40 @@
     - PL 결정 대기: RTO/RPO 목표(HA 합격기준)
     - Straumann: 파일 붙은 lab order 시드(presign E2E)
   - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
+
+  - ✅ **[인프라] SonarQube 업그레이드 25.4 → 26.7 (9/22 완료)**
+    - 발단 = Thomas 질의 "Rust·Dart 가 지원되지 않는다". **회귀가 아니라 처음부터 없었다** — 원인이 둘로 갈린다.
+    - ⭐ **Rust 는 돈 문제가 아니라 버전 문제였다** — Community Build **25.5** 부터 무료로 지원되는데 우리는 **25.4**. 한 릴리스 차이로 못 받고 있었다.
+      - 그동안 Rust 프로젝트는 CI 가 clippy 를 돌려 **외부 이슈로 밀어넣는 우회**를 썼다. 이슈는 보이지만 **라인 수·커버리지·품질 프로파일·게이트가 전부 없다.**
+      - `common-rust_es_config` 는 2025-08-26 이후 **16회 분석 내내 `ncloc` 이 한 번도 집계되지 않았다.**
+    - ⭐ **목표를 최신(26.9)이 아니라 26.7 로 잡았다** — PostgreSQL 때문이다.
+      - **26.8 부터 PostgreSQL 15+** 를 요구한다. 우리 DB 는 **14.17** 이고 **Dependency-Track(2.8GB)과 같은 인스턴스**를 쓴다.
+      - 최신으로 가면 SonarQube 작업이 아니라 **DT 까지 걸린 공용 DB 메이저 업그레이드**가 된다. 26.7 에서 끊으면 DB 를 건드리지 않고 Rust 를 다 받는다.
+      - ⚠ 처음에 "JDK 교체가 걸림돌"이라고 봤던 것은 **틀렸다** — 공식 도커 이미지가 JDK 21 을 번들한다. 호스트를 확인하기 전 추정이었다.
+    - **연도를 넘으면 12월 버전을 거쳐야 한다** → `25.4 → 25.12 → 26.1 → 26.7` **3단계**(25.12 는 알려진 문제가 있어 26.1 도 필수 경유). 시간이 걸린 이유는 이것이다.
+
+      | 항목 | 결과 |
+      |---|---|
+      | 프로젝트 | 31 → 31 · **측정값 손실 0** (업그레이드 전/후 전수 스냅샷 대조) |
+      | Rust | 언어 없음 → **규칙 85 · 프로파일 "Sonar way" 활성 78** |
+      | 컨테이너 | `mem_limit` 4g → **6g** · 이미지 태그 **26.7 고정** |
+
+      - ⭐ **이미지가 `sonarqube:community` 라는 떠다니는 태그였다** — 누가 `pull` 만 해도 26.9 로 튀고, 그러면 PostgreSQL 14 에서 **기동 실패**한다. 이번에 버전을 고정하고 이유를 주석으로 남겼다.
+      - ⭐ **분석기 설치 확인으로 끝내지 않고 실기 검증했다** — 에이전트에 작은 크레이트를 만들어 실제 스캔: `ncloc=14` · `rust=14` · 이슈 `rust:S1488`(**외부 이슈가 아닌 Sonar 정식 규칙**).
+    - ⚠ **검증 중 더 큰 것이 나왔다 — 31개 중 9개가 「0파일 분석 + 게이트 통과」**
+      - 지원되지 않는 언어이거나 `sonar.sources` 가 빗나가면 **스캔은 성공하고 화면은 초록인데 아무것도 검사되지 않는다.**
+      - ⭐ **「지원 안 됨」보다 나쁘다** — 지원이 없으면 없는 줄 알지만, **초록은 검증됐다는 뜻으로 읽힌다.**
+      - 대부분 Rust(특히 **Windows Rust 는 clippy 외부 이슈조차 안 들어온다**) · Dart 2건 · installer 1건. **업그레이드만으로는 안 풀린다** — 파이프라인을 네이티브 분석으로 바꾸고, 0파일이면 잡을 실패시키는 가드가 필요하다.
+    - ⚠ **네이티브로 바꾸면 clippy lint 집합이 좁아진다** — 센서가 `-A clippy::all` 로 전부 끄고 **품질 프로파일에 매핑된 lint 만** 켠다. 지금 외부 이슈로 들어오던 `redundant_closure` 는 사라진다(같은 코드로 실측). → 네이티브 + `sonar.rust.clippyReport.reportPaths` **병행**을 권고. 리포트는 이미 만들고 있다.
+    - ❌ **Dart 는 이번 업그레이드로 해결되지 않는다** — Community Build 에 **아예 없다**(Cloud·Server 상용 전용). 버전을 올려도 안 생긴다.
+      - 무료 경로는 서드파티 `sonar-flutter` 뿐인데 **SonarQube 2025.1 이상에서 로드 실패**가 보고돼 있다.
+      - ⭐ **우리 서버에는 설치된 적이 없다** — `extensions` 는 named volume 이라 컨테이너를 갈아도 남는데 안에 `README.txt` 하나뿐이다.
+      - 당분간 CI 에서 `flutter analyze` 로 직접 게이트를 거는 편이 낫다. 정식 지원이 필요해지면 **Developer Edition 논의**다.
+    - 📄 **문서 갱신** — `6.3 SonarQube에 테스트 커버리지 연동하기` ([VKS](https://vks.vatech.com/x/7qj9Ew))
+      - 버전·제약 26.7 기준으로 정정 · **언어별 속성 표를 실서버 정의(`/api/settings/list_definitions`) 기준으로 교체**
+      - ⚠ 기존 표의 두 항목이 **동작하지 않는 속성**이었다 — `sonar.typescript.lcov.reportPaths`(폐기·JS 쪽으로 통합) · `sonar.flutter.coverage.reportPath`(미설치 플러그인). **예제 스니펫에도 들어 있어 같이 고쳤다** — 개발자가 복사하는 것은 표가 아니라 예제다.
+      - 검증 절차에 **「파일이 실제로 분석됐나」를 커버리지 확인보다 앞에** 넣었다. 0파일 프로젝트는 커버리지 항목 자체가 없어 기존 절차의 어느 행에도 걸리지 않았다.
+    - ⏳ **잔여** — Rust 파이프라인 네이티브 전환 · 0파일 가드 · 검증용 프로젝트 `zz-rust-upgrade-verify` 삭제(관리자 권한 필요)
 
 - 논의 사항 (이번 주 · 신규 · R#)
   - (이번 주 신규 안건 없음 — 지난주 R1은 결정되어 위 '이번 주 진행'에 반영)
