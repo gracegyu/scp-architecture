@@ -9,14 +9,13 @@
       - 지금까지는 DT·SonarQube 화면을 열고, 무엇이 왜 걸렸는지 따로 파악하고, 코드로 돌아와 고치고, 다시 화면에서 확인했다. **도구와 사람 사이를 네 번 오간다.**
       - 이제 개발자가 **자기 프로젝트 폴더에서 `/es-sec` 한 번**으로 끝낸다.
 
-      | | 단계 | 누가 |
-      |---|---|---|
-      | ① | 현재 DT·SonarQube 문제를 조회해 **원인과 조치 계획**을 낸다 | AI |
-      | ② | **계획을 사람이 검토하고 승인한다** | **사람** |
-      | ③ | 고칠 것은 고치고, 안 고칠 것은 **근거를 남겨 심사(suppress)** 한다 | AI |
-      | ④ | 재검사 — 다음 새벽 자동 스캔, 급하면 Jenkins 에서 즉시 실행 | 자동 |
-      | ⑤ | DT·SonarQube 콘솔에서 결과 확인 | 자동 반영 |
-
+      |     | 단계                                                               | 누가      |
+      | --- | ------------------------------------------------------------------ | --------- |
+      | ①   | 현재 DT·SonarQube 문제를 조회해 **원인과 조치 계획**을 낸다        | AI        |
+      | ②   | **계획을 사람이 검토하고 승인한다**                                | **사람**  |
+      | ③   | 고칠 것은 고치고, 안 고칠 것은 **근거를 남겨 심사(suppress)** 한다 | AI        |
+      | ④   | 재검사 — 다음 새벽 자동 스캔, 급하면 Jenkins 에서 즉시 실행        | 자동      |
+      | ⑤   | DT·SonarQube 콘솔에서 결과 확인                                    | 자동 반영 |
       - ⭐ **사람이 판단하는 자리는 ② 하나다.** 조회·수정·심사 기록·재검사는 전부 자동이다.
       - ⚠ **②를 없애지 않는다** — 억제는 되돌리기 어렵고 서버에 기록이 남는다. 승인 없이 AI 가 "안 고쳐도 된다"고 결정하게 두지 않는다. 모든 쓰기에 `--confirm` 이 걸려 있는 이유다.
       - ⭐ **아래 GW·Console 조치가 이 흐름을 그대로 탄 첫 사례다** — DT 8건(GW 2 + Console 6) → **0건**. 사람이 개입한 지점은 계획 승인과 PR 리뷰뿐이다.
@@ -24,20 +23,20 @@
     - ⭐ **적용 결과 — Before / After** — **각 구현 담당이 작업 완료 후 직접 채운다**
 
       | 대상 | Before | 심각도 | After | 처리 방식 | 상태 |
-      |---|---|---|---|---|---|
+      | --- | --- | --- | --- | --- | --- |
       | **Console · DT** | 6건 | CRITICAL 2 · HIGH 2 · MEDIUM 2 | **0건** | `next` 16.3.5 패치 · `qs` override `^6.16.0` · `js-yaml` 1건은 `Not Affected`+`Code Not Reachable` 로 심사 억제 | ✅ **완료** — PR [#14569](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14569) 머지 · 9/21 재스캔 0 확인 |
       | **Console · SQ — Security** | **A 0** · ⚠ 핫스팟 **8건 미검토**(검토율 **0%** · 등급 E) | MEDIUM 7(ReDoS 정규식) · LOW 1(하드코딩 IP) | **A 0** · 검토율 **100%** | **판정 8건** — ReDoS 7 은 `SAFE`: **입력 길이를 공격자가 정하지 못한다**(빌드 타임 환경변수·우리가 배포하는 리전 디렉터리·계약에서 생성한 경로 템플릿). ⭐ 결정적 근거는 **정적 export 라 서버가 없다**는 것 — ReDoS 의 목적인 자원 고갈이 성립하지 않는다 · 1건은 **오탐**(`6.3.1.3` 은 IP 가 아니라 목 픽스처의 **앱 버전 문자열**) | ✅ **완료** — 9/21 심사, 전건 근거 기록 |
       | **Console · SQ — Reliability** | **D 7** | HIGH 1(`sort()` 비교 함수 누락) · MEDIUM 6(정규식 우선순위 2 · Tailwind v4 CSS 2 · `alt` 문구 2) | **A 0** | **고침 5** — `sort()` 비교 함수 1 · 정규식 2(⭐ IPv6 대괄호는 **동작 결함도 함께**: `[::1` 를 조용히 정상처럼 만들던 것) · `alt` 문구 2(**한국어 번역 포함** — 영어만 고치면 정작 우리 화면에서 두 번 들린다) · **판정 2** — CSS `False Positive`(⚠ `@theme`·`@custom-variant` 는 **Tailwind v4 의 정식 문법** — 스캐너가 틀린 경우. DT `js-yaml` 을 `Not Affected` 로 둔 것과 **정반대**) | ✅ **완료** — PR [#14580](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14580)·[#14594](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14594) 머지 · 9/22 스캔에서 **A 0** 확인 |
       | **Console · SQ — Maintainability** | **A 146** | 중첩 삼항 · `role=` 대신 태그 · 중첩 템플릿 리터럴 · 인지 복잡도 등 | **A 78** (−47%) | **고침** — 중첩 삼항 1(신규 코드) · `kill-dialog` 불리언 분기 1 · **판정** — `void` 2 `Won't Fix`(일부러 안 기다린다는 표시라 빼면 실수와 구분이 안 된다) · shadcn CLI 산출물 4 = **분석 제외**(`src/generated` 와 같은 이유 — 우리가 쓴 코드가 아니다) · ⏳ **남은 78건** — 중첩 삼항 24 · `role="status"` → `<output>` 20 · 중첩 템플릿 리터럴 9 · 인지 복잡도 7 · 불필요한 타입 단언 7 · 기타 11. ⚠ **등급은 A 라 급하지 않다** — 손댈 순서는 별도 판단 | ✅ PR [#14580](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14580)·[#14590](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14590) 머지 · 등급은 계속 A |
-      | **Console · SQ — Coverage** | **0.0%** — 미커버 **6337줄**(전 줄) | Gate `new_coverage ≥ 80` 실패의 유일한 원인 | **91.6%** | ⭐ **코드 문제가 아니었다** — 실제로는 처음부터 91%대였는데 **잡이 테스트를 안 돌려** lcov 가 없었고, 스캐너는 그것을 *"측정 안 함"* 이 아니라 ***"한 줄도 커버 안 됨"*** 으로 기록했다. `sonar-project.properties` 신설(lcov 경로·`sonar.tests` 분류)+Jenkins 잡에 커버리지 단계 추가로 해결 | ✅ PR [#14577](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14577)·[#14581](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14581) 머지 · Jenkins 잡 `0301f11` · ⚠ **같은 파이프라인 9개 잡 전부 0 이던 문제**였다 |
+      | **Console · SQ — Coverage** | **0.0%** — 미커버 **6337줄**(전 줄) | Gate `new_coverage ≥ 80` 실패의 유일한 원인 | **91.6%** | ⭐ **코드 문제가 아니었다** — 실제로는 처음부터 91%대였는데 **잡이 테스트를 안 돌려** lcov 가 없었고, 스캐너는 그것을 _"측정 안 함"_ 이 아니라 **_"한 줄도 커버 안 됨"_** 으로 기록했다. `sonar-project.properties` 신설(lcov 경로·`sonar.tests` 분류)+Jenkins 잡에 커버리지 단계 추가로 해결 | ✅ PR [#14577](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14577)·[#14581](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14581) 머지 · Jenkins 잡 `0301f11` · ⚠ **같은 파이프라인 9개 잡 전부 0 이던 문제**였다 |
       | **GW · DT** | 2건 | MEDIUM 2(GHSA-4mjr CVSS 5.3 DoS · GHSA-x5fp 3.7 array-limit) | **0건** | `qs` override `^6.16.0` — `express` 전이 의존(쿼리 파서)이라 surgical(우리 코드 아님·patched `>=6.16.0`) | ✅ **완료** — PR [#14568](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14568) 머지 · 9/21 DT 재스캔 0 확인 |
       | **GW · SQ · Security** | A · vuln 0 · 핫스팟 검토율 **0%** | 핫스팟 21(HIGH 10·MED 5·LOW 6) TO_REVIEW | A · vuln 0 · 검토율 **100%** | 핫스팟 21 `SAFE`+근거(es-base nonroot·in-cluster 평문·anchored 정규식·redaction·docker bridge IP) — 실코드 수정 0 | ✅ SonarQube 심사 |
       | **GW · SQ · Reliability** | **D** · bugs 5 | CRITICAL 4(sort 비교함수 누락)·MAJOR 1(정규식 우선순위) | **A** · 0 | BUG 5 수정(동작 보존·configVersion 해시 code-unit 순서 유지) | ✅ PR [#14585](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585) |
       | **GW · SQ · Maintainability** | A · code smells **≈195 추정**(전체 스캔 pre-fix·미측정) — 부분스캔 30은 오설정 아티팩트(테스트 blanket 제외·전체 미분석) | CRITICAL 다수 포함 | A · code smells **171** (전체 스캔 첫 측정·이미 아래 소거 반영·등급 A) | CODE_SMELL 20 정리 · new_violations 4 소거(optional chain 3·무단언 e2e 1) · `void` Won't Fix · **open**: S3776 복잡도 7(게이트 무관·backlog) | ✅ PR [#14588](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14588)·[#14598](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14598) · Gate PASS(new_violations 0) |
       | **GW · SQ · Coverage** | `new_coverage` **0.0** (미커버 4380줄·Gate 실패) | 배선 문제(코드 아님) | **96.5** (전체 coverage 96.3) | ADO 스캔 배선(3a) — merged lcov(unit+e2e)·main-only daily schedule·java 이미지·`sonar-project.properties` | ✅ PR [#14585](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585)·[#14592](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14592) · Gate PASS |
-
       - ⭐ **"고친 것"과 "안 고치기로 한 것"이 표에 같이 있다** — 억제도 조치다. 근거를 남겨 다음 사람이 같은 것을 다시 파지 않게 하는 것이 목적이다.
       - ⚠ **억제는 오탐 처리가 아니다** — 취약점은 실재하고 스캐너가 옳다. 우리가 그 코드 경로를 타지 않을 뿐이다. `False Positive` 로 적으면 기록이 사실과 달라진다.
+
     - **PR [#14475](https://dev.azure.com/ewoosoft/platforms/_git/es-toolkit/pullrequest/14475) 머지**(es-toolkit) — 구현·실서버 검증 완료(심사 쓰기 왕복·데이터 원상복구)
     - ✅ **서버 설정 = DT·SonarQube 양쪽 완료** · SonarQube 개발자 온보딩 부트스트랩(`sbom/jenkins` `admin/sq_bootstrap.py`) main 머지
     - ✅ **머지 완료(9/22)** — Scott Kim 승인 · Thomas Windows 실기 검증 완료. 개발자 배포 시작 가능.
@@ -68,7 +67,7 @@
       - **`new_violations` 3 → 0** ([PR #14580](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14580))
         - 중첩 삼항 1건 = 코드 수정 · **`void` 2건 = 코드 그대로**, 근거 달아 `Won't Fix`
         - ⚠ 일부러 안 기다린다는 표시라 빼면 **"실수로 `await` 을 놓친 것"과 구분이 안 된다**
-      - **`new_coverage` 0.0 → 91.6** — ⭐ **코드 문제가 아니었다.** 실제로는 처음부터 91%대였는데 **잡이 테스트를 안 돌려** lcov 가 없었고, 스캐너는 그것을 *"측정 안 함"* 이 아니라 ***"한 줄도 커버 안 됨"*** 으로 기록했다.
+      - **`new_coverage` 0.0 → 91.6** — ⭐ **코드 문제가 아니었다.** 실제로는 처음부터 91%대였는데 **잡이 테스트를 안 돌려** lcov 가 없었고, 스캐너는 그것을 _"측정 안 함"_ 이 아니라 **_"한 줄도 커버 안 됨"_** 으로 기록했다.
       - ⚠ **커버리지를 붙이자 `new_violations` 가 0 → 5 로 늘었다** ([PR #14590](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14590))
         - ⭐ **새로 생긴 문제가 아니라 안 보이던 것이 보이게 된 것이다** — 그동안 분석에서 빠져 있던 파일에 규칙이 처음 돌았다
         - **shadcn CLI 산출물 4건 = 분석 제외** — `src/generated` 와 같은 이유. ⚠ 손으로 고치면 **다음 `shadcn add` 마다 되풀이된다**
@@ -90,23 +89,22 @@
         - ⭐ **근본 원인** — 공용 파이프라인이 `checkout → sonar-scanner` 뿐이라 **테스트를 돌리지 않았다**
         - ⭐ **Console 만의 문제가 아니었다** — 같은 파이프라인 **9개 잡 전부** 커버리지 0
 
-        | | 단계 | 결과 |
-        |---|---|---|
-        | ① | SBOM 파이프라인의 **Node 18 강제 설치 제거** | ✅ `c60a92a` |
-        | ② | 에이전트 이미지 **Node 18 → 24** + corepack | ✅ `7a3e114` |
-        | ③ | **에이전트 4대 재생성** | ✅ 전부 `Connected` |
-        | ④ | Console 잡에 **커버리지 단계** | ✅ `0301f11` |
-        | ⑤ | `SQUBE_EXCLUSIONS` → **레포 정본 이관** | ✅ 양쪽 |
-
+        |     | 단계                                         | 결과                |
+        | --- | -------------------------------------------- | ------------------- |
+        | ①   | SBOM 파이프라인의 **Node 18 강제 설치 제거** | ✅ `c60a92a`        |
+        | ②   | 에이전트 이미지 **Node 18 → 24** + corepack  | ✅ `7a3e114`        |
+        | ③   | **에이전트 4대 재생성**                      | ✅ 전부 `Connected` |
+        | ④   | Console 잡에 **커버리지 단계**               | ✅ `0301f11`        |
+        | ⑤   | `SQUBE_EXCLUSIONS` → **레포 정본 이관**      | ✅ 양쪽             |
         - **Node 24 인 이유** — GW 상한 `<25`, Console 하한 `>=20.19.0`. 둘을 다 태우는 **유일한 값**
         - ⚠ 작업 중 **"켜는 순간 터졌을" 함정 3건**이 더 드러났다 — pnpm 버전 불일치 · `CI` 미설정 · 재생성 스크립트 `sudo`
 
-        | 커버리지 | Before | After |
-        |---|---|---|
-        | **vt-api-gateway** | 0.0 · 미커버 **4380줄** | **96.3** · 미커버 128줄 |
-        | **vt-api-gateway-console** | 0.0 · 미커버 **6337줄** | **91.6** · Gate Passed |
-
+        | 커버리지                   | Before                  | After                   |
+        | -------------------------- | ----------------------- | ----------------------- |
+        | **vt-api-gateway**         | 0.0 · 미커버 **4380줄** | **96.3** · 미커버 128줄 |
+        | **vt-api-gateway-console** | 0.0 · 미커버 **6337줄** | **91.6** · Gate Passed  |
         - ⭐ **미커버 줄 수가 답이다** — 4380/6337 이 "전부 미커버" 로 잡히던 것이 정상 수치로 돌아왔다
+
       - ⚠ **Community 에디션 제약이 여기서 다 나왔다** — 브랜치 분석 없음 · PR decoration 없음
         - 그래서 **`main` 빌드에서만 스캔**한다(PR 빌드에서 스캔하면 그 PR 수치가 프로젝트 수치가 된다)
         - ⭐ **PR 단계에서 품질 피드백을 받으려면 Developer Edition 이 필요하다** — 당장은 불필요
@@ -139,6 +137,20 @@
       - 당분간 CI 에서 `flutter analyze` 로 직접 게이트를 건다. 정식 지원이 필요하면 **Developer Edition 결정 사안**이다.
     - 📄 매뉴얼 갱신 — `6.3 SonarQube에 테스트 커버리지 연동하기` ([VKS](https://vks.vatech.com/x/7qj9Ew)) · 언어별 속성표를 실서버 기준으로 정정(동작하지 않는 속성 2개 제거)
     - ⏳ **잔여** — Rust 파이프라인 네이티브 전환 · 0파일 가드
+
+  - ✅ **[인프라] Dependency-Track 포트폴리오 정리 (9/22)**
+    - ⭐ **보안 지표가 부풀려져 있었다 — 허수 취약점 585건을 걷어냈다.** 조치한 것이 아니라 **없는 것을 세고 있던 것**이다.
+
+      | 지운 것 | 정체 | 허수 취약점 |
+      | --- | --- | --- |
+      | `Test` · `Test2` | **EzLauncher SBOM 사본** — 컴포넌트 332개가 완전히 일치. 2025-12-11 에 같은 SBOM 을 이름만 바꿔 1분 간격으로 올린 것 | 274건 |
+      | `CleverOne v1.5.0` | **복제 유령** — BOM 을 올린 적이 없는데 v1.0.0 과 컴포넌트 36/37 이 같다. 차이는 루트 이름뿐(`CleverOne@1.5.0` vs `@1.0.0`) | 311건 |
+      - 셋 다 **심사 기록 0건 · 저장소·Jenkins 참조 0건** — 잃은 것은 없다.
+      - ⚠ **포트폴리오 집계는 재계산 뒤 반영된다** — 화면 숫자가 바로 안 줄어든다. 그때 585건이 빠지는 것은 **조치 결과가 아니라 중복 제거**다.
+
+    - **`CleverOne v1.5.1` 을 `Latest` 로 지정** — 세 버전 모두 `Latest` 가 비어 있어 현재 버전이 무엇인지 화면에 드러나지 않았다. `v1.0.0` 은 이력으로 남긴다.
+    - ⚠ **CleverOne 은 우리 Jenkins 가 스캔하지 않는다** — `config/` 에 설정이 없고 마지막 업로드가 v1.5.1 **2026-04-13** 이다. 손으로 올리고 방치된 상태다.
+    - ⏳ **잔여** — `config/ezserver.config.json` 외 1건 삭제 [PR #14635](https://dev.azure.com/ewoosoft/sbom/_git/jenkins/pullrequest/14635) 리뷰 대기(Thomas). ⚠ `ezserver_installer.config.json` 은 product 가 v6.2.0 인데 UUID 는 **v6.3.0 을 가리켜** 돌리면 실데이터를 덮어쓰는 상태였다.
 
 - 논의 사항 (이번 주 · 신규 · R#)
   - (이번 주 신규 안건 없음 — 지난주 R1은 결정되어 위 '이번 주 진행'에 반영)
