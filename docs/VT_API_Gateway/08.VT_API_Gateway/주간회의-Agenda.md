@@ -38,107 +38,57 @@
 
       - ⭐ **"고친 것"과 "안 고치기로 한 것"이 표에 같이 있다** — 억제도 조치다. 근거를 남겨 다음 사람이 같은 것을 다시 파지 않게 하는 것이 목적이다.
       - ⚠ **억제는 오탐 처리가 아니다** — 취약점은 실재하고 스캐너가 옳다. 우리가 그 코드 경로를 타지 않을 뿐이다. `False Positive` 로 적으면 기록이 사실과 달라진다.
-      - ⚠ **SonarQube 는 두 프로젝트 모두 Gate ERROR 다** — 커버리지가 0 으로 잡히는 것이 원인이고, 이는 **잡이 테스트를 돌리지 않아서**다. 코드 품질 문제가 아니다.
-    - 구현·실서버 검증 완료(119 통과·심사 쓰기 왕복·데이터 원상복구) · **PR [#14475](https://dev.azure.com/ewoosoft/platforms/_git/es-toolkit/pullrequest/14475) 올림**(es-toolkit · 리뷰어 Scott Kim)
+    - **PR [#14475](https://dev.azure.com/ewoosoft/platforms/_git/es-toolkit/pullrequest/14475) 머지**(es-toolkit) — 구현·실서버 검증 완료(심사 쓰기 왕복·데이터 원상복구)
     - ✅ **서버 설정 = DT·SonarQube 양쪽 완료** · SonarQube 개발자 온보딩 부트스트랩(`sbom/jenkins` `admin/sq_bootstrap.py`) main 머지
-    - ⏳ **잔여** — PR 리뷰(Scott Kim) + Windows 실기 검증 1건 → 머지되면 완료로 갱신
-    - ✅ **첫 적용(9/17) — GW 백엔드 DT 취약점 2건 조치** (`es sec` 조회 → AI 직접 수정)
-      - `qs@6.15.3` MEDIUM 2건 — GHSA-4mjr-xmp4-gh2g(CVSS 5.3·DoS via isBuffer) · GHSA-x5fp-wj9c-mxmx(3.7·array-limit 우회)
-      - `qs` 는 우리 코드 아님 — `express@5.2.1` 전이 의존(쿼리스트링 파서·8 경로)이라 외부 요청에서 도달 가능
-      - surgical override `qs ^6.16.0` 로 소거(patched `>=6.16.0`·express `^6.14.0` 호환·broad 범프 아님)
-      - PR [#14568](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14568) **머지**(main `e84aaf9`) · `pnpm audit --prod` = 0 확인 · build 4앱 0
-      - ✅ **Dependency-Track 재스캔 0건 확인(9/21)** — 새 SBOM(CycloneDX 1.6) 업로드 후 서버 측 취약점 **0**(로컬 audit 넘어 DT 보안대장 반영)
-    - ✅ **Console DT 6건 조치(9/17)** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14569
-      - ⭐ **배포 형태로 갈렸다** — Console 은 **정적 export**(`images.unoptimized`)라 **Next.js 서버가 배포에 없다**
-        - CRITICAL 2건(next Image Optimization RCE · Windows 서버 RCE 9.0) = **배포본에 닿지 않음**
-        - HIGH 2건 — `js-yaml` 은 lingui 설정 로더가 **빌드 타임**에만 · `sharp` 는 next 의 **서버 전용 peer**
+    - ✅ **머지 완료(9/22)** — Scott Kim 승인 · Thomas Windows 실기 검증 완료. 개발자 배포 시작 가능.
+    - ✅ **첫 적용(9/17) — GW 백엔드 DT 2건 조치** (`es sec` 조회 → AI 직접 수정)
+      - `qs` MEDIUM 2건 — 우리 코드가 아니라 `express` 전이 의존(쿼리 파서)이라 외부 요청에서 도달 가능
+      - surgical override `qs ^6.16.0` 로 소거 — broad 범프가 아니다. [PR #14568](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14568) 머지
+      - **DT 재스캔 0건 확인(9/21)** — 로컬 audit 이 아니라 **서버 보안대장 기준**
+    - ✅ **Console DT 6건 조치(9/17)** — [PR #14569](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14569)
+      - ⭐ **배포 형태로 갈렸다** — Console 은 **정적 export** 라 **Next.js 서버가 배포에 없다**
+        - CRITICAL 2건(next RCE) = **배포본에 닿지 않음** · HIGH 2건은 빌드 타임/서버 전용
         - ⚠ **MEDIUM 2건(`qs`)만 실제 위험** — `@refinedev/core` 경유로 **브라우저 번들에 들어간다**
-      - ⭐ **번들에서 실측했다** — 배포본 청크에 `qs` 고유 옵션명(`arrayLimit`)이 있고 나머지 넷은 없다
-      - **조치** — `next` 16.3.0→16.3.5(패치·직접 의존) · `qs` override `^6.16.0`(Refine 요구 `^6.10.1` 범위 안)
-        - ⭐ GW 백엔드와 **같은 방식**이다(#14568) — surgical override 로 전이 의존만 올린다
-        - 빌드 산출물에 **6.16 계열 옵션**(`throwOnLimitExceeded`)이 들어간 것으로 override 실효 확인
-      - ⚠ **next 는 배포본에 안 닿아도 올렸다** — 개발 서버(`next dev`)는 영향받고, **DT 에 CRITICAL 이 남으면 판단이 흐려진다**
-      - `js-yaml`·`sharp` 는 손대지 않는다 — 배포본 무관 + 전이 의존이라 **상위 패키지가 따라올 때 해소**된다
-      - ✅ **결과 실측(9/21 · SBOM 재업로드 후) — 6건 → 0건**
-        - CRITICAL 2(next) · MEDIUM 2(qs) 소거 · ⭐ **HIGH `sharp` 도 함께 빠졌다**(next 패치에 peer 가 따라 올라감)
-        - 남은 **HIGH `js-yaml` 1건은 DT 에 심사 기록으로 억제**했다 — 조회 결과 **0건**
-          - `Not Affected` + `Code Not Reachable` + `Will Not Fix`
-          - ⚠ **`False Positive` 가 아니다** — 취약점은 **실재하고** DT 가 옳다. 우리가 **그 코드 경로를 타지 않을** 뿐이다
-            - `False Positive` 로 적으면 "DT 가 오탐했다"는 기록이 남아 **사실과 다르다**
-          - 근거를 코멘트로 남겼다 — 빌드 타임 설정 로더 · 배포 번들에 없음(실측) · **입력을 우리가 통제**하므로 공격면 없음
-          - ⭐ **"왜 안 고치는가"를 남기는 것이 요점**이다 — 다음 사람이 HIGH 를 보고 다시 파지 않는다
-        - ✅ **목록 숫자까지 0 으로 반영 확인** — 메트릭은 **별도 집계 스냅샷**이라 재계산이 있어야 따라온다
-          - `11:15 high=2 score=36` → `12:18 high=1 score=5`(조치 후 SBOM 재업로드) → `12:25 high=0 sup=1 score=0`(suppress 반영)
-          - ⭐ 12:18→12:25 **7분 간격**이라 자동 주기(통상 1시간)가 아니라 **DT 화면의 재계산 버튼**이 일으킨 것
-          - ⚠ 재계산 API 는 `PORTFOLIO_MANAGEMENT` 권한이 필요해 **조회용 키로는 403** — 심사는 쓸 수 있는데 반영은 못 하는 조합이다
-    - ✅ **GW 백엔드 SonarQube — Quality Gate PASS(9/21)** — new_coverage 96.5·new_violations 0·hotspots 100%·중복 0
-      - **Gate 실패 조건 둘이었음** — `new_coverage 0.0`(기준 ≥80) · `new_security_hotspots_reviewed 0%`(기준 100) · `new_violations`는 애초 0(Console 3과 대비)
-      - ✅ **핫스팟 21건 검토(SAFE+근거) → 검토율 100%** — 실코드 수정 0(오탐/의도된 안전: es-base nonroot·in-cluster 평문·anchored 정규식·redaction·docker bridge IP)
-      - ✅ **BUG 5건 수정** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585 (`dafadf0`)
-        - sort() 비교함수 4·정규식 우선순위 1 · 전부 동작 보존 · configVersion 해시는 code-unit 순서 유지(localeCompare 금지=드리프트)
-      - ✅ **CODE_SMELL 20건 위생 정리** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14588 (`13285f8`) · 독립 리뷰 결함 0
-      - ✅ **`void`(S3735) Won't Fix** — 의도된 미사용 파라미터 표식(근거 코멘트)
-      - 📌 **S3776 복잡도 7건은 open 유지** — 판단성 리팩터·게이트 무관 · 후속(wontfix 안 함=실제 복잡)
-      - ✅ **`new_coverage` 0.0 → 96.5 (파이프라인 배선·PL 결정 3a·PR #14592)**
-        - Jenkins 스캔 에이전트엔 Docker 소켓 없어 e2e 불가 → **커버리지가 이미 도는 ADO(Self-hosted1)에서 스캔**
-        - `sonar-project.properties`(merged lcov·`sonar.tests`) + merge 스크립트 lcov 리포터(#14585) + java 이미지(Jenkins)
-        - ⚠ **Community Build = 브랜치/PR 분석 불가** → sonar 를 **main-only(daily schedule·always)** 로 한정(PR 스캔은 단일 main 프로젝트 오염). PR 빌드는 sonar skip
-        - **new_violations 4**(스캔 넓어져 드러남·optional chain 3·무단언 e2e 1) → 소거(#14598)
-      - ✅ **Jenkins 기존 `vt-api-gateway-SonarQube` 잡 트리거 제거(f48341a)** — ADO 가 authoritative(잡/이력 보존·revert 순서 주석)
-      - 📌 **S3776 복잡도 7·Developer Edition(브랜치/PR 정식 분석)은 별건 후속**(전자=판단성 리팩터·게이트 무관·후자=PL 트랙)
-    - ✅ **Console SonarQube — Quality Gate 조사·조치(9/21) 완료** — Gate **Passed** · 커버리지 0.0 → **91.6** · 핫스팟 검토율 0% → **100%**
-      - **Gate 실패 조건 둘** — `new_coverage 0.0`(기준 ≥80) · `new_violations 3`(기준 0) · duplications 1.05 는 통과
-
-      - ✅ **`new_violations` 3 → 0** — PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14580
-        - **중첩 삼항 1건 = 코드 수정** — `grant.status` 를 행 표시용으로 옮기는 분기가 화면 안에 삼항 두 겹이었다
-          - ⭐ **고치다 테스트 구멍을 찾았다** — `revoked` 를 `rejected` 로 잘못 매핑해도 **아무것도 빨개지지 않았다**
-          - ⚠ 둘은 **경위가 다르다** — 거부는 승인 전에 막힌 것, 회수는 **가졌다가 뺏긴** 것. 뭉뚱그리면 당사자가 무슨 일인지 모른다
-        - **`void` 2건 = 코드 그대로** · SonarQube 에 근거 달아 `Won't Fix`(DT `js-yaml` 과 같은 방식)
-          - 일부러 안 기다린다는 표시라 빼면 **"실수로 `await` 을 놓친 것"과 구분이 안 된다**
-          - ⚠ 참고 — ESLint `no-floating-promises` 는 **꺼져 있다**. 전체 `void` 57건이 도구 강제가 아니라 **우리 관례**다(규칙 도입은 별도 판단)
-
-      - ✅ **`new_coverage` 0.0 → 91.2** — 잡이 스캔 전 테스트를 돌리기 시작했다(로컬 실측 91.66 과 일치)
-        - ⭐ **코드 문제가 아니다** — 실제 **91.6%**(테스트 1349개). 스캐너가 lcov 경로를 못 찾아 6337줄 전부를 미커버로 셌다
-        - `sonar-project.properties` 신설(PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14577) · exclusions 정본 일원화(PR https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14581)
-          - ⚠ 옮기며 **테스트 파일 제외를 뺐다** — 통째로 빼면 `sonar.tests` 분류가 무의미해진다. **테스트에도 규칙은 돌아야 한다**
-
-      - ⚠ **커버리지를 붙이자 `new_violations` 가 0 → 5 로 늘었다** — PR [#14590](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14590)
-        - ⭐ **새로 생긴 문제가 아니라 안 보이던 것이 보이게 된 것이다** — 지적된 파일은 8월 이후 바뀌지 않았고, 5건이 모두 **오늘 스캔에 한꺼번에** 생겼다
-        - 명령행 exclusions 가 걷히면서 그동안 분석에서 빠져 있던 파일에 **규칙이 처음 돌았다**
-        - **shadcn CLI 산출물 4건(`S6759`) = 분석에서 제외** — `src/generated` 를 빼는 이유와 같다. 우리가 쓴 코드가 아니다
-          - 파일 머리말이 *"CLI가 생성한 컴포넌트(수정 시 재생성 주의)"* 라고 적고 있고 CLI 버전을 정확히 핀으로 박아 둔다
-          - ⚠ 손으로 고치면 **다음 `shadcn add` 마다 같은 일이 되풀이된다** — 새 컴포넌트마다 규칙이 다시 걸린다
-          - ⚠ **대가를 적어 두었다** — 그 파일들에 우리가 얹은 손질(예: 툴팁 기본 지연 200ms)은 분석에서 빠진다
-        - **`kill-dialog` 1건(`S2301`) = 코드 수정** — 우리 코드이고 지적이 타당하다
-          - 같은 불리언으로 서로 다른 동작을 고르던 것을, **열림 상태는 그대로 흘리고 닫힐 때만 정리**하도록 바꿨다
-          - ⭐ 정리 동작에 이름을 주었다(`discardDraft`) — 남겨 두면 다음에 열 때 **이전 사유와 확인 체크가 그대로 있고**, 파괴적 액션에서 그 상태는 곧 오조작이다
-        - ✅ **핫스팟 8건 심사 완료 — 검토율 0% → 100%** · Gate 조건에는 없으나(GW 는 있다) 등급이 E 로 보였다
-          - **ReDoS 정규식 7건 = `SAFE`** — 꼬리 슬래시 정리(`/\/+$/`) 류이고 **입력 길이를 공격자가 정하지 못한다**(빌드 타임 환경변수·우리가 배포하는 리전 디렉터리·계약에서 생성한 경로 템플릿)
-            - ⭐ **결정적 근거는 배포 형태다** — Console 은 정적 export 라 **서버가 없다.** 브라우저에서 사용자 자신의 세션에만 영향을 주므로 ReDoS 의 목적인 **서버 자원 고갈이 성립하지 않는다**
-          - ⭐ **1건은 오탐이었다** — `6.3.1.3` 을 IP 로 읽었는데 실제로는 목 픽스처의 **앱 버전 문자열**(`appVersion`)이다. 네 자리 점 표기가 같아 생긴 일이다
-
-      - ✅ **Reliability D → A — 일곱 건 중 둘은 애초에 우리 잘못이 아니었다** — PR [#14594](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14594)
-        - ⚠ **등급은 개수가 아니라 가장 나쁜 항목으로 정해진다** — 출발점은 **D 7**(HIGH 1 + MEDIUM 6)이었다
-          - HIGH 1 = `sort()` 비교 함수 누락 — ⭐ **이걸 고치자 D 가 C 로 내려갔다.** 나머지 여섯은 전부 MEDIUM 이라 개수가 줄어도 C 는 그대로였다
-          - ⚠ 그래서 **"몇 건 남았나" 보다 "가장 나쁜 게 무엇인가" 를 먼저 본다** — 6건이 4건이 돼도 등급은 안 움직인다
-        - **CSS 2건 = `False Positive`** — `@theme`·`@custom-variant` 는 **Tailwind v4 의 정식 at-rule** 이다. *"알 수 없는 at-rule"* 이라는 진술 자체가 사실이 아니다
-          - ⚠ **DT 의 `js-yaml` 과 정반대 경우다** — 거기선 취약점이 **실재하고 스캐너가 옳아** `Not Affected` 로 적었다. 여기선 스캐너가 틀렸다. **섞어 적으면 기록이 사실과 달라진다**
-        - **정규식 2건 = 코드 수정** — 동작은 의도대로였지만 `^` 와 `$` 가 어느 갈래에 걸리는지 읽는 사람이 멈칫했다. 정규식을 걷어내고 `startsWith`/`endsWith` 로 바꿨다
-          - ⭐ **IPv6 쪽은 동작 결함도 함께 고쳤다** — 예전 `/^\[|\]$/g` 는 한쪽만 있어도 떼어 내서 `[::1` 같은 **망가진 호스트를 조용히 정상처럼** 만들었다
-        - **`alt` 문구 2건 = 코드 수정** — 스크린리더는 `img` 를 만나면 **이미 "이미지" 라고 읽어 준다.** 문구에 또 넣으면 두 번 들린다
-          - ⚠ **한국어 번역도 같이 고쳤다** — 영어만 고치면 정작 **우리 화면에서** 두 번 들린다
-
-      - ⭐ **덤으로 CI 결함을 하나 잡았다 — 가드가 있는데 걸린 적이 없었다** — PR [#14587](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14587)
-        - Jenkins 가 *"에이전트에 `CI` 가 없다"* 고 알려 주어 **우리 ADO 파이프라인도 확인했더니 거기도 없었다**
-        - ⚠ `vitest.config.mts` 의 `maxWorkers: process.env.CI ? 2 : undefined` 가 **CI 에서 한 번도 걸리지 않았다** — Azure 는 `CI` 가 아니라 **`TF_BUILD`** 를 세팅한다
-        - ⭐ **그 가드는 2026-09-02 메모리 고갈 사고(98~99% · 에이전트 offline)를 막으려고 넣은 것이다** — 막으려던 사고를 다시 부를 수 있는 상태로 있었다
-        - ⚠ **같은 함정에 두 번 빠졌다** — `playwright.config.ts` 가 먼저 당해 고쳐 두었는데(PR 12744), **그 뒤에** 들어온 vitest 가드가 그걸 몰랐다(PR 13489)
-        - ⭐ **그래서 교훈을 주석이 아니라 테스트로 옮겼다** — 설정 본문을 읽어 `TF_BUILD` 를 함께 보는지 검사한다. 되돌리면 그 파일만 빨개진다
-          - 주석에만 적어 두면 **다음 사람은 그 파일을 안 본다** — 실제로 그렇게 됐다
-
-      - ✅ **Jenkins 빌드 인프라 정비 — 5단계 전부 완료(9/21)** · PL 승인 후 적용
-        - ⭐ **근본 원인** — 공용 파이프라인이 `checkout → sonar-scanner` 뿐이라 **테스트를 돌리지 않는다.** 스캐너는 커버리지를 **읽을 뿐 만들지 않으므로**, lcov 가 없으면 "측정 안 함"이 아니라 **"한 줄도 커버 안 됨"**으로 기록된다
-        - ⭐ **Console 만의 문제가 아니었다** — 같은 파이프라인 **9개 잡 전부 커버리지 0**(GW 백엔드 포함)
+      - ⭐ **번들에서 실측했다** — 배포본 청크에 `qs` 고유 옵션이 있고 나머지 넷은 없다. 추정이 아니다.
+      - ⚠ **next 는 배포본에 안 닿아도 올렸다** — 개발 서버는 영향받고, **DT 에 CRITICAL 이 남으면 판단이 흐려진다**
+      - **결과 6건 → 0건(9/21)** — ⭐ HIGH `sharp` 도 함께 빠졌다(next 패치에 peer 가 따라 올라감)
+        - 남은 **HIGH `js-yaml` 1건은 심사 억제** — `Not Affected`+`Code Not Reachable`+`Will Not Fix`
+        - ⚠ **`False Positive` 가 아니다** — 취약점은 실재하고 DT 가 옳다. 우리가 그 코드 경로를 타지 않을 뿐이다.
+        - ⭐ **"왜 안 고치는가"를 남기는 것이 요점** — 다음 사람이 HIGH 를 보고 다시 파지 않는다
+    - ✅ **GW 백엔드 SonarQube — Quality Gate PASS(9/21)** — new_coverage 96.5 · new_violations 0 · 핫스팟 100%
+      - **Gate 실패 조건은 둘 다 배선이었다** — `new_coverage 0.0` · 핫스팟 검토율 0%. 코드 품질 문제가 아니다.
+      - 핫스팟 21건 심사(SAFE+근거) — **실코드 수정 0** · BUG 5건 수정([PR #14585](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14585)·동작 보존) · CODE_SMELL 20건 정리([PR #14588](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14588))
+      - **`new_coverage` 0.0 → 96.5** (PL 결정 3a · [PR #14592](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14592))
+        - ⚠ **Jenkins 에이전트엔 Docker 소켓이 없어 e2e 를 못 돌린다** → 커버리지가 이미 도는 **ADO 로 옮겼다**
+        - ⚠ 소켓을 붙이면 잡이 **호스트 Docker 를 제어**하게 된다 — 같은 호스트에 DT·Jenkins 가 있다
+        - Jenkins 기존 잡은 **트리거만 제거**(`f48341a`) — ⚠ 같은 projectKey 에 두 스캐너가 쓰면 **나중 것이 이긴다**
+      - 📌 S3776 복잡도 7건 open 유지 — 판단성 리팩터·게이트 무관
+    - ✅ **Console SonarQube — Quality Gate PASS(9/21~9/22)** — 커버리지 91.6 · Reliability A · Maintainability A
+      - **Gate 실패 조건 둘** — `new_coverage 0.0` · `new_violations 3`
+      - **`new_violations` 3 → 0** ([PR #14580](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14580))
+        - 중첩 삼항 1건 = 코드 수정 · **`void` 2건 = 코드 그대로**, 근거 달아 `Won't Fix`
+        - ⚠ 일부러 안 기다린다는 표시라 빼면 **"실수로 `await` 을 놓친 것"과 구분이 안 된다**
+      - **`new_coverage` 0.0 → 91.6** — ⭐ **코드 문제가 아니었다.** 실제로는 처음부터 91%대였는데 **잡이 테스트를 안 돌려** lcov 가 없었고, 스캐너는 그것을 *"측정 안 함"* 이 아니라 ***"한 줄도 커버 안 됨"*** 으로 기록했다.
+      - ⚠ **커버리지를 붙이자 `new_violations` 가 0 → 5 로 늘었다** ([PR #14590](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14590))
+        - ⭐ **새로 생긴 문제가 아니라 안 보이던 것이 보이게 된 것이다** — 그동안 분석에서 빠져 있던 파일에 규칙이 처음 돌았다
+        - **shadcn CLI 산출물 4건 = 분석 제외** — `src/generated` 와 같은 이유. ⚠ 손으로 고치면 **다음 `shadcn add` 마다 되풀이된다**
+      - **핫스팟 8건 심사 — 검토율 0% → 100%**
+        - ReDoS 정규식 7건 `SAFE` — **입력 길이를 공격자가 정하지 못한다** · ⭐ 결정적 근거는 **정적 export 라 서버가 없다**는 것
+        - ⭐ **1건은 오탐** — `6.3.1.3` 을 IP 로 읽었는데 실제로는 목 픽스처의 **앱 버전 문자열**
+      - **Reliability D → A** ([PR #14594](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14594))
+        - ⚠ **등급은 개수가 아니라 가장 나쁜 항목으로 정해진다** — HIGH 1건(`sort()` 비교 함수)을 고치자 D 가 C 로 내려갔다
+        - ⭐ 그래서 **"몇 건 남았나" 보다 "가장 나쁜 게 무엇인가"** 를 먼저 본다
+        - **CSS 2건 = `False Positive`** — `@theme`·`@custom-variant` 는 **Tailwind v4 정식 문법**, 스캐너가 틀렸다
+          - ⚠ **DT 의 `js-yaml` 과 정반대다** — 거기선 스캐너가 옳고 우리가 안 닿을 뿐이었다
+        - 정규식 2건 — ⭐ **IPv6 쪽은 동작 결함도 함께** 고쳤다(`[::1` 을 조용히 정상처럼 만들던 것)
+        - `alt` 문구 2건 — ⚠ **한국어 번역도 같이** 고쳤다. 영어만 고치면 정작 우리 화면에서 두 번 들린다.
+      - ⭐ **덤으로 CI 결함을 하나 잡았다 — 가드가 있는데 걸린 적이 없었다** ([PR #14581](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14581))
+        - `vitest.config.mts` 의 워커 상한이 `CI` 환경변수에 걸려 있는데 **CI 에서 한 번도 참이 된 적이 없었다**
+        - ⭐ 그 가드는 **9/2 메모리 고갈 사고(에이전트 offline)를 막으려고** 넣은 것이다
+        - ⭐ **같은 일이 반복되지 않게 설정을 검사하는 테스트를 넣었다**
+      - **Jenkins 빌드 인프라 정비 — 5단계 완료(9/21 · PL 승인 후)**
+        - ⭐ **근본 원인** — 공용 파이프라인이 `checkout → sonar-scanner` 뿐이라 **테스트를 돌리지 않았다**
+        - ⭐ **Console 만의 문제가 아니었다** — 같은 파이프라인 **9개 잡 전부** 커버리지 0
 
         | | 단계 | 결과 |
         |---|---|---|
@@ -148,44 +98,21 @@
         | ④ | Console 잡에 **커버리지 단계** | ✅ `0301f11` |
         | ⑤ | `SQUBE_EXCLUSIONS` → **레포 정본 이관** | ✅ 양쪽 |
 
-        - ⚠ **이미지만 올렸으면 실패했다** — `sharedPipelineSbomGitNodeLinux` 가 **빌드마다 Node 18 을 다시 깔고 있었다**(`env.NODE_INSTALLED` 가 빌드 스코프라 늘 비어 있음). linux 잡 13개가 **같은 에이전트 풀을 공유**해, 이미지를 24 로 올려도 SBOM 잡이 한 번 돌면 되돌아간다
-          - ⭐ 그대로 갔으면 **"어느 노드에 걸리느냐에 따라 되기도 안 되기도 하는"** 상태가 됐다. 원인 추적이 가장 어려운 종류다
-        - **Node 24 인 이유** — GW 가 `>=24 <25` 상한, Console 은 `>=20.19.0`. 둘을 다 태우는 **유일한 값**
+        - **Node 24 인 이유** — GW 상한 `<25`, Console 하한 `>=20.19.0`. 둘을 다 태우는 **유일한 값**
+        - ⚠ 작업 중 **"켜는 순간 터졌을" 함정 3건**이 더 드러났다 — pnpm 버전 불일치 · `CI` 미설정 · 재생성 스크립트 `sudo`
 
-        - ⭐ **작업 중 추가로 드러난 것 3건** — 전부 "켜는 순간 터졌을" 함정이다
-          - **pnpm 버전 불일치** — 두 레포가 `pnpm@9.15.9`(lockfile 9.0)를 선언하는데 에이전트엔 **10.8.0** 이 깔려 있었다. 잡이 pnpm 을 안 써서 안 드러났을 뿐. `--frozen-lockfile` 이 깨지거나, 더 나쁘게는 **lockfile 을 조용히 다시 써서 스캔 결과가 배포본과 달라진다** → 전역 설치를 걷어내고 **corepack** 이 레포 선언을 따르게 했다
-          - **`CI` 환경변수 미설정** — 레포의 `vitest.config.mts` 가 `CI` 가 있을 때만 워커를 2로 제한하는데 **Jenkins 는 `CI` 를 넣지 않는다.** 없으면 vitest 가 **코어 수(32)만큼** 워커를 띄워 3GB 컨테이너를 넘긴다. **2026-09 에 이 호스트가 같은 이유로 멈춘 적이 있다**(load average 249) → 잡에 `export CI=1` 명시
-          - **재생성 스크립트가 `sudo docker`** — TTY 없으면 전부 실패한다. stop 과 rm 이 따로라 **노드가 반쯤 지워질 수 있었다.** 첫 시도가 그렇게 막혔고(피해 없음) sudo 를 걷어낸 뒤 진행
-        - ⚠ **워크스페이스는 보존되지 않았다** — 스크립트 주석이 "named volume 이라 보존된다"고 했으나 **사실이 아니었다**(`-v` 미지정 → 매번 익명 볼륨). **재생성 후 첫 빌드는 전부 다시 받는다.** 주석을 정정했고, 호스트에 dangling 볼륨 510개(64GB)가 쌓인 것도 확인
+        | 커버리지 | Before | After |
+        |---|---|---|
+        | **vt-api-gateway** | 0.0 · 미커버 **4380줄** | **96.3** · 미커버 128줄 |
+        | **vt-api-gateway-console** | 0.0 · 미커버 **6337줄** | **91.6** · Gate Passed |
 
-        - ✅ **커버리지 연결 완료 — 두 프로젝트 모두(9/21)**
-
-          | | Before | After |
-          |---|---|---|
-          | **vt-api-gateway** | coverage 0.0 · 미커버 **4380줄** | **96.3** · 미커버 128줄 |
-          | **vt-api-gateway-console** | coverage 0.0 · 미커버 **6337줄** | **91.6** · Gate **Passed** |
-
-          - ⭐ **미커버 줄 수가 답이다** — 4380/6337 이 "전부 미커버" 로 잡히던 것이 128/실측치로 바뀌었다. 이전 0.0 은 "측정 안 함" 이 아니라 **"한 줄도 커버되지 않음"** 으로 기록되고 있었다
-          - ⚠ 부수 효과 — `new_violations` 가 양쪽에서 늘었다(Console 0→5 · GW →4). **새로 생긴 문제가 아니라 안 보이던 것이 보이게 된 것**이다. 명령행으로 넘기던 exclusions 에 `**/*.test.ts` 가 있어 테스트 파일이 통째로 분석에서 빠져 있었고, 레포 정본으로 옮기며 `sonar.tests` 분류가 살아나 규칙이 처음 돌기 시작했다. 각 팀이 처리 중
-
-        - ⚠ **GW 는 Jenkins 에서 커버리지를 못 돌린다 — ADO 파이프라인에서 발행**
-          - GW 의 merged 커버리지는 **Testcontainers 로 postgres·valkey 를 띄우는데, 에이전트 컨테이너에 docker 소켓이 없다**(이미지에 docker CLI 는 있다 — 바이너리가 있는 것과 데몬에 붙는 것은 다르다)
-          - ⚠ 소켓을 붙이면 **잡이 호스트 Docker 를 제어**하게 된다. 같은 호스트에 dependency-track·sonarqube·jenkins·abc-wbs 가 함께 떠 있고, Testcontainers 가 띄우는 DB 는 에이전트의 3g 상한 **밖에서** 호스트 메모리를 먹는다 → **2026-09 사고 후 세운 blast-radius 차단이 그 경로로 뚫린다**
-          - ⭐ ADO 에서는 **이미 같은 테스트가 돌고 있어 중복 실행이 없고** Docker 도 그쪽 에이전트가 제공한다
-          - ✅ **전환 완료** — ADO 에 `SonarQubePrepare/Analyze/Publish@8` 추가 · Jenkins `vt-api-gateway-SonarQube` 정기 실행 중지(`f48341a`)
-            - ⚠ 같은 projectKey 에 두 스캐너가 쓰면 **나중 것이 이긴다.** Community 에디션이라 브랜치 구분이 없어, 둘 다 두면 밤마다 수치가 뒤집힌다
-            - ⭐ **순서가 중간에 뒤집혔다** — 처음엔 "미리 끄면 공백" 이었는데, ADO 에 daily schedule 이 생긴 순간 **"둘 다 두는 게 위험" 으로 바뀌었다.** 같은 사실이 시점에 따라 반대 결론을 낸다
-            - 잡은 지우지 않고 트리거만 제거했다. 되돌리려면 **ADO 쪽 sonar task 를 먼저 꺼야 한다**(주석에 기록)
-
-          - ⚠ **Community 에디션 제약이 여기서 다 나왔다** — 브랜치 분석 없음 · PR decoration 없음
-            - 그래서 GW 는 **`main` 빌드에서만 스캔**한다(PR 빌드에서 스캔하면 그 PR 수치가 곧 프로젝트 수치가 되고 다음 PR 이 또 덮는다)
-            - ADO 에 daily schedule(main) 추가 · sonar task 에 `Build.SourceBranch == refs/heads/main` 조건
-            - ⭐ **PR 단계에서 품질 피드백을 받으려면 Developer Edition 이 필요하다.** 당장은 불필요하나 별건으로 남겨 둔다
-
+        - ⭐ **미커버 줄 수가 답이다** — 4380/6337 이 "전부 미커버" 로 잡히던 것이 정상 수치로 돌아왔다
+      - ⚠ **Community 에디션 제약이 여기서 다 나왔다** — 브랜치 분석 없음 · PR decoration 없음
+        - 그래서 **`main` 빌드에서만 스캔**한다(PR 빌드에서 스캔하면 그 PR 수치가 프로젝트 수치가 된다)
+        - ⭐ **PR 단계에서 품질 피드백을 받으려면 Developer Edition 이 필요하다** — 당장은 불필요
       - **이슈 151건 분류** — BUG 5 · CODE_SMELL 146
-        - **BUG** — `sort()` 비교 함수 누락(CRITICAL) · 정규식 우선순위 2건 · ⚠ CSS 2건은 **Tailwind v4 문법 오탐**(`@theme`·`@custom-variant`)
         - ⚠ **CODE_SMELL 77건이 우리 관례와 충돌** — `void` 57 · `role="status"` 20
-          - ⭐ **고칠 대상이 아니라 규칙을 조정할 대상**이다
+        - ⭐ **고칠 대상이 아니라 규칙을 조정할 대상**이다
 
   - ✅ **[audit 계약 정정] B-23 클로즈(9/21)** — codegen `Record<string, never>`(빈 객체) 오생성 → `Record<string, unknown>` 정정
     - 통제문서 `type: object`+`additionalProperties:true`+`nullable` (spec PR #14575·`spec-v1.0.94`)
@@ -199,38 +126,19 @@
   - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
 
   - ✅ **[인프라] SonarQube 업그레이드 25.4 → 26.7 (9/22 완료)**
-    - 발단 = Thomas 질의 "Rust·Dart 가 지원되지 않는다". **회귀가 아니라 처음부터 없었다** — 원인이 둘로 갈린다.
-    - ⭐ **Rust 는 돈 문제가 아니라 버전 문제였다** — Community Build **25.5** 부터 무료로 지원되는데 우리는 **25.4**. 한 릴리스 차이로 못 받고 있었다.
-      - 그동안 Rust 프로젝트는 CI 가 clippy 를 돌려 **외부 이슈로 밀어넣는 우회**를 썼다. 이슈는 보이지만 **라인 수·커버리지·품질 프로파일·게이트가 전부 없다.**
-      - `common-rust_es_config` 는 2025-08-26 이후 **16회 분석 내내 `ncloc` 이 한 번도 집계되지 않았다.**
-    - ⭐ **목표를 최신(26.9)이 아니라 26.7 로 잡았다** — PostgreSQL 때문이다.
-      - **26.8 부터 PostgreSQL 15+** 를 요구한다. 우리 DB 는 **14.17** 이고 **Dependency-Track(2.8GB)과 같은 인스턴스**를 쓴다.
-      - 최신으로 가면 SonarQube 작업이 아니라 **DT 까지 걸린 공용 DB 메이저 업그레이드**가 된다. 26.7 에서 끊으면 DB 를 건드리지 않고 Rust 를 다 받는다.
-      - ⚠ 처음에 "JDK 교체가 걸림돌"이라고 봤던 것은 **틀렸다** — 공식 도커 이미지가 JDK 21 을 번들한다. 호스트를 확인하기 전 추정이었다.
-    - **연도를 넘으면 12월 버전을 거쳐야 한다** → `25.4 → 25.12 → 26.1 → 26.7` **3단계**(25.12 는 알려진 문제가 있어 26.1 도 필수 경유). 시간이 걸린 이유는 이것이다.
-
-      | 항목 | 결과 |
-      |---|---|
-      | 프로젝트 | 31 → 31 · **측정값 손실 0** (업그레이드 전/후 전수 스냅샷 대조) |
-      | Rust | 언어 없음 → **규칙 85 · 프로파일 "Sonar way" 활성 78** |
-      | 컨테이너 | `mem_limit` 4g → **6g** · 이미지 태그 **26.7 고정** |
-
-      - ⭐ **이미지가 `sonarqube:community` 라는 떠다니는 태그였다** — 누가 `pull` 만 해도 26.9 로 튀고, 그러면 PostgreSQL 14 에서 **기동 실패**한다. 이번에 버전을 고정하고 이유를 주석으로 남겼다.
-      - ⭐ **분석기 설치 확인으로 끝내지 않고 실기 검증했다** — 에이전트에 작은 크레이트를 만들어 실제 스캔: `ncloc=14` · `rust=14` · 이슈 `rust:S1488`(**외부 이슈가 아닌 Sonar 정식 규칙**).
+    - 발단 = Thomas 질의 "Rust·Dart 가 지원되지 않는다". **회귀가 아니라 처음부터 없었다.**
+    - ⭐ **Rust 는 라이선스가 아니라 버전 문제였다** — Community Build **25.5** 부터 무료로 지원되는데 우리는 **25.4** 였다.
+      - 그동안 Rust 프로젝트는 clippy 결과를 **외부 이슈로 밀어넣는 우회**를 썼다. 이슈는 보이지만 **라인 수·커버리지·품질 게이트가 전부 없다** — 1년 넘게 사실상 게이트가 없었다.
+    - **최신(26.9) 이 아니라 26.7 로 올렸다** — 26.8 부터 PostgreSQL 15+ 를 요구하는데 우리 DB 는 **14 이고 Dependency-Track 과 공용**이다. 26.7 이면 DB 를 건드리지 않고 Rust 를 다 받는다.
+    - **결과** — 프로젝트 31개 **측정값 손실 0**(업그레이드 전/후 전수 대조) · Rust 규칙 85개 활성 · 실기 스캔으로 정식 규칙 적용 확인
     - ⚠ **검증 중 더 큰 것이 나왔다 — 31개 중 9개가 「0파일 분석 + 게이트 통과」**
-      - 지원되지 않는 언어이거나 `sonar.sources` 가 빗나가면 **스캔은 성공하고 화면은 초록인데 아무것도 검사되지 않는다.**
+      - 지원되지 않는 언어이거나 분석 경로가 빗나가면 **스캔은 성공하고 화면은 초록인데 아무것도 검사되지 않는다.**
       - ⭐ **「지원 안 됨」보다 나쁘다** — 지원이 없으면 없는 줄 알지만, **초록은 검증됐다는 뜻으로 읽힌다.**
-      - 대부분 Rust(특히 **Windows Rust 는 clippy 외부 이슈조차 안 들어온다**) · Dart 2건 · installer 1건. **업그레이드만으로는 안 풀린다** — 파이프라인을 네이티브 분석으로 바꾸고, 0파일이면 잡을 실패시키는 가드가 필요하다.
-    - ⚠ **네이티브로 바꾸면 clippy lint 집합이 좁아진다** — 센서가 `-A clippy::all` 로 전부 끄고 **품질 프로파일에 매핑된 lint 만** 켠다. 지금 외부 이슈로 들어오던 `redundant_closure` 는 사라진다(같은 코드로 실측). → 네이티브 + `sonar.rust.clippyReport.reportPaths` **병행**을 권고. 리포트는 이미 만들고 있다.
-    - ❌ **Dart 는 이번 업그레이드로 해결되지 않는다** — Community Build 에 **아예 없다**(Cloud·Server 상용 전용). 버전을 올려도 안 생긴다.
-      - 무료 경로는 서드파티 `sonar-flutter` 뿐인데 **SonarQube 2025.1 이상에서 로드 실패**가 보고돼 있다.
-      - ⭐ **우리 서버에는 설치된 적이 없다** — `extensions` 는 named volume 이라 컨테이너를 갈아도 남는데 안에 `README.txt` 하나뿐이다.
-      - 당분간 CI 에서 `flutter analyze` 로 직접 게이트를 거는 편이 낫다. 정식 지원이 필요해지면 **Developer Edition 논의**다.
-    - 📄 **문서 갱신** — `6.3 SonarQube에 테스트 커버리지 연동하기` ([VKS](https://vks.vatech.com/x/7qj9Ew))
-      - 버전·제약 26.7 기준으로 정정 · **언어별 속성 표를 실서버 정의(`/api/settings/list_definitions`) 기준으로 교체**
-      - ⚠ 기존 표의 두 항목이 **동작하지 않는 속성**이었다 — `sonar.typescript.lcov.reportPaths`(폐기·JS 쪽으로 통합) · `sonar.flutter.coverage.reportPath`(미설치 플러그인). **예제 스니펫에도 들어 있어 같이 고쳤다** — 개발자가 복사하는 것은 표가 아니라 예제다.
-      - 검증 절차에 **「파일이 실제로 분석됐나」를 커버리지 확인보다 앞에** 넣었다. 0파일 프로젝트는 커버리지 항목 자체가 없어 기존 절차의 어느 행에도 걸리지 않았다.
-    - ⏳ **잔여** — Rust 파이프라인 네이티브 전환 · 0파일 가드 · 검증용 프로젝트 `zz-rust-upgrade-verify` 삭제(관리자 권한 필요)
+      - 대부분 Rust · Dart 2건. **업그레이드만으로는 안 풀린다** — 파이프라인 전환과 「0파일이면 실패」 가드가 필요하다.
+    - ❌ **Dart 는 해결되지 않는다** — Community Build 에 **아예 없다**(Cloud·Server 상용 전용). 서드파티 플러그인은 현재 버전에서 로드되지 않는다.
+      - 당분간 CI 에서 `flutter analyze` 로 직접 게이트를 건다. 정식 지원이 필요하면 **Developer Edition 결정 사안**이다.
+    - 📄 매뉴얼 갱신 — `6.3 SonarQube에 테스트 커버리지 연동하기` ([VKS](https://vks.vatech.com/x/7qj9Ew)) · 언어별 속성표를 실서버 기준으로 정정(동작하지 않는 속성 2개 제거)
+    - ⏳ **잔여** — Rust 파이프라인 네이티브 전환 · 0파일 가드
 
 - 논의 사항 (이번 주 · 신규 · R#)
   - (이번 주 신규 안건 없음 — 지난주 R1은 결정되어 위 '이번 주 진행'에 반영)
