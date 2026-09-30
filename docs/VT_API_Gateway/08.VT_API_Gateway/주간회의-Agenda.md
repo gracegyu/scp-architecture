@@ -180,6 +180,18 @@
     - **결과** — 백업 **8개 파일**(postgres·dtrack·jenkins·uploads·web·sqube·hostcfg·nginx) · 실기로 크론 발사·보존·전송·Jenkins 검증·pull 후 권한 유지까지 확인
     - 📄 `docs/RUNBOOK.md` — 지금 어떻게 도는지 · **언제든 수동으로 부르는 법** · 3단계 복구 절차 · 진단표
     - ⏳ **잔여** — ⭐ **복구를 한 번도 해보지 않았다.** 위의 누락들은 복구를 한 번만 해봤으면 즉시 드러났을 것이다. 격리 환경에서의 복구 시연이 다음 할 일이다
+    - ✅ **문서 정본 통일** — 복구 절차가 세 곳(이 저장소 `RESTORE_GUIDE.md` · `scp-architecture` `99.` 문서 · `RUNBOOK.md`)에 흩어져 서로 다른 말을 하고 있었다. **`bm2databackup/docs/RUNBOOK.md` 하나로 통일** — 스크립트와 같은 저장소에 있어야 오늘 같은 어긋남이 줄어든다. 나머지 둘은 그 링크로 교체
+    - ✅ **가장 위험한 항목은 새 VM 없이 먼저 확인했다** — 「DT 암호화 키가 실제로 이 DB 와 짝이 맞는가」는 틀리면 되돌릴 수 없는 유일한 항목이었다. BM2 안에 운영과 완전히 분리된 컨테이너(별도 네트워크·볼륨, **호스트 포트 미노출**)를 띄워 최신 백업(`postgres.sql.gz`+`dtrack.tar.gz`)만 복원했다.
+
+      | 확인 | 결과 |
+      |---|---|
+      | 3개 DB 복원 | 28초 · 에러 0(무해한 것 1건 제외) |
+      | dependencytrack 무결성 | COMPONENT 26594 · PROJECT 79 · TEAM 10 |
+      | DT apiserver 기동 | 복원 DB 로 정상(healthy) |
+      | **암호화 키 검증** | DB 의 `smtp.password` 암호화 값을 `secret.key` 로 **AES-256-CBC 복호화 성공** |
+
+      - ⭐ 틀린 키였으면 PKCS7 패딩 검사에서 즉시 실패한다 — 우연히 통과할 확률은 사실상 0이다. 끝나고 컨테이너·볼륨·네트워크 전부 삭제, 운영 컨테이너 16개 무영향 확인
+      - ⏳ **남은 시연 범위** — `restore1/2/3.sh` 스크립트 자체 실행 · `jenkins-server`·`abc-wbs-postgres`·`nginx-proxy` 재현 명령 · `sqube.tar.gz` 복원 · Jenkins UI 확인. `H10`(격리 VM) 이 있어야 하고, 급하지 않다고 판단
 
 - 논의 사항 (이번 주 · 신규 · R#)
   - (이번 주 신규 안건 없음 — 지난주 R1은 결정되어 위 '이번 주 진행'에 반영)
