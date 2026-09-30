@@ -157,8 +157,8 @@
       - ⭐ **매일 빨간불이었는데 아무도 보지 않았다.** 실행을 Jenkins 에 둔다고 가시성이 생기는 것이 아니었다 — 이번 사고의 진짜 원인이다.
     - **원인이 셋 겹쳐 있었다.**
 
-      | | 무엇이 | 왜 |
-      |---|---|---|
+      |  | 무엇이 | 왜 |
+      | --- | --- | --- |
       | 실행 위치 | 백업 스크립트는 **호스트용**인데 Jenkins 잡이 `label 'linux'` 로 **아무 에이전트나** 잡았다 | docker 소켓이 `LinuxNode1` **한 대에만** 있어, 그 노드에 걸릴 때만 성공하던 구조. 노드가 늘며 운이 다했다 |
       | 전송 크기 | 불안정한 사내망에 **1.8GB** | Jenkins tar 1.4GB 중 **92%가 `.rustup`·죽은 플러그인 백업**. 정작 대체 불가능한 `jobs`·`users` 는 **0.2MB** |
       | 생성·전송 결합 | 업로드가 끊기면 **그날 백업이 통째로 없음** | `cat file \| aws s3 cp -` 라 끊기면 처음부터 |
@@ -169,6 +169,7 @@
       매시 17분    호스트 크론   S3 전송 (못 올린 것만 재시도)
       09:xx KST   Jenkins      게시된 상태 검증 (curl 뿐 — 3초)
       ```
+
       - ⚠ **에이전트에 소켓을 물리는 것은 해법이 아니다** — 거기 배정되는 모든 잡이 호스트 docker 를 제어하게 된다. GW 커버리지를 ADO 로 옮긴 것과 같은 이유다.
       - ⭐ **Jenkins 잡이 3초로 줄었다.** 무거운 일은 호스트가 하고 Jenkins 는 「됐는지 묻는 관문」이 됐다.
     - ⚠ **복구되지 않는 것 셋을 더 찾았다** — 「무엇을 모으고 있나」가 아니라 **「되살리려면 무엇이 필요한가」** 로 다시 본 결과다.
@@ -183,13 +184,12 @@
     - ✅ **문서 정본 통일** — 복구 절차가 세 곳(이 저장소 `RESTORE_GUIDE.md` · `scp-architecture` `99.` 문서 · `RUNBOOK.md`)에 흩어져 서로 다른 말을 하고 있었다. **`bm2databackup/docs/RUNBOOK.md` 하나로 통일** — 스크립트와 같은 저장소에 있어야 오늘 같은 어긋남이 줄어든다. 나머지 둘은 그 링크로 교체
     - ✅ **가장 위험한 항목은 새 VM 없이 먼저 확인했다** — 「DT 암호화 키가 실제로 이 DB 와 짝이 맞는가」는 틀리면 되돌릴 수 없는 유일한 항목이었다. BM2 안에 운영과 완전히 분리된 컨테이너(별도 네트워크·볼륨, **호스트 포트 미노출**)를 띄워 최신 백업(`postgres.sql.gz`+`dtrack.tar.gz`)만 복원했다.
 
-      | 확인 | 결과 |
-      |---|---|
-      | 3개 DB 복원 | 28초 · 에러 0(무해한 것 1건 제외) |
-      | dependencytrack 무결성 | COMPONENT 26594 · PROJECT 79 · TEAM 10 |
-      | DT apiserver 기동 | 복원 DB 로 정상(healthy) |
-      | **암호화 키 검증** | DB 의 `smtp.password` 암호화 값을 `secret.key` 로 **AES-256-CBC 복호화 성공** |
-
+      | 확인                   | 결과                                                                          |
+      | ---------------------- | ----------------------------------------------------------------------------- |
+      | 3개 DB 복원            | 28초 · 에러 0(무해한 것 1건 제외)                                             |
+      | dependencytrack 무결성 | COMPONENT 26594 · PROJECT 79 · TEAM 10                                        |
+      | DT apiserver 기동      | 복원 DB 로 정상(healthy)                                                      |
+      | **암호화 키 검증**     | DB 의 `smtp.password` 암호화 값을 `secret.key` 로 **AES-256-CBC 복호화 성공** |
       - ⭐ 틀린 키였으면 PKCS7 패딩 검사에서 즉시 실패한다 — 우연히 통과할 확률은 사실상 0이다. 끝나고 컨테이너·볼륨·네트워크 전부 삭제, 운영 컨테이너 16개 무영향 확인
       - ⏳ **남은 시연 범위** — `restore1/2/3.sh` 스크립트 자체 실행 · `jenkins-server`·`abc-wbs-postgres`·`nginx-proxy` 재현 명령 · `sqube.tar.gz` 복원 · Jenkins UI 확인. `H10`(격리 VM) 이 있어야 하고, 급하지 않다고 판단
 
@@ -297,19 +297,19 @@
         잔여 dev (자동배포 tag→TEST/PROD·마이그Job 배선·dispatcher 안정화) :active, infrem, 2026-09-03, 2026-09-30
         test 환경 프로비저닝 (요청 8/26·미착수)  :crit, inftest, 2026-09-01, 2026-10-15
 
-        section ③-P-EZ EzServer 연동 스펙 (① 초안=Raymond → ② Teddy 상세 → ③ baseline)
+        section ③-P-EZ EzServer 연동 스펙 (① 초안=Raymond → ② Thomas 상세 → ③ baseline)
         ① 초안+PR (Raymond)            :done, ezw, 2026-07-20, 5d
-        ② Teddy 상세·리뷰·수정         :active, ezpr, after ezw, 63d
+        ② Thomas 상세·리뷰·수정         :active, ezpr, after ezw, 83d
         ③ baseline                     :milestone, ezbl, after ezpr, 0d
 
         section ③-P-CS CleverSpace OnePager (① Raymond → ② Larry 상세 → ③ baseline)
         ① 초안+PR (Raymond·#12239)     :done, cssub, 2026-07-27, 5d
-        ② CleverSpace팀(Larry) 상세    :active, cspr, after cssub, 56d
+        ② CleverSpace팀(Larry) 상세    :active, cspr, after cssub, 76d
         ③ baseline                     :milestone, csbl, after cspr, 0d
 
         section ③-P-CO CleverOne OnePager (① Raymond → ② Nick 상세 → ③ baseline)
         ① 초안+인계 (Raymond·SharePoint) :done, cosub, 2026-07-27, 5d
-        ② CleverOne팀(Nick) 상세       :active, copr, after cosub, 56d
+        ② CleverOne팀(Nick) 상세       :active, copr, after cosub, 76d
         ③ baseline                     :milestone, cobl, after copr, 0d
 
         section ④ AXS 연동 (코드·sandbox e2e=완료 · 실 dev 통합=③-I 대기 · prod=NDA 후)
