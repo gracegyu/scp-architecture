@@ -121,7 +121,18 @@
     - GW 몫(③-I 대기 아님): IoT 다운링크 E2E(dispatcher 진단→Thing enroll→webhook→IoT 1회)
     - PL 결정 대기: RTO/RPO 목표(HA 합격기준)
     - Straumann: 파일 붙은 lab order 시드(presign E2E)
-  - **[제품 연동 스펙]** EzServer OnePager 수령 확인(잔여)
+  - **[제품 연동 스펙]** EzServer 연동 — onepager 정정 2건 · GW 계약 신설
+    - ⭐ **상행 라우팅 오독을 구현 착수 전에 잡았다** — EzServer onepager가 모든 요청을 **단일 호스트로 보내고 target은 헤더로만** 전달하는 설계였다. GW edge는 **서브도메인**으로 라우팅하므로 그대로 구현하면 AXS 호출이 전부 404다.
+      - 원인 = 8월 회신 "`Vatech-Target`만 넣어 GW로 보내면 GW가 알아서 보낸다"에서 **"EzServer가 서브도메인으로 변환한다"** 가 전달되지 않은 것. onepager에는 "GW측 확정"으로 적혀 있었다
+      - 수정은 목적지 조립 한 줄이다 — 와일드카드 DNS라 **target이 늘어도 EzServer 무변경** 목표는 그대로 유지된다. Thomas 수용·정정 예정
+    - `Vatech-Target` 형식도 정정 — **DNS 라벨**(하이픈 허용·밑줄 불가·≤63). 기존 정규식이면 하이픈 든 target이 등록될 때 **EzServer가 스스로 400** 을 내어 무변경 목표가 그 지점에서 깨진다
+    - **GW 계약 신설** — device가 **연동 가능한 target과 연동 요건**을 GW에서 받는다. 클라이언트가 target 목록·연동 입력 폼을 하드코딩하지 않아 **새 target 추가 시 클라이언트 릴리스가 없다**
+      - PR [#14822](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14822)(GW) · [#14823](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14823)(Console 표시명 편집) — GW는 Thomas 리뷰 요청
+      - ⭐ **AlliedStar 연동이 GW 경유로 결정**되면서(9/28 킥오프) 두 번째 target이 실제로 들어온다 — 가변 target 설계가 문서상 목표가 아니라 당면 요건이 됐다
+      - ⚠ **"target 추가 = 무변경"의 경계도 GW 스펙에 못 박았다** — 라우팅·목록·입력 폼·org 등록·하행 배선은 GW가 흡수하지만, **그 target과 주고받는 데이터(필드 매핑·영상 이동·이벤트 처리)는 클라이언트 개발이 남는다**
+        - 판별 기준 = **누가 요청을 시작하나**. CleverOne 같은 클라이언트가 시작하고 EzServer가 통과만 시키면 **EzServer 무변경**이고 그 클라이언트만 바뀐다
+        - AlliedStar 1차 목표(EzDent-i·CleverOne에서 촬영 실행)가 이 형태라 **EzServer 무변경이 성립할 가능성이 높다** · 2차(촬영 데이터를 EzServer에 저장)부터는 개발이 든다
+    - EzServer OnePager 수령 확인(잔여)
 
   - ✅ **[인프라] SonarQube 업그레이드 25.4 → 26.7 (9/22 완료)**
     - 발단 = Thomas 질의 "Rust·Dart 가 지원되지 않는다". **회귀가 아니라 처음부터 없었다.**
