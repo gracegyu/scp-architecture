@@ -6,17 +6,24 @@
     - **무엇** — 클라이언트가 target 목록과 연동 입력 폼을 하드코딩하지 않고 GW에서 받는다. **새 target이 추가돼도 클라이언트 릴리스가 없다.**
     - ✅ **스펙 확정·머지 완료** — GW `spec-v1.0.96` · Console `spec-v1.0.15`
       - [#14822](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14822) 카탈로그 신설(Thomas 승인) · [#14823](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14823) Console 표시명 편집 · [#14926](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14926) 명명 일관화(`EWC`→`CleverOne`·계약 무변경)
-    - 🟢 **구현 진행 중** — GW `T-TGT-14-1` 완료(쓰기 경로) · `T-INT-14-2` 진행 · Console `T-FE-9-20` **머지 완료**([#14933](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14933)) · 매뉴얼 [#14937](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14937)
+    - 🟢 **구현 진행 중** — GW `T-TGT-14-1` 완료(쓰기 경로·PR [#14938](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14938)·단위 2127·e2e 47 green·compare 델타 0) · `T-INT-14-2` 진행 · Console `T-FE-9-20` **머지 완료**([#14933](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14933)) · 매뉴얼 [#14937](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14937)
       - **표시명은 폼-universal 고정 필드로 뒀다** — `connector_type` 별 동적 필드에 섞으면 종류마다 서버가 다시 적어야 하고, **안 적은 프로파일에서는 표시명을 넣을 자리가 사라진다**
       - ⭐ **고객 노출을 폼에서 고지한다** — *"클리닉 화면에 그대로 보입니다 — 내부 메모가 아닙니다"*. 모르면 운영자가 담당자 이름·티켓 번호·`임시` 를 적고 **그게 고객 화면에 나간다**
         - ⚠ **한국어 번역을 같이 넣었다** — 운영 화면이 한국어라 영어만 고치면 **정작 읽을 사람에게 안 보인다**
       - ⚠ **표시명이 붙어도 `targetId` 를 감추지 않는다**(FR-CON-17) — 라우팅 키(`Vatech-Target` 헤더·webhook 서브도메인)라 **장애 때 로그에서 찾는 값**이다. 하나만 보이면 화면과 로그를 맞춰 볼 수 없다
       - **목은 네 행 중 둘만 표시명을 준다** — 넷 다 채우면 **폴백 경로가 목에서 한 번도 안 밟혀**, 실제 `null` 이 올 때 화면을 아무도 모른다. 공백 값 행도 하나 뒀다
       - ⛔ **값 생산 전까지 화면은 전부 `targetId` 폴백**으로 보이는 것이 정상이다 — 결함이 아니다
-    - ⭐ **구현 중에 계약 구멍 하나를 잡았다** — 표시명이 `minLength` 없이 nullable이라 **공백만 든 값이 저장 가능**했고, 폴백을 null 병합으로 짜면 그 공백이 클리닉 화면으로 샌다
-      - ⚠ **null보다 나쁘다** — 계약이 "항상 문자열"이라 클라이언트가 분기하지 않으므로 **빈 칸이 그려져 어느 target인지 알 수 없게 된다**
-      - 닫는 PR [#14935](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14935)(`spec-v1.0.97`) — 쓰기에서 trim·빈 값은 저장 안 함 · 투영 폴백에 공백 포함 · 응답에도 제약 부여
-      - ⭐ **구현 세션이 먼저 발견했다** — 스펙이 "미설정"이라고만 적어 두고 그게 null만인지 공백도인지 정하지 않은 것이 원인이다
+    - ⭐ **구현 중에 계약 구멍 둘을 잡았다**
+
+      | | 스펙이 안 정한 것 | 그대로 뒀으면 |
+      | --- | --- | --- |
+      | 1 | "미설정"이 **null만인지 공백도 포함인지** | 공백 표시명이 클리닉 화면에 **빈 칸**으로 그려져 어느 target인지 알 수 없게 된다 |
+      | 2 | 길이 제한이 **trim 전인지 후인지** | 클라이언트가 막은 값을 서버가 통과시켜 **둘의 판정이 어긋난다** |
+
+      - ⚠ **빈 문자열은 null보다 나쁘다** — 계약이 "항상 문자열"이라 약속하면 소비자가 분기하지 않으므로, **null이면 보이던 분기 지점이 사라진다**
+      - **둘이 같은 형태다** — 값의 *범위*는 적었는데 **경계 판정 시점**을 안 적었다. 그리고 **둘 다 리뷰 2라운드와 승인을 통과한 문장**이었다
+      - 닫는 PR [#14935](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14935)(`spec-v1.0.97`·**머지 대기**) — 쓰기에서 trim·빈 값 저장 안 함 · 투영 폴백에 공백 포함 · **문장으로만 보장하던 것을 제약으로** 부여
+      - ⭐ **구현이 스펙 결함을 먼저 잡았다.** 스펙 심사가 못 거른 것을 구현이 걸렀다
     - ⭐ **AlliedStar가 GW 경유로 결정**되면서(9/28 킥오프) **두 번째 target이 실제로 들어온다** — 가변 target 설계가 문서상 목표가 아니라 당면 요건이 됐다
     - ⚠ **"target 추가 = 무변경"의 경계도 스펙에 못 박았다** — 라우팅·목록·입력 폼·org 등록·하행 배선은 GW가 흡수하지만 **그 target과 주고받는 데이터(필드 매핑·영상 이동·이벤트 처리)는 클라이언트 개발이 남는다**
       - 판별 기준 = **누가 요청을 시작하나.** 클라이언트가 시작하고 EzServer가 통과만 시키면 **EzServer 무변경**이고 그 클라이언트만 바뀐다
@@ -37,9 +44,63 @@
     - ⭐ **풀린 것** — **test·sandbox·prod Entra 앱 등록이 지금 가능**해졌다. "호스트 확정 후"로 묶여 있었는데 도메인이 정해져 **프로비저닝 전에도 등록할 수 있다**
     - **prod 잔여는 도메인이 아니라 ③-I의 zone 위임·인증서 프로비저닝**이다
 
+  - 🔴 **[보안] 취약점이 0건에서 14건으로 돌아왔다 — 조치 결정 필요**
+
+    9/21~22에 GW·Console 둘 다 **0건**으로 만들었는데 2주 만에 다시 올라왔다.
+
+    | | 9/21~22 | 현재 | 내역 |
+    | --- | --- | --- | --- |
+    | **GW** | 0 | **12건** | CRITICAL 1 · HIGH 3 · MEDIUM 7 · LOW 1 |
+    | **Console** | 0 | **2건** | CRITICAL 1 · HIGH 1 |
+
+    - ⭐ **핵심은 건수가 아니라 패턴이다 — 「0건 달성」은 상태가 아니라 그 시점의 사진이었다**
+      - **14건 전부 전이 의존**이다. 우리가 쓴 코드가 아니다
+      - 상당수가 **지난번에 이미 올려 둔 버전에 새 advisory가 붙은 것**이다 — 올려도 또 뜬다
+      - ❓ **그래서 물을 것은 "지금 0으로 만들자"가 아니라 "어느 주기로 볼 것인가"다.** 지금은 사람이 생각났을 때 보는 구조다
+      - GW 자체 게이트(`pnpm audit --prod`)와 **DT가 정확히 일치** — 스테일 BOM이 아니라 현재 락파일에 실재한다
+
+    - ⭐ **CRITICAL 둘 다 배포본의 신뢰 경로에 닿지 않는다 — 이유가 서로 다르다**
+
+      | | 무엇 | 왜 안 닿나 |
+      | --- | --- | --- |
+      | GW | `proxy-addr` IP 스푸핑 | ⭐ **세 겹이 이미 막고 있다** — ① SRS §7.6이 webhook 인증을 **HMAC+timestamp**로 두고 source IP를 **명시적으로 비-신뢰**(allowlist는 방어심층)로 규정 ② **`trust proxy`가 꺼져 있어** XFF를 신뢰하지 않는다(스푸핑 벡터 휴면) ③ `req.ip`의 **유일한 쓰임이 rate-limit 키**인데 그 함수가 **이미 `::ffff:` 접두를 제거**한다 — 바로 이 CVE의 벡터다 |
+      | Console | `next/og` RCE | **정적 export라 서버가 없다** · 번들 8.2MB에서 고유 표지 **0건** 실측 |
+
+      - ⭐ **GW 쪽은 설계 결정이 값을 한 사례다** — "식별은 Host/SNI, 인증은 HMAC, source IP는 방어심층"으로 갈라 둔 덕에 이 CVE가 인증을 건드리지 못한다
+      - ⚠ **그래도 「조치 불요」로 끝낼 일은 아니다** — 개발 서버는 영향받고, **DT에 CRITICAL이 남으면 다음에 진짜가 왔을 때 판단이 흐려진다**(9/21 `next` 때와 같은 논리)
+      - 억제로 둘 거면 **`False Positive`가 아니라 `Not Affected`** 다 — 취약점은 실재하고 우리가 그 경로를 신뢰하지 않을 뿐이다
+
+    - 🛑 **그리고 이건 보안 지표만의 문제가 아니었다 — `main` CI가 막혀 있었다**
+      - GW CI의 `pnpm audit --audit-level high` 게이트를 그 12건이 막아 **`main`과 전 PR이 적색**이었다([#14938](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14938) 포함)
+      - ⭐ **즉 "언젠가 정리할 위생 작업"이 아니라 개발을 세우고 있던 것이다.** 지표로만 보면 안 보이는 비용이다
+
+    - ✅ **GW 조치 완료** — PR [#14952](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14952) **머지** · surgical override 6줄로 **12건 → 0** · `pnpm audit --prod` 0건 · CI 녹색 복구
+      - ⚠ **DT 서버 수치는 아직 0이 아니다** — BOM 재업로드(Jack S3→DT 플로우) 후 반영된다. 로컬 audit과 DT가 정확히 일치했으므로 재업로드되면 0으로 떨어진다. **보안대장 기준 확인은 그 뒤**
+      - `proxy-addr` CRITICAL은 **억제가 아니라 패치로 닫았다**(전건 패치 존재) — 억제 기록을 남길 일이 없어졌다
+
+    - ⭐ **14건 전부 패치가 나와 있었다 — 「패치 없음」이 0건이었다.** 그래서 이번 결정은 "고칠 수 있나"가 아니라 "언제·누가"였다
+
+      | | 건 | 현재 → 패치 | 조치 |
+      | --- | --- | --- | --- |
+      | GW | `proxy-addr` CRITICAL | 2.0.7 → **≥2.0.8** | ✅ **override 6줄**로 12건 전건 소거(#14952 머지) |
+      | GW | `brace-expansion` HIGH 3건 | 5.0.9 → **≥5.0.12** | 〃 |
+      | GW | `@grpc/grpc-js` HIGH·LOW | 1.14.4 → **≥1.14.5** | 〃 |
+      | GW | `ip-address` MED 4건 | 10.4.0 → **≥10.7.1** | 〃 |
+      | GW | `multer`·`js-yaml` MED | → **≥2.4.0** · **≥5.4.1** | 〃 |
+      | Console | `next` CRITICAL | 16.3.5 → **16.3.6**(최신 16.3.8) | 직접 의존 범프 · 같은 마이너라 breaking 없음 |
+      | Console | `source-map-js` HIGH | 1.2.1 → **1.2.2** | ⭐ **lockfile 갱신만** — `^1.2.1`이 이미 허용. override 불요 |
+
+    - ⚠ **지금 올려야 하는 이유가 하나 더 있다** — ③-I가 배포에서 `trust proxy`/XFF를 켜면 **그 순간 `proxy-addr`의 정확도에 하중이 걸린다**. 켜기 전에 올려 두는 것이 맞다
+
+    - ✅ **①은 결정·실행됐다**(PL 승인·GW 머지 완료·Console 진행) — **남은 것은 ②다**
+
+    - ❓ **결정 필요 — 정기 점검 주기.** 이번 건의 본질이고 아직 답이 없다
+      - 지금은 **사람이 생각났을 때 보는 구조**라 또 2주 뒤 같은 자리에 선다. 그때도 `main` CI가 먼저 멈춰서 알게 될 것이다
+      - 참고 — GW는 CI에 `audit --audit-level high` 게이트가 **이미 있다**. 그래서 막힌 것이고, 바꿔 말하면 **게이트가 감지기 역할을 했다**. 문제는 그 신호가 "빌드 실패"로만 와서 **보안 사안인 줄 모르고 보게 된다**는 것이다
+
   - **[인프라] 잔여 3건**
-    - SonarQube — Rust 파이프라인 네이티브 전환 · ⚠ **「0파일 분석인데 게이트 통과」 가드**(31개 프로젝트 중 9개가 이 상태 — 초록이 검증됐다는 뜻으로 읽힌다)
-    - Dependency-Track — `config/ezserver.config.json` 외 1건 삭제 [PR #14635](https://dev.azure.com/ewoosoft/sbom/_git/jenkins/pullrequest/14635) **리뷰 대기(Thomas)**
+    - SonarQube — Rust 파이프라인 네이티브 전환 · ⚠ **「0파일 분석인데 게이트 통과」 가드**(31개 프로젝트 중 9개가 이 상태 — 초록이 검증됐다는 뜻으로 읽힌다) · ⓘ 둘 다 **org-wide·Jack 소관**이라 GW 쪽에 검증된 업데이트가 없다(*vt-api-gateway 자체는 실파일 분석이라 0파일 케이스가 아니다*)
+    - Dependency-Track — `config/ezserver.config.json` 외 1건 삭제 [PR #14635](https://dev.azure.com/ewoosoft/sbom/_git/jenkins/pullrequest/14635) **리뷰 대기(Thomas)** · ⚠ **2주째**
     - BM2 백업 — ⭐ **복구를 한 번도 해보지 않았다.** 9월에 찾은 누락들은 복구를 한 번만 해봤으면 즉시 드러났을 것이다. 격리 VM에서의 시연이 다음 할 일
 
 - **남은 작업 — 전부 외부 선결** (⭐ **GW·Console 코드로 앞당길 잔여 = 0**)
@@ -66,8 +127,15 @@
 
 - **공유 사항** (결정 아님 · 논의사항인지 애매한 것을 임의 결정해 공유 · 매주 상시)
 
-  - **[품질] Console SonarQube — 전 항목 A 도달 · 판정 71건**
-    - **등급** — Security `A` · Reliability `A` · Maintainability `A` · 핫스팟 검토율 **100%** · 커버리지 **91.6%**
+  - **[품질] SonarQube — 양쪽 다 전 항목 A 유지**
+
+    | | Gate | Coverage | Security | Reliability | Maintainability |
+    | --- | --- | --- | --- | --- | --- |
+    | **GW** | OK | 96.5 | A · 핫스팟 **100%** | A | A |
+    | **Console** | **OK** | **91.6**(신규 코드 92.1) | A · 핫스팟 100% | A | A · **78→53** |
+
+    - ⭐ **Console 78 → 53은 고친 것이 아니라 판정이다**(아래 근거). P14 신규 코드(~500줄)는 unit+e2e가 촘촘해 **커버리지 플로어에 영향 없다**
+    - ⚠ GW 수치는 **마지막 main 스캔 기준**이고 그 뒤 새 스캔 근거를 사내 도구로 가져오지 못했다 — **대시보드 재확인 권장**(바뀌었을 가능성은 낮다)
     - ⭐ **"고친 것" 과 "안 고치기로 한 것" 을 가른 것이 요점이다** — 판정도 조치이고, 근거를 남겨 **다음 사람이 같은 것을 다시 파지 않게** 한다
       - **`void` 55건** — 일부러 안 기다린다는 표시다. 떼면 *"실수로 `await` 을 놓친 것"* 과 **구분이 안 된다**. ⚠ 규칙이 틀렸다고 적지 않았다 — 그 위험은 **`no-floating-promises` 로 떠다니는 프라미스 자체를 막는 쪽**이 맞고 도입은 별도 판단으로 뒀다
       - **`role="status"` 16건** — 규칙이 제안하는 `<output>` 은 **인라인 요소**라 바꾸면 시각 baseline 이 대거 흔들린다. 접근성 결과는 같고(암묵 role 이 `status`) axe 테스트도 통과 중이다
