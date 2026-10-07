@@ -157,7 +157,7 @@
       - 노드·디스크·메모리·권한·시계·연결은 실측으로 배제했다. 같은 노드에서 다른 잡은 성공한다
 
     - **SonarQube** — Rust 파이프라인 네이티브 전환 · ⚠ **「0파일 분석인데 게이트 통과」 가드**(31개 중 9개 — 초록이 검증됐다는 뜻으로 읽힌다) · ⓘ org-wide·Jack 소관(*vt-api-gateway 자체는 실파일 분석이라 해당 없음*)
-    - **Dependency-Track** — config 2건 삭제 [PR #14635](https://dev.azure.com/ewoosoft/sbom/_git/jenkins/pullrequest/14635) **리뷰 대기(Thomas)** · ⚠ **2주째**
+    - **Dependency-Track** — DT 프로젝트가 없는 SBOM config 2건 삭제 [PR #14635](https://dev.azure.com/ewoosoft/sbom/_git/jenkins/pullrequest/14635) **머지 완료**(9/22)
 
 
 - **남은 작업 — 전부 외부 선결** (⭐ **GW·Console 코드로 앞당길 잔여 = 0**)
