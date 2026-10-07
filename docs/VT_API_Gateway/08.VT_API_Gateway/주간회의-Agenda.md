@@ -4,19 +4,22 @@
 
   - **[제품 연동 스펙] device가 연동 가능한 target을 GW에서 받는다 — 계약 신설**
     - **무엇** — 클라이언트가 target 목록과 연동 입력 폼을 하드코딩하지 않고 GW에서 받는다. **새 target이 추가돼도 클라이언트 릴리스가 없다.**
-    - ✅ **스펙 확정·머지 완료** — GW `spec-v1.0.96` · Console `spec-v1.0.15`
+    - ✅ **스펙 확정·머지 완료** — GW `spec-v1.0.97` · Console `spec-v1.0.15`
       - [#14822](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14822) 카탈로그 신설(Thomas 승인) · [#14823](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14823) Console 표시명 편집 · [#14926](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14926) 명명 일관화(`EWC`→`CleverOne`·계약 무변경)
-    - 🟢 **구현 진행 중** — GW `T-TGT-14-1` 완료(쓰기 경로·PR [#14938](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14938)·단위 2127·e2e 47 green·compare 델타 0) · `T-INT-14-2` 진행 · Console `T-FE-9-20` **머지 완료**([#14933](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14933)) · 매뉴얼 [#14937](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14937)
+    - **화면·계약에서 달라진 것**
       - **표시명은 폼-universal 고정 필드로 뒀다** — `connector_type` 별 동적 필드에 섞으면 종류마다 서버가 다시 적어야 하고, **안 적은 프로파일에서는 표시명을 넣을 자리가 사라진다**
       - ⭐ **고객 노출을 폼에서 고지한다** — *"클리닉 화면에 그대로 보입니다 — 내부 메모가 아닙니다"*. 모르면 운영자가 담당자 이름·티켓 번호·`임시` 를 적고 **그게 고객 화면에 나간다**
         - ⚠ **한국어 번역을 같이 넣었다** — 운영 화면이 한국어라 영어만 고치면 **정작 읽을 사람에게 안 보인다**
       - ⚠ **표시명이 붙어도 `targetId` 를 감추지 않는다**(FR-CON-17) — 라우팅 키(`Vatech-Target` 헤더·webhook 서브도메인)라 **장애 때 로그에서 찾는 값**이다. 하나만 보이면 화면과 로그를 맞춰 볼 수 없다
       - **목은 네 행 중 둘만 표시명을 준다** — 넷 다 채우면 **폴백 경로가 목에서 한 번도 안 밟혀**, 실제 `null` 이 올 때 화면을 아무도 모른다. 공백 값 행도 하나 뒀다
       - ⛔ **값 생산 전까지 화면은 전부 `targetId` 폴백**으로 보이는 것이 정상이다 — 결함이 아니다
-    - ✅ **GW `target.display_name` 머지 완료** — PR [#14938](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14938) · 운영자가 넣은 표시명이 **이제 Console 목록에 실제로 보인다**
-      - **device 카탈로그 `GET /v1/clinics/me/targets`** 도 구현 완료 — PR [#14965](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14965) **머지 대기**. 들어가면 **계약이 끝에서 끝까지 연결된다**
-      - ⭐ **그러면 AlliedStar가 두 번째 target으로 들어올 때 클라이언트 릴리스 없이 붙는지를 실제로 검증할 수 있다** — 지금까지는 문서상 목표였다
+    - ✅ **구현 완료 — 계약 신설부터 양쪽 구현까지 이번 주에 닫혔다**(GW [#14938](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14938)·[#14965](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14965) · Console [#14933](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14933)·[#14937](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway-console/pullrequest/14937))
+      - 운영자가 Console에서 넣은 표시명이 **클리닉 화면까지 그대로 간다**
+      - ✅ **device 카탈로그 `GET /v1/clinics/me/targets` 머지 완료** — PR [#14965](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14965). **계약이 끝에서 끝까지 연결됐다**
+      - ⭐ **이제 AlliedStar가 두 번째 target으로 들어올 때 클라이언트 릴리스 없이 붙는지를 실제로 검증할 수 있다** — 지금까지는 문서상 목표였다
       - **범용 불변식을 테스트로 고정했다** — org를 쓰는 프로파일인데 입력 폼이 비어 있으면 **CI가 적색**이다. 사람이 잊어도 유지된다
+      - 운영자 필드 비노출은 **쿼리에서 3컬럼만 읽는 것**으로 막았다 — 거르는 코드는 빠질 수 있지만 **안 읽은 컬럼은 샐 수 없다**
+      - ⚠ clinic 없는 device 엣지 케이스는 **유예**(backlog B-25·[#14966](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/14966)) — v1.0은 device가 EzServer(clinic 소속)뿐이라 발생하지 않는다
     - ⭐ **구현 중에 계약 구멍 둘을 잡았다**
 
       | | 스펙이 안 정한 것 | 그대로 뒀으면 |
@@ -138,7 +141,10 @@
       - ⭐ **코드는 변수로 감쌌는데도 샌다** — 감싼 의미가 **에코 단계에서 사라진다**. 변수로 쓰면 안전하다는 가정이 틀린 자리다
       - SonarQube 잡 전부가 **같은 토큰 하나**를 쓴다. 빌드 로그를 볼 수 있는 사람 전원에게 노출된다
       - ⚠ **`withSonarQubeEnv` 가 마스킹한다는 가정도 틀렸다** — 로그 전체에서 `****` 는 3건뿐이고 전부 SVN 자격증명이다
-      - ⚠ **코드를 고쳐도 이미 찍힌 102개는 남는다 — 폐기가 먼저다.** 콘솔 작업이라 사람 몫이다
+      - ✅ **코드 수정 완료(10/7·`5d6bde3`·5개 지점)** — Linux 는 `set +x`, Windows 는 `@echo off`
+        - ⭐ **두 곳은 에코를 꺼도 안 막혔다** — Groovy 가 토큰 값을 **문자열에 직접 박고** 있었다. 그건 로그뿐 아니라 **에이전트의 임시 스크립트 파일에도** 평문을 남긴다. 변수 참조로 바꿨다
+        - ⚠ **근본 수정(토큰을 명령줄에서 제거)은 못 했다** — 설치된 `sonar-scanner-cli 5.0.1` 이 `SONAR_TOKEN` 환경변수를 모른다. `-Dsonar.token` 을 빼는 대안은 **9개 잡이 동시에 걸리는데 잡을 돌려 확인할 수단이 없어** 택하지 않았다. 스캐너 업그레이드 때 다시 본다
+      - 🔴 **남은 것은 토큰 폐기다 — 코드를 고쳐도 이미 찍힌 102개는 남는다.** 콘솔 작업이라 사람 몫(진행 중)
 
     - **백업 S3 계정 이전 완료(10/7)** — `533267126003` → `118688039229`
       - 과거분은 옮기지 않고 새 버킷에 오늘부터 쌓는다 · 전송 31개·실패 0·2.71GB · 옛 버킷과 **바이트 완전 일치** · 복구 경로(내려받기→`gzip -t`→원본 `cmp`)까지 실증
@@ -146,7 +152,8 @@
       - ⚠ **전송 상태 파일이 어느 버킷에 보냈는지 모른다** — 그대로 뒀으면 전부 "이미 보냄" 으로 건너뛰어 **새 버킷이 빈 채로 초록불**이 떴을 것이다
       - ❓ **새 버킷의 수명주기·버전 관리 확인 필요(Jack)** — 최소 권한이라 호스트에서 읽을 수 없다. 빠져 있으면 조용히 쌓인다(옛 버킷이 그 실수로 1년간 184GB)
       - ⚠ **옛 계정 정리 시점** — 새 버킷에는 로컬에 있던 10세트만 들어갔다. 그보다 오래된 복구 지점은 **옛 계정에만** 있다. 2~3주 쌓인 뒤가 안전하다
-      - PR [#14968](https://dev.azure.com/ewoosoft/sbom/_git/bm2databackup/pullrequest/14968) 머지 · [#14969](https://dev.azure.com/ewoosoft/sbom/_git/bm2databackup/pullrequest/14969) 리뷰 대기(`restore3` 실행권한 누락 — `./` 로 부르면 Permission denied 라 복구 3단계가 막힌다)
+      - PR [#14968](https://dev.azure.com/ewoosoft/sbom/_git/bm2databackup/pullrequest/14968) · [#14969](https://dev.azure.com/ewoosoft/sbom/_git/bm2databackup/pullrequest/14969) **둘 다 머지**
+      - ⭐ **배포하며 결함 하나를 더 찾았다** — `restore3_services.sh` 가 `100644` 라 RUNBOOK 대로 `./` 로 부르면 Permission denied 였다. **복구 3단계가 통째로 막혀 있었다**(#14969). 9월에 `ship` 스크립트가 같은 이유로 cron 에서 조용히 죽은 적이 있는데 **같은 결함이 하나 남아 있었다**
 
     - **BM2 복구 — 가장 위험한 항목은 검증됐다, 전체 시연은 아직**
       - 운영에 영향 없이 격리 컨테이너로 DT 를 실제 기동해 **암호화 키 복호화까지 확정**했다. ⭐ **DB 만으로는 DT 가 복구되지 않는다**(API 키·연동 자격증명이 암호화돼 있다)는 것이 추정이 아니라 확인이 됐다
@@ -280,7 +287,7 @@
 
       | 단위 | 스펙 문서 | Repo · 경로 | baseline tag |
       | --- | --- | --- | --- |
-      | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `vt-api-gateway` · `docs/specs/` | **`spec-v1.0.96`**(현행) |
+      | **③ GW** | SRS(+OpenAPI·DBML·UnitTCL) | `vt-api-gateway` · `docs/specs/` | **`spec-v1.0.97`**(현행) |
       | **③-C GW Console** | Sub-SRS | `vt-api-gateway-console` · `docs/specs/SRS.md` | ✅ baseline `spec-v1.0`(8/11) · 현행 **`spec-v1.0.15`** |
       | **④ AXS** | 경량 연동 프로파일 | `vt-api-gateway` · `docs/specs/04-subsrs-straumann-axs/` | 경량(PPR 자격 확보·착수 가능) |
       | **③-I 인프라** | IaC 구축계획서 | `vt-api-gateway-infra` · `docs/IaC-구축계획서.md` | PR #11973(living doc) |
