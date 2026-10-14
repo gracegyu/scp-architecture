@@ -116,7 +116,7 @@
 
   | # | 남은 작업 | 우리 쪽 상태 | 막는 것 | 소유 |
   | --- | --- | --- | --- | --- |
-  | ~~1~~ | ~~**Entra admin consent 승인**~~ | 🎉 **dev 해소 확인(10/14)** — Console 실로그인·운영자 API 쓰기(디바이스 승인) 실측 | — | — |
+  | ~~1~~ | ~~**Entra admin consent 승인**~~ | ✅ **9/10 IT 승인 완료**(로컬 실로그인 검증) · **9/15 Console 실 Entra + 제3자 전 경로 통과** | — | — |
   | 2 | **test 환경 프로비저닝** | ✅ **배포 파이프라인 양쪽 머지**(10/13) | 🔴 파이프라인 등록·SSM 설정·test 운영자 앱 등록 · **마감 8/26** | ③-I |
   | ~~3~~ | ~~**IoT 다운링크 E2E**(webhook→IoT 1회)~~ | 🎉 **완료(10/14)** — 외부 webhook → EzServer 수신까지 실측 | — | — |
   | 4 | 자동배포 tag→TEST/PROD | main→DEV는 **실동작 확인** | #2 (환경 생기면 태그 트리거만 추가) | ③-I |
@@ -218,7 +218,8 @@
 
   - **S1. 프로젝트 일정(Gantt) — 10/15 스냅샷**
     - **진행률(구현)** — GW ≈ 93% · Console ≈ 92%. **둘 다 코드 feature-complete**이고 잔여는 전부 위 표의 외부 선결이다
-    - ⚠ **9/30 「개발환경 연동 완료」 목표를 넘겼다** — 원인은 코드가 아니라 **Entra consent·test 환경** 둘이다. 10월 출시 목표를 유지할지 **일정 재설정이 필요**하다
+    - ⚠ **9/30 「개발환경 연동 완료」 목표를 넘겼다** — 원인은 코드가 아니라 **test 환경 미프로비저닝**(마감 8/26)과 **dev EKS 접근 미개방**(IoT 다운링크 진단이 막혀 10/14까지 밀림) 둘이다. 10월 출시 목표를 유지할지 **일정 재설정이 필요**하다
+    - ⓘ **Entra consent 는 원인이 아니다** — 9/10 승인 완료. 블로커 표·Gantt 가 10/13 까지 「승인 대기」로 남아 있던 것은 **문서 미갱신**이었다
     - **범례** — 막대: 작성=기본·PR=강조·◆=baseline/마일스톤·**빨강=외부/미정 선결**
 
     ```mermaid
@@ -231,12 +232,12 @@
         section ③ GW SRS + API/DBML (계약 SSOT · baseline v1.0 동결)
         작성·PR·baseline v1.0 (완료 7/20) :done, srs, 2026-06-15, 2026-07-20
 
-        section GW 구현 → dev 통합 → 출시 (코드 feature-complete · dev 통합=Entra·③-I 게이트)
+        section GW 구현 → dev 통합 → 출시 (코드 feature-complete · dev 통합=③-I 게이트)
         1단계 GW 독립 코어 (P0~P6·P10·완료) :done, implindep, 2026-07-21, 31d
         2단계 AXS 연동 (P7~P12·코드 완료) :done, implaxs, 2026-07-28, 2026-08-24
         GW 코드 feature-complete       :milestone, done, impldone, 2026-08-24, 0d
-        운영자 Entra dev consent (IT-9442·승인 대기·블로커) :crit, active, entra, 2026-09-09, 2026-10-15
-        dev 통합·E2E (인프라 완료 9/3·Entra consent·E2E 실행 대기) :crit, active, e2e, 2026-09-03, 2026-10-31
+        운영자 Entra dev consent (IT-9442·9/10 승인 완료) :done, entra, 2026-09-09, 2026-09-10
+        dev 통합·E2E (인프라 9/3·Entra 9/10·IoT 하행 10/14 완료·잔여=test 환경) :crit, active, e2e, 2026-09-03, 2026-10-31
         개발환경 연동 완료 (9/30 목표 — 미달·재설정 필요) :milestone, crit, dev9, 2026-09-30, 0d
         v1.0 production 연동 완료(목표·10월·재검토) :milestone, rel, 2026-10-31, 0d
 
@@ -266,10 +267,10 @@
         AXS 실 dev 통합 (IoT Core 완료·E2E 실행 대기·dispatcher) :crit, active, axsint, 2026-09-03, 2026-10-31
         AXS prod 자격(NDA 후·선결·미확보) :crit, active, credp, 2026-08-18, 2026-10-15
 
-        section ③-C GW Console — v1.0 (별도 repo · 코드=완료 · dev 통합=Entra 대기)
+        section ③-C GW Console — v1.0 (별도 repo · 코드=완료 · dev 통합=완료)
         v1.0 구현 (mock-first)         :done, conv1, 2026-08-12, 2026-08-24
         v1.0 코드 구현 완료            :milestone, done, conv1m, 2026-08-24, 0d
-        GW·Entra 통합테스트 (Entra 승인 대기·미완) :crit, active, contest, 2026-08-24, 2026-10-31
+        GW·Entra 통합테스트 (9/15 실 Entra 전 경로 통과) :done, contest, 2026-08-24, 2026-09-15
 
         section v1.0 이후 (deferred · post-v1.0)
         CleverOne 연동 구현 (스펙은 지금·구현 post-v1.0) :codef, after rel, 14d
