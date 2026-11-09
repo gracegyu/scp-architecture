@@ -1,8 +1,8 @@
 # VT API Gateway — 11/12 주간회의 Agenda
 
-> 이번 주는 **Target Policy** 와 **R1(하행 NATS JetStream 전환 결정)** 을 다룬다. 이전 주차 내용은 `주간회의-Agenda-Archive.md`.
+> 이번 주는 **Target Policy** · **Alliedstar IO 스캐너 연동(ADF 시연)** · **R1(하행 NATS JetStream 전환 결정)** 을 다룬다. 이전 주차 내용은 `주간회의-Agenda-Archive.md`.
 >
-> 상세 = OnePager `docs/onepager/target-policy-onepager-2026-10-27.md` (vt-api-gateway 저장소)
+> Target Policy 상세 = OnePager `docs/onepager/target-policy-onepager-2026-10-27.md` (vt-api-gateway 저장소) · Alliedstar 는 문서 끝(구분선 아래)
 
 - ✅ **스펙 승인·머지 완료(11/05)** — Scott·Thomas 승인
   - [GW PR 15814](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/15814)
@@ -95,8 +95,14 @@
       - 거부 기록은 원인별로 따로 남긴다 — 규칙 차단 직후의 우회 시도가 기록에서 빠지지 않게
       - 저장된 규칙이 깨져 target 전체가 막히는 사고는 device 가 아닌 시스템 기록으로 남기고, 지표로 따로 구분한다
   - 🟡 **구현** — 스펙 리뷰와 병행해 미리 시작했고, 승인된 스펙 기준으로 마무리 중
-    - GW: 관리 API·기본 규칙을 먼저 PR·dev 배포 → 프록시 판정 → 거부 감사 순
-    - Console: 실제 API 연결은 GW 관리 API dev 배포 뒤
+    - GW 관리 API·기본 규칙 — ✅ 머지(11/09 · PR 15942)
+    - GW 프록시 판정 — ✅ 머지(11/09 · PR 15958)
+    - GW 거부 감사 — 🟡 PR 준비 중(11/09 · CI 와 같은 검증 로컬 실행 중)
+    - Console 편집 화면 — ✅ 머지(11/09 · PR 15951)
+    - Console 후속 2건(OAuth2 target 편집 저장 · 표시 전용 필드) — ✅ 머지(PR 15959·15970)
+    - ⭐ GW·Console 을 로컬에서 실제로 붙여 끝까지 확인했다 — 규칙 수정이 다음 요청의 차단·통과에 바로 반영되고, 화면·감사 기록도 기대대로였다
+    - dev 배포는 main 머지 시 자동이다 — 관리 API·프록시 판정은 dev 에 올라가 있다(11/09)
+    - 남은 것 — 거부 감사 머지·dev 배포 → dev 실측(차단 403·감사 1행) · AXS sandbox 위험 실재 확인
     - ⭐ 미리 시작한 구현의 사전 리뷰가 **실제 우회 두 건**을 찾아 스펙에 반영했다
       - `#` 를 붙이면 판정과 전달 경로가 달라져 차단을 통과
       - NUL 문자로 감사 기록을 60초씩 비울 수 있었음
@@ -123,3 +129,47 @@
   - Clinic Policy 재설계 — gw/1.1
   - AXS 조직 연동 API 의 고객번호 검증 — 클리닉이 정당하게 쓰는 API 라 막지 않고 검증 필요(backlog)
   - 쿼리로 하는 메서드 재정의(`_method`) — AXS 지원 여부 확인 후(backlog)
+
+---
+
+- 🆕 **Alliedstar IO 스캐너 연동 — ADF 시연 (긴급)**
+  - 목표 — EzDent-i 에서 환자를 고르면 원내 VT Edge 가 VTG 를 거쳐 Alliedstar 에 케이스를 만들고, 그 PC 에서 촬영 앱(AS Connect)을 띄운다
+  - 일정 — 리허설 11/20(금) · ADF 전시 11/24~
+  - 유럽(프랑크푸르트) VTG 스택에 먼저 올린다
+  - 상세 = OnePager [PR 15974](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/15974) (리뷰 중 · Scott·Nick·Jack)
+  - **개발 분장(11/09 Scott·Raymond 합의)**
+
+    | 지점 | 담당 |
+    | --- | --- |
+    | EzDent-i · IO 스캐너 연동 | Nick |
+    | VT Edge | Scott |
+    | VTG · Alliedstar 커넥터 | Raymond |
+    | 유럽 스택 인프라 | Jack |
+
+  - 이번 시연에는 webhook(업체 콜백 수신·원내 전달)이 없다
+  - 이번 시연에서 EzServer 는 무관하다 — 손대지 않는다
+  - **Alliedstar 커넥터** = VTG 뒤의 별도 앱 — 업무 요청을 업체 규격(개발사 자격·RSA2 서명·사용자 `openid`)으로 바꿔 대신 호출한다
+  - ⭐ Alliedstar 에도 연동사 단위 API 가 있다 — Target Policy 를 만든 이유와 같은 빈틈
+    - `getCaseDetail` 은 원내 범위 없이 케이스 코드만으로 조회된다 — 다른 원내 환자 정보가 보일 수 있다
+    - 커넥터가 원내 계정 연결로 `openid` 를 넣고, 케이스는 그 원내가 만든 것인지 확인한 뒤에만 조회한다
+    - `createUser`·`toothsplit` 은 Target Policy 로 막는다 — Target Policy 의 두 번째 적용
+  - **진행**
+    - ✅ 관련 PR 5건 리뷰·처리(11/09) — 4건 머지 · 1건은 중복이라 닫음
+    - 🟡 OnePager 리뷰 중
+    - OnePager 승인 후 VTG 는 기존 SRS 를 개정해 작업한다(스펙 PR 이 관문)
+  - **일정**
+
+    | 날짜 | 마일스톤 |
+    | --- | --- |
+    | 11/11(수) | 지점 간 계약 확정 · Edge 를 서울 dev VTG 에 처음 연결 |
+    | 11/13(금) | 유럽 스택 기동(Jack) · 실제 업체 자격 수령 확인 |
+    | 11/20(금) | 리허설(유럽 VTG) |
+
+  - **확인 필요**
+    - 촬영 결과가 Edge 로 들어오는 경로 — 업체 문서상 AS Connect 가 업체 클라우드에 올리고 우리가 조회 API 로 받아 오는 구조로 보인다(Scott·Nick)
+    - 실제 업체 자격(appid·서명 키·사전 연결 계정) — 11/13 까지 못 받으면 시연을 조회로 줄인다(Scott)
+    - 업체가 호출 IP 허용 목록을 요구하는지(Scott → 업체 · Jack)
+  - **리스크**
+    - ⚠ 유럽 스택이 0 에서 시작 — 실질 9 영업일
+    - ⚠ Edge 가 실제 VTG 에 연결해 본 적이 없다 — 서울 dev 로 먼저 시험한다
+    - ⚠ 유럽 스택에 실제 환자 정보를 넣지 않는다(시연용)
