@@ -1,6 +1,6 @@
 # VT API Gateway — 11/12 주간회의 Agenda
 
-> 이번 주는 **Target Policy** 하나만 다룬다. 이전 주차 내용은 `주간회의-Agenda-Archive.md`.
+> 이번 주는 **Target Policy** 와 **R1(하행 NATS JetStream 전환 결정)** 을 다룬다. 이전 주차 내용은 `주간회의-Agenda-Archive.md`.
 >
 > 상세 = OnePager `docs/onepager/target-policy-onepager-2026-10-27.md` (vt-api-gateway 저장소)
 
@@ -10,6 +10,21 @@
   - 이번 주 = 구현 PR·dev 배포·테스트
 
 - 🔴 **결정 필요** — 없음
+
+- 📌 **R1. 하행(GW → 원내) 전달을 MQTT(AWS IoT Core)에서 NATS JetStream 으로 바꾼다 — Alliedstar 시연(11/24) 끝나면 착수**
+  - 제안 = Scott · 검토 = Raymond · 결정(11/09) = 전환
+  - 왜 — 같은 원내에 EzServer 와 VT Edge 가 함께 붙으면 기기마다 자기 몫을 따로 받아야 한다
+    - 지금 MQTT 는 같은 clinic 토픽을 두 기기가 다 받거나(일반 구독), 그중 하나만 받는다(shared subscription)
+    - 오프라인 기기 버퍼가 약 100건이고 넘치면 통보 없이 버린다
+    - JetStream 은 기기·기능별 durable consumer 로 각자 이어 받고, 보존 기간을 우리가 정한다
+  - 왜 지금 — 하행은 정식 배포 전이고 EzServer 는 스펙 단계다. VT Edge 도 NATS 를 쓸 계획이다
+  - 대가
+    - 관리형이 아니다 — 리전마다 클러스터를 우리가 운영한다(인프라 합의 필요 · Jack)
+    - enroll 의 IoT 인증서 발급을 NATS 자격 발급으로 바꾼다
+    - 원내 방화벽 때문에 443(WebSocket) 접속을 기본으로 한다
+  - 진행 — 1주 dev 검증(자격 발급·폐기 · 기기별 수신 · 443 접속 · 오프라인 재접속 유실 없음) → 스펙 개정(결정 기록 4번 재결정·SRS §7.6.6) → 구현
+  - EzServer 하행 스펙도 함께 바뀐다(Thomas)
+  - 백로그 = vt-api-gateway B-35
 
 - **무엇을**
   - target 마다 **클리닉이 호출하면 안 되는 API**(메서드·경로)를 GW 에 등록해 두고, 클리닉 EzServer 가 호출하면 GW 가 거부한다
