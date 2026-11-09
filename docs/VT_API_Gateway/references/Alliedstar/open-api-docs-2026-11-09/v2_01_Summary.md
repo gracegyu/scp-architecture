@@ -1,0 +1,3 @@
+# Summary
+
+Alliedstar’s open platform offers a solution for integrating business processes and data with third-party systems. With user authorization, these systems can access information such as cases and orders related to the user, enabling seamless business interactions. The solution supports a range of scenarios, functionalities, and customization options, helping third-party systems efficiently close the loop on their business logic.
