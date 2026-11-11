@@ -186,8 +186,8 @@
   - **확인 필요**
     - 실제 업체 자격(appid·서명 키·사전 연결 계정) — 11/13 까지 못 받으면 시연을 조회로 줄인다(Scott)
     - 업체가 호출 IP 허용 목록을 요구하는지(Scott → 업체 · Jack)
-    - 시연 동안 운영 Region Directory 에 유럽 항목을 올리지 않는지 — 올리면 유럽 클리닉 EzServer 가 이 스택을 찾아 등록하려 할 수 있다(Jack)
-    - 커넥터 설정 저장 위치(Secrets Manager `dev/vt-api-gateway-alliedstar-connector/config`)(Jack)
+    - ✅ 시연 동안 운영 Region Directory 에 유럽 항목을 올리지 않는다(Jack 11/11)
+    - ✅ 커넥터 설정 저장 위치 = Secrets Manager `dev/vt-api-gateway-alliedstar-connector/config`(Jack 11/11)
   - **리스크**
     - ⚠ 유럽 스택이 0 에서 시작 — 실질 9 영업일
     - ⚠ Edge 가 실제 VTG 에 연결해 본 적이 없다 — 서울 dev 로 먼저 시험한다
