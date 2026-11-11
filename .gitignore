@@ -12,3 +12,4 @@ docs/SCP Cloud Server 연구/뷰어 관련 연구/WebSectionView/Cloud Web Viewe
 docs/VT_API_Gateway/references/Self-hosted1/reinstall_agent.sh
 # docs/VT_API_Gateway/references/Self-hosted1/host/azp-agent-in-docker/reinstall_agent.sh   ← PAT 를 ~/.azp-agent-secrets 로 옮겨 평문이 사라짐(2026-09-21). 이제 추적한다.
 docs/VT_API_Gateway/08.VT_API_Gateway/PROMPT.md
+docs/PROMPT.md
