@@ -134,9 +134,10 @@
 - 🆕 **Alliedstar IO 스캐너 연동 — ADF 시연 (긴급)**
   - 목표 — EzDent-i 에서 환자를 고르면 원내 VT Edge 가 VTG 를 거쳐 Alliedstar 에 케이스를 만들고, 그 PC 에서 촬영 앱(AS Connect)을 띄운다
   - 일정 — 리허설 11/20(금) · ADF 전시 11/24~
-  - 유럽(프랑크푸르트) VTG 스택에 먼저 올린다
-  - 상세 = OnePager [PR 15974](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/15974) (리뷰 중 · Scott·Nick·Jack)
-  - VTG 스펙 = [PR 15997](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/15997) (리뷰 중 · Thomas·Scott · 머지는 OnePager 승인 뒤)
+  - 유럽(프랑크푸르트) VTG 스택에 먼저 올린다 — **Scott 결정(11/10)**: 유럽 prod 클러스터에 네임스페이스 분리 없이 · 운영 도메인 `api.euc1.gw.ezcld.com` · 시연 뒤 사내 IP 로만 접속 제한
+  - 상세 = OnePager [PR 15974](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/15974) — Jack 승인 · Scott·Nick 대기
+  - VTG 스펙 = [PR 15997](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/15997) — Thomas 승인 · 머지는 OnePager 머지 뒤
+  - 요청 문서 — 인프라(Jack) `docs/handoff/alliedstar-connector-infra.md` · Scott·Nick `docs/handoff/alliedstar-edge-ezdenti-requests.md`(PR 15974 안 · 회신 칸에 답)
   - **개발 분장(11/09 Scott·Raymond 합의)**
 
     | 지점                      | 담당    |
@@ -154,33 +155,48 @@
     - `getCaseDetail` 은 원내 범위 없이 케이스 코드만으로 조회된다 — 다른 원내 환자 정보가 보일 수 있다
     - 커넥터가 원내 계정 연결로 `openid` 를 넣고, 케이스는 그 원내가 만든 것인지 확인한 뒤에만 조회한다
     - `createUser`·`toothsplit` 은 Target Policy 로 막는다 — Target Policy 의 두 번째 적용
+  - 🔴 **이번 회의에서 확인** — OnePager(PR 15974) 내용에 Scott 구두 확인 → OnePager 머지 → 스펙(PR 15997) 머지 → 커넥터 구현 PR
   - **진행**
     - ✅ 관련 PR 5건 리뷰·처리(11/09) — 4건 머지 · 1건은 중복이라 닫음
-    - 🟡 OnePager 리뷰 중 — Scott·Nick 에 11/11 까지 의견 요청 · 의견이 없으면 추천안으로 진행
-    - 🟡 VTG 스펙 개정 PR 리뷰 중 — 일정 때문에 OnePager 와 병행
+    - 🟡 OnePager — 리뷰 의견 반영 완료(SRS 표 동기화 · 1차/2차 표기 · 결정 1 확정) · Jack 승인 · Scott·Nick 승인 대기
+    - ✅ VTG 스펙 개정 — 리뷰 2라운드 반영(13건 + 1건) · Thomas 승인(11/11) · 머지 대기
       - VT Edge 를 v1.0 device 로 받는다
       - Alliedstar 커넥터 요구사항(FR-INT-08) · 업체 계정 연결·업무 대장 테이블 · 테스트 케이스 14개
-    - 🟡 커넥터 구현 — 브랜치에서 미리 시작(11/10) · 구현 PR 은 스펙 머지 뒤
+      - 시연 동안 받아들이는 위험을 명시 — 커넥터 접근을 core 로만 제한하는 장치 · mesh 재시도 끄기 · 커넥터 전용 DB 계정 · egress 제한은 1차
+    - 🟡 커넥터 구현 — 브랜치에서 완료 · 구현 PR 은 스펙 머지 뒤
       - 골격·서명·신원 확인·원내 범위 보호 완료 — Edge → VTG → 커넥터 → 가짜 업체 전체 경로 테스트 통과
+      - 커넥터 테스트 unit 166건 · e2e 27건 통과 · 전체 e2e 는 로컬 부하로 간헐 실패 → 구현 PR 의 CI 로 최종 판정
+      - 배포 단위(Dockerfile · 파이프라인)·운영 runbook 준비 완료
       - 업체 테스트 서버에서 정상 서명 통과·변조 서명 거부 확인
       - 업체 공통 파라미터 표기를 업체 공식 SDK 기준으로 확정(11/10) — 공개 테스트 서버는 표기를 검사하지 않아 근거가 되지 못했다
     - EzDent-i ↔ Edge 계약은 Nick·Scott 이 정해 알려 주기로 함
     - 1차 결과 수집은 기존 EzScan Air 처럼 push(저장 완료 → 원내 알림 → 제품 갱신)가 자연스럽다(Nick 의견)
-    - 유럽 스택 — Jack 의견: 독일 운영 클러스터 사용 가능 · 우리 의견: 그 안에 시연용으로 격리(별도 네임스페이스·DB · 운영 Region Directory 미등록) · 결정 = Scott
+    - ✅ 유럽 스택 — Scott 결정(11/10): prod 클러스터·운영 도메인·격리 없음·시연 뒤 사내 IP 제한 · 리전 코드 `euc1`(Jack)
+    - 🟡 인프라 — Jack 이 커넥터 dev 준비 중 · 요청 문서 A3 포트 표기 정정(Service 80 → 3004 · 11/11)
   - **일정**
 
-    | 날짜      | 마일스톤                                                                   |
-    | --------- | -------------------------------------------------------------------------- |
-    | 11/11(수) | 지점 간 계약 확정 · Edge 를 서울 dev VTG 에 처음 연결 · OnePager 의견 마감 |
-    | 11/12(목) | 커넥터 골격·서명 완료                                                      |
-    | 11/13(금) | 커넥터 dev 배포 · 유럽 스택 기동(Jack) · 실제 업체 자격 수령 확인          |
-    | 11/19(목) | 유럽 스택 배포·실측                                                        |
-    | 11/20(금) | 리허설(유럽 VTG)                                                           |
+    | 날짜      | 마일스톤                                                                               |
+    | --------- | -------------------------------------------------------------------------------------- |
+    | 11/11(수) | 지점 간 계약 확정 · Edge 를 서울 dev VTG 에 처음 연결 — ⚠ 진행 여부 미확인(Scott·Nick) |
+    | 11/12(목) | ✅ 커넥터 구현(브랜치) · Scott 구두 확인 → OnePager·스펙 머지 → 커넥터 구현 PR         |
+    | 11/13(금) | 커넥터 dev 배포 · 유럽 스택 기동(Jack) · 실제 업체 자격 수령 확인                      |
+    | 11/19(목) | 유럽 스택 배포·실측                                                                    |
+    | 11/20(금) | 리허설(유럽 VTG)                                                                       |
 
   - **확인 필요**
     - 실제 업체 자격(appid·서명 키·사전 연결 계정) — 11/13 까지 못 받으면 시연을 조회로 줄인다(Scott)
     - 업체가 호출 IP 허용 목록을 요구하는지(Scott → 업체 · Jack)
+    - 시연 동안 운영 Region Directory 에 유럽 항목을 올리지 않는지 — 올리면 유럽 클리닉 EzServer 가 이 스택을 찾아 등록하려 할 수 있다(Jack)
+    - 커넥터 설정 저장 위치(Secrets Manager `dev/vt-api-gateway-alliedstar-connector/config`)(Jack)
   - **리스크**
     - ⚠ 유럽 스택이 0 에서 시작 — 실질 9 영업일
     - ⚠ Edge 가 실제 VTG 에 연결해 본 적이 없다 — 서울 dev 로 먼저 시험한다
-    - ⚠ 유럽 스택에 실제 환자 정보를 넣지 않는다(시연용)
+    - ⚠ 유럽 스택에 실제 환자 정보를 넣지 않는다(시연용) — 운영 클러스터·운영 도메인을 쓰므로 시연 뒤 사내 IP 제한이 필요하다
+
+---
+
+- 📌 **공유 — EzServer 의 리전 목록(RGD) 서명 검증 문의(Levi · 11/11)**
+  - EzServer 가 SRS §7.3.6 대로 `regions.json` 의 detached JWS 서명 검증을 적용 중이다
+  - ⚠ **공개키를 받기 전에는 EzServer 가 리전 목록을 쓸 수 없다** — dev 공개 JWKS 경로가 403 이라 별도 전달이 필요하다
+  - 서명키 생성·보관·회전·게시는 인프라 몫(Jack) — 공개키 전달 · 회전·긴급 폐기 절차 · prod RGD 공개 일정 · 게시 순서
+  - 스펙 몫은 답변 완료 — prod 도 무인증 GET 유지 · 키 회전 중첩 기간은 EzServer 가 값을 제시(SRS §7.3.6 규칙)
