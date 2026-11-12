@@ -14,7 +14,7 @@
 
   | 결정                                                                 | 담당          | 상태 |
   | -------------------------------------------------------------------- | ------------- | ---- |
-  | OnePager PR 15974 승인 보류 — 오늘 중 client 측 구조(EzDent-i 또는 별도 Agent 가 촬영 명령) 결정 → 바뀌면 Raymond 가 OnePager 수정 → 승인·머지 | Scott·Nick · Raymond | 결정 공유 대기 |
+  | OnePager PR 15974 승인 보류 — 오늘 중 client 측 구조(EzDent-i 또는 별도 Agent 가 촬영 명령) 결정 → 바뀌면 Raymond 가 OnePager 수정 → 승인·머지 | Scott·Nick · Raymond | ✅ 11/12 — 장비 Agent 구조로 OnePager 수정 → Scott 승인 → 머지 · 스펙 머지·spec-v1.3.0 |
   | 실 업체 자격 Jack 에게 전달                                          | Raymond       | ✅ 11/12 |
   | Edge 를 서울 dev VAG 에 연결                                         | Scott         | ✅ 11/12(Scott 개인 PC) |
   | 업체 호출 IP 허용 목록 — 없음                                        | Scott         | ✅ 11/12 확인 · 문서 4곳 정리는 OnePager 수정 때 |
@@ -45,11 +45,10 @@
 
 - **업체 환경**(11/12 확정) — 업체 시험 환경 `api-us-aws-a.allied-star.com`(업체 운영과 분리) · dev·유럽 스택 공용 · 시연 PC 는 업체 안내대로 hosts 설정(ELB 라 당일 IP 재확인)
 - **문서**
-  - OnePager = [PR 15974](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/15974)
-  - VAG 스펙 = [PR 15997](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/15997)
-  - 인프라 요청 = [alliedstar-connector-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/alliedstar-connector-infra.md&version=GBspec/alliedstar-onepager)(Jack 이 결과 칸에 기입)
-  - Scott·Nick 요청 = [alliedstar-edge-ezdenti-requests.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/alliedstar-edge-ezdenti-requests.md&version=GBspec/alliedstar-onepager)(회신 칸에 답)
-  - 두 문서는 OnePager PR 브랜치에 있다 — 머지 뒤에는 main 경로로 바꾼다
+  - OnePager = [alliedstar-io-scanner-onepager-2026-11-09.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/onepager/alliedstar-io-scanner-onepager-2026-11-09.md&version=GBmain)(PR 15974 · 11/12 머지)
+  - VAG 스펙 = spec-v1.3.0([PR 15997](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway/pullrequest/15997) · 11/12 머지)
+  - 인프라 요청 = [alliedstar-connector-infra.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/alliedstar-connector-infra.md&version=GBmain)(Jack 이 결과 칸에 기입)
+  - Scott·Nick 요청 = [alliedstar-edge-ezdenti-requests.md](https://dev.azure.com/ewoosoft/es-platforms/_git/vt-api-gateway?path=/docs/handoff/alliedstar-edge-ezdenti-requests.md&version=GBmain)(회신 칸에 답)
 
 ### 1-1. 🔴 회의에서 결정·확인
 
