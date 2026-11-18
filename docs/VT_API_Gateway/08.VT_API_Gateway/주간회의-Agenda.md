@@ -1,6 +1,6 @@
 # VT API Gateway — 11/19 주간회의 Agenda
 
-> 순서: **1. Alliedstar 시연 준비(리허설 D-1)** → 2. R1 하행 NATS 전환 → 3. 지난 회의 후속
+> 순서: **1. Alliedstar 시연 준비(리허설 D-1)** → 2. R1 하행 JetStream 채널 추가 → 3. 지난 회의 후속·공유
 >
 > 이전 주차 내용은 `주간회의-Agenda-Archive.md`. Target Policy 는 11/12 완료 보고로 끝났다(Archive 11/12).
 >
@@ -9,7 +9,7 @@
 - 🔴 **이번 회의에서 결정·확인할 것**
   - 리허설(11/20) 진행 여부 — 1-1 표
   - 서울 dev Edge 실측 결과(Scott) — 1-1 표
-  - 하행 JetStream 스펙 초안 방향 확인(B안 + 두 채널 지원) — 2장
+  - 하행 JetStream — Thomas B안 결정 공유 · VAG 두 채널 지원 · OnePager 부터 진행 — 2장
 
 - **지난 회의(11/12) 결정 추적**
 
@@ -18,12 +18,12 @@
   | OnePager PR 15974 승인 보류 — 오늘 중 client 측 구조(EzDent-i 또는 별도 Agent 가 촬영 명령) 결정 → 바뀌면 Raymond 가 OnePager 수정 → 승인·머지 | Scott·Nick · Raymond | ✅ 11/12 — 장비 Agent 구조로 OnePager 수정 → Scott 승인 → 머지 · 스펙 머지·spec-v1.3.0 |
   | 실 업체 자격 Jack 에게 전달                                          | Raymond       | ✅ 11/12 |
   | Edge 를 서울 dev VAG 에 연결                                         | Scott         | ✅ 11/12(Scott 개인 PC) |
-  | 업체 호출 IP 허용 목록 — 없음                                        | Scott         | ✅ 11/12 확인 · 문서 4곳 정리는 OnePager 수정 때 |
-  | 유럽 스택 착수                                                       | Jack          | 🔶 11/16 VAG 앱 배포·업체 자격 주입 완료 · 커넥터 기동·prod Console·Region Directory 진행 중 |
+  | 업체 호출 IP 허용 목록 — 없음                                        | Scott         | ✅ 11/12 확인 · OnePager·handoff 4곳 반영(11/12) |
+  | 유럽 스택 착수                                                       | Jack          | 🔶 11/16 VAG 앱 5개·커넥터 Ready·업체 자격 완료 · Region Directory(PR 16068 승인 11/18)·prod Console 배포 남음 |
   | test 환경은 서울에 있다                                              | Jack          | ✅ 확인 |
   | HA 부하테스트는 급한 일 끝나면 진행                                  | —             | 보류 |
-  | NATS 관리형도 있다 — 어떤 형태인지(SaaS 또는 전용 클러스터)          | Jack          | 확인 필요 |
-  | EzServer 하행을 JetStream 으로 바꿀 때 필요한 일정 확인              | Thomas        | ✅ 11/13 회신 — A안(이번 릴리즈 · 위험) / B안(MQTT 유지 · 이후 전환) — 2장 |
+  | NATS 관리형도 있다 — 어떤 형태인지(SaaS 또는 전용 클러스터)          | Jack          | ⏭ JetStream OnePager 단계에서 확인 |
+  | EzServer 하행을 JetStream 으로 바꿀 때 필요한 일정 확인              | Thomas        | ✅ **Thomas 결정 = B안** — EzServer 는 이번 릴리즈(v6.6.0) MQTT 유지 · JetStream 전환은 이후 — 2장 |
 
 ---
 
@@ -85,9 +85,9 @@
     - ✅ 11/19 진행 순서 공유(11/18 · Scott·Jack)
 - **지난주까지**
   - 스펙·문서
-    - ✅ OnePager(PR 15974) 작성·리뷰 반영 — Jack 승인 · Scott 승인 보류(client 구조 결정 대기)
+    - ✅ OnePager(PR 15974) 작성·리뷰 반영 — Jack 승인
     - ✅ OnePager 에 업체 환경 확정 반영(11/12) — 시험 환경 · `openid` 받는 방법 · 시연 PC hosts · 리전 원칙의 시연 예외
-    - ✅ VAG 스펙 개정(PR 15997) — 리뷰 2라운드 14건 반영 · Thomas 승인(11/11) · 업체 환경 반영(11/12) · 머지만 남음
+    - ✅ VAG 스펙 개정(PR 15997) — 리뷰 2라운드 14건 반영 · Thomas 승인(11/11)
       - VT Edge 를 v1.0 device 로 받는다
       - Alliedstar 커넥터 요구사항(FR-INT-08)
       - 업체 계정 연결·업무 대장 테이블
@@ -116,11 +116,11 @@
 | 7   | 서울 dev 커넥터 기동 · target 등록                    | Raymond       | 4 · 5                | 11/14  | ✅ 11/16 |
 | 8   | 서울 dev 전 구간 실측 — Edge → VAG → 커넥터 → 업체    | Raymond·Scott | 6 · 7                | 11/17  | 🔶 VAG 쪽 ✅ · Scott Edge 결과 대기 |
 | 9   | 유럽 스택 구축                                        | Jack          | —                    | 11/18  | 🔶 앱 5개·커넥터 Ready·자격 ✅(11/16) · Directory·prod Console 남음 |
-| 9-1 | 운영 Region Directory 에 euc1 행 — es-infra PR 16068 머지 · 게시(prod) | Jack | Raymond 승인 ✅(11/18) | 11/18 | ⏳ |
-| 9-2 | prod Console 배포 — Console main `ce239cc` 에 태그 `console/prod-v1.0.0-alpha.1` | Jack | — | 11/18 | ⏳ 미배포(Access Denied) |
+| 9-1 | 운영 Region Directory 에 euc1 행 — es-infra PR 16068 머지 · 게시(prod) | Jack | Raymond 승인 ✅(11/18) | 11/18 | ✅ 11/18 |
+| 9-2 | prod Console 배포 | Jack | — | 11/18 | ✅ 11/18 |
 | 9-3 | Edge 유럽 enroll | Scott | — | 11/19 오전 | ⏳ |
-| 9-4 | 유럽 Console 에서 target 등록 · Edge 승인 · clinicId 확인 → 계정 연결 SQL 전달 | Raymond | 9-1 · 9-2 · 9-3 | 11/19 오전 | ⏳ |
-| 9-5 | 유럽 DB 계정 연결 1행 insert | Jack | 9-4 | 11/19 오전 | ⏳ |
+| 9-4 | 유럽 Console 에서 target 등록 · Edge 승인 · clinicId 확인 | Raymond | 9-1 · 9-2 · 9-3 | 11/19 오전 | 🔶 target 등록 ✅ 11/18 · Edge 승인은 enroll 뒤 |
+| 9-5 | 유럽 DB 계정 연결 1행 insert — Edge enroll 로 clinic 이 생긴 뒤(외래키) · SQL 전달함 | Jack | 9-3 | 11/19 오전 | ⏳ |
 | 10  | 유럽 실측 — Edge → VAG → 커넥터 → 업체              | Scott(Raymond 대기) | 9-5            | 11/19 15:00~ | ⏳ |
 | 11  | 리허설(유럽 VAG · 안 되면 서울 dev)                   | 전원(Raymond 부재) | 10              | 11/20  | ⏳ |
 | 12  | 시연 뒤 유럽 스택 사내 IP 제한                        | Jack          | 시연 종료            | 11/28  |  |
@@ -130,7 +130,6 @@
 | Blocker                                                         | 막는 것                     | 풀 사람    |
 | --------------------------------------------------------------- | --------------------------- | ---------- |
 | Scott Edge 의 서울 dev 실측 결과 미공유(케이스 생성·촬영 명령) | 유럽 전환 · 리허설 판단      | Scott      |
-| 유럽 — prod Console 미배포(Access Denied · 배포 태그 없음) · Region Directory 미게시(PR 16068 승인 · 머지 대기) | 유럽 target 등록·Edge 승인·실측 | Jack(11/18 요청) |
 | 유럽 — Edge 유럽 enroll 전 | 유럽 device 승인·계정 연결 | Scott      |
 
 ### 1-5. 리스크
@@ -152,30 +151,27 @@
 
 ---
 
-## 2. 📌 R1. 하행(GW → 원내) 전달을 MQTT(AWS IoT Core)에서 NATS JetStream 으로 — Alliedstar 시연 끝나면 착수
+## 2. 📌 R1. 하행(GW → 원내)에 NATS JetStream 채널을 추가한다 — MQTT 와 함께 지원
 
-- 결정(11/09) = 전환 · 제안 = Scott · 검토 = Raymond · 백로그 = vt-api-gateway B-35
-- 왜 — 같은 원내에 EzServer 와 VT Edge 가 함께 붙으면 기기마다 자기 몫을 따로 받아야 한다
-- 운영 방식 — 리전마다 우리가 운영하거나 관리형을 쓴다
-  - Jack(11/12): 관리형도 있다 — SaaS 형태인지 리전 전용 클러스터인지 확인 필요
-  - 기준: 하행 메시지가 그 리전 안에만 머무는가 · 원내 방화벽 때문에 443(WebSocket) 접속을 지원하는가
-- **EzServer 하행 방향 — Thomas 결정 대기**
-  - 배경: EzServer 는 MQTT 로 하행 스펙을 썼고(미구현) 일정이 촉박하다
-  - Scott(11/12): VT Edge 만 JetStream 을 적용해도 된다
-  - 선택지
-    - 1안. 이번에 JetStream 으로 적용한다
-    - 2안. 이번에 VAG 연동은 하되 하행은 빼고, 나중에 JetStream 으로 적용한다 — 지금 붙는 target 에는 하행이 필요 없어, 필요한 target 이 붙기 전에만 하면 된다
-    - 3안. EzServer 는 MQTT(IoT Core)를 그대로 쓴다 — VAG 가 하행 경로 두 개를 계속 유지한다
-  - Thomas(11/13): A안(이번 릴리즈에 JetStream · 주말 근무 · 위험) / B안(이번 릴리즈는 MQTT 유지 · NATS 전환은 이후)
-  - 제안(Raymond · 11/16): **B안** + VAG 는 MQTT 를 대체하지 않고 JetStream 을 **추가**해 두 채널을 함께 지원
-    - 기기가 enroll 때 지원 하행 채널을 알리면 VAG 가 정한다 · 알리지 않으면 MQTT(EzServer 변경 없음)
-    - 정한 채널은 device 에 기록 · 하행 발신부는 그 채널로 보낸다 · 채널 변경은 재-enroll(운영자 변경은 초안에서 제외 · 리뷰에서 결정)
-    - Edge 는 JetStream · EzServer 전환은 v6.6.0 이후
-  - 진행: ADF 뒤(다음 주) **스펙 PR 먼저** — NATS 인프라 요구 포함 · 리뷰 = Thomas(하행)·Jack(NATS 인프라) → dev NATS 준비 → dev 검증 → 구현
-  - ✅ 스펙 초안 작성(11/17) — SRS §7.6.10 FR-WH-08 · OpenAPI·DBML·env-reference·UnitTCL · NATS 인프라 handoff
-    - Raymond 리뷰 뒤 PR 생성(11/19 또는 11/23 · spec-v1.4.0)
-  - 🔴 확인 → _회의에서 기록_
-- 진행 — 1주 dev 검증(자격 발급·폐기 · 기기별 수신 · 443 접속 · 오프라인 재접속 유실 없음) → 스펙 개정(결정 기록 4번 재결정 · SRS §7.6.6) → 구현
+- 왜 — 같은 원내에 EzServer 와 VT Edge 가 함께 붙으면 기기마다 자기 몫을 따로 받아야 한다(MQTT 는 전원 수신 또는 한 대 수신 · 오프라인 ~100건 무통보 폐기)
+- 결정 경과
+  - 11/09 — JetStream 으로 전환(제안 Scott · 검토 Raymond · 백로그 B-35)
+  - 11/12 — Scott: VT Edge 만 JetStream 을 적용해도 된다
+  - ✅ **11/13 Thomas 결정 = B안** — EzServer 는 이번 릴리즈(v6.6.0 · 12/24) MQTT 유지 · JetStream 전환은 이후 일정
+  - 11/16 — 그래서 VAG 는 MQTT 를 대체하지 않고 **JetStream 을 추가해 두 채널을 함께 지원**한다(Raymond)
+- VAG 방식(스펙 초안)
+  - 기기가 enroll 때 지원 하행 채널을 알리면 VAG 가 정한다 · 알리지 않으면 MQTT — EzServer 변경 없음
+  - 정한 채널은 device 에 기록 · 하행 발신부는 그 채널로 보낸다
+  - JetStream 은 기기마다 durable consumer — 같은 원내 기기들이 각자 이어 받는다 · 보존 7일
+  - 채널 변경은 재-enroll(운영자 변경은 초안에서 제외 · 리뷰에서 결정)
+  - VT Edge 부터 JetStream · EzServer 전환은 v6.6.0 이후
+- NATS 운영 방식 — 자체 운영 또는 관리형은 인프라가 정한다(Jack)
+  - 기준: 메시지가 그 리전 안에만 머무는가 · 원내 방화벽 때문에 443(WebSocket) 접속을 지원하는가
+  - Jack(11/12): 관리형도 있다 — 형태(SaaS · 리전 전용)는 OnePager 단계에서 확인
+- 진행
+  - 순서: **OnePager → PR 승인 → SRS → 구현**
+  - ADF 시연 뒤 OnePager 작성 — NATS 운영 방식(자체·관리형)은 이때 Jack 과 정한다
+  - SRS 초안은 미리 써 두었다(11/17 · §7.6.10 FR-WH-08 · OpenAPI·DBML·env-reference·UnitTCL · NATS 인프라 handoff) — OnePager 승인 뒤 다듬어 스펙 PR(spec-v1.4.0)
 
 ---
 
@@ -191,7 +187,6 @@
   - ✅ SRS §4.5 에 반영(spec-v1.3.1 · PR 16183)
   - ✅ 2037~2040 루트 만료 추적 = 백로그 B-36(2032 점검 · 매 릴리즈 번들 갱신)
 
-
 - **EzServer 리전 목록(RGD) 서명 검증 공개키**(Levi · 11/11 문의)
-  - Jack — dev/test 키는 EzServer 채널에 공유함 · prod RGD·키는 준비 예정
-  - 확인: prod 공개키·RGD 공개 일정
+  - Jack — dev/test 키는 EzServer 채널에 공유함
+  - prod — 운영 Directory 첫 행(euc1) PR 16068 승인(11/18) · 머지·게시 뒤 Jack 이 prod 공개키 2개(k1·k2)를 EzServer 에 전달
