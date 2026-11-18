@@ -408,4 +408,93 @@
 
 ---
 
+# Cloud Web Viewer v1.3.2 Section 모듈 — 11/19 주간회의 Agenda
+
+> 이전 주(7/30) 스냅샷은 위에 보존. 아래는 이번 주 최신 스냅샷.
+> Sonya의 CW 접목(ESCV-179) 이후 **개발자 테스트(ESCV-188)** 에서 등록된 16건을 처리하고, 테스트 중 발견한 8건(ESCV-205~212)을 추가 등록해 함께 처리. **22건 Resolved, Dev 반영 완료.**
+
+- 참조 정보
+  - VTS: [ESCV-188](https://vts.vatech.com/browse/ESCV-188) (개발자 테스트) · [ESCV-179](https://vts.vatech.com/browse/ESCV-179) (CW 접목)
+  - Repository: [Azure DevOps `cloudwebviewer`](https://dev.azure.com/ewoosoft/cloudwebviewer/_git/cloudwebviewer) — 브랜치 `feat/ESCV-188-section-fixes` → `release/without-sbom`
+  - PR(머지 완료): [#16136](https://dev.azure.com/ewoosoft/cloudwebviewer/_git/cloudwebviewer/pullrequest/16136) · [#16177](https://dev.azure.com/ewoosoft/cloudwebviewer/_git/cloudwebviewer/pullrequest/16177) · [#16184](https://dev.azure.com/ewoosoft/cloudwebviewer/_git/cloudwebviewer/pullrequest/16184) · [#16188](https://dev.azure.com/ewoosoft/cloudwebviewer/_git/cloudwebviewer/pullrequest/16188) · [#16195](https://dev.azure.com/ewoosoft/cloudwebviewer/_git/cloudwebviewer/pullrequest/16195)
+  - [OnePager (wiki 게시본)](https://dev.azure.com/ewoosoft/prototypes/_wiki/wikis/prototypes.wiki/541/Section-Module-Spec-v1.3.2-OnePager) — 1.85·1.86 반영(§3.4, §12-D34~D38)
+
+- 이번 주 진행 (7/30 이후)
+  - **ESCV-188 하위 24건 중 22건 Resolved** — 원 등록 16건 중 15건 + 추가 등록 8건 중 7건. 상세 = S2 표.
+  - **Dev 배포** — 파이프라인 `dev-cd-cloudwebviewer-core (viewer)`(ID 293)로 이슈별 브랜치를 Dev에 올려 검증 후 머지. 최종 `release/without-sbom` 배포 완료.
+  - **문서** — OnePager 1.85·1.86(개발실 정의 값 §3.4, 결정 D34~D38), HANDOFF §6(CW 접목 후 상태).
+
+- 논의 사항
+  - **R1. ESCV-211 CT 다운로드 재시도 — 호스트(ezcloud) 담당 확인**
+    - 원본 CT(약 270MB) 다운로드가 Dev에서 간헐적으로 끊겨 "잠시 후 재시도"로 실패. 다운로드는 호스트 `readPresignedResource`가 수행하고 실패 시 팝업을 먼저 띄우므로 CW만으로는 깔끔한 재시도 불가.
+    - ESCV-210(손실압축본 기본)으로 발생 경로가 View Original·압축본 없는 CT로 줄어 **보류(Minor)**.
+    - **확인:** 재발 시 호스트 측 재시도를 누가 맡을지.
+    - **성격:** [정보]
+  - **R2. 손실압축본(Preview) 표시 UI 개선 — MPR·Section 공통**
+    - 뷰어는 기본으로 손실압축본(JPEG2000 Rate 50)을 보여 주고 View Original로 원본을 본다. Rate 50은 Preview 용도로는 충분하지만 임상 판독·계측용으로는 부족(이전 연구 기준 PSNR 42dB·평균 약 25 HU 차이, 좁은 W/L에서 뼈·치아 경계 차이 — ESCV-210 비교 이미지).
+    - 임상용은 원본(View Original)을 쓰면 되므로 압축률 변경이나 중간 단계 압축본은 필요 없음.
+    - **문제:** 화면에 Preview(손실압축본)라는 표시가 없음. "Compressed Image" 문구는 설정 화면 선택지에만 있고, 보는 화면에서는 HD(View Original) 버튼 활성 상태로만 구분 → 사용자가 Preview인지 모르고 판독·계측할 수 있음.
+    - **제안:** 손실압축본으로 볼 때 뷰 위에 "Preview(손실 압축)" 같은 표시를 두고 View Original로 원본을 볼 수 있음을 안내.
+    - **성격:** [논의] · UI 개선 범위·담당 결정 필요(MPR·Section 공통)
+
+- 공유 사항
+  - **S1. 현재 단계** — `구현(7/16 ✅) → 기획 테스트(✅) → CW 접목(Sonya, ESCV-179 ✅) → 개발자 테스트·수정(ESCV-188, 22/24 ✅)`.
+
+  - **S2. 개발자 테스트 이슈 (ESCV-188 Sub-Task)** — 원 등록 16건(ESCV-189~204) + 테스트 중 추가 등록 8건(ESCV-205~212).
+
+    | 이슈번호 | 유형 | 화면·기능 | 요약 | 상태 |
+    | --- | --- | --- | --- | --- |
+    | [ESCV-189](https://vts.vatech.com/browse/ESCV-189) | 버그 | Scout 커서 | 기본 커서가 crosshair → Draw Curve 모드에서만 crosshair, 그 외 default | ✅ Resolved |
+    | [ESCV-190](https://vts.vatech.com/browse/ESCV-190) | 누락 | Draw/Edit Curve | 모드 중 Panorama·Section에 disabled 커서·입력 차단(Edit는 휠·slider 허용) | ✅ Resolved |
+    | [ESCV-191](https://vts.vatech.com/browse/ESCV-191) | 버그 | Edit Curve 드래그 | 드래그 중 Panorama·Section 실시간 갱신 → Scout 미리보기만, Drop 시 1회 갱신 | ✅ Resolved |
+    | [ESCV-192](https://vts.vatech.com/browse/ESCV-192) | 버그 | Scout Setting | 개발용 "Sec 높이" 슬라이더 제거 | ✅ Resolved |
+    | [ESCV-193](https://vts.vatech.com/browse/ESCV-193) | 버그 | Panorama Thickness | Scout에서 조정한 목록 밖 값이 Setting 콤보에 미표시 → 소수 첫째 자리 표시 | ✅ Resolved |
+    | [ESCV-194](https://vts.vatech.com/browse/ESCV-194) | 누락 | MPR 연동 | Scout Th/INT ↔ MPR 동기화(Scout만, MMI 2-a-③) | ✅ Resolved |
+    | [ESCV-195](https://vts.vatech.com/browse/ESCV-195) | 누락 | MPR 연동 | W/L·Filter·Inverse·MIP ↔ MPR 동기화 | ✅ Resolved |
+    | [ESCV-196](https://vts.vatech.com/browse/ESCV-196) | 누락 | Active section line | Interval 변경 시 Section line 중간으로 재배치 | ✅ Resolved |
+    | [ESCV-197](https://vts.vatech.com/browse/ESCV-197) | 누락 | MPR 2D 툴 | Free Draw/Arrow — **Sonya 담당(Open)** | ⏳ Open(Sonya) |
+    | [ESCV-198](https://vts.vatech.com/browse/ESCV-198) | 버그 | Save 복원 | Save 후 재오픈 시 미복원 → 커브 없는 prj에 Curve 생성·활성 커브만 갱신, 전환 직전 MPR 저장 | ✅ Resolved |
+    | [ESCV-199](https://vts.vatech.com/browse/ESCV-199) | 버그 | Edit Curve | Active line 길이·위치·Panorama thickness line 조절 가능(MMI Appendix 1) | ✅ Resolved |
+    | [ESCV-200](https://vts.vatech.com/browse/ESCV-200) | 개선 | Scout 타이틀 | "Double-click to finish" 문구 제거(겹침 해소) | ✅ Resolved |
+    | [ESCV-201](https://vts.vatech.com/browse/ESCV-201) | 버그 | Active section line | Point 이동·추가·삭제 시 중간 재배치 | ✅ Resolved |
+    | [ESCV-202](https://vts.vatech.com/browse/ESCV-202) | 버그 | 다중 커브 prj | Clever One 이력 스냅샷 Project의 커브 표시 → **DEFAULT_ITEM**만 읽고 씀(MPR 동일) | ✅ Resolved |
+    | [ESCV-203](https://vts.vatech.com/browse/ESCV-203) | 버그 | 최대화 버튼 | 개별 slice 최대화 상태에서 복원 버튼 동작 | ✅ Resolved |
+    | [ESCV-204](https://vts.vatech.com/browse/ESCV-204) | 버그 | W/L 표기 | `W/L : Width / Level` 순서로 MPR과 통일 | ✅ Resolved |
+    | [ESCV-205](https://vts.vatech.com/browse/ESCV-205) | 버그 | prj 저장 항목 *(추가 등록)* | Filter·Inverse·MIP·Thickness·Scout Th/INT·B/L 기준점 저장/복원 + MPR Windowing 플래그 보존 | ✅ Resolved |
+    | [ESCV-206](https://vts.vatech.com/browse/ESCV-206) | 누락 | 자동 저장 *(추가 등록)* | MPR과 같은 3초 자동 저장, 열기만 하면 미저장, Draw/Edit 중 미저장 | ✅ Resolved |
+    | [ESCV-207](https://vts.vatech.com/browse/ESCV-207) | 누락 | 마지막 레이아웃 *(추가 등록)* | `Project@Sel_Tab` 저장, 재오픈 시 Section으로 바로 열기 | ✅ Resolved |
+    | [ESCV-208](https://vts.vatech.com/browse/ESCV-208) | 버그 | 편집 lock *(추가 등록)* | Section 전환 시 lock 해제된 채 편집 → Section도 lock 감시·획득 | ✅ Resolved |
+    | [ESCV-209](https://vts.vatech.com/browse/ESCV-209) | 누락 | L/B Switching *(추가 등록)* | `SwitchLBMarkerByUser`로 저장/복원 — Clever One 파일로 교차 확인 완료 | ✅ Resolved |
+    | [ESCV-210](https://vts.vatech.com/browse/ESCV-210) | 개선 | CT 화질 *(추가 등록)* | Section도 MPR과 같이 **손실압축본 기본 + View Original**(JPEG2000 디코딩). 압축본 약 4초 vs 원본 13~20초 | ✅ Resolved |
+    | [ESCV-211](https://vts.vatech.com/browse/ESCV-211) | 개선 | CT 다운로드 *(추가 등록)* | 원본 다운로드 끊김 시 재시도 없음 — **보류(Open, Minor)**, 호스트 측 재시도로 협의 예정 | ⏸ 보류(Minor) |
+    | [ESCV-212](https://vts.vatech.com/browse/ESCV-212) | 버그 | W/L 0/0 *(추가 등록)* | MPR 로딩 중 전환 시 W/L 0/0 전달·옛 W/L 재적용 → 로드 완료 시만 전달, 1회 소비 | ✅ Resolved |
+
+  - **S3. 개발실 정의·결정 (OnePager §3.4·§12)**
+    - D34 Section 자동 저장 규칙 · D35 prj 범위 = DEFAULT_ITEM · D36 마지막 레이아웃 = `Sel_Tab` · D37 L/B Switching = `SwitchLBMarkerByUser`(Clever One 교차 확인 완료) · D38 Section CT 화질 = MPR과 동일(손실압축본 기본 + View Original, Sonya 결정)
+
+  - **S4. Dev 배포 개선**
+    - Dev CD 트리거에 `packages/section*` 추가, 수동 실행 시 선택 브랜치 배포(Jin 확인)
+    - `remoteEntry.js`에 `Cache-Control: no-cache` — 배포 후 일반 새로고침으로 새 버전 적용(이전엔 하드 리로드 필요). dev·qa·prod 공통 템플릿
+
+  - **S5. Known gaps**
+    - ESCV-197(MPR 2D Free Draw/Arrow) — Sonya 담당
+    - ESCV-211(다운로드 재시도) — 보류(→ R1)
+    - 다중 시리즈 prj는 첫 DEFAULT_ITEM 사용(Section 볼륨에 시리즈 UID 없음)
+    - 레이아웃 전환마다 CT를 다시 받음(핸들러 재생성 구조), Section으로 바로 열 때 압축본을 두 번 받음
+    - ShowGrid는 MPR도 미저장 → 동일하게 미저장
+
+- 이월 논의 사항
+
+  | #   | 항목                              | 타입   | 상태 |
+  | --- | --------------------------------- | ------ | ---- |
+  | 1   | ESCV-211 호스트 재시도 담당        | [정보] | **신규** — 보류 중 (→ R1) |
+  | 2   | 손실압축본 Preview 표시 UI(MPR 공통) | [논의] | **신규** (→ R2) |
+  | 3   | ESCV-197 MPR 2D Free Draw/Arrow   | [정보] | Sonya 진행 |
+  - **확정·완료(누적):**
+    - 7/30까지: 구현 전부, 기획 테스트 버그 ESCV-144~177, 문서 wiki 미러
+    - 이번 주: ESCV-188 하위 22건(189~196, 198~210, 212), CW 접목 후 prj 저장 규칙(D34~D38)
+
+---
+
 <!-- 다음 주부터: 위 「작성 규칙」템플릿 블록을 복사해 아래에 # M/D 주간회의 Agenda 를 추가 -->
+

@@ -4,11 +4,12 @@
 >
 > 이전 주차 내용은 `주간회의-Agenda-Archive.md`. Target Policy 는 11/12 완료 보고로 끝났다(Archive 11/12).
 >
-> _11/12 회의 직후 기준으로 이월했다. 회의 전에 진행분을 갱신한다._
+> 11/18 기준으로 갱신했다.
 
 - 🔴 **이번 회의에서 결정·확인할 것**
   - 리허설(11/20) 진행 여부 — 1-1 표
-  - EzServer 하행 방향(Thomas) — 2장
+  - 서울 dev Edge 실측 결과(Scott) — 1-1 표
+  - 하행 JetStream 스펙 초안 방향 확인(B안 + 두 채널 지원) — 2장
 
 - **지난 회의(11/12) 결정 추적**
 
@@ -18,11 +19,11 @@
   | 실 업체 자격 Jack 에게 전달                                          | Raymond       | ✅ 11/12 |
   | Edge 를 서울 dev VAG 에 연결                                         | Scott         | ✅ 11/12(Scott 개인 PC) |
   | 업체 호출 IP 허용 목록 — 없음                                        | Scott         | ✅ 11/12 확인 · 문서 4곳 정리는 OnePager 수정 때 |
-  | 유럽 스택 착수                                                       | Jack          | 11/12 착수 · 완료 알림 대기 |
+  | 유럽 스택 착수                                                       | Jack          | 🔶 11/16 VAG 앱 배포·업체 자격 주입 완료 · 커넥터 기동·prod Console·Region Directory 진행 중 |
   | test 환경은 서울에 있다                                              | Jack          | ✅ 확인 |
   | HA 부하테스트는 급한 일 끝나면 진행                                  | —             | 보류 |
   | NATS 관리형도 있다 — 어떤 형태인지(SaaS 또는 전용 클러스터)          | Jack          | 확인 필요 |
-  | EzServer 하행을 JetStream 으로 바꿀 때 필요한 일정 확인              | Thomas        | 회신 대기 — 2장 |
+  | EzServer 하행을 JetStream 으로 바꿀 때 필요한 일정 확인              | Thomas        | ✅ 11/13 회신 — A안(이번 릴리즈 · 위험) / B안(MQTT 유지 · 이후 전환) — 2장 |
 
 ---
 
@@ -54,16 +55,34 @@
 
 | #   | 항목                                                         | 누가        | 결정·확인되면                         | 회의 결정 |
 | --- | ------------------------------------------------------------ | ----------- | ------------------------------------- | --- |
-| 1   | client 측 구조 — 촬영 명령을 EzDent-i 가 내는가, 별도 Agent 가 내는가 · OnePager 반영·승인 상태 | Scott·Nick  | OnePager 머지 → 스펙 머지             |  |
-| 2   | 서울 dev 전 구간 실측 결과 — Edge → VAG → 커넥터 → 업체(케이스 생성·촬영 명령) | Raymond·Scott | 유럽 스택으로 전환                  |  |
-| 3   | 유럽 스택 완료 여부 · 유럽 전 구간 실측                       | Jack·Raymond | 리허설 진행                          |  |
+| 1   | ✅ client 측 구조 — 촬영 PC 의 장비 Agent 가 Edge 명령으로 촬영 앱 실행(11/12 Scott) · OnePager 반영·머지 | — | 공유 |  |
+| 1-1 | Edge ↔ 장비 Agent 연동 방식(연결·인증·대상 선택·명령 형태·보고·재연결) — 요청 문서 S8 · 기한 11/14 | Scott | OnePager §8.4 에 반영 |  |
+| 2   | 서울 dev 전 구간 실측 결과 — VAG 쪽 준비·확인은 11/16 완료 · **Scott Edge 의 케이스 생성·촬영 명령 결과 미공유** | Scott | 유럽 스택으로 전환                  |  |
+| 3   | 유럽 준비 — Directory 게시·prod Console 배포(Jack · 11/18) → Edge enroll(Scott) → target 등록·승인(Raymond) → 계정 연결(Jack) → 실측(Scott · 15:00~) | Jack·Scott·Raymond | 리허설 진행(안 되면 서울 dev)        |  |
 | 4   | 시연 PC 준비 — 촬영 앱 · hosts 설정 · 시연장 네트워크에서 업체 host 접속 | Scott·Nick | 리허설 진행                          |  |
 | 5   | EzDent-i ↔ Edge 계약                                         | Nick·Scott  | 요청 문서 회신 칸에 기록              |  |
 | 6   | 리허설(11/20) 진행 여부 · 시연 범위 축소 필요 여부            | 전원        | 리허설 진행 또는 범위 확정            |  |
 
 ### 1-2. ✅ 한 일
 
-- **이번 주(11/13~19)** — _회의 전 갱신_
+- **이번 주(11/12~18)**
+  - 스펙·문서
+    - ✅ OnePager 머지(11/12 · Scott 승인) — 장비 Agent 구조 반영 · 업체 IP 허용 목록 불필요 반영
+    - ✅ VAG 스펙 머지 · 태그 spec-v1.3.0(11/12)
+    - ✅ Scott 에 Edge ↔ 장비 Agent 연동 방식 확인 요청(요청 문서 S8 · 11/12)
+  - 구현
+    - ✅ 커넥터 구현 PR 16064 머지(11/12) — 사전 리뷰 지적 6건 반영 · unit 182 · e2e 27
+    - ✅ 커넥터 파이프라인 등록·첫 이미지 빌드 성공(11/12 · Jack)
+  - 서울 dev 준비(11/16)
+    - ✅ 업체 자격 주입·커넥터 Ready(Jack)
+    - ✅ target `alliedstar` 등록 · 차단 규칙 2건 · timeout 3/15/20초(Raymond)
+    - ✅ 업체 승인 페이지로 `openid` 받기 · 계정 연결 1행 insert(ES 서울치과 · Jack 실행)
+    - ✅ VAG 쪽 실측 — 차단 2건 403 · core → 커넥터 라우팅·토큰 검증·계정 연결 확인 동작
+    - ✅ 시연 끝날 때까지 dev:showcase 금지(ES 서울치과 데이터 보호) — 구현 세션에 공지
+  - 유럽 스택
+    - ✅ VAG 앱 5개 배포 · 커넥터 Ready · 업체 자격 주입(11/16 · Jack)
+    - ✅ 운영 Region Directory euc1 PR 16068 승인(11/18 · Raymond)
+    - ✅ 11/19 진행 순서 공유(11/18 · Scott·Jack)
 - **지난주까지**
   - 스펙·문서
     - ✅ OnePager(PR 15974) 작성·리뷰 반영 — Jack 승인 · Scott 승인 보류(client 구조 결정 대기)
@@ -84,33 +103,41 @@
   - VT Edge
     - ✅ 서울 dev VAG 연동(11/12 · Scott 개인 PC)
 
-### 1-3. ⏳ 남은 일 (11/12 기준 순서)
+### 1-3. ⏳ 남은 일 (11/18 기준)
 
 | #   | 할 일                                                 | 담당          | 선행                 | 목표   | 상태 |
 | --- | ----------------------------------------------------- | ------------- | -------------------- | ------ | ---- |
-| 1   | client 측 구조 결정 → OnePager 수정 → 승인·머지        | Scott·Nick · Raymond | —            | 11/13  |  |
-| 2   | 스펙 머지 · 태그 spec-v1.3.0                          | Raymond       | 1                    | 11/13  |  |
-| 3   | 커넥터 구현 PR 생성·CI·머지                           | Raymond       | 2                    | 11/13  |  |
-| 4   | 커넥터 파이프라인 등록 → 이미지 빌드                  | Jack          | 3                    | 11/14  |  |
-| 5   | 업체 자격 2개 주입 · 업체 host `api-us-aws-a` 로 변경  | Jack          | ✅ 자격 전달          | 11/13  |  |
-| 6   | 시연 계정으로 업체 승인 페이지 로그인 → `openid` 받기 · Edge 의 clinicId 받기(Scott) → 계정 연결 1행 | Raymond | — | 11/14 |  |
-| 7   | 서울 dev 커넥터 기동 · target 등록                    | Raymond       | 4 · 5                | 11/14  |  |
-| 8   | 서울 dev 전 구간 실측 — Edge → VAG → 커넥터 → 업체    | Raymond·Scott | 6 · 7                | 11/17  |  |
-| 9   | 유럽 스택 구축                                        | Jack          | —                    | 11/18  |  |
-| 10  | 유럽 스택 배포·실측                                   | Raymond·Jack  | 9                    | 11/19  |  |
-| 11  | 리허설(유럽 VAG)                                      | 전원          | 10                   | 11/20  |  |
+| 1   | client 측 구조 결정 → OnePager 수정 → 승인·머지        | Scott·Nick · Raymond | —            | 11/13  | ✅ 11/12 |
+| 2   | 스펙 머지 · 태그 spec-v1.3.0                          | Raymond       | 1                    | 11/13  | ✅ 11/12 |
+| 3   | 커넥터 구현 PR 생성·CI·머지                           | Raymond       | 2                    | 11/13  | ✅ 11/12 PR 16064 |
+| 4   | 커넥터 파이프라인 등록 → 이미지 빌드                  | Jack          | 3                    | 11/14  | ✅ 11/12 |
+| 5   | 업체 자격 2개 주입 · 업체 host `api-us-aws-a` 로 변경  | Jack          | ✅ 자격 전달          | 11/13  | ✅ 11/16 |
+| 6   | 시연 계정으로 업체 승인 페이지 로그인 → `openid` 받기 · Edge 의 clinicId 받기(Scott) → 계정 연결 1행 | Raymond | — | 11/14 | ✅ 11/16 |
+| 7   | 서울 dev 커넥터 기동 · target 등록                    | Raymond       | 4 · 5                | 11/14  | ✅ 11/16 |
+| 8   | 서울 dev 전 구간 실측 — Edge → VAG → 커넥터 → 업체    | Raymond·Scott | 6 · 7                | 11/17  | 🔶 VAG 쪽 ✅ · Scott Edge 결과 대기 |
+| 9   | 유럽 스택 구축                                        | Jack          | —                    | 11/18  | 🔶 앱 5개·커넥터 Ready·자격 ✅(11/16) · Directory·prod Console 남음 |
+| 9-1 | 운영 Region Directory 에 euc1 행 — es-infra PR 16068 머지 · 게시(prod) | Jack | Raymond 승인 ✅(11/18) | 11/18 | ⏳ |
+| 9-2 | prod Console 배포 — Console main `ce239cc` 에 태그 `console/prod-v1.0.0-alpha.1` | Jack | — | 11/18 | ⏳ 미배포(Access Denied) |
+| 9-3 | Edge 유럽 enroll | Scott | — | 11/19 오전 | ⏳ |
+| 9-4 | 유럽 Console 에서 target 등록 · Edge 승인 · clinicId 확인 → 계정 연결 SQL 전달 | Raymond | 9-1 · 9-2 · 9-3 | 11/19 오전 | ⏳ |
+| 9-5 | 유럽 DB 계정 연결 1행 insert | Jack | 9-4 | 11/19 오전 | ⏳ |
+| 10  | 유럽 실측 — Edge → VAG → 커넥터 → 업체              | Scott(Raymond 대기) | 9-5            | 11/19 15:00~ | ⏳ |
+| 11  | 리허설(유럽 VAG · 안 되면 서울 dev)                   | 전원(Raymond 부재) | 10              | 11/20  | ⏳ |
 | 12  | 시연 뒤 유럽 스택 사내 IP 제한                        | Jack          | 시연 종료            | 11/28  |  |
 
 ### 1-4. 🚧 Blocker
 
 | Blocker                                                         | 막는 것                     | 풀 사람    |
 | --------------------------------------------------------------- | --------------------------- | ---------- |
-| client 측 구조(EzDent-i 또는 별도 Agent) 미결정 → OnePager 승인 보류 | 스펙 머지 · 구현 PR · 배포 | Scott·Nick |
-| 유럽 스택 구축 중(11/12 착수)                                   | 유럽 배포·리허설            | Jack       |
+| Scott Edge 의 서울 dev 실측 결과 미공유(케이스 생성·촬영 명령) | 유럽 전환 · 리허설 판단      | Scott      |
+| 유럽 — prod Console 미배포(Access Denied · 배포 태그 없음) · Region Directory 미게시(PR 16068 승인 · 머지 대기) | 유럽 target 등록·Edge 승인·실측 | Jack(11/18 요청) |
+| 유럽 — Edge 유럽 enroll 전 | 유럽 device 승인·계정 연결 | Scott      |
 
 ### 1-5. 리스크
 
 - ⚠ 리허설까지 남은 시간이 짧다 — 서울 dev 실측과 유럽 스택 실측이 연달아 있다
+- ⚠ **Raymond 11/20 부재 — VAG 쪽 준비는 11/19 까지 끝낸다.** 리허설 당일 Console 운영(기기 승인·target 확인)은 Jack(유럽 최초 운영자) · 장애 확인은 GW 구현 세션
+- ⚠ 유럽이 11/19 까지 안 되면 리허설은 서울 dev 로 한다(같은 업체 시험 환경 · 계정 연결 완료 · 사내망에서 접속)
 - ⚠ 유럽 스택은 운영 클러스터·운영 도메인이다 — 실제 환자 정보를 넣지 않고, 시연 뒤 사내 IP 로 제한한다
 - ⚠ 업체 시험 환경은 ELB 라 IP 가 바뀐다 — 시연 PC hosts 는 리허설·시연 당일 아침 다시 확인한다
 
@@ -139,12 +166,31 @@
     - 1안. 이번에 JetStream 으로 적용한다
     - 2안. 이번에 VAG 연동은 하되 하행은 빼고, 나중에 JetStream 으로 적용한다 — 지금 붙는 target 에는 하행이 필요 없어, 필요한 target 이 붙기 전에만 하면 된다
     - 3안. EzServer 는 MQTT(IoT Core)를 그대로 쓴다 — VAG 가 하행 경로 두 개를 계속 유지한다
-  - 🔴 Thomas 결정 →  _회의에서 기록_
+  - Thomas(11/13): A안(이번 릴리즈에 JetStream · 주말 근무 · 위험) / B안(이번 릴리즈는 MQTT 유지 · NATS 전환은 이후)
+  - 제안(Raymond · 11/16): **B안** + VAG 는 MQTT 를 대체하지 않고 JetStream 을 **추가**해 두 채널을 함께 지원
+    - 기기가 enroll 때 지원 하행 채널을 알리면 VAG 가 정한다 · 알리지 않으면 MQTT(EzServer 변경 없음)
+    - 정한 채널은 device 에 기록 · 하행 발신부는 그 채널로 보낸다 · 채널 변경은 재-enroll(운영자 변경은 초안에서 제외 · 리뷰에서 결정)
+    - Edge 는 JetStream · EzServer 전환은 v6.6.0 이후
+  - 진행: ADF 뒤(다음 주) **스펙 PR 먼저** — NATS 인프라 요구 포함 · 리뷰 = Thomas(하행)·Jack(NATS 인프라) → dev NATS 준비 → dev 검증 → 구현
+  - ✅ 스펙 초안 작성(11/17) — SRS §7.6.10 FR-WH-08 · OpenAPI·DBML·env-reference·UnitTCL · NATS 인프라 handoff
+    - Raymond 리뷰 뒤 PR 생성(11/19 또는 11/23 · spec-v1.4.0)
+  - 🔴 확인 → _회의에서 기록_
 - 진행 — 1주 dev 검증(자격 발급·폐기 · 기기별 수신 · 443 접속 · 오프라인 재접속 유실 없음) → 스펙 개정(결정 기록 4번 재결정 · SRS §7.6.6) → 구현
 
 ---
 
-## 3. 지난 회의 후속
+## 3. 지난 회의 후속 · 이번 주 공유
+
+- **VAG 설명회 — 기획·QA 팀(11/19 13:30~15:00 · Daniel 주관)**
+  - 1부 VAG 제품 설명(Raymond) · 2부 EzServer 와 VAG 연동 흐름(Thomas)
+  - 발표 자료 = Wiki `vt-api-gateway/overview/vag-introduction`(PR 16194·16203)
+
+- **EzServer RPS 의 VAG 인증서 검증(Levi · 11/17)**
+  - ✅ VAG edge 인증서 = ACM 공인 인증서 — Jack 이 Amazon 루트 5개 번들(gw-ca.pem) 제공 · RPS 정상 동작 확인
+  - ✅ 번들을 내려주는 API 는 만들지 않는다 — 설정 자동 변경 구조가 생기면 그 길로 교체
+  - ✅ SRS §4.5 에 반영(spec-v1.3.1 · PR 16183)
+  - ✅ 2037~2040 루트 만료 추적 = 백로그 B-36(2032 점검 · 매 릴리즈 번들 갱신)
+
 
 - **EzServer 리전 목록(RGD) 서명 검증 공개키**(Levi · 11/11 문의)
   - Jack — dev/test 키는 EzServer 채널에 공유함 · prod RGD·키는 준비 예정
