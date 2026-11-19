@@ -411,7 +411,7 @@
 # Cloud Web Viewer v1.3.2 Section 모듈 — 11/19 주간회의 Agenda
 
 > 이전 주(7/30) 스냅샷은 위에 보존. 아래는 이번 주 최신 스냅샷.
-> Sonya의 CW 접목(ESCV-179) 이후 **개발자 테스트(ESCV-188)** 에서 등록된 16건을 처리하고, 테스트 중 발견한 8건(ESCV-205~212)을 추가 등록해 함께 처리. **22건 Resolved, Dev 반영 완료.**
+> Sonya의 CW 접목(ESCV-179) 이후 **개발자 테스트(ESCV-188)** 에서 등록된 16건을 처리하고, 테스트 중 발견한 11건(ESCV-205~215)을 추가 등록. **22건 Resolved, Dev 반영 완료**(213·214·215는 R3~R5 결정 후 진행).
 
 - 참조 정보
   - VTS: [ESCV-188](https://vts.vatech.com/browse/ESCV-188) (개발자 테스트) · [ESCV-179](https://vts.vatech.com/browse/ESCV-179) (CW 접목)
@@ -420,7 +420,7 @@
   - [OnePager (wiki 게시본)](https://dev.azure.com/ewoosoft/prototypes/_wiki/wikis/prototypes.wiki/541/Section-Module-Spec-v1.3.2-OnePager) — 1.85·1.86 반영(§3.4, §12-D34~D38)
 
 - 이번 주 진행 (7/30 이후)
-  - **ESCV-188 하위 24건 중 22건 Resolved** — 원 등록 16건 중 15건 + 추가 등록 8건 중 7건. 상세 = S2 표.
+  - **ESCV-188 하위 27건 중 22건 Resolved** — 원 등록 16건 중 15건 + 추가 등록 11건 중 7건. 상세 = S2 표.
   - **Dev 배포** — 파이프라인 `dev-cd-cloudwebviewer-core (viewer)`(ID 293)로 이슈별 브랜치를 Dev에 올려 검증 후 머지. 최종 `release/without-sbom` 배포 완료.
   - **문서** — OnePager 1.85·1.86(개발실 정의 값 §3.4, 결정 D34~D38), HANDOFF §6(CW 접목 후 상태).
 
@@ -437,10 +437,33 @@
     - **제안:** 손실압축본으로 볼 때 뷰 위에 "Preview(손실 압축)" 같은 표시를 두고 View Original로 원본을 볼 수 있음을 안내.
     - **성격:** [논의] · UI 개선 범위·담당 결정 필요(MPR·Section 공통)
 
-- 공유 사항
-  - **S1. 현재 단계** — `구현(7/16 ✅) → 기획 테스트(✅) → CW 접목(Sonya, ESCV-179 ✅) → 개발자 테스트·수정(ESCV-188, 22/24 ✅)`.
+  - **R3. 다중 시리즈 prj에서 Section의 프로젝트 선택 — [ESCV-213](https://vts.vatech.com/browse/ESCV-213)**
+    - CT 하나에 DICOM 시리즈가 여러 개면 prj에 시리즈별 `ProjectList`가 생긴다. MPR은 볼륨의 시리즈 UID로 해당 `ProjectList`의 `DEFAULT_ITEM`을 고르지만, Section 볼륨 로더는 시리즈 UID를 읽지 않아 **파일의 첫 `DEFAULT_ITEM`**을 사용 → 두 번째 이후 시리즈를 열면 다른 시리즈의 커브·W/L을 읽고 저장.
+    - 현재 Dev 데이터는 모두 단일 시리즈라 재현 사례 없음. CleverSpace 업로드 단위(zip 1개, 대개 1시리즈)상 발생 가능성 낮음.
+    - 수정은 작음(로더가 Series Instance UID를 읽고 일치하는 `ProjectList` 선택 — MPR과 동일). Sub-task 등록(Minor, Open).
+    - **결정 요청:** 이번에 해결할지, 다중 시리즈 데이터가 실제로 생길 때까지 보류할지.
+    - **성격:** [논의]
 
-  - **S2. 개발자 테스트 이슈 (ESCV-188 Sub-Task)** — 원 등록 16건(ESCV-189~204) + 테스트 중 추가 등록 8건(ESCV-205~212).
+  - **R4. 마지막 레이아웃이 Section인 CT — MPR이 먼저 보였다가 바뀌고, CT를 두 번 받음 — [ESCV-214](https://vts.vatech.com/browse/ESCV-214)**
+    - **현상:** ① MPR 탭 로딩 화면이 약 1초 보였다가 Section으로 바뀜(사용자는 누르지 않음) ② CT를 두 번 받음 — 압축본 없는 CT는 **원본 270MB × 2**
+    - **원인:** 열 레이아웃을 정하는 `Sel_Tab`이 prj에 있는데, 호스트가 CT를 다 받은 뒤에야 prj를 넘겨줌 → MPR로 시작했다가 Section으로 넘기고, Section이 다시 받음
+    - **고치면:** 로딩 후 바로 Section이 열리고 CT는 한 번만 받음. CW 내부 수정(레이아웃 미정 로딩 → prj로 화면 결정 → 받은 CT·prj 넘김). prj만 먼저 받는 방식은 호스트 변경이라 범위 밖
+    - **R5와의 관계:** R5(받은 CT 재사용)가 해결되면 ②중복 다운로드도 함께 해결 → R4에는 ①MPR 선노출(화면 흐름)만 남음
+    - **결정 요청:** 이번에 수정할지 — 개발실 의견: **R5와 함께 둘 다 해결**(R5 먼저, 이어서 남은 ①)
+    - **성격:** [논의]
+
+  - **R5. MPR↔Section 전환마다 CT를 다시 받음 — [ESCV-215](https://vts.vatech.com/browse/ESCV-215)** (R4와 관련, 별도 이슈)
+    - **현상:** 레이아웃을 바꿀 때마다 들어가는 쪽이 CT를 다시 받음. 압축본 7~12MB(약 1초), View Original 중이면 **원본 270MB를 전환마다** 다시 받아 13~20초 이상
+    - **원인:** 전환 시 핸들러를 새로 만들고, MPR·Section이 각자 CT를 받음(받은 데이터 공유 없음)
+    - **고치면:** 같은 CT를 다시 받지 않음. CW 내부 수정 — 받은 CT 파일을 보관해 재사용, prj는 전환 직전 저장한 최신본을 넘김. R4(ESCV-214)의 "받은 CT·prj 넘기기" 장치를 함께 사용
+    - **남는 것:** 볼륨 재구성 3~4초(→ S6)
+    - **결정 요청:** 이번에 수정할지 — 개발실 의견: **R4와 함께 둘 다 해결**(R5를 먼저 하면 R4의 중복 다운로드도 해결)
+    - **성격:** [논의]
+
+- 공유 사항
+  - **S1. 현재 단계** — `구현(7/16 ✅) → 기획 테스트(✅) → CW 접목(Sonya, ESCV-179 ✅) → 개발자 테스트·수정(ESCV-188, 22/27 ✅)`.
+
+  - **S2. 개발자 테스트 이슈 (ESCV-188 Sub-Task)** — 원 등록 16건(ESCV-189~204) + 테스트 중 추가 등록 11건(ESCV-205~215).
 
     | 이슈번호 | 유형 | 화면·기능 | 요약 | 상태 |
     | --- | --- | --- | --- | --- |
@@ -468,6 +491,9 @@
     | [ESCV-210](https://vts.vatech.com/browse/ESCV-210) | 개선 | CT 화질 *(추가 등록)* | Section도 MPR과 같이 **손실압축본 기본 + View Original**(JPEG2000 디코딩). 압축본 약 4초 vs 원본 13~20초 | ✅ Resolved |
     | [ESCV-211](https://vts.vatech.com/browse/ESCV-211) | 개선 | CT 다운로드 *(추가 등록)* | 원본 다운로드 끊김 시 재시도 없음 — **보류(Open, Minor)**, 호스트 측 재시도로 협의 예정 | ⏸ 보류(Minor) |
     | [ESCV-212](https://vts.vatech.com/browse/ESCV-212) | 버그 | W/L 0/0 *(추가 등록)* | MPR 로딩 중 전환 시 W/L 0/0 전달·옛 W/L 재적용 → 로드 완료 시만 전달, 1회 소비 | ✅ Resolved |
+    | [ESCV-213](https://vts.vatech.com/browse/ESCV-213) | 버그 | 다중 시리즈 prj *(추가 등록)* | 시리즈가 여러 개인 prj에서 첫 DEFAULT_ITEM 사용(MPR은 시리즈 UID로 선택) | ⏳ Open(Minor) — R3 결정 후 |
+    | [ESCV-214](https://vts.vatech.com/browse/ESCV-214) | 개선 | Section 직접 오픈 *(추가 등록)* | 마지막 레이아웃이 Section인 CT를 열면 MPR이 먼저 보였다가 바뀌고 CT를 두 번 받음(압축본 없으면 원본 2회) | ⏳ Open — R4 결정 후 |
+    | [ESCV-215](https://vts.vatech.com/browse/ESCV-215) | 개선 | 레이아웃 전환 *(추가 등록)* | MPR↔Section 전환마다 CT를 다시 받음(원본 보기 중이면 270MB씩). ESCV-214와 관련 | ⏳ Open — R5 결정 후 |
 
   - **S3. 개발실 정의·결정 (OnePager §3.4·§12)**
     - D34 Section 자동 저장 규칙 · D35 prj 범위 = DEFAULT_ITEM · D36 마지막 레이아웃 = `Sel_Tab` · D37 L/B Switching = `SwitchLBMarkerByUser`(Clever One 교차 확인 완료) · D38 Section CT 화질 = MPR과 동일(손실압축본 기본 + View Original, Sonya 결정)
@@ -479,9 +505,15 @@
   - **S5. Known gaps**
     - ESCV-197(MPR 2D Free Draw/Arrow) — Sonya 담당
     - ESCV-211(다운로드 재시도) — 보류(→ R1)
-    - 다중 시리즈 prj는 첫 DEFAULT_ITEM 사용(Section 볼륨에 시리즈 UID 없음)
-    - 레이아웃 전환마다 CT를 다시 받음(핸들러 재생성 구조), Section으로 바로 열 때 압축본을 두 번 받음
+    - 다중 시리즈 prj는 첫 DEFAULT_ITEM 사용(Section 볼륨에 시리즈 UID 없음) → ESCV-213 (→ R3)
+    - 레이아웃 전환마다 CT를 다시 받음 → ESCV-215 (→ R5), 볼륨 재구성 → S6
+    - Section으로 바로 열 때 MPR이 먼저 보이고 CT를 두 번 받음 → ESCV-214 (→ R4)
     - ShowGrid는 MPR도 미저장 → 동일하게 미저장
+
+  - **S6. MPR↔Section 전환마다 볼륨을 다시 만듦 (구조 제약 공유)**
+    - **현상:** 전환할 때마다 볼륨 구성에 3~4초(다운로드는 R5에서 해결 가능).
+    - **이유:** MPR(vtk)과 Section(자체 Int16 볼륨 + WASM)이 볼륨을 각자 만든다. 두 볼륨을 동시에 메모리에 두면 이 CT(640×640×450) 기준 약 370MB × 2 + Section WASM 사본으로 브라우저 탭 메모리 한계에 가까움.
+    - **고칠 수 있는 방법:** MPR과 Section이 볼륨 하나를 공유(Section이 vtk 볼륨 데이터를 그대로 사용) → 구성 시간·메모리 모두 절약. 구조 변경이 커서 이번 범위 밖.
 
 - 이월 논의 사항
 
@@ -489,7 +521,10 @@
   | --- | --------------------------------- | ------ | ---- |
   | 1   | ESCV-211 호스트 재시도 담당        | [정보] | **신규** — 보류 중 (→ R1) |
   | 2   | 손실압축본 Preview 표시 UI(MPR 공통) | [논의] | **신규** (→ R2) |
-  | 3   | ESCV-197 MPR 2D Free Draw/Arrow   | [정보] | Sonya 진행 |
+  | 3   | 다중 시리즈 prj 프로젝트 선택(ESCV-213) | [논의] | **신규** — 해결 시점 결정 (→ R3) |
+  | 4   | Section 직접 오픈: MPR 선노출·CT 중복 다운로드(ESCV-214) | [논의] | **신규** — 수정 여부 결정 (→ R4) |
+  | 5   | 전환마다 CT 재다운로드(ESCV-215) | [논의] | **신규** — 수정 여부 결정 (→ R5, R4와 함께) |
+  | 6   | ESCV-197 MPR 2D Free Draw/Arrow   | [정보] | Sonya 진행 |
   - **확정·완료(누적):**
     - 7/30까지: 구현 전부, 기획 테스트 버그 ESCV-144~177, 문서 wiki 미러
     - 이번 주: ESCV-188 하위 22건(189~196, 198~210, 212), CW 접목 후 prj 저장 규칙(D34~D38)
