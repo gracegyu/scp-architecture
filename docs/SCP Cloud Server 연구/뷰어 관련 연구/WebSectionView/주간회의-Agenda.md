@@ -536,5 +536,61 @@
 
 ---
 
+# Cloud Web Viewer v1.3.2 Section 모듈 — 11/26 주간회의 Agenda
+
+> 이전 주(11/19) 스냅샷은 위에 보존. 아래는 이번 주 최신 스냅샷.
+> **[작성 중 · 진행하면서 갱신]** 11/19 회의에서 진행하기로 한 4건(ESCV-211·213·214·215)은 11/23 모두 머지·Resolved.
+
+- 참조 정보
+  - VTS: [ESCV-188](https://vts.vatech.com/browse/ESCV-188) (개발자 테스트)
+  - Repository: [Azure DevOps `cloudwebviewer`](https://dev.azure.com/ewoosoft/cloudwebviewer/_git/cloudwebviewer) — `tasks/ESCV-xxx-*` → `feat/ESCV-188-section-fixes` → `release/without-sbom`
+  - Dev: https://container.ezcloud.dev.ezcld.net/organization-data
+
+- 이번 주 진행 (11/19 이후)
+  - **[ESCV-215](https://vts.vatech.com/browse/ESCV-215) 전환마다 CT 재다운로드** — 구현·Dev 확인·담당자 확인 완료(11/23). 받은 CT와 최신 prj를 콘텐츠별로 보관해 MPR↔Section 전환 시 재사용. 전환 중 zip 재요청 없음 확인. **PR #16326**(214·213과 함께) 머지, Resolved.
+  - **[ESCV-214](https://vts.vatech.com/browse/ESCV-214) Section 직접 오픈** — 구현·Dev 확인·담당자 확인 완료(11/23), **PR #16326** 머지, Resolved. prj를 읽기 전에는 MPR/Section 탭을 선택 표시하지 않음 → Section으로 저장된 CT는 바로 Section 선택, CT 1회 다운로드(215 재사용).
+  - **[ESCV-213](https://vts.vatech.com/browse/ESCV-213) 다중 시리즈 prj** — 구현·Dev 배포(11/23). Section 볼륨이 Series UID를 읽어 MPR과 같이 해당 시리즈의 DEFAULT_ITEM을 읽고 씀(없으면 첫 항목). 단위 테스트 + 단일 시리즈 회귀 확인. Dev에 다중 시리즈 데이터가 없어 실제 화면 확인은 못 함. PR #16326 머지, Resolved.
+  - **[ESCV-211](https://vts.vatech.com/browse/ESCV-211) CT 다운로드 재시도(호스트)** — **ezcloud PR #16346**(main) 머지·Dev 배포, Resolved. 호스트 `readPresignedResource`에서 응답 없이 끊긴 다운로드만 1초·3초 후 최대 2회 재시도, 모두 실패 시에만 기존 오류 팝업. 4xx/5xx·취소는 재시도 안 함. 단위 테스트 8건. Dev 확인: 첫 다운로드를 강제로 끊으면 1초 뒤 재시도로 팝업 없이 열림, 계속 실패하면 3회 시도 후 기존 팝업.
+  - **[ESCV-216](https://vts.vatech.com/browse/ESCV-216) Panorama/Section 상하 반전 (11/19 신규, Scott 등록)** — 구현·Dev 배포(11/23). Section이 슬라이스를 Instance Number 순으로 쌓아, 번호를 발→머리로 매기는 외부 앱(Ezdent-i, Clever One) CT에서 뒤집힘 → Image Position z 기준(머리 쪽부터)으로 정렬. 기존 CT 회귀 정상. 이슈 샘플로 확인 필요.
+  - **추가로 고친 결함:** 읽기 전용(Edit Disabled) 상태에서 Section으로 저장된 CT의 MPR을 누르면 곧바로 Section으로 되돌아감(ESCV-207에서 들어간 결함) → 사용자가 전환한 화면에는 "마지막 레이아웃으로 열기"를 적용하지 않도록 수정, Dev 확인(215 브랜치에 포함).
+
+- 논의 사항
+  - **R1. Dev 잠금 서버 장애 시 뷰어가 재연결을 무한 반복 (호스트 결함 공유)**
+    - 11/23 Dev 잠금 서버(eslock)가 Redis에 연결하지 못해, 뷰어에 "서버에 연결 중" 창이 3초마다 끝없이 반복되어 CT를 열 수 없었음(인프라는 당일 복구).
+    - **원인:** 호스트 `useLockService`가 소켓이 열리면 재시도 횟수를 0으로 초기화. 이번처럼 연결은 열리고 hello가 오류(-101)로 온 뒤 끊기면 최대 재시도(5회)에 도달하지 못해 "연결 실패" 안내 없이 계속 반복.
+    - **제안:** hello 응답이 정상일 때 성공으로 처리(호스트 수정). 잠금 서버 장애 시 읽기 전용으로라도 열 수 있게 할지는 정책 판단.
+    - **결정 요청:** 호스트 담당 확인·이슈 등록 여부.
+    - **성격:** [정보]
+
+- 공유 사항
+  - **S1. 현재 단계** — `개발자 테스트·수정(ESCV-188)`: 하위 28건 중 26건 Resolved(이번 주 211·213·214·215 — 11/19 결정 4건 완료), 216 진행 중, 197은 Sonya. 남은 1건 ESCV-197은 Sonya 담당.
+
+  - **S2. 이번 주 처리 이슈**
+
+    | 이슈번호 | 유형 | 화면·기능 | 요약 | 상태 |
+    | --- | --- | --- | --- | --- |
+    | [ESCV-215](https://vts.vatech.com/browse/ESCV-215) | 개선 | 레이아웃 전환 | MPR↔Section 전환마다 CT 재다운로드 → 받은 CT·최신 prj 재사용 | ✅ Resolved (PR #16326) |
+    | [ESCV-214](https://vts.vatech.com/browse/ESCV-214) | 개선 | Section 직접 오픈 | MPR 탭이 먼저 보였다가 바뀌고 CT를 두 번 받음 → 레이아웃 결정 전 탭 미선택, CT 1회 | ✅ Resolved (PR #16326) |
+    | [ESCV-213](https://vts.vatech.com/browse/ESCV-213) | 버그 | 다중 시리즈 prj | 시리즈 UID로 프로젝트 선택(MPR과 동일) | ✅ Resolved (PR #16326) |
+    | [ESCV-216](https://vts.vatech.com/browse/ESCV-216) | 버그 | Panorama/Section | 외부 앱 업로드 CT에서 상하 반전 → 슬라이스를 위치 기준으로 정렬 | 🔧 Dev 배포, 샘플 확인 대기 |
+| [ESCV-211](https://vts.vatech.com/browse/ESCV-211) | 개선 | CT 다운로드 | 원본 다운로드 끊김 시 호스트 재시도 | ✅ Resolved (ezcloud PR #16346) |
+
+  - **S3. Dev 환경 메모**
+    - 11/23 잠금 서버(eslock) Redis 연결 장애 → 당일 복구(→ R1).
+    - 로그인 직후 인증 토큰 갱신이 20초가량 지연되는 경우가 있었음(일시적).
+
+- 이월 논의 사항
+
+  | #   | 항목                              | 타입   | 상태 |
+  | --- | --------------------------------- | ------ | ---- |
+  | 1   | 손실압축본 Preview 표시 UI(MPR 공통) | [논의] | 11/19 결정: Scott이 기획과 논의 — 진행 상황 확인 |
+  | 2   | 잠금 서버 장애 시 재연결 무한 반복(호스트) | [정보] | **신규** (→ R1) |
+  | 3   | ESCV-197 MPR 2D Free Draw/Arrow   | [정보] | Sonya 진행 |
+  - **확정·완료(누적):**
+    - 11/19까지: ESCV-188 하위 22건(189~196, 198~210, 212), prj 저장 규칙(D34~D38)
+    - 이번 주: ESCV-213·214·215(PR #16326), ESCV-211(ezcloud PR #16346) — 11/23 머지
+
+---
+
 <!-- 다음 주부터: 위 「작성 규칙」템플릿 블록을 복사해 아래에 # M/D 주간회의 Agenda 를 추가 -->
 
