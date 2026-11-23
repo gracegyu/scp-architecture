@@ -539,7 +539,6 @@
 # Cloud Web Viewer v1.3.2 Section 모듈 — 11/26 주간회의 Agenda
 
 > 이전 주(11/19) 스냅샷은 위에 보존. 아래는 이번 주 최신 스냅샷.
-> 11/19 회의에서 진행하기로 한 4건(ESCV-211·213·214·215)과 추가 버그 ESCV-216까지 5건 모두 머지·Resolved(11/24). ESCV-188의 Section 쪽 하위 이슈는 모두 완료.
 
 - 참조 정보
   - VTS: [ESCV-188](https://vts.vatech.com/browse/ESCV-188) (개발자 테스트)
@@ -547,12 +546,9 @@
   - Dev: https://container.ezcloud.dev.ezcld.net/organization-data
 
 - 이번 주 진행 (11/19 이후)
-  - **[ESCV-215](https://vts.vatech.com/browse/ESCV-215) 전환마다 CT 재다운로드** — 구현·Dev 확인·담당자 확인 완료(11/23). 받은 CT와 최신 prj를 콘텐츠별로 보관해 MPR↔Section 전환 시 재사용. 전환 중 zip 재요청 없음 확인. **PR #16326**(214·213과 함께) 머지, Resolved.
-  - **[ESCV-214](https://vts.vatech.com/browse/ESCV-214) Section 직접 오픈** — 구현·Dev 확인·담당자 확인 완료(11/23), **PR #16326** 머지, Resolved. prj를 읽기 전에는 MPR/Section 탭을 선택 표시하지 않음 → Section으로 저장된 CT는 바로 Section 선택, CT 1회 다운로드(215 재사용).
-  - **[ESCV-213](https://vts.vatech.com/browse/ESCV-213) 다중 시리즈 prj** — 구현·Dev 배포(11/23). Section 볼륨이 Series UID를 읽어 MPR과 같이 해당 시리즈의 DEFAULT_ITEM을 읽고 씀(없으면 첫 항목). 단위 테스트 + 단일 시리즈 회귀 확인. Dev에 다중 시리즈 데이터가 없어 실제 화면 확인은 못 함. PR #16326 머지, Resolved.
-  - **[ESCV-211](https://vts.vatech.com/browse/ESCV-211) CT 다운로드 재시도(호스트)** — **ezcloud PR #16346**(main) 머지·Dev 배포, Resolved. 호스트 `readPresignedResource`에서 응답 없이 끊긴 다운로드만 1초·3초 후 최대 2회 재시도, 모두 실패 시에만 기존 오류 팝업. 4xx/5xx·취소는 재시도 안 함. 단위 테스트 8건. Dev 확인: 첫 다운로드를 강제로 끊으면 1초 뒤 재시도로 팝업 없이 열림, 계속 실패하면 3회 시도 후 기존 팝업.
-  - **[ESCV-216](https://vts.vatech.com/browse/ESCV-216) Panorama/Section 상하 반전 (11/19 신규, Ruby 등록)** — 구현·Dev 배포(11/23). Section이 슬라이스를 Instance Number 순으로 쌓아, 번호를 발→머리로 매기는 외부 앱(Ezdent-i, Clever One) CT에서 뒤집힘 → Image Position z 기준(머리 쪽부터)으로 정렬. 기존 CT 회귀 정상. 이슈 재현 CT(QA 서버 → Dev 재업로드)로 Sonya 확인 완료(11/23). **PR #16355** 머지(11/24), Resolved.
-  - **추가로 고친 결함:** 읽기 전용(Edit Disabled) 상태에서 Section으로 저장된 CT의 MPR을 누르면 곧바로 Section으로 되돌아감(ESCV-207에서 들어간 결함) → 사용자가 전환한 화면에는 "마지막 레이아웃으로 열기"를 적용하지 않도록 수정, Dev 확인(215 브랜치에 포함).
+  - 11/19 회의에서 진행하기로 한 4건(ESCV-211·213·214·215) 완료 — 이슈별 내용은 S2.
+  - 추가 버그 ESCV-216(외부 앱 CT 상하 반전) 완료 — S2. → ESCV-188의 Section 쪽 하위 이슈는 모두 완료.
+  - 결정 기록: OnePager 1.87 §12-D39~D42·§3.4, HANDOFF §6 갱신.
 
 - 논의 사항
   - **R1. Dev 잠금 서버 장애 시 뷰어가 재연결을 무한 반복 (호스트 결함 공유)**
@@ -565,15 +561,16 @@
 - 공유 사항
   - **S1. 현재 단계** — `개발자 테스트·수정(ESCV-188)`: 하위 28건 중 27건 Resolved(이번 주 211·213·214·215·216), 남은 1건 ESCV-197(MPR 2D Free Draw/Arrow)은 Sonya 담당.
 
-  - **S2. 이번 주 처리 이슈**
+  - **S2. 이번 주 처리 이슈** (모두 Dev 확인 후 머지·Resolved)
 
-    | 이슈번호 | 유형 | 화면·기능 | 요약 | 상태 |
-    | --- | --- | --- | --- | --- |
-    | [ESCV-215](https://vts.vatech.com/browse/ESCV-215) | 개선 | 레이아웃 전환 | MPR↔Section 전환마다 CT 재다운로드 → 받은 CT·최신 prj 재사용 | ✅ Resolved (PR #16326) |
-    | [ESCV-214](https://vts.vatech.com/browse/ESCV-214) | 개선 | Section 직접 오픈 | MPR 탭이 먼저 보였다가 바뀌고 CT를 두 번 받음 → 레이아웃 결정 전 탭 미선택, CT 1회 | ✅ Resolved (PR #16326) |
-    | [ESCV-213](https://vts.vatech.com/browse/ESCV-213) | 버그 | 다중 시리즈 prj | 시리즈 UID로 프로젝트 선택(MPR과 동일) | ✅ Resolved (PR #16326) |
-    | [ESCV-216](https://vts.vatech.com/browse/ESCV-216) | 버그 | Panorama/Section | 외부 앱 업로드 CT에서 상하 반전 → 슬라이스를 위치 기준으로 정렬 | ✅ Resolved (PR #16355) |
-    | [ESCV-211](https://vts.vatech.com/browse/ESCV-211) | 개선 | CT 다운로드 | 원본 다운로드 끊김 시 호스트 재시도 | ✅ Resolved (ezcloud PR #16346) |
+    | 이슈번호 | 유형 | 화면·기능 | 내용 | 확인 | PR |
+    | --- | --- | --- | --- | --- | --- |
+    | [ESCV-215](https://vts.vatech.com/browse/ESCV-215) | 개선 | 레이아웃 전환 | MPR↔Section 전환마다 CT를 다시 받음 → 받은 CT·최신 prj를 콘텐츠별로 보관해 재사용 | 전환 중 zip 재요청 없음 | #16326 |
+    | [ESCV-214](https://vts.vatech.com/browse/ESCV-214) | 개선 | Section 직접 오픈 | MPR 탭이 먼저 보였다 바뀌고 CT를 두 번 받음 → prj를 읽기 전에는 탭 미선택, CT 1회(215 재사용) | Section 저장 CT는 바로 Section, MPR 저장 CT는 MPR | #16326 |
+    | [ESCV-213](https://vts.vatech.com/browse/ESCV-213) | 버그 | 다중 시리즈 prj | Section이 첫 DEFAULT_ITEM 사용 → Series UID로 해당 시리즈 프로젝트 선택(MPR과 동일) | 단위 테스트·단일 시리즈 회귀(Dev에 다중 시리즈 데이터 없음) | #16326 |
+    | [ESCV-216](https://vts.vatech.com/browse/ESCV-216) | 버그 | Panorama/Section | 외부 앱(Ezdent-i, Clever One) CT에서 상하 반전 — 슬라이스를 Instance Number 순으로 쌓던 문제 → 위치(z) 기준 정렬. 11/19 신규, Ruby 등록 | 재현 CT(QA→Dev 재업로드) Sonya 확인 | #16355 |
+    | [ESCV-211](https://vts.vatech.com/browse/ESCV-211) | 개선 | CT 다운로드(호스트) | 다운로드가 끊기면 바로 오류 팝업 → 응답 없이 끊긴 요청만 1초·3초 후 최대 2회 재시도, 모두 실패 시 기존 팝업 | 강제 끊김 → 재시도로 팝업 없이 열림 | ezcloud #16346 |
+    | (215에 포함) | 버그 | 레이아웃 전환 | 읽기 전용에서 Section 저장 CT의 MPR을 누르면 곧바로 Section으로 되돌아감(ESCV-207에서 유입) → 사용자 전환 화면에는 마지막 레이아웃 열기 미적용 | MPR 유지 | #16326 |
 
   - **S3. Dev 환경 메모**
     - 11/23 잠금 서버(eslock) Redis 연결 장애 → 당일 복구(→ R1).
